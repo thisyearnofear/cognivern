@@ -10,23 +10,24 @@ export async function initializeClients(
 ) {
   const clients = [];
   const clientTypes = character.clients?.map((str) => str.toLowerCase()) || [];
-
+  const compatibleRuntime = runtime as any;
   if (clientTypes.includes("auto")) {
-    const autoClient = await AutoClientInterface.start(runtime);
+    
+    const autoClient = await AutoClientInterface.start(compatibleRuntime);
     if (autoClient) clients.push(autoClient);
   }
 
   if (clientTypes.includes("discord")) {
-    clients.push(await DiscordClientInterface.start(runtime));
+    clients.push(await DiscordClientInterface.start(compatibleRuntime));
   }
 
   if (clientTypes.includes("telegram")) {
-    const telegramClient = await TelegramClientInterface.start(runtime);
+    const telegramClient = await TelegramClientInterface.start(compatibleRuntime);
     if (telegramClient) clients.push(telegramClient);
   }
 
   if (clientTypes.includes("twitter")) {
-    const twitterClients = await TwitterClientInterface.start(runtime);
+    const twitterClients = await TwitterClientInterface.start(compatibleRuntime);
     clients.push(twitterClients);
   }
 
