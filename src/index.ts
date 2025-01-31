@@ -91,7 +91,8 @@ async function startAgent(character: Character, directClient: DirectClient) {
 
     runtime.clients = await initializeClients(character, runtime);
 
-    directClient.registerAgent(runtime);
+    const compatibleRuntime = runtime as any;
+    directClient.registerAgent(compatibleRuntime);
 
     // report to console
     elizaLogger.debug(`Started ${character.name} as ${runtime.agentId}`);
