@@ -8,7 +8,7 @@ import {
   CreateBucketResult,
   AddObjectResult,
   QueryResult,
-} from "../../../../js-recall/packages/sdk/dist/index.js";
+} from "../../../../js-recall/packages/sdk/dist/index.js"; // to replace with import from recall-sdk
 import { elizaLogger } from "@elizaos/core";
 import { parseEther } from "viem";
 
@@ -160,6 +160,41 @@ export class RecallService {
       return newBucket?.bucket;
     } catch (error) {
       elizaLogger.error(`Error ensuring bucket exists: ${error.message}`);
+      throw error;
+    }
+  }
+
+  public async getOrCreateLogBucket(bucketAlias: string): Promise<Address> {
+    try {
+      // Try to find the bucket by alias
+      const buckets = await this.listBuckets();
+      if (buckets?.result) {
+        const bucket = buckets.result.find(
+          (b) => b.metadata?.alias === bucketAlias
+        );
+        if (bucket) {
+          return bucket.addr; // Return existing bucket address
+        } else {
+          elizaLogger.info(
+            `Bucket with alias ${bucketAlias} not found, creating a new one.`
+          );
+        }
+      }
+
+      // If not found, create a new bucket with the same alias
+      const newBucket = await this.createBucket({ alias: bucketAlias });
+      if (!newBucket) {
+        elizaLogger.error(
+          `Failed to create new bucket with alias: ${bucketAlias}`
+        );
+      }
+
+      elizaLogger.info(`Created new log bucket with alias: ${bucketAlias}`);
+      return newBucket.bucket;
+    } catch (error) {
+      elizaLogger.error(
+        `Error getting or creating log bucket: ${error.message}`
+      );
       throw error;
     }
   }
