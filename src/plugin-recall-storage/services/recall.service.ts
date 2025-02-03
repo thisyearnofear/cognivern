@@ -199,47 +199,51 @@ export class RecallService {
     }
   }
 
+  /**
+   * Writes logs as separate objects with an incrementing key pattern (cot/1.log, cot/2.log, etc.).
+   */
   public async createOrAppendLogs(
     bucketAddress: Address,
-    key: string,
+    prefix: string,
     logs: string
-  ): Promise<
-    | {
-        success: boolean;
-        updatedLogs?: string;
-      }
-    | undefined
-  > {
-    let existingLogs = "";
-
+  ): Promise<{ success: boolean; logKey?: string }> {
     try {
-      // Try fetching the existing log file
-      const result = await this.getObject(bucketAddress, key);
+      // Query existing log keys
+      const queryResult = await this.queryObjects(bucketAddress, { prefix });
 
-      if (result) {
-        existingLogs = new TextDecoder().decode(result); // Convert Uint8Array to string
+      // Find the highest index from existing log files
+      let maxIndex = 0;
+      if (queryResult?.objects.length) {
+        const logIndexes = queryResult.objects
+          .map(({ key }) => {
+            const match = key.match(/^.+\/(\d+)\.log$/);
+            return match ? parseInt(match[1], 10) : null;
+          })
+          .filter((num): num is number => num !== null); // Remove null values
+
+        maxIndex = logIndexes.length ? Math.max(...logIndexes) : 0;
       }
-    } catch (error) {
-      elizaLogger.info(`Log file not found, creating a new one...`);
-    }
 
-    // Append new logs (or create from scratch)
-    const updatedLogs = existingLogs ? `${existingLogs}\n${logs}` : logs;
+      // Determine new log key
+      const nextLogKey = `${prefix}/${maxIndex + 1}.log`;
 
-    try {
-      // Overwrite the log file with the new content
+      // Save new log as a separate object
       const result = await this.addObject(
         bucketAddress,
-        key,
-        new TextEncoder().encode(updatedLogs),
-        { overwrite: true }
+        nextLogKey,
+        new TextEncoder().encode(logs)
       );
+
       if (result) {
-        return { success: true, updatedLogs };
+        elizaLogger.info(`Log stored under key: ${nextLogKey}`);
+        return { success: true, logKey: nextLogKey };
       }
     } catch (error) {
       elizaLogger.error(`Error appending logs: ${error.message}`);
       throw error;
     }
+
+    return { success: false };
   }
 }
+
