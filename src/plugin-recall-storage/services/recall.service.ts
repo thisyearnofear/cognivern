@@ -1,5 +1,5 @@
 import {
-  HokuClient,
+  RecallClient,
   testnet,
   walletClientFromPrivateKey,
   CreditAccount,
@@ -34,7 +34,7 @@ const privateKey = process.env.RECALL_PRIVATE_KEY as `0x${string}`;
 
 export class RecallService {
   private static instance: RecallService;
-  private client: HokuClient;
+  private client: RecallClient;
   private runtime: ICotAgentRuntime;
   private syncInterval: NodeJS.Timeout | undefined;
 
@@ -43,7 +43,7 @@ export class RecallService {
       throw new Error("RECALL_PRIVATE_KEY is required");
     }
     const wallet = walletClientFromPrivateKey(privateKey, testnet);
-    this.client = new HokuClient({ walletClient: wallet });
+    this.client = new RecallClient({ walletClient: wallet });
     this.runtime = runtime;
   }
 
