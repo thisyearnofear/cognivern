@@ -1,4 +1,4 @@
-import { DirectClient } from "@elizaos/client-direct";
+import { DirectClient } from "./client-direct/src/index.ts";
 import {
   AgentRuntime,
   elizaLogger,
@@ -23,6 +23,7 @@ import {
   parseArguments,
 } from "./config/index.ts";
 import { initializeDatabase } from "./database/index.ts";
+import {RecallService} from "./plugin-recall-storage/services/recall.service.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -164,6 +165,11 @@ const startAgents = async () => {
   if (serverPort !== parseInt(settings.SERVER_PORT || "3000")) {
     elizaLogger.log(`Server started on alternate port ${serverPort}`);
   }
+
+  // const service = RecallService.getInstance();
+  // // await service.buyCredit("0.1")
+  // const res = await service.getOrCreateLogBucket("Elizaa");
+  // elizaLogger.log("Objects info:", res);
 
   const isDaemonProcess = process.env.DAEMON_PROCESS === "true";
   if(!isDaemonProcess) {
