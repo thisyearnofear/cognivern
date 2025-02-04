@@ -9,8 +9,9 @@ import {
   AddObjectResult,
   QueryResult,
 } from "../../../../js-recall/packages/sdk/dist/index.js"; // to replace with import from recall-sdk
-import { elizaLogger } from "@elizaos/core";
+import { elizaLogger, IAgentRuntime, UUID } from "@elizaos/core";
 import { parseEther } from "viem";
+import { ICotAgentRuntime } from "../../types/index.js";
 
 type Address = `0x${string}`;
 type Result<T> = { result: T; error?: string };
@@ -34,17 +35,21 @@ const privateKey = process.env.RECALL_PRIVATE_KEY as `0x${string}`;
 export class RecallService {
   private static instance: RecallService;
   private client: HokuClient;
+  private runtime: ICotAgentRuntime;
+  private syncInterval: NodeJS.Timeout | undefined;
 
-  private constructor() {
+  private constructor(runtime: ICotAgentRuntime) {
     if (!process.env.RECALL_PRIVATE_KEY) {
       throw new Error("RECALL_PRIVATE_KEY is required");
     }
     const wallet = walletClientFromPrivateKey(privateKey, testnet);
     this.client = new HokuClient({ walletClient: wallet });
+    this.runtime = runtime;
   }
-  public static getInstance(): RecallService {
+
+  public static getInstance(runtime: ICotAgentRuntime): RecallService {
     if (!RecallService.instance) {
-      RecallService.instance = new RecallService();
+      RecallService.instance = new RecallService(runtime);
     }
     return RecallService.instance;
   }
@@ -199,51 +204,145 @@ export class RecallService {
     }
   }
 
-  /**
-   * Writes logs as separate objects with an incrementing key pattern (cot/1.log, cot/2.log, etc.).
-   */
-  public async createOrAppendLogs(
-    bucketAddress: Address,
-    prefix: string,
-    logs: string
-  ): Promise<{ success: boolean; logKey?: string }> {
+  async storeBatchToRecall(bucketAddress: Address, batch: string[]): Promise<string | undefined> {
     try {
-      // Query existing log keys
+      // Query existing log keys to determine the next log file index
+      const prefix = "cot";
       const queryResult = await this.queryObjects(bucketAddress, { prefix });
 
-      // Find the highest index from existing log files
+      // Determine the next log index
       let maxIndex = 0;
       if (queryResult?.objects.length) {
         const logIndexes = queryResult.objects
           .map(({ key }) => {
-            const match = key.match(/^.+\/(\d+)\.log$/);
+            const match = key.match(/^cot\/(\d+)\.jsonl$/);
             return match ? parseInt(match[1], 10) : null;
           })
-          .filter((num): num is number => num !== null); // Remove null values
-
+          .filter((num): num is number => num !== null);
         maxIndex = logIndexes.length ? Math.max(...logIndexes) : 0;
       }
 
-      // Determine new log key
-      const nextLogKey = `${prefix}/${maxIndex + 1}.log`;
+      // Construct new log file name
+      const nextLogKey = `cot/${maxIndex + 1}.jsonl`;
 
-      // Save new log as a separate object
+      // Join batch into a single JSONL file
+      const batchData = batch.join("\n");
+
+      // Store in Recall
       const result = await this.addObject(
         bucketAddress,
         nextLogKey,
-        new TextEncoder().encode(logs)
+        new TextEncoder().encode(batchData)
       );
 
       if (result) {
-        elizaLogger.info(`Log stored under key: ${nextLogKey}`);
-        return { success: true, logKey: nextLogKey };
+        elizaLogger.info(`Batched JSONL logs stored under key: ${nextLogKey}`);
+        return nextLogKey;
       }
     } catch (error) {
-      elizaLogger.error(`Error appending logs: ${error.message}`);
+      elizaLogger.error(`Error storing JSONL logs in Recall: ${error.message}`);
+    }
+    return undefined;
+  }
+
+  async syncLogsToRecall(bucketAlias: string, batchSizeKB = 4): Promise<void> {
+    try {
+      const bucketAddress = await this.getOrCreateLogBucket(bucketAlias);
+
+      // Fetch unsynced logs from SQLite
+      const unsyncedLogs = await this.runtime.databaseAdapter.getUnsyncedLogs();
+      if (unsyncedLogs.length === 0) {
+        elizaLogger.info("No unsynced logs to process.");
+        return;
+      }
+
+      let batch: string[] = [];
+      let batchSize = 0; // in bytes
+      let syncedLogIds: UUID[] = [];
+
+      for (const log of unsyncedLogs) {
+        try {
+          // Parse JSON stored in body
+          const parsedLog = JSON.parse(log.body);
+          const jsonlEntry = JSON.stringify({
+            userId: parsedLog.userId,
+            agentId: parsedLog.agentId,
+            userMessage: parsedLog.userMessage,
+            log: parsedLog.log,
+          });
+
+          const logSize = new TextEncoder().encode(jsonlEntry).length; // Get byte size
+
+          if (batchSize + logSize > batchSizeKB * 1024) {
+            // Sync current batch
+            const logFileKey = await this.storeBatchToRecall(bucketAddress, batch);
+            if (logFileKey) {
+              await this.runtime.databaseAdapter.markLogsAsSynced(syncedLogIds);
+            }
+            // Reset batch
+            batch = [];
+            batchSize = 0;
+            syncedLogIds = [];
+          }
+
+          batch.push(jsonlEntry);
+          batchSize += logSize;
+          syncedLogIds.push(log.id);
+        } catch (error) {
+          elizaLogger.error(`Error parsing log entry: ${error.message}`);
+        }
+      }
+
+      // Final batch sync if any remaining
+      if (batch.length > 0) {
+        const logFileKey = await this.storeBatchToRecall(bucketAddress, batch);
+        if (logFileKey) {
+          await this.runtime.databaseAdapter.markLogsAsSynced(syncedLogIds);
+        }
+      }
+
+      elizaLogger.success("All unsynced logs successfully synced to Recall.");
+    } catch (error) {
+      elizaLogger.error(`Error syncing logs to Recall: ${error.message}`);
       throw error;
     }
-
-    return { success: false };
   }
+
+  /**
+     * Starts periodic syncing of logs to Recall every X minutes.
+     * Ensures only one interval runs at a time.
+     */
+  public startPeriodicSync(intervalMs = 10 * 60 * 1000): void {
+    if (this.syncInterval) {
+      elizaLogger.warn("Log sync is already running.");
+      return;
+    }
+
+    elizaLogger.info("Starting periodic log sync...");
+    this.syncInterval = setInterval(async () => {
+      try {
+        await this.syncLogsToRecall("cot-logs");
+      } catch (error) {
+        elizaLogger.error(`Periodic log sync failed: ${error.message}`);
+      }
+    }, intervalMs);
+
+    // Perform an immediate sync on startup
+    this.syncLogsToRecall("cot-logs").catch(error =>
+      elizaLogger.error(`Initial log sync failed: ${error.message}`)
+    );
+  }
+
+  /**
+   * Stops the periodic log syncing.
+   */
+  public stopPeriodicSync(): void {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = undefined;
+      elizaLogger.info("Stopped periodic log syncing.");
+    }
+  }
+
 }
 

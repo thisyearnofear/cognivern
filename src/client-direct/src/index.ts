@@ -32,12 +32,11 @@ import {
     Memory,
     ModelClass,
     Client,
-    IAgentRuntime,
 } from "@elizaos/core";
 import { stringToUuid } from "@elizaos/core";
 import { settings } from "@elizaos/core";
 import { createApiRouter } from "./api.ts";
-import { ICotDatabaseAdapter, ICotAgentRuntime, CotAgentRuntime } from "../../types/index.ts";
+import { ICotAgentRuntime, CotAgentRuntime } from "../../types/index.ts";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -584,10 +583,14 @@ export class DirectClient {
                             userId: memory.userId,
                             agentId: memory.agentId,
                             type: "chain-of-thought",
-                            body: chainOfThoughtText,
+                            body: JSON.stringify(
+                                {
+                                    log: chainOfThoughtText,
+                                    userMessage: text,
+                                }
+                            ),
                             roomId,
                         },
-
                     );
                 }
 

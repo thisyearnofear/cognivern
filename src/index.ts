@@ -23,7 +23,7 @@ import {
   parseArguments,
 } from "./config/index.ts";
 import { initializeDatabase } from "./database/index.ts";
-import {RecallService} from "./plugin-recall-storage/services/recall.service.ts";
+// import {RecallService} from "./plugin-recall-storage/services/recall.service.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
