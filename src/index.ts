@@ -95,6 +95,12 @@ async function startAgent(character: Character, directClient: DirectClient) {
     const compatibleRuntime = runtime as any;
     directClient.registerAgent(compatibleRuntime);
 
+    // test recall service
+    // const service = RecallService.getInstance(compatibleRuntime);
+    // // await service.buyCredit("0.1")
+    // const res = await service.buyCredit("0.1")
+    // console.log("res", res)
+
     // report to console
     elizaLogger.debug(`Started ${character.name} as ${runtime.agentId}`);
 
@@ -165,11 +171,6 @@ const startAgents = async () => {
   if (serverPort !== parseInt(settings.SERVER_PORT || "3000")) {
     elizaLogger.log(`Server started on alternate port ${serverPort}`);
   }
-
-  // const service = RecallService.getInstance();
-  // // await service.buyCredit("0.1")
-  // const res = await service.getOrCreateLogBucket("Elizaa");
-  // elizaLogger.log("Objects info:", res);
 
   const isDaemonProcess = process.env.DAEMON_PROCESS === "true";
   if(!isDaemonProcess) {
