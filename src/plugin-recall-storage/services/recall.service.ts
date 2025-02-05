@@ -5,7 +5,7 @@ import {
   CreditAccount,
   BuyResult,
 } from "../../../../js-recall/packages/sdk/dist/index.js"; // to replace with import from recall-sdk
-import { elizaLogger, UUID } from "@elizaos/core";
+import { elizaLogger, UUID, Service, ServiceType } from "@elizaos/core";
 import { parseEther } from "viem";
 import { ICotAgentRuntime } from "../../types/index.js";
 
@@ -20,26 +20,29 @@ type AccountInfo = {
 const privateKey = process.env.RECALL_PRIVATE_KEY as `0x${string}`;
 
 
-export class RecallService {
-  private static instance: RecallService;
+export class RecallService extends Service {
+  static serviceType: ServiceType = "recall" as ServiceType;
   private client: RecallClient;
   private runtime: ICotAgentRuntime;
   private syncInterval: NodeJS.Timeout | undefined;
 
-  private constructor(runtime: ICotAgentRuntime) {
-    if (!process.env.RECALL_PRIVATE_KEY) {
-      throw new Error("RECALL_PRIVATE_KEY is required");
-    }
-    const wallet = walletClientFromPrivateKey(privateKey, testnet);
-    this.client = new RecallClient({ walletClient: wallet });
-    this.runtime = runtime;
+  getInstance(): RecallService {
+    return RecallService.getInstance();
   }
 
-  public static getInstance(runtime: ICotAgentRuntime): RecallService {
-    if (!RecallService.instance) {
-      RecallService.instance = new RecallService(runtime);
+  async initialize(_runtime: ICotAgentRuntime): Promise<void> {
+    try {
+      if (!process.env.RECALL_PRIVATE_KEY) {
+        throw new Error("RECALL_PRIVATE_KEY is required");
+      }
+      const wallet = walletClientFromPrivateKey(privateKey, testnet);
+      this.client = new RecallClient({ walletClient: wallet });
+      this.runtime = _runtime;
+      await this.startPeriodicSync();
+      elizaLogger.success("RecallService initialized successfully, starting periodic sync.");
+    } catch (error) {
+      elizaLogger.error(`Error initializing RecallService: ${error.message}`);
     }
-    return RecallService.instance;
   }
 
   /**
@@ -291,7 +294,7 @@ export class RecallService {
     * Starts the periodic log syncing.
     * @param intervalMs The interval in milliseconds for syncing logs.
     */
-   
+
   public startPeriodicSync(intervalMs = 2 * 60 * 1000): void {
     if (this.syncInterval) {
       elizaLogger.warn("Log sync is already running.");

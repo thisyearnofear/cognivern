@@ -9,6 +9,7 @@ import {
 import { bootstrapPlugin } from "@elizaos/plugin-bootstrap";
 import { createNodePlugin } from "@elizaos/plugin-node";
 import { solanaPlugin } from "@elizaos/plugin-solana";
+import {recallStoragePlugin} from "./plugin-recall-storage/index.ts";
 import fs from "fs";
 import net from "net";
 import path from "path";
@@ -23,7 +24,6 @@ import {
   parseArguments,
 } from "./config/index.ts";
 import { initializeDatabase } from "./database/index.ts";
-// import {RecallService} from "./plugin-recall-storage/services/recall.service.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,6 +58,7 @@ export function createAgent(
     character,
     plugins: [
       bootstrapPlugin,
+      recallStoragePlugin,
       nodePlugin,
       character.settings?.secrets?.WALLET_PUBLIC_KEY ? solanaPlugin : null,
     ].filter(Boolean),
@@ -94,12 +95,6 @@ async function startAgent(character: Character, directClient: DirectClient) {
 
     const compatibleRuntime = runtime as any;
     directClient.registerAgent(compatibleRuntime);
-
-    // test recall service
-    // const service = RecallService.getInstance(compatibleRuntime);
-    // // await service.buyCredit("0.1")
-    // const res = await service.buyCredit("0.1")
-    // console.log("res", res)
 
     // report to console
     elizaLogger.debug(`Started ${character.name} as ${runtime.agentId}`);
