@@ -561,7 +561,7 @@ export class DirectClient {
                     state,
                     template: messageHandlerTemplate,
                 });
-
+                
                 // Generate text using the chain-of-thought–enabled system prompt.
                 const gen = await generateText({
                     runtime,
