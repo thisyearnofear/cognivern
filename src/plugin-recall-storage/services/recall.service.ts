@@ -19,6 +19,7 @@ type AccountInfo = {
 
 const privateKey = process.env.RECALL_PRIVATE_KEY as `0x${string}`;
 
+
 export class RecallService {
   private static instance: RecallService;
   private client: RecallClient;
@@ -41,6 +42,11 @@ export class RecallService {
     return RecallService.instance;
   }
 
+  /**
+   * Gets the account information for the current user.
+   * @returns The account information.
+   */
+
   public async getAccountInfo(): Promise<AccountInfo> | undefined {
     try {
       const info = await this.client.accountManager().info();
@@ -50,6 +56,11 @@ export class RecallService {
       throw error;
     }
   }
+
+  /**
+   * Gets the credit information for the account.
+   * @returns The credit information.
+   */
 
   public async getCreditInfo(): Promise<CreditAccount> | undefined {
     try {
@@ -61,6 +72,12 @@ export class RecallService {
     }
   }
 
+  /**
+   * Buys credit for the account.
+   * @param amount The amount of credit to buy.
+   * @returns The result of the buy operation.
+   */
+
   public async buyCredit(amount: string): Promise<BuyResult> | undefined {
     try {
       const info = await this.client.creditManager().buy(parseEther(amount));
@@ -70,6 +87,12 @@ export class RecallService {
       throw error;
     }
   }
+
+  /**
+   * Gets or creates a log bucket in Recall.
+   * @param bucketAlias The alias of the bucket to retrieve or create.
+   * @returns The address of the log bucket.
+   */
 
   public async getOrCreateLogBucket(bucketAlias: string): Promise<Address> {
     try {
@@ -107,6 +130,13 @@ export class RecallService {
     }
   }
 
+  /**
+   * Stores a batch of logs to Recall.
+   * @param bucketAddress The address of the bucket to store logs.
+   * @param batch The batch of logs to store.
+   * @returns The key under which the logs were stored.
+   */
+
   async storeBatchToRecall(bucketAddress: Address, batch: string[]): Promise<string | undefined> {
     try {
       // Query existing log keys to determine the next log file index
@@ -130,6 +160,12 @@ export class RecallService {
     }
     return undefined;
   }
+
+  /**
+   * Syncs logs to Recall in batches.
+   * @param bucketAlias The alias of the bucket to store logs.
+   * @param batchSizeKB The maximum size of each batch in kilobytes.
+   */
 
   async syncLogsToRecall(bucketAlias: string, batchSizeKB = 4): Promise<void> {
     try {
@@ -194,6 +230,12 @@ export class RecallService {
     }
   }
 
+  /**
+   * Retrieve and order all chain-of-thought logs from Recall.
+   * @param bucketAlias The alias of the bucket to query.
+   * @returns An array of ordered chain-of-thought logs.
+   */
+
   async retrieveOrderedChainOfThoughtLogs(bucketAlias: string): Promise<any[]> {
     try {
       const bucketAddress = await this.getOrCreateLogBucket(bucketAlias);
@@ -246,9 +288,10 @@ export class RecallService {
 
 
   /**
-     * Starts periodic syncing of logs to Recall every X minutes.
-     * Ensures only one interval runs at a time.
-     */
+    * Starts the periodic log syncing.
+    * @param intervalMs The interval in milliseconds for syncing logs.
+    */
+   
   public startPeriodicSync(intervalMs = 2 * 60 * 1000): void {
     if (this.syncInterval) {
       elizaLogger.warn("Log sync is already running.");
