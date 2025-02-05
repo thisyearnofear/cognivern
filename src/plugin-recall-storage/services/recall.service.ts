@@ -194,6 +194,57 @@ export class RecallService {
     }
   }
 
+  async retrieveOrderedChainOfThoughtLogs(bucketAlias: string): Promise<any[]> {
+    try {
+      const bucketAddress = await this.getOrCreateLogBucket(bucketAlias);
+
+      // Query all objects with "cot/" prefix
+      const queryResult = await this.client.bucketManager().query(bucketAddress, { prefix: "cot/" });
+      if (!queryResult.result?.objects.length) {
+        elizaLogger.info(`No chain-of-thought logs found in bucket: ${bucketAlias}`);
+        return [];
+      }
+
+      // Extract log filenames and sort by timestamp
+      const logFiles = queryResult.result.objects
+        .map(obj => obj.key)
+        .filter(key => key.match(/^cot\/\d+\.jsonl$/)) // Ensure correct format
+        .sort((a, b) => {
+          // Extract timestamps and sort numerically
+          const timeA = parseInt(a.match(/^cot\/(\d+)\.jsonl$/)?.[1] || "0", 10);
+          const timeB = parseInt(b.match(/^cot\/(\d+)\.jsonl$/)?.[1] || "0", 10);
+          return timeA - timeB;
+        });
+
+      elizaLogger.info(`Retrieving ${logFiles.length} ordered chain-of-thought logs...`);
+
+      let allLogs: any[] = [];
+
+      // Download and parse each log file
+      for (const logFile of logFiles) {
+        try {
+          const logData = await this.client.bucketManager().get(bucketAddress, logFile);
+          if (!logData.result) continue;
+
+          // Decode and split JSONL content
+          const decodedLogs = new TextDecoder().decode(logData.result).trim().split("\n");
+          const parsedLogs = decodedLogs.map(line => JSON.parse(line));
+
+
+          allLogs.push(...parsedLogs);
+        } catch (error) {
+          elizaLogger.error(`Error retrieving log file ${logFile}: ${error.message}`);
+        }
+      }
+      elizaLogger.info(`Successfully retrieved and ordered ${allLogs.length} chain-of-thought logs.`);
+      return allLogs;
+    } catch (error) {
+      elizaLogger.error(`Error retrieving ordered chain-of-thought logs: ${error.message}`);
+      throw error;
+    }
+  }
+
+
   /**
      * Starts periodic syncing of logs to Recall every X minutes.
      * Ensures only one interval runs at a time.
