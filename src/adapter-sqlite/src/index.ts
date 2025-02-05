@@ -489,7 +489,7 @@ export class SqliteDatabaseAdapter
     }
 
     async getUnsyncedLogs(): Promise<{ id: UUID; body: string }[]> {
-        const sql = "SELECT id, body FROM logs WHERE isSynced = 0 ORDER BY createdAt ASC";
+        const sql = "SELECT id, type, body FROM logs WHERE isSynced = 0 ORDER BY createdAt ASC";
         return this.db.prepare(sql).all() as { id: UUID; body: string }[];
     }
 

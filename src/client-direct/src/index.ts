@@ -577,6 +577,9 @@ export class DirectClient {
                     // Extract the chain-of-thought portion and the final answer separately.
                     chainOfThoughtText = parts[0].trim();
 
+                    // Remove <chain-of-thought> and </chain-of-thought>
+                    chainOfThoughtText = chainOfThoughtText.replace(/<\/?chain-of-thought>/g, "").trim();
+
                     // write chain-of-thought to database
                     await runtime.databaseAdapter.logMemory(
                         {
