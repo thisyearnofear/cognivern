@@ -630,6 +630,8 @@ export class DirectClient {
 
                 await runtime.evaluate(memory, state);
 
+                await runtime.composeState(memory, state);
+
                 // Check if we should suppress the initial message
                 const action = runtime.actions.find((a) => a.name === responseMessage.content.action);
                 const shouldSuppressInitialMessage = action?.suppressInitialMessage;

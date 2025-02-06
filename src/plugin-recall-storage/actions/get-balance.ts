@@ -7,8 +7,10 @@ import {
     type ActionExample,
     elizaLogger,
     ServiceType,
+    Content,
 } from "@elizaos/core";
 import { RecallService } from "../services/recall.service";
+import { randomUUID } from "crypto";
 
 const balanceKeywords = [
     "balance",
@@ -47,7 +49,7 @@ export const getCreditBalanceAction: Action = {
             return false;
         }
 
-        elizaLogger.info(`GET_CREDIT_BALANCE Validation Passed!`);
+        elizaLogger.info("GET_CREDIT_BALANCE Validation Passed!");
         return true;
     },
     description: "Checks the user's Recall credit balance",
@@ -57,30 +59,54 @@ export const getCreditBalanceAction: Action = {
         state: State,
         _options: { [key: string]: unknown },
         callback?: HandlerCallback
-    ): Promise<boolean> => {
+    ): Promise<Content> => {
         const recallService = runtime.services.get("recall" as ServiceType) as RecallService;
+        let text = "";
 
         try {
+            if (!state) {
+                state = (await runtime.composeState(message)) as State;
+            } else {
+                state = await runtime.updateRecentMessageState(state);
+            }
             elizaLogger.info("Fetching credit balance...");
             const balanceInfo = await recallService.getCreditInfo();
 
-            if (balanceInfo) {
-                const balance = balanceInfo.creditFree || "Unknown"; // Default to "Unknown" if missing
+            if (balanceInfo?.creditFree !== undefined) {
+                const balance = balanceInfo.creditFree.toString(); // Ensure it's a string
                 elizaLogger.info(`Credit Balance Retrieved: ${balance}`);
-                callback?.({
-                    text: `💰 Your current Recall credit balance is **${balance} credits**.`,
-                    action: "GET_CREDIT_BALANCE",
-                });
+
+                text = `💰 Your current Recall credit balance is **${balance} credits**.`;
             } else {
                 elizaLogger.error("GET_CREDIT_BALANCE failed: No balance info received.");
-                callback?.({ text: "⚠️ Unable to retrieve your credit balance. Please try again later." });
+                text = "⚠️ Unable to retrieve your credit balance. Please try again later.";
             }
         } catch (error) {
             elizaLogger.error(`GET_CREDIT_BALANCE error: ${error.message}`);
-            callback?.({ text: "⚠️ An error occurred while fetching your credit balance. Please try again later." });
+            text = "⚠️ An error occurred while fetching your credit balance. Please try again later.";
         }
 
-        return true;
+        // Create a new memory entry for the response
+        const newMemory: Memory = {
+            ...message,
+            id: randomUUID(),
+            userId: message.agentId,
+            content: {
+                text,
+                action: "GET_CREDIT_BALANCE",
+                source: message.content.source,
+            },
+        };
+
+        // Save to memory
+        await runtime.messageManager.createMemory(newMemory);
+
+        // Call callback AFTER saving memory
+        callback?.({
+            text
+        });
+
+        return newMemory.content;
     },
     examples: [
         [
