@@ -7,9 +7,7 @@ import {
     type ActionExample,
     elizaLogger,
     ServiceType,
-    Content,
 } from "@elizaos/core";
-import { randomUUID } from "crypto";
 import { RecallService } from "../services/recall.service";
 
 const keywords = [
@@ -71,15 +69,16 @@ export const buyCreditAction: Action = {
         state: State,
         _options: { [key: string]: unknown },
         callback?: HandlerCallback
-    ): Promise<Content> => {
+    ): Promise<boolean> => {
         const recallService = runtime.services.get("recall" as ServiceType) as RecallService;
         let text = "";
 
         try {
-            if (!state) {
-                state = (await runtime.composeState(message)) as State;
+            let currentState = state;
+            if (!currentState) {
+                currentState = (await runtime.composeState(message)) as State;
             } else {
-                state = await runtime.updateRecentMessageState(state);
+                currentState = await runtime.updateRecentMessageState(currentState);
             }
             elizaLogger.info(`BUY_CREDIT Handler: ${message.content.text}`);
             const amountMatch = message.content.text.trim().match(/([\d.]+)/);
@@ -115,7 +114,6 @@ export const buyCreditAction: Action = {
         // Create a new memory entry for the response
         const newMemory: Memory = {
             ...message,
-            id: randomUUID(),
             userId: message.agentId,
             content: {
                 text,
@@ -132,7 +130,7 @@ export const buyCreditAction: Action = {
             text
         });
 
-        return newMemory.content;
+        return true;
     },
     examples: [
         [
