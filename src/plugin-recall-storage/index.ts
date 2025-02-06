@@ -6,6 +6,8 @@ import { getCreditBalanceAction } from "./actions/get-balance.ts";
 import { getAccountInfoAction } from "./actions/get-account.ts";
 import { listBucketsAction } from "./actions/list-buckets.ts";
 import { createBucketAction } from "./actions/create-bucket.ts";
+import { addObjectAction } from "./actions/add-object.ts";
+import { getObjectAction } from "./actions/get-object.ts";
 
 export const recallStoragePlugin: Plugin = {
   name: "Recall Storage Plugin",
@@ -14,6 +16,8 @@ export const recallStoragePlugin: Plugin = {
             getCreditBalanceAction, 
             getAccountInfoAction, 
             listBucketsAction, 
+            addObjectAction,
+            getObjectAction,
             createBucketAction],
   //   evaluators: [knowledgeEvaluator],
   providers: [recallCotProvider],
