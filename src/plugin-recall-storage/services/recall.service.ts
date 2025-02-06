@@ -4,6 +4,7 @@ import {
   walletClientFromPrivateKey,
   CreditAccount,
   BuyResult,
+  ListResult,
 } from "../../../../js-recall/packages/sdk/dist/index.js"; // to replace with import from recall-sdk
 import { elizaLogger, UUID, Service, ServiceType } from "@elizaos/core";
 import { parseEther } from "viem";
@@ -39,10 +40,10 @@ export class RecallService extends Service {
       if (!process.env.RECALL_PRIVATE_KEY) {
         throw new Error("RECALL_PRIVATE_KEY is required");
       }
-      if(!process.env.RECALL_BUCKET_ALIAS) {
+      if (!process.env.RECALL_BUCKET_ALIAS) {
         throw new Error("RECALL_BUCKET_ALIAS is required");
       }
-      if(!process.env.COT_LOG_PREFIX) {
+      if (!process.env.COT_LOG_PREFIX) {
         throw new Error("COT_LOG_PREFIX is required");
       }
       const wallet = walletClientFromPrivateKey(privateKey, testnet);
@@ -67,6 +68,21 @@ export class RecallService extends Service {
       return info.result;
     } catch (error) {
       elizaLogger.error(`Error getting account info: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Lists all buckets in Recall.
+   * @returns The list of buckets.
+   */
+
+  public async listBuckets(): Promise<ListResult> | undefined {
+    try {
+      const info = await this.client.bucketManager().list();
+      return info.result;
+    } catch (error) {
+      elizaLogger.error(`Error listing buckets: ${error.message}`);
       throw error;
     }
   }
