@@ -19,6 +19,8 @@ This plugin integrates **Recall storage** with Eliza AI agents, providing persis
 3. **Retrieving Thought Logs for Context:** Before each inference cycle, thought logs are retrieved and injected into the agent's state.
 4. **Efficient Storage Management:** The agent can create, list, add, and retrieve objects within Recall buckets.
 
+This starter kit also uses a modified `DirectClient` specifically built to extract chain-of-thought logs.
+
 ### **🔄 Flow of Operations**
 
 - 1️⃣ User requests an action (e.g., "Create a bucket named 'logs'"), or simply sends a query to the agent.
