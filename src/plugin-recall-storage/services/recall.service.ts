@@ -124,7 +124,7 @@ export class RecallService extends Service {
    * @returns The address of the log bucket.
    */
 
-  public async getOrCreateLogBucket(bucketAlias: string): Promise<Address> {
+  public async getOrCreateBucket(bucketAlias: string): Promise<Address> {
     try {
       // Try to find the bucket by alias
       const buckets = await this.client.bucketManager().list();
@@ -199,7 +199,7 @@ export class RecallService extends Service {
 
   async syncLogsToRecall(bucketAlias: string, batchSizeKB = 4): Promise<void> {
     try {
-      const bucketAddress = await this.getOrCreateLogBucket(bucketAlias);
+      const bucketAddress = await this.getOrCreateBucket(bucketAlias);
 
       // Fetch unsynced logs from SQLite
       const unsyncedLogs = await this.runtime.databaseAdapter.getUnsyncedLogs();
@@ -268,7 +268,7 @@ export class RecallService extends Service {
 
   async retrieveOrderedChainOfThoughtLogs(bucketAlias: string): Promise<any[]> {
     try {
-      const bucketAddress = await this.getOrCreateLogBucket(bucketAlias);
+      const bucketAddress = await this.getOrCreateBucket(bucketAlias);
       elizaLogger.info(`Retrieving chain-of-thought logs from bucket: ${bucketAddress}`);
 
       // Query all objects with the designated prefix
