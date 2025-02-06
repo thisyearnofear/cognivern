@@ -7,9 +7,10 @@ import {
     type ActionExample,
     elizaLogger,
     ServiceType,
+    Content,
 } from "@elizaos/core";
+import { randomUUID } from "crypto";
 import { RecallService } from "../services/recall.service";
-import e from "cors";
 
 const keywords = [
     "buy",
@@ -19,11 +20,12 @@ const keywords = [
     "add",
     "add credit",
     "add credits",
-]
+];
 
 export const buyCreditAction: Action = {
     name: "BUY_CREDIT",
-    similes: ["BUY_CREDIT",
+    similes: [
+        "BUY_CREDIT",
         "buy credit",
         "buy credits",
         "purchase credit",
@@ -35,7 +37,8 @@ export const buyCreditAction: Action = {
         "PURCHASE_CREDIT",
         "BUY RECALL CREDITS",
         "GET MORE CREDITS",
-        "RECHARGE ACCOUNT"],
+        "RECHARGE ACCOUNT",
+    ],
     validate: async (_runtime: IAgentRuntime, message: Memory) => {
         const text = message.content.text.toLowerCase();
         const amountMatch = text.match(/([\d.]+)/);
@@ -68,44 +71,68 @@ export const buyCreditAction: Action = {
         state: State,
         _options: { [key: string]: unknown },
         callback?: HandlerCallback
-    ): Promise<boolean> => {
+    ): Promise<Content> => {
         const recallService = runtime.services.get("recall" as ServiceType) as RecallService;
-        elizaLogger.info(`BUY_CREDIT Handler: ${message.content.text}`);
-        const text = message.content.text.trim();
-        const amountMatch = text.match(/([\d.]+)/);
-        if (!amountMatch) {
-            callback?.({ text: "Invalid credit request. Please specify an amount." });
-            return false;
-        }
-
-        const amount = parseFloat(amountMatch[1]);
-        if (isNaN(amount) || amount <= 0) {
-            callback?.({ text: "Invalid credit amount. Please enter a number greater than 0." });
-            return false;
-        }
+        let text = "";
 
         try {
-            elizaLogger.info(`Attempting to purchase ${amount} credits...`);
-
-            // Call RecallService to buy credit
-            const result = await recallService.buyCredit(amount.toString());
-
-            if (result) {
-                elizaLogger.info(`Successfully purchased ${amount} credits.`);
-                callback?.({
-                    text: `✅ Successfully purchased ${amount} Recall credits!`,
-                    action: "BUY_CREDIT",
-                });
+            if (!state) {
+                state = (await runtime.composeState(message)) as State;
             } else {
-                elizaLogger.error("BUY_CREDIT failed: No response from RecallService.");
-                callback?.({ text: "❌ Credit purchase failed. Please try again later." });
+                state = await runtime.updateRecentMessageState(state);
+            }
+            elizaLogger.info(`BUY_CREDIT Handler: ${message.content.text}`);
+            const amountMatch = message.content.text.trim().match(/([\d.]+)/);
+
+            if (!amountMatch) {
+                text = "❌ Invalid credit request. Please specify an amount.";
+                elizaLogger.error("BUY_CREDIT failed: No amount provided.");
+            } else {
+                const amount = parseFloat(amountMatch[1]);
+                if (isNaN(amount) || amount <= 0) {
+                    text = "❌ Invalid credit amount. Please enter a number greater than 0.";
+                    elizaLogger.error("BUY_CREDIT failed: Invalid amount.");
+                } else {
+                    elizaLogger.info(`Attempting to purchase ${amount} credits...`);
+
+                    // Call RecallService to buy credit
+                    const result = await recallService.buyCredit(amount.toString());
+
+                    if (result) {
+                        text = `✅ Successfully purchased ${amount} Recall credits!`;
+                        elizaLogger.info(`BUY_CREDIT success: ${amount} credits added.`);
+                    } else {
+                        text = "❌ Credit purchase failed. Please try again later.";
+                        elizaLogger.error("BUY_CREDIT failed: No response from RecallService.");
+                    }
+                }
             }
         } catch (error) {
+            text = "⚠️ An error occurred while purchasing credits. Please try again later.";
             elizaLogger.error(`BUY_CREDIT error: ${error.message}`);
-            callback?.({ text: "⚠️ An error occurred while purchasing credits. Please try again later." });
         }
 
-        return true;
+        // Create a new memory entry for the response
+        const newMemory: Memory = {
+            ...message,
+            id: randomUUID(),
+            userId: message.agentId,
+            content: {
+                text,
+                action: "BUY_CREDIT",
+                source: message.content.source,
+            },
+        };
+
+        // Save to memory
+        await runtime.messageManager.createMemory(newMemory);
+
+        // Call callback AFTER saving memory
+        await callback?.({
+            text
+        });
+
+        return newMemory.content;
     },
     examples: [
         [
@@ -149,3 +176,4 @@ export const buyCreditAction: Action = {
         ],
     ] as ActionExample[][],
 };
+
