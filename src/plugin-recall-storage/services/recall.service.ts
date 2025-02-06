@@ -18,6 +18,8 @@ type AccountInfo = {
 };
 
 const privateKey = process.env.RECALL_PRIVATE_KEY as `0x${string}`;
+const alias = process.env.RECALL_BUCKET_ALIAS as string;
+const prefix = process.env.COT_LOG_PREFIX as string;
 
 
 export class RecallService extends Service {
@@ -25,6 +27,8 @@ export class RecallService extends Service {
   private client: RecallClient;
   private runtime: ICotAgentRuntime;
   private syncInterval: NodeJS.Timeout | undefined;
+  private alias: string;
+  private prefix: string;
 
   getInstance(): RecallService {
     return RecallService.getInstance();
@@ -35,8 +39,15 @@ export class RecallService extends Service {
       if (!process.env.RECALL_PRIVATE_KEY) {
         throw new Error("RECALL_PRIVATE_KEY is required");
       }
+      if(!process.env.RECALL_BUCKET_ALIAS) {
+        throw new Error("RECALL_BUCKET_ALIAS is required");
+      }
+      if(!process.env.COT_LOG_PREFIX) {
+        throw new Error("COT_LOG_PREFIX is required");
+      }
       const wallet = walletClientFromPrivateKey(privateKey, testnet);
       this.client = new RecallClient({ walletClient: wallet });
+      this.alias = alias;
       this.runtime = _runtime;
       await this.startPeriodicSync();
       elizaLogger.success("RecallService initialized successfully, starting periodic sync.");
@@ -145,7 +156,7 @@ export class RecallService extends Service {
       // Query existing log keys to determine the next log file index
       // Generate a unique filename using timestamp instead of an incrementing index
       const timestamp = Date.now();
-      const nextLogKey = `cot/${timestamp}.jsonl`;
+      const nextLogKey = `${this.prefix}${timestamp}.jsonl`;
 
       // Join batch into a single JSONL file
       const batchData = batch.join("\n");
@@ -242,9 +253,10 @@ export class RecallService extends Service {
   async retrieveOrderedChainOfThoughtLogs(bucketAlias: string): Promise<any[]> {
     try {
       const bucketAddress = await this.getOrCreateLogBucket(bucketAlias);
+      elizaLogger.info(`Retrieving chain-of-thought logs from bucket: ${bucketAddress}`);
 
-      // Query all objects with "cot/" prefix
-      const queryResult = await this.client.bucketManager().query(bucketAddress, { prefix: "cot/" });
+      // Query all objects with the designated prefix
+      const queryResult = await this.client.bucketManager().query(bucketAddress, { prefix: `${this.prefix}/` });
       if (!queryResult.result?.objects.length) {
         elizaLogger.info(`No chain-of-thought logs found in bucket: ${bucketAlias}`);
         return [];
@@ -304,14 +316,14 @@ export class RecallService extends Service {
     elizaLogger.info("Starting periodic log sync...");
     this.syncInterval = setInterval(async () => {
       try {
-        await this.syncLogsToRecall("cot-new");
+        await this.syncLogsToRecall(this.alias);
       } catch (error) {
         elizaLogger.error(`Periodic log sync failed: ${error.message}`);
       }
     }, intervalMs);
 
     // Perform an immediate sync on startup
-    this.syncLogsToRecall("cot-new").catch(error =>
+    this.syncLogsToRecall(this.alias).catch(error =>
       elizaLogger.error(`Initial log sync failed: ${error.message}`)
     );
   }
