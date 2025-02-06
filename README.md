@@ -21,10 +21,10 @@ This plugin integrates **Recall storage** with Eliza AI agents, providing persis
 
 ### **🔄 Flow of Operations**
 
-1️⃣ User requests an action (e.g., "Create a bucket named 'logs'"), or simply sends a query to the agent.
-2️⃣ The **RecallService** processes the request and interacts with the Recall API if an action has been invoked.
-3️⃣ Chain-of-thought logs are stored and periodically synced using the modified database structure.
-4️⃣ The **Recall Provider** fetches chain-of-thought logs before each agent loop.
+- 1️⃣ User requests an action (e.g., "Create a bucket named 'logs'"), or simply sends a query to the agent.
+- 2️⃣ The **RecallService** processes the request and interacts with the Recall API if an action has been invoked.
+- 3️⃣ Chain-of-thought logs are stored and periodically synced using the modified database structure.
+- 4️⃣ The **Recall Provider** fetches chain-of-thought logs before each agent loop.
 
 ## 📌 Actions
 
