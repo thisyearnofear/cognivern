@@ -15,7 +15,6 @@ const keywords = [
     "credit",
     "credits",
     "purchase",
-    "add",
     "add credit",
     "add credits",
 ];
@@ -40,8 +39,6 @@ export const buyCreditAction: Action = {
     validate: async (_runtime: IAgentRuntime, message: Memory) => {
         const text = message.content.text.toLowerCase();
         const amountMatch = text.match(/([\d.]+)/);
-
-        elizaLogger.info(`BUY_CREDIT Validation: Extracted amount: ${amountMatch ? amountMatch[1] : "None"}`);
 
         if (!amountMatch) {
             return false;
