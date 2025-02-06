@@ -7,10 +7,8 @@ import {
     type ActionExample,
     elizaLogger,
     ServiceType,
-    Content,
 } from "@elizaos/core";
 import { RecallService } from "../services/recall.service";
-import { randomUUID } from "crypto";
 
 const balanceKeywords = [
     "balance",
@@ -59,15 +57,16 @@ export const getCreditBalanceAction: Action = {
         state: State,
         _options: { [key: string]: unknown },
         callback?: HandlerCallback
-    ): Promise<Content> => {
+    ): Promise<boolean> => {
         const recallService = runtime.services.get("recall" as ServiceType) as RecallService;
         let text = "";
 
         try {
-            if (!state) {
-                state = (await runtime.composeState(message)) as State;
+            let currentState = state;
+            if (!currentState) {
+                currentState = (await runtime.composeState(message)) as State;
             } else {
-                state = await runtime.updateRecentMessageState(state);
+                currentState = await runtime.updateRecentMessageState(currentState);
             }
             elizaLogger.info("Fetching credit balance...");
             const balanceInfo = await recallService.getCreditInfo();
@@ -89,7 +88,6 @@ export const getCreditBalanceAction: Action = {
         // Create a new memory entry for the response
         const newMemory: Memory = {
             ...message,
-            id: randomUUID(),
             userId: message.agentId,
             content: {
                 text,
@@ -102,11 +100,11 @@ export const getCreditBalanceAction: Action = {
         await runtime.messageManager.createMemory(newMemory);
 
         // Call callback AFTER saving memory
-        callback?.({
+        await callback?.({
             text
         });
 
-        return newMemory.content;
+        return true;
     },
     examples: [
         [
