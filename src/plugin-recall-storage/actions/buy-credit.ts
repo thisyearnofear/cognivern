@@ -43,7 +43,6 @@ export const buyCreditAction: Action = {
         elizaLogger.info(`BUY_CREDIT Validation: Extracted amount: ${amountMatch ? amountMatch[1] : "None"}`);
 
         if (!amountMatch) {
-            elizaLogger.error("BUY_CREDIT failed: No amount detected in message.");
             return false;
         }
 
