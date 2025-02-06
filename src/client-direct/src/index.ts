@@ -16,7 +16,6 @@ import {
     VerifiableInferenceResult,
     IVerifiableInferenceAdapter,
     VerifiableInferenceOptions,
-    parseActionResponseFromText,
     parseJSONObjectFromText
 } from "@elizaos/core";
 import {
@@ -332,7 +331,6 @@ export async function generateText({
         elizaLogger.debug(`Trimming context to max length of ${max_context_length} tokens.`);
         context = await trimTokens(context, max_context_length, runtime);
         let response: string;
-        const _stop = stop || modelSettings.stop;
         elizaLogger.debug(
             `Using provider: ${provider}, model: ${model}, temperature: ${temperature}, max response length: ${max_response_length}`
         );
@@ -388,7 +386,6 @@ export async function generateText({
         throw error;
     }
 }
-
 
 
 export class DirectClient {

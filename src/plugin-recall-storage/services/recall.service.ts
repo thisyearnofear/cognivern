@@ -5,6 +5,7 @@ import {
   CreditAccount,
   BuyResult,
   ListResult,
+  AddObjectResult,
 } from "../../../../js-recall/packages/sdk/dist/index.js"; // to replace with import from recall-sdk
 import { elizaLogger, UUID, Service, ServiceType } from "@elizaos/core";
 import { parseEther } from "viem";
@@ -126,6 +127,8 @@ export class RecallService extends Service {
 
   public async getOrCreateBucket(bucketAlias: string): Promise<Address> {
     try {
+      elizaLogger.info(`Looking for bucket with alias: ${bucketAlias}`);
+
       // Try to find the bucket by alias
       const buckets = await this.client.bucketManager().list();
       if (buckets?.result) {
@@ -133,29 +136,74 @@ export class RecallService extends Service {
           (b) => b.metadata?.alias === bucketAlias
         );
         if (bucket) {
+          elizaLogger.info(`Found existing bucket "${bucketAlias}" at ${bucket.addr}`);
           return bucket.addr; // Return existing bucket address
         } else {
-          elizaLogger.info(
-            `Bucket with alias ${bucketAlias} not found, creating a new one.`
-          );
+          elizaLogger.info(`Bucket with alias "${bucketAlias}" not found, creating a new one.`);
         }
       }
 
-      // If not found, create a new bucket with the same alias
-      const query = await this.client.bucketManager().create({ metadata: { alias: bucketAlias } });
+      // Ensure bucketAlias is correctly passed during creation
+      const query = await this.client.bucketManager().create({
+        metadata: { alias: bucketAlias }
+      });
+
       const newBucket = query.result;
       if (!newBucket) {
-        elizaLogger.error(
-          `Failed to create new bucket with alias: ${bucketAlias}`
-        );
+        elizaLogger.error(`Failed to create new bucket with alias: ${bucketAlias}`);
+        throw new Error(`Failed to create bucket: ${bucketAlias}`);
       }
 
-      elizaLogger.info(`Created new log bucket with alias: ${bucketAlias}`);
+      elizaLogger.info(`Successfully created new bucket "${bucketAlias}" at ${newBucket.bucket}`);
       return newBucket.bucket;
     } catch (error) {
-      elizaLogger.error(
-        `Error getting or creating log bucket: ${error.message}`
-      );
+      elizaLogger.error(`Error in getOrCreateBucket: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Adds an object to a bucket.
+   * @param bucket The address of the bucket.
+   * @param key The key under which to store the object.
+   * @param data The data to store.
+   * @param options Optional options for adding the object. 
+   * @returns An object containing the owner's address, bucket address, and key.
+   */
+
+  public async addObject(
+    bucket: Address,
+    key: string,
+    data: string | File | Uint8Array,
+    options?: { overwrite?: boolean }
+  ): Promise<AddObjectResult | undefined> {
+    try {
+      const info = await this.client.bucketManager().add(bucket, key, data, {
+        overwrite: options?.overwrite ?? false,
+      });
+      return info.result;
+    } catch (error) {
+      elizaLogger.error(`Error adding object: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Gets an object from a bucket.
+   * @param bucket The address of the bucket.
+   * @param key The key under which the object is stored.
+   * @returns The data stored under the specified key.
+   */
+
+  public async getObject(
+    bucket: Address,
+    key: string
+  ): Promise<Uint8Array | undefined> {
+    try {
+      const info = await this.client.bucketManager().get(bucket, key);
+      return info.result;
+    } catch (error) {
+      elizaLogger.warn(`Error getting object: ${error.message}`);
       throw error;
     }
   }
