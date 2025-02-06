@@ -117,6 +117,16 @@ const retrieved = await recallService.getObject("my-bucket", "log.txt");
 
 ## 📌 Instructions
 
+**Note:** The Recall private key you use for this application must have a corresponding registered account with a positive parent balance.
+
+To register:
+
+```bash
+curl -X POST -H "Content-Type: application/json" -d '{"address": "<your-evm-public-address>"}' https://faucet.node-0.testnet.recall.network/register
+```
+
+To receive testnet tokens, use the same public address when requesting tokens from the [Recall Faucet](https://faucet.recall.network/).
+
 ### **1️⃣ Setup .env**
 
 ```bash
@@ -132,7 +142,7 @@ COT_LOG_PREFIX="cot/"
 OPENAI_API_KEY="your-api-key"
 ```
 
-### **2️⃣ Install Dependencies**
+### **2️⃣ Install Dependencies and Start the Server**
 ```bash
 pnpm i && pnpm start --characters="characters/eliza.character.json" 
 ```
