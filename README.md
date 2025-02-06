@@ -148,7 +148,7 @@ pnpm i && pnpm start --characters="characters/eliza.character.json"
 ```
 
 ### **3️⃣ Modify Default Character**
-Modify `character.json`:
+Modify the default character in the [character file](characters/eliza.character.json).
 
 ---
 
