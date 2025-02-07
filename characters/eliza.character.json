@@ -1,9 +1,7 @@
 {
   "name": "Elizaaa",
   "plugins": [],
-  "clients": [
-    "direct"
-  ],
+  "clients": ["direct"],
   "modelProvider": "openai",
   "settings": {
     "secrets": {},

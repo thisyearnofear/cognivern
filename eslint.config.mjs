@@ -1,31 +1,31 @@
-import js from "@eslint/js";
-import ts from "@typescript-eslint/eslint-plugin";
-import tsParser from "@typescript-eslint/parser";
-import prettier from "eslint-plugin-prettier";
-import prettierConfig from "./prettier.config.mjs";
+import js from '@eslint/js';
+import ts from '@typescript-eslint/eslint-plugin';
+import tsParser from '@typescript-eslint/parser';
+import prettier from 'eslint-plugin-prettier';
+import prettierConfig from './prettier.config.mjs';
 
 /** @type {import("eslint").Linter.FlatConfig[]} */ // ✅ Explicitly define type
 const config = [
   {
-    files: ["**/*.ts", "**/*.tsx"],
+    files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: "./tsconfig.json",
+        project: './tsconfig.json',
       },
     },
     plugins: {
-      "@typescript-eslint": ts,
+      '@typescript-eslint': ts,
       prettier,
     },
     rules: {
       ...ts.configs.recommended.rules, // ✅ Ensures TypeScript rules load correctly
-      "prettier/prettier": ["error", prettierConfig], // ✅ Apply Prettier formatting rules
-     "@typescript-eslint/no-explicit-any": "off", // ✅ Disable for the whole project
+      'prettier/prettier': ['error', prettierConfig], // ✅ Apply Prettier formatting rules
+      '@typescript-eslint/no-explicit-any': 'off', // ✅ Disable for the whole project
     },
   },
   {
-    ignores: ["node_modules/", "dist/", "build/", "coverage/", "**/*.min.js", "**/vendor/**"],
+    ignores: ['node_modules/', 'dist/', 'build/', 'coverage/', '**/*.min.js', '**/vendor/**'],
   },
 ];
 
