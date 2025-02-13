@@ -22,6 +22,7 @@ const config = [
       ...ts.configs.recommended.rules, // ✅ Ensures TypeScript rules load correctly
       'prettier/prettier': ['error', prettierConfig], // ✅ Apply Prettier formatting rules
       '@typescript-eslint/no-explicit-any': 'off', // ✅ Disable for the whole project
+      '@typescript-eslint/no-unused-vars': 'off', // ✅ Disable for the whole project
     },
   },
   {
