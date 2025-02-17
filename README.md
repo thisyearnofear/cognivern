@@ -131,7 +131,7 @@ curl -X POST -H "Content-Type: application/json" -d '{"address": "<your-evm-publ
 
 To receive testnet tokens, use the same public address when requesting tokens from the [Recall Faucet](https://faucet.recall.network/).
 
-### **1️⃣ Setup .env**
+### **1️⃣ Setup Your Environment**
 
 ```bash
 cp .env.example .env
@@ -144,6 +144,13 @@ RECALL_PRIVATE_KEY="your-private-key"
 RECALL_BUCKET_ALIAS="your-default-bucket"
 COT_LOG_PREFIX="cot/"
 OPENAI_API_KEY="your-api-key"
+```
+
+To ensure smooth operations and reduce the possibility of dependency errors, please ensure you're using the following node and pnpm versions:
+
+```
+pnpm -v 9.15.4
+node -v v22.11.0
 ```
 
 ### **2️⃣ Install Dependencies and Start the Server**
