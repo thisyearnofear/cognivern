@@ -153,7 +153,28 @@ pnpm -v 9.15.4
 node -v v22.11.0
 ```
 
+At the moment, this repository imports the `js-recall` TS SDK locally.
+
+In order to use this, clone the [js-recall](https://github.com/recallnet/js-recall) repository locally, at the same directory level as you've cloned this repository.
+
+Create a .env file at the root of `/apps/studio` and assign a value for the following:
+
+```bash
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=""
+```
+
+Next, go through the following steps to install and build:
+
+```bash
+pnpm install
+git submodule sync 
+git submodule update --init --recursive
+pnpm build
+```
+
 ### **2️⃣ Install Dependencies and Start the Server**
+
+Back in the root of this directory, install and start the server:
 
 ```bash
 pnpm i && pnpm start --characters="characters/eliza.character.json"
