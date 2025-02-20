@@ -167,7 +167,7 @@ Next, go through the following steps to install and build:
 
 ```bash
 pnpm install
-git submodule sync 
+git submodule sync
 git submodule update --init --recursive
 pnpm build
 ```
