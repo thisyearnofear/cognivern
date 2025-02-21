@@ -1,23 +1,11 @@
-import {
-  RecallClient,
-  walletClientFromPrivateKey,
-} from '../../../../js-recall/packages/sdk/dist/client.mjs';
-import { testnet } from '../../../../js-recall/packages/chains/dist/index.mjs';
-// @ts-expect-error - this is temporary
-import { CreditAccount } from '../../../../js-recall/packages/sdk/dist/credit.mjs';
-// @ts-expect-error - this is temporary
-import { ListResult } from '../../../../js-recall/packages/sdk/dist/bucket.mjs';
 import { elizaLogger, UUID, Service, ServiceType } from '@elizaos/core';
-import { parseEther, TransactionReceipt } from 'viem';
+import { testnet } from '@recallnet/chains';
+import { AccountInfo } from '@recallnet/sdk/account';
+import { ListResult } from '@recallnet/sdk/bucket';
+import { RecallClient, walletClientFromPrivateKey } from '@recallnet/sdk/client';
+import { CreditAccount } from '@recallnet/sdk/credit';
+import { Address, Hex, parseEther, TransactionReceipt } from 'viem';
 import { ICotAgentRuntime } from '../../types/index.ts';
-
-type Address = `0x${string}`;
-type AccountInfo = {
-  address: Address;
-  nonce: number;
-  balance: bigint;
-  parentBalance?: bigint;
-};
 
 type Result<T = unknown> = {
   result: T;
@@ -26,13 +14,12 @@ type Result<T = unknown> = {
   };
 };
 
-const privateKey = process.env.RECALL_PRIVATE_KEY as `0x${string}`;
+const privateKey = process.env.RECALL_PRIVATE_KEY as Hex;
 const envAlias = process.env.RECALL_BUCKET_ALIAS as string;
 const envPrefix = process.env.COT_LOG_PREFIX as string;
 
 export class RecallService extends Service {
   static serviceType: ServiceType = 'recall' as ServiceType;
-  // @ts-expect-error this is temporary
   private client: RecallClient;
   private runtime: ICotAgentRuntime;
   private syncInterval: NodeJS.Timeout | undefined;
@@ -267,7 +254,6 @@ export class RecallService extends Service {
         'Recall batch storage',
       );
 
-      // @ts-expect-error this is temporary
       if (!addObject?.meta?.tx) {
         // Check for transaction receipt instead of result
         elizaLogger.error('Recall API returned invalid response for batch storage');
