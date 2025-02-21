@@ -362,7 +362,7 @@ export class RecallService extends Service {
         const logSyncInterval =
           this.intervalMs < 60000
             ? `${this.intervalMs / 1000} seconds`
-            : `${this.intervalMs / 1000 / 60} minute`;
+            : `${this.intervalMs / 1000 / 60} minutes`;
         elizaLogger.info(`Sync cycle complete. Next sync in ${logSyncInterval}.`);
       }
     } catch (error) {
