@@ -8,6 +8,7 @@ import { listBucketsAction } from './actions/list-buckets.ts';
 import { createBucketAction } from './actions/create-bucket.ts';
 import { addObjectAction } from './actions/add-object.ts';
 import { getObjectAction } from './actions/get-object.ts';
+import { cotProvider } from './providers/cot.ts';
 
 export const recallStoragePlugin: Plugin = {
   name: 'Recall Storage Plugin',
@@ -21,7 +22,7 @@ export const recallStoragePlugin: Plugin = {
     getObjectAction,
     createBucketAction,
   ],
-  providers: [recallCotProvider],
+  providers: [cotProvider],
   services: [RecallService.getInstance()],
 };
 
