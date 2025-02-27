@@ -1,4 +1,4 @@
-import { elizaLogger, UUID, Service, ServiceType } from '@elizaos/core';
+import { elizaLogger, UUID, Service, ServiceType, DatabaseAdapter } from '@elizaos/core';
 import { ChainName, getChain, testnet } from '@recallnet/chains';
 import { AccountInfo } from '@recallnet/sdk/account';
 import { ListResult } from '@recallnet/sdk/bucket';
@@ -20,6 +20,7 @@ const envPrefix = process.env.RECALL_COT_LOG_PREFIX as string;
 const network = process.env.RECALL_NETWORK as string;
 const intervalPeriod = process.env.RECALL_SYNC_INTERVAL as string;
 const batchSize = process.env.RECALL_BATCH_SIZE as string;
+const SYNC_STATE_KEY = 'last_synced_timestamp'; // Key for storing sync state in Recall
 
 export class RecallService extends Service {
   static serviceType: ServiceType = 'recall' as ServiceType;
@@ -30,6 +31,16 @@ export class RecallService extends Service {
   private prefix: string;
   private intervalMs: number;
   private batchSizeKB: number;
+  private lastSyncedTimestamp: Date | null = null;
+  private pendingBatch: {
+    logs: string[];
+    size: number;
+    lastProcessedTimestamp: Date | null;
+  } = {
+    logs: [],
+    size: 0,
+    lastProcessedTimestamp: null,
+  };
 
   getInstance(): RecallService {
     return RecallService.getInstance();
@@ -55,6 +66,10 @@ export class RecallService extends Service {
       // Use user-defined sync interval and batch size, if provided
       this.intervalMs = intervalPeriod ? parseInt(intervalPeriod, 10) : 2 * 60 * 1000;
       this.batchSizeKB = batchSize ? parseInt(batchSize, 10) : 4;
+
+      // Load the last synced timestamp from Recall
+      await this.loadSyncState();
+
       this.startPeriodicSync(this.intervalMs, this.batchSizeKB);
       elizaLogger.success('RecallService initialized successfully, starting periodic sync.');
     } catch (error) {
@@ -230,7 +245,99 @@ export class RecallService extends Service {
       return info.result;
     } catch (error) {
       elizaLogger.warn(`Error getting object: ${error.message}`);
-      throw error;
+      // Return undefined instead of throwing to allow graceful handling of missing objects
+      return undefined;
+    }
+  }
+
+  /**
+   * Enhanced state saving to handle pending batches
+   */
+  async saveSyncState(timestamp: Date, includeTracking: boolean = false): Promise<void> {
+    try {
+      // Don't update if the new timestamp is earlier than our current one
+      // This prevents losing progress when syncing small batches
+      if (this.lastSyncedTimestamp && timestamp <= this.lastSyncedTimestamp && !includeTracking) {
+        elizaLogger.info(
+          `Skipping sync state update: new timestamp (${timestamp.toISOString()}) ` +
+            `is not newer than current (${this.lastSyncedTimestamp.toISOString()})`,
+        );
+        return;
+      }
+
+      const bucketAddress = await this.getOrCreateBucket(this.alias);
+      const stateKey = `${this.prefix}${SYNC_STATE_KEY}`;
+
+      // Enhanced state object that includes tracking of pending logs
+      const stateData = JSON.stringify({
+        lastSyncedTimestamp: timestamp.toISOString(),
+        pendingBatch: includeTracking
+          ? {
+              size: this.pendingBatch.size,
+              count: this.pendingBatch.logs.length,
+              lastProcessedTimestamp:
+                this.pendingBatch.lastProcessedTimestamp?.toISOString() || null,
+            }
+          : undefined,
+      });
+
+      await this.withTimeout(
+        this.client
+          .bucketManager()
+          .add(bucketAddress, stateKey, new TextEncoder().encode(stateData), { overwrite: true }),
+        15000,
+        'Save sync state',
+      );
+
+      this.lastSyncedTimestamp = timestamp;
+      elizaLogger.info(
+        `Saved sync state with timestamp: ${timestamp.toISOString()}${
+          includeTracking
+            ? ` and tracking info for ${this.pendingBatch.logs.length} pending logs`
+            : ''
+        }`,
+      );
+    } catch (error) {
+      elizaLogger.error(`Error saving sync state: ${error.message}`);
+    }
+  }
+
+  /**
+   * Enhanced state loading that handles pending batch tracking
+   */
+  async loadSyncState(): Promise<void> {
+    try {
+      const bucketAddress = await this.getOrCreateBucket(this.alias);
+      const stateKey = `${this.prefix}${SYNC_STATE_KEY}`;
+
+      const stateData = await this.getObject(bucketAddress, stateKey);
+      if (stateData) {
+        const stateJson = new TextDecoder().decode(stateData);
+        const state = JSON.parse(stateJson);
+
+        if (state.lastSyncedTimestamp) {
+          this.lastSyncedTimestamp = new Date(state.lastSyncedTimestamp);
+          elizaLogger.info(
+            `Loaded last synced timestamp: ${this.lastSyncedTimestamp.toISOString()}`,
+          );
+
+          // If we have pending batch info, log it
+          if (state.pendingBatch) {
+            elizaLogger.info(
+              `Found tracking information for ${state.pendingBatch.count} pending logs ` +
+                `(${state.pendingBatch.size} bytes) with last timestamp: ${
+                  state.pendingBatch.lastProcessedTimestamp || 'none'
+                }`,
+            );
+          }
+        } else {
+          elizaLogger.info(`No previous sync state found, will sync all available logs.`);
+        }
+      } else {
+        elizaLogger.info(`No previous sync state found, will sync all available logs.`);
+      }
+    } catch (error) {
+      elizaLogger.warn(`Could not load sync state, will sync all available logs: ${error.message}`);
     }
   }
 
@@ -238,11 +345,15 @@ export class RecallService extends Service {
    * Stores a batch of logs to Recall.
    * @param bucketAddress The address of the bucket to store logs.
    * @param batch The batch of logs to store.
+   * @param timestamp The timestamp to use in the key.
    * @returns The key under which the logs were stored.
    */
-  async storeBatchToRecall(bucketAddress: Address, batch: string[]): Promise<string | undefined> {
+  async storeBatchToRecall(
+    bucketAddress: Address,
+    batch: string[],
+    timestamp: string,
+  ): Promise<string | undefined> {
     try {
-      const timestamp = Date.now();
       const nextLogKey = `${this.prefix}${timestamp}.jsonl`;
       const batchData = batch.join('\n');
 
@@ -274,6 +385,84 @@ export class RecallService extends Service {
   }
 
   /**
+   * Fetches unsynchronized logs based on the createdAt timestamp.
+   * @returns Array of logs that haven't been synced yet.
+   */
+
+  async getUnsyncedLogs(): Promise<any[]> {
+    try {
+      // Use lastSyncedTimestamp to determine which logs to fetch
+      // If null, we'll fetch from the beginning
+      const lastSyncTime = this.lastSyncedTimestamp ? this.lastSyncedTimestamp.toISOString() : null;
+
+      const db: any = this.runtime.databaseAdapter;
+
+      // If we have a pending batch with a lastProcessedTimestamp, we want to fetch logs
+      // after the last processed timestamp instead of the last synced timestamp
+      // This ensures we don't miss any logs that were generated while we were processing
+      // the last batch
+      let queryTimestamp = lastSyncTime;
+
+      // If we have pending logs that we've processed but not synced,
+      // we want to start from where we left off, not from the last synced timestamp
+      if (this.pendingBatch.lastProcessedTimestamp) {
+        const pendingLogTime = this.pendingBatch.lastProcessedTimestamp.toISOString();
+        elizaLogger.info(
+          `Using last processed timestamp ${pendingLogTime} instead of last synced timestamp ${lastSyncTime || 'none'}`,
+        );
+        queryTimestamp = pendingLogTime;
+      }
+
+      let query = `SELECT * FROM logs WHERE type = 'chain-of-thought'`;
+
+      if (queryTimestamp) {
+        // Using '>' not '>=' to avoid duplicating the last log we've already processed
+        query += ` AND createdAt > '${queryTimestamp}'`;
+      }
+
+      // Ensure we're getting logs in chronological order
+      query += ` ORDER BY createdAt ASC LIMIT 1000`;
+      const newLogs = await this.runRawQuery(db, query);
+
+      const logSource = this.pendingBatch.lastProcessedTimestamp
+        ? 'last processed timestamp'
+        : lastSyncTime
+          ? 'last synced timestamp'
+          : 'beginning';
+      elizaLogger.info(
+        `Found ${newLogs.length} new logs since ${logSource} (${queryTimestamp || 'none'})`,
+      );
+
+      // Combine existing pending logs with new logs
+      let combinedLogs = [...newLogs];
+
+      // Log the current state clearly
+      if (this.pendingBatch.logs.length > 0) {
+        elizaLogger.info(
+          `We have ${this.pendingBatch.logs.length} logs in pending batch that have been processed but not synced`,
+        );
+      }
+
+      return combinedLogs;
+    } catch (error) {
+      elizaLogger.error(`Error getting unsynced logs: ${error.message}`);
+      return [];
+    }
+  }
+
+  async runRawQuery<R>(dbAdapter: DatabaseAdapter, query: string, params?: any[]): Promise<R[]> {
+    if ('pool' in dbAdapter) {
+      // PostgreSQL (uses pool.query)
+      return (await (dbAdapter as any).pool.query(query, params)).rows as R[];
+    } else if ('db' in dbAdapter) {
+      // SQLite (uses prepare + all)
+      return (dbAdapter as any).db.prepare(query).all(...(params || [])) as R[];
+    } else {
+      throw new Error('Unsupported database adapter');
+    }
+  }
+
+  /**
    * Syncs logs to Recall in batches.
    * @param bucketAlias The alias of the bucket to store logs.
    * @param batchSizeKB The maximum size of each batch in kilobytes.
@@ -287,8 +476,8 @@ export class RecallService extends Service {
         'Get/Create bucket',
       );
 
-      const unsyncedLogs = await this.runtime.databaseAdapter.getUnsyncedLogs();
-      const filteredLogs = unsyncedLogs.filter((log) => log.type === 'chain-of-thought');
+      // Get logs created after the last synced timestamp
+      const filteredLogs = await this.getUnsyncedLogs();
 
       if (filteredLogs.length === 0) {
         elizaLogger.info('No unsynced logs to process.');
@@ -297,10 +486,24 @@ export class RecallService extends Service {
 
       elizaLogger.info(`Found ${filteredLogs.length} unsynced logs.`);
 
-      let batch: string[] = [];
-      let batchSize = 0;
-      let syncedLogIds: UUID[] = [];
-      let failedLogIds: UUID[] = [];
+      // Initialize or use existing batch
+      let batch = this.pendingBatch.logs;
+      let batchSize = this.pendingBatch.size;
+      let lastProcessedTimestamp = this.pendingBatch.lastProcessedTimestamp;
+
+      let syncedUpToTimestamp: Date | null = null;
+      let batchTimestamp = Date.now().toString();
+
+      if (batch.length > 0) {
+        elizaLogger.info(
+          `Starting with existing batch of ${batch.length} logs (${batchSize} bytes)`,
+        );
+      }
+
+      // Sort logs by createdAt to ensure we process in chronological order
+      filteredLogs.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
 
       for (const log of filteredLogs) {
         try {
@@ -310,61 +513,92 @@ export class RecallService extends Service {
             agentId: parsedLog.agentId,
             userMessage: parsedLog.userMessage,
             log: parsedLog.log,
+            createdAt: log.createdAt, // Include createdAt in the stored log
           });
 
           const logSize = new TextEncoder().encode(jsonlEntry).length;
-          elizaLogger.info(`Processing log entry of size: ${logSize} bytes`);
-          elizaLogger.info(`New batch size: ${batchSize + logSize} bytes`);
+
+          // If this log would make the batch exceed the size limit, store the current batch first
           if (batchSize + logSize > batchSizeKB * 1024) {
             elizaLogger.info(
-              `Batch size ${
-                batchSize + logSize
-              } bytes exceeds ${batchSizeKB} KB limit. Attempting sync...`,
+              `Batch size ${batchSize + logSize} bytes exceeds ${batchSizeKB} KB limit. Attempting sync...`,
             );
 
-            const logFileKey = await this.storeBatchToRecall(bucketAddress, batch);
+            const logFileKey = await this.storeBatchToRecall(bucketAddress, batch, batchTimestamp);
 
             if (logFileKey) {
-              await this.runtime.databaseAdapter.markLogsAsSynced(syncedLogIds);
-              elizaLogger.info(`Successfully synced batch of ${syncedLogIds.length} logs`);
+              elizaLogger.info(`Successfully synced batch of ${batch.length} logs`);
+
+              // Update the synced timestamp to the timestamp of the last processed log
+              syncedUpToTimestamp = lastProcessedTimestamp;
+
+              // Save the sync state after successful batch sync
+              if (syncedUpToTimestamp) {
+                await this.saveSyncState(syncedUpToTimestamp);
+              }
+
+              // Clear pending batch tracking
+              this.pendingBatch = {
+                logs: [],
+                size: 0,
+                lastProcessedTimestamp: null,
+              };
             } else {
-              failedLogIds.push(...syncedLogIds);
               elizaLogger.warn(
-                `Failed to sync batch of ${syncedLogIds.length} logs - will retry on next sync`,
+                `Failed to sync batch of ${batch.length} logs - will retry on next sync`,
               );
+              // Don't update timestamps if sync failed
+              continue;
             }
 
+            // Start a new batch
             batch = [];
             batchSize = 0;
-            syncedLogIds = [];
+            batchTimestamp = Date.now().toString();
           }
 
           batch.push(jsonlEntry);
           batchSize += logSize;
-          syncedLogIds.push(log.id);
+
+          // Always update last processed timestamp to track our progress
+          lastProcessedTimestamp = new Date(log.createdAt);
         } catch (error) {
           elizaLogger.error(`Error processing log entry ${log.id}: ${error.message}`);
-          failedLogIds.push(log.id);
         }
       }
+
+      // Handle remaining small batch - don't sync it but track it
       if (batch.length > 0) {
-        // notify the user that the batch size was not exceeded
         elizaLogger.info(
-          `Batch size ${batchSize} bytes did not exceed ${batchSizeKB} KB limit. Will recheck on next sync cycle.`,
+          `Deferring sync of ${batch.length} logs (${batchSize} bytes) until next cycle`,
         );
+
+        // Update pending batch tracking
+        this.pendingBatch = {
+          logs: batch,
+          size: batchSize,
+          lastProcessedTimestamp: lastProcessedTimestamp,
+        };
+
+        // Update sync state with tracking info
+        if (syncedUpToTimestamp) {
+          // If we've synced some logs in this cycle, use that timestamp but include tracking
+          await this.saveSyncState(syncedUpToTimestamp, true);
+        } else if (this.lastSyncedTimestamp) {
+          // If we haven't synced anything new, maintain the last timestamp but add tracking
+          await this.saveSyncState(this.lastSyncedTimestamp, true);
+        } else if (lastProcessedTimestamp) {
+          // First run with no successful sync, use a dummy timestamp
+          const dummyTimestamp = new Date(0); // Epoch time
+          await this.saveSyncState(dummyTimestamp, true);
+        }
       }
 
-      if (failedLogIds.length > 0) {
-        elizaLogger.warn(
-          `Sync attempt finished. ${failedLogIds.length} logs failed to upload and remain unsynced. Will retry next cycle.`,
-        );
-      } else {
-        const logSyncInterval =
-          this.intervalMs < 60000
-            ? `${this.intervalMs / 1000} seconds`
-            : `${this.intervalMs / 1000 / 60} minutes`;
-        elizaLogger.info(`Sync cycle complete. Next sync in ${logSyncInterval}.`);
-      }
+      const logSyncInterval =
+        this.intervalMs < 60000
+          ? `${this.intervalMs / 1000} seconds`
+          : `${this.intervalMs / 1000 / 60} minutes`;
+      elizaLogger.info(`Sync cycle complete. Next sync in ${logSyncInterval}.`);
     } catch (error) {
       if (error.message.includes('timed out')) {
         elizaLogger.error(`Recall sync operation timed out: ${error.message}`);
@@ -405,7 +639,9 @@ export class RecallService extends Service {
           return timeA - timeB;
         });
 
-      elizaLogger.info(`Retrieving ${logFiles.length} ordered chain-of-thought logs...`);
+      elizaLogger.info(
+        `Retrieving ${logFiles.length} log files containing chain-of-thought data...`,
+      );
 
       let allLogs: any[] = [];
 
@@ -424,6 +660,14 @@ export class RecallService extends Service {
           elizaLogger.error(`Error retrieving log file ${logFile}: ${error.message}`);
         }
       }
+
+      // Sort logs by createdAt if available, otherwise maintain file order
+      allLogs.sort((a, b) => {
+        if (a.createdAt && b.createdAt) {
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        }
+        return 0;
+      });
 
       elizaLogger.info(
         `Successfully retrieved and ordered ${allLogs.length} chain-of-thought logs.`,
