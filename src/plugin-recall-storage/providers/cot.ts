@@ -46,7 +46,8 @@ Please follow these steps in your chain-of-thought:
 2. Break down the technical problem into smaller logical steps.
 3. Analyze the relevant technical details, context, and past interactions.
 4. Formulate a preliminary conclusion or solution that addresses the technical requirements.
-5. Use the above reasoning to generate your final, well-structured technical response.
+5. If the users message aligns with any actions you can take, please note these in your response without executing, but be sure to include the reasoning behind them. Name the action and describe what it would do.
+6. Use the above reasoning to generate your final, well-structured technical response.
 
 **Formatting Requirements:**
 
