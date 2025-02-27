@@ -1,11 +1,17 @@
-import { elizaLogger, UUID, Service, ServiceType, DatabaseAdapter } from '@elizaos/core';
+import {
+  elizaLogger,
+  UUID,
+  Service,
+  ServiceType,
+  DatabaseAdapter,
+  IAgentRuntime,
+} from '@elizaos/core';
 import { ChainName, getChain, testnet } from '@recallnet/chains';
 import { AccountInfo } from '@recallnet/sdk/account';
 import { ListResult } from '@recallnet/sdk/bucket';
 import { RecallClient, walletClientFromPrivateKey } from '@recallnet/sdk/client';
 import { CreditAccount } from '@recallnet/sdk/credit';
 import { Address, Hex, parseEther, TransactionReceipt } from 'viem';
-import { ICotAgentRuntime } from '../../types/index.ts';
 import {
   getUnsyncedLogsPostgres,
   getUnsyncedLogsSqlite,
@@ -30,7 +36,7 @@ const batchSize = process.env.RECALL_BATCH_SIZE as string;
 export class RecallService extends Service {
   static serviceType: ServiceType = 'recall' as ServiceType;
   private client: RecallClient;
-  private runtime: ICotAgentRuntime;
+  private runtime: IAgentRuntime;
   private syncInterval: NodeJS.Timeout | undefined;
   private alias: string;
   private prefix: string;
@@ -41,7 +47,7 @@ export class RecallService extends Service {
     return RecallService.getInstance();
   }
 
-  async initialize(_runtime: ICotAgentRuntime): Promise<void> {
+  async initialize(_runtime: IAgentRuntime): Promise<void> {
     try {
       if (!privateKey) {
         throw new Error('RECALL_PRIVATE_KEY is required');
