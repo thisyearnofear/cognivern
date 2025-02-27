@@ -6,6 +6,12 @@ import { RecallClient, walletClientFromPrivateKey } from '@recallnet/sdk/client'
 import { CreditAccount } from '@recallnet/sdk/credit';
 import { Address, Hex, parseEther, TransactionReceipt } from 'viem';
 import { ICotAgentRuntime } from '../../types/index.ts';
+import {
+  getUnsyncedLogsPostgres,
+  getUnsyncedLogsSqlite,
+  markLogsAsSyncedPostgres,
+  markLogsAsSyncedSqlite,
+} from '../utils.ts';
 
 type Result<T = unknown> = {
   result: T;
@@ -328,22 +334,12 @@ export class RecallService extends Service {
     try {
       const db: any = this.runtime.databaseAdapter;
 
-      // Query for logs where isSynced is false (0 in SQLite) or NULL
-      let query = `SELECT * FROM logs WHERE type = 'chain-of-thought' AND (isSynced IS NULL OR isSynced = `;
-
       if ('pool' in db) {
-        // PostgreSQL uses boolean values
-        query += `FALSE)`;
-        const result = await db.pool.query(query);
-        const logs = result.rows;
-        elizaLogger.info(`Found ${logs.length} unsynced logs`);
-        return logs;
+        // PostgreSQL
+        return await getUnsyncedLogsPostgres(db.pool);
       } else if ('db' in db) {
-        // SQLite uses 0 for false
-        query += `0)`;
-        const logs = db.db.prepare(query).all();
-        elizaLogger.info(`Found ${logs.length} unsynced logs`);
-        return logs;
+        // SQLite
+        return await getUnsyncedLogsSqlite(db.db);
       } else {
         throw new Error('Unsupported database adapter');
       }
@@ -368,25 +364,14 @@ export class RecallService extends Service {
 
       if ('pool' in db) {
         // PostgreSQL
-        // Create placeholder string for the IN clause: $1, $2, $3, etc.
-        const placeholders = logIds.map((_, idx) => `$${idx + 1}`).join(', ');
-        const query = `UPDATE logs SET "isSynced" = TRUE WHERE id IN (${placeholders})`;
-        await db.pool.query(query, logIds);
+        await markLogsAsSyncedPostgres(db.pool, logIds);
       } else if ('db' in db) {
         // SQLite
-        // SQLite doesn't support this many parameters in IN clause directly
-        // Instead, we'll use a transaction and update each log individually
-        const stmt = db.db.prepare(`UPDATE logs SET isSynced = 1 WHERE id = ?`);
-        db.db.transaction(() => {
-          for (const id of logIds) {
-            stmt.run(id);
-          }
-        })();
+        await markLogsAsSyncedSqlite(db.db, logIds);
       } else {
         throw new Error('Unsupported database adapter');
       }
 
-      elizaLogger.info(`Marked ${logIds.length} logs as synced`);
       return true;
     } catch (error) {
       elizaLogger.error(`Error marking logs as synced: ${error.message}`);
