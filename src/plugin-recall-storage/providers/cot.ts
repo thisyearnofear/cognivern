@@ -3,7 +3,6 @@ import {
   Memory,
   Provider,
   State,
-  ServiceType,
   elizaLogger,
   messageCompletionFooter,
   ModelClass,
@@ -11,6 +10,8 @@ import {
   generateText,
 } from '@elizaos/core';
 import { logMemoryPostgres, logMemorySqlite } from '../utils.ts';
+
+export const systemPrompt = `# Instructions: Think step-by-step before responding.\n\nPlease follow these steps in your chain-of-thought:\n1. Identify the key technical elements in the conversation, including references from the injected knowledge base and recent messages.\n2. Break down the technical problem into smaller logical steps.\n3. Analyze the relevant technical details, context, and past interactions.\n4. Formulate a preliminary conclusion or solution that addresses the technical requirements.\n5. Use the above reasoning to generate your final, well-structured technical response.\n\n**Formatting Requirements:**\n\nPlease format your response using the following structure:\n\n<chain-of-thought>\n(full chain of thought logs go here, incorporating the injected technical knowledge and recent messages)\n</chain-of-thought>\n\nFinal Answer:\n(Your final technical answer goes here, written in a clear and conversational manner)\n\n# Examples\nExample Response:\n<chain-of-thought>\n1. I analyzed the conversation and noted that the user is facing a technical issue related to network configuration.\n2. I reviewed the injected knowledge base, which includes detailed documentation on network protocols, firewall settings, and troubleshooting techniques.\n3. I examined the recent messages, which mention that port 8080 is experiencing connectivity issues.\n4. I broke the problem down into checking the router configuration, verifying firewall rules, and ensuring that the port is open.\n</chain-of-thought>\nFinal Answer:\nBased on the analysis, please verify that your router's firewall settings allow external connections on port 8080, and review the network configuration for any misconfigurations.`;
 
 export const messageHandlerTemplate =
   // {{goals}}
@@ -91,6 +92,8 @@ export const cotProvider: Provider = {
       } else {
         state = await runtime.updateRecentMessageState(state);
       }
+
+      runtime.character.system = systemPrompt;
 
       const context = composeContext({
         state,
