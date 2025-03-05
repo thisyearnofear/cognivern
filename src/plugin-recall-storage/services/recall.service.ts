@@ -490,7 +490,7 @@ export class RecallService extends Service {
           elizaLogger.info(`New batch size: ${batchSize + logSize} bytes`);
 
           // If this log would make the batch exceed the size limit, store the current batch first
-          if (batchSize + logSize > batchSizeKB * 1024) {
+          if (batchSize > 0 && batchSize + logSize > batchSizeKB * 1024) {
             elizaLogger.info(
               `Batch size ${batchSize + logSize} bytes exceeds ${batchSizeKB} KB limit. Attempting sync...`,
             );
