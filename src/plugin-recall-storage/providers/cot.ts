@@ -136,6 +136,8 @@ export const cotProvider: Provider = {
 
       runtime.character.system = systemPrompt;
 
+      state.actions = `# Actions \n${JSON.stringify(runtime.actions)}`;
+
       const context = composeContext({
         state,
         template: messageHandlerTemplate,
