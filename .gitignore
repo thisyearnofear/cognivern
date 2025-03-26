@@ -2,9 +2,34 @@
 node_modules
 dist/
 
-
+# Database
 db.sqlite
-.idea
 
+# IDE
+.idea
+.vscode
+
+# JavaScript/TypeScript
 /**/*.js
 /**/*.js.map
+
+# Rust/Cargo
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# Recall specific
+.recall/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+*.log
+logs/
+
+# Testing
+coverage/
+.nyc_output/
