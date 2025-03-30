@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import { config } from './config.js';
 import logger from './utils/logger.js';
+import { validateApiKey } from './middleware/auth.js';
 
 const app = express();
 
@@ -15,7 +16,7 @@ app.use(
   cors({
     origin: config.CORS_ORIGIN,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
   }),
 );
 
@@ -38,30 +39,49 @@ app.use(compression());
 app.use(
   morgan('combined', {
     stream: {
-      write: (message) => logger.info(message.trim()),
+      write: (message: string) => logger.info(message.trim()),
     },
   }),
 );
 
+// Health check endpoint (no auth required)
+app.get('/health', (req: express.Request, res: express.Response) => {
+  res.json({ status: 'ok' });
+});
+
+// Protected routes
+const protectedRouter = express.Router();
+protectedRouter.use(validateApiKey);
+
+// Test endpoint
+protectedRouter.get('/test', (req: express.Request, res: express.Response) => {
+  res.json({
+    message: 'API is working!',
+    timestamp: new Date().toISOString(),
+    environment: config.NODE_ENV,
+  });
+});
+
+// Add your protected routes here
+// Example: protectedRouter.get('/api/data', (req, res) => { ... });
+
+// Mount protected routes
+app.use('/api', protectedRouter);
+
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  logger.error('Unhandled error:', err);
+  logger.error('Error:', err);
   res.status(500).json({
     error: 'Internal Server Error',
     message: config.NODE_ENV === 'development' ? err.message : undefined,
   });
 });
 
-// Health check endpoint
-app.get('/health', (req: express.Request, res: express.Response) => {
-  res.json({ status: 'ok' });
-});
-
 // Start server
 const startServer = () => {
   const port = config.PORT;
   app.listen(port, () => {
-    logger.info(`Server is running on port ${port} in ${config.NODE_ENV} mode`);
+    logger.info(`Server running on port ${port}`);
   });
 };
 
