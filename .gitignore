@@ -1,25 +1,36 @@
 .env
+.env.*
+!.env.example
 node_modules
 dist/
 
 # Database
 db.sqlite
+*.sqlite
+*.sqlite3
 
 # IDE
 .idea
 .vscode
+*.swp
+*.swo
 
 # JavaScript/TypeScript
 /**/*.js
 /**/*.js.map
+*.tsbuildinfo
 
 # Rust/Cargo
 /target/
 **/*.rs.bk
 Cargo.lock
+rust-recall/target/
+rust-recall/**/*.rs.bk
+rust-recall/Cargo.lock
 
 # Recall specific
 .recall/
+.recall-cache/
 
 # macOS
 .DS_Store
@@ -29,7 +40,17 @@ Cargo.lock
 # Logs
 *.log
 logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Testing
 coverage/
 .nyc_output/
+
+# Production
+build/
+.next/
+out/
+.cache/
