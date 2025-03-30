@@ -1,184 +1,287 @@
-# Escheat Agents
+# AI Agent Governance Platform
 
-## Overview
-Escheat Agents is an autonomous platform leveraging AI agents, blockchain, and secure wallet integration to identify and recover unclaimed assets for users. It continuously scans government databases, matches unclaimed assets to user identities, and facilitates the recovery process while ensuring data security and privacy.
+A decentralized platform for auditing, monitoring, and governing AI agents through trusted, verifiable intelligence using Recall's blockchain-based storage infrastructure.
 
-## Technical Foundation
+## 🌟 Overview
 
-### 1. Agent Framework Selection
-**Primary Framework:** LangChain
-- Robust support for autonomous task execution and agent memory
-- Integrates well with diverse data sources and APIs
-- Flexible agent design for complex workflows
+The AI Agent Governance Platform provides a comprehensive solution for ensuring transparency, accountability, and collaboration between AI agents. By leveraging Recall's decentralized intelligence layer, this platform enables:
 
-_Alternative Considerations:_
-- Microsoft AutoGen (for multi-agent collaboration)
-- LoopGPT (lightweight task loops)
-- JARVIS (multimodal processing)
+- **Verifiable Decision Logs:** Full audit trails for AI agent reasoning and actions
+- **Intelligence Marketplace:** Exchange of valuable reasoning patterns between agents
+- **Governance Protocols:** Rules-based oversight of agent behavior and performance
+- **Multi-Agent Collaboration:** Secure, trustless cooperation between independent agents
 
-### 2. Model Context Protocol (MCP) Integration
-MCP will be used to standardize agent connections to government databases, ensuring:
-- Seamless data access with unified interfaces
-- Secure authentication and access control
-- Scalable expansion to new databases
+This platform helps organizations maintain control and visibility over their AI systems while unlocking new possibilities for agent cooperation and knowledge exchange.
 
-## System Architecture
+## 🚀 Key Features
 
-### 1. Core Components
+### 🔍 Agent Activity Monitoring (MVP)
 
-#### a. Data Collection Engine
-- **Web Scraping:** Playwright-based scrapers with CAPTCHA handling
-- **Data Parsing:** AI-based entity recognition and normalization
+- Track all agent decisions with persistent chain-of-thought logs
+- Timestamp and cryptographically sign all agent actions
+- Generate human-readable explanations for complex decisions
+- Real-time performance metrics tracking
+- Compliance monitoring and reporting
 
-#### b. NEAR Blockchain Integration
-- **Smart Contracts:** Claim registry, identity management, verification mechanisms
-- **Storage:** On-chain claim verification, NEAR Blob Store for larger datasets
+### 💼 Reasoning Pattern Marketplace (MVP)
 
-#### c. Bitte Wallet Integration
-- **User Authentication:** MPC-secured credentials
-- **User Interface:** Claim notifications, verification workflow, recovery tracking
+- List and discover reasoning patterns
+- Subscribe to specialized reasoning services
+- Basic pattern categorization and tagging
+- Subscription management system
+- Pattern access control
 
-### 2. Agent Workflow Design
-1. **User Registration:** Secure credential storage in Bitte Wallet
-2. **Autonomous Scanning:** LangChain-powered agents trawl government databases
-3. **Matching:** AI algorithms compare user data with records
-4. **Notification & Recovery:** Users receive claim alerts and guided recovery steps
+### 🛡️ Governance Controls (MVP)
 
-## Technical Implementation
+- Implement policy guardrails for agent behavior
+- Create consensus mechanisms for high-stakes decisions
+- Develop exception handling protocols
+- Basic audit logging
+- Performance metrics tracking
 
-### 1. Agent Implementation with LangChain (Python)
-```python
-from langchain.agents import Agent, AgentExecutor, Tool
-from langchain.memory import ConversationBufferMemory
+### 🤝 Multi-Agent Collaboration (Future)
 
-class EscheatAgent:
-    def __init__(self, database_target, user_identifiers):
-        self.database_target = database_target
-        self.user_identifiers = user_identifiers
-        self.memory = ConversationBufferMemory()
-        self.agent = Agent(tools=[Tool(name='database_search', func=self.search)], memory=self.memory)
-    
-    def scan_and_match(self):
-        return self.agent.run(f"Scan {self.database_target} for matching unclaimed assets.")
+- Enable secure knowledge sharing between trusted agents
+- Implement verification protocols for shared intelligence
+- Create collaborative problem-solving workflows
+- Cross-agent communication protocols
+- Shared resource management
+
+## 🔧 Technical Architecture
+
+### Core Components
+
+#### **Agent Monitoring Service (MVP)**
+
+- Intercepts and logs all agent reasoning steps
+- Structures data for efficient storage and retrieval
+- Provides real-time monitoring capabilities
+- Basic metrics collection
+- Simple compliance checks
+
+#### **Recall Integration Layer (MVP)**
+
+- Manages bucket creation and organization
+- Handles secure, encrypted storage of sensitive data
+- Implements batch synchronization for efficient processing
+- Basic error handling and retries
+- Simple data validation
+
+#### **Verification Engine (Future)**
+
+- Validates the integrity of stored reasoning chains
+- Implements zero-knowledge proofs for private verification
+- Creates cryptographic attestations of agent behavior
+- Advanced signature verification
+- Chain-of-custody tracking
+
+#### **Marketplace Protocol (MVP)**
+
+- Facilitates listing and discovery of reasoning patterns
+- Implements basic subscription models
+- Handles pattern access control
+- Simple pattern categorization
+- Basic subscription management
+
+#### **Governance Dashboard (Future)**
+
+- Provides real-time visibility into agent activities
+- Enables policy configuration and management
+- Offers advanced analytics on agent performance
+- Interactive policy editor
+- Advanced visualization tools
+
+## 📋 Implementation Details
+
+### Recall Storage Structure
+
+```
+governance-bucket/
+├── agents/
+│   ├── agent-1/
+│   │   ├── thoughts/
+│   │   │   ├── 2025-03-31-12-00-00.json
+│   │   ├── actions/
+│   │   │   ├── 2025-03-31-12-05-00.json
+│   │   ├── metrics/
+│   │       ├── performance.json
+│   │       ├── compliance.json
+├── marketplace/
+│   ├── patterns/
+│   ├── subscriptions/
+├── governance/
+    ├── policies/
+    ├── audit-logs/
 ```
 
-### 2. MCP Integration (Python)
-```python
-class MCPDatabaseAdapter:
-    def search(self, query_params):
-        # Executes MCP query
-        results = self.connection.query(entity_type="unclaimed_property", filters=query_params)
-        return results
-```
+### Chain-of-Thought Data Format
 
-### 3. NEAR Smart Contracts (Rust)
-```rust
-#[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize)]
-pub struct EscheatRegistry {
-    pub claims: LookupMap<ClaimId, Claim>,
-    pub user_claims: LookupMap<AccountId, Vec<ClaimId>>,
-}
-```
-
-### 4. Bitte Wallet Integration (TypeScript)
-```typescript
-class BitteWalletConnector {
-  async notifyPotentialClaim(claimData: ClaimData): Promise<NotificationResult> {
-    return this.wallet.sendNotification({
-      title: 'Potential Unclaimed Asset Found',
-      body: `We've found a match for $${claimData.amount}`,
-      data: claimData,
-    });
+```json
+{
+  "agentId": "agent-1",
+  "timestamp": "2025-03-31T12:00:00Z",
+  "input": "User requested financial analysis of Company X",
+  "reasoning": [
+    {
+      "step": 1,
+      "thought": "I need to gather recent financial data for Company X",
+      "confidence": 0.95,
+      "sources": ["financial-database-1"]
+    }
+  ],
+  "decision": "Recommend caution on Company X investment due to overvaluation concerns",
+  "signature": "0x7f9e...b6c5d4e3f2a1b0",
+  "metadata": {
+    "modelVersion": "GPT-5-turbo",
+    "governancePolicy": "financial-advisory-v2",
+    "complianceStatus": "compliant"
   }
 }
 ```
 
-## Development Roadmap
+## 🛠️ Installation & Setup
 
-### **Phase 1: Foundation (Weeks 1-4)**
-- Setup LangChain agents and MCP adapters
-- Implement core data extraction logic
+### Prerequisites
 
-### **Phase 2: Core Functionality (Weeks 5-8)**
-- Develop NEAR smart contracts
-- Integrate Bitte Wallet for user authentication and notifications
+- Node.js v22.11.0 or higher
+- pnpm v9.15.4 or higher
+- Recall account with available credits
+- Private key with sufficient permissions
 
-### **Phase 3: Enhancement (Weeks 9-12)**
-- Expand database coverage and improve agent automation
-- Enhance security and privacy measures
+### Environment Configuration
 
-### **Phase 4: Testing & Refinement (Weeks 13-16)**
-- Performance optimization, security audits, and UX improvements
+Create a `.env` file with the following variables:
 
-## Future Enhancements
-- Multi-jurisdictional support
-- Advanced document processing (OCR, AI-driven automation)
-- DAO-based governance for community participation
-- Mobile application for claim management
+```bash
+# Recall Configuration
+RECALL_PRIVATE_KEY="your-private-key"
+RECALL_BUCKET_ALIAS="governance-platform"
+RECALL_NETWORK="testnet"
 
-## Contact
-- **Developer:** [papajams.near](https://hey.xyz/u/papajams)
-- **Socials:** [Warpcast](https://warpcast.com/papa)
+# Sync Configuration
+RECALL_SYNC_INTERVAL="60000"
+RECALL_BATCH_SIZE="8"
 
-## Once Built
+# Provider Configuration
+OPENAI_API_KEY="your-api-key"
+MODEL_NAME="gpt-4"
 
-**Escheat Agents** help people reclaim billions in forgotten and unclaimed assets held by government agencies. Every year, an estimated $70 billion in unclaimed property sits in government escheat databases, with the average claim worth over $1,000. 
-
-Our platform leverages **AI-driven web scraping**, **NEAR Protocol's blockchain infrastructure**, and **Bitte Wallet integration** to automatically identify, verify, and simplify the recovery process for these assets, returning what rightfully belongs to users.
-
-## 🚀 Key Features
-
-* **Autonomous Discovery** - AI agents continually scan government databases to find your unclaimed assets
-* **Zero-Effort Claims** - Once identified, claims can be initiated with a single click from your wallet
-* **Privacy-Preserving** - Your personal identifiers remain encrypted and secure in your Bitte Wallet
-* **Real-Time Notifications** - Receive instant alerts when we find potential matches
-* **On-Chain Verification** - All claims are transparently tracked and verified using NEAR Protocol
-
-## 💻 Alternative Architecture
-
-### System Components
-
-1. **Data Collection Layer**
-   * Web scraping agents built with Playwright/AgentQL
-   * AI-powered parsing to extract and normalize records
-   * Adaptive scraping to handle CAPTCHAs and site changes
-
-2. **Blockchain Integration Layer**
-   * NEAR Protocol smart contracts for secure, transparent claim verification
-   * Sharded architecture (Nightshade) for scalable, low-cost storage
-   * Light clients for efficient off-chain access
-
-3. **User Interaction Layer**
-   * Bitte Wallet integration with MPC-based security
-   * AI-driven identity verification
-   * One-click claim submission
-
-### Workflow
-
-```mermaid
-graph TD
-    A[User Onboarding via Bitte Wallet] --> B[Secure Storage of User Identifiers]
-    B --> C[Autonomous Agents Scan Databases]
-    C --> D[AI Matching with User Profiles]
-    D --> E{Match Found?}
-    E -->|Yes| F[Store Verified Claim on NEAR]
-    F --> G[User Notification]
-    G --> H[One-Click Claim Process]
-    E -->|No| C
+# Governance Configuration
+DEFAULT_POLICY="standard"
+AUDIT_FREQUENCY="daily"
 ```
 
-## 📊 NEAR Ecosystem Benefits
+### Installation
 
-* Demonstrates practical use case for blockchain in recovering real-world assets
-* Showcases secure identity management through wallet integration
-* Creates value for users through automated asset recovery
-* Potential for community governance of disputed claims
+```bash
+# Clone the repository
+git clone https://github.com/thisyearnofear/ai-agent-governance.git
+cd ai-agent-governance
+
+# Install dependencies
+pnpm install
+
+# Build the project
+pnpm build
+
+# Start the platform
+pnpm start
+```
+
+## 📊 Usage Examples
+
+### Monitor an Agent
+
+```typescript
+import { GovernanceMonitor } from 'ai-agent-governance';
+
+const monitor = new GovernanceMonitor({
+  agentId: 'financial-advisor-1',
+  policyName: 'financial-advisory',
+  recallBucket: 'governance-platform',
+});
+
+monitor.attach(myExistingAgent);
+await monitor.startMonitoring();
+```
+
+### List a Pattern in the Marketplace
+
+```typescript
+import { MarketplaceService } from 'ai-agent-governance';
+
+const marketplace = new MarketplaceService();
+await marketplace.initialize();
+
+const pattern = {
+  id: 'pattern-123',
+  title: 'Financial Analysis Pattern',
+  description: 'A pattern for analyzing financial data',
+  pattern: '// Financial analysis logic here',
+  price: 99.99,
+  currency: 'USD',
+  authorId: 'author-1',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  metadata: {
+    category: 'finance',
+    tags: ['analysis', 'data'],
+    version: '1.0.0',
+    rating: 4.5,
+    downloads: 0,
+  },
+};
+
+await marketplace.listPattern(pattern);
+```
+
+## 🔐 Security Considerations
+
+- All sensitive data is encrypted before storage in Recall buckets
+- Private keys should be secured using appropriate secret management practices
+- Basic authentication for marketplace transactions
+- Regular security audits of the governance infrastructure
+
+## 🗺️ Roadmap
+
+### Phase 1: MVP (Current)
+
+- ✅ Basic agent monitoring and logging
+- ✅ Simple marketplace for pattern exchange
+- ✅ Basic governance controls
+- ✅ Essential security features
+
+### Phase 2: Enhanced Features
+
+- 🔄 Advanced pattern validation
+- 🔄 Payment processing integration
+- 🔄 Enhanced subscription management
+- 🔄 Improved analytics dashboard
+
+### Phase 3: Advanced Governance
+
+- 🔄 Zero-knowledge proofs
+- 🔄 Advanced consensus mechanisms
+- 🔄 Cross-agent collaboration
+- 🔄 Advanced policy management
+
+### Phase 4: Ecosystem Expansion
+
+- 🔄 API marketplace
+- 🔄 Plugin system
+- 🔄 Advanced visualization tools
+- 🔄 Enterprise features
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see `CONTRIBUTING.md` for details on how to get started.
 
 ## 📜 License
 
-MIT © Escheat Agents
+This project is licensed under the MIT License - see the `LICENSE` file for details.
 
----
+## 🙏 Acknowledgements
 
-**Empowering people to reclaim what's rightfully theirs—seamlessly, securely, and on-chain.**
+- **Recall Network** for providing the decentralized intelligence layer
+- **OpenAI** for advanced language model capabilities
+- **The AI governance community** for valuable insights and feedback
