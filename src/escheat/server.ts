@@ -14,6 +14,9 @@ const app = express();
 const agentService = new AgentService();
 const policyService = new PolicyService();
 
+// Trust proxy for rate limiting
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(
@@ -79,6 +82,7 @@ const createAgent: RequestHandler = async (req, res) => {
       return;
     }
 
+    logger.info('Creating agent with data:', { name, type, capabilities });
     const agent = await agentService.createAgent(name, type, capabilities);
     res.status(201).json({
       message: 'Agent created successfully',
@@ -89,6 +93,12 @@ const createAgent: RequestHandler = async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Failed to create agent',
+      details:
+        config.NODE_ENV === 'development'
+          ? error instanceof Error
+            ? error.message
+            : String(error)
+          : undefined,
     });
   }
 };
