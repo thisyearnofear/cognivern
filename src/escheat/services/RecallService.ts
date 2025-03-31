@@ -11,21 +11,38 @@ export class RecallService {
       Authorization: `Bearer ${config.RECALL_PRIVATE_KEY}`,
       'Content-Type': 'application/json',
     };
+    logger.info('RecallService initialized with config:', {
+      baseUrl: this.baseUrl,
+      hasPrivateKey: !!config.RECALL_PRIVATE_KEY,
+      bucketAlias: config.RECALL_BUCKET_ALIAS,
+      network: config.RECALL_NETWORK,
+    });
   }
 
   async storeObject(bucket: string, key: string, data: unknown): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/buckets/${bucket}/objects/${key}`, {
+      const url = `${this.baseUrl}/buckets/${bucket}/objects/${key}`;
+      logger.info(`Attempting to store object at: ${url}`);
+
+      const response = await fetch(url, {
         method: 'PUT',
         headers: this.headers,
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to store object: ${response.statusText}`);
+        const errorText = await response.text();
+        logger.error('Recall API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+          url,
+          headers: this.headers,
+        });
+        throw new Error(`Failed to store object: ${response.statusText} - ${errorText}`);
       }
 
-      logger.info(`Stored object: ${bucket}/${key}`);
+      logger.info(`Successfully stored object: ${bucket}/${key}`);
     } catch (error) {
       logger.error(`Error storing object ${bucket}/${key}:`, error);
       throw error;
