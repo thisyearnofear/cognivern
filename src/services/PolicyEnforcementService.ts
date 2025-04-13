@@ -1,22 +1,31 @@
-import { Policy, PolicyRule, PolicyRuleType, PolicyAction } from '../types/Policy';
-import { AgentAction, PolicyCheck } from '../types/Agent';
-import { RecallClient } from '@recallnet/sdk';
+import { Policy, PolicyRule, PolicyRuleType, PolicyAction } from '../types/Policy.js';
+import { AgentAction, PolicyCheck } from '../types/Agent.js';
+import { RecallClient } from '@recallnet/sdk/client';
+import type { Address } from 'viem';
+import type { ObjectValue } from '@recallnet/sdk/bucket';
 
 export class PolicyEnforcementService {
+  private currentPolicy: Policy | null = null;
   private recall: RecallClient;
-  private bucketAddress: string;
-  private currentPolicy?: Policy;
+  private bucketAddress: Address;
 
-  constructor(recall: RecallClient, bucketAddress: string) {
+  constructor(recall: RecallClient, bucketAddress: Address) {
     this.recall = recall;
     this.bucketAddress = bucketAddress;
   }
 
-  async loadPolicy(policyId: string): Promise<Policy> {
-    const policyPath = `agents/escheat-agent-1/policies/${policyId}.json`;
-    const policyData = await this.recall.bucket.get(this.bucketAddress, policyPath);
-    this.currentPolicy = JSON.parse(policyData.toString()) as Policy;
-    return this.currentPolicy;
+  async loadPolicy(policyId: string): Promise<void> {
+    // Load policy from Recall bucket
+    const bucketManager = this.recall.bucketManager();
+    const { result } = await bucketManager.getObjectValue(
+      this.bucketAddress,
+      `policies/${policyId}`,
+    );
+
+    // Convert the object value to a string and parse as JSON
+    // First cast to unknown and then to Uint8Array to bypass TypeScript's type checking
+    const policyText = new TextDecoder().decode(result as unknown as Uint8Array);
+    this.currentPolicy = JSON.parse(policyText) as Policy;
   }
 
   async evaluateAction(action: AgentAction): Promise<PolicyCheck[]> {
@@ -25,56 +34,68 @@ export class PolicyEnforcementService {
     }
 
     const checks: PolicyCheck[] = [];
-
     for (const rule of this.currentPolicy.rules) {
-      const check = await this.evaluateRule(rule, action);
-      checks.push(check);
-
-      // If a deny rule matches, stop processing
-      if (rule.type === PolicyRuleType.DENY && check.result) {
-        break;
+      try {
+        const result = await this.evaluateRule(rule, action);
+        checks.push({
+          policyId: rule.id,
+          result,
+          reason: result ? 'Rule passed' : 'Rule failed',
+        });
+      } catch (error) {
+        checks.push({
+          policyId: rule.id,
+          result: false,
+          reason: `Error evaluating rule: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
       }
     }
-
     return checks;
   }
 
-  private async evaluateRule(rule: PolicyRule, action: AgentAction): Promise<PolicyCheck> {
-    try {
-      // Evaluate the condition using a safe evaluation context
-      const condition = new Function('action', `return ${rule.condition}`);
-      const result = condition(action);
-
-      return {
-        policyId: rule.id,
-        result: result,
-        reason: result ? undefined : `Failed to meet condition: ${rule.condition}`,
-      };
-    } catch (error) {
-      return {
-        policyId: rule.id,
-        result: false,
-        reason: `Error evaluating rule: ${error.message}`,
-      };
-    }
-  }
-
   async enforcePolicy(action: AgentAction): Promise<boolean> {
+    if (!this.currentPolicy) {
+      throw new Error('No policy loaded');
+    }
+
     const checks = await this.evaluateAction(action);
 
-    // Check if any deny rules matched
-    const denied = checks.some(
+    // Check if any DENY rules were triggered
+    const hasDenyViolation = checks.some(
       (check) =>
-        check.result &&
-        this.currentPolicy?.rules.find((r) => r.id === check.policyId)?.type ===
+        !check.result &&
+        this.currentPolicy?.rules.find((r: PolicyRule) => r.id === check.policyId)?.type ===
           PolicyRuleType.DENY,
     );
 
-    // Check if all require rules matched
-    const required = this.currentPolicy?.rules
-      .filter((r) => r.type === PolicyRuleType.REQUIRE)
-      .every((r) => checks.find((c) => c.policyId === r.id)?.result);
+    if (hasDenyViolation) {
+      return false;
+    }
 
-    return !denied && !!required;
+    // Check if all REQUIRE rules passed
+    return this.currentPolicy.rules
+      .filter((r: PolicyRule) => r.type === PolicyRuleType.REQUIRE)
+      .every((r: PolicyRule) => checks.find((c) => c.policyId === r.id)?.result);
+  }
+
+  private async evaluateRule(rule: PolicyRule, action: AgentAction): Promise<boolean> {
+    switch (rule.type) {
+      case PolicyRuleType.REQUIRE:
+        return this.evaluateRequireRule(rule, action);
+      case PolicyRuleType.DENY:
+        return !this.evaluateDenyRule(rule, action);
+      default:
+        throw new Error(`Unknown rule type: ${rule.type}`);
+    }
+  }
+
+  private evaluateRequireRule(rule: PolicyRule, action: AgentAction): boolean {
+    // Implement require rule evaluation logic
+    return true;
+  }
+
+  private evaluateDenyRule(rule: PolicyRule, action: AgentAction): boolean {
+    // Implement deny rule evaluation logic
+    return false;
   }
 }

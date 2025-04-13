@@ -1,29 +1,46 @@
 {
     "compilerOptions": {
-        "target": "ESNext",
+        "target": "ES2020",
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
-        "noEmit": false,
-        "allowImportingTsExtensions": false,
-        "esModuleInterop": true,
+        "lib": [
+            "ES2020",
+            "DOM"
+        ],
+        "outDir": "../../dist",
+        "rootDir": "..",
         "strict": true,
+        "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "outDir": "../../dist/escheat",
-        "rootDir": ".",
-        "baseUrl": ".",
+        "resolveJsonModule": true,
+        "allowJs": true,
+        "types": [
+            "node"
+        ],
+        "baseUrl": "..",
         "paths": {
-            "*": [
-                "node_modules/*",
-                "*"
+            "@recallnet/sdk": [
+                "node_modules/@recallnet/sdk"
+            ],
+            "@recallnet/sdk/*": [
+                "node_modules/@recallnet/sdk/*"
+            ],
+            "@recallnet/chains": [
+                "node_modules/@recallnet/chains"
+            ],
+            "@recallnet/chains/*": [
+                "node_modules/@recallnet/chains/*"
             ]
         }
     },
     "include": [
-        "./**/*"
+        "../**/*.ts",
+        "../**/*.js",
+        "../node_modules/@recallnet/*/dist/**/*.d.ts"
     ],
     "exclude": [
         "node_modules",
-        "dist"
+        "../node_modules/**/node_modules"
     ]
 }

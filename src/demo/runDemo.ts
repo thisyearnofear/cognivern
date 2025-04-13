@@ -2,11 +2,12 @@ import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { testnet } from '@recallnet/chains';
 import { RecallClient } from '@recallnet/sdk/client';
-import { TestAgent } from '../agents/TestAgent';
-import { PolicyEnforcementService } from '../services/PolicyEnforcementService';
-import { AuditLogService } from '../services/AuditLogService';
-import { MetricsService } from '../services/MetricsService';
-import { MetricsPeriod } from '../types/Metrics';
+import type { ListResultBucket, CreateBucketParams } from '@recallnet/sdk/bucket';
+import { TestAgent } from '../agents/TestAgent.js';
+import { PolicyEnforcementService } from '../services/PolicyEnforcementService.js';
+import { AuditLogService } from '../services/AuditLogService.js';
+import { MetricsService } from '../services/MetricsService.js';
+import { MetricsPeriod } from '../types/Metrics.js';
 
 async function runDemo() {
   // Initialize wallet client
@@ -22,31 +23,45 @@ async function runDemo() {
   const bucketManager = recall.bucketManager();
 
   // Get or create bucket
-  const bucketMetadata = {
+  const bucketMetadata: Record<string, string> = {
     name: process.env.RECALL_BUCKET_ALIAS!,
-    metadata: {
-      type: 'escheat-agents',
-      environment: process.env.NODE_ENV || 'development',
-    },
+    type: 'escheat-agents',
+    environment: process.env.NODE_ENV || 'development',
   };
 
-  let bucket;
+  let bucket: ListResultBucket | undefined;
   try {
     const { result: buckets } = await bucketManager.list();
-    bucket = buckets.find((b) => b.metadata?.name === bucketMetadata.name);
+    bucket = buckets.find((b: ListResultBucket) => {
+      const metadata = b.metadata as Record<string, string>;
+      return metadata.name === bucketMetadata.name;
+    });
+
     if (!bucket) {
-      const { result } = await bucketManager.create(bucketMetadata);
-      bucket = result.bucket;
+      const createParams: CreateBucketParams = [
+        '0x0000000000000000000000000000000000000000',
+        Object.entries(bucketMetadata).map(([key, value]) => ({ key, value })),
+      ];
+      const { result } = await bucketManager.create({ metadata: bucketMetadata });
+      bucket = {
+        kind: 0,
+        addr: result.bucket,
+        metadata: bucketMetadata,
+      };
     }
   } catch (error) {
     console.error('Failed to initialize bucket:', error);
     throw error;
   }
 
+  if (!bucket) {
+    throw new Error('Failed to get or create bucket');
+  }
+
   // Initialize services with bucket
-  const policyService = new PolicyEnforcementService(recall, bucket);
-  const auditService = new AuditLogService(recall, bucket);
-  const metricsService = new MetricsService(recall, bucket);
+  const policyService = new PolicyEnforcementService(recall, bucket.addr);
+  const auditService = new AuditLogService(recall, bucket.addr);
+  const metricsService = new MetricsService(recall, bucket.addr);
 
   // Load the default policy
   await policyService.loadPolicy('default-policy');
