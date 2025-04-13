@@ -34,6 +34,7 @@ const envSchema = z.object({
   // Provider Configuration
   OPENAI_API_KEY: z.string().min(1),
   MODEL_NAME: z.string().default('gpt-4'),
+  GEMINI_API_KEY: z.string().optional(),
 
   // Governance Configuration
   DEFAULT_POLICY: z.string().default('standard'),

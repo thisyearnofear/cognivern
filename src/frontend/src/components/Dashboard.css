@@ -74,3 +74,28 @@
   margin: 1rem 0;
   font-weight: 500;
 }
+
+.metrics-empty-state {
+  background-color: #f8f9fa;
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.metrics-empty-state p {
+  color: #6c757d;
+  margin-bottom: 1rem;
+}
+
+.metrics-empty-state ul {
+  text-align: left;
+  display: inline-block;
+  margin: 0 auto 1rem;
+  color: #6c757d;
+}
+
+.metrics-empty-state li {
+  margin-bottom: 0.5rem;
+}
