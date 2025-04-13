@@ -19,6 +19,7 @@ export class MetricsService {
   constructor(recall: RecallClient, bucketAddress: Address) {
     this.recall = recall;
     this.bucketAddress = bucketAddress;
+    console.log('MetricsService initialized with bucket:', bucketAddress);
   }
 
   async recordAction(action: AgentAction, checks: PolicyCheck[], latencyMs: number): Promise<void> {
@@ -30,40 +31,122 @@ export class MetricsService {
       policyPassed: checks.every((check) => check.result),
     };
 
-    const bucketManager = this.recall.bucketManager();
-    await bucketManager.add(
-      this.bucketAddress,
-      `metrics/${action.id}`,
-      new TextEncoder().encode(JSON.stringify(metrics)),
-    );
+    try {
+      const bucketManager = this.recall.bucketManager();
+      console.log('Adding metrics to bucket:', {
+        bucket: this.bucketAddress,
+        actionId: action.id,
+      });
+
+      // Use a unique key based on timestamp and action ID
+      const metricKey = `metrics/${new Date().toISOString().replace(/[:.]/g, '-')}-${action.id}`;
+
+      // Add the metrics to the bucket
+      await bucketManager.add(
+        this.bucketAddress,
+        metricKey,
+        new TextEncoder().encode(JSON.stringify(metrics)),
+      );
+      console.log('Successfully added metrics to bucket:', { key: metricKey });
+    } catch (error) {
+      console.error(
+        'Error adding metrics to bucket:',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+      throw error;
+    }
   }
 
   async getMetrics(period: MetricsPeriod): Promise<Metrics> {
+    console.log('Getting metrics for period:', period);
     const endTime = new Date();
     const startTime = new Date(endTime.getTime() - this.getPeriodDuration(period));
 
-    const bucketManager = this.recall.bucketManager();
-    const { result } = await bucketManager.query(this.bucketAddress, {
-      prefix: 'metrics/',
-      startKey: startTime.toISOString(),
-      limit: 1000,
-    });
+    try {
+      // Try with 3 retries
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const bucketManager = this.recall.bucketManager();
+          console.log(`Querying bucket for metrics (attempt ${attempt}/3):`, {
+            bucket: this.bucketAddress,
+            prefix: 'metrics/',
+          });
 
-    const rawMetrics = await Promise.all(
-      result.objects.map(async (obj) => {
-        const { result: data } = await bucketManager.getObjectValue(this.bucketAddress, obj.key);
-        return JSON.parse(
-          new TextDecoder().decode(data as unknown as Uint8Array),
-        ) as RawMetricsData;
-      }),
-    );
+          // Query for metrics with the metrics/ prefix
+          const { result } = await bucketManager.query(this.bucketAddress, {
+            prefix: 'metrics/',
+          });
 
-    const filteredMetrics = rawMetrics.filter((m) => {
-      const timestamp = new Date(m.timestamp);
-      return timestamp >= startTime && timestamp <= endTime;
-    });
+          console.log(`Found ${result.objects.length} metric objects in bucket`);
 
-    return this.aggregateMetrics(filteredMetrics, period);
+          if (result.objects.length === 0) {
+            console.log('No metrics found, returning empty metrics');
+            return this.createEmptyMetrics(period);
+          }
+
+          // Process each metric object
+          const rawMetrics: RawMetricsData[] = [];
+
+          for (const obj of result.objects) {
+            try {
+              console.log(`Fetching metric object: ${obj.key}`);
+              const { result: data } = await bucketManager.get(this.bucketAddress, obj.key);
+              const value = new TextDecoder().decode(data);
+              const metric = JSON.parse(value) as RawMetricsData;
+              rawMetrics.push(metric);
+            } catch (objError) {
+              console.error(
+                `Error reading metric object ${obj.key}:`,
+                objError instanceof Error ? objError.message : 'Unknown error',
+              );
+              // Continue to next object
+            }
+          }
+
+          // Filter metrics by time period
+          const filteredMetrics = rawMetrics.filter((m) => {
+            const timestamp = new Date(m.timestamp);
+            return timestamp >= startTime && timestamp <= endTime;
+          });
+
+          console.log(
+            `Successfully filtered to ${filteredMetrics.length} valid metrics for the period`,
+          );
+
+          if (filteredMetrics.length === 0) {
+            return this.createEmptyMetrics(period);
+          }
+
+          return this.aggregateMetrics(filteredMetrics, period);
+        } catch (attemptError) {
+          console.error(
+            `Error in metrics fetch attempt ${attempt}/3:`,
+            attemptError instanceof Error ? attemptError.message : 'Unknown error',
+          );
+
+          if (attempt < 3) {
+            // Wait before retrying (exponential backoff)
+            const delay = Math.pow(2, attempt) * 500;
+            console.log(`Retrying in ${delay}ms...`);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          } else {
+            // Last attempt failed, throw the error
+            throw attemptError;
+          }
+        }
+      }
+
+      // This shouldn't be reached due to the throw in the loop
+      throw new Error('All retry attempts failed');
+    } catch (error) {
+      console.error(
+        'Error fetching metrics from bucket:',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+
+      // Return empty metrics on error
+      return this.createEmptyMetrics(period);
+    }
   }
 
   private getPeriodDuration(period: MetricsPeriod): number {
@@ -81,38 +164,39 @@ export class MetricsService {
     }
   }
 
-  private aggregateMetrics(metrics: RawMetricsData[], period: MetricsPeriod): Metrics {
-    // Default empty metrics data
-    const emptyMetricsData: MetricsData = {
-      actions: {
-        total: 0,
-        successful: 0,
-        failed: 0,
-        blocked: 0,
-      },
-      policies: {
-        total: 0,
-        violations: 0,
-        enforced: 0,
-      },
-      performance: {
-        averageResponseTime: 0,
-        p95ResponseTime: 0,
-        maxResponseTime: 0,
-      },
-      resources: {
-        cpuUsage: 0,
-        memoryUsage: 0,
-        storageUsage: 0,
+  private createEmptyMetrics(period: MetricsPeriod): Metrics {
+    return {
+      timestamp: new Date().toISOString(),
+      period,
+      data: {
+        actions: {
+          total: 0,
+          successful: 0,
+          failed: 0,
+          blocked: 0,
+        },
+        policies: {
+          total: 0,
+          violations: 0,
+          enforced: 0,
+        },
+        performance: {
+          averageResponseTime: 0,
+          p95ResponseTime: 0,
+          maxResponseTime: 0,
+        },
+        resources: {
+          cpuUsage: 0,
+          memoryUsage: 0,
+          storageUsage: 0,
+        },
       },
     };
+  }
 
+  private aggregateMetrics(metrics: RawMetricsData[], period: MetricsPeriod): Metrics {
     if (metrics.length === 0) {
-      return {
-        timestamp: new Date().toISOString(),
-        period,
-        data: emptyMetricsData,
-      };
+      return this.createEmptyMetrics(period);
     }
 
     // Calculate metrics

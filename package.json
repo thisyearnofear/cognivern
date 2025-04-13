@@ -14,6 +14,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@google/genai": "^0.8.0",
     "@recallnet/agent-toolkit": "^0.0.3",
     "@recallnet/chains": "^0.0.8",
     "@recallnet/sdk": "^0.0.9",

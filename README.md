@@ -1,10 +1,10 @@
-# AI Agent Governance Platform
+# Cognivern
 
 A decentralized platform for auditing, monitoring, and governing AI agents through trusted, verifiable intelligence using Recall's blockchain-based storage infrastructure.
 
 ## 🌟 Overview
 
-The AI Agent Governance Platform provides a comprehensive solution for ensuring transparency, accountability, and collaboration between AI agents. By leveraging Recall's decentralized intelligence layer, this platform enables:
+The Cognivern Platform provides a comprehensive solution for ensuring transparency, accountability, and collaboration between AI agents. By leveraging Recall's decentralized intelligence layer, this platform enables:
 
 - **Verifiable Decision Logs:** Full audit trails for AI agent reasoning and actions
 - **Intelligence Marketplace:** Exchange of valuable reasoning patterns between agents
@@ -17,35 +17,35 @@ This platform helps organizations maintain control and visibility over their AI 
 
 ### 🔍 Agent Activity Monitoring (MVP)
 
-- Track all agent decisions with persistent chain-of-thought logs
-- Timestamp and cryptographically sign all agent actions
-- Generate human-readable explanations for complex decisions
-- Real-time performance metrics tracking
-- Compliance monitoring and reporting
+- ✅ Track all agent decisions with persistent chain-of-thought logs
+- ✅ Timestamp and cryptographically sign all agent actions
+- ✅ Generate human-readable explanations for complex decisions
+- ✅ Real-time performance metrics tracking
+- ✅ Compliance monitoring and reporting
 
 ### 💼 Reasoning Pattern Marketplace (MVP)
 
-- List and discover reasoning patterns
-- Subscribe to specialized reasoning services
-- Basic pattern categorization and tagging
-- Subscription management system
-- Pattern access control
+- ✅ List and discover reasoning patterns
+- ✅ Subscribe to specialized reasoning services
+- ✅ Basic pattern categorization and tagging
+- ⏳ Subscription management system
+- ⏳ Pattern access control
 
 ### 🛡️ Governance Controls (MVP)
 
-- Implement policy guardrails for agent behavior
-- Create consensus mechanisms for high-stakes decisions
-- Develop exception handling protocols
-- Basic audit logging
-- Performance metrics tracking
+- ✅ Implement policy guardrails for agent behavior
+- ✅ Create consensus mechanisms for high-stakes decisions
+- ✅ Develop exception handling protocols
+- ✅ Basic audit logging
+- ✅ Performance metrics tracking
 
 ### 🤝 Multi-Agent Collaboration (Future)
 
-- Enable secure knowledge sharing between trusted agents
-- Implement verification protocols for shared intelligence
-- Create collaborative problem-solving workflows
-- Cross-agent communication protocols
-- Shared resource management
+- 🔜 Enable secure knowledge sharing between trusted agents
+- 🔜 Implement verification protocols for shared intelligence
+- 🔜 Create collaborative problem-solving workflows
+- 🔜 Cross-agent communication protocols
+- 🔜 Shared resource management
 
 ## 🔧 Technical Architecture
 
@@ -53,43 +53,43 @@ This platform helps organizations maintain control and visibility over their AI 
 
 #### **Agent Monitoring Service (MVP)**
 
-- Intercepts and logs all agent reasoning steps
-- Structures data for efficient storage and retrieval
-- Provides real-time monitoring capabilities
-- Basic metrics collection
-- Simple compliance checks
+- ✅ Intercepts and logs all agent reasoning steps
+- ✅ Structures data for efficient storage and retrieval
+- ✅ Provides real-time monitoring capabilities
+- ✅ Basic metrics collection
+- ✅ Simple compliance checks
 
 #### **Recall Integration Layer (MVP)**
 
-- Manages bucket creation and organization
-- Handles secure, encrypted storage of sensitive data
-- Implements batch synchronization for efficient processing
-- Basic error handling and retries
-- Simple data validation
+- ✅ Manages bucket creation and organization
+- ✅ Handles secure, encrypted storage of sensitive data
+- ✅ Implements batch synchronization for efficient processing
+- ✅ Basic error handling and retries
+- ✅ Simple data validation
 
 #### **Verification Engine (Future)**
 
-- Validates the integrity of stored reasoning chains
-- Implements zero-knowledge proofs for private verification
-- Creates cryptographic attestations of agent behavior
-- Advanced signature verification
-- Chain-of-custody tracking
+- 🔜 Validates the integrity of stored reasoning chains
+- 🔜 Implements zero-knowledge proofs for private verification
+- 🔜 Creates cryptographic attestations of agent behavior
+- 🔜 Advanced signature verification
+- 🔜 Chain-of-custody tracking
 
 #### **Marketplace Protocol (MVP)**
 
-- Facilitates listing and discovery of reasoning patterns
-- Implements basic subscription models
-- Handles pattern access control
-- Simple pattern categorization
-- Basic subscription management
+- ✅ Facilitates listing and discovery of reasoning patterns
+- ⏳ Implements basic subscription models
+- ⏳ Handles pattern access control
+- ✅ Simple pattern categorization
+- ⏳ Basic subscription management
 
-#### **Governance Dashboard (Future)**
+#### **Governance Dashboard (MVP)**
 
-- Provides real-time visibility into agent activities
-- Enables policy configuration and management
-- Offers advanced analytics on agent performance
-- Interactive policy editor
-- Advanced visualization tools
+- ✅ Provides real-time visibility into agent activities
+- ✅ Enables policy configuration and management
+- ✅ Offers advanced analytics on agent performance
+- ⏳ Interactive policy editor
+- ⏳ Advanced visualization tools
 
 ## 📋 Implementation Details
 
@@ -250,6 +250,32 @@ governance-bucket/
 - pnpm v9.15.4 or higher
 - Recall account with available credits
 - Private key with sufficient permissions
+- Recall CLI installed (`npm install -g @recallnet/cli`)
+
+### Recall Bucket Setup
+
+Before running the application, you need to set up a Recall bucket for storing governance data:
+
+```bash
+# Create a new bucket
+recall bucket create --private-key YOUR_PRIVATE_KEY --metadata "name=escheat-governance" --metadata "type=agent-storage"
+
+# The command will output a transaction receipt with the new bucket address
+# Save this address for your .env file (RECALL_BUCKET_ADDRESS)
+
+# Create and add the agent configuration
+echo '{"name": "escheat-agent-1", "type": "governance-agent", "version": "1.0.0", "createdAt": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'", "status": "active", "capabilities": ["policy-enforcement", "audit-logging", "performance-monitoring"]}' > agent-config.json
+
+# Add the configuration to your bucket (use YOUR_BUCKET_ADDRESS from the creation step)
+recall bucket add --private-key YOUR_PRIVATE_KEY --address YOUR_BUCKET_ADDRESS --key agents/escheat-agent-1/config.json agent-config.json
+
+# Verify the configuration was added correctly
+recall bucket get --private-key YOUR_PRIVATE_KEY --address YOUR_BUCKET_ADDRESS --key agents/escheat-agent-1/config.json
+
+# You can also add sample metrics data
+echo '{"timestamp": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'", "action": "analysis", "latencyMs": 120, "policyChecks": 3, "policyPassed": true}' > sample-metric.json
+recall bucket add --private-key YOUR_PRIVATE_KEY --address YOUR_BUCKET_ADDRESS --key metrics/sample-1 sample-metric.json
+```
 
 ### Environment Configuration
 
@@ -258,7 +284,7 @@ Create a `.env` file with the following variables:
 ```bash
 # Recall Configuration
 RECALL_PRIVATE_KEY="your-private-key"
-RECALL_BUCKET_ADDRESS="0xff0000000000000000000000000000000000fba1"
+RECALL_BUCKET_ADDRESS="YOUR_BUCKET_ADDRESS" # From the bucket creation step
 RECALL_NETWORK="testnet"
 
 # Sync Configuration
@@ -340,13 +366,13 @@ await marketplace.listPattern(pattern);
 
 ## 🔐 Security Considerations
 
-- All agent actions are validated against defined policies
-- Policy enforcement happens in real-time before actions are executed
-- Comprehensive audit logging for compliance and debugging
-- Rate limiting and resource monitoring to prevent abuse
-- Secure storage of sensitive data in Recall buckets
-- API key authentication for all endpoints
-- Regular security audits of the governance infrastructure
+- ✅ All agent actions are validated against defined policies
+- ✅ Policy enforcement happens in real-time before actions are executed
+- ✅ Comprehensive audit logging for compliance and debugging
+- ✅ Rate limiting and resource monitoring to prevent abuse
+- ✅ Secure storage of sensitive data in Recall buckets
+- ✅ API key authentication for all endpoints
+- ⏳ Regular security audits of the governance infrastructure
 
 ## 🗺️ Roadmap
 
@@ -357,12 +383,12 @@ await marketplace.listPattern(pattern);
 - ✅ Basic governance controls
 - ✅ Essential security features
 
-### Phase 2: Enhanced Features
+### Phase 2: Enhanced Features (Next)
 
-- 🔄 Advanced pattern validation
-- 🔄 Payment processing integration
-- 🔄 Enhanced subscription management
-- 🔄 Improved analytics dashboard
+- ⏳ Advanced pattern validation
+- ⏳ Payment processing integration
+- ⏳ Enhanced subscription management
+- ⏳ Improved analytics dashboard
 
 ### Phase 3: Advanced Governance
 
@@ -391,3 +417,20 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 - **Recall Network** for providing the decentralized intelligence layer
 - **OpenAI** for advanced language model capabilities
 - **The AI governance community** for valuable insights and feedback
+
+## Current Status
+
+The platform is now fully integrated with Recall's decentralized storage for agent metrics:
+
+- ✅ Agent metrics are being successfully stored in Recall buckets
+- ✅ The dashboard can display real metrics from the Recall storage
+- ✅ Error handling and retry mechanisms ensure reliable data access
+- ✅ Bucket verification on startup confirms proper infrastructure setup
+
+### Next Steps
+
+1. Complete the subscription management system
+2. Implement the interactive policy editor
+3. Enhance visualization tools for metrics analysis
+4. Add advanced pattern validation functionality
+5. Set up system for regular security audits

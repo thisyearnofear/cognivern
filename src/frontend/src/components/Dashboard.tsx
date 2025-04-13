@@ -38,16 +38,23 @@ export default function Dashboard() {
     async function fetchMetrics() {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3000/api/metrics/daily');
+        console.log('Fetching metrics from backend');
+        const response = await fetch('http://localhost:3000/api/metrics/daily', {
+          headers: {
+            'x-api-key': 'Y10tiPBsbyEaZtVEvhu5uRj+YoRRiZQ6m3lsTOky1LQ=',
+          },
+        });
 
         if (!response.ok) {
           throw new Error(`Error: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log('Received metrics:', data);
         setMetrics(data);
         setError(null);
       } catch (err) {
+        console.error('Error fetching metrics:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
         setMetrics(null);
       } finally {
@@ -66,48 +73,70 @@ export default function Dashboard() {
     return <div className="dashboard-error">Error: {error}</div>;
   }
 
+  const hasData =
+    metrics &&
+    (metrics.data.actions.total > 0 ||
+      metrics.data.policies.total > 0 ||
+      metrics.data.performance.averageResponseTime > 0);
+
   return (
     <div className="dashboard">
       <h2>Agent Metrics Dashboard</h2>
 
       {metrics ? (
-        <div className="metrics-grid">
-          <div className="metric-card">
-            <h3>Total Actions</h3>
-            <p className="metric-value">{metrics.data.actions.total}</p>
-          </div>
+        <div>
+          {!hasData && (
+            <div className="metrics-empty-state">
+              <p>No metrics data available yet. This could be because:</p>
+              <ul>
+                <li>No agent actions have been recorded yet</li>
+                <li>The bucket is new or empty</li>
+                <li>There may be connection issues with the Recall service</li>
+              </ul>
+              <p>The dashboard will automatically update when data becomes available.</p>
+            </div>
+          )}
 
-          <div className="metric-card">
-            <h3>Average Response Time</h3>
-            <p className="metric-value">
-              {metrics.data.performance.averageResponseTime.toFixed(2)} ms
-            </p>
-          </div>
+          <div className="metrics-grid">
+            <div className="metric-card">
+              <h3>Total Actions</h3>
+              <p className="metric-value">{metrics.data.actions.total}</p>
+            </div>
 
-          <div className="metric-card">
-            <h3>Policy Compliance</h3>
-            <p className="metric-value">
-              {metrics.data.policies.enforced} passed / {metrics.data.policies.violations} failed
-            </p>
-          </div>
+            <div className="metric-card">
+              <h3>Average Response Time</h3>
+              <p className="metric-value">
+                {metrics.data.performance.averageResponseTime.toFixed(2)} ms
+              </p>
+            </div>
 
-          <div className="metric-card">
-            <h3>Max Response Time</h3>
-            <p className="metric-value">{metrics.data.performance.maxResponseTime.toFixed(2)} ms</p>
-          </div>
+            <div className="metric-card">
+              <h3>Policy Compliance</h3>
+              <p className="metric-value">
+                {metrics.data.policies.enforced} passed / {metrics.data.policies.violations} failed
+              </p>
+            </div>
 
-          <div className="metric-card">
-            <h3>Last Updated</h3>
-            <p className="metric-value">
-              {new Date(metrics.timestamp).toLocaleDateString()}{' '}
-              {new Date(metrics.timestamp).toLocaleTimeString()}
-            </p>
-          </div>
+            <div className="metric-card">
+              <h3>Max Response Time</h3>
+              <p className="metric-value">
+                {metrics.data.performance.maxResponseTime.toFixed(2)} ms
+              </p>
+            </div>
 
-          <div className="metric-card">
-            <h3>Resource Usage</h3>
-            <p className="metric-value">CPU: {metrics.data.resources.cpuUsage}%</p>
-            <p>Memory: {metrics.data.resources.memoryUsage} MB</p>
+            <div className="metric-card">
+              <h3>Last Updated</h3>
+              <p className="metric-value">
+                {new Date(metrics.timestamp).toLocaleDateString()}{' '}
+                {new Date(metrics.timestamp).toLocaleTimeString()}
+              </p>
+            </div>
+
+            <div className="metric-card">
+              <h3>Resource Usage</h3>
+              <p className="metric-value">CPU: {metrics.data.resources.cpuUsage}%</p>
+              <p>Memory: {metrics.data.resources.memoryUsage} MB</p>
+            </div>
           </div>
         </div>
       ) : (

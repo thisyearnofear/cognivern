@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import './App.css';
 import Dashboard from './components/Dashboard';
+import AgentTestPanel from './components/AgentTestPanel';
 import './components/Dashboard.css';
 
 function App() {
@@ -9,7 +10,7 @@ function App() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>AI Agent Governance Platform</h1>
+        <h1>Cognivern</h1>
         <nav className="main-nav">
           <button
             className={activeTab === 'dashboard' ? 'active' : ''}
@@ -40,7 +41,7 @@ function App() {
 
       <main className="app-content">
         {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'agents' && <div className="coming-soon">Agents management coming soon</div>}
+        {activeTab === 'agents' && <AgentTestPanel />}
         {activeTab === 'policies' && (
           <div className="coming-soon">Policy management coming soon</div>
         )}
@@ -48,7 +49,7 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        <p>© 2025 AI Agent Governance Platform - Powered by Recall Network</p>
+        <p>© Cognivern - Powered by Recall Network</p>
       </footer>
     </div>
   );
