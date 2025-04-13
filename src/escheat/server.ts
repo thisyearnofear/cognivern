@@ -4,11 +4,24 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import axios, { AxiosError } from 'axios';
 import { config } from './config.js';
 import logger from './utils/logger.js';
 import { validateApiKey } from './middleware/auth.js';
 import { AgentService } from './services/AgentService.js';
 import { PolicyService } from './services/PolicyService.js';
+
+// Custom error class for API errors
+class APIError extends Error {
+  constructor(
+    public statusCode: number,
+    message: string,
+    public details?: unknown,
+  ) {
+    super(message);
+    this.name = 'APIError';
+  }
+}
 
 const app = express();
 const agentService = new AgentService();
@@ -52,9 +65,10 @@ app.use(
 );
 
 // Health check endpoint (no auth required)
-app.get('/health', (req: Request, res: Response) => {
+const healthCheck: RequestHandler = (req, res) => {
   res.json({ status: 'ok' });
-});
+};
+app.get('/health', healthCheck);
 
 // Protected routes
 const protectedRouter = express.Router();
@@ -70,16 +84,14 @@ protectedRouter.get('/test', (req: Request, res: Response) => {
 });
 
 // Agent Management Endpoints
-const createAgent: RequestHandler = async (req, res) => {
+const createAgent: RequestHandler = async (req, res, next) => {
   try {
     const { name, type, capabilities } = req.body;
 
     if (!name || !type || !capabilities || !Array.isArray(capabilities)) {
-      res.status(400).json({
-        error: 'Bad Request',
+      throw new APIError(400, 'Bad Request', {
         message: 'Missing required fields: name, type, and capabilities array',
       });
-      return;
     }
 
     logger.info('Creating agent with data:', { name, type, capabilities });
@@ -89,67 +101,43 @@ const createAgent: RequestHandler = async (req, res) => {
       agent,
     });
   } catch (error) {
-    logger.error('Error creating agent:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to create agent',
-      details:
-        config.NODE_ENV === 'development'
-          ? error instanceof Error
-            ? error.message
-            : String(error)
-          : undefined,
-    });
+    next(error);
   }
 };
 
-const listAgents: RequestHandler = async (req, res) => {
+const listAgents: RequestHandler = async (req, res, next) => {
   try {
     const agents = await agentService.listAgents();
     res.json({ agents });
   } catch (error) {
-    logger.error('Error listing agents:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to list agents',
-    });
+    next(error);
   }
 };
 
-const getAgent: RequestHandler = async (req, res) => {
+const getAgent: RequestHandler = async (req, res, next) => {
   try {
     const { id } = req.params;
     const agent = await agentService.getAgent(id);
 
     if (!agent) {
-      res.status(404).json({
-        error: 'Not Found',
-        message: `Agent ${id} not found`,
-      });
-      return;
+      throw new APIError(404, `Agent ${id} not found`);
     }
 
     res.json(agent);
   } catch (error) {
-    logger.error('Error getting agent:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to get agent',
-    });
+    next(error);
   }
 };
 
 // Governance Policy Endpoints
-const createPolicy: RequestHandler = async (req, res) => {
+const createPolicy: RequestHandler = async (req, res, next) => {
   try {
     const { name, description, rules } = req.body;
 
     if (!name || !description || !rules || !Array.isArray(rules)) {
-      res.status(400).json({
-        error: 'Bad Request',
+      throw new APIError(400, 'Bad Request', {
         message: 'Missing required fields: name, description, and rules array',
       });
-      return;
     }
 
     const policy = await policyService.createPolicy(name, description, rules);
@@ -158,24 +146,16 @@ const createPolicy: RequestHandler = async (req, res) => {
       policy,
     });
   } catch (error) {
-    logger.error('Error creating policy:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to create policy',
-    });
+    next(error);
   }
 };
 
-const listPolicies: RequestHandler = async (req, res) => {
+const listPolicies: RequestHandler = async (req, res, next) => {
   try {
     const policies = await policyService.listPolicies();
     res.json({ policies });
   } catch (error) {
-    logger.error('Error listing policies:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to list policies',
-    });
+    next(error);
   }
 };
 
@@ -232,13 +212,38 @@ protectedRouter.get('/metrics/agents', getAgentMetrics);
 app.use('/api', protectedRouter);
 
 // Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+const errorHandler = (
+  err: Error | APIError | AxiosError,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   logger.error('Error:', err);
+
+  if (err instanceof APIError) {
+    return res.status(err.statusCode).json({
+      error: err.message,
+      details: err.details,
+    });
+  }
+
+  if (axios.isAxiosError(err)) {
+    const status = err.response?.status || 500;
+    const message = err.response?.data?.message || err.message;
+    return res.status(status).json({
+      error: 'External API Error',
+      message:
+        config.NODE_ENV === 'development' ? message : 'An error occurred with an external service',
+    });
+  }
+
   res.status(500).json({
     error: 'Internal Server Error',
     message: config.NODE_ENV === 'development' ? err.message : undefined,
   });
-});
+};
+
+app.use(errorHandler);
 
 // Start server
 const startServer = () => {

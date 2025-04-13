@@ -1,93 +1,98 @@
+import axios, { AxiosInstance } from 'axios';
 import { config } from '../config.js';
 import logger from '../utils/logger.js';
 
 export class RecallService {
+  private client: AxiosInstance;
   private baseUrl: string;
-  private headers: Record<string, string>;
 
   constructor() {
-    this.baseUrl = `https://api.recall.ai/v1`;
-    this.headers = {
-      Authorization: `Bearer ${config.RECALL_PRIVATE_KEY}`,
-      'Content-Type': 'application/json',
-    };
-    logger.info('RecallService initialized with config:', {
-      baseUrl: this.baseUrl,
-      hasPrivateKey: !!config.RECALL_PRIVATE_KEY,
-      bucketAlias: config.RECALL_BUCKET_ALIAS,
-      network: config.RECALL_NETWORK,
+    this.baseUrl = config.RECALL_API_URL;
+    this.client = axios.create({
+      baseURL: this.baseUrl,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.RECALL_API_KEY}`,
+      },
     });
+    logger.info('RecallService initialized', { baseUrl: this.baseUrl });
   }
 
-  async storeObject(bucket: string, key: string, data: unknown): Promise<void> {
+  private async ensureBucketExists(bucketName: string): Promise<void> {
     try {
-      const url = `${this.baseUrl}/buckets/${bucket}/objects/${key}`;
-      logger.info(`Attempting to store object at: ${url}`);
-
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: this.headers,
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.error('Recall API error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
-          url,
-          headers: this.headers,
-        });
-        throw new Error(`Failed to store object: ${response.statusText} - ${errorText}`);
-      }
-
-      logger.info(`Successfully stored object: ${bucket}/${key}`);
+      await this.client.head(`/buckets/${bucketName}`);
+      logger.debug(`Bucket ${bucketName} exists`);
     } catch (error) {
-      logger.error(`Error storing object ${bucket}/${key}:`, error);
-      throw error;
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        logger.info(`Creating bucket: ${bucketName}`);
+        await this.client.post('/buckets', { name: bucketName });
+      } else {
+        logger.error(`Error checking bucket ${bucketName}:`, error);
+        throw new Error(
+          `Failed to check/create bucket: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }
     }
   }
 
-  async getObject<T>(bucket: string, key: string): Promise<T | null> {
+  async storeObject<T>(bucketName: string, objectKey: string, data: T): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/buckets/${bucket}/objects/${key}`, {
-        headers: this.headers,
-      });
+      await this.ensureBucketExists(bucketName);
 
-      if (response.status === 404) {
+      const response = await this.client.put(`/buckets/${bucketName}/objects/${objectKey}`, data);
+      if (response.status !== 200) {
+        throw new Error(`Unexpected status code: ${response.status}`);
+      }
+
+      logger.debug(`Stored object in bucket ${bucketName}:`, { objectKey });
+    } catch (error) {
+      logger.error(`Error storing object in bucket ${bucketName}:`, error);
+      throw new Error(
+        `Failed to store object: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  async getObject<T>(bucketName: string, objectKey: string): Promise<T | null> {
+    try {
+      const response = await this.client.get<T>(`/buckets/${bucketName}/objects/${objectKey}`);
+      logger.debug(`Retrieved object from bucket ${bucketName}:`, { objectKey });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        logger.debug(`Object not found in bucket ${bucketName}:`, { objectKey });
         return null;
       }
-
-      if (!response.ok) {
-        throw new Error(`Failed to get object: ${response.statusText}`);
-      }
-
-      return response.json() as Promise<T>;
-    } catch (error) {
-      logger.error(`Error getting object ${bucket}/${key}:`, error);
-      throw error;
+      logger.error(`Error retrieving object from bucket ${bucketName}:`, error);
+      throw new Error(
+        `Failed to retrieve object: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
-  async listObjects(bucket: string, prefix: string): Promise<string[]> {
+  async listObjects(bucketName: string, prefix: string = ''): Promise<string[]> {
     try {
-      const response = await fetch(
-        `${this.baseUrl}/buckets/${bucket}/objects?prefix=${encodeURIComponent(prefix)}`,
-        {
-          headers: this.headers,
-        },
+      const response = await this.client.get<{ objects: Array<{ key: string }> }>(
+        `/buckets/${bucketName}/objects`,
+        { params: { prefix } },
       );
 
-      if (!response.ok) {
-        throw new Error(`Failed to list objects: ${response.statusText}`);
-      }
+      const objects = response.data.objects.map((obj) => obj.key);
+      logger.debug(`Listed objects in bucket ${bucketName}:`, {
+        prefix,
+        count: objects.length,
+      });
 
-      const data = await response.json();
-      return data.objects.map((obj: { key: string }) => obj.key);
+      return objects;
     } catch (error) {
-      logger.error(`Error listing objects in ${bucket}:`, error);
-      throw error;
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        logger.debug(`Bucket ${bucketName} not found`);
+        return [];
+      }
+      logger.error(`Error listing objects in bucket ${bucketName}:`, error);
+      throw new Error(
+        `Failed to list objects: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 }
