@@ -1,5 +1,5 @@
-import { Policy } from './Policy';
-import { Metrics } from './Metrics';
+import { Policy } from './Policy.js';
+import { Metrics } from './Metrics.js';
 
 export interface AgentConfig {
   name: string;

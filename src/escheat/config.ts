@@ -12,6 +12,7 @@ const envSchema = z.object({
   RECALL_COT_LOG_PREFIX: z.string().min(1),
   RECALL_NETWORK: z.enum(['mainnet', 'testnet']),
   RECALL_ADDRESS: z.string().min(1),
+  RECALL_BUCKET_ADDRESS: z.string().min(1),
   RECALL_API_URL: z.string().default('https://api.recall.ai'),
   RECALL_API_KEY: z.string().min(1),
 

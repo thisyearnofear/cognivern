@@ -1,5 +1,6 @@
-import { AgentAction, PolicyCheck } from '../types/Agent';
-import { RecallClient } from '@recallnet/sdk';
+import { AgentAction, PolicyCheck } from '../types/Agent.js';
+import { RecallClient } from '@recallnet/sdk/client';
+import type { Address } from 'viem';
 
 export interface AuditLog {
   timestamp: string;
@@ -11,9 +12,9 @@ export interface AuditLog {
 
 export class AuditLogService {
   private recall: RecallClient;
-  private bucketAddress: string;
+  private bucketAddress: Address;
 
-  constructor(recall: RecallClient, bucketAddress: string) {
+  constructor(recall: RecallClient, bucketAddress: Address) {
     this.recall = recall;
     this.bucketAddress = bucketAddress;
   }
@@ -23,37 +24,33 @@ export class AuditLogService {
     policyChecks: PolicyCheck[],
     allowed: boolean,
   ): Promise<void> {
-    const log: AuditLog = {
+    const logEntry = {
       timestamp: new Date().toISOString(),
       action,
       policyChecks,
-      outcome: allowed ? 'allowed' : 'denied',
-      metadata: {
-        environment: process.env.NODE_ENV,
-        agentVersion: process.env.AGENT_VERSION || '1.0.0',
-      },
+      allowed,
     };
 
-    const logPath = `agents/escheat-agent-1/logs/${log.timestamp}-${action.id}.json`;
-    await this.recall.bucket.add(
+    const bucketManager = this.recall.bucketManager();
+    await bucketManager.add(
       this.bucketAddress,
-      logPath,
-      Buffer.from(JSON.stringify(log, null, 2)),
+      `audit/${action.id}`,
+      new TextEncoder().encode(JSON.stringify(logEntry)),
     );
   }
 
   async getActionLogs(startTime: string, endTime: string): Promise<AuditLog[]> {
     const logs: AuditLog[] = [];
-    const prefix = 'agents/escheat-agent-1/logs/';
-
-    const objects = await this.recall.bucket.query(this.bucketAddress, {
-      prefix,
-      // Add time-based filtering when available in the SDK
+    const bucketManager = this.recall.bucketManager();
+    const { result } = await bucketManager.query(this.bucketAddress, {
+      prefix: 'audit/',
+      startKey: startTime,
+      limit: 100,
     });
 
-    for (const obj of objects) {
-      const logData = await this.recall.bucket.get(this.bucketAddress, obj.key);
-      const log = JSON.parse(logData.toString()) as AuditLog;
+    for (const obj of result.objects) {
+      const { result: data } = await bucketManager.getObjectValue(this.bucketAddress, obj.key);
+      const log = JSON.parse(new TextDecoder().decode(data as unknown as Uint8Array)) as AuditLog;
 
       if (log.timestamp >= startTime && log.timestamp <= endTime) {
         logs.push(log);
@@ -63,24 +60,24 @@ export class AuditLogService {
     return logs.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   }
 
-  async searchLogs(query: {
-    actionType?: string;
-    outcome?: 'allowed' | 'denied';
-    policyId?: string;
-    startTime?: string;
-    endTime?: string;
-  }): Promise<AuditLog[]> {
-    const logs = await this.getActionLogs(
-      query.startTime || '1970-01-01T00:00:00Z',
-      query.endTime || new Date().toISOString(),
+  async searchLogs(options: { startTime: string; endTime: string }): Promise<any[]> {
+    const bucketManager = this.recall.bucketManager();
+    const { result } = await bucketManager.query(this.bucketAddress, {
+      prefix: 'audit/',
+      startKey: options.startTime,
+      limit: 100,
+    });
+
+    const logs = await Promise.all(
+      result.objects.map(async (obj) => {
+        const { result: data } = await bucketManager.getObjectValue(this.bucketAddress, obj.key);
+        return JSON.parse(new TextDecoder().decode(data as unknown as Uint8Array));
+      }),
     );
 
     return logs.filter((log) => {
-      if (query.actionType && log.action.type !== query.actionType) return false;
-      if (query.outcome && log.outcome !== query.outcome) return false;
-      if (query.policyId && !log.policyChecks.some((check) => check.policyId === query.policyId))
-        return false;
-      return true;
+      const timestamp = new Date(log.timestamp);
+      return timestamp >= new Date(options.startTime) && timestamp <= new Date(options.endTime);
     });
   }
 }

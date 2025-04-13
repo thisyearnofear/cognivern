@@ -50,6 +50,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^8.57.0",
+    "eslint-plugin-prettier": "^5.2.6",
     "nodemon": "^3.1.0",
     "postcss": "^8.5.3",
     "prettier": "^3.2.5",

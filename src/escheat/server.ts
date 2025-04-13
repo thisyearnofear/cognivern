@@ -10,6 +10,12 @@ import logger from './utils/logger.js';
 import { validateApiKey } from './middleware/auth.js';
 import { AgentService } from './services/AgentService.js';
 import { PolicyService } from './services/PolicyService.js';
+import { MetricsService } from '../services/MetricsService.js';
+import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { testnet } from '@recallnet/chains';
+import { RecallClient } from '@recallnet/sdk/client';
+import { MetricsPeriod } from '../types/Metrics.js';
 
 // Custom error class for API errors
 class APIError extends Error {
@@ -26,6 +32,16 @@ class APIError extends Error {
 const app = express();
 const agentService = new AgentService();
 const policyService = new PolicyService();
+
+// Initialize Recall client and metrics service
+const privateKey = `0x${config.RECALL_PRIVATE_KEY}` as `0x${string}`;
+const walletClient = createWalletClient({
+  account: privateKeyToAccount(privateKey),
+  chain: testnet,
+  transport: http(),
+});
+const recall = new RecallClient({ walletClient });
+const metricsService = new MetricsService(recall, config.RECALL_BUCKET_ADDRESS as `0x${string}`);
 
 // Trust proxy for rate limiting
 app.set('trust proxy', 1);
@@ -199,6 +215,15 @@ const getAgentMetrics: RequestHandler = async (req, res) => {
   }
 };
 
+const getDailyMetrics: RequestHandler = async (req, res, next) => {
+  try {
+    const metrics = await metricsService.getMetrics(MetricsPeriod.DAILY);
+    res.json(metrics);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Register routes
 protectedRouter.post('/agents', createAgent);
 protectedRouter.get('/agents', listAgents);
@@ -207,6 +232,7 @@ protectedRouter.post('/policies', createPolicy);
 protectedRouter.get('/policies', listPolicies);
 protectedRouter.get('/metrics', getMetrics);
 protectedRouter.get('/metrics/agents', getAgentMetrics);
+protectedRouter.get('/metrics/daily', getDailyMetrics);
 
 // Mount protected routes
 app.use('/api', protectedRouter);
