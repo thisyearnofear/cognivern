@@ -93,25 +93,128 @@ This platform helps organizations maintain control and visibility over their AI 
 
 ## 📋 Implementation Details
 
+### Core Services
+
+#### **PolicyEnforcementService**
+
+The PolicyEnforcementService handles policy validation and enforcement:
+
+- Loads and manages policy configurations from Recall storage
+- Evaluates agent actions against policy rules
+- Supports multiple rule types: ALLOW, DENY, REQUIRE, RATE_LIMIT
+- Provides real-time policy enforcement decisions
+
+```typescript
+const policyService = new PolicyEnforcementService(recallClient, bucketAddress);
+await policyService.loadPolicy('default-policy');
+const isAllowed = await policyService.enforcePolicy(agentAction);
+```
+
+#### **AuditLogService**
+
+The AuditLogService provides comprehensive action logging:
+
+- Records all agent actions with policy check results
+- Stores logs in a structured format in Recall
+- Supports time-based log retrieval and searching
+- Includes metadata for debugging and compliance
+
+```typescript
+const auditService = new AuditLogService(recallClient, bucketAddress);
+await auditService.logAction(action, policyChecks, allowed);
+const logs = await auditService.searchLogs({
+  actionType: 'analysis',
+  outcome: 'allowed',
+  startTime: '2024-03-01T00:00:00Z',
+});
+```
+
+#### **MetricsService**
+
+The MetricsService handles performance and resource monitoring:
+
+- Tracks action counts, policy violations, and response times
+- Monitors system resource usage (CPU, memory, storage)
+- Supports multiple time periods (hourly, daily, weekly, monthly)
+- Provides caching for efficient metric retrieval
+
+```typescript
+const metricsService = new MetricsService(recallClient, bucketAddress);
+await metricsService.recordAction(action, policyChecks, duration);
+const metrics = await metricsService.getMetrics(MetricsPeriod.DAILY);
+```
+
+### Data Types
+
+#### Policy Structure
+
+```typescript
+interface Policy {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  rules: PolicyRule[];
+  metadata: Record<string, any>;
+}
+
+interface PolicyRule {
+  id: string;
+  type: PolicyRuleType; // ALLOW, DENY, REQUIRE, RATE_LIMIT
+  condition: string;
+  action: PolicyAction;
+  metadata: Record<string, any>;
+}
+```
+
+#### Metrics Structure
+
+```typescript
+interface Metrics {
+  timestamp: string;
+  period: MetricsPeriod; // HOURLY, DAILY, WEEKLY, MONTHLY
+  data: {
+    actions: {
+      total: number;
+      successful: number;
+      failed: number;
+      blocked: number;
+    };
+    policies: {
+      total: number;
+      violations: number;
+      enforced: number;
+    };
+    performance: {
+      averageResponseTime: number;
+      p95ResponseTime: number;
+      maxResponseTime: number;
+    };
+    resources: {
+      cpuUsage: number;
+      memoryUsage: number;
+      storageUsage: number;
+    };
+  };
+}
+```
+
 ### Recall Storage Structure
 
 ```
 governance-bucket/
 ├── agents/
-│   ├── agent-1/
-│   │   ├── thoughts/
-│   │   │   ├── 2025-03-31-12-00-00.json
-│   │   ├── actions/
-│   │   │   ├── 2025-03-31-12-05-00.json
+│   ├── escheat-agent-1/
+│   │   ├── config.json           # Agent configuration
+│   │   ├── policies/
+│   │   │   ├── default-policy.json
+│   │   ├── logs/
+│   │   │   ├── YYYY-MM-DD-HH-MM-SS-action-id.json
 │   │   ├── metrics/
-│   │       ├── performance.json
-│   │       ├── compliance.json
-├── marketplace/
-│   ├── patterns/
-│   ├── subscriptions/
-├── governance/
-    ├── policies/
-    ├── audit-logs/
+│   │       ├── hourly-YYYY-MM-DD.json
+│   │       ├── daily-YYYY-MM-DD.json
+│   │       ├── weekly-YYYY-MM-DD.json
+│   │       ├── monthly-YYYY-MM.json
 ```
 
 ### Chain-of-Thought Data Format
@@ -155,7 +258,7 @@ Create a `.env` file with the following variables:
 ```bash
 # Recall Configuration
 RECALL_PRIVATE_KEY="your-private-key"
-RECALL_BUCKET_ALIAS="governance-platform"
+RECALL_BUCKET_ADDRESS="0xff0000000000000000000000000000000000fba1"
 RECALL_NETWORK="testnet"
 
 # Sync Configuration
@@ -198,7 +301,7 @@ import { GovernanceMonitor } from 'ai-agent-governance';
 const monitor = new GovernanceMonitor({
   agentId: 'financial-advisor-1',
   policyName: 'financial-advisory',
-  recallBucket: 'governance-platform',
+  recallBucket: '0xff0000000000000000000000000000000000fba1',
 });
 
 monitor.attach(myExistingAgent);
@@ -237,9 +340,12 @@ await marketplace.listPattern(pattern);
 
 ## 🔐 Security Considerations
 
-- All sensitive data is encrypted before storage in Recall buckets
-- Private keys should be secured using appropriate secret management practices
-- Basic authentication for marketplace transactions
+- All agent actions are validated against defined policies
+- Policy enforcement happens in real-time before actions are executed
+- Comprehensive audit logging for compliance and debugging
+- Rate limiting and resource monitoring to prevent abuse
+- Secure storage of sensitive data in Recall buckets
+- API key authentication for all endpoints
 - Regular security audits of the governance infrastructure
 
 ## 🗺️ Roadmap
