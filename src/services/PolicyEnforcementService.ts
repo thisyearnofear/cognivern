@@ -1,4 +1,4 @@
-import { Policy, PolicyRule, PolicyRuleType, PolicyAction } from '../types/Policy.js';
+import { Policy, PolicyRule } from '../types/Policy.js';
 import { AgentAction, PolicyCheck } from '../types/Agent.js';
 import { RecallClient } from '@recallnet/sdk/client';
 import type { Address } from 'viem';
@@ -64,8 +64,7 @@ export class PolicyEnforcementService {
     const hasDenyViolation = checks.some(
       (check) =>
         !check.result &&
-        this.currentPolicy?.rules.find((r: PolicyRule) => r.id === check.policyId)?.type ===
-          PolicyRuleType.DENY,
+        this.currentPolicy?.rules.find((r: PolicyRule) => r.id === check.policyId)?.type === 'deny',
     );
 
     if (hasDenyViolation) {
@@ -74,15 +73,15 @@ export class PolicyEnforcementService {
 
     // Check if all REQUIRE rules passed
     return this.currentPolicy.rules
-      .filter((r: PolicyRule) => r.type === PolicyRuleType.REQUIRE)
+      .filter((r: PolicyRule) => r.type === 'require')
       .every((r: PolicyRule) => checks.find((c) => c.policyId === r.id)?.result);
   }
 
   private async evaluateRule(rule: PolicyRule, action: AgentAction): Promise<boolean> {
     switch (rule.type) {
-      case PolicyRuleType.REQUIRE:
+      case 'require':
         return this.evaluateRequireRule(rule, action);
-      case PolicyRuleType.DENY:
+      case 'deny':
         return !this.evaluateDenyRule(rule, action);
       default:
         throw new Error(`Unknown rule type: ${rule.type}`);
