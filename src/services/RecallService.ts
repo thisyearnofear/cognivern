@@ -1,6 +1,7 @@
 import { RecallClient } from '@recallnet/sdk/client';
 import type { Address } from 'viem';
 import logger from '../utils/logger.js';
+import type { AddOptions } from '@recallnet/sdk/bucket';
 
 export class RecallService {
   private recall: RecallClient;
@@ -12,7 +13,12 @@ export class RecallService {
     logger.info('RecallService initialized');
   }
 
-  async storeObject(prefix: string, key: string, data: any): Promise<void> {
+  async storeObject(
+    prefix: string,
+    key: string,
+    data: any,
+    overwrite: boolean = true,
+  ): Promise<void> {
     try {
       const bucketManager = this.recall.bucketManager();
       const fullKey = `${prefix}/${key}`;
@@ -20,8 +26,14 @@ export class RecallService {
       // Convert data to string if it's an object
       const content = typeof data === 'string' ? data : JSON.stringify(data);
 
-      // Use add method instead of storeObjectValue
-      await bucketManager.add(this.bucketAddress, fullKey, new TextEncoder().encode(content));
+      // Use add method with overwrite flag
+      const options: AddOptions = { overwrite };
+      await bucketManager.add(
+        this.bucketAddress,
+        fullKey,
+        new TextEncoder().encode(content),
+        options,
+      );
 
       logger.info(`Successfully stored object at ${fullKey}`);
     } catch (error) {

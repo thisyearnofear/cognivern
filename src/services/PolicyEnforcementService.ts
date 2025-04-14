@@ -15,17 +15,45 @@ export class PolicyEnforcementService {
   }
 
   async loadPolicy(policyId: string): Promise<void> {
-    // Load policy from Recall bucket
-    const bucketManager = this.recall.bucketManager();
-    const { result } = await bucketManager.getObjectValue(
-      this.bucketAddress,
-      `policies/${policyId}`,
-    );
+    try {
+      // Load policy from Recall bucket
+      const bucketManager = this.recall.bucketManager();
+      const { result } = await bucketManager.get(this.bucketAddress, `policies/${policyId}`);
 
-    // Convert the object value to a string and parse as JSON
-    // First cast to unknown and then to Uint8Array to bypass TypeScript's type checking
-    const policyText = new TextDecoder().decode(result as unknown as Uint8Array);
-    this.currentPolicy = JSON.parse(policyText) as Policy;
+      if (!result) {
+        throw new Error(`Policy ${policyId} not found`);
+      }
+
+      let policyText: string;
+
+      // Handle different types of results
+      if (
+        typeof result === 'object' &&
+        result !== null &&
+        ('buffer' in result || Object.prototype.toString.call(result) === '[object Uint8Array]')
+      ) {
+        policyText = new TextDecoder().decode(result as Uint8Array);
+      } else if (typeof result === 'string') {
+        policyText = result;
+      } else {
+        // Try to convert to string if it's a different type
+        try {
+          policyText = JSON.stringify(result);
+        } catch (stringifyError) {
+          throw new Error(`Failed to stringify policy data: ${stringifyError}`);
+        }
+      }
+
+      try {
+        this.currentPolicy = JSON.parse(policyText) as Policy;
+      } catch (parseError) {
+        throw new Error(`Failed to parse policy JSON: ${parseError}`);
+      }
+    } catch (error) {
+      throw new Error(
+        `Failed to load policy ${policyId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
   }
 
   async evaluateAction(action: AgentAction): Promise<PolicyCheck[]> {
