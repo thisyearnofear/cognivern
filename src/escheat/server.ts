@@ -105,7 +105,7 @@ const io = new Server(httpServer, {
   cors: {
     origin:
       process.env.NODE_ENV === 'production'
-        ? ['https://cognivern.vercel.app']
+        ? ['https://cognivern.vercel.app', 'https://escheat-agents.vercel.app', '*']
         : ['http://localhost:5173'],
     methods: ['GET', 'POST'],
     credentials: true,
@@ -116,14 +116,31 @@ const io = new Server(httpServer, {
 app.set('trust proxy', 1);
 
 // Security middleware
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        connectSrc: [
+          "'self'",
+          'https://cognivern.vercel.app',
+          'https://escheat-agents.vercel.app',
+          ...(process.env.NODE_ENV === 'production' ? [] : ['http://localhost:5173']),
+        ],
+      },
+    },
+  }),
+);
+
 app.use(
   cors({
     origin:
       process.env.NODE_ENV === 'production'
-        ? 'https://cognivern.vercel.app'
+        ? ['https://cognivern.vercel.app', 'https://escheat-agents.vercel.app']
         : 'http://localhost:5173',
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   }),
 );
 
@@ -153,9 +170,17 @@ app.use(
 
 // Health check endpoint (no auth required)
 const healthCheck: RequestHandler = (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({
+    status: 'ok',
+    server: 'Cognivern Governance Platform',
+    time: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT,
+  });
 };
+
 app.get('/health', healthCheck);
+app.get('/', healthCheck); // Also add at root for basic checks
 
 // Protected routes
 const protectedRouter = express.Router();

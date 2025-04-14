@@ -107,9 +107,33 @@ export class PolicyService {
   }
 
   private async initializeSamplePolicies() {
-    const policies = await this.listPolicies();
-    if (policies.length === 0) {
-      await this.createPolicy(
+    try {
+      logger.info('Initializing sample policies');
+      const policies = await this.listPolicies();
+
+      if (policies.length === 0) {
+        logger.info('No policies found, creating samples');
+        try {
+          // Create policies one by one with error handling
+          await this.createSampleResourcePolicy();
+          await this.createSampleDataAccessPolicy();
+          await this.createSampleModelBehaviorPolicy();
+        } catch (error) {
+          logger.error('Error creating sample policies:', error);
+          // Continue execution even if sample creation fails
+        }
+      } else {
+        logger.info(`Found ${policies.length} existing policies`);
+      }
+    } catch (error) {
+      logger.error('Error in policy initialization:', error);
+      // Don't throw to prevent app startup failure
+    }
+  }
+
+  private async createSampleResourcePolicy() {
+    try {
+      return await this.createPolicy(
         'Resource Usage Control',
         'Enforces limits on computational resources and API usage',
         [
@@ -135,8 +159,15 @@ export class PolicyService {
           },
         ],
       );
+    } catch (error) {
+      logger.error('Failed to create resource policy:', error);
+      return null;
+    }
+  }
 
-      await this.createPolicy(
+  private async createSampleDataAccessPolicy() {
+    try {
+      return await this.createPolicy(
         'Data Access Governance',
         'Controls access to sensitive data and enforces privacy rules',
         [
@@ -162,8 +193,15 @@ export class PolicyService {
           },
         ],
       );
+    } catch (error) {
+      logger.error('Failed to create data access policy:', error);
+      return null;
+    }
+  }
 
-      await this.createPolicy(
+  private async createSampleModelBehaviorPolicy() {
+    try {
+      return await this.createPolicy(
         'Model Behavior Control',
         'Ensures AI models operate within defined ethical boundaries',
         [
@@ -189,6 +227,9 @@ export class PolicyService {
           },
         ],
       );
+    } catch (error) {
+      logger.error('Failed to create model behavior policy:', error);
+      return null;
     }
   }
 
