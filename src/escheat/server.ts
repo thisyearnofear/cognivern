@@ -38,7 +38,6 @@ class APIError extends Error {
 
 const app: Express = express();
 const httpServer = createServer(app);
-const agentService = new AgentService();
 
 // Initialize Recall client and metrics service
 const privateKey = `0x${config.RECALL_PRIVATE_KEY}` as `0x${string}`;
@@ -55,6 +54,7 @@ const recall = new RecallClient({
 
 // Initialize services with Recall client
 const bucketAddress = config.RECALL_BUCKET_ADDRESS as `0x${string}`;
+const agentService = new AgentService(recall, bucketAddress);
 const policyService = new PolicyService(recall, bucketAddress);
 const policyEnforcementService = new PolicyEnforcementService(recall, bucketAddress);
 const metricsService = new MetricsService(recall, bucketAddress);

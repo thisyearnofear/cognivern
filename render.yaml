@@ -2,14 +2,13 @@ services:
   - type: web
     name: escheat-agents
     env: node
-    buildCommand: cd src/escheat && pnpm install --frozen-lockfile && pnpm run build
-    startCommand: cd src/escheat && pnpm start
-    rootDir: src/escheat
+    buildCommand: npm install --frozen-lockfile && npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
+        value: 10000
       # Recall Configuration
       - key: RECALL_PRIVATE_KEY
         sync: false

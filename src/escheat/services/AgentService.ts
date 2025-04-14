@@ -1,14 +1,17 @@
 import { Agent, AgentMetrics } from '../types/index.js';
 import { RecallService } from './RecallService.js';
 import logger from '../utils/logger.js';
+import type { RecallClient } from '@recallnet/sdk/client';
+import type { Address } from 'viem';
 
 export class AgentService {
   private recallService: RecallService;
   private agents: Map<string, Agent>;
-  private readonly BUCKET_NAME = 'escheat-agents';
+  private bucketAddress: Address;
 
-  constructor() {
-    this.recallService = new RecallService();
+  constructor(recall: RecallClient, bucketAddress: Address) {
+    this.bucketAddress = bucketAddress;
+    this.recallService = new RecallService(recall, bucketAddress);
     this.agents = new Map();
     logger.info('AgentService initialized');
   }
@@ -36,7 +39,7 @@ export class AgentService {
       };
 
       // Store agent in Recall
-      await this.recallService.storeObject(this.BUCKET_NAME, `${id}.json`, agent);
+      await this.recallService.storeObject('agents', `${id}.json`, agent);
 
       // Cache in memory
       this.agents.set(id, agent);
@@ -61,7 +64,7 @@ export class AgentService {
       }
 
       // Fetch from Recall
-      const agent = await this.recallService.getObject<Agent>(this.BUCKET_NAME, `${id}.json`);
+      const agent = await this.recallService.getObject<Agent>('agents', `${id}.json`);
       if (agent) {
         this.agents.set(id, agent);
         logger.debug(`Retrieved agent from Recall: ${id}`);
@@ -81,10 +84,10 @@ export class AgentService {
   async listAgents(): Promise<Agent[]> {
     try {
       // Fetch all agent files from Recall
-      const agentFiles = await this.recallService.listObjects(this.BUCKET_NAME, '');
+      const agentFiles = await this.recallService.listObjects('agents');
       const agents = await Promise.all(
         agentFiles.map(async (file: string) => {
-          const id = file.replace('.json', '');
+          const id = file.replace('agents/', '').replace('.json', '');
           return this.getAgent(id);
         }),
       );
@@ -120,7 +123,7 @@ export class AgentService {
       };
 
       // Update in Recall
-      await this.recallService.storeObject(this.BUCKET_NAME, `${id}.json`, updatedAgent);
+      await this.recallService.storeObject('agents', `${id}.json`, updatedAgent);
 
       // Update cache
       this.agents.set(id, updatedAgent);
