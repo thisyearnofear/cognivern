@@ -63,6 +63,12 @@ export default function Dashboard() {
     }
 
     fetchMetrics();
+
+    // Set up polling every 30 seconds
+    const intervalId = setInterval(fetchMetrics, 30000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   if (loading) {
@@ -82,6 +88,9 @@ export default function Dashboard() {
   return (
     <div className="dashboard">
       <h2>Agent Metrics Dashboard</h2>
+      <p className="dashboard-update-time">
+        Last updated: {metrics?.timestamp ? new Date(metrics.timestamp).toLocaleString() : 'Never'}
+      </p>
 
       {metrics ? (
         <div>
@@ -98,44 +107,90 @@ export default function Dashboard() {
           )}
 
           <div className="metrics-grid">
-            <div className="metric-card">
-              <h3>Total Actions</h3>
-              <p className="metric-value">{metrics.data.actions.total}</p>
+            {/* Actions Section */}
+            <div className="metric-section">
+              <h3>Actions</h3>
+              <div className="metric-card">
+                <div className="metric-header">Total Actions</div>
+                <p className="metric-value">{metrics.data.actions.total}</p>
+                <div className="metric-breakdown">
+                  <span className="success">✓ {metrics.data.actions.successful}</span>
+                  <span className="failure">✗ {metrics.data.actions.failed}</span>
+                  <span className="blocked">⚠ {metrics.data.actions.blocked}</span>
+                </div>
+              </div>
             </div>
 
-            <div className="metric-card">
-              <h3>Average Response Time</h3>
-              <p className="metric-value">
-                {metrics.data.performance.averageResponseTime.toFixed(2)} ms
-              </p>
+            {/* Performance Section */}
+            <div className="metric-section">
+              <h3>Performance</h3>
+              <div className="metric-card">
+                <div className="metric-header">Response Times</div>
+                <div className="metric-multi-value">
+                  <div>
+                    <span className="label">Average</span>
+                    <span className="value">
+                      {metrics.data.performance.averageResponseTime.toFixed(2)} ms
+                    </span>
+                  </div>
+                  <div>
+                    <span className="label">P95</span>
+                    <span className="value">
+                      {metrics.data.performance.p95ResponseTime.toFixed(2)} ms
+                    </span>
+                  </div>
+                  <div>
+                    <span className="label">Max</span>
+                    <span className="value">
+                      {metrics.data.performance.maxResponseTime.toFixed(2)} ms
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="metric-card">
-              <h3>Policy Compliance</h3>
-              <p className="metric-value">
-                {metrics.data.policies.enforced} passed / {metrics.data.policies.violations} failed
-              </p>
+            {/* Policy Section */}
+            <div className="metric-section">
+              <h3>Policy Enforcement</h3>
+              <div className="metric-card">
+                <div className="metric-header">Policy Checks</div>
+                <div className="metric-multi-value">
+                  <div>
+                    <span className="label">Total</span>
+                    <span className="value">{metrics.data.policies.total}</span>
+                  </div>
+                  <div>
+                    <span className="label">Passed</span>
+                    <span className="value success">{metrics.data.policies.enforced}</span>
+                  </div>
+                  <div>
+                    <span className="label">Violations</span>
+                    <span className="value failure">{metrics.data.policies.violations}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="metric-card">
-              <h3>Max Response Time</h3>
-              <p className="metric-value">
-                {metrics.data.performance.maxResponseTime.toFixed(2)} ms
-              </p>
-            </div>
-
-            <div className="metric-card">
-              <h3>Last Updated</h3>
-              <p className="metric-value">
-                {new Date(metrics.timestamp).toLocaleDateString()}{' '}
-                {new Date(metrics.timestamp).toLocaleTimeString()}
-              </p>
-            </div>
-
-            <div className="metric-card">
+            {/* Resource Usage Section */}
+            <div className="metric-section">
               <h3>Resource Usage</h3>
-              <p className="metric-value">CPU: {metrics.data.resources.cpuUsage}%</p>
-              <p>Memory: {metrics.data.resources.memoryUsage} MB</p>
+              <div className="metric-card">
+                <div className="metric-header">System Resources</div>
+                <div className="metric-multi-value">
+                  <div>
+                    <span className="label">CPU</span>
+                    <span className="value">{metrics.data.resources.cpuUsage}%</span>
+                  </div>
+                  <div>
+                    <span className="label">Memory</span>
+                    <span className="value">{metrics.data.resources.memoryUsage} MB</span>
+                  </div>
+                  <div>
+                    <span className="label">Storage</span>
+                    <span className="value">{metrics.data.resources.storageUsage} GB</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
