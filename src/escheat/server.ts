@@ -39,7 +39,6 @@ class APIError extends Error {
 const app: Express = express();
 const httpServer = createServer(app);
 const agentService = new AgentService();
-const policyService = new PolicyService();
 
 // Initialize Recall client and metrics service
 const privateKey = `0x${config.RECALL_PRIVATE_KEY}` as `0x${string}`;
@@ -54,8 +53,20 @@ const recall = new RecallClient({
   walletClient,
 }) as RecallClient & { bucketManager(): BucketManager };
 
-// Log bucket information for debugging
+// Initialize services with Recall client
 const bucketAddress = config.RECALL_BUCKET_ADDRESS as `0x${string}`;
+const policyService = new PolicyService(recall, bucketAddress);
+const policyEnforcementService = new PolicyEnforcementService(recall, bucketAddress);
+const metricsService = new MetricsService(recall, bucketAddress);
+const testAgentService = new TestAgentService(
+  metricsService,
+  policyEnforcementService,
+  recall,
+  bucketAddress,
+);
+const auditLogService = new AuditLogService(recall, bucketAddress);
+
+// Log bucket information for debugging
 logger.info('Initializing connection to Recall bucket', {
   bucketAddress,
   network: config.RECALL_NETWORK,
@@ -88,23 +99,6 @@ logger.info('Initializing connection to Recall bucket', {
     });
   }
 })();
-
-// Initialize PolicyEnforcementService with Recall client
-const policyEnforcementService = new PolicyEnforcementService(recall, bucketAddress);
-
-// Initialize metrics service with proper bucket info
-const metricsService = new MetricsService(recall, bucketAddress);
-
-// Initialize TestAgentService
-const testAgentService = new TestAgentService(
-  metricsService,
-  policyEnforcementService,
-  recall,
-  bucketAddress,
-);
-
-// Initialize AuditLogService
-const auditLogService = new AuditLogService(recall, bucketAddress);
 
 // Initialize Socket.IO with CORS configuration
 const io = new Server(httpServer, {

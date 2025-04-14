@@ -1,97 +1,88 @@
-import axios, { AxiosInstance } from 'axios';
-import { config } from '../config.js';
+import { RecallClient } from '@recallnet/sdk/client';
+import type { Address } from 'viem';
 import logger from '../utils/logger.js';
 
 export class RecallService {
-  private client: AxiosInstance;
-  private baseUrl: string;
+  private recall: RecallClient;
+  private bucketAddress: Address;
 
-  constructor() {
-    this.baseUrl = config.RECALL_API_URL;
-    this.client = axios.create({
-      baseURL: this.baseUrl,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.RECALL_API_KEY}`,
-      },
-    });
-    logger.info('RecallService initialized', { baseUrl: this.baseUrl });
+  constructor(recall: RecallClient, bucketAddress: Address) {
+    this.recall = recall;
+    this.bucketAddress = bucketAddress;
+    logger.info('RecallService initialized');
   }
 
-  private async ensureBucketExists(bucketName: string): Promise<void> {
+  async storeObject(prefix: string, key: string, data: any): Promise<void> {
     try {
-      await this.client.head(`/buckets/${bucketName}`);
-      logger.debug(`Bucket ${bucketName} exists`);
+      const bucketManager = this.recall.bucketManager();
+      const fullKey = `${prefix}/${key}`;
+
+      // Convert data to string if it's an object
+      const content = typeof data === 'string' ? data : JSON.stringify(data);
+
+      // Use add method instead of storeObjectValue
+      await bucketManager.add(this.bucketAddress, fullKey, new TextEncoder().encode(content));
+
+      logger.info(`Successfully stored object at ${fullKey}`);
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
-        logger.info(`Creating bucket: ${bucketName}`);
-        await this.client.post('/buckets', { name: bucketName });
-      } else {
-        logger.error(`Error checking bucket ${bucketName}:`, error);
-        throw new Error(
-          `Failed to check/create bucket: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
-      }
-    }
-  }
-
-  async storeObject<T>(bucketName: string, objectKey: string, data: T): Promise<void> {
-    try {
-      await this.ensureBucketExists(bucketName);
-
-      const response = await this.client.put(`/buckets/${bucketName}/objects/${objectKey}`, data);
-      if (response.status !== 200) {
-        throw new Error(`Unexpected status code: ${response.status}`);
-      }
-
-      logger.debug(`Stored object in bucket ${bucketName}:`, { objectKey });
-    } catch (error) {
-      logger.error(`Error storing object in bucket ${bucketName}:`, error);
+      logger.error(`Error storing object in bucket ${prefix}:`, error);
       throw new Error(
         `Failed to store object: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
 
-  async getObject<T>(bucketName: string, objectKey: string): Promise<T | null> {
+  async getObject<T>(prefix: string, key: string): Promise<T | null> {
     try {
-      const response = await this.client.get<T>(`/buckets/${bucketName}/objects/${objectKey}`);
-      logger.debug(`Retrieved object from bucket ${bucketName}:`, { objectKey });
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
-        logger.debug(`Object not found in bucket ${bucketName}:`, { objectKey });
+      const bucketManager = this.recall.bucketManager();
+      const fullKey = `${prefix}/${key}`;
+
+      const { result } = await bucketManager.getObjectValue(this.bucketAddress, fullKey);
+
+      if (!result) {
         return null;
       }
-      logger.error(`Error retrieving object from bucket ${bucketName}:`, error);
+
+      const content = new TextDecoder().decode(result as unknown as Uint8Array);
+      return JSON.parse(content) as T;
+    } catch (error) {
+      logger.error(`Error getting object from bucket ${prefix}:`, error);
+      return null;
+    }
+  }
+
+  async listObjects(prefix: string): Promise<string[]> {
+    try {
+      const bucketManager = this.recall.bucketManager();
+      const { result } = await bucketManager.query(this.bucketAddress, {
+        prefix: prefix ? `${prefix}/` : undefined,
+      });
+
+      if (!result || !result.objects) {
+        return [];
+      }
+
+      return result.objects.map((obj) => obj.key);
+    } catch (error) {
+      logger.error(`Error listing objects in bucket ${prefix}:`, error);
       throw new Error(
-        `Failed to retrieve object: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to list objects: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
 
-  async listObjects(bucketName: string, prefix: string = ''): Promise<string[]> {
+  async deleteObject(prefix: string, key: string): Promise<void> {
     try {
-      const response = await this.client.get<{ objects: Array<{ key: string }> }>(
-        `/buckets/${bucketName}/objects`,
-        { params: { prefix } },
-      );
+      const bucketManager = this.recall.bucketManager();
+      const fullKey = `${prefix}/${key}`;
 
-      const objects = response.data.objects.map((obj) => obj.key);
-      logger.debug(`Listed objects in bucket ${bucketName}:`, {
-        prefix,
-        count: objects.length,
-      });
-
-      return objects;
+      // Use delete method instead of removeObject
+      await bucketManager.delete(this.bucketAddress, fullKey);
+      logger.info(`Successfully deleted object at ${fullKey}`);
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
-        logger.debug(`Bucket ${bucketName} not found`);
-        return [];
-      }
-      logger.error(`Error listing objects in bucket ${bucketName}:`, error);
+      logger.error(`Error deleting object from bucket ${prefix}:`, error);
       throw new Error(
-        `Failed to list objects: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to delete object: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }

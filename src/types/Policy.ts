@@ -3,36 +3,25 @@ export interface Policy {
   name: string;
   description: string;
   version: string;
-  createdAt: string;
-  updatedAt: string;
   rules: PolicyRule[];
   metadata: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
   status: 'active' | 'draft' | 'archived';
 }
 
 export interface PolicyRule {
   id: string;
-  type: PolicyRuleType;
+  type: 'allow' | 'deny' | 'require' | 'rate_limit';
   condition: string;
   action: PolicyAction;
   metadata: Record<string, any>;
 }
 
-export enum PolicyRuleType {
-  ALLOW = 'allow',
-  DENY = 'deny',
-  REQUIRE = 'require',
-  RATE_LIMIT = 'rate_limit',
-}
-
 export interface PolicyAction {
-  type: PolicyActionType;
+  type: 'block' | 'log' | 'notify' | 'escalate';
   parameters: Record<string, any>;
 }
 
-export enum PolicyActionType {
-  BLOCK = 'block',
-  LOG = 'log',
-  NOTIFY = 'notify',
-  ESCALATE = 'escalate',
-}
+export type PolicyRuleType = 'allow' | 'deny' | 'require' | 'rate_limit';
+export type PolicyActionType = 'block' | 'log' | 'notify' | 'escalate';
