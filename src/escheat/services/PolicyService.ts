@@ -1,4 +1,4 @@
-import { Policy, PolicyRule, PolicyRuleType, PolicyActionType } from '../../types/Policy.js';
+import { Policy, PolicyRule } from '../../types/Policy.js';
 import { RecallService } from './RecallService.js';
 import logger from '../utils/logger.js';
 import type { RecallClient } from '@recallnet/sdk/client';
