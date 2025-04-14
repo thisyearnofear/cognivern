@@ -17,7 +17,8 @@
     "clean": "rm -rf dist",
     "frontend": "cd src/frontend && pnpm dev",
     "frontend:build": "cd src/frontend && pnpm build",
-    "deploy": "pnpm run build && pnpm run start"
+    "deploy": "pnpm run build && pnpm run start",
+    "upload-policy": "tsx scripts/upload-test-policy.ts"
   },
   "dependencies": {
     "@google/genai": "^0.8.0",

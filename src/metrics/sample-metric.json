@@ -1,0 +1,27 @@
+{
+    "timestamp": "2024-04-14T02:30:00Z",
+    "period": "daily",
+    "data": {
+        "actions": {
+            "total": 150,
+            "successful": 135,
+            "failed": 10,
+            "blocked": 5
+        },
+        "policies": {
+            "total": 45,
+            "violations": 8,
+            "enforced": 37
+        },
+        "performance": {
+            "averageResponseTime": 245.5,
+            "p95ResponseTime": 450.2,
+            "maxResponseTime": 850.0
+        },
+        "resources": {
+            "cpuUsage": 35.5,
+            "memoryUsage": 42.8,
+            "storageUsage": 28.4
+        }
+    }
+}

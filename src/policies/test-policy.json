@@ -1,0 +1,40 @@
+{
+    "id": "test-policy",
+    "name": "Test Policy",
+    "description": "Default policy for testing agent actions",
+    "version": "1.0.0",
+    "rules": [
+        {
+            "id": "test-rule-1",
+            "type": "require",
+            "name": "Basic Action Validation",
+            "description": "Ensures all required fields are present in the action",
+            "conditions": {
+                "fields": [
+                    "id",
+                    "type",
+                    "timestamp",
+                    "description"
+                ]
+            }
+        },
+        {
+            "id": "test-rule-2",
+            "type": "deny",
+            "name": "Restricted Actions",
+            "description": "Prevents certain high-risk actions",
+            "conditions": {
+                "actionTypes": [
+                    "system-modify",
+                    "config-update"
+                ]
+            }
+        }
+    ],
+    "metadata": {
+        "createdAt": "2024-04-14T00:00:00Z",
+        "updatedAt": "2024-04-14T00:00:00Z",
+        "status": "active",
+        "environment": "test"
+    }
+}
