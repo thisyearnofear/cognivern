@@ -11,7 +11,7 @@
     "format:check": "prettier --check .",
     "build": "pnpm run clean && pnpm run build:backend && pnpm run build:frontend",
     "build:backend": "tsc",
-    "build:frontend": "cd src/frontend && pnpm install --frozen-lockfile && pnpm build",
+    "build:frontend": "cd src/frontend && pnpm install && pnpm build",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "clean": "rm -rf dist",
