@@ -9,9 +9,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "build": "tsc -p src/escheat/tsconfig.json",
-    "start": "node --loader ts-node/esm src/escheat/index.ts",
-    "dev": "nodemon --exec 'node --loader ts-node/esm' src/escheat/index.ts",
-    "clean": "rm -rf dist"
+    "start": "node dist/escheat/index.js",
+    "dev": "ts-node-esm src/escheat/index.ts",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean"
   },
   "dependencies": {
     "@google/genai": "^0.8.0",

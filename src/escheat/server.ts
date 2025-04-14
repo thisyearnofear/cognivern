@@ -17,10 +17,12 @@ import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { testnet } from '@recallnet/chains';
 import { RecallClient } from '@recallnet/sdk/client';
+import type { BucketManager } from '@recallnet/sdk/bucket';
 import { MetricsPeriod } from '../types/Metrics.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { AuditLogService } from '../services/AuditLogService.js';
+import type { Express } from 'express';
 
 // Custom error class for API errors
 class APIError extends Error {
@@ -34,7 +36,7 @@ class APIError extends Error {
   }
 }
 
-const app = express();
+const app: Express = express();
 const httpServer = createServer(app);
 const agentService = new AgentService();
 const policyService = new PolicyService();
@@ -50,7 +52,7 @@ const walletClient = createWalletClient({
 // Create the Recall client with explicit testnet configuration
 const recall = new RecallClient({
   walletClient,
-});
+}) as RecallClient & { bucketManager(): BucketManager };
 
 // Log bucket information for debugging
 const bucketAddress = config.RECALL_BUCKET_ADDRESS as `0x${string}`;
@@ -615,12 +617,19 @@ const errorHandler = (
 
 app.use(errorHandler);
 
-// Start server
+// Add port configuration
+const PORT = process.env.PORT || 3000;
+
+// Update server startup
 const startServer = () => {
-  const port = config.PORT;
-  httpServer.listen(port, () => {
-    logger.info(`Server running on port ${port}`);
-  });
+  try {
+    httpServer.listen(PORT, () => {
+      logger.info(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
 };
 
 export { app, startServer };

@@ -1,14 +1,14 @@
 {
     "compilerOptions": {
-        "target": "ES2020",
+        "target": "ES2022",
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
         "lib": [
-            "ES2020",
+            "ES2022",
             "DOM"
         ],
         "outDir": "../../dist",
-        "rootDir": "..",
+        "rootDir": "../",
         "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
@@ -20,27 +20,32 @@
         ],
         "baseUrl": "..",
         "paths": {
-            "@recallnet/sdk": [
-                "node_modules/@recallnet/sdk"
+            "@/*": [
+                "*"
             ],
-            "@recallnet/sdk/*": [
-                "node_modules/@recallnet/sdk/*"
-            ],
-            "@recallnet/chains": [
-                "node_modules/@recallnet/chains"
-            ],
-            "@recallnet/chains/*": [
-                "node_modules/@recallnet/chains/*"
+            "@recallnet/*": [
+                "../node_modules/@recallnet/*"
             ]
-        }
+        },
+        "sourceMap": true,
+        "declaration": true,
+        "checkJs": true,
+        "noEmit": false,
+        "isolatedModules": true
     },
     "include": [
-        "../**/*.ts",
-        "../**/*.js",
-        "../node_modules/@recallnet/*/dist/**/*.d.ts"
+        "../escheat/**/*",
+        "../services/**/*",
+        "../types/**/*"
     ],
     "exclude": [
+        "../frontend/**/*",
         "node_modules",
-        "../node_modules/**/node_modules"
-    ]
+        "dist",
+        "**/*.test.ts"
+    ],
+    "ts-node": {
+        "esm": true,
+        "experimentalSpecifierResolution": "node"
+    }
 }
