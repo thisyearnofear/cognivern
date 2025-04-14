@@ -58,16 +58,23 @@ export class RecallService {
         prefix: prefix ? `${prefix}/` : undefined,
       });
 
-      if (!result || !result.objects) {
+      // Improved error handling
+      if (!result) {
+        logger.warn(`No result from bucket query for prefix ${prefix}`);
         return [];
       }
 
+      if (!result.objects) {
+        logger.warn(`No objects found in bucket for prefix ${prefix}`);
+        return [];
+      }
+
+      logger.info(`Found ${result.objects.length} objects for prefix ${prefix}`);
       return result.objects.map((obj) => obj.key);
     } catch (error) {
       logger.error(`Error listing objects in bucket ${prefix}:`, error);
-      throw new Error(
-        `Failed to list objects: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      // Return empty array instead of throwing to prevent cascading errors
+      return [];
     }
   }
 
