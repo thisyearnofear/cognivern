@@ -2,8 +2,9 @@ services:
   - type: web
     name: escheat-agents
     env: node
-    buildCommand: pnpm install && pnpm build
-    startCommand: pnpm start
+    buildCommand: cd src/escheat && pnpm install --frozen-lockfile && pnpm run build
+    startCommand: cd src/escheat && pnpm start
+    rootDir: src/escheat
     envVars:
       - key: NODE_ENV
         value: production
@@ -12,10 +13,14 @@ services:
       # Recall Configuration
       - key: RECALL_PRIVATE_KEY
         sync: false
-      - key: RECALL_BUCKET_ALIAS
+      - key: RECALL_BUCKET_ADDRESS
         sync: false
       - key: RECALL_NETWORK
         value: testnet
+      - key: RECALL_SYNC_INTERVAL
+        value: 60000
+      - key: RECALL_BATCH_SIZE
+        value: 8
       # Security
       - key: API_KEY
         sync: false
@@ -33,3 +38,9 @@ services:
       name: data
       mountPath: /data
       sizeGB: 1
+    plan: starter
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+      targetMemoryPercent: 70
+      targetCPUPercent: 70
