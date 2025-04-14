@@ -2,8 +2,8 @@ services:
   - type: web
     name: escheat-agents
     env: node
-    buildCommand: npm install --frozen-lockfile && npm run build
-    startCommand: npm start
+    buildCommand: pnpm install && pnpm run build
+    startCommand: pnpm start
     envVars:
       - key: NODE_ENV
         value: production
