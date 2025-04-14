@@ -109,11 +109,12 @@ export default function AgentTestPanel() {
 
       addLog('Recording action in Recall bucket...', 'info');
 
-      const response = await fetch(`http://localhost:3000/api/agents/test/${selectedScenario}`, {
+      const response = await fetch(`/api/agents/test/${selectedScenario}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'Y10tiPBsbyEaZtVEvhu5uRj+YoRRiZQ6m3lsTOky1LQ=',
+          'X-API-KEY':
+            import.meta.env.VITE_API_KEY || 'Y10tiPBsbyEaZtVEvhu5uRj+YoRRiZQ6m3lsTOky1LQ=',
         },
       });
 

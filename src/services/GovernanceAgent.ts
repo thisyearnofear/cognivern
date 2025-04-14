@@ -1,5 +1,5 @@
 import { GovernanceStorageService, GovernanceObject } from './GovernanceStorageService.js';
-import { AssetMatch } from './types.js';
+import { AssetMatch } from '../types/index.js';
 
 export interface AgentThought {
   timestamp: string;

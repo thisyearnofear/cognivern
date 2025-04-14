@@ -1,27 +1,47 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "noEmit": true,
-    "allowImportingTsExtensions": true,
-    "esModuleInterop": true,
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "outDir": "dist",
+    "rootDir": "src",
     "strict": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "noImplicitAny": false,
+    "types": [
+      "node"
+    ],
+    "baseUrl": "src",
     "paths": {
-      "*": [
-        "node_modules/*",
+      "@/*": [
         "*"
       ]
-    }
+    },
+    "sourceMap": true,
+    "declaration": true,
+    "checkJs": true,
+    "noEmit": false,
+    "isolatedModules": true
   },
   "include": [
-    "src/escheat/**/*"
+    "src/**/*"
   ],
   "exclude": [
+    "src/frontend/**/*",
     "node_modules",
-    "dist"
-  ]
+    "dist",
+    "**/*.test.ts"
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  }
 }

@@ -51,17 +51,20 @@ export default function AuditLogs() {
   async function fetchLogs() {
     try {
       setLoading(true);
-      const queryParams = new URLSearchParams({
+      const queryObject = {
         startDate: filters.startDate,
         endDate: filters.endDate,
         ...(filters.agentId && { agentId: filters.agentId }),
         ...(filters.actionType && { actionType: filters.actionType }),
         ...(filters.complianceStatus && { complianceStatus: filters.complianceStatus }),
-      });
+      };
 
-      const response = await fetch(`http://localhost:3000/api/audit-logs?${queryParams}`, {
+      const queryParams = new URLSearchParams(queryObject).toString();
+
+      const response = await fetch(`/api/audit-logs?${queryParams}`, {
         headers: {
-          'x-api-key': 'Y10tiPBsbyEaZtVEvhu5uRj+YoRRiZQ6m3lsTOky1LQ=',
+          'X-API-KEY':
+            import.meta.env.VITE_API_KEY || 'Y10tiPBsbyEaZtVEvhu5uRj+YoRRiZQ6m3lsTOky1LQ=',
         },
       });
 

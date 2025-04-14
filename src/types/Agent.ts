@@ -1,6 +1,23 @@
 import { Policy } from './Policy.js';
 import { Metrics } from './Metrics.js';
 
+export interface Agent {
+  id: string;
+  name: string;
+  type: string;
+  capabilities: string[];
+  status: 'active' | 'inactive';
+  metrics: {
+    responseTime: number;
+    successRate: number;
+    errorRate: number;
+    totalRequests: number;
+    lastActive: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AgentConfig {
   name: string;
   type: string;

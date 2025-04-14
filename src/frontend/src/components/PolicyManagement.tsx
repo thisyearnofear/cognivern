@@ -35,9 +35,10 @@ export default function PolicyManagement() {
   async function fetchPolicies() {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3000/api/policies', {
+      const response = await fetch('/api/policies', {
         headers: {
-          'x-api-key': 'Y10tiPBsbyEaZtVEvhu5uRj+YoRRiZQ6m3lsTOky1LQ=',
+          'X-API-KEY':
+            import.meta.env.VITE_API_KEY || 'Y10tiPBsbyEaZtVEvhu5uRj+YoRRiZQ6m3lsTOky1LQ=',
         },
       });
 

@@ -1,4 +1,4 @@
-import { Agent, AgentMetrics } from '../types/index.js';
+import { Agent, AgentMetrics } from '../types/Agent.js';
 import { RecallService } from './RecallService.js';
 import logger from '../utils/logger.js';
 import type { RecallClient } from '@recallnet/sdk/client';
@@ -92,7 +92,7 @@ export class AgentService {
         }),
       );
 
-      const validAgents = agents.filter((agent): agent is Agent => agent !== null);
+      const validAgents = agents.filter((agent: Agent | null): agent is Agent => agent !== null);
       logger.info(`Listed ${validAgents.length} agents`);
       return validAgents;
     } catch (error) {

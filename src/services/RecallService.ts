@@ -37,14 +37,43 @@ export class RecallService {
       const bucketManager = this.recall.bucketManager();
       const fullKey = `${prefix}/${key}`;
 
-      const { result } = await bucketManager.getObjectValue(this.bucketAddress, fullKey);
+      // Use get instead of getObjectValue to get the raw object data
+      const { result } = await bucketManager.get(this.bucketAddress, fullKey);
 
       if (!result) {
+        logger.warn(`No data found for ${fullKey}`);
         return null;
       }
 
-      const content = new TextDecoder().decode(result as unknown as Uint8Array);
-      return JSON.parse(content) as T;
+      let contentStr: string;
+
+      // Handle different types of results
+      try {
+        if (typeof result === 'string') {
+          contentStr = result;
+        } else {
+          // Try to decode as Uint8Array with a safe cast
+          contentStr = new TextDecoder().decode(result as unknown as Uint8Array);
+        }
+
+        return JSON.parse(contentStr) as T;
+      } catch (decodeError) {
+        logger.warn(
+          `Error decoding result for ${fullKey}, trying alternative approach`,
+          decodeError,
+        );
+
+        // Fallback: Try to stringify then parse
+        try {
+          return JSON.parse(JSON.stringify(result)) as T;
+        } catch (fallbackError) {
+          logger.error(
+            `Failed to process result for ${fullKey} after multiple attempts`,
+            fallbackError,
+          );
+          return null;
+        }
+      }
     } catch (error) {
       logger.error(`Error getting object from bucket ${prefix}:`, error);
       return null;
