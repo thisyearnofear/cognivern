@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { CryptoUtils } from './utils/CryptoUtils.js';
+import { CryptoUtils } from '../utils/CryptoUtils.js';
 
 export interface GovernanceObject {
   key: string;

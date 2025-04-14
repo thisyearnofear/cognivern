@@ -39,9 +39,10 @@ export default function Dashboard() {
       try {
         setLoading(true);
         console.log('Fetching metrics from backend');
-        const response = await fetch('http://localhost:3000/api/metrics/daily', {
+        const response = await fetch('/api/metrics/daily', {
           headers: {
-            'x-api-key': 'Y10tiPBsbyEaZtVEvhu5uRj+YoRRiZQ6m3lsTOky1LQ=',
+            'X-API-KEY':
+              import.meta.env.VITE_API_KEY || 'Y10tiPBsbyEaZtVEvhu5uRj+YoRRiZQ6m3lsTOky1LQ=',
           },
         });
 

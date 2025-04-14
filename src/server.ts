@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction, RequestHandler } from 'express';
+import type { Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -10,19 +11,18 @@ import logger from './utils/logger.js';
 import { validateApiKey } from './middleware/auth.js';
 import { AgentService } from './services/AgentService.js';
 import { PolicyService } from './services/PolicyService.js';
-import { MetricsService } from '../services/MetricsService.js';
+import { MetricsService } from './services/MetricsService.js';
 import { TestAgentService } from './services/TestAgentService.js';
-import { PolicyEnforcementService } from '../services/PolicyEnforcementService.js';
+import { PolicyEnforcementService } from './services/PolicyEnforcementService.js';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { testnet } from '@recallnet/chains';
 import { RecallClient } from '@recallnet/sdk/client';
 import type { BucketManager } from '@recallnet/sdk/bucket';
-import { MetricsPeriod } from '../types/Metrics.js';
+import { MetricsPeriod } from './types/Metrics.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { AuditLogService } from '../services/AuditLogService.js';
-import type { Express } from 'express';
+import { AuditLogService } from './services/AuditLogService.js';
 
 // Custom error class for API errors
 class APIError extends Error {
@@ -36,6 +36,10 @@ class APIError extends Error {
   }
 }
 
+// Add port configuration
+const PORT = process.env.PORT || 3000;
+
+// Initialize Express and HTTP server
 const app: Express = express();
 const httpServer = createServer(app);
 
@@ -636,19 +640,21 @@ const errorHandler = (
 
 app.use(errorHandler);
 
-// Add port configuration
-const PORT = process.env.PORT || 3000;
-
-// Update server startup
-const startServer = () => {
+/**
+ * Start the server on the configured port
+ */
+export const startServer = (): void => {
   try {
     httpServer.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
     });
   } catch (error) {
-    logger.error('Failed to start server:', error);
+    logger.error('Failed to start server:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     process.exit(1);
   }
 };
 
-export { app, startServer };
+// Export the Express app for testing purposes
+export { app, APIError };
