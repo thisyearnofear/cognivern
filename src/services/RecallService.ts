@@ -48,31 +48,29 @@ export class RecallService {
       let contentStr: string;
 
       // Handle different types of results
-      try {
-        if (typeof result === 'string') {
-          contentStr = result;
-        } else {
-          // Try to decode as Uint8Array with a safe cast
-          contentStr = new TextDecoder().decode(result as unknown as Uint8Array);
-        }
-
-        return JSON.parse(contentStr) as T;
-      } catch (decodeError) {
-        logger.warn(
-          `Error decoding result for ${fullKey}, trying alternative approach`,
-          decodeError,
-        );
-
-        // Fallback: Try to stringify then parse
+      if (
+        typeof result === 'object' &&
+        result !== null &&
+        ('buffer' in result || Object.prototype.toString.call(result) === '[object Uint8Array]')
+      ) {
+        contentStr = new TextDecoder().decode(result as Uint8Array);
+      } else if (typeof result === 'string') {
+        contentStr = result;
+      } else {
+        // Try to convert to string if it's a different type
         try {
-          return JSON.parse(JSON.stringify(result)) as T;
-        } catch (fallbackError) {
-          logger.error(
-            `Failed to process result for ${fullKey} after multiple attempts`,
-            fallbackError,
-          );
+          contentStr = JSON.stringify(result);
+        } catch (stringifyError) {
+          logger.error(`Failed to stringify result for ${fullKey}`, stringifyError);
           return null;
         }
+      }
+
+      try {
+        return JSON.parse(contentStr) as T;
+      } catch (parseError) {
+        logger.error(`Failed to parse JSON for ${fullKey}`, parseError);
+        return null;
       }
     } catch (error) {
       logger.error(`Error getting object from bucket ${prefix}:`, error);
