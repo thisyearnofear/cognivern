@@ -18,6 +18,9 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { testnet } from '@recallnet/chains';
 import { RecallClient } from '@recallnet/sdk/client';
 import { MetricsPeriod } from '../types/Metrics.js';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { AuditLogService } from '../services/AuditLogService.js';
 
 // Custom error class for API errors
 class APIError extends Error {
@@ -32,6 +35,7 @@ class APIError extends Error {
 }
 
 const app = express();
+const httpServer = createServer(app);
 const agentService = new AgentService();
 const policyService = new PolicyService();
 
@@ -97,6 +101,21 @@ const testAgentService = new TestAgentService(
   bucketAddress,
 );
 
+// Initialize AuditLogService
+const auditLogService = new AuditLogService(recall, bucketAddress);
+
+// Initialize Socket.IO with CORS configuration
+const io = new Server(httpServer, {
+  cors: {
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? ['https://cognivern.vercel.app']
+        : ['http://localhost:5173'],
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+
 // Trust proxy for rate limiting
 app.set('trust proxy', 1);
 
@@ -104,9 +123,11 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(
   cors({
-    origin: config.CORS_ORIGIN,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? 'https://cognivern.vercel.app'
+        : 'http://localhost:5173',
+    credentials: true,
   }),
 );
 
@@ -301,6 +322,8 @@ const createPolicy: RequestHandler = async (req, res, next) => {
       message: 'Policy created successfully',
       policy,
     });
+    // Notify connected clients about the new policy
+    io.emit('policy:created', policy);
   } catch (error) {
     next(error);
   }
@@ -309,9 +332,34 @@ const createPolicy: RequestHandler = async (req, res, next) => {
 const listPolicies: RequestHandler = async (req, res, next) => {
   try {
     const policies = await policyService.listPolicies();
-    res.json({ policies });
+    res.json({ policies: policies || [] });
   } catch (error) {
     next(error);
+  }
+};
+
+const getPolicy: RequestHandler = async (req, res, next) => {
+  try {
+    const policy = await policyService.getPolicy(req.params.id);
+    if (!policy) {
+      return res.status(404).json({ error: 'Policy not found' });
+    }
+    res.json(policy);
+  } catch (error) {
+    logger.error('Error fetching policy:', error);
+    res.status(500).json({ error: 'Failed to fetch policy' });
+  }
+};
+
+const updatePolicy: RequestHandler = async (req, res, next) => {
+  try {
+    const policy = await policyService.updatePolicy(req.params.id, req.body);
+    res.json(policy);
+    // Notify connected clients about the policy update
+    io.emit('policy:updated', policy);
+  } catch (error) {
+    logger.error('Error updating policy:', error);
+    res.status(500).json({ error: 'Failed to update policy' });
   }
 };
 
@@ -435,6 +483,8 @@ protectedRouter.get('/agents', listAgents);
 protectedRouter.get('/agents/:id', getAgent);
 protectedRouter.post('/policies', createPolicy);
 protectedRouter.get('/policies', listPolicies);
+protectedRouter.get('/policies/:id', getPolicy);
+protectedRouter.put('/policies/:id', updatePolicy);
 protectedRouter.get('/metrics', getMetrics);
 protectedRouter.get('/metrics/agents', getAgentMetrics);
 protectedRouter.get('/metrics/daily', getDailyMetrics);
@@ -478,6 +528,56 @@ const runAgentTestScenario: RequestHandler = async (req, res, next) => {
 
 protectedRouter.post('/agents/test/:scenario', runAgentTestScenario);
 
+// Audit log endpoints
+const getAuditLogs: RequestHandler = async (req, res) => {
+  try {
+    const { startDate, endDate, agentId, actionType, complianceStatus } = req.query;
+    const logs = await auditLogService.searchLogs({
+      startDate: startDate as string,
+      endDate: endDate as string,
+      agentId: agentId as string,
+      actionType: actionType as string,
+      complianceStatus: complianceStatus as string,
+    });
+    res.json(logs);
+  } catch (error) {
+    logger.error('Error fetching audit logs:', error);
+    res.status(500).json({ error: 'Failed to fetch audit logs' });
+  }
+};
+
+const exportAuditLogs: RequestHandler = async (req, res) => {
+  try {
+    const { startDate, endDate, format = 'json' } = req.body;
+    const exportData = await auditLogService.exportLogs(startDate, endDate, format);
+    res.json(exportData);
+  } catch (error) {
+    logger.error('Error exporting audit logs:', error);
+    res.status(500).json({ error: 'Failed to export audit logs' });
+  }
+};
+
+protectedRouter.get('/audit-logs', getAuditLogs);
+protectedRouter.post('/audit-logs/export', exportAuditLogs);
+
+// WebSocket event handlers
+io.on('connection', (socket) => {
+  logger.info('Client connected to WebSocket');
+
+  // Subscribe to real-time updates
+  socket.on('subscribe:audit-logs', () => {
+    socket.join('audit-logs');
+  });
+
+  socket.on('subscribe:policies', () => {
+    socket.join('policies');
+  });
+
+  socket.on('disconnect', () => {
+    logger.info('Client disconnected from WebSocket');
+  });
+});
+
 // Mount protected routes
 app.use('/api', protectedRouter);
 
@@ -518,7 +618,7 @@ app.use(errorHandler);
 // Start server
 const startServer = () => {
   const port = config.PORT;
-  app.listen(port, () => {
+  httpServer.listen(port, () => {
     logger.info(`Server running on port ${port}`);
   });
 };

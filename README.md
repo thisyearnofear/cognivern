@@ -103,11 +103,28 @@ The PolicyEnforcementService handles policy validation and enforcement:
 - Evaluates agent actions against policy rules
 - Supports multiple rule types: ALLOW, DENY, REQUIRE, RATE_LIMIT
 - Provides real-time policy enforcement decisions
+- Handles policy lifecycle management (active, draft, archived states)
 
 ```typescript
 const policyService = new PolicyEnforcementService(recallClient, bucketAddress);
 await policyService.loadPolicy('default-policy');
 const isAllowed = await policyService.enforcePolicy(agentAction);
+```
+
+#### **PolicyService**
+
+The PolicyService manages policy lifecycle and status:
+
+- Creates and updates policy configurations
+- Manages policy status transitions (active/draft/archived)
+- Provides caching for efficient policy retrieval
+- Handles policy versioning and updates
+
+```typescript
+const policyService = new PolicyService();
+await policyService.createPolicy('resource-control', 'Resource usage limits', rules);
+await policyService.updatePolicyStatus(policyId, 'archived');
+const policies = await policyService.listPolicies();
 ```
 
 #### **AuditLogService**
@@ -154,8 +171,11 @@ interface Policy {
   name: string;
   description: string;
   version: string;
+  createdAt: string;
+  updatedAt: string;
   rules: PolicyRule[];
   metadata: Record<string, any>;
+  status: 'active' | 'draft' | 'archived';
 }
 
 interface PolicyRule {
@@ -164,6 +184,13 @@ interface PolicyRule {
   condition: string;
   action: PolicyAction;
   metadata: Record<string, any>;
+}
+
+enum PolicyActionType {
+  BLOCK = 'block',
+  LOG = 'log',
+  NOTIFY = 'notify',
+  ESCALATE = 'escalate',
 }
 ```
 
@@ -420,17 +447,24 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 
 ## Current Status
 
-The platform is now fully integrated with Recall's decentralized storage for agent metrics:
+The platform has made significant progress in policy management and governance features:
 
 - ✅ Agent metrics are being successfully stored in Recall buckets
 - ✅ The dashboard can display real metrics from the Recall storage
 - ✅ Error handling and retry mechanisms ensure reliable data access
 - ✅ Bucket verification on startup confirms proper infrastructure setup
+- ✅ Policy lifecycle management with status tracking (active/draft/archived)
+- ✅ Real-time policy enforcement with multiple rule types
+- ✅ Efficient policy caching and retrieval system
+- ✅ WebSocket-based real-time updates for policy changes
 
 ### Next Steps
 
 1. Complete the subscription management system
-2. Implement the interactive policy editor
+2. Implement the interactive policy editor with status management UI
 3. Enhance visualization tools for metrics analysis
 4. Add advanced pattern validation functionality
 5. Set up system for regular security audits
+6. Implement policy version control and rollback functionality
+7. Add policy impact analysis tools
+8. Develop policy template system for quick deployment

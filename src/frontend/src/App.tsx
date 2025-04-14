@@ -2,6 +2,8 @@ import { useState } from 'react';
 import './App.css';
 import Dashboard from './components/Dashboard';
 import AgentTestPanel from './components/AgentTestPanel';
+import PolicyManagement from './components/PolicyManagement';
+import AuditLogs from './components/AuditLogs';
 import './components/Dashboard.css';
 
 function App() {
@@ -42,10 +44,8 @@ function App() {
       <main className="app-content">
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'agents' && <AgentTestPanel />}
-        {activeTab === 'policies' && (
-          <div className="coming-soon">Policy management coming soon</div>
-        )}
-        {activeTab === 'logs' && <div className="coming-soon">Audit logs coming soon</div>}
+        {activeTab === 'policies' && <PolicyManagement />}
+        {activeTab === 'logs' && <AuditLogs />}
       </main>
 
       <footer className="app-footer">

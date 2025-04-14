@@ -119,8 +119,8 @@ async function runDemo() {
   // Retrieve and display recent audit logs
   console.log('\n📝 Recent Audit Logs');
   const recentLogs = await auditService.searchLogs({
-    startTime: new Date(Date.now() - 3600000).toISOString(), // Last hour
-    endTime: new Date().toISOString(),
+    startDate: new Date(Date.now() - 3600000).toISOString(), // Last hour
+    endDate: new Date().toISOString(),
   });
   console.log('Recent logs:', JSON.stringify(recentLogs, null, 2));
 }

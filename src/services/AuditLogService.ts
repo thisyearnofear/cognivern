@@ -60,11 +60,17 @@ export class AuditLogService {
     return logs.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   }
 
-  async searchLogs(options: { startTime: string; endTime: string }): Promise<any[]> {
+  async searchLogs(options: {
+    startDate: string;
+    endDate: string;
+    agentId?: string;
+    actionType?: string;
+    complianceStatus?: string;
+  }): Promise<any[]> {
     const bucketManager = this.recall.bucketManager();
     const { result } = await bucketManager.query(this.bucketAddress, {
       prefix: 'audit/',
-      startKey: options.startTime,
+      startKey: options.startDate,
       limit: 100,
     });
 
@@ -77,7 +83,43 @@ export class AuditLogService {
 
     return logs.filter((log) => {
       const timestamp = new Date(log.timestamp);
-      return timestamp >= new Date(options.startTime) && timestamp <= new Date(options.endTime);
+      return (
+        timestamp >= new Date(options.startDate) &&
+        timestamp <= new Date(options.endDate) &&
+        (!options.agentId || log.agentId === options.agentId) &&
+        (!options.actionType || log.action.type === options.actionType) &&
+        (!options.complianceStatus || log.metadata.complianceStatus === options.complianceStatus)
+      );
     });
+  }
+
+  async exportLogs(startDate: string, endDate: string, format: 'json' | 'csv'): Promise<any> {
+    const logs = await this.searchLogs({ startDate, endDate });
+
+    if (format === 'csv') {
+      // Convert logs to CSV format
+      const headers = [
+        'timestamp',
+        'agentId',
+        'actionType',
+        'description',
+        'complianceStatus',
+        'latencyMs',
+      ];
+      const rows = logs.map((log) => [
+        log.timestamp,
+        log.agentId,
+        log.action.type,
+        log.action.description,
+        log.metadata.complianceStatus,
+        log.metadata.latencyMs,
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+
+      return { format: 'csv', data: csvContent };
+    }
+
+    return { format: 'json', data: logs };
   }
 }
