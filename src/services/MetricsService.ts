@@ -2,6 +2,7 @@ import { Metrics, MetricsPeriod, MetricsData } from '../types/Metrics.js';
 import { AgentAction, PolicyCheck } from '../types/Agent.js';
 import { RecallClient } from '@recallnet/sdk/client';
 import type { Address } from 'viem';
+import logger from '../utils/logger.js';
 
 // Define a type for the raw metrics data we store
 interface RawMetricsData {
@@ -33,7 +34,7 @@ export class MetricsService {
 
     try {
       const bucketManager = this.recall.bucketManager();
-      console.log('Adding metrics to bucket:', {
+      logger.info('Adding metrics to bucket:', {
         bucket: this.bucketAddress,
         actionId: action.id,
       });
@@ -41,15 +42,19 @@ export class MetricsService {
       // Use a unique key based on timestamp and action ID
       const metricKey = `metrics/${new Date().toISOString().replace(/[:.]/g, '-')}-${action.id}`;
 
-      // Add the metrics to the bucket
-      await bucketManager.add(
-        this.bucketAddress,
-        metricKey,
-        new TextEncoder().encode(JSON.stringify(metrics)),
-      );
-      console.log('Successfully added metrics to bucket:', { key: metricKey });
+      // Properly encode the data as a Uint8Array
+      const encoder = new TextEncoder();
+      const data = encoder.encode(JSON.stringify(metrics));
+
+      // Add the metrics to the bucket with proper type checking
+      if (!(data instanceof Uint8Array)) {
+        throw new Error('Failed to encode metrics data');
+      }
+
+      await bucketManager.add(this.bucketAddress, metricKey, data);
+      logger.info('Successfully added metrics to bucket:', { key: metricKey });
     } catch (error) {
-      console.error(
+      logger.error(
         'Error adding metrics to bucket:',
         error instanceof Error ? error.message : 'Unknown error',
       );
