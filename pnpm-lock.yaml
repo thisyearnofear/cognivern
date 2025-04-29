@@ -17,6 +17,9 @@ importers:
       '@recallnet/sdk':
         specifier: ^0.0.9
         version: 0.0.9(bufferutil@4.0.9)(typescript@5.5.3)(utf-8-validate@5.0.10)(zod@3.24.2)
+      '@types/event-source-polyfill':
+        specifier: ^1.0.5
+        version: 1.0.5
       axios:
         specifier: ^1.8.4
         version: 1.8.4
@@ -32,6 +35,9 @@ importers:
       ethers:
         specifier: ^6.11.1
         version: 6.13.5(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+      event-source-polyfill:
+        specifier: ^1.0.31
+        version: 1.0.31
       express:
         specifier: ^4.18.2
         version: 4.21.1
@@ -392,6 +398,9 @@ packages:
 
   '@types/cors@2.8.17':
     resolution: {integrity: sha512-8CGDvrBj1zgo2qE+oS3pOCyYNqCPryMWY2bGfwA0dcfopWGgxs+78df0Rs3rc9THP4JkOhLsAa+15VdpAqkcUA==}
+
+  '@types/event-source-polyfill@1.0.5':
+    resolution: {integrity: sha512-iaiDuDI2aIFft7XkcwMzDWLqo7LVDixd2sR6B4wxJut9xcp/Ev9bO4EFg4rm6S9QxATLBj5OPxdeocgmhjwKaw==}
 
   '@types/express-serve-static-core@4.19.6':
     resolution: {integrity: sha512-N4LZ2xG7DatVqhCZzOGb1Yi5lMbXSZcmdLDe9EzSndPV2HpWYWzRbaerl2n27irrm94EPpprqa8KpskPT085+A==}
@@ -803,6 +812,9 @@ packages:
   ethers@6.13.5:
     resolution: {integrity: sha512-+knKNieu5EKRThQJWwqaJ10a6HE9sSehGeqWN65//wE7j47ZpFhKAnHB/JJFibwwg61I/koxaPsXbXpD/skNOQ==}
     engines: {node: '>=14.0.0'}
+
+  event-source-polyfill@1.0.31:
+    resolution: {integrity: sha512-4IJSItgS/41IxN5UVAVuAyczwZF7ZIEsM1XAoUzIHA6A+xzusEZUutdXz2Nr+MQPLxfTiCvqE79/C8HT8fKFvA==}
 
   event-target-shim@5.0.1:
     resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
@@ -1900,6 +1912,8 @@ snapshots:
     dependencies:
       '@types/node': 20.17.17
 
+  '@types/event-source-polyfill@1.0.5': {}
+
   '@types/express-serve-static-core@4.19.6':
     dependencies:
       '@types/node': 20.17.17
@@ -2377,6 +2391,8 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  event-source-polyfill@1.0.31: {}
 
   event-target-shim@5.0.1: {}
 

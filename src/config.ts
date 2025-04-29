@@ -24,7 +24,7 @@ const envSchema = z.object({
   // Bitte Wallet Configuration
   BITTE_API_KEY: z.string().optional(),
 
-  // API Security
+  // API Security and Authentication
   API_KEY: z.string().default('escheat-api-key-123456'),
 
   // Recall Configuration - Only required if MCP is not enabled
@@ -47,7 +47,6 @@ const envSchema = z.object({
 
   // Security
   CORS_ORIGIN: z.string().default('*'),
-  API_KEY: z.string().min(1),
 
   // Logging
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),

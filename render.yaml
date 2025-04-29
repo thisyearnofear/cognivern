@@ -2,7 +2,7 @@ services:
   - type: web
     name: escheat-agents
     env: node
-    buildCommand: pnpm install && pnpm run build
+    buildCommand: pnpm install --no-frozen-lockfile && pnpm run build
     startCommand: pnpm start
     envVars:
       - key: NODE_ENV
