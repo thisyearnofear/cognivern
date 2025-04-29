@@ -57,10 +57,60 @@
   margin-bottom: 64px;
 }
 
-.path-selection h2 {
-  text-align: center;
+.path-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 32px;
+}
+
+.path-selection h2 {
   color: #2c3e50;
+  margin: 0;
+}
+
+.path-controls {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-paths-button {
+  background-color: transparent;
+  border: 1px solid #3498db;
+  color: #3498db;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-paths-button:hover {
+  background-color: #f1f9fe;
+}
+
+.toggle-paths-button.active {
+  background-color: #3498db;
+  color: white;
+}
+
+.progressive-hint {
+  margin-top: 24px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+}
+
+.progressive-hint p {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.hint-icon {
+  margin-right: 8px;
+  font-size: 1.1rem;
 }
 
 .paths-grid {
@@ -79,6 +129,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  position: relative;
+  overflow: hidden;
 }
 
 .path-card:hover {
@@ -89,6 +141,31 @@
 .path-card.selected {
   border: 2px solid #3498db;
   box-shadow: 0 8px 20px rgba(52, 152, 219, 0.2);
+}
+
+.path-card.intermediate {
+  border-top: 3px solid #f39c12;
+}
+
+.path-card.advanced {
+  border-top: 3px solid #e74c3c;
+}
+
+.path-complexity-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #f39c12;
+  color: white;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-bottom-left-radius: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.path-card.advanced .path-complexity-badge {
+  background-color: #e74c3c;
 }
 
 .path-icon {
@@ -207,6 +284,20 @@
 
 .quote-author {
   color: #7f8c8d;
+  margin-bottom: 8px;
+}
+
+.quote-source {
+  font-size: 0.9rem;
+}
+
+.quote-source a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.quote-source a:hover {
+  text-decoration: underline;
 }
 
 /* CTA Section */
@@ -272,13 +363,14 @@
     flex-direction: column;
     gap: 24px;
   }
-  
+
   .cta-buttons {
     flex-direction: column;
     gap: 16px;
   }
-  
-  .primary-cta, .secondary-cta {
+
+  .primary-cta,
+  .secondary-cta {
     width: 100%;
   }
 }

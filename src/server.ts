@@ -586,6 +586,81 @@ const runAgentTestScenario: RequestHandler = async (req, res, next) => {
 
 protectedRouter.post('/agents/test/:scenario', runAgentTestScenario);
 
+// Interactive agent endpoint
+const interactWithAgent: RequestHandler = async (req, res, next) => {
+  try {
+    const { agentId } = req.params;
+    const { input } = req.body;
+
+    logger.info(`Interactive agent request for agent ${agentId}`, {
+      input: input.substring(0, 100),
+    });
+
+    // For demo purposes, simulate a response
+    // In a real implementation, this would call the appropriate agent service
+
+    // Simulate processing time
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Generate a response based on input
+    let response = '';
+    let policyChecks: any[] = [];
+
+    if (input.toLowerCase().includes('delete') || input.toLowerCase().includes('remove')) {
+      response =
+        "I'm sorry, I can't perform that action as it violates the data protection policy.";
+      policyChecks = [
+        {
+          policyId: 'data-protection',
+          result: false,
+          reason: 'Delete operations require explicit authorization',
+        },
+        { policyId: 'audit-logging', result: true },
+      ];
+    } else if (input.toLowerCase().includes('send') || input.toLowerCase().includes('email')) {
+      response = "I've prepared the message, but it needs human approval before sending.";
+      policyChecks = [
+        { policyId: 'communication', result: true, reason: 'Message content approved' },
+        {
+          policyId: 'human-in-loop',
+          result: false,
+          reason: 'External communications require human approval',
+        },
+      ];
+    } else {
+      response = `I've processed your request: "${input}". The action has been completed successfully.`;
+      policyChecks = [
+        { policyId: 'data-access', result: true },
+        { policyId: 'audit-logging', result: true },
+        { policyId: 'rate-limiting', result: true },
+      ];
+    }
+
+    const action = {
+      id: `action-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      type: 'user-request',
+      description: `Processed user request: ${input.substring(0, 50)}${input.length > 50 ? '...' : ''}`,
+      metadata: { input },
+      policyChecks,
+    };
+
+    res.json({
+      success: true,
+      response,
+      action,
+    });
+  } catch (error) {
+    logger.error('Error in interactive agent request:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+protectedRouter.post('/agents/interact/:agentId', interactWithAgent);
+
 // Audit log endpoints
 const getAuditLogs: RequestHandler = async (req, res) => {
   try {
