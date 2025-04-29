@@ -66,10 +66,11 @@
 .filter-group select {
   padding: 0.75rem;
   border-radius: 6px;
-  border: 1px solid #2a2a2a;
+  border: 1px solid #3a3a3a;
   background: #0f0f0f;
   color: #ffffff;
   font-size: 0.95rem;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .logs-list {
@@ -179,6 +180,11 @@
   color: #ffffff;
   font-size: 0.95rem;
   font-weight: 500;
+  background-color: #0f0f0f;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: block;
+  margin-top: 4px;
 }
 
 .policy-checks {
