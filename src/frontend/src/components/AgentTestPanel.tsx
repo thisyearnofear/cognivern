@@ -113,8 +113,7 @@ export default function AgentTestPanel() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-KEY':
-            import.meta.env.VITE_API_KEY || 'Y10tiPBsbyEaZtVEvhu5uRj+YoRRiZQ6m3lsTOky1LQ=',
+          'X-API-KEY': import.meta.env.VITE_API_KEY || 'escheat-api-key-123456',
         },
       });
 

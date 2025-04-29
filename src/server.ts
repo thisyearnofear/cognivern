@@ -14,6 +14,9 @@ import { PolicyService } from './services/PolicyService.js';
 import { MetricsService } from './services/MetricsService.js';
 import { TestAgentService } from './services/TestAgentService.js';
 import { PolicyEnforcementService } from './services/PolicyEnforcementService.js';
+import { MCPClientService } from './services/MCPClientService.js';
+import { ShowcaseAgent } from './agents/ShowcaseAgent.js';
+import { ContractAgent } from './agents/ContractAgent.js';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { testnet } from '@recallnet/chains';
@@ -23,6 +26,7 @@ import { MetricsPeriod } from './types/Metrics.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { AuditLogService } from './services/AuditLogService.js';
+import walletRoutes from './routes/walletRoutes.js';
 
 // Custom error class for API errors
 class APIError extends Error {
@@ -69,6 +73,35 @@ const testAgentService = new TestAgentService(
   bucketAddress,
 );
 const auditLogService = new AuditLogService(recall, bucketAddress);
+
+// Initialize MCP client and showcase agents if MCP is enabled
+let mcpClient: MCPClientService | null = null;
+let showcaseAgent: ShowcaseAgent | null = null;
+let contractAgent: ContractAgent | null = null;
+
+if (config.MCP_ENABLED) {
+  try {
+    // Initialize MCP client
+    mcpClient = new MCPClientService();
+
+    // Initialize showcase agents
+    showcaseAgent = new ShowcaseAgent();
+    contractAgent = new ContractAgent();
+
+    // Connect agents to MCP
+    showcaseAgent.connect().catch((error) => {
+      logger.error('Failed to connect showcase agent to MCP:', error);
+    });
+
+    contractAgent.connect().catch((error) => {
+      logger.error('Failed to connect contract agent to MCP:', error);
+    });
+
+    logger.info('MCP client and showcase agents initialized');
+  } catch (error) {
+    logger.error('Failed to initialize MCP client or showcase agents:', error);
+  }
+}
 
 // Log bucket information for debugging
 logger.info('Initializing connection to Recall bucket', {
@@ -585,6 +618,82 @@ const exportAuditLogs: RequestHandler = async (req, res) => {
 protectedRouter.get('/audit-logs', getAuditLogs);
 protectedRouter.post('/audit-logs/export', exportAuditLogs);
 
+// MCP-related endpoints
+const getMCPStatus: RequestHandler = (req, res) => {
+  if (!config.MCP_ENABLED || !mcpClient) {
+    return res.status(404).json({
+      status: 'disabled',
+      message: 'MCP is not enabled on this server',
+    });
+  }
+
+  res.json({
+    status: mcpClient.isConnected() ? 'connected' : 'disconnected',
+    server: config.MCP_DEFAULT_SERVER,
+    agents: [
+      showcaseAgent
+        ? {
+            name: showcaseAgent.getConfig().name,
+            type: showcaseAgent.getConfig().type,
+            status: 'active',
+            capabilities: showcaseAgent.getConfig().capabilities,
+          }
+        : null,
+      contractAgent
+        ? {
+            name: contractAgent.getConfig().name,
+            type: contractAgent.getConfig().type,
+            status: 'active',
+            capabilities: contractAgent.getConfig().capabilities,
+          }
+        : null,
+    ].filter(Boolean),
+  });
+};
+
+const reconnectMCP: RequestHandler = (req, res) => {
+  if (!config.MCP_ENABLED || !mcpClient) {
+    return res.status(404).json({
+      status: 'error',
+      message: 'MCP is not enabled on this server',
+    });
+  }
+
+  try {
+    // Disconnect and reconnect MCP client
+    mcpClient.disconnect();
+    mcpClient.connect();
+
+    // Reconnect agents
+    if (showcaseAgent) {
+      showcaseAgent.connect().catch((error) => {
+        logger.error('Failed to reconnect showcase agent:', error);
+      });
+    }
+
+    if (contractAgent) {
+      contractAgent.connect().catch((error) => {
+        logger.error('Failed to reconnect contract agent:', error);
+      });
+    }
+
+    res.json({
+      status: 'reconnecting',
+      message: 'MCP client and agents are reconnecting',
+    });
+  } catch (error) {
+    logger.error('Failed to reconnect MCP:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to reconnect MCP client and agents',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+protectedRouter.get('/mcp/status', getMCPStatus);
+protectedRouter.post('/mcp/reconnect', reconnectMCP);
+
 // WebSocket event handlers
 io.on('connection', (socket) => {
   logger.info('Client connected to WebSocket');
@@ -605,6 +714,9 @@ io.on('connection', (socket) => {
 
 // Mount protected routes
 app.use('/api', protectedRouter);
+
+// Mount wallet routes
+app.use('/api/wallet', walletRoutes);
 
 // Error handling middleware
 const errorHandler = (
@@ -648,6 +760,44 @@ export const startServer = (): void => {
     httpServer.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
     });
+
+    // Set up graceful shutdown
+    const shutdown = () => {
+      logger.info('Shutting down server...');
+
+      // Disconnect MCP client and agents
+      if (config.MCP_ENABLED) {
+        if (showcaseAgent) {
+          showcaseAgent.disconnect();
+        }
+
+        if (contractAgent) {
+          contractAgent.disconnect();
+        }
+
+        if (mcpClient) {
+          mcpClient.disconnect();
+        }
+
+        logger.info('MCP client and agents disconnected');
+      }
+
+      // Close HTTP server
+      httpServer.close(() => {
+        logger.info('HTTP server closed');
+        process.exit(0);
+      });
+
+      // Force exit after timeout
+      setTimeout(() => {
+        logger.error('Forced shutdown after timeout');
+        process.exit(1);
+      }, 10000);
+    };
+
+    // Handle shutdown signals
+    process.on('SIGTERM', shutdown);
+    process.on('SIGINT', shutdown);
   } catch (error) {
     logger.error('Failed to start server:', {
       error: error instanceof Error ? error.message : 'Unknown error',

@@ -1,0 +1,137 @@
+.case-studies {
+  max-width: 1200px;
+  margin: 3rem auto;
+  padding: 0 1rem;
+}
+
+.case-studies-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.case-studies-header h2 {
+  font-size: 2rem;
+  color: #1e40af;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.case-studies-header p {
+  font-size: 1.1rem;
+  color: #6b7280;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.case-studies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2rem;
+}
+
+.case-study-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border: 1px solid #f1f5f9;
+}
+
+.case-study-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.case-study-card.active {
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.15);
+  border-color: #bfdbfe;
+}
+
+.case-study-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background-color: #f1f5f9;
+  border-radius: 50%;
+}
+
+.case-study-card h3 {
+  font-size: 1.4rem;
+  color: #1e3a8a;
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+}
+
+.case-study-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.case-study-card.active .case-study-content {
+  max-height: 1000px;
+  margin-top: 1.5rem;
+}
+
+.case-study-scenario {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.case-study-scenario h4, .case-study-benefits h4 {
+  font-size: 1rem;
+  color: #4b5563;
+  margin: 0 0 0.8rem 0;
+  font-weight: 600;
+}
+
+.case-study-scenario p {
+  font-size: 0.95rem;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.case-study-benefits ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.case-study-benefits li {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.case-study-benefits li strong {
+  color: #1e40af;
+  font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .case-studies-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .case-study-card {
+    padding: 1.5rem;
+  }
+}

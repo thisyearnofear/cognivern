@@ -294,11 +294,12 @@
   font-family: 'Courier New', monospace;
   font-size: 13px;
   line-height: 1.5;
-  color: #f1f1f1;
+  color: #ffffff;
+  background-color: #1e1e1e;
 }
 
 .terminal-placeholder {
-  color: #888;
+  color: #cccccc;
   text-align: center;
   padding: 20px 0;
   font-style: italic;
@@ -311,24 +312,24 @@
 }
 
 .terminal-timestamp {
-  color: #888;
+  color: #cccccc;
   margin-right: 8px;
 }
 
 .terminal-line.info .terminal-message {
-  color: #8cc5f5;
+  color: #9ecbff;
 }
 
 .terminal-line.error .terminal-message {
-  color: #f97583;
+  color: #ff9ea3;
 }
 
 .terminal-line.success .terminal-message {
-  color: #7ceb7c;
+  color: #8eeb8e;
 }
 
 .terminal-line.loading .terminal-message {
-  color: #f3ca41;
+  color: #ffe066;
 }
 
 .gemini-response {

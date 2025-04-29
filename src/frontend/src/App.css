@@ -89,6 +89,7 @@ body {
 .main-nav {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .main-nav button {
@@ -114,15 +115,37 @@ body {
 .app-content {
   flex: 1;
   padding: 1rem;
+  background-color: #f8fafc;
+  overflow-x: hidden;
 }
 
 .app-footer {
-  background-color: #f1f5f9;
+  background-color: #1e3a8a;
   text-align: center;
   padding: 1rem;
-  border-top: 1px solid #e2e8f0;
   font-size: 0.875rem;
-  color: #64748b;
+  color: white;
+}
+
+/* Bitte Protocol branding */
+.bitte-highlight {
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 1rem;
+  }
+
+  .app-content {
+    padding: 1rem;
+  }
+
+  .main-nav {
+    justify-content: center;
+  }
 }
 
 .coming-soon {

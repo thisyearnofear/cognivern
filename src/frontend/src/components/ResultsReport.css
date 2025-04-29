@@ -1,0 +1,401 @@
+.results-report {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 24px;
+  margin: 24px 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.report-header {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.report-header h2 {
+  margin-bottom: 8px;
+  color: #2c3e50;
+}
+
+.report-header p {
+  color: #7f8c8d;
+}
+
+.report-step {
+  background-color: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.report-step h3 {
+  margin-bottom: 24px;
+  color: #2c3e50;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Form Styles */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.form-group input,
+.form-group select {
+  padding: 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.input-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #7f8c8d;
+}
+
+.form-section {
+  margin-bottom: 24px;
+}
+
+.form-section h4 {
+  margin-bottom: 12px;
+  color: #2c3e50;
+}
+
+.form-section p {
+  margin-bottom: 16px;
+  color: #7f8c8d;
+}
+
+/* Process Options */
+.process-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.process-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.process-option:hover {
+  background-color: #f1f3f5;
+}
+
+.process-option.selected {
+  background-color: #e3f2fd;
+  border-color: #90caf9;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkmark {
+  color: #3498db;
+  font-weight: bold;
+}
+
+/* Complexity Options */
+.complexity-options {
+  display: flex;
+  gap: 12px;
+}
+
+.complexity-options button {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.complexity-options button:hover {
+  background-color: #f1f3f5;
+}
+
+.complexity-options button.selected {
+  background-color: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.back-button {
+  background-color: #f1f3f5;
+  border: 1px solid #ced4da;
+  color: #2c3e50;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  background-color: #e9ecef;
+}
+
+.next-button,
+.generate-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.next-button:hover,
+.generate-button:hover {
+  background-color: #2980b9;
+}
+
+.next-button:disabled,
+.generate-button:disabled {
+  background-color: #a0a0a0;
+  cursor: not-allowed;
+}
+
+/* Report Document */
+.report-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.print-button,
+.download-button {
+  background-color: #f1f3f5;
+  border: 1px solid #ced4da;
+  color: #2c3e50;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.print-button:hover,
+.download-button:hover {
+  background-color: #e9ecef;
+}
+
+.report-document {
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 48px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.report-branding {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #3498db;
+}
+
+.report-branding h2 {
+  color: #2c3e50;
+  margin-bottom: 16px;
+}
+
+.report-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  color: #7f8c8d;
+}
+
+.report-summary {
+  margin-bottom: 32px;
+}
+
+.report-summary h3 {
+  color: #2c3e50;
+  margin-bottom: 16px;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.report-summary p {
+  line-height: 1.6;
+  color: #2c3e50;
+}
+
+.report-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.highlight-card {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  border-left: 4px solid #3498db;
+}
+
+.highlight-title {
+  font-weight: 600;
+  color: #7f8c8d;
+  margin-bottom: 8px;
+}
+
+.highlight-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.report-section {
+  margin-bottom: 32px;
+}
+
+.report-section h3 {
+  color: #2c3e50;
+  margin-bottom: 16px;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.financial-details {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.financial-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.financial-row:last-child {
+  border-bottom: none;
+}
+
+.financial-label {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.financial-value {
+  font-weight: 600;
+  color: #3498db;
+}
+
+.recommendations-list,
+.next-steps-list {
+  padding-left: 24px;
+}
+
+.recommendations-list li,
+.next-steps-list li {
+  margin-bottom: 12px;
+  line-height: 1.5;
+  color: #2c3e50;
+}
+
+.report-footer {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.report-contact {
+  margin-top: 16px;
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .process-options {
+    grid-template-columns: 1fr;
+  }
+  
+  .report-highlights {
+    grid-template-columns: 1fr;
+  }
+  
+  .report-document {
+    padding: 24px;
+  }
+  
+  .report-meta {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .form-actions button {
+    width: 100%;
+  }
+  
+  .report-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .report-actions button {
+    width: 100%;
+  }
+}

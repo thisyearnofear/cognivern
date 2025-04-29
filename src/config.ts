@@ -1,20 +1,41 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from .env.local
+dotenv.config({ path: '.env.local' });
+
+// Get directory name for ES modules
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load MCP configuration
+const mcpConfigPath = path.join(__dirname, 'config', 'mcp-config.json');
+export const mcpConfig = JSON.parse(fs.readFileSync(mcpConfigPath, 'utf8'));
 
 // Environment schema
 const envSchema = z.object({
-  // Recall Configuration
-  RECALL_PRIVATE_KEY: z.string().min(1),
-  RECALL_BUCKET_ALIAS: z.string().min(1),
-  RECALL_COT_LOG_PREFIX: z.string().min(1),
-  RECALL_NETWORK: z.enum(['mainnet', 'testnet']),
-  RECALL_ADDRESS: z.string().min(1),
-  RECALL_BUCKET_ADDRESS: z.string().min(1),
+  // MCP Configuration - Check this first to conditionally require other variables
+  MCP_ENABLED: z.coerce.boolean().default(true),
+  MCP_DEFAULT_SERVER: z.string().default('bitte-ai'),
+  MCP_API_KEY: z.string().optional(),
+
+  // Bitte Wallet Configuration
+  BITTE_API_KEY: z.string().optional(),
+
+  // API Security
+  API_KEY: z.string().default('escheat-api-key-123456'),
+
+  // Recall Configuration - Only required if MCP is not enabled
+  RECALL_PRIVATE_KEY: z.string().min(1).optional(),
+  RECALL_BUCKET_ALIAS: z.string().min(1).optional(),
+  RECALL_COT_LOG_PREFIX: z.string().min(1).optional(),
+  RECALL_NETWORK: z.enum(['mainnet', 'testnet']).optional(),
+  RECALL_ADDRESS: z.string().min(1).optional(),
+  RECALL_BUCKET_ADDRESS: z.string().min(1).optional(),
   RECALL_API_URL: z.string().default('https://api.recall.ai'),
-  RECALL_API_KEY: z.string().min(1),
+  RECALL_API_KEY: z.string().min(1).optional(),
 
   // Server Configuration
   PORT: z.coerce.number().default(3000),
