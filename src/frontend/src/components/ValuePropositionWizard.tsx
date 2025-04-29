@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './ValuePropositionWizard.css';
 import ROICalculator from './ROICalculator';
 import ResultsReport from './ResultsReport';
@@ -31,147 +31,170 @@ export default function ValuePropositionWizard() {
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
   const [showAdvancedTools, setShowAdvancedTools] = useState(false);
   const [selectedCaseStudy, setSelectedCaseStudy] = useState<string>('healthcare');
-  
+  const [userEngagement, setUserEngagement] = useState<number>(0);
+  const [showDetailedMetrics, setShowDetailedMetrics] = useState<boolean>(false);
+
+  // Track user engagement to progressively reveal more features
+  useEffect(() => {
+    // Increment engagement when user changes steps or interacts with the wizard
+    if (activeStep > 1) {
+      setUserEngagement((prev) => Math.min(prev + 1, 5));
+    }
+  }, [activeStep]);
+
   // Key value metrics
   const valueMetrics: ValueMetric[] = [
     {
       title: 'Time Savings',
       value: '75%',
       description: 'Average reduction in time spent on routine tasks',
-      icon: '⏱️'
+      icon: '⏱️',
     },
     {
       title: 'Cost Reduction',
       value: '65%',
       description: 'Average cost savings compared to manual processes',
-      icon: '💰'
+      icon: '💰',
     },
     {
       title: 'Error Reduction',
       value: '90%',
       description: 'Decrease in errors and compliance issues',
-      icon: '✓'
+      icon: '✓',
     },
     {
       title: 'Scalability',
       value: '10x',
       description: 'Increase in processing capacity without adding staff',
-      icon: '📈'
-    }
+      icon: '📈',
+    },
   ];
-  
+
   // Case study metrics
   const caseStudyMetrics: Record<string, CaseMetric[]> = {
-    'healthcare': [
+    healthcare: [
       {
         title: 'Document Processing Time',
         before: '45',
         after: '5',
         improvement: '89%',
-        unit: 'minutes'
+        unit: 'minutes',
       },
       {
         title: 'Staff Hours per Week',
         before: '120',
         after: '30',
         improvement: '75%',
-        unit: 'hours'
+        unit: 'hours',
       },
       {
         title: 'Error Rate',
         before: '8.5',
         after: '0.5',
         improvement: '94%',
-        unit: '%'
+        unit: '%',
       },
       {
         title: 'Annual Cost',
         before: '250,000',
         after: '75,000',
         improvement: '70%',
-        unit: '$'
-      }
+        unit: '$',
+      },
     ],
-    'finance': [
+    finance: [
       {
         title: 'Transaction Processing',
         before: '15',
         after: '2',
         improvement: '87%',
-        unit: 'minutes'
+        unit: 'minutes',
       },
       {
         title: 'Compliance Checks',
         before: '120',
         after: '10',
         improvement: '92%',
-        unit: 'minutes'
+        unit: 'minutes',
       },
       {
         title: 'Audit Preparation',
         before: '40',
         after: '8',
         improvement: '80%',
-        unit: 'hours'
+        unit: 'hours',
       },
       {
         title: 'Annual Cost',
         before: '380,000',
         after: '95,000',
         improvement: '75%',
-        unit: '$'
-      }
+        unit: '$',
+      },
     ],
-    'retail': [
+    retail: [
       {
         title: 'Inventory Management',
         before: '25',
         after: '5',
         improvement: '80%',
-        unit: 'hours/week'
+        unit: 'hours/week',
       },
       {
         title: 'Customer Response Time',
         before: '24',
         after: '2',
         improvement: '92%',
-        unit: 'hours'
+        unit: 'hours',
       },
       {
         title: 'Order Processing',
         before: '12',
         after: '3',
         improvement: '75%',
-        unit: 'minutes'
+        unit: 'minutes',
       },
       {
         title: 'Annual Cost',
         before: '210,000',
         after: '65,000',
         improvement: '69%',
-        unit: '$'
-      }
-    ]
+        unit: '$',
+      },
+    ],
   };
 
   const nextStep = () => {
-    setActiveStep(prev => prev < 4 ? (prev + 1) as 1 | 2 | 3 | 4 : prev);
+    setActiveStep((prev) => (prev < 4 ? ((prev + 1) as 1 | 2 | 3 | 4) : prev));
+    // Increment engagement when user moves forward
+    setUserEngagement((prev) => Math.min(prev + 1, 5));
   };
 
   const prevStep = () => {
-    setActiveStep(prev => prev > 1 ? (prev - 1) as 1 | 2 | 3 | 4 : prev);
+    setActiveStep((prev) => (prev > 1 ? ((prev - 1) as 1 | 2 | 3 | 4) : prev));
   };
 
   const toggleAdvancedTools = () => {
-    setShowAdvancedTools(prev => !prev);
+    setShowAdvancedTools((prev) => !prev);
+    // Increment engagement when user explores advanced tools
+    setUserEngagement((prev) => Math.min(prev + 2, 5));
   };
+
+  const toggleDetailedMetrics = () => {
+    setShowDetailedMetrics((prev) => !prev);
+    // Increment engagement when user explores detailed metrics
+    setUserEngagement((prev) => Math.min(prev + 1, 5));
+  };
+
+  // Determine if advanced features should be shown based on user engagement
+  const shouldShowAdvancedFeatures = userEngagement >= 3 || showAdvancedTools;
 
   return (
     <div className="value-proposition-wizard">
       <div className="wizard-header">
         <h2>The Business Case for Agent Governance</h2>
         <p>Discover how our platform can transform your operations</p>
-        
+
         <div className="progress-indicator">
           <div className={`progress-step ${activeStep >= 1 ? 'active' : ''}`}>
             <div className="step-number">1</div>
@@ -194,7 +217,7 @@ export default function ValuePropositionWizard() {
           </div>
         </div>
       </div>
-      
+
       {activeStep === 1 && (
         <div className="step-content">
           <div className="value-metrics">
@@ -210,30 +233,30 @@ export default function ValuePropositionWizard() {
               ))}
             </div>
           </div>
-          
+
           <div className="case-studies-section">
             <h3>Real-World Results</h3>
             <div className="case-study-tabs">
-              <button 
+              <button
                 className={selectedCaseStudy === 'healthcare' ? 'active' : ''}
                 onClick={() => setSelectedCaseStudy('healthcare')}
               >
                 Healthcare
               </button>
-              <button 
+              <button
                 className={selectedCaseStudy === 'finance' ? 'active' : ''}
                 onClick={() => setSelectedCaseStudy('finance')}
               >
                 Finance
               </button>
-              <button 
+              <button
                 className={selectedCaseStudy === 'retail' ? 'active' : ''}
                 onClick={() => setSelectedCaseStudy('retail')}
               >
                 Retail
               </button>
             </div>
-            
+
             <div className="case-metrics">
               {caseStudyMetrics[selectedCaseStudy].map((metric, index) => (
                 <div key={index} className="case-metric-card">
@@ -241,12 +264,16 @@ export default function ValuePropositionWizard() {
                   <div className="case-metric-comparison">
                     <div className="before-value">
                       <div className="value-label">Before</div>
-                      <div className="value">{metric.before} {metric.unit}</div>
+                      <div className="value">
+                        {metric.before} {metric.unit}
+                      </div>
                     </div>
                     <div className="arrow">→</div>
                     <div className="after-value">
                       <div className="value-label">After</div>
-                      <div className="value">{metric.after} {metric.unit}</div>
+                      <div className="value">
+                        {metric.after} {metric.unit}
+                      </div>
                     </div>
                     <div className="improvement">
                       <div className="improvement-label">Improvement</div>
@@ -257,16 +284,38 @@ export default function ValuePropositionWizard() {
               ))}
             </div>
           </div>
-          
+
           <div className="step-actions">
             <button className="next-button" onClick={nextStep}>
               Calculate Your ROI →
             </button>
-            <button className="advanced-toggle" onClick={toggleAdvancedTools}>
-              {showAdvancedTools ? 'Hide Advanced Tools' : 'Show Advanced Tools'}
-            </button>
+
+            {/* Show the toggle button based on user engagement */}
+            {(userEngagement >= 1 || showAdvancedTools) && (
+              <button className="advanced-toggle" onClick={toggleAdvancedTools}>
+                {showAdvancedTools ? 'Hide Advanced Tools' : 'Show Advanced Tools'}
+              </button>
+            )}
+
+            {/* Show detailed metrics toggle based on user engagement */}
+            {userEngagement >= 2 && (
+              <button className="detailed-toggle" onClick={toggleDetailedMetrics}>
+                {showDetailedMetrics ? 'Show Summary' : 'Show Detailed Metrics'}
+              </button>
+            )}
           </div>
-          
+
+          {/* Progressive hint for new users */}
+          {userEngagement === 0 && (
+            <div className="progressive-hint">
+              <p>
+                <span className="hint-icon">💡</span>
+                Continue to the ROI calculator to unlock additional tools and detailed metrics.
+              </p>
+            </div>
+          )}
+
+          {/* Advanced tools section */}
           {showAdvancedTools && (
             <div className="advanced-tools">
               <h3>Advanced Tools</h3>
@@ -284,16 +333,70 @@ export default function ValuePropositionWizard() {
                     <AgentSimulation />
                   </div>
                 </div>
+
+                {/* Show additional advanced tools based on user engagement */}
+                {userEngagement >= 4 && (
+                  <div className="tool-card">
+                    <div className="tool-icon">📊</div>
+                    <h4>Custom Analysis</h4>
+                    <p>Create a tailored analysis for your specific industry and use case</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Detailed metrics section */}
+          {showDetailedMetrics && (
+            <div className="detailed-metrics">
+              <h3>Detailed Performance Metrics</h3>
+              <div className="metrics-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Small Business</th>
+                      <th>Mid-Market</th>
+                      <th>Enterprise</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Time Savings</td>
+                      <td>65%</td>
+                      <td>75%</td>
+                      <td>85%</td>
+                    </tr>
+                    <tr>
+                      <td>Cost Reduction</td>
+                      <td>55%</td>
+                      <td>65%</td>
+                      <td>75%</td>
+                    </tr>
+                    <tr>
+                      <td>Error Reduction</td>
+                      <td>85%</td>
+                      <td>90%</td>
+                      <td>95%</td>
+                    </tr>
+                    <tr>
+                      <td>ROI (1 year)</td>
+                      <td>180%</td>
+                      <td>220%</td>
+                      <td>280%</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
         </div>
       )}
-      
+
       {activeStep === 2 && (
         <div className="step-content">
           <ROICalculator />
-          
+
           <div className="step-actions">
             <button className="back-button" onClick={prevStep}>
               ← Back to Overview
@@ -304,11 +407,11 @@ export default function ValuePropositionWizard() {
           </div>
         </div>
       )}
-      
+
       {activeStep === 3 && (
         <div className="step-content">
           <ResultsReport />
-          
+
           <div className="step-actions">
             <button className="back-button" onClick={prevStep}>
               ← Back to ROI Calculator
@@ -319,7 +422,7 @@ export default function ValuePropositionWizard() {
           </div>
         </div>
       )}
-      
+
       {activeStep === 4 && (
         <div className="step-content">
           <div className="next-steps-section">
@@ -329,11 +432,13 @@ export default function ValuePropositionWizard() {
                 <div className="path-number">1</div>
                 <div className="path-details">
                   <h4>Free Consultation</h4>
-                  <p>Schedule a call with our experts to discuss your specific needs and challenges</p>
+                  <p>
+                    Schedule a call with our experts to discuss your specific needs and challenges
+                  </p>
                   <button className="action-button">Schedule Call</button>
                 </div>
               </div>
-              
+
               <div className="path-step">
                 <div className="path-number">2</div>
                 <div className="path-details">
@@ -342,7 +447,7 @@ export default function ValuePropositionWizard() {
                   <button className="action-button">Design Pilot</button>
                 </div>
               </div>
-              
+
               <div className="path-step">
                 <div className="path-number">3</div>
                 <div className="path-details">
@@ -352,7 +457,7 @@ export default function ValuePropositionWizard() {
                 </div>
               </div>
             </div>
-            
+
             <div className="additional-resources">
               <h3>Additional Resources</h3>
               <div className="resources-grid">
@@ -362,14 +467,14 @@ export default function ValuePropositionWizard() {
                   <p>Step-by-step guide to implementing agent governance</p>
                   <button className="resource-button">Download PDF</button>
                 </div>
-                
+
                 <div className="resource-card">
                   <div className="resource-icon">🎥</div>
                   <h4>Demo Videos</h4>
                   <p>See the platform in action with guided demonstrations</p>
                   <button className="resource-button">Watch Videos</button>
                 </div>
-                
+
                 <div className="resource-card">
                   <div className="resource-icon">📝</div>
                   <h4>Case Studies</h4>
@@ -379,14 +484,12 @@ export default function ValuePropositionWizard() {
               </div>
             </div>
           </div>
-          
+
           <div className="step-actions">
             <button className="back-button" onClick={prevStep}>
               ← Back to Custom Report
             </button>
-            <button className="start-trial-button">
-              Start Free Trial
-            </button>
+            <button className="start-trial-button">Start Free Trial</button>
           </div>
         </div>
       )}

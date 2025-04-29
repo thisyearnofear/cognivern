@@ -81,15 +81,27 @@ body {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
 .app-header h1 {
-  margin-bottom: 1rem;
+  margin: 0;
   font-size: 1.75rem;
 }
 
 .main-nav {
   display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.nav-item-container {
+  position: relative;
 }
 
 .main-nav button {
@@ -100,7 +112,7 @@ body {
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .main-nav button:hover {
@@ -109,6 +121,69 @@ body {
 
 .main-nav button.active {
   background-color: rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+/* Dropdown styles */
+.dropdown-container {
+  position: relative;
+}
+
+.dropdown-arrow {
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-active .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 180px;
+  z-index: 100;
+  margin-top: 0.5rem;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dropdown-menu button:last-child {
+  border-bottom: none;
+}
+
+.dropdown-menu button:hover {
+  background-color: #f5f8ff;
+}
+
+.dropdown-menu button.active {
+  background-color: #e6f0ff;
+  color: #2563eb;
   font-weight: 600;
 }
 
@@ -139,12 +214,36 @@ body {
     padding: 1rem;
   }
 
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .app-header h1 {
+    margin-bottom: 1rem;
+  }
+
   .app-content {
     padding: 1rem;
   }
 
   .main-nav {
-    justify-content: center;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    -ms-overflow-style: none; /* Hide scrollbar in IE and Edge */
+    scrollbar-width: none; /* Hide scrollbar in Firefox */
+  }
+
+  .main-nav::-webkit-scrollbar {
+    display: none; /* Hide scrollbar in Chrome, Safari and Opera */
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    max-width: 250px;
   }
 }
 

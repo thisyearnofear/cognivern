@@ -15,8 +15,8 @@ interface Testimonial {
   quote: string;
   author: string;
   role: string;
-  company: string;
-  industry: string;
+  source?: string;
+  sourceUrl?: string;
 }
 
 interface CaseMetric {
@@ -28,6 +28,7 @@ interface CaseMetric {
 }
 
 export default function ValuePropositionDashboard() {
+  const [activeTab, setActiveTab] = useState<string>('overview');
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
   const [showAdvancedTools, setShowAdvancedTools] = useState(false);
 
@@ -157,27 +158,29 @@ export default function ValuePropositionDashboard() {
   const testimonials: Testimonial[] = [
     {
       quote:
-        "The agent governance stack has transformed our operations. We've reduced processing time by 85% while maintaining complete compliance with healthcare regulations.",
-      author: 'Dr. Sarah Johnson',
-      role: 'CTO',
-      company: 'MedTech Solutions',
-      industry: 'Healthcare',
+        'As artificial intelligence reshapes industries, it is critical for businesses to view AI governance not merely as a regulatory obligation but as an ethical imperative... Issues such as bias, privacy, and accountability are not abstract concerns but real challenges that require robust, operationalized governance frameworks.',
+      author: 'Rani Yadav-Ranjan',
+      role: 'Forbes Contributor and NIST GEN AI Working Group Member',
+      source: 'Forbes',
+      sourceUrl:
+        'https://www.forbes.com/sites/committeeof200/2025/02/04/ai-governance-the-ceos-ethical-imperative-in-2025/',
     },
     {
       quote:
-        'Our financial advisory team now handles 3x the client load with better accuracy. The governance controls give us confidence that all recommendations meet regulatory requirements.',
-      author: 'Michael Chen',
-      role: 'Director of Operations',
-      company: 'Apex Financial',
-      industry: 'Finance',
+        'The government should expect to see increased desire from civil servants to adopt these systems in 2025, as they offer potential efficiency gains in areas such as benefits processing assistance, document and policy analysis, procurement support, and infrastructure monitoring.',
+      author: 'Rebecca Hawkins',
+      role: 'UK Parliamentary Evidence',
+      source: 'UK Parliament',
+      sourceUrl: 'https://committees.parliament.uk/writtenevidence/135611/html/',
     },
     {
       quote:
-        'The ROI was immediate. Within 3 months, we recouped our investment and now save over $200,000 annually while providing faster, more consistent service.',
-      author: 'Jessica Williams',
-      role: 'VP of Customer Experience',
-      company: 'RetailNow',
-      industry: 'Retail',
+        'Effective AI governance is increasingly recognized as indispensable for fostering trust in AI systems, which is paramount for their widespread adoption and societal integration. It plays a crucial role in managing inherent risks associated with AI, such as the potential for bias in algorithms and breaches of data privacy, thereby safeguarding organizations from potential reputational and financial damage.',
+      author: 'Utpal Dutta',
+      role: 'AI Governance Analyst',
+      source: 'LinkedIn',
+      sourceUrl:
+        'https://www.linkedin.com/pulse/ai-governance-comprehensive-analysis-platforms-utpal-dutta-43qhf/',
     },
   ];
 
@@ -292,10 +295,14 @@ export default function ValuePropositionDashboard() {
                   <div className="testimonial-quote">"{testimonial.quote}"</div>
                   <div className="testimonial-author">
                     <div className="author-name">{testimonial.author}</div>
-                    <div className="author-role">
-                      {testimonial.role}, {testimonial.company}
-                    </div>
-                    <div className="author-industry">{testimonial.industry}</div>
+                    <div className="author-role">{testimonial.role}</div>
+                    {testimonial.source && (
+                      <div className="author-source">
+                        <a href={testimonial.sourceUrl} target="_blank" rel="noopener noreferrer">
+                          Source: {testimonial.source}
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
