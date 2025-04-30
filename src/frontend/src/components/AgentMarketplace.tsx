@@ -35,6 +35,12 @@ export default function AgentMarketplace() {
   const [demoAgent, setDemoAgent] = useState<AgentTemplate | null>(null);
   const [deploymentStep, setDeploymentStep] = useState<number>(0);
 
+  // Progressive disclosure states
+  const [showAllAgents, setShowAllAgents] = useState<boolean>(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
+  const [expandedAgentCards, setExpandedAgentCards] = useState<string[]>([]);
+  const [userEngagement, setUserEngagement] = useState<number>(0);
+
   // Fetch MCP status on component mount
   useEffect(() => {
     fetchMCPStatus();
@@ -227,6 +233,17 @@ export default function AgentMarketplace() {
     { id: 'customer-service', name: 'Customer Service' },
   ];
 
+  // Define featured/recommended agents (a subset of all agents)
+  const featuredAgentIds = [
+    'ad-allocation',
+    'compliance-guardian',
+    'customer-support',
+    'financial-advisor',
+  ];
+
+  // Get featured agents
+  const featuredAgents = agentTemplates.filter((agent) => featuredAgentIds.includes(agent.id));
+
   // Filter agents based on category and search query
   const filteredAgents = agentTemplates.filter((agent) => {
     const matchesCategory = selectedCategory === 'all' || agent.category === selectedCategory;
@@ -237,6 +254,13 @@ export default function AgentMarketplace() {
 
     return matchesCategory && matchesSearch;
   });
+
+  // Determine which agents to display based on progressive disclosure state
+  const displayedAgents = showAllAgents
+    ? filteredAgents
+    : searchQuery || selectedCategory !== 'all'
+      ? filteredAgents.slice(0, 4)
+      : featuredAgents;
 
   const handleAgentSelect = (agent: AgentTemplate) => {
     setSelectedAgent(agent);
@@ -262,6 +286,8 @@ export default function AgentMarketplace() {
   const handleDemoAgent = (agent: AgentTemplate, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering the card click (which would start deployment)
     setDemoAgent(agent);
+    // Increment user engagement when trying a demo
+    incrementUserEngagement(1);
   };
 
   const closeDemoMode = () => {
@@ -273,6 +299,49 @@ export default function AgentMarketplace() {
       setSelectedAgent(demoAgent);
       setDemoAgent(null);
       setDeploymentStep(1);
+      // Increment user engagement when deploying from demo
+      incrementUserEngagement(2);
+    }
+  };
+
+  // Progressive disclosure methods
+  const incrementUserEngagement = (amount: number) => {
+    setUserEngagement((prev) => Math.min(prev + amount, 10));
+
+    // Automatically reveal more features based on engagement level
+    if (userEngagement >= 3 && !showAdvancedFilters) {
+      setShowAdvancedFilters(true);
+    }
+
+    if (userEngagement >= 5 && !showAllAgents) {
+      setShowAllAgents(true);
+    }
+  };
+
+  const toggleAgentCardExpansion = (agentId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the card click
+
+    setExpandedAgentCards((prev) => {
+      if (prev.includes(agentId)) {
+        return prev.filter((id) => id !== agentId);
+      } else {
+        incrementUserEngagement(1);
+        return [...prev, agentId];
+      }
+    });
+  };
+
+  const toggleShowAllAgents = () => {
+    setShowAllAgents((prev) => !prev);
+    if (!showAllAgents) {
+      incrementUserEngagement(1);
+    }
+  };
+
+  const toggleAdvancedFilters = () => {
+    setShowAdvancedFilters((prev) => !prev);
+    if (!showAdvancedFilters) {
+      incrementUserEngagement(1);
     }
   };
 
@@ -285,73 +354,184 @@ export default function AgentMarketplace() {
         </p>
       </div>
 
-      <div className="catalog-filters">
-        <div className="category-filter">
-          <div className="filter-label">Filter by Category:</div>
-          <div className="category-tabs">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                className={`category-tab ${selectedCategory === category.id ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(category.id)}
-              >
-                {category.name}
-              </button>
-            ))}
+      {/* Getting Started Section - Only shown to new users */}
+      {userEngagement < 2 && (
+        <div className="getting-started-section">
+          <div className="getting-started-header">
+            <h3>Getting Started</h3>
+            <p>
+              New to the Agent Marketplace? Here's how to find the perfect agent for your needs:
+            </p>
+          </div>
+          <div className="getting-started-steps">
+            <div className="step">
+              <div className="step-number">1</div>
+              <div className="step-content">
+                <h4>Explore Featured Agents</h4>
+                <p>Browse our curated selection of popular agents below</p>
+              </div>
+            </div>
+            <div className="step">
+              <div className="step-number">2</div>
+              <div className="step-content">
+                <h4>Try Before You Deploy</h4>
+                <p>Test any agent with the "Try Now" button to see it in action</p>
+              </div>
+            </div>
+            <div className="step">
+              <div className="step-number">3</div>
+              <div className="step-content">
+                <h4>Deploy With Confidence</h4>
+                <p>When you're ready, deploy your agent with full governance controls</p>
+              </div>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="search-filter">
-          <input
-            type="text"
-            placeholder="Search agents..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
-          />
+      <div className="catalog-filters">
+        {/* Basic Filters - Always visible */}
+        <div className="basic-filters">
+          <div className="search-filter">
+            <input
+              type="text"
+              placeholder="Search agents..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                incrementUserEngagement(1);
+              }}
+              className="search-input"
+            />
+          </div>
+
+          {/* Show/Hide Advanced Filters Button */}
+          <button
+            className={`toggle-filters-button ${showAdvancedFilters ? 'active' : ''}`}
+            onClick={toggleAdvancedFilters}
+          >
+            {showAdvancedFilters ? 'Hide Filters' : 'Show Filters'}
+          </button>
         </div>
+
+        {/* Advanced Filters - Initially hidden */}
+        {showAdvancedFilters && (
+          <div className="advanced-filters">
+            <div className="category-filter">
+              <div className="filter-label">Filter by Category:</div>
+              <div className="category-tabs">
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    className={`category-tab ${selectedCategory === category.id ? 'active' : ''}`}
+                    onClick={() => {
+                      setSelectedCategory(category.id);
+                      incrementUserEngagement(1);
+                    }}
+                  >
+                    {category.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Section Header - Changes based on what's being shown */}
+      <div className="section-header">
+        <h3>
+          {searchQuery || selectedCategory !== 'all'
+            ? 'Search Results'
+            : showAllAgents
+              ? 'All Agents'
+              : 'Featured Agents'}
+        </h3>
+
+        {/* Show more/less toggle */}
+        {(filteredAgents.length > 4 && (searchQuery || selectedCategory !== 'all')) ||
+        (!showAllAgents && agentTemplates.length > featuredAgents.length) ? (
+          <button className="toggle-agents-button" onClick={toggleShowAllAgents}>
+            {showAllAgents ? 'Show Less' : 'Show More'}
+          </button>
+        ) : null}
       </div>
 
       <div className="agents-grid">
-        {filteredAgents.length === 0 ? (
+        {displayedAgents.length === 0 ? (
           <div className="no-agents">No agents found matching your criteria</div>
         ) : (
-          filteredAgents.map((agent) => (
-            <div key={agent.id} className="agent-card" onClick={() => handleAgentSelect(agent)}>
-              <div className="agent-icon">{agent.icon}</div>
-              <h3>{agent.name}</h3>
-              <p className="agent-description">{agent.description}</p>
+          displayedAgents.map((agent) => {
+            const isExpanded = expandedAgentCards.includes(agent.id);
 
-              <div className="agent-capabilities">
-                <h4>Capabilities</h4>
-                <ul>
-                  {agent.capabilities.map((capability, index) => (
-                    <li key={index}>{capability}</li>
-                  ))}
-                </ul>
-              </div>
+            return (
+              <div
+                key={agent.id}
+                className={`agent-card ${isExpanded ? 'expanded' : ''}`}
+                onClick={() => handleAgentSelect(agent)}
+              >
+                <div className="agent-icon">{agent.icon}</div>
+                <h3>{agent.name}</h3>
+                <p className="agent-description">{agent.description}</p>
 
-              <div className="agent-integrations">
-                <h4>Integrations</h4>
-                <div className="integration-tags">
-                  {agent.integrations.map((integration, index) => (
-                    <span key={index} className="integration-tag">
-                      {integration}
-                    </span>
-                  ))}
+                {/* Always visible actions */}
+                <div className="agent-actions">
+                  <button className="try-button" onClick={(e) => handleDemoAgent(agent, e)}>
+                    Try Now
+                  </button>
+                  <button className="deploy-button">Deploy Agent</button>
+
+                  {/* Details toggle button */}
+                  <button
+                    className={`details-toggle ${isExpanded ? 'expanded' : ''}`}
+                    onClick={(e) => toggleAgentCardExpansion(agent.id, e)}
+                  >
+                    {isExpanded ? 'Hide Details' : 'Show Details'}
+                  </button>
                 </div>
-              </div>
 
-              <div className="agent-actions">
-                <button className="try-button" onClick={(e) => handleDemoAgent(agent, e)}>
-                  Try Now
-                </button>
-                <button className="deploy-button">Deploy Agent</button>
+                {/* Expandable details section */}
+                {isExpanded && (
+                  <div className="agent-details">
+                    <div className="agent-capabilities">
+                      <h4>Capabilities</h4>
+                      <ul>
+                        {agent.capabilities.map((capability, index) => (
+                          <li key={index}>{capability}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="agent-integrations">
+                      <h4>Integrations</h4>
+                      <div className="integration-tags">
+                        {agent.integrations.map((integration, index) => (
+                          <span key={index} className="integration-tag">
+                            {integration}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {/* Show more agents hint - only shown when there are more agents to display */}
+      {!showAllAgents && filteredAgents.length > displayedAgents.length && (
+        <div className="more-agents-hint">
+          <p>
+            <span className="hint-icon">💡</span>
+            {filteredAgents.length - displayedAgents.length} more agents available.
+            <button className="text-button" onClick={toggleShowAllAgents}>
+              Show all
+            </button>
+          </p>
+        </div>
+      )}
     </div>
   );
 

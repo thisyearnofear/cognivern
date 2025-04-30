@@ -250,6 +250,37 @@
   font-size: 20px;
 }
 
+/* Demo button */
+.demo-button-container {
+  margin-top: 16px;
+  text-align: center;
+  padding-top: 12px;
+  border-top: 1px dashed #e0e0e0;
+}
+
+.try-demo-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.try-demo-button:hover {
+  background-color: #2980b9;
+}
+
+.try-demo-button::before {
+  content: '▶';
+  margin-right: 6px;
+  font-size: 10px;
+}
+
 /* Step Actions */
 .step-actions {
   display: flex;

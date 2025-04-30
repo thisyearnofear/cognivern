@@ -25,12 +25,17 @@ interface CaseMetric {
   after: string;
   improvement: string;
   unit: string;
+  hasDemo?: boolean;
 }
 
-export default function ValuePropositionWizard() {
+export default function ValuePropositionWizard({
+  onNavigate,
+}: {
+  onNavigate: (route: string) => void;
+}) {
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
   const [showAdvancedTools, setShowAdvancedTools] = useState(false);
-  const [selectedCaseStudy, setSelectedCaseStudy] = useState<string>('healthcare');
+  const [selectedCaseStudy, setSelectedCaseStudy] = useState<string>('ecom');
   const [userEngagement, setUserEngagement] = useState<number>(0);
   const [showDetailedMetrics, setShowDetailedMetrics] = useState<boolean>(false);
 
@@ -70,7 +75,7 @@ export default function ValuePropositionWizard() {
     },
   ];
 
-  // Case study metrics
+  // Case study metrics with demo availability flags
   const caseStudyMetrics: Record<string, CaseMetric[]> = {
     healthcare: [
       {
@@ -79,6 +84,7 @@ export default function ValuePropositionWizard() {
         after: '5',
         improvement: '89%',
         unit: 'minutes',
+        hasDemo: false,
       },
       {
         title: 'Staff Hours per Week',
@@ -86,6 +92,7 @@ export default function ValuePropositionWizard() {
         after: '30',
         improvement: '75%',
         unit: 'hours',
+        hasDemo: false,
       },
       {
         title: 'Error Rate',
@@ -93,6 +100,7 @@ export default function ValuePropositionWizard() {
         after: '0.5',
         improvement: '94%',
         unit: '%',
+        hasDemo: false,
       },
       {
         title: 'Annual Cost',
@@ -100,15 +108,17 @@ export default function ValuePropositionWizard() {
         after: '75,000',
         improvement: '70%',
         unit: '$',
+        hasDemo: false,
       },
     ],
-    finance: [
+    accounting: [
       {
         title: 'Transaction Processing',
         before: '15',
         after: '2',
         improvement: '87%',
         unit: 'minutes',
+        hasDemo: true,
       },
       {
         title: 'Compliance Checks',
@@ -116,6 +126,7 @@ export default function ValuePropositionWizard() {
         after: '10',
         improvement: '92%',
         unit: 'minutes',
+        hasDemo: false,
       },
       {
         title: 'Audit Preparation',
@@ -123,6 +134,7 @@ export default function ValuePropositionWizard() {
         after: '8',
         improvement: '80%',
         unit: 'hours',
+        hasDemo: false,
       },
       {
         title: 'Annual Cost',
@@ -130,15 +142,17 @@ export default function ValuePropositionWizard() {
         after: '95,000',
         improvement: '75%',
         unit: '$',
+        hasDemo: false,
       },
     ],
-    retail: [
+    ecom: [
       {
         title: 'Inventory Management',
         before: '25',
         after: '5',
         improvement: '80%',
         unit: 'hours/week',
+        hasDemo: true,
       },
       {
         title: 'Customer Response Time',
@@ -146,6 +160,7 @@ export default function ValuePropositionWizard() {
         after: '2',
         improvement: '92%',
         unit: 'hours',
+        hasDemo: true,
       },
       {
         title: 'Order Processing',
@@ -153,6 +168,7 @@ export default function ValuePropositionWizard() {
         after: '3',
         improvement: '75%',
         unit: 'minutes',
+        hasDemo: false,
       },
       {
         title: 'Annual Cost',
@@ -160,6 +176,7 @@ export default function ValuePropositionWizard() {
         after: '65,000',
         improvement: '69%',
         unit: '$',
+        hasDemo: false,
       },
     ],
   };
@@ -220,40 +237,26 @@ export default function ValuePropositionWizard() {
 
       {activeStep === 1 && (
         <div className="step-content">
-          <div className="value-metrics">
-            <h3>Key Performance Improvements</h3>
-            <div className="metrics-grid">
-              {valueMetrics.map((metric, index) => (
-                <div key={index} className="metric-card">
-                  <div className="metric-icon">{metric.icon}</div>
-                  <div className="metric-title">{metric.title}</div>
-                  <div className="metric-value">{metric.value}</div>
-                  <div className="metric-description">{metric.description}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="case-studies-section">
             <h3>Real-World Results</h3>
             <div className="case-study-tabs">
+              <button
+                className={selectedCaseStudy === 'ecom' ? 'active' : ''}
+                onClick={() => setSelectedCaseStudy('ecom')}
+              >
+                E-Commerce
+              </button>
+              <button
+                className={selectedCaseStudy === 'accounting' ? 'active' : ''}
+                onClick={() => setSelectedCaseStudy('accounting')}
+              >
+                Accounting
+              </button>
               <button
                 className={selectedCaseStudy === 'healthcare' ? 'active' : ''}
                 onClick={() => setSelectedCaseStudy('healthcare')}
               >
                 Healthcare
-              </button>
-              <button
-                className={selectedCaseStudy === 'finance' ? 'active' : ''}
-                onClick={() => setSelectedCaseStudy('finance')}
-              >
-                Finance
-              </button>
-              <button
-                className={selectedCaseStudy === 'retail' ? 'active' : ''}
-                onClick={() => setSelectedCaseStudy('retail')}
-              >
-                Retail
               </button>
             </div>
 
@@ -280,6 +283,43 @@ export default function ValuePropositionWizard() {
                       <div className="improvement-value">{metric.improvement}</div>
                     </div>
                   </div>
+                  {metric.hasDemo && (
+                    <div className="demo-button-container">
+                      <button
+                        className="try-demo-button"
+                        onClick={() => {
+                          // Route to the appropriate demo based on the metric
+                          if (selectedCaseStudy === 'ecom') {
+                            if (metric.title === 'Inventory Management') {
+                              onNavigate('marketplace');
+                            } else {
+                              onNavigate('agents');
+                            }
+                          } else if (selectedCaseStudy === 'accounting') {
+                            onNavigate('marketplace');
+                          } else {
+                            onNavigate('agents');
+                          }
+                        }}
+                      >
+                        Try Demo
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="value-metrics">
+            <h3>Key Performance Improvements</h3>
+            <div className="metrics-grid">
+              {valueMetrics.map((metric, index) => (
+                <div key={index} className="metric-card">
+                  <div className="metric-icon">{metric.icon}</div>
+                  <div className="metric-title">{metric.title}</div>
+                  <div className="metric-value">{metric.value}</div>
+                  <div className="metric-description">{metric.description}</div>
                 </div>
               ))}
             </div>
