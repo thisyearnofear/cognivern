@@ -127,6 +127,7 @@ body {
 /* Dropdown styles */
 .dropdown-container {
   position: relative;
+  display: inline-block; /* Ensure it only takes up as much space as needed */
 }
 
 .dropdown-arrow {
@@ -147,10 +148,11 @@ body {
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 180px;
-  z-index: 100;
+  z-index: 1000; /* Increased z-index to ensure it appears above other elements */
   margin-top: 0.5rem;
   overflow: hidden;
   animation: fadeIn 0.2s ease;
+  pointer-events: auto; /* Ensure clicks are captured */
 }
 
 @keyframes fadeIn {
@@ -171,6 +173,12 @@ body {
   padding: 0.75rem 1rem;
   color: #333;
   border-bottom: 1px solid #f0f0f0;
+  background-color: white;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
 .dropdown-menu button:last-child {
@@ -185,6 +193,11 @@ body {
   background-color: #e6f0ff;
   color: #2563eb;
   font-weight: 600;
+}
+
+/* Ensure dropdown buttons are clickable */
+.dropdown-menu button:focus {
+  outline: none;
 }
 
 .app-content {

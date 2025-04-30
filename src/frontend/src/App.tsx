@@ -14,12 +14,19 @@ import './components/Dashboard.css';
 function App() {
   const [activeTab, setActiveTab] = useState('landing');
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const agentsDropdownRef = useRef<HTMLDivElement>(null);
+  const advancedDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      // Check if click is outside both dropdowns
+      const isOutsideAgentsDropdown =
+        !agentsDropdownRef.current || !agentsDropdownRef.current.contains(event.target as Node);
+      const isOutsideAdvancedDropdown =
+        !advancedDropdownRef.current || !advancedDropdownRef.current.contains(event.target as Node);
+
+      if (isOutsideAgentsDropdown && isOutsideAdvancedDropdown) {
         setActiveDropdown(null);
       }
     }
@@ -31,7 +38,11 @@ function App() {
   }, []);
 
   // Toggle dropdown menu
-  const toggleDropdown = (menu: string) => {
+  const toggleDropdown = (menu: string, event?: React.MouseEvent) => {
+    // Prevent event from bubbling up to document click handler
+    if (event) {
+      event.stopPropagation();
+    }
     setActiveDropdown(activeDropdown === menu ? null : menu);
   };
 
@@ -67,10 +78,10 @@ function App() {
               {navigation.primary.map((item) => (
                 <div key={item.id} className="nav-item-container">
                   {item.hasSubmenu ? (
-                    <div className="dropdown-container" ref={dropdownRef}>
+                    <div className="dropdown-container" ref={agentsDropdownRef}>
                       <button
                         className={`nav-button ${activeTab.startsWith(item.id) ? 'active' : ''} ${activeDropdown === item.id ? 'dropdown-active' : ''}`}
-                        onClick={() => toggleDropdown(item.id)}
+                        onClick={(e) => toggleDropdown(item.id, e)}
                       >
                         {item.label} <span className="dropdown-arrow">▾</span>
                       </button>
@@ -80,7 +91,8 @@ function App() {
                             <button
                               key={subItem.id}
                               className={activeTab === subItem.id ? 'active' : ''}
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent event bubbling
                                 setActiveTab(subItem.id);
                                 setActiveDropdown(null);
                               }}
@@ -103,10 +115,10 @@ function App() {
               ))}
 
               {/* Advanced Options Dropdown */}
-              <div className="dropdown-container" ref={dropdownRef}>
+              <div className="dropdown-container" ref={advancedDropdownRef}>
                 <button
                   className={`nav-button ${activeDropdown === 'advanced' ? 'dropdown-active' : ''}`}
-                  onClick={() => toggleDropdown('advanced')}
+                  onClick={(e) => toggleDropdown('advanced', e)}
                 >
                   Advanced <span className="dropdown-arrow">▾</span>
                 </button>
@@ -116,7 +128,8 @@ function App() {
                       <button
                         key={item.id}
                         className={activeTab === item.id ? 'active' : ''}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent event bubbling
                           setActiveTab(item.id);
                           setActiveDropdown(null);
                         }}
@@ -137,7 +150,7 @@ function App() {
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'agents' && <AgentWorkshop />}
         {activeTab === 'marketplace' && <AgentMarketplace />}
-        {activeTab === 'value-proposition' && <ValuePropositionWizard />}
+        {activeTab === 'value-proposition' && <ValuePropositionWizard onNavigate={setActiveTab} />}
         {activeTab === 'case-studies' && <CaseStudies />}
         {activeTab === 'policies' && <PolicyManagement />}
         {activeTab === 'logs' && <AuditLogs />}
