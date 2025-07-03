@@ -1,5 +1,4 @@
 import logger from '../utils/logger.js';
-import { config } from '../config.js';
 
 export interface WalletInfo {
   address: string;
@@ -24,7 +23,7 @@ export class BitteWalletService {
   private deployments: Map<string, DeploymentTransaction> = new Map();
 
   constructor() {
-    this.apiKey = config.BITTE_API_KEY || '';
+    this.apiKey = process.env.BITTE_API_KEY || '';
     this.apiUrl = 'https://api.bitte.ai';
     
     if (!this.apiKey) {

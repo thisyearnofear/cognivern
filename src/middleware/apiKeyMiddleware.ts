@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { config } from '../config.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -9,7 +8,7 @@ export const apiKeyMiddleware = (req: Request, res: Response, next: NextFunction
   const apiKey = req.headers['x-api-key'] || req.query.apiKey;
   
   // Check if API key is required
-  if (!config.API_KEY) {
+  if (!process.env.API_KEY) {
     // API key not configured, skip validation
     return next();
   }
@@ -22,7 +21,7 @@ export const apiKeyMiddleware = (req: Request, res: Response, next: NextFunction
     });
   }
   
-  if (apiKey !== config.API_KEY) {
+  if (apiKey !== process.env.API_KEY) {
     logger.warn('API request with invalid API key');
     return res.status(403).json({
       success: false,

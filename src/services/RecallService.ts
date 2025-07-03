@@ -1,7 +1,6 @@
 import { RecallClient } from '@recallnet/sdk/client';
 import type { Address } from 'viem';
 import logger from '../utils/logger.js';
-import type { AddOptions } from '@recallnet/sdk/bucket';
 
 export class RecallService {
   private recall: RecallClient;
@@ -26,13 +25,10 @@ export class RecallService {
       // Convert data to string if it's an object
       const content = typeof data === 'string' ? data : JSON.stringify(data);
 
-      // Use add method with overwrite flag
-      const options: AddOptions = { overwrite };
       await bucketManager.add(
         this.bucketAddress,
         fullKey,
         new TextEncoder().encode(content),
-        options,
       );
 
       logger.info(`Successfully stored object at ${fullKey}`);
@@ -49,7 +45,6 @@ export class RecallService {
       const bucketManager = this.recall.bucketManager();
       const fullKey = `${prefix}/${key}`;
 
-      // Use get instead of getObjectValue to get the raw object data
       const { result } = await bucketManager.get(this.bucketAddress, fullKey);
 
       if (!result) {
@@ -57,26 +52,7 @@ export class RecallService {
         return null;
       }
 
-      let contentStr: string;
-
-      // Handle different types of results
-      if (
-        typeof result === 'object' &&
-        result !== null &&
-        ('buffer' in result || Object.prototype.toString.call(result) === '[object Uint8Array]')
-      ) {
-        contentStr = new TextDecoder().decode(result as Uint8Array);
-      } else if (typeof result === 'string') {
-        contentStr = result;
-      } else {
-        // Try to convert to string if it's a different type
-        try {
-          contentStr = JSON.stringify(result);
-        } catch (stringifyError) {
-          logger.error(`Failed to stringify result for ${fullKey}`, stringifyError);
-          return null;
-        }
-      }
+      const contentStr = new TextDecoder().decode(result as Uint8Array);
 
       try {
         return JSON.parse(contentStr) as T;
@@ -102,7 +78,6 @@ export class RecallService {
         logger.warn(`No result from bucket query for prefix ${prefix}`);
         return [];
       }
-
       if (!result.objects) {
         logger.warn(`No objects found in bucket for prefix ${prefix}`);
         return [];
@@ -122,7 +97,6 @@ export class RecallService {
       const bucketManager = this.recall.bucketManager();
       const fullKey = `${prefix}/${key}`;
 
-      // Use delete method instead of removeObject
       await bucketManager.delete(this.bucketAddress, fullKey);
       logger.info(`Successfully deleted object at ${fullKey}`);
     } catch (error) {

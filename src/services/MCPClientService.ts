@@ -1,6 +1,5 @@
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import logger from '../utils/logger.js';
-import { config, mcpConfig } from '../config.js';
 
 export interface MCPMessage {
   id: string;
@@ -31,22 +30,17 @@ export class MCPClientService {
   private reconnectDelay: number = 2000; // Start with 2 seconds
 
   constructor(serverName?: string) {
-    const server = serverName || config.MCP_DEFAULT_SERVER;
-    const serverConfig = mcpConfig.mcpServers[server];
-
-    if (!serverConfig) {
-      throw new Error(`MCP server "${server}" not found in configuration`);
-    }
-
-    this.serverUrl = serverConfig.url;
-    this.apiKey = config.MCP_API_KEY;
+    const server = serverName || process.env.MCP_DEFAULT_SERVER;
+    
+    this.serverUrl = process.env.MCP_SERVER_URL || 'http://localhost:3001'; // Default development URL
+    this.apiKey = process.env.MCP_API_KEY;
   }
 
   /**
    * Connect to the MCP server
    */
   public connect(): void {
-    if (!config.MCP_ENABLED) {
+    if (!process.env.MCP_ENABLED) {
       logger.info('MCP is disabled, skipping connection');
       return;
     }

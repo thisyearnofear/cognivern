@@ -2,7 +2,7 @@ import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { testnet } from '@recallnet/chains';
 import { RecallClient } from '@recallnet/sdk/client';
-import type { ListResultBucket, CreateBucketParams } from '@recallnet/sdk/bucket';
+import type { ListResultBucket } from '@recallnet/sdk/bucket';
 import { TestAgent } from '../agents/TestAgent.js';
 import { PolicyEnforcementService } from '../services/PolicyEnforcementService.js';
 import { AuditLogService } from '../services/AuditLogService.js';
@@ -14,12 +14,12 @@ async function runDemo() {
   const privateKey = process.env.RECALL_PRIVATE_KEY!;
   const walletClient = createWalletClient({
     account: privateKeyToAccount(privateKey as `0x${string}`),
-    chain: testnet,
+    chain: testnet as any,
     transport: http(),
   });
 
   // Initialize Recall client
-  const recall = new RecallClient({ walletClient });
+  const recall = new RecallClient({ walletClient: walletClient as any });
   const bucketManager = recall.bucketManager();
 
   // Get or create bucket
@@ -38,10 +38,6 @@ async function runDemo() {
     });
 
     if (!bucket) {
-      const createParams: CreateBucketParams = [
-        '0x0000000000000000000000000000000000000000',
-        Object.entries(bucketMetadata).map(([key, value]) => ({ key, value })),
-      ];
       const { result } = await bucketManager.create({ metadata: bucketMetadata });
       bucket = {
         kind: 0,
@@ -59,7 +55,7 @@ async function runDemo() {
   }
 
   // Initialize services with bucket
-  const policyService = new PolicyEnforcementService(recall, bucket.addr);
+  const policyService = new PolicyEnforcementService();
   const auditService = new AuditLogService(recall, bucket.addr);
   const metricsService = new MetricsService(recall, bucket.addr);
 
@@ -126,6 +122,4 @@ async function runDemo() {
 }
 
 // Run the demo
-if (require.main === module) {
-  runDemo().catch(console.error);
-}
+runDemo().catch(console.error);
