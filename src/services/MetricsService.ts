@@ -1,8 +1,8 @@
 import { Metrics, MetricsPeriod, MetricsData } from '../types/Metrics.js';
 import { AgentAction, PolicyCheck } from '../types/Agent.js';
-import { RecallClient } from '@recallnet/sdk/client';
-import type { Address } from 'viem';
 import logger from '../utils/logger.js';
+import { RecallClient } from '@recallnet/sdk/client';
+import { Address } from 'viem';
 
 // Define a type for the raw metrics data we store
 interface RawMetricsData {
@@ -20,7 +20,7 @@ export class MetricsService {
   constructor(recall: RecallClient, bucketAddress: Address) {
     this.recall = recall;
     this.bucketAddress = bucketAddress;
-    console.log('MetricsService initialized with bucket:', bucketAddress);
+    logger.info('MetricsService initialized');
   }
 
   async recordAction(action: AgentAction, checks: PolicyCheck[], latencyMs: number): Promise<void> {
@@ -63,7 +63,7 @@ export class MetricsService {
   }
 
   async getMetrics(period: MetricsPeriod): Promise<Metrics> {
-    console.log('Getting metrics for period:', period);
+    logger.info('Getting metrics for period:', period);
     const endTime = new Date();
     const startTime = new Date(endTime.getTime() - this.getPeriodDuration(period));
 
@@ -72,7 +72,7 @@ export class MetricsService {
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           const bucketManager = this.recall.bucketManager();
-          console.log(`Querying bucket for metrics (attempt ${attempt}/3):`, {
+          logger.debug(`Querying bucket for metrics (attempt ${attempt}/3):`, {
             bucket: this.bucketAddress,
             prefix: 'metrics/',
           });
@@ -82,11 +82,11 @@ export class MetricsService {
             prefix: 'metrics/',
           });
 
-          console.log(`Found ${result.objects.length} metric objects in bucket`);
+          logger.debug(`Found ${result.objects.length} metric objects in bucket`);
 
           if (result.objects.length === 0) {
-            console.log('No metrics found, returning empty metrics');
-            return this.createEmptyMetrics(period);
+            logger.info('No metrics found in Recall bucket, generating from governance data');
+            return await this.createEmptyMetrics(period);
           }
 
           // Process each metric object
@@ -94,7 +94,7 @@ export class MetricsService {
 
           for (const obj of result.objects) {
             try {
-              console.log(`Fetching metric object: ${obj.key}`);
+              logger.debug(`Fetching metric object: ${obj.key}`);
               const { result: data } = await bucketManager.get(this.bucketAddress, obj.key);
               const value = new TextDecoder().decode(data);
               const metric = JSON.parse(value) as RawMetricsData;
@@ -132,7 +132,7 @@ export class MetricsService {
           if (attempt < 3) {
             // Wait before retrying (exponential backoff)
             const delay = Math.pow(2, attempt) * 500;
-            console.log(`Retrying in ${delay}ms...`);
+            logger.debug(`Retrying metrics query in ${delay}ms...`);
             await new Promise((resolve) => setTimeout(resolve, delay));
           } else {
             // Last attempt failed, throw the error

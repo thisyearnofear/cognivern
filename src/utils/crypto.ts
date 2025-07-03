@@ -1,5 +1,9 @@
 import { ethers } from 'ethers';
 
+export function generateEncryptionKey(): string {
+  return ethers.hexlify(ethers.randomBytes(32));
+}
+
 export class CryptoUtils {
   /**
    * Encrypts data using AES-256-GCM

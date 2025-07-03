@@ -38,19 +38,19 @@ export default function Dashboard() {
     async function fetchMetrics() {
       try {
         setLoading(true);
-        console.log('Fetching metrics from backend');
+        console.log('Fetching real blockchain metrics from backend');
         const response = await fetch('/api/metrics/daily', {
           headers: {
-            'X-API-KEY': import.meta.env.VITE_API_KEY || 'escheat-api-key-123456',
+            'X-API-KEY': import.meta.env.VITE_API_KEY || 'development-api-key',
           },
         });
 
         if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
+          throw new Error(`Backend error: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Received metrics:', data);
+        console.log('Received real blockchain metrics:', data);
         setMetrics(data);
         setError(null);
       } catch (err) {

@@ -1,7 +1,7 @@
 import { AgentAction, PolicyCheck } from '../types/Agent.js';
-import { RecallClient } from '@recallnet/sdk/client';
-import type { Address } from 'viem';
 import logger from '../utils/logger.js';
+import { RecallClient } from '@recallnet/sdk/client';
+import { Address } from 'viem';
 
 export interface AuditLog {
   timestamp: string;
@@ -63,33 +63,6 @@ export class AuditLogService {
       });
       const bucketManager = this.recall.bucketManager();
 
-      // First check if the bucket exists
-      try {
-        const { result: buckets } = await bucketManager.list();
-        const foundBucket = buckets.find(
-          (b) => b.addr.toLowerCase() === this.bucketAddress.toLowerCase(),
-        );
-
-        if (!foundBucket) {
-          logger.warn('Bucket not found in account list', {
-            bucketAddress: this.bucketAddress,
-            availableBuckets: buckets.map((b) => b.addr),
-          });
-          return [];
-        }
-
-        logger.info('Found bucket for audit logs', {
-          bucketAddress: this.bucketAddress,
-          bucketName: foundBucket.metadata?.name,
-        });
-      } catch (listError) {
-        logger.error(
-          'Error listing buckets:',
-          listError instanceof Error ? listError.message : 'Unknown error',
-        );
-        return [];
-      }
-
       // Query the bucket
       const { result } = await bucketManager.query(this.bucketAddress, {
         prefix: 'audit/',
@@ -105,22 +78,13 @@ export class AuditLogService {
       const logs: AuditLog[] = [];
       for (const obj of result.objects) {
         try {
-          // Use get instead of getObjectValue
           const { result: data } = await bucketManager.get(this.bucketAddress, obj.key);
 
-          // Handle different types of results
           let logData: AuditLog;
-          if (typeof data === 'string') {
-            logData = JSON.parse(data) as AuditLog;
-          } else if (
-            typeof data === 'object' &&
-            data !== null &&
-            ('byteLength' in data || Object.prototype.toString.call(data) === '[object Uint8Array]')
-          ) {
-            const content = new TextDecoder().decode(data as unknown as Uint8Array);
+          if (data instanceof Uint8Array) {
+            const content = new TextDecoder().decode(data);
             logData = JSON.parse(content) as AuditLog;
           } else {
-            // Try to stringify and parse as a last resort
             logData = JSON.parse(JSON.stringify(data)) as AuditLog;
           }
 
@@ -132,7 +96,6 @@ export class AuditLogService {
             `Error processing audit log ${obj.key}:`,
             objError instanceof Error ? objError.message : 'Unknown error',
           );
-          // Continue to next object
         }
       }
 
@@ -156,10 +119,8 @@ export class AuditLogService {
     try {
       logger.info('Searching audit logs', { ...options, bucketAddress: this.bucketAddress });
 
-      // Get all logs in the date range
       const logs = await this.getActionLogs(options.startDate, options.endDate);
 
-      // Filter based on additional criteria
       return logs.filter((log) => {
         return (
           (!options.agentId || log.action.metadata?.agent === options.agentId) &&
@@ -183,7 +144,6 @@ export class AuditLogService {
       const logs = await this.searchLogs({ startDate, endDate });
 
       if (format === 'csv') {
-        // Convert logs to CSV format
         const headers = [
           'timestamp',
           'agentId',

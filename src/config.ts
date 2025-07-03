@@ -25,17 +25,27 @@ const envSchema = z.object({
   BITTE_API_KEY: z.string().optional(),
 
   // API Security and Authentication
-  API_KEY: z.string().default('escheat-api-key-123456'),
+  API_KEY: z.string().default('development-api-key'),
 
-  // Recall Configuration - Only required if MCP is not enabled
-  RECALL_PRIVATE_KEY: z.string().min(1).optional(),
-  RECALL_BUCKET_ALIAS: z.string().min(1).optional(),
-  RECALL_COT_LOG_PREFIX: z.string().min(1).optional(),
-  RECALL_NETWORK: z.enum(['mainnet', 'testnet']).optional(),
-  RECALL_ADDRESS: z.string().min(1).optional(),
-  RECALL_BUCKET_ADDRESS: z.string().min(1).optional(),
-  RECALL_API_URL: z.string().default('https://api.recall.ai'),
-  RECALL_API_KEY: z.string().min(1).optional(),
+  // Filecoin Configuration
+  FILECOIN_PRIVATE_KEY: z.string().min(1),
+  FILECOIN_RPC_URL: z.string().default('https://api.calibration.node.glif.io/rpc/v1'),
+  GOVERNANCE_CONTRACT_ADDRESS: z.string().min(1),
+  STORAGE_CONTRACT_ADDRESS: z.string().min(1),
+  USDFC_TOKEN_ADDRESS: z.string().min(1),
+  SPARK_API_URL: z.string().default('https://api.filspark.com'),
+  FILECOIN_NETWORK: z.enum(['mainnet', 'calibration']).default('calibration'),
+
+  // Recall Configuration
+  RECALL_API_KEY: z.string().min(1),
+  RECALL_API_URL: z.string().default('https://api.competitions.recall.network'),
+  RECALL_SANDBOX_URL: z.string().default('https://api.sandbox.competitions.recall.network'),
+  RECALL_BUCKET_ADDRESS: z.string().optional(),
+  RECALL_BUCKET_ALIAS: z.string().default('escheat-agents-bucket'),
+  RECALL_PRIVATE_KEY: z.string().optional(),
+  RECALL_RPC_URL: z.string().default('https://api.calibration.node.glif.io/rpc/v1'),
+  RECALL_CHAIN_ID: z.coerce.number().default(314159),
+  RECALL_NETWORK: z.enum(['mainnet', 'testnet', 'calibration']).default('calibration'),
 
   // Server Configuration
   PORT: z.coerce.number().default(3000),

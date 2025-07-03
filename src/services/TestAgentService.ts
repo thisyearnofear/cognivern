@@ -1,11 +1,8 @@
 import { TestAgent } from '../agents/TestAgent.js';
 import { MetricsService } from './MetricsService.js';
 import { PolicyEnforcementService } from './PolicyEnforcementService.js';
-import { RecallClient } from '@recallnet/sdk/client';
-import { Address } from 'viem';
 import logger from '../utils/logger.js';
 import OpenAI from 'openai';
-import { config } from '../config.js';
 import { PolicyCheck, AgentAction } from '../types/Agent.js';
 
 export class TestAgentService {
@@ -13,25 +10,19 @@ export class TestAgentService {
   private metricsService: MetricsService;
   private policyService: PolicyEnforcementService;
   private openai: OpenAI | null = null;
-  private recall: RecallClient;
-  private bucketAddress: Address;
 
   constructor(
     metricsService: MetricsService,
-    policyService: PolicyEnforcementService,
-    recall: RecallClient,
-    bucketAddress: Address,
+    policyService: PolicyEnforcementService
   ) {
     this.testAgent = new TestAgent();
     this.metricsService = metricsService;
     this.policyService = policyService;
-    this.recall = recall;
-    this.bucketAddress = bucketAddress;
 
     // Initialize OpenAI if API key is available
-    if (config.OPENAI_API_KEY) {
+    if (process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({
-        apiKey: config.OPENAI_API_KEY,
+        apiKey: process.env.OPENAI_API_KEY,
       });
       logger.info('OpenAI API initialized for TestAgentService');
     } else {
@@ -256,7 +247,7 @@ export class TestAgentService {
     try {
       // Generate content using OpenAI
       const response = await this.openai.chat.completions.create({
-        model: config.MODEL_NAME || 'gpt-4',
+        model: process.env.MODEL_NAME || 'gpt-4',
         messages: [
           {
             role: 'system',
