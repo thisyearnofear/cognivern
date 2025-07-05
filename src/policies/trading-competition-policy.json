@@ -1,0 +1,230 @@
+{
+  "id": "trading-competition-policy",
+  "name": "Trading Competition Governance Policy",
+  "description": "Comprehensive governance policy for AI trading agents in competitive environments",
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2024-01-01T00:00:00Z",
+  "updatedAt": "2024-01-01T00:00:00Z",
+  "metadata": {
+    "category": "trading",
+    "riskLevel": "medium",
+    "compliance": ["MiFID II", "Dodd-Frank", "GDPR"],
+    "author": "Cognivern Governance Team"
+  },
+  "rules": [
+    {
+      "id": "max-position-size",
+      "type": "DENY",
+      "condition": "action.metadata.quantity * action.metadata.price > 50000",
+      "action": "block_trade",
+      "description": "Prevent trades with position value exceeding $50,000",
+      "metadata": {
+        "severity": "high",
+        "category": "risk_management"
+      }
+    },
+    {
+      "id": "high-risk-trades",
+      "type": "DENY",
+      "condition": "action.metadata.riskScore > 85",
+      "action": "block_trade",
+      "description": "Block trades with risk score above 85",
+      "metadata": {
+        "severity": "high",
+        "category": "risk_management"
+      }
+    },
+    {
+      "id": "forbidden-symbols",
+      "type": "DENY",
+      "condition": "['TSLA', 'GME', 'AMC'].includes(action.metadata.symbol)",
+      "action": "block_trade",
+      "description": "Prevent trading in high-volatility meme stocks",
+      "metadata": {
+        "severity": "medium",
+        "category": "compliance"
+      }
+    },
+    {
+      "id": "low-confidence-trades",
+      "type": "DENY",
+      "condition": "action.metadata.confidence < 0.3",
+      "action": "block_trade",
+      "description": "Block trades with confidence below 30%",
+      "metadata": {
+        "severity": "medium",
+        "category": "quality_control"
+      }
+    },
+    {
+      "id": "require-stop-loss",
+      "type": "REQUIRE",
+      "condition": "action.metadata.action === 'buy' && action.metadata.quantity * action.metadata.price > 10000",
+      "action": "require_stop_loss",
+      "description": "Require stop-loss orders for large buy positions",
+      "metadata": {
+        "severity": "medium",
+        "category": "risk_management"
+      }
+    },
+    {
+      "id": "trading-hours",
+      "type": "DENY",
+      "condition": "new Date().getHours() < 9 || new Date().getHours() > 16",
+      "action": "block_trade",
+      "description": "Only allow trading during market hours (9 AM - 4 PM EST)",
+      "metadata": {
+        "severity": "low",
+        "category": "operational"
+      }
+    },
+    {
+      "id": "max-daily-trades",
+      "type": "RATE_LIMIT",
+      "condition": "action.type === 'trading-decision'",
+      "action": "rate_limit",
+      "description": "Limit to 100 trades per day per agent",
+      "metadata": {
+        "severity": "medium",
+        "category": "operational",
+        "limit": 100,
+        "window": "daily"
+      }
+    },
+    {
+      "id": "penny-stocks",
+      "type": "DENY",
+      "condition": "action.metadata.price < 5",
+      "action": "block_trade",
+      "description": "Prevent trading in penny stocks (price < $5)",
+      "metadata": {
+        "severity": "medium",
+        "category": "compliance"
+      }
+    },
+    {
+      "id": "large-sell-orders",
+      "type": "REQUIRE",
+      "condition": "action.metadata.action === 'sell' && action.metadata.quantity > 1000",
+      "action": "require_human_approval",
+      "description": "Require human approval for large sell orders (>1000 shares)",
+      "metadata": {
+        "severity": "high",
+        "category": "oversight"
+      }
+    },
+    {
+      "id": "audit-all-trades",
+      "type": "ALLOW",
+      "condition": "action.type === 'trading-decision'",
+      "action": "log_and_audit",
+      "description": "Log and audit all trading decisions for compliance",
+      "metadata": {
+        "severity": "low",
+        "category": "audit"
+      }
+    },
+    {
+      "id": "performance-monitoring",
+      "type": "ALLOW",
+      "condition": "action.type === 'trading-decision'",
+      "action": "track_performance",
+      "description": "Track performance metrics for all trading decisions",
+      "metadata": {
+        "severity": "low",
+        "category": "monitoring"
+      }
+    },
+    {
+      "id": "crypto-trading",
+      "type": "DENY",
+      "condition": "action.metadata.symbol && action.metadata.symbol.includes('BTC') || action.metadata.symbol.includes('ETH')",
+      "action": "block_trade",
+      "description": "Cryptocurrency trading not permitted in this competition",
+      "metadata": {
+        "severity": "high",
+        "category": "compliance"
+      }
+    },
+    {
+      "id": "weekend-trading",
+      "type": "DENY",
+      "condition": "new Date().getDay() === 0 || new Date().getDay() === 6",
+      "action": "block_trade",
+      "description": "No trading on weekends",
+      "metadata": {
+        "severity": "low",
+        "category": "operational"
+      }
+    },
+    {
+      "id": "volatility-check",
+      "type": "DENY",
+      "condition": "action.metadata.volatility && action.metadata.volatility > 0.5",
+      "action": "block_trade",
+      "description": "Block trades in highly volatile securities (volatility > 50%)",
+      "metadata": {
+        "severity": "high",
+        "category": "risk_management"
+      }
+    },
+    {
+      "id": "minimum-reasoning",
+      "type": "REQUIRE",
+      "condition": "action.type === 'trading-decision'",
+      "action": "require_reasoning",
+      "description": "All trading decisions must include reasoning",
+      "metadata": {
+        "severity": "medium",
+        "category": "transparency"
+      }
+    }
+  ],
+  "enforcement": {
+    "mode": "strict",
+    "escalation": {
+      "violations_threshold": 3,
+      "actions": ["warning", "suspension", "disqualification"]
+    },
+    "monitoring": {
+      "real_time": true,
+      "batch_analysis": true,
+      "alert_thresholds": {
+        "high_risk_trades": 5,
+        "policy_violations": 3,
+        "performance_degradation": 0.1
+      }
+    }
+  },
+  "compliance": {
+    "frameworks": ["MiFID II", "Dodd-Frank", "GDPR"],
+    "reporting": {
+      "frequency": "daily",
+      "recipients": ["compliance@cognivern.com", "risk@cognivern.com"],
+      "format": "json"
+    },
+    "audit_trail": {
+      "retention_period": "7_years",
+      "immutable": true,
+      "encryption": true
+    }
+  },
+  "performance": {
+    "metrics": [
+      "total_return",
+      "sharpe_ratio",
+      "max_drawdown",
+      "win_rate",
+      "avg_trade_size",
+      "total_trades",
+      "profit_factor",
+      "volatility"
+    ],
+    "benchmarks": {
+      "min_sharpe_ratio": 1.0,
+      "max_drawdown": 0.15,
+      "min_win_rate": 0.55
+    }
+  }
+}
