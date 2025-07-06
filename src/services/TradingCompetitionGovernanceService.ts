@@ -87,6 +87,25 @@ export class TradingCompetitionGovernanceService {
   }
 
   /**
+   * Create a policy for the competition
+   */
+  async createPolicy(policy: any): Promise<string> {
+    try {
+      logger.info(`Creating policy: ${policy.name}`);
+      const createdPolicy = await this.policyService.createPolicy(
+        policy.name,
+        policy.description,
+        policy.rules
+      );
+      logger.info(`Policy ${policy.name} created successfully`);
+      return createdPolicy.id;
+    } catch (error) {
+      logger.error(`Failed to create policy ${policy.name}: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
    * Start a governed trading competition
    */
   async startGovernedCompetition(
@@ -130,11 +149,12 @@ export class TradingCompetitionGovernanceService {
     config: CompetitionGovernanceConfig
   ): Promise<CompetitionAgent> {
     try {
-      // Create trading agent
+      // Create trading agent with shared policy service
       const tradingAgent = new TradingAgent(
         agentId,
         this.recallClient,
-        this.bucketAddress
+        this.bucketAddress,
+        this.policyService
       );
 
       // Start agent with trading policy
