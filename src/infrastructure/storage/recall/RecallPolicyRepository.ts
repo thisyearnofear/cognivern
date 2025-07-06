@@ -13,6 +13,91 @@ export class RecallPolicyRepository implements PolicyRepository {
   // In-memory storage for policies
   private policies: Map<string, Policy> = new Map();
 
+  constructor() {
+    // Initialize with sample policies for demo
+    this.initializeSamplePolicies();
+  }
+
+  /**
+   * Initialize sample policies for demonstration
+   */
+  private initializeSamplePolicies(): void {
+    const samplePolicies = [
+      Policy.create(
+        "Trading Risk Management",
+        "Enforces risk limits and compliance for trading agents",
+        [
+          {
+            id: "max-position-size",
+            type: "deny",
+            condition: "trade_value > 50000",
+            action: {
+              type: "block",
+              parameters: { threshold: 50000 },
+            },
+            metadata: { severity: "high", category: "risk_management" },
+          },
+          {
+            id: "high-risk-trades",
+            type: "deny",
+            condition: "risk_score > 85",
+            action: {
+              type: "block",
+              parameters: { threshold: 85 },
+            },
+            metadata: { severity: "high", category: "risk_management" },
+          },
+        ]
+      ),
+      Policy.create(
+        "Data Access Control",
+        "Controls access to sensitive data and enforces privacy rules",
+        [
+          {
+            id: "pii-access",
+            type: "deny",
+            condition: "contains_pii = true AND encryption = false",
+            action: {
+              type: "block",
+              parameters: { severity: "high" },
+            },
+            metadata: { category: "privacy" },
+          },
+          {
+            id: "audit-log",
+            type: "require",
+            condition: "data_access = true",
+            action: {
+              type: "log",
+              parameters: { retention: "90d" },
+            },
+            metadata: { category: "compliance" },
+          },
+        ]
+      ),
+      Policy.create(
+        "Resource Usage Control",
+        "Enforces limits on computational resources and API usage",
+        [
+          {
+            id: "cpu-limit",
+            type: "rate_limit",
+            condition: "cpu_usage > 80%",
+            action: {
+              type: "throttle",
+              parameters: { threshold: 80, period: "5m" },
+            },
+            metadata: { category: "performance" },
+          },
+        ]
+      ),
+    ];
+
+    samplePolicies.forEach((policy) => {
+      this.policies.set(policy.id, policy);
+    });
+  }
+
   /**
    * Find a policy by its ID
    * @param id Policy ID

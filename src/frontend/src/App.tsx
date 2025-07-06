@@ -1,20 +1,21 @@
-import { useState, useRef, useEffect } from 'react';
-import './App.css';
-import UnifiedDashboard from './components/dashboard/UnifiedDashboard';
-import PolicyManagement from './components/policies/PolicyManagement';
-import AuditLogs from './components/AuditLogs';
-import LandingDashboard from './components/dashboard/LandingDashboard';
-import SimplifiedDashboard from './components/dashboard/SimplifiedDashboard';
-import WelcomeFlow from './components/onboarding/WelcomeFlow';
-import Web3Auth from './components/auth/Web3Auth';
-import WalletConnect from './components/web3/WalletConnect';
-import './components/dashboard/Dashboard.css';
+import { useState, useRef, useEffect } from "react";
+import "./App.css";
+import UnifiedDashboard from "./components/dashboard/UnifiedDashboard";
+import PolicyManagement from "./components/policies/PolicyManagement";
+import AuditLogs from "./components/AuditLogs";
+import LandingDashboard from "./components/dashboard/LandingDashboard";
+import SimplifiedDashboard from "./components/dashboard/SimplifiedDashboard";
+import WelcomeFlow from "./components/onboarding/WelcomeFlow";
+import Web3Auth from "./components/auth/Web3Auth";
+import WalletConnect from "./components/web3/WalletConnect";
+import TradingDemo from "./components/trading/TradingDemo";
+import "./components/dashboard/Dashboard.css";
 
 function App() {
-  const [activeTab, setActiveTab] = useState('welcome');
+  const [activeTab, setActiveTab] = useState("welcome");
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [connectedWallet, setConnectedWallet] = useState<string>('');
-  const [userType, setUserType] = useState<string>('');
+  const [connectedWallet, setConnectedWallet] = useState<string>("");
+  const [userType, setUserType] = useState<string>("");
   const [hasCompletedWelcome, setHasCompletedWelcome] = useState(false);
   const agentsDropdownRef = useRef<HTMLDivElement>(null);
   const advancedDropdownRef = useRef<HTMLDivElement>(null);
@@ -24,18 +25,20 @@ function App() {
     function handleClickOutside(event: MouseEvent) {
       // Check if click is outside both dropdowns
       const isOutsideAgentsDropdown =
-        !agentsDropdownRef.current || !agentsDropdownRef.current.contains(event.target as Node);
+        !agentsDropdownRef.current ||
+        !agentsDropdownRef.current.contains(event.target as Node);
       const isOutsideAdvancedDropdown =
-        !advancedDropdownRef.current || !advancedDropdownRef.current.contains(event.target as Node);
+        !advancedDropdownRef.current ||
+        !advancedDropdownRef.current.contains(event.target as Node);
 
       if (isOutsideAgentsDropdown && isOutsideAdvancedDropdown) {
         setActiveDropdown(null);
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -51,27 +54,28 @@ function App() {
   // Handle wallet connection
   const handleWalletConnect = (address: string) => {
     setConnectedWallet(address);
-    console.log('Wallet connected:', address);
+    console.log("Wallet connected:", address);
   };
 
   const handleWalletDisconnect = () => {
-    setConnectedWallet('');
-    console.log('Wallet disconnected');
+    setConnectedWallet("");
+    console.log("Wallet disconnected");
   };
 
   // Handle welcome flow completion
   const handleWelcomeComplete = (selectedUserType: string) => {
     setUserType(selectedUserType);
     setHasCompletedWelcome(true);
-    setActiveTab('dashboard');
+    setActiveTab("dashboard");
   };
 
   // Simplified navigation structure
   const navigation = {
     primary: [
-      { id: 'dashboard', label: 'Dashboard' },
-      { id: 'policies', label: 'Policies' },
-      { id: 'logs', label: 'Audit Logs' },
+      { id: "dashboard", label: "Dashboard" },
+      { id: "trading", label: "Trading Demo" },
+      { id: "policies", label: "Policies" },
+      { id: "logs", label: "Audit Logs" },
     ],
   };
 
@@ -79,19 +83,22 @@ function App() {
     <div className="app-container">
       <header className="app-header">
         <div className="header-content">
-          <h1 onClick={() => setActiveTab('landing')} style={{ cursor: 'pointer' }}>
+          <h1
+            onClick={() => setActiveTab("landing")}
+            style={{ cursor: "pointer" }}
+          >
             Cognivern
           </h1>
-          <Web3Auth 
-            onConnect={handleWalletConnect} 
-            onDisconnect={handleWalletDisconnect} 
+          <Web3Auth
+            onConnect={handleWalletConnect}
+            onDisconnect={handleWalletDisconnect}
           />
-          {activeTab !== 'landing' && (
+          {activeTab !== "landing" && (
             <nav className="main-nav">
               {navigation.primary.map((item) => (
                 <button
                   key={item.id}
-                  className={activeTab === item.id ? 'active' : ''}
+                  className={activeTab === item.id ? "active" : ""}
                   onClick={() => setActiveTab(item.id)}
                 >
                   {item.label}
@@ -103,16 +110,19 @@ function App() {
       </header>
 
       <main className="app-content">
-        {activeTab === 'welcome' && !hasCompletedWelcome && (
+        {activeTab === "welcome" && !hasCompletedWelcome && (
           <WelcomeFlow onComplete={handleWelcomeComplete} />
         )}
-        {activeTab === 'landing' && <LandingDashboard onNavigate={setActiveTab} />}
-        {activeTab === 'dashboard' && hasCompletedWelcome && (
+        {activeTab === "landing" && (
+          <LandingDashboard onNavigate={setActiveTab} />
+        )}
+        {activeTab === "dashboard" && hasCompletedWelcome && (
           <SimplifiedDashboard userType={userType} />
         )}
-        {activeTab === 'advanced' && <UnifiedDashboard />}
-        {activeTab === 'policies' && <PolicyManagement />}
-        {activeTab === 'logs' && <AuditLogs />}
+        {activeTab === "trading" && <TradingDemo />}
+        {activeTab === "advanced" && <UnifiedDashboard />}
+        {activeTab === "policies" && <PolicyManagement />}
+        {activeTab === "logs" && <AuditLogs />}
       </main>
 
       <footer className="app-footer">

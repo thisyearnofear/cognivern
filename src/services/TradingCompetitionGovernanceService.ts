@@ -66,7 +66,7 @@ export class TradingCompetitionGovernanceService {
   private auditLogService: AuditLogService;
   private metricsService: MetricsService;
 
-  private activeCompetitions: Map<string, CompetitionAgent[]> = new Map();
+  public activeCompetitions: Map<string, CompetitionAgent[]> = new Map();
   private governanceEvents: GovernanceEvent[] = [];
   private monitoringIntervals: Map<string, NodeJS.Timeout> = new Map();
 

@@ -1,18 +1,27 @@
-import { useState, useEffect } from 'react';
-import './BlockchainStatus.css';
+import { useState, useEffect } from "react";
+import "./BlockchainStatus.css";
 
 interface ContractStats {
+  filecoin: {
+    network: string;
+    chainId: number;
+    rpcUrl: string;
+    governanceContract: string;
+    storageContract: string;
+    usdcToken: string;
+  };
+  recall: {
+    network: string;
+    tradingAPI: string;
+    configured: boolean;
+  };
   governance: {
     address: string;
     policies: number;
     agents: number;
     actions: number;
-  };
-  storage: {
-    address: string;
-    total: number;
-    active: number;
-    completed: number;
+    violations: number;
+    approvalRate: number;
   };
 }
 
@@ -25,9 +34,9 @@ export default function BlockchainStatus() {
     async function fetchBlockchainStats() {
       try {
         setLoading(true);
-        const response = await fetch('/api/blockchain/stats', {
+        const response = await fetch("/api/blockchain/stats", {
           headers: {
-            'X-API-KEY': import.meta.env.VITE_API_KEY || 'development-api-key',
+            "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
           },
         });
 
@@ -39,8 +48,8 @@ export default function BlockchainStatus() {
         setStats(data);
         setError(null);
       } catch (err) {
-        console.error('Error fetching blockchain stats:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        console.error("Error fetching blockchain stats:", err);
+        setError(err instanceof Error ? err.message : "Unknown error");
         setStats(null);
       } finally {
         setLoading(false);
@@ -83,13 +92,16 @@ export default function BlockchainStatus() {
   return (
     <div className="blockchain-status">
       <h3>🔗 Live Blockchain Status</h3>
-      
+
       <div className="contract-grid">
         <div className="contract-card governance">
           <h4>🏛️ Governance Contract</h4>
           <div className="contract-address">
             <span className="label">Address:</span>
-            <code>{stats.governance.address.slice(0, 10)}...{stats.governance.address.slice(-8)}</code>
+            <code>
+              {stats.governance.address.slice(0, 10)}...
+              {stats.governance.address.slice(-8)}
+            </code>
           </div>
           <div className="stats-grid">
             <div className="stat">
@@ -111,20 +123,23 @@ export default function BlockchainStatus() {
           <h4>💾 Storage Contract</h4>
           <div className="contract-address">
             <span className="label">Address:</span>
-            <code>{stats.storage.address.slice(0, 10)}...{stats.storage.address.slice(-8)}</code>
+            <code>
+              {stats.filecoin.storageContract.slice(0, 10)}...
+              {stats.filecoin.storageContract.slice(-8)}
+            </code>
           </div>
           <div className="stats-grid">
             <div className="stat">
-              <span className="value">{stats.storage.total}</span>
-              <span className="label">Total Requests</span>
+              <span className="value">{stats.governance.actions}</span>
+              <span className="label">Total Actions</span>
             </div>
             <div className="stat">
-              <span className="value">{stats.storage.active}</span>
-              <span className="label">Active</span>
+              <span className="value">{stats.governance.agents}</span>
+              <span className="label">Active Agents</span>
             </div>
             <div className="stat">
-              <span className="value">{stats.storage.completed}</span>
-              <span className="label">Completed</span>
+              <span className="value">{stats.governance.policies}</span>
+              <span className="label">Policies</span>
             </div>
           </div>
         </div>
