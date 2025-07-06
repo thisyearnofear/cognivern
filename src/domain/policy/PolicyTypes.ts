@@ -16,5 +16,10 @@ export interface PolicyAction {
 }
 
 export type PolicyRuleType = "allow" | "deny" | "require" | "rate_limit";
-export type PolicyActionType = "block" | "log" | "notify" | "escalate";
+export type PolicyActionType =
+  | "block"
+  | "log"
+  | "notify"
+  | "escalate"
+  | "throttle";
 export type PolicyStatus = "active" | "draft" | "archived";

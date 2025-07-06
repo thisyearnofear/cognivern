@@ -476,22 +476,22 @@
   .simplified-dashboard {
     grid-template-columns: 1fr;
   }
-  
+
   .dashboard-sidebar {
     order: 2;
     border-right: none;
     border-top: 1px solid #e2e8f0;
   }
-  
+
   .dashboard-main {
     order: 1;
   }
-  
+
   .dashboard-nav {
     flex-direction: row;
     overflow-x: auto;
   }
-  
+
   .nav-item {
     min-width: 200px;
   }
@@ -501,22 +501,260 @@
   .dashboard-main {
     padding: 16px;
   }
-  
+
   .policy-flow {
     flex-direction: column;
   }
-  
+
   .flow-arrow {
     transform: rotate(90deg);
   }
-  
+
   .actions-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .policy-meta,
   .agent-stats {
     flex-direction: column;
     gap: 4px;
   }
+}
+
+/* Real Data Display Styles */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.stat-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trading-status {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin: 16px 0;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.status-item:last-child {
+  border-bottom: none;
+}
+
+.status-label {
+  font-weight: 500;
+  color: #374151;
+}
+
+.status-value {
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.status-value.connected {
+  color: #059669;
+}
+
+.status-value.disconnected {
+  color: #dc2626;
+}
+
+.contract-address {
+  color: #6366f1;
+  font-size: 0.8rem;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.policies-list .policy-card {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 12px;
+}
+
+.policies-list .policy-card h4 {
+  margin: 0 0 8px 0;
+  color: #1e293b;
+}
+
+.policies-list .policy-card p {
+  margin: 0 0 12px 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.policy-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.rules-count {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Governance Stats Container */
+.governance-stats-container {
+  margin: 16px 0;
+}
+
+.waiting-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #fef3c7;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #f59e0b;
+  margin-bottom: 16px;
+}
+
+.status-indicator {
+  font-size: 2rem;
+}
+
+.status-message h4 {
+  margin: 0 0 4px 0;
+  color: #92400e;
+}
+
+.status-message p {
+  margin: 0;
+  color: #92400e;
+  font-size: 0.9rem;
+}
+
+.stats-grid.inactive {
+  opacity: 0.5;
+}
+
+.stats-grid.inactive .stat-card {
+  background: #f8fafc;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: #059669;
+  font-weight: 500;
+}
+
+.live-dot {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Competition Highlight Section */
+.competition-highlight {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  padding: 24px;
+  border-radius: 16px;
+  border: 2px solid #0ea5e9;
+  margin: 24px 0;
+}
+
+.competition-highlight h3 {
+  margin: 0 0 20px 0;
+  color: #0c4a6e;
+  text-align: center;
+}
+
+.performance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.perf-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #bae6fd;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.1);
+}
+
+.perf-icon {
+  font-size: 2rem;
+  margin-top: 4px;
+}
+
+.perf-content h4 {
+  margin: 0 0 8px 0;
+  color: #0c4a6e;
+  font-size: 1.1rem;
+}
+
+.perf-content p {
+  margin: 0;
+  color: #0369a1;
+  font-size: 0.9rem;
+  line-height: 1.4;
 }

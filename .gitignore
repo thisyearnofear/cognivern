@@ -3,6 +3,7 @@
 !.env.example
 node_modules
 dist/
+external/
 
 # Database
 db.sqlite

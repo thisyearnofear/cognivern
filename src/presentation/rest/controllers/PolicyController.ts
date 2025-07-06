@@ -65,7 +65,8 @@ export class PolicyController {
         policies = await this.policyApplicationService.listPolicies();
       }
 
-      res.status(200).json(policies);
+      // Return in format expected by frontend
+      res.status(200).json({ policies });
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
     }

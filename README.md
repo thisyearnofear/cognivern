@@ -23,13 +23,63 @@ Cognivern leverages Filecoin's sovereign data layer to create a comprehensive go
 - ✅ **USDFC Token**: `0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9`
 - ✅ **Recall Trading API**: Integrated with real competition endpoints
 - ✅ **Clean Production Build**: No sample data creation on startup
+- ✅ **Competition Ready**: Registered for 7 Day Trading Challenge ($10,000 prize pool)
 
-## 🚀 Key Features
+## 🎯 **Core Platform: AI Agent Governance & Compliance**
 
-- **🔍 On-Chain Agent Governance**: Immutable policy storage and verifiable decision logs
-- **💼 Governance Showcase Marketplace**: Interactive demonstrations of policies in action
-- **🛡️ Filecoin Integration**: FVM smart contracts and USDFC payments
-- **🌐 Web3 Primitives**: Decentralized identity and immutable audit trails
+Cognivern is a **decentralized governance platform** that provides transparent, verifiable oversight of AI agents across any domain. The platform enables:
+
+- **🛡️ Policy Creation & Enforcement**: AI-assisted policy generation from natural language descriptions
+- **📊 Real-time Monitoring**: Live agent behavior tracking and compliance scoring
+- **🔗 Immutable Audit Trails**: Blockchain-verified decision logs on Filecoin
+- **⚖️ Automated Governance**: Smart contract-based policy enforcement
+- **🎯 Multi-Domain Support**: Trading, content moderation, data processing, and more
+
+## 🏆 **Live Showcase: 7 Day Trading Challenge ($10,000)**
+
+**Competition Dates**: July 8-15, 2025 | **Registration**: COMPLETE ✅
+
+Our **trading agent showcase** demonstrates the platform's governance capabilities in a real $10,000 competition:
+
+- **🤖 Governed Trading Agent**: Real trades with policy enforcement
+- **🛡️ Risk Management**: Automated position limits and compliance checks
+- **🔗 Blockchain Verified**: All decisions recorded immutably
+- **📊 Live Monitoring**: Real-time governance dashboard
+
+**Quick Start Showcase:**
+
+```bash
+pnpm start                    # Backend
+cd src/frontend && pnpm dev   # Frontend
+pnpm auto-competition         # See governance in action!
+```
+
+## 🚀 Platform Features
+
+### **�️ Core Governance Engine**
+
+- **AI-Assisted Policy Creation**: Natural language → formal governance policies
+- **Real-time Compliance Monitoring**: Live agent behavior tracking and scoring
+- **Immutable Audit Trails**: Blockchain-verified decision logs on Filecoin
+- **Smart Contract Enforcement**: Automated policy enforcement via FVM
+- **Multi-Domain Support**: Trading, content moderation, data processing, healthcare
+
+### **🔧 Developer Integration**
+
+- **SDK & API Access**: Easy integration for any AI agent
+- **Webhook Support**: Real-time decision streaming
+- **Policy Recommendations**: AI-powered governance suggestions
+- **Compliance Dashboards**: Real-time monitoring and analytics
+- **Audit Reports**: Automated compliance documentation
+
+### **🌐 Decentralized Infrastructure**
+
+- **Filecoin Storage**: Programmable storage for governance data
+- **FVM Smart Contracts**: On-chain policy enforcement
+- **USDFC Payments**: Crypto-native governance services
+- **Cross-Platform Standards**: Universal governance protocols
+
+**📖 Full Integration Guide**: [Agent Integration Framework](./docs/AGENT_INTEGRATION.md)
 
 ## 🔧 Quick Start
 
@@ -121,10 +171,10 @@ await policyService.createPolicy(
 
 For more detailed information, please refer to the following documentation:
 
-- [**AGENT.md**](docs/AGENT.md) - Detailed information about the agent system, capabilities, and roadmap
-- [**HACKATHON.md**](docs/HACKATHON.md) - Hackathon submission details, implementation plan, and demo setup
-- [**TECHNICAL.md**](docs/TECHNICAL.md) - Technical documentation, core services, data types, and environment setup
-- [**ARCHITECTURE.md**](docs/ARCHITECTURE.md) - Clean architecture implementation, layers, and migration strategy
+- [**AGENT.md**](docs/AGENT.md) - Comprehensive guide to AI agent governance, capabilities, and integration methods
+- [**HACKATHON.md**](docs/HACKATHON.md) - Hackathon submission details, implementation plan, and demo setup for Filecoin integration
+- [**TRADING.md**](docs/TRADING.md) - Trading competition setup, showcases, and user testing for trading agents
+- [**TECHNICAL.md**](docs/TECHNICAL.md) - Technical details including core services, architecture, setup, and testing guides
 
 ## 🛠️ Project Structure
 
