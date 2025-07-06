@@ -157,26 +157,126 @@ governance-bucket/
 
 ## Environment Configuration
 
+### Production Environment Setup
+
 Create a `.env` file with the following variables:
 
 ```bash
-# Recall Configuration
-RECALL_PRIVATE_KEY="your-private-key"
-RECALL_BUCKET_ADDRESS="YOUR_BUCKET_ADDRESS"
-RECALL_NETWORK="testnet"
+# =============================================================================
+# DEPLOYMENT ENVIRONMENT
+# =============================================================================
+NODE_ENV=production
+PORT=10000
 
-# Sync Configuration
-RECALL_SYNC_INTERVAL="60000"
-RECALL_BATCH_SIZE="8"
+# Development Features (set to 'true' only in development)
+CREATE_SAMPLE_POLICIES=false
 
-# Provider Configuration
-OPENAI_API_KEY="your-api-key"
-MODEL_NAME="gpt-4"
+# =============================================================================
+# FILECOIN BLOCKCHAIN CONFIGURATION
+# =============================================================================
+FILECOIN_PRIVATE_KEY=your_private_key_here
+FILECOIN_RPC_URL=https://api.calibration.node.glif.io/rpc/v1
 
-# Governance Configuration
-DEFAULT_POLICY="standard"
-AUDIT_FREQUENCY="daily"
+# Deployed Smart Contract Addresses (Calibration Testnet)
+GOVERNANCE_CONTRACT_ADDRESS=0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880
+STORAGE_CONTRACT_ADDRESS=0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada
+USDFC_TOKEN_ADDRESS=0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
+
+# =============================================================================
+# RECALL NETWORK CONFIGURATION
+# =============================================================================
+RECALL_API_KEY=your_recall_api_key_here
+RECALL_NETWORK=calibration
+RECALL_RPC_URL=https://api.calibration.node.glif.io/rpc/v1
+RECALL_CHAIN_ID=314159
+RECALL_BUCKET_ADDRESS=0x0000000000000000000000000000000000000000
+RECALL_BUCKET_ALIAS=cognivern-agents-bucket
+RECALL_SYNC_INTERVAL=60000
+RECALL_BATCH_SIZE=8
+
+# =============================================================================
+# RECALL TRADING API CONFIGURATION
+# =============================================================================
+RECALL_TRADING_API_KEY=your_recall_trading_api_key_here
+RECALL_TRADING_BASE_URL=https://api.sandbox.competitions.recall.network
+
+# =============================================================================
+# AI & MCP CONFIGURATION
+# =============================================================================
+OPENAI_API_KEY=your_openai_api_key_here
+MODEL_NAME=gpt-4
+MCP_SERVER_URL=https://mcp.bitte.ai/sse
+BITTE_API_KEY=your_bitte_api_key_here
+
+# =============================================================================
+# GOVERNANCE & POLICY CONFIGURATION
+# =============================================================================
+DEFAULT_POLICY=standard
+AUDIT_FREQUENCY=daily
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+API_KEY=your_production_api_key_here
+CORS_ORIGIN=https://your-frontend-domain.vercel.app
 ```
+
+### Key Configuration Notes
+
+- **CREATE_SAMPLE_POLICIES**: Set to `false` in production to prevent automatic sample data creation
+- **Contract Addresses**: Updated to use the new AIGovernanceStorage contract optimized for AI governance
+- **API Authentication**: Uses `x-api-key` header for API authentication
+- **Environment Template**: Complete template available in `.env.example`
+
+## Smart Contract Deployment
+
+### Current Deployed Contracts
+
+The platform uses specialized smart contracts deployed on Filecoin Calibration testnet:
+
+#### GovernanceContract
+
+- **Address**: `0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880`
+- **Purpose**: Core governance logic, policy management, agent registration
+- **Features**: Policy lifecycle, agent approval, governance statistics
+
+#### AIGovernanceStorage
+
+- **Address**: `0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada`
+- **Purpose**: AI-specialized storage for governance data
+- **Features**: Agent registration, governance actions, policy violations, approval rates
+- **Advantages**: Purpose-built for AI governance vs generic storage
+
+#### USDFC Token
+
+- **Address**: `0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9`
+- **Purpose**: Filecoin USDFC stablecoin for payments and governance fees
+
+### Contract Deployment Process
+
+To deploy new contracts or update existing ones:
+
+```bash
+# Compile contracts
+npx hardhat compile
+
+# Deploy to Calibration testnet
+pnpm run deploy-contracts
+
+# Update .env with new addresses
+GOVERNANCE_CONTRACT_ADDRESS=<new_governance_address>
+STORAGE_CONTRACT_ADDRESS=<new_storage_address>
+```
+
+### Contract Architecture
+
+The AIGovernanceStorage contract provides specialized features for AI governance:
+
+- **Agent Registration**: Track AI agents with metadata and capabilities
+- **Governance Actions**: Record policy enforcement decisions
+- **Violation Tracking**: Monitor and log policy violations
+- **Approval Rates**: Calculate governance approval statistics
+- **Immutable Audit Trail**: All actions stored permanently on-chain
 
 ## Recall Bucket Setup
 
