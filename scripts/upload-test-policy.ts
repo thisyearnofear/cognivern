@@ -1,12 +1,12 @@
-import { RecallClient } from '@recallnet/sdk/client';
-import { config } from 'dotenv';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { createWalletClient, http } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { testnet } from '@recallnet/chains';
-import { RecallService } from '../src/services/RecallService.js';
+import { RecallClient } from "@recallnet/sdk/client";
+import { config } from "dotenv";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { createWalletClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { testnet } from "@recallnet/chains";
+import { RecallService } from "../src/services/RecallService.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,9 +17,18 @@ config();
 async function uploadTestPolicy() {
   try {
     // Initialize wallet client
-    const privateKey = `0x${process.env.RECALL_PRIVATE_KEY}` as `0x${string}`;
+    const privateKeyRaw = process.env.RECALL_PRIVATE_KEY;
+    if (!privateKeyRaw) {
+      throw new Error("RECALL_PRIVATE_KEY not found in environment variables");
+    }
+
+    // Remove 0x prefix for viem (it expects raw hex)
+    const privateKey = privateKeyRaw.startsWith("0x")
+      ? privateKeyRaw.slice(2)
+      : privateKeyRaw;
+
     const walletClient = createWalletClient({
-      account: privateKeyToAccount(privateKey),
+      account: privateKeyToAccount(`0x${privateKey}` as `0x${string}`),
       chain: testnet,
       transport: http(),
     });
@@ -32,23 +41,56 @@ async function uploadTestPolicy() {
     const recallService = new RecallService(recall, bucketAddress);
 
     // Read the test policy file
-    const policyPath = path.join(__dirname, '..', 'src', 'policies', 'test-policy.json');
-    const policyContent = fs.readFileSync(policyPath, 'utf-8');
-    const policy = JSON.parse(policyContent);
+    const testPolicyPath = path.join(
+      __dirname,
+      "..",
+      "src",
+      "policies",
+      "test-policy.json"
+    );
+    const testPolicyContent = fs.readFileSync(testPolicyPath, "utf-8");
+    const testPolicy = JSON.parse(testPolicyContent);
 
-    // Upload to Recall bucket
-    console.log('Uploading test policy to Recall bucket...');
-    await recallService.storeObject('policies', 'test-policy', policy);
-    console.log('Test policy uploaded successfully!');
+    // Read the trading competition policy file
+    const tradingPolicyPath = path.join(
+      __dirname,
+      "..",
+      "src",
+      "policies",
+      "trading-competition-policy.json"
+    );
+    const tradingPolicyContent = fs.readFileSync(tradingPolicyPath, "utf-8");
+    const tradingPolicy = JSON.parse(tradingPolicyContent);
 
-    // Verify the upload
-    console.log('Verifying upload...');
-    const result = await recallService.getObject('policies', 'test-policy');
-    if (result) {
-      console.log('Policy verified in bucket:', result);
+    // Upload test policy to Recall bucket
+    console.log("Uploading test policy to Recall bucket...");
+    await recallService.storeObject("policies", "test-policy", testPolicy);
+    console.log("Test policy uploaded successfully!");
+
+    // Upload trading competition policy to Recall bucket
+    console.log("Uploading trading competition policy to Recall bucket...");
+    await recallService.storeObject(
+      "policies",
+      "trading-competition-policy",
+      tradingPolicy
+    );
+    console.log("Trading competition policy uploaded successfully!");
+
+    // Verify the uploads
+    console.log("Verifying uploads...");
+    const testResult = await recallService.getObject("policies", "test-policy");
+    const tradingResult = await recallService.getObject(
+      "policies",
+      "trading-competition-policy"
+    );
+    if (testResult) {
+      console.log("Test policy verified in bucket");
+    }
+    if (tradingResult) {
+      console.log("Trading competition policy verified in bucket");
     }
   } catch (error) {
-    console.error('Error uploading test policy:', error);
+    console.error("Error uploading test policy:", error);
     process.exit(1);
   }
 }

@@ -3,6 +3,7 @@ import {
   RecallCompetitionService,
   TradingMetrics,
 } from "../services/RecallCompetitionService.js";
+import { PolicyService } from "../services/PolicyService.js";
 import { PolicyEnforcementService } from "../services/PolicyEnforcementService.js";
 import { AuditLogService } from "../services/AuditLogService.js";
 import { MetricsService } from "../services/MetricsService.js";
@@ -44,7 +45,8 @@ export class TradingAgent {
   constructor(
     agentId: string,
     recallClient: RecallClient,
-    bucketAddress: Address
+    bucketAddress: Address,
+    policyService?: PolicyService
   ) {
     this.config = {
       name: `Trading Agent ${agentId}`,
@@ -63,7 +65,10 @@ export class TradingAgent {
 
     // Initialize services
     this.recallCompetitionService = new RecallCompetitionService();
+    const policyServiceInstance =
+      policyService || new PolicyService(recallClient, bucketAddress);
     this.policyEnforcementService = new PolicyEnforcementService();
+    this.policyEnforcementService.initialize(policyServiceInstance);
     this.auditLogService = new AuditLogService(recallClient, bucketAddress);
     this.metricsService = new MetricsService(recallClient, bucketAddress);
 
