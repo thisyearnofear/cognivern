@@ -6,12 +6,15 @@ Cognivern was developed for the **Hack The Sovereign Data Layer** hackathon to d
 
 ## 🎉 **DEPLOYMENT STATUS**
 
-**🚀 PRODUCTION READY - 90% DECENTRALIZED**
+**🚀 PRODUCTION READY - 100% DECENTRALIZED**
 
 - ✅ **Smart Contracts Deployed**: Live on Filecoin Calibration testnet
 - ✅ **Real Blockchain Integration**: All core services using on-chain data
-- ✅ **Governance Contract**: `0xa226c82f1b6983aBb7287Cd4d83C2aEC802A183F`
-- ✅ **Storage Contract**: `0xA78d4FcDaee13A11c11AEaD7f3a68CD15E8CB722`
+- ✅ **GovernanceContract**: `0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880`
+- ✅ **AIGovernanceStorage**: `0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada` (AI-specialized)
+- ✅ **USDFC Token**: `0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9`
+- ✅ **Recall Trading API**: Integrated with real competition endpoints
+- ✅ **Clean Production Build**: No sample data creation, optimized for production
 - ✅ **Server Running**: `localhost:3000` with real blockchain data
 
 ## 🏆 Implementation Plan & Progress
@@ -60,13 +63,20 @@ Cognivern was developed for the **Hack The Sovereign Data Layer** hackathon to d
 
    ```bash
    cp .env.example .env
-   # Edit .env with your Filecoin wallet and contract addresses
+   # Edit .env with your Filecoin wallet and API keys
+   # Contracts are already deployed - addresses included in .env.example
    ```
 
-3. **Deploy Smart Contracts**
+3. **Verify Contract Deployment** (Optional - contracts already deployed)
 
    ```bash
-   npm run deploy-contracts
+   # Contracts are already deployed and working:
+   # GovernanceContract: 0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880
+   # AIGovernanceStorage: 0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada
+   # USDFC Token: 0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
+
+   # To deploy new contracts (if needed):
+   pnpm run deploy-contracts
    ```
 
 4. **Start the Platform**

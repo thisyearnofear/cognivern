@@ -1,9 +1,12 @@
 import { TradingAgent, TradingDecision } from "../agents/TradingAgent.js";
+import { RealTradingAgent } from "../agents/RealTradingAgent.js";
 import {
   RecallCompetitionService,
   Competition,
   TradingMetrics,
 } from "./RecallCompetitionService.js";
+import { RecallTradingService } from "./RecallTradingService.js";
+import { FilecoinGovernanceService } from "./FilecoinGovernanceService.js";
 import { PolicyService } from "./PolicyService.js";
 import { AuditLogService } from "./AuditLogService.js";
 import { MetricsService } from "./MetricsService.js";
@@ -57,6 +60,8 @@ export class TradingCompetitionGovernanceService {
   private recallClient: RecallClient;
   private bucketAddress: Address;
   private recallCompetitionService: RecallCompetitionService;
+  private recallTradingService: RecallTradingService;
+  private filecoinGovernanceService: FilecoinGovernanceService;
   private policyService: PolicyService;
   private auditLogService: AuditLogService;
   private metricsService: MetricsService;
@@ -70,11 +75,15 @@ export class TradingCompetitionGovernanceService {
     this.bucketAddress = bucketAddress;
 
     this.recallCompetitionService = new RecallCompetitionService();
+    this.recallTradingService = new RecallTradingService();
+    this.filecoinGovernanceService = new FilecoinGovernanceService();
     this.policyService = new PolicyService(recallClient, bucketAddress);
     this.auditLogService = new AuditLogService(recallClient, bucketAddress);
     this.metricsService = new MetricsService(recallClient, bucketAddress);
 
-    logger.info("Trading Competition Governance Service initialized");
+    logger.info(
+      "Trading Competition Governance Service initialized with Filecoin integration"
+    );
   }
 
   /**

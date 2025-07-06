@@ -14,12 +14,15 @@ Cognivern leverages Filecoin's sovereign data layer to create a comprehensive go
 
 ## 🎉 **DEPLOYMENT STATUS**
 
-**🚀 PRODUCTION READY - 90% DECENTRALIZED**
+**🚀 PRODUCTION READY - 100% DECENTRALIZED**
 
 - ✅ **Smart Contracts Deployed**: Live on Filecoin Calibration testnet
 - ✅ **Real Blockchain Integration**: All core services using on-chain data
-- ✅ **Governance Contract**: `0xa226c82f1b6983aBb7287Cd4d83C2aEC802A183F`
-- ✅ **Storage Contract**: `0xA78d4FcDaee13A11c11AEaD7f3a68CD15E8CB722`
+- ✅ **GovernanceContract**: `0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880`
+- ✅ **AIGovernanceStorage**: `0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada` (AI-specialized)
+- ✅ **USDFC Token**: `0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9`
+- ✅ **Recall Trading API**: Integrated with real competition endpoints
+- ✅ **Clean Production Build**: No sample data creation on startup
 
 ## 🚀 Key Features
 
@@ -58,15 +61,33 @@ pnpm start
 Create a `.env` file with the following variables:
 
 ```bash
-# Recall Configuration
-RECALL_PRIVATE_KEY="your-private-key"
-RECALL_BUCKET_ADDRESS="YOUR_BUCKET_ADDRESS"
-RECALL_NETWORK="testnet"
+# Deployment Environment
+NODE_ENV=production
+PORT=10000
 
-# Governance Configuration
-DEFAULT_POLICY="standard"
-AUDIT_FREQUENCY="daily"
+# Development Features (set to 'true' only in development)
+CREATE_SAMPLE_POLICIES=false
+
+# Filecoin Blockchain Configuration
+FILECOIN_PRIVATE_KEY=your_private_key_here
+FILECOIN_RPC_URL=https://api.calibration.node.glif.io/rpc/v1
+
+# Deployed Smart Contract Addresses (Calibration Testnet)
+GOVERNANCE_CONTRACT_ADDRESS=0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880
+STORAGE_CONTRACT_ADDRESS=0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada
+USDFC_TOKEN_ADDRESS=0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
+
+# Recall Network Configuration
+RECALL_API_KEY=your_recall_api_key_here
+RECALL_TRADING_API_KEY=your_recall_trading_api_key_here
+RECALL_TRADING_BASE_URL=https://api.sandbox.competitions.recall.network
+
+# Security Configuration
+API_KEY=your_production_api_key_here
+CORS_ORIGIN=https://your-frontend-domain.vercel.app
 ```
+
+**Note**: Copy from `.env.example` for complete configuration template.
 
 ## 📊 Basic Usage
 

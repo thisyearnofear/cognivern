@@ -4,8 +4,9 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Load environment variables from .env.local
+// Load environment variables from .env.local or .env
 dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env" });
 
 // Get directory name for ES modules
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -54,6 +55,12 @@ const envSchema = z.object({
   RECALL_NETWORK: z
     .enum(["mainnet", "testnet", "calibration"])
     .default("calibration"),
+
+  // Recall Trading API Configuration
+  RECALL_TRADING_API_KEY: z.string().optional(),
+  RECALL_TRADING_BASE_URL: z
+    .string()
+    .default("https://api.sandbox.competitions.recall.network"),
 
   // Server Configuration
   PORT: z.coerce.number().default(3000),

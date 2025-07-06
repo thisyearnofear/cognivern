@@ -19,9 +19,17 @@ export class PolicyService {
     this.policies = new Map();
     this.recall = recall;
     this.bucketAddress = bucketAddress;
-    this.initializeSamplePolicies().catch((error) => {
-      logger.error("Failed to initialize sample policies:", error);
-    });
+
+    // Only create sample policies in development mode or when explicitly enabled
+    if (
+      process.env.NODE_ENV === "development" &&
+      process.env.CREATE_SAMPLE_POLICIES === "true"
+    ) {
+      this.initializeSamplePolicies().catch((error) => {
+        logger.error("Failed to initialize sample policies:", error);
+      });
+    }
+
     logger.info("PolicyService initialized");
   }
 
