@@ -339,75 +339,70 @@ app.post(
 );
 
 // Filecoin governance endpoints (integrated into existing service)
-app.get(
-  "/api/filecoin/governance/stats",
-  apiKeyMiddleware,
-  async (req, res) => {
-    try {
-      // Get real stats from governance services
-      let realStats = {
-        totalActions: 0,
-        totalViolations: 0,
-        totalAgents: 0,
-        approvalRate: 0,
-      };
+app.get("/api/filecoin/governance/stats", async (req, res) => {
+  try {
+    // Get real stats from governance services
+    let realStats = {
+      totalActions: 0,
+      totalViolations: 0,
+      totalAgents: 0,
+      approvalRate: 0,
+    };
 
-      // Try to get real data from trading competition service
-      if (tradingCompetitionService) {
-        try {
-          // Get all competition data to calculate real stats
-          const allCompetitions = Object.keys(
-            tradingCompetitionService.activeCompetitions || {}
-          );
-          let totalActions = 0;
-          let totalViolations = 0;
-          let totalAgents = 0;
-          let totalApprovals = 0;
+    // Try to get real data from trading competition service
+    if (tradingCompetitionService) {
+      try {
+        // Get all competition data to calculate real stats
+        const allCompetitions = Object.keys(
+          tradingCompetitionService.activeCompetitions || {}
+        );
+        let totalActions = 0;
+        let totalViolations = 0;
+        let totalAgents = 0;
+        let totalApprovals = 0;
 
-          allCompetitions.forEach((compId) => {
-            const status =
-              tradingCompetitionService.getCompetitionStatus(compId);
-            totalAgents += status.agents.length;
-            totalActions += status.events.length;
-            totalViolations += status.events.filter(
-              (e) => e.type === "policy_violation"
-            ).length;
-            totalApprovals += status.events.filter((e) => e.resolved).length;
-          });
+        allCompetitions.forEach((compId) => {
+          const status = tradingCompetitionService.getCompetitionStatus(compId);
+          totalAgents += status.agents.length;
+          totalActions += status.events.length;
+          totalViolations += status.events.filter(
+            (e) => e.type === "policy_violation"
+          ).length;
+          totalApprovals += status.events.filter((e) => e.resolved).length;
+        });
 
-          realStats = {
-            totalActions,
-            totalViolations,
-            totalAgents,
-            approvalRate:
-              totalActions > 0
-                ? Math.round((totalApprovals / totalActions) * 100)
-                : 0,
-          };
-        } catch (err) {
-          logger.warn("Could not fetch real governance stats, using defaults");
-        }
+        realStats = {
+          totalActions,
+          totalViolations,
+          totalAgents,
+          approvalRate:
+            totalActions > 0
+              ? Math.round((totalApprovals / totalActions) * 100)
+              : 0,
+        };
+      } catch (err) {
+        logger.warn("Could not fetch real governance stats, using defaults");
       }
-
-      const stats = {
-        ...realStats,
-        filecoinIntegration: true,
-        contractAddress:
-          process.env.GOVERNANCE_CONTRACT_ADDRESS || "Not deployed",
-        isRealData: realStats.totalActions > 0,
-        status: realStats.totalActions > 0 ? "live" : "waiting_for_agents",
-      };
-
-      res.json(stats);
-    } catch (error) {
-      logger.error("Error fetching Filecoin governance stats:", error);
-      res.status(500).json({ error: "Failed to fetch governance stats" });
     }
+
+    const stats = {
+      ...realStats,
+      filecoinIntegration: true,
+      contractAddress:
+        process.env.GOVERNANCE_CONTRACT_ADDRESS || "Not deployed",
+      isRealData: realStats.totalActions > 0,
+      status: realStats.totalActions > 0 ? "live" : "waiting_for_agents",
+    };
+
+    res.json(stats);
+  } catch (error) {
+    logger.error("Error fetching Filecoin governance stats:", error);
+    res.status(500).json({ error: "Failed to fetch governance stats" });
   }
-);
+});
 
 // Real trading status endpoint (leverages existing services)
-app.get("/api/trading/status", apiKeyMiddleware, async (req, res) => {
+app.get("/api/trading/status", async (req, res) => {
   try {
     const status = {
       recallTradingAPI: {
@@ -436,7 +431,7 @@ app.get("/api/trading/status", apiKeyMiddleware, async (req, res) => {
 });
 
 // Blockchain stats endpoint (for frontend compatibility)
-app.get("/api/blockchain/stats", apiKeyMiddleware, async (req, res) => {
+app.get("/api/blockchain/stats", async (req, res) => {
   try {
     // Get real governance stats instead of hardcoded values
     let realGovernanceStats = {
@@ -466,8 +461,11 @@ app.get("/api/blockchain/stats", apiKeyMiddleware, async (req, res) => {
             totalActions += actions;
 
             // Calculate violations based on compliance score
-            const complianceRate = agent.governanceProfile.policyCompliance || 0;
-            const violations = Math.round(actions * (100 - complianceRate) / 100);
+            const complianceRate =
+              agent.governanceProfile.policyCompliance || 0;
+            const violations = Math.round(
+              (actions * (100 - complianceRate)) / 100
+            );
             totalViolations += violations;
 
             // Calculate approvals
@@ -484,12 +482,21 @@ app.get("/api/blockchain/stats", apiKeyMiddleware, async (req, res) => {
           agents: governanceAgents,
           actions: totalActions,
           violations: totalViolations,
-          approvalRate: totalActions > 0 ? Math.round((totalApprovals / totalActions) * 100) : 0,
+          approvalRate:
+            totalActions > 0
+              ? Math.round((totalApprovals / totalActions) * 100)
+              : 0,
         };
 
-        logger.info("Using real governance stats from CogniverseService:", realGovernanceStats);
+        logger.info(
+          "Using real governance stats from CogniverseService:",
+          realGovernanceStats
+        );
       } catch (err) {
-        logger.warn("Could not fetch real governance stats, using defaults:", err);
+        logger.warn(
+          "Could not fetch real governance stats, using defaults:",
+          err
+        );
         // Keep default values if real data unavailable
         realGovernanceStats = {
           policies: 0,
