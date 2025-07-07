@@ -34,9 +34,14 @@ export default function BlockchainStatus() {
     async function fetchBlockchainStats() {
       try {
         setLoading(true);
-        const response = await fetch("/api/blockchain/stats", {
+        const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
+        console.log("Using API key:", apiKey);
+        console.log("All env vars:", import.meta.env);
+        const apiBaseUrl =
+          import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+        const response = await fetch(`${apiBaseUrl}/blockchain/stats`, {
           headers: {
-            "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
+            "X-API-KEY": apiKey,
           },
         });
 
