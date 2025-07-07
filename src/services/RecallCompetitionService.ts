@@ -73,8 +73,9 @@ export class RecallCompetitionService {
    */
   async getLiveCompetitions(): Promise<Competition[]> {
     try {
-      const response = await this.api.get("/api/competitions/live");
-      return response.data.competitions || [];
+      // Use the correct Recall API endpoint
+      const response = await this.api.get("/api/competitions");
+      return response.data.competitions || response.data || [];
     } catch (error) {
       logger.error("Error fetching live competitions:", error);
       throw new Error(
@@ -88,8 +89,9 @@ export class RecallCompetitionService {
    */
   async getUpcomingCompetitions(): Promise<Competition[]> {
     try {
-      const response = await this.api.get("/api/competitions/upcoming");
-      return response.data.competitions || [];
+      // Use the correct Recall API endpoint with status filter
+      const response = await this.api.get("/api/competitions?status=upcoming");
+      return response.data.competitions || response.data || [];
     } catch (error) {
       logger.error("Error fetching upcoming competitions:", error);
       throw new Error(
@@ -103,10 +105,11 @@ export class RecallCompetitionService {
    */
   async getCompletedCompetitions(limit: number = 10): Promise<Competition[]> {
     try {
+      // Use the correct Recall API endpoint with status filter
       const response = await this.api.get(
-        `/api/competitions/completed?limit=${limit}`
+        `/api/competitions?status=completed&limit=${limit}`
       );
-      return response.data.competitions || [];
+      return response.data.competitions || response.data || [];
     } catch (error) {
       logger.error("Error fetching completed competitions:", error);
       throw new Error(
@@ -169,8 +172,9 @@ export class RecallCompetitionService {
    */
   async getTopAgents(limit: number = 20): Promise<RecallAgent[]> {
     try {
-      const response = await this.api.get(`/api/agents/top?limit=${limit}`);
-      return response.data.agents || [];
+      // Use the correct Recall API endpoint
+      const response = await this.api.get(`/api/agents?limit=${limit}`);
+      return response.data.agents || response.data || [];
     } catch (error) {
       logger.error("Error fetching top agents:", error);
       throw new Error(
