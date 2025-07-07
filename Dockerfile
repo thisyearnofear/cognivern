@@ -58,5 +58,5 @@ EXPOSE 10000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:10000/health || exit 1
 
-# Default command (can be overridden)
-CMD ["pnpm", "start"]
+# Default command with increased memory limit (can be overridden)
+CMD ["node", "--max-old-space-size=4096", "dist/index.js"]
