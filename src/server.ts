@@ -438,6 +438,69 @@ app.get("/api/trading/status", apiKeyMiddleware, async (req, res) => {
 // Blockchain stats endpoint (for frontend compatibility)
 app.get("/api/blockchain/stats", apiKeyMiddleware, async (req, res) => {
   try {
+    // Get real governance stats instead of hardcoded values
+    let realGovernanceStats = {
+      policies: 0,
+      agents: 0,
+      actions: 0,
+      violations: 0,
+      approvalRate: 0,
+    };
+
+    // Try to fetch real data from available services
+    if (cogniverseService) {
+      try {
+        // Get unified agents (combines Recall + governance data)
+        const unifiedAgents = await cogniverseService.getTopUnifiedAgents(100);
+
+        // Calculate real metrics from unified agent data
+        let totalActions = 0;
+        let totalViolations = 0;
+        let totalApprovals = 0;
+        let governanceAgents = 0;
+
+        for (const agent of unifiedAgents) {
+          if (agent.governanceProfile?.isDeployed) {
+            governanceAgents++;
+            const actions = agent.governanceProfile.totalGovernanceActions || 0;
+            totalActions += actions;
+
+            // Calculate violations based on compliance score
+            const complianceRate = agent.governanceProfile.policyCompliance || 0;
+            const violations = Math.round(actions * (100 - complianceRate) / 100);
+            totalViolations += violations;
+
+            // Calculate approvals
+            const approvals = actions - violations;
+            totalApprovals += approvals;
+          }
+        }
+
+        // Get dashboard summary for additional stats
+        const dashboardSummary = await cogniverseService.getDashboardSummary();
+
+        realGovernanceStats = {
+          policies: dashboardSummary.governance?.totalPolicies || 0,
+          agents: governanceAgents,
+          actions: totalActions,
+          violations: totalViolations,
+          approvalRate: totalActions > 0 ? Math.round((totalApprovals / totalActions) * 100) : 0,
+        };
+
+        logger.info("Using real governance stats from CogniverseService:", realGovernanceStats);
+      } catch (err) {
+        logger.warn("Could not fetch real governance stats, using defaults:", err);
+        // Keep default values if real data unavailable
+        realGovernanceStats = {
+          policies: 0,
+          agents: 0,
+          actions: 0,
+          violations: 0,
+          approvalRate: 0,
+        };
+      }
+    }
+
     const stats = {
       filecoin: {
         network: config.FILECOIN_NETWORK,
@@ -456,11 +519,9 @@ app.get("/api/blockchain/stats", apiKeyMiddleware, async (req, res) => {
       },
       governance: {
         address: config.GOVERNANCE_CONTRACT_ADDRESS,
-        policies: 3,
-        agents: 5,
-        actions: 42,
-        violations: 3,
-        approvalRate: 93,
+        ...realGovernanceStats,
+        isRealData: realGovernanceStats.actions > 0,
+        lastUpdated: new Date().toISOString(),
       },
     };
 
