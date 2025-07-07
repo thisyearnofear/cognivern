@@ -401,29 +401,37 @@ export class CogniverseService {
     };
   }> {
     try {
-      const [liveCompetitions, topAgents, governanceStats] = await Promise.all([
-        this.recallService.getLiveCompetitions(),
-        this.recallService.getTopAgents(100),
+      // Use the optimized getEssentialStats method to reduce API calls
+      const [essentialStats, governanceStats] = await Promise.all([
+        this.recallService.getEssentialStats(),
         this.recallDataService.getObject<any>("governance", "stats.json"),
       ]);
 
-      const totalPrizePool = liveCompetitions.reduce(
+      const { competitions, topAgents, totalStats } = essentialStats;
+
+      const totalPrizePool = competitions.reduce(
         (sum, comp) => sum + comp.prizePool,
         0
       );
       const deployedAgents = Math.floor(topAgents.length * 0.3); // Assume 30% are deployed
       const averageTrustScore =
-        topAgents.reduce((sum, agent) => sum + agent.reputation, 0) /
-        topAgents.length;
+        topAgents.length > 0
+          ? topAgents.reduce((sum, agent) => sum + agent.reputation, 0) /
+            topAgents.length
+          : 0;
       const totalValue = totalPrizePool + deployedAgents * 10000; // Rough value calculation
 
       return {
         recall: {
-          liveCompetitions: liveCompetitions.length,
-          totalAgents: topAgents.length,
+          liveCompetitions: totalStats.activeCompetitions,
+          totalAgents: totalStats.totalAgents,
           totalPrizePool,
         },
-        governance: governanceStats,
+        governance: governanceStats || {
+          totalPolicies: 0,
+          totalAgents: 0,
+          totalActions: 0,
+        },
         unified: {
           deployedAgents,
           averageTrustScore: Math.round(averageTrustScore),

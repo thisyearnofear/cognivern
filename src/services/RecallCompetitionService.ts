@@ -1,5 +1,12 @@
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosInstance, AxiosError } from "axios";
 import logger from "../utils/logger.js";
+
+interface RetryConfig {
+  maxRetries: number;
+  baseDelay: number;
+  maxDelay: number;
+  backoffMultiplier: number;
+}
 
 export interface RecallAgent {
   id: string;
@@ -51,12 +58,21 @@ export interface CompetitionResult {
 export class RecallCompetitionService {
   private api: AxiosInstance;
   private baseUrl: string;
+  private retryConfig: RetryConfig;
 
   constructor() {
     // Use the correct sandbox API URL for trading simulator
     this.baseUrl =
       process.env.RECALL_API_URL ||
       "https://api.sandbox.competitions.recall.network";
+
+    // Configure retry settings for rate limiting - more conservative
+    this.retryConfig = {
+      maxRetries: 1, // Reduced from 3 to 1
+      baseDelay: 500, // Reduced from 1000ms to 500ms
+      maxDelay: 2000, // Reduced from 10000ms to 2000ms
+      backoffMultiplier: 2,
+    };
 
     this.api = axios.create({
       baseURL: this.baseUrl,
@@ -73,68 +89,122 @@ export class RecallCompetitionService {
   }
 
   /**
+   * Check if error is rate limiting (429) or server error (5xx)
+   */
+  private isRetryableError(error: AxiosError): boolean {
+    if (!error.response) return true; // Network errors are retryable
+    const status = error.response.status;
+    return status === 429 || (status >= 500 && status < 600);
+  }
+
+  /**
+   * Calculate delay for exponential backoff
+   */
+  private calculateDelay(attempt: number): number {
+    const delay =
+      this.retryConfig.baseDelay *
+      Math.pow(this.retryConfig.backoffMultiplier, attempt);
+    return Math.min(delay, this.retryConfig.maxDelay);
+  }
+
+  /**
+   * Sleep for specified milliseconds
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Execute API request with retry logic
+   */
+  private async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    operationName: string
+  ): Promise<T> {
+    let lastError: Error;
+
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+
+        if (error instanceof AxiosError) {
+          const status = error.response?.status;
+
+          if (status === 429) {
+            logger.warn(
+              `Rate limit hit for ${operationName}, attempt ${attempt + 1}/${this.retryConfig.maxRetries + 1}`
+            );
+          } else if (status && status >= 500) {
+            logger.warn(
+              `Server error (${status}) for ${operationName}, attempt ${attempt + 1}/${this.retryConfig.maxRetries + 1}`
+            );
+          } else if (!this.isRetryableError(error)) {
+            // Non-retryable error (4xx except 429), throw immediately
+            logger.error(
+              `Non-retryable error for ${operationName}: ${error.message}`
+            );
+            throw error;
+          }
+
+          // If this is the last attempt, don't wait
+          if (attempt < this.retryConfig.maxRetries) {
+            const delay = this.calculateDelay(attempt);
+            logger.info(`Waiting ${delay}ms before retry...`);
+            await this.sleep(delay);
+          }
+        } else {
+          // Non-axios error, throw immediately
+          throw error;
+        }
+      }
+    }
+
+    logger.error(`All retry attempts failed for ${operationName}`);
+    throw lastError!;
+  }
+
+  /**
    * Get live competitions
    */
   async getLiveCompetitions(): Promise<Competition[]> {
-    try {
-      // Use the correct Recall API endpoint
+    return this.executeWithRetry(async () => {
       const response = await this.api.get("/api/competitions");
       return response.data.competitions || response.data || [];
-    } catch (error) {
-      logger.error("Error fetching live competitions:", error);
-      throw new Error(
-        `Failed to fetch live competitions: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
+    }, "getLiveCompetitions");
   }
 
   /**
    * Get upcoming competitions
    */
   async getUpcomingCompetitions(): Promise<Competition[]> {
-    try {
-      // Use the correct Recall API endpoint with status filter
+    return this.executeWithRetry(async () => {
       const response = await this.api.get("/api/competitions?status=upcoming");
       return response.data.competitions || response.data || [];
-    } catch (error) {
-      logger.error("Error fetching upcoming competitions:", error);
-      throw new Error(
-        `Failed to fetch upcoming competitions: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
+    }, "getUpcomingCompetitions");
   }
 
   /**
    * Get completed competitions
    */
   async getCompletedCompetitions(limit: number = 10): Promise<Competition[]> {
-    try {
-      // Use the correct Recall API endpoint with status filter
+    return this.executeWithRetry(async () => {
       const response = await this.api.get(
         `/api/competitions?status=completed&limit=${limit}`
       );
       return response.data.competitions || response.data || [];
-    } catch (error) {
-      logger.error("Error fetching completed competitions:", error);
-      throw new Error(
-        `Failed to fetch completed competitions: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
+    }, "getCompletedCompetitions");
   }
 
   /**
    * Get competition details
    */
   async getCompetition(competitionId: string): Promise<Competition | null> {
-    try {
+    return this.executeWithRetry(async () => {
       const response = await this.api.get(`/api/competitions/${competitionId}`);
       return response.data.competition || null;
-    } catch (error) {
-      logger.error(`Error fetching competition ${competitionId}:`, error);
-      throw new Error(
-        `Failed to fetch competition ${competitionId}: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
+    }, `getCompetition(${competitionId})`);
   }
 
   /**
@@ -143,48 +213,32 @@ export class RecallCompetitionService {
   async getCompetitionLeaderboard(
     competitionId: string
   ): Promise<RecallAgent[]> {
-    try {
+    return this.executeWithRetry(async () => {
       const response = await this.api.get(
         `/api/competitions/${competitionId}/leaderboard`
       );
       return response.data.leaderboard || [];
-    } catch (error) {
-      logger.error(`Error fetching leaderboard for ${competitionId}:`, error);
-      throw new Error(
-        `Failed to fetch leaderboard for ${competitionId}: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
+    }, `getCompetitionLeaderboard(${competitionId})`);
   }
 
   /**
    * Get agent details
    */
   async getAgent(agentId: string): Promise<RecallAgent | null> {
-    try {
+    return this.executeWithRetry(async () => {
       const response = await this.api.get(`/api/agents/${agentId}`);
       return response.data.agent || null;
-    } catch (error) {
-      logger.error(`Error fetching agent ${agentId}:`, error);
-      throw new Error(
-        `Failed to fetch agent ${agentId}: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
+    }, `getAgent(${agentId})`);
   }
 
   /**
    * Get top agents by AgentRank
    */
   async getTopAgents(limit: number = 20): Promise<RecallAgent[]> {
-    try {
-      // Use the correct Recall API endpoint
+    return this.executeWithRetry(async () => {
       const response = await this.api.get(`/api/agents?limit=${limit}`);
       return response.data.agents || response.data || [];
-    } catch (error) {
-      logger.error("Error fetching top agents:", error);
-      throw new Error(
-        `Failed to fetch top agents: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
+    }, "getTopAgents");
   }
 
   /**
@@ -256,14 +310,47 @@ export class RecallCompetitionService {
    * Get live competition feed
    */
   async getLiveCompetitionFeed(): Promise<any[]> {
-    try {
+    return this.executeWithRetry(async () => {
       const response = await this.api.get("/api/feed/live");
       return response.data.feed || [];
-    } catch (error) {
-      logger.error("Error fetching live competition feed:", error);
-      throw new Error(
-        `Failed to fetch live competition feed: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
+    }, "getLiveCompetitionFeed");
+  }
+
+  /**
+   * Get essential stats with minimal API calls
+   * This method reduces the number of individual agent calls
+   */
+  async getEssentialStats(): Promise<{
+    competitions: Competition[];
+    topAgents: RecallAgent[];
+    totalStats: {
+      totalCompetitions: number;
+      activeCompetitions: number;
+      totalAgents: number;
+    };
+  }> {
+    return this.executeWithRetry(async () => {
+      // Make only essential API calls in parallel
+      const [competitions, topAgents] = await Promise.all([
+        this.api.get("/api/competitions?limit=5"),
+        this.api.get("/api/agents?limit=10"),
+      ]);
+
+      const competitionsData =
+        competitions.data.competitions || competitions.data || [];
+      const agentsData = topAgents.data.agents || topAgents.data || [];
+
+      return {
+        competitions: competitionsData,
+        topAgents: agentsData,
+        totalStats: {
+          totalCompetitions: competitionsData.length,
+          activeCompetitions: competitionsData.filter(
+            (c: any) => c.status === "live"
+          ).length,
+          totalAgents: agentsData.length,
+        },
+      };
+    }, "getEssentialStats");
   }
 }
