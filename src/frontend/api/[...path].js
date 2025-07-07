@@ -4,7 +4,7 @@
  */
 
 // Vercel serverless function
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -47,6 +47,7 @@ module.exports = async function handler(req, res) {
     targetUrl,
     hasApiKey: !!apiKey,
     apiKeyLength: apiKey?.length,
+    envVars: Object.keys(process.env).filter((key) => key.includes("RECALL")),
   });
 
   try {
@@ -92,4 +93,4 @@ module.exports = async function handler(req, res) {
       details: error.message,
     });
   }
-};
+}
