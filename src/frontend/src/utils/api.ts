@@ -58,10 +58,18 @@ export function getApiUrl(endpoint: string): string {
     // In development, use full URLs to connect directly to server
     const baseUrl =
       import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
-    const cleanEndpoint = endpoint.startsWith("/api/")
-      ? endpoint.slice(4)
-      : endpoint.replace(/^\//, "");
-    return `${baseUrl}/${cleanEndpoint}`;
+
+    // Clean the endpoint to avoid double slashes
+    let cleanEndpoint = endpoint;
+    if (cleanEndpoint.startsWith("/api/")) {
+      cleanEndpoint = cleanEndpoint.slice(4); // Remove "/api/"
+    } else if (cleanEndpoint.startsWith("/")) {
+      cleanEndpoint = cleanEndpoint.slice(1); // Remove leading "/"
+    }
+
+    // Ensure baseUrl doesn't end with slash and cleanEndpoint doesn't start with slash
+    const cleanBaseUrl = baseUrl.replace(/\/$/, "");
+    return `${cleanBaseUrl}/${cleanEndpoint}`;
   }
 }
 
