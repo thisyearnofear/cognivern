@@ -37,10 +37,8 @@ export default function BlockchainStatus() {
         setLoading(true);
         const apiUrl = getApiUrl("/api/blockchain/stats");
 
-        // Only log in development
-        if (import.meta.env.DEV) {
-          console.log("API URL:", apiUrl);
-        }
+        // Only log in development (removed for security)
+        // No logging in production to prevent sensitive data exposure
 
         // In production, Vercel proxy handles authentication
         // In development, we need to include the API key
