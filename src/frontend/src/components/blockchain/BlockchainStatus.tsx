@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getApiUrl } from "../../utils/api";
 import "./BlockchainStatus.css";
 
 interface ContractStats {
@@ -34,16 +35,22 @@ export default function BlockchainStatus() {
     async function fetchBlockchainStats() {
       try {
         setLoading(true);
-        const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
-        console.log("Using API key:", apiKey);
-        console.log("All env vars:", import.meta.env);
-        const apiBaseUrl =
-          import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
-        const response = await fetch(`${apiBaseUrl}/blockchain/stats`, {
-          headers: {
-            "X-API-KEY": apiKey,
-          },
-        });
+        const apiUrl = getApiUrl("/api/blockchain/stats");
+
+        // Only log in development
+        if (import.meta.env.DEV) {
+          console.log("API URL:", apiUrl);
+        }
+
+        // In production, Vercel proxy handles authentication
+        // In development, we need to include the API key
+        const headers: Record<string, string> = {};
+        if (import.meta.env.DEV) {
+          const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
+          headers["X-API-KEY"] = apiKey;
+        }
+
+        const response = await fetch(apiUrl, { headers });
 
         if (!response.ok) {
           throw new Error(`Error: ${response.status}`);
