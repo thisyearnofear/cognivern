@@ -200,6 +200,63 @@ export class TradingCompetitionGovernanceService {
   }
 
   /**
+   * Execute real trade via Recall Trading API
+   */
+  private async executeRealTrade(decision: TradingDecision): Promise<void> {
+    try {
+      logger.info(
+        `Executing real trade: ${decision.action} ${decision.quantity} ${decision.symbol} at $${decision.price}`
+      );
+
+      // Get real market price
+      const marketData = await this.recallTradingService.getMarketData();
+
+      if (decision.action === "buy") {
+        // Execute buy trade
+        const tradeRequest = {
+          fromToken: "USDC", // Use USDC as base currency
+          toToken: decision.symbol,
+          amount: (decision.quantity * decision.price).toString(),
+          reason: decision.reasoning,
+          slippageTolerance: "0.5",
+          fromChain: "svm",
+          fromSpecificChain: "mainnet",
+          toChain: "svm",
+          toSpecificChain: "mainnet",
+        };
+
+        const result =
+          await this.recallTradingService.executeTrade(tradeRequest);
+        logger.info(
+          `Buy trade executed successfully: ${JSON.stringify(result)}`
+        );
+      } else if (decision.action === "sell") {
+        // Execute sell trade
+        const tradeRequest = {
+          fromToken: decision.symbol,
+          toToken: "USDC", // Sell to USDC
+          amount: decision.quantity.toString(),
+          reason: decision.reasoning,
+          slippageTolerance: "0.5",
+          fromChain: "svm",
+          fromSpecificChain: "mainnet",
+          toChain: "svm",
+          toSpecificChain: "mainnet",
+        };
+
+        const result =
+          await this.recallTradingService.executeTrade(tradeRequest);
+        logger.info(
+          `Sell trade executed successfully: ${JSON.stringify(result)}`
+        );
+      }
+    } catch (error) {
+      logger.error(`Failed to execute real trade: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
    * Execute a trading round with governance oversight
    */
   async executeTradingRound(
@@ -230,12 +287,21 @@ export class TradingCompetitionGovernanceService {
           cash: 10000 + Math.random() * 50000,
         };
 
-        // Make trading decision
+        // Make trading decision with real crypto tokens
+        const cryptoSymbols = ["SOL", "USDC", "ETH", "BTC"];
+        const randomSymbol =
+          cryptoSymbols[Math.floor(Math.random() * cryptoSymbols.length)];
+
         const decision = await competitionAgent.agent.makeTradingDecision(
-          "AAPL", // Example symbol
+          randomSymbol,
           marketData,
           portfolioData
         );
+
+        // Execute real trade if decision is not "hold"
+        if (decision && decision.action !== "hold") {
+          await this.executeRealTrade(decision);
+        }
 
         if (decision) {
           decisions.push(decision);

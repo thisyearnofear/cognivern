@@ -23,6 +23,8 @@
     "frontend": "cd src/frontend && pnpm dev",
     "frontend:build": "cd src/frontend && pnpm build",
     "deploy": "pnpm run build && pnpm run start",
+    "deploy:hetzner": "./deploy/deploy.sh",
+    "deploy:monitor": "./deploy/monitor.sh",
     "deploy-contracts": "npx hardhat run scripts/deploy-hardhat.cjs --network calibration",
     "upload-policy": "tsx scripts/upload-test-policy.ts",
     "clean:build": "rm -rf build/artifacts/* build/cache/*"
