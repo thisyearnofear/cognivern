@@ -1,27 +1,27 @@
 {
-    "rewrites": [
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "http://157.180.36.156/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
         {
-            "source": "/api/:path*",
-            "destination": "https://escheat-agents.onrender.com/api/:path*"
-        }
-    ],
-    "headers": [
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
         {
-            "source": "/api/(.*)",
-            "headers": [
-                {
-                    "key": "Access-Control-Allow-Origin",
-                    "value": "*"
-                },
-                {
-                    "key": "Access-Control-Allow-Methods",
-                    "value": "GET, POST, PUT, DELETE, OPTIONS"
-                },
-                {
-                    "key": "Access-Control-Allow-Headers",
-                    "value": "X-API-KEY, Content-Type"
-                }
-            ]
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-API-KEY, Content-Type"
         }
-    ]
+      ]
+    }
+  ]
 }

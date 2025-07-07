@@ -1,0 +1,104 @@
+version: "3.8"
+
+services:
+  cognivern-backend:
+    build: .
+    container_name: cognivern-backend
+    restart: unless-stopped
+    ports:
+      - "10000:10000"
+    environment:
+      - NODE_ENV=production
+      - PORT=10000
+      # Recall Configuration
+      - RECALL_PRIVATE_KEY=${RECALL_PRIVATE_KEY}
+      - RECALL_BUCKET_ADDRESS=${RECALL_BUCKET_ADDRESS}
+      - RECALL_NETWORK=testnet
+      - RECALL_SYNC_INTERVAL=60000
+      - RECALL_BATCH_SIZE=8
+      # Trading API
+      - RECALL_TRADING_API_KEY=${RECALL_TRADING_API_KEY}
+      - RECALL_TRADING_BASE_URL=https://api.sandbox.competitions.recall.network
+      # Security
+      - API_KEY=${API_KEY}
+      # AI Configuration
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MODEL_NAME=gpt-4
+      # Blockchain
+      - FILECOIN_PRIVATE_KEY=${FILECOIN_PRIVATE_KEY}
+      - FILECOIN_RPC_URL=https://api.calibration.node.glif.io/rpc/v1
+      - GOVERNANCE_CONTRACT_ADDRESS=${GOVERNANCE_CONTRACT_ADDRESS}
+      - STORAGE_CONTRACT_ADDRESS=${STORAGE_CONTRACT_ADDRESS}
+      - USDFC_TOKEN_ADDRESS=${USDFC_TOKEN_ADDRESS}
+      # Governance Configuration
+      - DEFAULT_POLICY=standard
+      - CREATE_SAMPLE_POLICIES=false
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:10000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - cognivern-network
+
+  # Trading Agent Service (separate container for isolation)
+  cognivern-agent:
+    build: .
+    container_name: cognivern-trading-agent
+    restart: unless-stopped
+    command: ["pnpm", "auto-competition"]
+    environment:
+      - NODE_ENV=production
+      # Recall Configuration
+      - RECALL_PRIVATE_KEY=${RECALL_PRIVATE_KEY}
+      - RECALL_BUCKET_ADDRESS=${RECALL_BUCKET_ADDRESS}
+      - RECALL_NETWORK=testnet
+      # Trading API
+      - RECALL_TRADING_API_KEY=${RECALL_TRADING_API_KEY}
+      - RECALL_TRADING_BASE_URL=https://api.sandbox.competitions.recall.network
+      # AI Configuration
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MODEL_NAME=gpt-4
+      # Blockchain
+      - FILECOIN_PRIVATE_KEY=${FILECOIN_PRIVATE_KEY}
+      - FILECOIN_RPC_URL=https://api.calibration.node.glif.io/rpc/v1
+      - GOVERNANCE_CONTRACT_ADDRESS=${GOVERNANCE_CONTRACT_ADDRESS}
+      - STORAGE_CONTRACT_ADDRESS=${STORAGE_CONTRACT_ADDRESS}
+      - USDFC_TOKEN_ADDRESS=${USDFC_TOKEN_ADDRESS}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      cognivern-backend:
+        condition: service_healthy
+    networks:
+      - cognivern-network
+
+  # Nginx reverse proxy (HTTP for now, HTTPS later)
+  nginx:
+    image: nginx:alpine
+    container_name: cognivern-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # - "443:443"  # Enable when adding SSL
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf
+      # - ./deploy/nginx/ssl:/etc/nginx/ssl  # Enable when adding SSL
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - cognivern-backend
+    networks:
+      - cognivern-network
+
+networks:
+  cognivern-network:
+    driver: bridge
+
+volumes:
+  data:
+  logs:

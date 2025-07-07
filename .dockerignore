@@ -15,9 +15,10 @@ out
 .git
 .gitignore
 
-# Environment
-.env
-.env.*
+# Environment (keep .env for production)
+.env.local
+.env.*.local
+!.env
 !.env.example
 
 # IDE
@@ -42,4 +43,18 @@ logs
 # OS
 .DS_Store
 .AppleDouble
-.LSOverride 
+.LSOverride
+
+# Exclude problematic cache directories that caused space issues
+external/**/.next/
+external/**/node_modules/
+external/**/.cache/
+external/**/dist/
+external/**/coverage/
+**/webpack/
+**/.next/cache/
+
+# Development files (not needed in production)
+trading-agent/
+mcp-server/
+LOCAL_SETUP.md

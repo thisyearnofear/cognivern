@@ -19,7 +19,7 @@ import walletRoutes from "./routes/walletRoutes.js";
 import { config } from "./config.js";
 
 // Initialize Express app
-const app = express();
+const app: express.Express = express();
 const PORT = process.env.PORT || 3000;
 
 // Configure middleware

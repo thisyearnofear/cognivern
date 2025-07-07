@@ -9,7 +9,7 @@ import { PolicyController } from "../controllers/PolicyController.js";
  */
 export function configureRoutes(controllers: {
   policyController: PolicyController;
-}) {
+}): express.Router {
   const router = express.Router();
 
   // Mount policy routes at /api/policies

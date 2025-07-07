@@ -6,7 +6,9 @@ import { PolicyController } from "../controllers/PolicyController.js";
  * @param policyController Policy controller instance
  * @returns Express router configured with policy routes
  */
-export function createPolicyRoutes(policyController: PolicyController) {
+export function createPolicyRoutes(
+  policyController: PolicyController
+): express.Router {
   const router = express.Router();
 
   // GET /policies - List all policies
