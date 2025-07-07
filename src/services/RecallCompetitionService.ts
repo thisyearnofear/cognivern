@@ -53,19 +53,23 @@ export class RecallCompetitionService {
   private baseUrl: string;
 
   constructor() {
+    // Use the correct sandbox API URL for trading simulator
     this.baseUrl =
-      process.env.RECALL_API_URL || "https://api.competitions.recall.network";
+      process.env.RECALL_API_URL ||
+      "https://api.sandbox.competitions.recall.network";
 
     this.api = axios.create({
       baseURL: this.baseUrl,
       headers: {
-        Authorization: `Bearer ${process.env.RECALL_API_KEY}`,
+        Authorization: `Bearer ${process.env.RECALL_TRADING_API_KEY}`,
         "Content-Type": "application/json",
       },
       timeout: 30000,
     });
 
-    logger.info("RecallCompetitionService initialized");
+    logger.info(
+      `RecallCompetitionService initialized with baseUrl: ${this.baseUrl}`
+    );
   }
 
   /**
