@@ -4,7 +4,7 @@
 echo "🚀 Deploying Cognivern to Production Server"
 echo "============================================"
 
-SERVER_IP="157.180.36.156"
+SERVER_IP=
 SERVER_USER="root"
 SERVER_PATH="/opt/cognivern"
 

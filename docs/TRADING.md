@@ -162,7 +162,7 @@ Your agent will:
 #### ✅ **Completed Setup:**
 
 - **Agent Registration**: ✅ Completed at competitions.recall.network
-- **API Key**: ✅ Configured in .env (5ffd36bb15925fe2_dd811d9881d72940)
+- **API Key**: ✅ Configured in .env
 - **MCP Server**: ⚠️ Downloaded and partially built (core components working)
 - **Auto-Agent**: ✅ Fully automated competition agent created
 - **Frontend**: ✅ Enhanced dashboard with live activity showcase

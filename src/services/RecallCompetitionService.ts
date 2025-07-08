@@ -275,10 +275,18 @@ export class RecallCompetitionService {
       const response = await this.api.get(url);
       return response.data.metrics || null;
     } catch (error) {
-      logger.error(`Error fetching trading metrics for ${agentId}:`, error);
-      throw new Error(
-        `Failed to fetch trading metrics for ${agentId}: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+      // Only log 404s as debug, not error (agent might not exist)
+      if (error instanceof Error && error.message.includes("404")) {
+        logger.debug(`Agent ${agentId} not found in competition metrics`);
+        return null;
+      }
+
+      // Log other errors as warnings with minimal info
+      logger.warn(`Failed to fetch trading metrics for ${agentId}:`, {
+        status: error instanceof Error ? error.message : "Unknown error",
+        agentId,
+      });
+      return null; // Return null instead of throwing to prevent cascade failures
     }
   }
 

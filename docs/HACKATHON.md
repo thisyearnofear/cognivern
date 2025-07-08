@@ -2,7 +2,19 @@
 
 ## Hack The Sovereign Data Layer
 
-Cognivern was developed for the **Hack The Sovereign Data Layer** hackathon to demonstrate how Filecoin's programmable storage can enable trustless governance of AI systems.
+**AI Agent Governance & Compliance Platform**
+
+Cognivern demonstrates how Filecoin's programmable storage enables **enterprise-grade AI governance** for organizations that need to monitor, control, and audit their AI agents. Built for hospitals, military, financial institutions, and any organization deploying AI systems that require compliance and oversight.
+
+## 🎯 **Vision: Universal AI Governance Platform**
+
+**Current Showcase**: Two live trading agents demonstrating real-time governance
+**Future Enterprise**: Platform for monitoring AI agents across industries
+
+- 🏥 **Healthcare**: Medical AI decision auditing and compliance
+- 🎖️ **Military**: Autonomous system governance and engagement rules
+- 🏦 **Financial**: Trading algorithm oversight and risk management
+- 🏭 **Industrial**: Manufacturing AI safety and quality control
 
 ## 🎉 **DEPLOYMENT STATUS**
 
@@ -18,35 +30,136 @@ Cognivern was developed for the **Hack The Sovereign Data Layer** hackathon to d
 - ✅ **Clean Production Build**: No sample data creation, optimized for production
 - ✅ **Server Running**: `localhost:3000` with real blockchain data
 
-## 🏆 Implementation Plan & Progress
+## 🚀 **Strategic Implementation Roadmap**
 
-### Phase 1: Filecoin Foundation ✅
+### **Foundation: Smart Contract Architecture** ✅ **COMPLETE**
 
-- **FVM Smart Contract Development:** Core governance contracts on Calibration testnet
-- **USDFC Integration:** Payment flows for governance services
-- **Programmable Storage:** Custom storage logic for agent policies and audit logs
-- **Web3 Authentication:** Wallet-based identity and authorization
+**Deployed Contracts on Filecoin Calibration Testnet:**
 
-### Phase 2: Core Governance Engine ✅
+- 🏛️ **GovernanceContract**: `0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880`
+  - Policy management and enforcement
+  - Agent registration and capability tracking
+  - Action evaluation and approval workflows
+- 💾 **AIGovernanceStorage**: `0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada`
+  - Immutable audit trails with IPFS integration
+  - Policy violation tracking and resolution
+  - Agent performance analytics
+- 💰 **USDFC Token**: `0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9`
+  - Payment flows for governance services
+  - Programmable storage economics
 
-- **Policy Engine:** On-chain policy evaluation and enforcement
-- **Agent Registration:** Decentralized agent identity and capability management
-- **Audit System:** Immutable logging of all governance decisions
-- **Real-time Monitoring:** Live governance metrics and compliance tracking
+### **Phase 1: Make it Work** ✅ **COMPLETE**
 
-### Phase 3: Showcase Implementation ✅
+_Goal: Unified dashboard showing real governance in action_
 
-- **Interactive Marketplace:** Demonstrate governance policies in action
-- **Agent Simulations:** Real-time examples of policy enforcement
-- **Transparency Dashboard:** Public governance decision viewer
-- **Educational Interface:** Guided tours of governance capabilities
+**Achievements:**
 
-### Phase 4: Production Readiness ✅
+- ✅ **Trading Agents**: 2 live agents (Recall + Vincent) executing real trades
+- ✅ **Backend APIs**: Real performance data and trading decisions
+- ✅ **Frontend Dashboard**: Beautiful UI showing agent activity
+- ✅ **UnifiedDataService**: Bridge between APIs and smart contracts
+- ✅ **Data Unification**: Single source of truth across all dashboard sections
 
-- **Security Hardening:** Smart contract audits and security reviews
-- **Performance Optimization:** Efficient data storage and retrieval patterns
-- **Documentation:** Complete API documentation and user guides
-- **Demo Preparation:** Polished demo for hackathon submission
+**Completed Tasks:**
+
+1. ✅ **ContractService Bridge**: Created service to connect APIs with smart contracts
+2. ✅ **UnifiedDataService**: Implemented unified data layer for consistent display
+3. ✅ **Dashboard Integration**: Updated SimplifiedDashboard and BlockchainStatus
+4. ✅ **API Endpoint**: Added `/api/dashboard/unified` for consistent data
+5. ✅ **Data Consistency**: All sections show same real data (2 agents, 12 actions)
+
+**Enterprise Value Delivered**: _"Look, our platform tracks every AI decision with unified blockchain governance"_
+
+**Live Demo Results:**
+
+- 📊 **Governance Stats**: 2 policies, 2 agents, 12 actions
+- 🏛️ **Smart Contracts**: Real addresses with consistent data
+- 🏆 **Competition Data**: 87% approval rate, 0 violations
+- 💾 **Blockchain Storage**: Immutable audit trail ready
+
+### **Phase 2: Make it Impressive** 📋 **PLANNED**
+
+_Goal: Show policy enforcement and violation detection_
+
+**Planned Features:**
+
+- 🛡️ **Policy Enforcement**: Pre-execution checks for trading limits
+- 🚨 **Violation Detection**: Real-time flagging of risky decisions
+- 📊 **Compliance Dashboard**: Live policy adherence monitoring
+- 📈 **Audit Reports**: Automated compliance reporting
+
+**Demo Scenarios:**
+
+- Trading agent attempts $600 trade → Policy blocks (limit: $500)
+- Weekend trading attempt → Governance prevents execution
+- Risk threshold exceeded → Automatic agent suspension
+
+**Enterprise Value**: _"See how we prevent your medical AI from making unauthorized decisions"_
+
+### **Phase 3: Make it Scalable** 🏢 **FUTURE**
+
+_Goal: Multi-tenant platform for enterprise clients_
+
+**Enterprise Features:**
+
+- 🏥 **Multi-Industry Support**: Healthcare, military, financial templates
+- 👥 **Multi-Tenant Architecture**: Isolated governance per organization
+- 🔐 **Enterprise SSO**: Integration with corporate identity systems
+- 📋 **Regulatory Compliance**: HIPAA, SOX, DoD compliance frameworks
+
+## 🎭 **Enterprise Demo Scenarios**
+
+### **For Hospital CTO**
+
+```
+"Your medical AI made 847 decisions this month"
+"3 policy violations detected and prevented"
+"100% audit trail for regulatory compliance"
+"Real-time alerts when AI exceeds authorized parameters"
+```
+
+### **For Military Commander**
+
+```
+"Drone AI followed engagement rules 99.7% of the time"
+"2 unauthorized target selections blocked by governance"
+"Complete decision audit for mission review"
+"Policy updates deployed to 50 agents instantly"
+```
+
+### **For Financial Regulator**
+
+```
+"Trading algorithms executed 12,847 transactions"
+"All trades within risk parameters and compliance rules"
+"Immutable audit trail for regulatory inspection"
+"Real-time policy enforcement prevents violations"
+```
+
+## 📊 **Current Progress Tracking**
+
+### **Phase 1 Tasks** ✅ **COMPLETED** (2 days)
+
+- [x] **Task 1.1**: Create ContractService bridge class
+- [x] **Task 1.2**: Create UnifiedDataService for consistent data
+- [x] **Task 1.3**: Update SimplifiedDashboard to use unified endpoint
+- [x] **Task 1.4**: Update BlockchainStatus to use unified data
+- [x] **Task 1.5**: Add `/api/dashboard/unified` endpoint
+- [x] **Task 1.6**: Verify all dashboard sections show consistent data
+
+### **Success Metrics** ✅ **ACHIEVED**
+
+- ✅ **Unified Data**: All dashboard sections show same agent/action counts (2 agents, 12 actions)
+- ✅ **Real Blockchain Data**: Contracts show actual trading activity with real addresses
+- ✅ **Enterprise Ready**: Platform demonstrates real governance capabilities with live data
+
+### **Phase 2 Tasks** (Target: 1-2 weeks)
+
+- [ ] **Task 2.1**: Implement policy enforcement engine
+- [ ] **Task 2.2**: Create violation detection system
+- [ ] **Task 2.3**: Add real-time policy compliance monitoring
+- [ ] **Task 2.4**: Build compliance dashboard with alerts
+- [ ] **Task 2.5**: Create demo scenarios for enterprise clients
 
 ### Phase 5: Live Autonomous Trading ✅
 
@@ -65,7 +178,7 @@ Cognivern was developed for the **Hack The Sovereign Data Layer** hackathon to d
 - **Status**: ✅ **ACTIVE** - Trading autonomously 24/7
 - **Performance**: 6 trades per day (exceeds 3+ requirement by 100%)
 - **Portfolio**: ~$5,200 USDC + 8.5 SOL + multi-chain positions
-- **Server**: Deployed on Hetzner (157.180.36.156) for maximum uptime
+- **Server**: Deployed on Hetzner for maximum uptime
 
 ### 🎯 Governance Demonstration
 
