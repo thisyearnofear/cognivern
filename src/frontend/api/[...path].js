@@ -21,7 +21,8 @@ export default async function handler(req, res) {
   const apiPath = Array.isArray(path) ? path.join("/") : path || "";
 
   // Build the target URL with query parameters
-  const url = new URL(`http://157.180.36.156/api/${apiPath}`);
+  const backendUrl = process.env.BACKEND_URL || "http://157.180.36.156:3000";
+  const url = new URL(`${backendUrl}/api/${apiPath}`);
 
   // Forward query parameters (excluding the path parameter)
   Object.keys(req.query).forEach((key) => {
@@ -39,7 +40,9 @@ export default async function handler(req, res) {
 
   // Get API key from environment variable (server-side only)
   const apiKey =
-    process.env.RECALL_API_KEY || "5ffd36bb15925fe2_dd811d9881d72940";
+    process.env.API_KEY ||
+    process.env.RECALL_API_KEY ||
+    "5ffd36bb15925fe2_dd811d9881d72940";
 
   console.log("Proxy request:", {
     method: req.method,

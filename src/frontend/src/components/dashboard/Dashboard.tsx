@@ -39,7 +39,7 @@ export default function Dashboard() {
       try {
         setLoading(true);
         console.log("Fetching real blockchain metrics from backend");
-        const response = await fetch("/api/proxy/metrics/daily", {
+        const response = await fetch("/api/metrics/daily", {
           headers: {
             "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
           },

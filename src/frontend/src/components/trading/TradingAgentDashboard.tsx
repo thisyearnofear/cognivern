@@ -107,10 +107,9 @@ export default function TradingAgentDashboard() {
 
   const fetchRecallAgentData = async (headers: Record<string, string>) => {
     // Fetch Recall trading decisions
-    const decisionsResponse = await fetch(
-      "/api/proxy/agents/recall/decisions",
-      { headers }
-    );
+    const decisionsResponse = await fetch("/api/agents/recall/decisions", {
+      headers,
+    });
     if (decisionsResponse.ok) {
       const decisions = await decisionsResponse.json();
       setTradingDecisions(
@@ -119,7 +118,7 @@ export default function TradingAgentDashboard() {
     }
 
     // Fetch Recall agent status
-    const statusResponse = await fetch("/api/proxy/agents/recall/status", {
+    const statusResponse = await fetch("/api/agents/recall/status", {
       headers,
     });
     if (statusResponse.ok) {
@@ -130,12 +129,9 @@ export default function TradingAgentDashboard() {
 
   const fetchVincentAgentData = async (headers: Record<string, string>) => {
     // Fetch Vincent trading decisions
-    const decisionsResponse = await fetch(
-      "/api/proxy/agents/vincent/decisions",
-      {
-        headers,
-      }
-    );
+    const decisionsResponse = await fetch("/api/agents/vincent/decisions", {
+      headers,
+    });
     if (decisionsResponse.ok) {
       const decisions = await decisionsResponse.json();
       setTradingDecisions(
@@ -144,7 +140,7 @@ export default function TradingAgentDashboard() {
     }
 
     // Fetch Vincent agent status
-    const statusResponse = await fetch("/api/proxy/agents/vincent/status", {
+    const statusResponse = await fetch("/api/agents/vincent/status", {
       headers,
     });
     if (statusResponse.ok) {
@@ -172,7 +168,7 @@ export default function TradingAgentDashboard() {
   const handlePolicyUpdate = async (policies: any) => {
     try {
       const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
-      const response = await fetch("/api/proxy/agents/vincent/policies", {
+      const response = await fetch("/api/agents/vincent/policies", {
         method: "POST",
         headers: {
           "X-API-KEY": apiKey,
@@ -194,8 +190,8 @@ export default function TradingAgentDashboard() {
       const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
       const endpoint =
         selectedAgentType === "recall"
-          ? "/api/proxy/agents/recall/start"
-          : "/api/proxy/agents/vincent/start";
+          ? "/api/agents/recall/start"
+          : "/api/agents/vincent/start";
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -215,8 +211,8 @@ export default function TradingAgentDashboard() {
       const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
       const endpoint =
         selectedAgentType === "recall"
-          ? "/api/proxy/agents/recall/stop"
-          : "/api/proxy/agents/vincent/stop";
+          ? "/api/agents/recall/stop"
+          : "/api/agents/vincent/stop";
 
       const response = await fetch(endpoint, {
         method: "POST",

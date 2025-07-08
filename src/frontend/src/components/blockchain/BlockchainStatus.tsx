@@ -35,7 +35,7 @@ export default function BlockchainStatus() {
     async function fetchBlockchainStats() {
       try {
         setLoading(true);
-        const apiUrl = getApiUrl("/api/proxy/dashboard/unified");
+        const apiUrl = getApiUrl("/api/dashboard/unified");
 
         // Only log in development (removed for security)
         // No logging in production to prevent sensitive data exposure
