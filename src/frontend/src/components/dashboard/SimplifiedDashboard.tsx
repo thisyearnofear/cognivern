@@ -56,7 +56,7 @@ export default function SimplifiedDashboard({ userType }: DashboardProps) {
       const headers = { "X-API-KEY": apiKey };
 
       // Fetch unified dashboard data
-      const unifiedResponse = await fetch("/api/proxy/dashboard/unified", {
+      const unifiedResponse = await fetch("/api/dashboard/unified", {
         headers,
       });
       if (unifiedResponse.ok) {
@@ -73,7 +73,7 @@ export default function SimplifiedDashboard({ userType }: DashboardProps) {
       }
 
       // Fetch trading status
-      const tradingResponse = await fetch("/api/proxy/trading/status", {
+      const tradingResponse = await fetch("/api/trading/status", {
         headers,
       });
       if (tradingResponse.ok) {
@@ -82,7 +82,7 @@ export default function SimplifiedDashboard({ userType }: DashboardProps) {
       }
 
       // Fetch policies
-      const policiesResponse = await fetch("/api/proxy/policies", { headers });
+      const policiesResponse = await fetch("/api/policies", { headers });
       if (policiesResponse.ok) {
         const data = await policiesResponse.json();
         setPolicies(data.policies || []);

@@ -20,7 +20,7 @@ export default function WelcomeFlow({ onComplete }: WelcomeFlowProps) {
     const fetchGovernanceData = async () => {
       try {
         const headers = getApiHeaders();
-        const response = await fetch("/api/proxy/dashboard/summary", {
+        const response = await fetch("/api/dashboard/summary", {
           headers,
         });
         if (response.ok) {

@@ -65,7 +65,7 @@ export default function AuditLogs() {
 
       const queryParams = new URLSearchParams(queryObject).toString();
 
-      const response = await fetch(`/api/proxy/audit-logs?${queryParams}`, {
+      const response = await fetch(`/api/audit-logs?${queryParams}`, {
         headers: {
           "X-API-KEY":
             import.meta.env.VITE_API_KEY ||
