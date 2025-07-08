@@ -21,8 +21,7 @@ export default async function handler(req, res) {
   const apiPath = Array.isArray(path) ? path.join("/") : path || "";
 
   // Build the target URL with query parameters
-  const backendUrl = process.env.BACKEND_URL || "http://157.180.36.156:3000";
-  const url = new URL(`${backendUrl}/api/${apiPath}`);
+  const url = new URL(`http://157.180.36.156/api/${apiPath}`);
 
   // Forward query parameters (excluding the path parameter)
   Object.keys(req.query).forEach((key) => {
@@ -50,7 +49,11 @@ export default async function handler(req, res) {
     targetUrl,
     hasApiKey: !!apiKey,
     apiKeyLength: apiKey?.length,
-    envVars: Object.keys(process.env).filter((key) => key.includes("RECALL")),
+    backendUrl: process.env.BACKEND_URL,
+    envVars: Object.keys(process.env).filter(
+      (key) =>
+        key.includes("RECALL") || key.includes("API") || key.includes("BACKEND")
+    ),
   });
 
   try {
