@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getApiUrl } from "../../utils/api.js";
 import "./SimplifiedDashboard.css";
 import BlockchainStatus from "../blockchain/BlockchainStatus";
 
@@ -56,7 +57,7 @@ export default function SimplifiedDashboard({ userType }: DashboardProps) {
       const headers = { "X-API-KEY": apiKey };
 
       // Fetch unified dashboard data
-      const unifiedResponse = await fetch("/api/dashboard/unified", {
+      const unifiedResponse = await fetch(getApiUrl("/api/dashboard/unified"), {
         headers,
       });
       if (unifiedResponse.ok) {
@@ -73,7 +74,7 @@ export default function SimplifiedDashboard({ userType }: DashboardProps) {
       }
 
       // Fetch trading status
-      const tradingResponse = await fetch("/api/trading/status", {
+      const tradingResponse = await fetch(getApiUrl("/api/trading/status"), {
         headers,
       });
       if (tradingResponse.ok) {
@@ -82,7 +83,7 @@ export default function SimplifiedDashboard({ userType }: DashboardProps) {
       }
 
       // Fetch policies
-      const policiesResponse = await fetch("/api/policies", { headers });
+      const policiesResponse = await fetch(getApiUrl("/api/policies"), { headers });
       if (policiesResponse.ok) {
         const data = await policiesResponse.json();
         setPolicies(data.policies || []);

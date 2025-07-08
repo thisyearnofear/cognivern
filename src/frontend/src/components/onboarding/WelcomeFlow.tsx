@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import "./WelcomeFlow.css";
-import { getApiHeaders } from "../../utils/api.js";
+import { getApiHeaders, getApiUrl } from "../../utils/api.js";
 
 interface WelcomeFlowProps {
   onComplete: (userType: string) => void;
@@ -20,7 +20,7 @@ export default function WelcomeFlow({ onComplete }: WelcomeFlowProps) {
     const fetchGovernanceData = async () => {
       try {
         const headers = getApiHeaders();
-        const response = await fetch("/api/dashboard/summary", {
+        const response = await fetch(getApiUrl("/api/dashboard/summary"), {
           headers,
         });
         if (response.ok) {

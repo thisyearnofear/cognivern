@@ -32,12 +32,11 @@ export function getApiHeaders(): Record<string, string> {
     "Content-Type": "application/json",
   };
 
-  // Only include API key in development
-  if (import.meta.env.DEV) {
-    const apiKey = getApiKey();
-    if (apiKey) {
-      headers["X-API-KEY"] = apiKey;
-    }
+  // Always include API key for backend authentication
+  const apiKey =
+    import.meta.env.VITE_API_KEY || "5ffd36bb15925fe2_dd811d9881d72940";
+  if (apiKey) {
+    headers["X-API-KEY"] = apiKey;
   }
 
   return headers;
@@ -45,26 +44,30 @@ export function getApiHeaders(): Record<string, string> {
 
 /**
  * Get the correct API URL based on environment
- * - Production (Vercel): Use relative URLs to leverage proxy
- * - Development: Use relative URLs that go through Vite proxy
- * - Hetzner Server: Use relative URLs that go through Nginx proxy
+ * - Production: Direct calls to backend server
+ * - Development: Use Vite proxy for local development
  */
 export function getApiUrl(endpoint: string): string {
   // Clean the endpoint to ensure proper formatting
   let cleanEndpoint = endpoint;
 
-  // If the endpoint already starts with /api/, use it as is
-  if (cleanEndpoint.startsWith("/api/")) {
-    return cleanEndpoint;
+  // Ensure endpoint starts with /api/
+  if (!cleanEndpoint.startsWith("/api/")) {
+    if (cleanEndpoint.startsWith("/")) {
+      cleanEndpoint = `/api${cleanEndpoint}`;
+    } else {
+      cleanEndpoint = `/api/${cleanEndpoint}`;
+    }
   }
-  // If it starts with a slash but not /api/, add the /api prefix
-  else if (cleanEndpoint.startsWith("/")) {
-    return `/api${cleanEndpoint}`;
+
+  // In production, call backend directly
+  if (import.meta.env.PROD) {
+    const backendUrl = "http://157.180.36.156:3000";
+    return `${backendUrl}${cleanEndpoint}`;
   }
-  // Otherwise, add /api/ prefix
-  else {
-    return `/api/${cleanEndpoint}`;
-  }
+
+  // In development, use Vite proxy
+  return cleanEndpoint;
 }
 
 /**

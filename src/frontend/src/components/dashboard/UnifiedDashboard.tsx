@@ -120,37 +120,37 @@ export default function UnifiedDashboard() {
         completedCompetitionsRes,
         feedRes,
       ] = await Promise.all([
-        fetch("/api/dashboard/summary", {
+        fetch(getApiUrl("/api/dashboard/summary"), {
           headers: {
             "X-API-KEY":
               import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
           },
         }),
-        fetch("/api/agents/unified?limit=10", {
+        fetch(getApiUrl("/api/agents/unified?limit=10"), {
           headers: {
             "X-API-KEY":
               import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
           },
         }),
-        fetch("/api/agents/unified?limit=50", {
+        fetch(getApiUrl("/api/agents/unified?limit=50"), {
           headers: {
             "X-API-KEY":
               import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
           },
         }),
-        fetch("/api/recall/competitions/live", {
+        fetch(getApiUrl("/api/recall/competitions/live"), {
           headers: {
             "X-API-KEY":
               import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
           },
         }),
-        fetch("/api/recall/competitions/completed?limit=20", {
+        fetch(getApiUrl("/api/recall/competitions/completed?limit=20"), {
           headers: {
             "X-API-KEY":
               import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
           },
         }),
-        fetch("/api/feed/live", {
+        fetch(getApiUrl("/api/feed/live"), {
           headers: {
             "X-API-KEY":
               import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
@@ -193,7 +193,7 @@ export default function UnifiedDashboard() {
 
   const importWinnerToGovernance = async (competitionId: string) => {
     try {
-      const response = await fetch("/api/pipeline/import-winner", {
+      const response = await fetch(getApiUrl("/api/pipeline/import-winner"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
