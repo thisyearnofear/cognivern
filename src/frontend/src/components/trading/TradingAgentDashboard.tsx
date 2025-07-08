@@ -194,8 +194,8 @@ export default function TradingAgentDashboard() {
       const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
       const endpoint =
         selectedAgentType === "recall"
-          ? "/api/agents/recall/start"
-          : "/api/agents/vincent/start";
+          ? "/api/proxy/agents/recall/start"
+          : "/api/proxy/agents/vincent/start";
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -215,8 +215,8 @@ export default function TradingAgentDashboard() {
       const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
       const endpoint =
         selectedAgentType === "recall"
-          ? "/api/agents/recall/stop"
-          : "/api/agents/vincent/stop";
+          ? "/api/proxy/agents/recall/stop"
+          : "/api/proxy/agents/vincent/stop";
 
       const response = await fetch(endpoint, {
         method: "POST",
