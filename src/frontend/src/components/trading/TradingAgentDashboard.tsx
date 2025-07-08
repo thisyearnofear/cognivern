@@ -50,8 +50,11 @@ interface VincentStatus {
 }
 
 export default function TradingAgentDashboard() {
-  const [selectedAgentType, setSelectedAgentType] = useState<AgentType>("recall");
-  const [tradingDecisions, setTradingDecisions] = useState<TradingDecision[]>([]);
+  const [selectedAgentType, setSelectedAgentType] =
+    useState<AgentType>("recall");
+  const [tradingDecisions, setTradingDecisions] = useState<TradingDecision[]>(
+    []
+  );
   const [agentStatus, setAgentStatus] = useState<AgentStatus>({
     isActive: false,
     lastUpdate: new Date().toISOString(),
@@ -104,14 +107,21 @@ export default function TradingAgentDashboard() {
 
   const fetchRecallAgentData = async (headers: Record<string, string>) => {
     // Fetch Recall trading decisions
-    const decisionsResponse = await fetch("/api/agents/recall/decisions", { headers });
+    const decisionsResponse = await fetch(
+      "/api/proxy/agents/recall/decisions",
+      { headers }
+    );
     if (decisionsResponse.ok) {
       const decisions = await decisionsResponse.json();
-      setTradingDecisions(decisions.map((d: any) => ({ ...d, agentType: "recall" })));
+      setTradingDecisions(
+        decisions.map((d: any) => ({ ...d, agentType: "recall" }))
+      );
     }
 
     // Fetch Recall agent status
-    const statusResponse = await fetch("/api/agents/recall/status", { headers });
+    const statusResponse = await fetch("/api/proxy/agents/recall/status", {
+      headers,
+    });
     if (statusResponse.ok) {
       const status = await statusResponse.json();
       setAgentStatus(status);
@@ -120,14 +130,23 @@ export default function TradingAgentDashboard() {
 
   const fetchVincentAgentData = async (headers: Record<string, string>) => {
     // Fetch Vincent trading decisions
-    const decisionsResponse = await fetch("/api/agents/vincent/decisions", { headers });
+    const decisionsResponse = await fetch(
+      "/api/proxy/agents/vincent/decisions",
+      {
+        headers,
+      }
+    );
     if (decisionsResponse.ok) {
       const decisions = await decisionsResponse.json();
-      setTradingDecisions(decisions.map((d: any) => ({ ...d, agentType: "vincent" })));
+      setTradingDecisions(
+        decisions.map((d: any) => ({ ...d, agentType: "vincent" }))
+      );
     }
 
     // Fetch Vincent agent status
-    const statusResponse = await fetch("/api/agents/vincent/status", { headers });
+    const statusResponse = await fetch("/api/proxy/agents/vincent/status", {
+      headers,
+    });
     if (statusResponse.ok) {
       const status = await statusResponse.json();
       setAgentStatus(status.agentStatus);
@@ -143,7 +162,7 @@ export default function TradingAgentDashboard() {
   const handleVincentConsent = async () => {
     try {
       // Redirect to Vincent consent page
-      const consentUrl = `https://dashboard.heyvincent.ai/appId/827/consent?redirectUri=${encodeURIComponent(window.location.origin + '/vincent/callback')}`;
+      const consentUrl = `https://dashboard.heyvincent.ai/appId/827/consent?redirectUri=${encodeURIComponent(window.location.origin + "/vincent/callback")}`;
       window.location.href = consentUrl;
     } catch (err) {
       setError("Failed to initiate Vincent consent flow");
@@ -153,7 +172,7 @@ export default function TradingAgentDashboard() {
   const handlePolicyUpdate = async (policies: any) => {
     try {
       const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
-      const response = await fetch("/api/agents/vincent/policies", {
+      const response = await fetch("/api/proxy/agents/vincent/policies", {
         method: "POST",
         headers: {
           "X-API-KEY": apiKey,
@@ -163,7 +182,7 @@ export default function TradingAgentDashboard() {
       });
 
       if (response.ok) {
-        setVincentStatus(prev => ({ ...prev, policies }));
+        setVincentStatus((prev) => ({ ...prev, policies }));
       }
     } catch (err) {
       setError("Failed to update policies");
@@ -173,9 +192,10 @@ export default function TradingAgentDashboard() {
   const startAgent = async () => {
     try {
       const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
-      const endpoint = selectedAgentType === "recall" 
-        ? "/api/agents/recall/start" 
-        : "/api/agents/vincent/start";
+      const endpoint =
+        selectedAgentType === "recall"
+          ? "/api/agents/recall/start"
+          : "/api/agents/vincent/start";
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -183,7 +203,7 @@ export default function TradingAgentDashboard() {
       });
 
       if (response.ok) {
-        setAgentStatus(prev => ({ ...prev, isActive: true }));
+        setAgentStatus((prev) => ({ ...prev, isActive: true }));
       }
     } catch (err) {
       setError(`Failed to start ${selectedAgentType} agent`);
@@ -193,9 +213,10 @@ export default function TradingAgentDashboard() {
   const stopAgent = async () => {
     try {
       const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
-      const endpoint = selectedAgentType === "recall" 
-        ? "/api/agents/recall/stop" 
-        : "/api/agents/vincent/stop";
+      const endpoint =
+        selectedAgentType === "recall"
+          ? "/api/agents/recall/stop"
+          : "/api/agents/vincent/stop";
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -203,7 +224,7 @@ export default function TradingAgentDashboard() {
       });
 
       if (response.ok) {
-        setAgentStatus(prev => ({ ...prev, isActive: false }));
+        setAgentStatus((prev) => ({ ...prev, isActive: false }));
       }
     } catch (err) {
       setError(`Failed to stop ${selectedAgentType} agent`);
@@ -214,7 +235,9 @@ export default function TradingAgentDashboard() {
     <div className="trading-agent-dashboard">
       <div className="dashboard-header">
         <h2>🤖 AI Trading Agent Dashboard</h2>
-        <p>Monitor and control your AI trading agents with governance oversight</p>
+        <p>
+          Monitor and control your AI trading agents with governance oversight
+        </p>
       </div>
 
       {/* Agent Type Selector */}
@@ -241,7 +264,7 @@ export default function TradingAgentDashboard() {
               onConsent={handleVincentConsent}
             />
           )}
-          
+
           {vincentStatus.hasConsent && (
             <PolicyConfiguration
               policies={vincentStatus.policies}
@@ -255,7 +278,9 @@ export default function TradingAgentDashboard() {
       <AgentStats
         agentType={selectedAgentType}
         status={agentStatus}
-        vincentStatus={selectedAgentType === "vincent" ? vincentStatus : undefined}
+        vincentStatus={
+          selectedAgentType === "vincent" ? vincentStatus : undefined
+        }
         onStart={startAgent}
         onStop={stopAgent}
         isLoading={isLoading}
