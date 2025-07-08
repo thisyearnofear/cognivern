@@ -101,11 +101,18 @@ class DirectTradingAgent {
     const url = `${BASE_URL}${endpoint}`;
 
     try {
+      // Add timeout for slow API responses
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       const response = await fetch(url, {
         method,
         headers: this.headers,
         body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -113,7 +120,11 @@ class DirectTradingAgent {
       }
 
       return await response.json();
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === "AbortError") {
+        console.error(`⏰ Request timeout for ${endpoint} (30s)`);
+        throw new Error(`Request timeout for ${endpoint}`);
+      }
       console.error(`❌ Request failed for ${endpoint}:`, error);
       throw error;
     }

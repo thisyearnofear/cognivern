@@ -4,15 +4,22 @@ import react from "@vitejs/plugin-react";
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  console.log(
-    "Vite backend URL:",
-    env.VITE_BACKEND_URL || "http://localhost:3000"
-  );
+  const backendUrl = env.VITE_BACKEND_URL;
+
+  console.log("Vite backend URL:", backendUrl);
+
   return {
     plugins: [react()],
-    // Disable proxy - use direct API calls instead
     server: {
-      // No proxy configuration - frontend will make direct calls to VITE_API_BASE_URL
+      proxy: {
+        // Proxy API requests to the backend server
+        "/api": {
+          target: backendUrl,
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path,
+        },
+      },
     },
   };
 });

@@ -55,13 +55,21 @@ export default function SimplifiedDashboard({ userType }: DashboardProps) {
       const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
       const headers = { "X-API-KEY": apiKey };
 
-      // Fetch governance stats
-      const statsResponse = await fetch("/api/filecoin/governance/stats", {
+      // Fetch unified dashboard data
+      const unifiedResponse = await fetch("/api/dashboard/unified", {
         headers,
       });
-      if (statsResponse.ok) {
-        const stats = await statsResponse.json();
-        setGovernanceStats(stats);
+      if (unifiedResponse.ok) {
+        const unifiedData = await unifiedResponse.json();
+
+        // Update governance stats with unified data
+        setGovernanceStats({
+          status: "active",
+          totalActions: unifiedData.competition.totalActions,
+          totalAgents: unifiedData.competition.activeAgents,
+          approvalRate: unifiedData.competition.approvalRate,
+          totalViolations: unifiedData.competition.policyViolations,
+        });
       }
 
       // Fetch trading status

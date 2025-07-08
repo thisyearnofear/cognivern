@@ -108,7 +108,7 @@ The agent employs 6 distinct trading strategies that rotate throughout the day:
 
 **Server Infrastructure**:
 
-- Deployed on dedicated Hetzner server (157.180.36.156)
+- Deployed on dedicated Hetzner server
 - 24/7 uptime with automatic restart capabilities
 - Real-time logging and monitoring
 

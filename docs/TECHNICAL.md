@@ -369,7 +369,7 @@ The autonomous trading agent demonstrates real-world AI governance through live 
 
 ```typescript
 // Environment Variables
-RECALL_TRADING_API_KEY=5ffd36bb15925fe2_dd811d9881d72940
+RECALL_TRADING_API_KEY=your_recall_trading_api_key_here
 RECALL_TRADING_BASE_URL=https://api.sandbox.competitions.recall.network
 
 // Trading Parameters

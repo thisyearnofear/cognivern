@@ -12,6 +12,7 @@ import { RecallCompetitionService } from "./services/RecallCompetitionService.js
 import { CogniverseService } from "./services/CogniverseService.js";
 import { TradingCompetitionGovernanceService } from "./services/TradingCompetitionGovernanceService.js";
 import { RecallService } from "./services/RecallService.js";
+import { UnifiedDataService } from "./services/UnifiedDataService.js";
 import { RecallClient } from "@recallnet/sdk/client";
 import { Address } from "viem";
 import logger from "./utils/logger.js";
@@ -158,6 +159,18 @@ app.get("/api/dashboard/summary", apiKeyMiddleware, async (req, res) => {
   } catch (error) {
     logger.error("Error fetching dashboard summary:", error);
     res.status(500).json({ error: "Failed to fetch dashboard summary" });
+  }
+});
+
+// Unified blockchain data endpoint
+app.get("/api/dashboard/unified", apiKeyMiddleware, async (req, res) => {
+  try {
+    const unifiedDataService = UnifiedDataService.getInstance();
+    const unifiedStats = await unifiedDataService.getUnifiedStats();
+    res.json(unifiedStats);
+  } catch (error) {
+    logger.error("Error fetching unified dashboard data:", error);
+    res.status(500).json({ error: "Failed to fetch unified dashboard data" });
   }
 });
 

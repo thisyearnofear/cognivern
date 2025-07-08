@@ -35,7 +35,7 @@ export default function BlockchainStatus() {
     async function fetchBlockchainStats() {
       try {
         setLoading(true);
-        const apiUrl = getApiUrl("/api/blockchain/stats");
+        const apiUrl = getApiUrl("/api/dashboard/unified");
 
         // Only log in development (removed for security)
         // No logging in production to prevent sensitive data exposure
@@ -54,8 +54,35 @@ export default function BlockchainStatus() {
           throw new Error(`Error: ${response.status}`);
         }
 
-        const data = await response.json();
-        setStats(data);
+        const unifiedData = await response.json();
+
+        // Transform unified data to match ContractStats interface
+        const transformedStats: ContractStats = {
+          filecoin: {
+            network: "Filecoin Calibration Testnet",
+            chainId: 314159,
+            rpcUrl: "https://api.calibration.node.glif.io/rpc/v1",
+            governanceContract:
+              unifiedData.blockchain.governanceContract.address,
+            storageContract: unifiedData.blockchain.storageContract.address,
+            usdcToken: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+          },
+          recall: {
+            network: "testnet",
+            tradingAPI: "https://api.sandbox.competitions.recall.network",
+            configured: true,
+          },
+          governance: {
+            address: unifiedData.blockchain.governanceContract.address,
+            policies: unifiedData.blockchain.governanceContract.policies,
+            agents: unifiedData.blockchain.governanceContract.agents,
+            actions: unifiedData.blockchain.governanceContract.actions,
+            violations: unifiedData.competition.policyViolations,
+            approvalRate: unifiedData.competition.approvalRate,
+          },
+        };
+
+        setStats(transformedStats);
         setError(null);
       } catch (err) {
         console.error("Error fetching blockchain stats:", err);

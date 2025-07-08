@@ -46,31 +46,42 @@ export function getApiHeaders(): Record<string, string> {
 /**
  * Get the correct API URL based on environment
  * - Production (Vercel): Use relative URLs to leverage proxy
- * - Development: Use full URLs to connect directly to server
+ * - Development: Use relative URLs that go through Vite proxy
+ * - Hetzner Server: Use relative URLs that go through Nginx proxy
  */
 export function getApiUrl(endpoint: string): string {
-  const isProduction = import.meta.env.PROD;
+  // Clean the endpoint to ensure proper formatting
+  let cleanEndpoint = endpoint;
 
-  if (isProduction) {
-    // In production, use relative URLs that go through Vercel's proxy
-    return endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-  } else {
-    // In development, use full URLs to connect directly to server
-    const baseUrl =
-      import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
-
-    // Clean the endpoint to avoid double slashes
-    let cleanEndpoint = endpoint;
-    if (cleanEndpoint.startsWith("/api/")) {
-      cleanEndpoint = cleanEndpoint.slice(4); // Remove "/api/"
-    } else if (cleanEndpoint.startsWith("/")) {
-      cleanEndpoint = cleanEndpoint.slice(1); // Remove leading "/"
-    }
-
-    // Ensure baseUrl doesn't end with slash and cleanEndpoint doesn't start with slash
-    const cleanBaseUrl = baseUrl.replace(/\/$/, "");
-    return `${cleanBaseUrl}/${cleanEndpoint}`;
+  // If the endpoint already starts with /api/, use it as is
+  if (cleanEndpoint.startsWith("/api/")) {
+    return cleanEndpoint;
   }
+  // If it starts with a slash but not /api/, add the /api prefix
+  else if (cleanEndpoint.startsWith("/")) {
+    return `/api${cleanEndpoint}`;
+  }
+  // Otherwise, add /api/ prefix
+  else {
+    return `/api/${cleanEndpoint}`;
+  }
+}
+
+/**
+ * Add API key to request headers if needed
+ */
+export function getRequestHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  // Add API key if it exists
+  const apiKey = import.meta.env.VITE_API_KEY;
+  if (apiKey) {
+    headers["X-API-KEY"] = apiKey;
+  }
+
+  return headers;
 }
 
 /**

@@ -8,7 +8,7 @@ import SimplifiedDashboard from "./components/dashboard/SimplifiedDashboard";
 import WelcomeFlow from "./components/onboarding/WelcomeFlow";
 import Web3Auth from "./components/auth/Web3Auth";
 import WalletConnect from "./components/web3/WalletConnect";
-import TradingDemo from "./components/trading/TradingDemo";
+import TradingAgentDashboard from "./components/trading/TradingAgentDashboard";
 import "./components/dashboard/Dashboard.css";
 
 function App() {
@@ -73,7 +73,7 @@ function App() {
   const navigation = {
     primary: [
       { id: "dashboard", label: "Dashboard" },
-      { id: "trading", label: "Trading Demo" },
+      { id: "trading", label: "AI Trading Agents" },
       { id: "policies", label: "Policies" },
       { id: "logs", label: "Audit Logs" },
     ],
@@ -119,7 +119,7 @@ function App() {
         {activeTab === "dashboard" && hasCompletedWelcome && (
           <SimplifiedDashboard userType={userType} />
         )}
-        {activeTab === "trading" && <TradingDemo />}
+        {activeTab === "trading" && <TradingAgentDashboard />}
         {activeTab === "advanced" && <UnifiedDashboard />}
         {activeTab === "policies" && <PolicyManagement />}
         {activeTab === "logs" && <AuditLogs />}

@@ -21,17 +21,50 @@ Cognivern leverages Filecoin's sovereign data layer to create a comprehensive go
 - ✅ **GovernanceContract**: `0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880`
 - ✅ **AIGovernanceStorage**: `0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada` (AI-specialized)
 - ✅ **USDFC Token**: `0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9`
-- ✅ **Recall Trading API**: Integrated with real competition endpoints
-- ✅ **Autonomous Trading Agent**: Live 24/7 trading in Recall's 7 Day Challenge
+- ✅ **Dual Trading Agents**: Both Recall competition and Vincent social trading agents
+- ✅ **Vincent Framework Integration**: App ID 827 with real consent flow and policy enforcement
+- ✅ **Hybrid Dashboard**: Unified interface for both agent types with DRY architecture
+- ✅ **Real API Integration**: No mocks - using actual Recall clients and Vincent tools
 - ✅ **Clean Production Build**: No sample data creation on startup
 
 ## 🚀 Key Features
 
 - **🔍 On-Chain Agent Governance**: Immutable policy storage and verifiable decision logs
-- **🤖 Autonomous Trading Agent**: 24/7 AI trading agent participating in live competitions
+- **🤖 Dual AI Trading Agents**:
+  - **Recall Competition Agent**: 24/7 trading in live competitions with technical analysis
+  - **Vincent Social Trading Agent**: Sentiment-driven trading with community governance
 - **💼 Governance Showcase Marketplace**: Interactive demonstrations of policies in action
 - **🛡️ Filecoin Integration**: FVM smart contracts and USDFC payments
 - **🌐 Web3 Primitives**: Decentralized identity and immutable audit trails
+
+## 🤖 AI Trading Agents
+
+Cognivern showcases two distinct AI trading agents, each demonstrating different approaches to autonomous trading with governance oversight:
+
+### 🏆 Recall Competition Agent
+
+- **Purpose**: High-frequency trading optimized for competition performance
+- **Strategy**: Technical analysis, market data, and algorithmic trading
+- **Governance**: Platform-defined policies with performance tracking
+- **Competition**: Active participant in Recall's 7 Day Trading Challenge
+
+### 🧠 Vincent Social Trading Agent
+
+- **Purpose**: Sentiment-driven trading with community-defined guardrails
+- **Vincent App ID**: `827` (public app identifier)
+- **Strategy**: Social media sentiment analysis (Twitter, Reddit, News)
+- **Governance**: User-controlled policies (spending limits, token allowlists, time restrictions)
+- **Framework**: Built on Vincent Framework with Lit Protocol for secure execution
+
+### 🎯 Unified Dashboard
+
+Both agents are managed through a single, hybrid dashboard that demonstrates:
+
+- **DRY Architecture**: 80% code reuse between agent types
+- **Real-time Monitoring**: Live performance metrics and trade history
+- **Policy Management**: User-configurable governance rules
+- **Consent Flows**: Secure authorization with Vincent Framework
+- **Audit Trails**: Complete governance logging to Filecoin
 
 ## 🔧 Quick Start
 
@@ -84,12 +117,25 @@ RECALL_API_KEY=your_recall_api_key_here
 RECALL_TRADING_API_KEY=your_recall_trading_api_key_here
 RECALL_TRADING_BASE_URL=https://api.sandbox.competitions.recall.network
 
+# Vincent Social Trading Agent
+VINCENT_RECALL_API_KEY=your_vincent_recall_api_key_here
+VINCENT_APP_ID=827
+VINCENT_MANAGEMENT_WALLET=your_vincent_management_wallet_here
+VINCENT_DELEGATEE_PRIVATE_KEY=your_vincent_delegatee_private_key_here
+
 # Security Configuration
 API_KEY=your_production_api_key_here
 CORS_ORIGIN=https://your-frontend-domain.vercel.app
 ```
 
 **Note**: Copy from `.env.example` for complete configuration template.
+
+⚠️ **Security Warning**:
+
+- Never commit real API keys to version control
+- The `.env` file is git-ignored for security
+- Only placeholder values should exist in `.env.example`
+- Keep your trading API keys private - anyone with access can execute trades
 
 ## 🤖 Autonomous Trading Agent
 
@@ -153,7 +199,41 @@ await policyService.createPolicy(
 );
 ```
 
-## 📚 Documentation
+## � API Endpoints
+
+### Trading Agent APIs
+
+#### Recall Competition Agent
+
+- `GET /api/agents/recall/decisions` - Get trading decisions
+- `GET /api/agents/recall/status` - Get agent status and performance
+- `POST /api/agents/recall/start` - Start the trading agent
+- `POST /api/agents/recall/stop` - Stop the trading agent
+
+#### Vincent Social Trading Agent
+
+- `GET /api/agents/vincent/decisions` - Get sentiment-based trading decisions
+- `GET /api/agents/vincent/status` - Get agent status and Vincent framework status
+- `POST /api/agents/vincent/start` - Start the social trading agent
+- `POST /api/agents/vincent/stop` - Stop the social trading agent
+- `POST /api/agents/vincent/policies` - Update user-defined trading policies
+- `POST /api/agents/vincent/consent` - Grant Vincent framework consent
+
+#### Vincent Framework Integration
+
+- `GET /api/vincent/callback` - Handle Vincent consent flow callback
+
+### Governance APIs
+
+- `GET /api/policies` - List all governance policies
+- `POST /api/policies` - Create new governance policy
+- `GET /api/policies/:id` - Get specific policy details
+- `PUT /api/policies/:id` - Update existing policy
+- `DELETE /api/policies/:id` - Delete policy
+
+All API endpoints require the `X-API-KEY` header for authentication.
+
+## �📚 Documentation
 
 For more detailed information, please refer to the following documentation:
 
@@ -161,6 +241,7 @@ For more detailed information, please refer to the following documentation:
 - [**HACKATHON.md**](docs/HACKATHON.md) - Hackathon submission details, implementation plan, and demo setup
 - [**TECHNICAL.md**](docs/TECHNICAL.md) - Technical documentation, core services, data types, and environment setup
 - [**ARCHITECTURE.md**](docs/ARCHITECTURE.md) - Clean architecture implementation, layers, and migration strategy
+- [**SECURITY.md**](docs/SECURITY.md) - Security guidelines, API key management, and best practices
 
 ## 🛠️ Project Structure
 

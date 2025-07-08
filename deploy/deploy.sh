@@ -9,9 +9,9 @@ echo "🚀 Starting Cognivern deployment to Hetzner..."
 
 # Configuration
 SERVER_USER="root"
-SERVER_HOST="157.180.36.156"  # Your Hetzner server IP
+SERVER_HOST= # Your Hetzner server IP
 DEPLOY_PATH="/opt/cognivern"
-DOMAIN="157.180.36.156"  # Using IP for now, change to domain later
+DOMAIN= # Using IP for now, change to domain later
 
 # Colors for output
 RED='\033[0;31m'
