@@ -120,37 +120,37 @@ export default function UnifiedDashboard() {
         completedCompetitionsRes,
         feedRes,
       ] = await Promise.all([
-        fetch("/api/dashboard/summary", {
+        fetch("/api/proxy/dashboard/summary", {
           headers: {
             "X-API-KEY":
               import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
           },
         }),
-        fetch("/api/agents/unified?limit=10", {
+        fetch("/api/proxy/agents/unified?limit=10", {
           headers: {
             "X-API-KEY":
               import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
           },
         }),
-        fetch("/api/agents/unified?limit=50", {
+        fetch("/api/proxy/agents/unified?limit=50", {
           headers: {
             "X-API-KEY":
               import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
           },
         }),
-        fetch("/api/recall/competitions/live", {
+        fetch("/api/proxy/recall/competitions/live", {
           headers: {
             "X-API-KEY":
               import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
           },
         }),
-        fetch("/api/recall/competitions/completed?limit=20", {
+        fetch("/api/proxy/recall/competitions/completed?limit=20", {
           headers: {
             "X-API-KEY":
               import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
           },
         }),
-        fetch("/api/feed/live", {
+        fetch("/api/proxy/feed/live", {
           headers: {
             "X-API-KEY":
               import.meta.env.VITE_API_KEY || "escheat-api-key-123456",

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 // Match the backend Metrics interface structure
 interface Metrics {
@@ -38,10 +38,10 @@ export default function Dashboard() {
     async function fetchMetrics() {
       try {
         setLoading(true);
-        console.log('Fetching real blockchain metrics from backend');
-        const response = await fetch('/api/metrics/daily', {
+        console.log("Fetching real blockchain metrics from backend");
+        const response = await fetch("/api/proxy/metrics/daily", {
           headers: {
-            'X-API-KEY': import.meta.env.VITE_API_KEY || 'development-api-key',
+            "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
           },
         });
 
@@ -50,12 +50,12 @@ export default function Dashboard() {
         }
 
         const data = await response.json();
-        console.log('Received real blockchain metrics:', data);
+        console.log("Received real blockchain metrics:", data);
         setMetrics(data);
         setError(null);
       } catch (err) {
-        console.error('Error fetching metrics:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        console.error("Error fetching metrics:", err);
+        setError(err instanceof Error ? err.message : "Unknown error");
         setMetrics(null);
       } finally {
         setLoading(false);
@@ -89,7 +89,10 @@ export default function Dashboard() {
     <div className="dashboard">
       <h2>Agent Metrics Dashboard</h2>
       <p className="dashboard-update-time">
-        Last updated: {metrics?.timestamp ? new Date(metrics.timestamp).toLocaleString() : 'Never'}
+        Last updated:{" "}
+        {metrics?.timestamp
+          ? new Date(metrics.timestamp).toLocaleString()
+          : "Never"}
       </p>
 
       {metrics ? (
@@ -102,7 +105,10 @@ export default function Dashboard() {
                 <li>The bucket is new or empty</li>
                 <li>There may be connection issues with the Recall service</li>
               </ul>
-              <p>The dashboard will automatically update when data becomes available.</p>
+              <p>
+                The dashboard will automatically update when data becomes
+                available.
+              </p>
             </div>
           )}
 
@@ -114,9 +120,15 @@ export default function Dashboard() {
                 <div className="metric-header">Total Actions</div>
                 <p className="metric-value">{metrics.data.actions.total}</p>
                 <div className="metric-breakdown">
-                  <span className="success">✓ {metrics.data.actions.successful}</span>
-                  <span className="failure">✗ {metrics.data.actions.failed}</span>
-                  <span className="blocked">⚠ {metrics.data.actions.blocked}</span>
+                  <span className="success">
+                    ✓ {metrics.data.actions.successful}
+                  </span>
+                  <span className="failure">
+                    ✗ {metrics.data.actions.failed}
+                  </span>
+                  <span className="blocked">
+                    ⚠ {metrics.data.actions.blocked}
+                  </span>
                 </div>
               </div>
             </div>
@@ -130,7 +142,8 @@ export default function Dashboard() {
                   <div>
                     <span className="label">Average</span>
                     <span className="value">
-                      {metrics.data.performance.averageResponseTime.toFixed(2)} ms
+                      {metrics.data.performance.averageResponseTime.toFixed(2)}{" "}
+                      ms
                     </span>
                   </div>
                   <div>
@@ -161,11 +174,15 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <span className="label">Passed</span>
-                    <span className="value success">{metrics.data.policies.enforced}</span>
+                    <span className="value success">
+                      {metrics.data.policies.enforced}
+                    </span>
                   </div>
                   <div>
                     <span className="label">Violations</span>
-                    <span className="value failure">{metrics.data.policies.violations}</span>
+                    <span className="value failure">
+                      {metrics.data.policies.violations}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -179,15 +196,21 @@ export default function Dashboard() {
                 <div className="metric-multi-value">
                   <div>
                     <span className="label">CPU</span>
-                    <span className="value">{metrics.data.resources.cpuUsage}%</span>
+                    <span className="value">
+                      {metrics.data.resources.cpuUsage}%
+                    </span>
                   </div>
                   <div>
                     <span className="label">Memory</span>
-                    <span className="value">{metrics.data.resources.memoryUsage} MB</span>
+                    <span className="value">
+                      {metrics.data.resources.memoryUsage} MB
+                    </span>
                   </div>
                   <div>
                     <span className="label">Storage</span>
-                    <span className="value">{metrics.data.resources.storageUsage} GB</span>
+                    <span className="value">
+                      {metrics.data.resources.storageUsage} GB
+                    </span>
                   </div>
                 </div>
               </div>
