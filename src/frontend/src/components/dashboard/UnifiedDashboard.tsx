@@ -193,7 +193,7 @@ export default function UnifiedDashboard() {
 
   const importWinnerToGovernance = async (competitionId: string) => {
     try {
-      const response = await fetch("/api/pipeline/import-winner", {
+      const response = await fetch("/api/proxy/pipeline/import-winner", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

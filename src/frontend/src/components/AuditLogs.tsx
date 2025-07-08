@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import './AuditLogs.css';
+import { useState, useEffect } from "react";
+import "./AuditLogs.css";
 
 interface AuditLog {
   id: string;
@@ -19,7 +19,7 @@ interface AuditLog {
   metadata: {
     modelVersion: string;
     governancePolicy: string;
-    complianceStatus: 'compliant' | 'non-compliant' | 'warning';
+    complianceStatus: "compliant" | "non-compliant" | "warning";
     latencyMs: number;
   };
 }
@@ -37,11 +37,13 @@ export default function AuditLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>({
-    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
-    agentId: '',
-    actionType: '',
-    complianceStatus: '',
+    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
+    agentId: "",
+    actionType: "",
+    complianceStatus: "",
   });
 
   useEffect(() => {
@@ -56,15 +58,18 @@ export default function AuditLogs() {
         endDate: filters.endDate,
         ...(filters.agentId && { agentId: filters.agentId }),
         ...(filters.actionType && { actionType: filters.actionType }),
-        ...(filters.complianceStatus && { complianceStatus: filters.complianceStatus }),
+        ...(filters.complianceStatus && {
+          complianceStatus: filters.complianceStatus,
+        }),
       };
 
       const queryParams = new URLSearchParams(queryObject).toString();
 
-      const response = await fetch(`/api/audit-logs?${queryParams}`, {
+      const response = await fetch(`/api/proxy/audit-logs?${queryParams}`, {
         headers: {
-          'X-API-KEY':
-            import.meta.env.VITE_API_KEY || 'Y10tiPBsbyEaZtVEvhu5uRj+YoRRiZQ6m3lsTOky1LQ=',
+          "X-API-KEY":
+            import.meta.env.VITE_API_KEY ||
+            "Y10tiPBsbyEaZtVEvhu5uRj+YoRRiZQ6m3lsTOky1LQ=",
         },
       });
 
@@ -76,8 +81,10 @@ export default function AuditLogs() {
       setLogs(data);
       setError(null);
     } catch (err) {
-      console.error('Error fetching audit logs:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load audit logs');
+      console.error("Error fetching audit logs:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to load audit logs"
+      );
     } finally {
       setLoading(false);
     }
@@ -98,7 +105,7 @@ export default function AuditLogs() {
               type="date"
               id="startDate"
               value={filters.startDate}
-              onChange={(e) => handleFilterChange('startDate', e.target.value)}
+              onChange={(e) => handleFilterChange("startDate", e.target.value)}
             />
           </div>
           <div className="filter-group">
@@ -107,7 +114,7 @@ export default function AuditLogs() {
               type="date"
               id="endDate"
               value={filters.endDate}
-              onChange={(e) => handleFilterChange('endDate', e.target.value)}
+              onChange={(e) => handleFilterChange("endDate", e.target.value)}
             />
           </div>
           <div className="filter-group">
@@ -117,7 +124,7 @@ export default function AuditLogs() {
               id="agentId"
               placeholder="Filter by agent ID"
               value={filters.agentId}
-              onChange={(e) => handleFilterChange('agentId', e.target.value)}
+              onChange={(e) => handleFilterChange("agentId", e.target.value)}
             />
           </div>
           <div className="filter-group">
@@ -125,7 +132,7 @@ export default function AuditLogs() {
             <select
               id="actionType"
               value={filters.actionType}
-              onChange={(e) => handleFilterChange('actionType', e.target.value)}
+              onChange={(e) => handleFilterChange("actionType", e.target.value)}
             >
               <option value="">All Actions</option>
               <option value="analysis">Analysis</option>
@@ -138,7 +145,9 @@ export default function AuditLogs() {
             <select
               id="complianceStatus"
               value={filters.complianceStatus}
-              onChange={(e) => handleFilterChange('complianceStatus', e.target.value)}
+              onChange={(e) =>
+                handleFilterChange("complianceStatus", e.target.value)
+              }
             >
               <option value="">All Status</option>
               <option value="compliant">Compliant</option>
@@ -174,7 +183,9 @@ export default function AuditLogs() {
         {logs.map((log) => (
           <div key={log.id} className="log-entry">
             <div className="log-header">
-              <div className="log-timestamp">{new Date(log.timestamp).toLocaleString()}</div>
+              <div className="log-timestamp">
+                {new Date(log.timestamp).toLocaleString()}
+              </div>
               <div className="log-agent">Agent: {log.agentId}</div>
               <div className={`log-status ${log.metadata.complianceStatus}`}>
                 {log.metadata.complianceStatus}
@@ -203,9 +214,14 @@ export default function AuditLogs() {
                 <h5>Policy Checks</h5>
                 <div className="checks-grid">
                   {log.policyChecks.map((check, index) => (
-                    <div key={index} className={`check-item ${check.result ? 'passed' : 'failed'}`}>
+                    <div
+                      key={index}
+                      className={`check-item ${check.result ? "passed" : "failed"}`}
+                    >
                       <span className="check-policy">{check.policyId}</span>
-                      <span className="check-result">{check.result ? '✓' : '✗'}</span>
+                      <span className="check-result">
+                        {check.result ? "✓" : "✗"}
+                      </span>
                       <span className="check-reason">{check.reason}</span>
                     </div>
                   ))}
