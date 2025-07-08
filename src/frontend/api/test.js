@@ -19,7 +19,15 @@ export default async function handler(req, res) {
       path: req.url,
       env: {
         hasApiKey: !!process.env.RECALL_API_KEY,
+        hasBackendUrl: !!process.env.BACKEND_URL,
         nodeEnv: process.env.NODE_ENV,
+        backendUrl: process.env.BACKEND_URL || "NOT_SET",
+        envVars: Object.keys(process.env).filter(
+          (key) =>
+            key.includes("BACKEND") ||
+            key.includes("API") ||
+            key.includes("RECALL")
+        ),
       },
     });
   } catch (error) {
