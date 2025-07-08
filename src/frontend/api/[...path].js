@@ -5,6 +5,13 @@
 
 // Vercel serverless function
 export default async function handler(req, res) {
+  console.log("=== PROXY FUNCTION CALLED ===", {
+    url: req.url,
+    method: req.method,
+    query: req.query,
+    timestamp: new Date().toISOString(),
+  });
+
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -39,9 +46,7 @@ export default async function handler(req, res) {
 
   // Get API key from environment variable (server-side only)
   const apiKey =
-    process.env.API_KEY ||
-    process.env.RECALL_API_KEY ||
-    "5ffd36bb15925fe2_dd811d9881d72940";
+    process.env.RECALL_API_KEY || "5ffd36bb15925fe2_dd811d9881d72940";
 
   console.log("Proxy request:", {
     method: req.method,
@@ -49,11 +54,7 @@ export default async function handler(req, res) {
     targetUrl,
     hasApiKey: !!apiKey,
     apiKeyLength: apiKey?.length,
-    backendUrl: process.env.BACKEND_URL,
-    envVars: Object.keys(process.env).filter(
-      (key) =>
-        key.includes("RECALL") || key.includes("API") || key.includes("BACKEND")
-    ),
+    envVars: Object.keys(process.env).filter((key) => key.includes("RECALL")),
   });
 
   try {
