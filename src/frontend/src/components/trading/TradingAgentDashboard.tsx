@@ -68,7 +68,7 @@ export default function TradingAgentDashboard() {
   });
   const [vincentStatus, setVincentStatus] = useState<VincentStatus>({
     isConnected: false,
-    hasConsent: false,
+    hasConsent: false, // Will be updated from API call
     appId: "827",
     policies: {
       dailySpendingLimit: 500,
@@ -240,29 +240,10 @@ export default function TradingAgentDashboard() {
   return (
     <div className="trading-agent-dashboard">
       <div className="dashboard-header">
-        <div className="header-content">
-          <div className="header-left">
-            <h2>🤖 AI Trading Agent Dashboard</h2>
-            <p>
-              Monitor and control your AI trading agents with governance
-              oversight
-            </p>
-          </div>
-          <div className="header-right">
-            <div className="live-status">
-              <div className="status-indicator">
-                <span className="pulse-dot"></span>
-                <span className="status-text">Live Trading</span>
-              </div>
-              {selectedAgentType === "recall" && (
-                <div className="competition-status">
-                  <span className="competition-badge">🏆 7 Day Challenge</span>
-                  <span className="competition-time">3d 12h remaining</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <h2>🤖 AI Trading Agent Dashboard</h2>
+        <p>
+          Monitor and control your AI trading agents with governance oversight
+        </p>
       </div>
 
       {/* Agent Type Selector */}
