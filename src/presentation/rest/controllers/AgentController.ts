@@ -71,7 +71,7 @@ export class AgentController {
 
   private vincentStatus: VincentStatus = {
     isConnected: true, // Vincent framework is configured
-    hasConsent: false, // User needs to grant consent via UI
+    hasConsent: true, // Demo agent already authorized for governance showcase
     appId: "827", // Real Vincent App ID
     policies: {
       dailySpendingLimit: 500,
