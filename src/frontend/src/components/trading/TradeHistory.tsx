@@ -25,16 +25,24 @@ interface TradeHistoryProps {
   isLoading: boolean;
 }
 
-export default function TradeHistory({ decisions, agentType, isLoading }: TradeHistoryProps) {
+export default function TradeHistory({
+  decisions,
+  agentType,
+  isLoading,
+}: TradeHistoryProps) {
   const [filter, setFilter] = useState<"all" | "buy" | "sell" | "hold">("all");
-  const [sortBy, setSortBy] = useState<"timestamp" | "confidence" | "price">("timestamp");
+  const [sortBy, setSortBy] = useState<"timestamp" | "confidence" | "price">(
+    "timestamp"
+  );
 
   const filteredDecisions = decisions
-    .filter(decision => filter === "all" || decision.action === filter)
+    .filter((decision) => filter === "all" || decision.action === filter)
     .sort((a, b) => {
       switch (sortBy) {
         case "timestamp":
-          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+          return (
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
         case "confidence":
           return b.confidence - a.confidence;
         case "price":
@@ -51,11 +59,35 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
 
   const getActionColor = (action: string) => {
     switch (action) {
-      case "buy": return "#10b981";
-      case "sell": return "#ef4444";
-      case "hold": return "#6b7280";
-      default: return "#6b7280";
+      case "buy":
+        return "#10b981";
+      case "sell":
+        return "#ef4444";
+      case "hold":
+        return "#6b7280";
+      default:
+        return "#6b7280";
     }
+  };
+
+  const getGovernanceStatus = (decision: TradingDecision) => {
+    // Simulate governance checks based on decision data
+    const hasHighConfidence = decision.confidence > 0.7;
+    const isReasonableRisk = decision.riskScore < 0.8;
+    const isReasonableSize = decision.quantity * decision.price < 1000; // Under $1000
+
+    const checks = [
+      { name: "Confidence Threshold", passed: hasHighConfidence },
+      { name: "Risk Limit", passed: isReasonableRisk },
+      { name: "Position Size", passed: isReasonableSize },
+    ];
+
+    const passedChecks = checks.filter((c) => c.passed).length;
+    return {
+      checks,
+      score: Math.round((passedChecks / checks.length) * 100),
+      status: passedChecks === checks.length ? "approved" : "flagged",
+    };
   };
 
   if (isLoading) {
@@ -75,7 +107,10 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
   return (
     <div className="trade-history">
       <div className="history-header">
-        <h3>📋 {agentType === "recall" ? "Competition" : "Sentiment"} Trade History</h3>
+        <h3>
+          📋 {agentType === "recall" ? "Competition" : "Sentiment"} Trade
+          History
+        </h3>
         <div className="history-controls">
           <select
             value={filter}
@@ -87,7 +122,7 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
             <option value="sell">Sell Orders</option>
             <option value="hold">Hold Decisions</option>
           </select>
-          
+
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
@@ -105,10 +140,9 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
           <div className="no-trades-icon">📊</div>
           <h4>No trades found</h4>
           <p>
-            {decisions.length === 0 
+            {decisions.length === 0
               ? `Start the ${agentType} agent to see trade history`
-              : `No trades match the current filter`
-            }
+              : `No trades match the current filter`}
           </p>
         </div>
       ) : (
@@ -121,13 +155,19 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
             <div className="summary-stat">
               <span className="stat-label">Avg Confidence:</span>
               <span className="stat-value">
-                {(filteredDecisions.reduce((sum, d) => sum + d.confidence, 0) / filteredDecisions.length * 100).toFixed(1)}%
+                {(
+                  (filteredDecisions.reduce((sum, d) => sum + d.confidence, 0) /
+                    filteredDecisions.length) *
+                  100
+                ).toFixed(1)}
+                %
               </span>
             </div>
             <div className="summary-stat">
               <span className="stat-label">Actions:</span>
               <span className="stat-value">
-                {filteredDecisions.filter(d => d.action !== "hold").length} executed
+                {filteredDecisions.filter((d) => d.action !== "hold").length}{" "}
+                executed
               </span>
             </div>
           </div>
@@ -137,15 +177,19 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
               <div key={index} className={`trade-item ${decision.action}`}>
                 <div className="trade-header">
                   <div className="trade-action">
-                    <span 
+                    <span
                       className="action-badge"
-                      style={{ backgroundColor: getActionColor(decision.action) }}
+                      style={{
+                        backgroundColor: getActionColor(decision.action),
+                      }}
                     >
                       {decision.action.toUpperCase()}
                     </span>
                     <span className="trade-symbol">{decision.symbol}</span>
                   </div>
-                  <div className="trade-time">{formatTime(decision.timestamp)}</div>
+                  <div className="trade-time">
+                    {formatTime(decision.timestamp)}
+                  </div>
                 </div>
 
                 <div className="trade-details">
@@ -155,13 +199,15 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Price:</span>
-                    <span className="detail-value">${decision.price.toFixed(2)}</span>
+                    <span className="detail-value">
+                      ${decision.price.toFixed(2)}
+                    </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Confidence:</span>
                     <span className="detail-value">
                       <div className="confidence-bar">
-                        <div 
+                        <div
                           className="confidence-fill"
                           style={{ width: `${decision.confidence * 100}%` }}
                         ></div>
@@ -173,7 +219,9 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Risk Score:</span>
-                    <span className={`detail-value risk-${decision.riskScore > 70 ? 'high' : decision.riskScore > 40 ? 'medium' : 'low'}`}>
+                    <span
+                      className={`detail-value risk-${decision.riskScore > 70 ? "high" : decision.riskScore > 40 ? "medium" : "low"}`}
+                    >
                       {decision.riskScore.toFixed(1)}
                     </span>
                   </div>
@@ -184,6 +232,40 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
                   <p className="reasoning-text">{decision.reasoning}</p>
                 </div>
 
+                {/* Governance Status */}
+                <div className="governance-status">
+                  <span className="governance-label">🛡️ Governance:</span>
+                  <div className="governance-details">
+                    {(() => {
+                      const governance = getGovernanceStatus(decision);
+                      return (
+                        <div className="governance-summary">
+                          <span
+                            className={`governance-badge ${governance.status}`}
+                          >
+                            {governance.status === "approved"
+                              ? "✅ Approved"
+                              : "⚠️ Flagged"}
+                          </span>
+                          <span className="governance-score">
+                            {governance.score}% compliance
+                          </span>
+                          <div className="governance-checks">
+                            {governance.checks.map((check, i) => (
+                              <span
+                                key={i}
+                                className={`check-item ${check.passed ? "passed" : "failed"}`}
+                              >
+                                {check.passed ? "✓" : "✗"} {check.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
                 {/* Vincent-specific sentiment data */}
                 {agentType === "vincent" && decision.sentimentData && (
                   <div className="sentiment-data">
@@ -191,14 +273,17 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
                     <div className="sentiment-details">
                       <div className="sentiment-score">
                         <span className="sentiment-label">Score:</span>
-                        <span className={`sentiment-value ${decision.sentimentData.sentiment > 0 ? 'positive' : 'negative'}`}>
+                        <span
+                          className={`sentiment-value ${decision.sentimentData.sentiment > 0 ? "positive" : "negative"}`}
+                        >
                           {(decision.sentimentData.sentiment * 100).toFixed(1)}%
                         </span>
                       </div>
                       <div className="sentiment-confidence">
                         <span className="sentiment-label">Confidence:</span>
                         <span className="sentiment-value">
-                          {(decision.sentimentData.confidence * 100).toFixed(1)}%
+                          {(decision.sentimentData.confidence * 100).toFixed(1)}
+                          %
                         </span>
                       </div>
                       <div className="sentiment-sources">

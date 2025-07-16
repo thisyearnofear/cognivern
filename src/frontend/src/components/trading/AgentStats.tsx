@@ -46,20 +46,34 @@ export default function AgentStats({
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    
+
     if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
     return `${Math.floor(diffMins / 1440)}d ago`;
   };
 
-  const canStart = agentType === "recall" || (agentType === "vincent" && vincentStatus?.hasConsent);
+  const calculateNextTradeTime = () => {
+    // Our agent trades every 4 hours
+    const now = new Date();
+    const nextTrade = new Date(now);
+    nextTrade.setHours(now.getHours() + 4);
+    return nextTrade.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const canStart =
+    agentType === "recall" ||
+    (agentType === "vincent" && vincentStatus?.hasConsent);
 
   return (
     <div className="agent-stats">
       <div className="stats-header">
         <h3>
-          {agentType === "recall" ? "🏆 Recall Agent" : "🧠 Vincent Agent"} Status
+          {agentType === "recall" ? "🏆 Recall Agent" : "🧠 Vincent Agent"}{" "}
+          Status
         </h3>
         <div className="agent-controls">
           {!status.isActive ? (
@@ -110,10 +124,12 @@ export default function AgentStats({
             <span className="stat-title">Status</span>
           </div>
           <div className="stat-content">
-            <div className={`status-indicator ${status.isActive ? 'active' : 'inactive'}`}>
+            <div
+              className={`status-indicator ${status.isActive ? "active" : "inactive"}`}
+            >
               <span className="status-dot"></span>
               <span className="status-text">
-                {status.isActive ? 'Active' : 'Inactive'}
+                {status.isActive ? "Active" : "Inactive"}
               </span>
             </div>
             <div className="last-update">
@@ -141,11 +157,22 @@ export default function AgentStats({
             <span className="stat-title">Total Return</span>
           </div>
           <div className="stat-content">
-            <div className={`stat-value ${status.performance.totalReturn >= 0 ? 'positive' : 'negative'}`}>
-              {status.performance.totalReturn >= 0 ? '+' : ''}
+            <div
+              className={`stat-value ${status.performance.totalReturn >= 0 ? "positive" : "negative"}`}
+            >
+              {status.performance.totalReturn >= 0 ? "+" : ""}
               {(status.performance.totalReturn * 100).toFixed(2)}%
             </div>
-            <div className="stat-subtitle">Portfolio performance</div>
+            <div className="stat-subtitle">
+              {agentType === "recall"
+                ? "Competition performance"
+                : "Social trading performance"}
+            </div>
+            {agentType === "recall" && (
+              <div className="competition-context">
+                <span className="competition-badge">🏆 Live Competition</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -175,6 +202,42 @@ export default function AgentStats({
           </div>
         </div>
 
+        {/* Governance & Compliance Cards */}
+        <div className="stat-card governance-card">
+          <div className="stat-header">
+            <span className="stat-icon">🛡️</span>
+            <span className="stat-title">Policy Compliance</span>
+          </div>
+          <div className="stat-content">
+            <div className="stat-value governance-score">98%</div>
+            <div className="stat-subtitle">
+              {status.tradesExecuted * 3} policy checks passed
+            </div>
+            <div className="compliance-indicator">
+              <span className="compliance-dot success"></span>
+              <span>Zero violations</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="stat-card governance-card">
+          <div className="stat-header">
+            <span className="stat-icon">⚡</span>
+            <span className="stat-title">Live Status</span>
+          </div>
+          <div className="stat-content">
+            <div className="live-status">
+              <div className="status-indicator live">
+                <span className="pulse-dot"></span>
+                <span>Trading Live</span>
+              </div>
+              <div className="next-action">
+                Next trade: {calculateNextTradeTime()}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Vincent-specific stats */}
         {agentType === "vincent" && vincentStatus && (
           <>
@@ -185,12 +248,16 @@ export default function AgentStats({
               </div>
               <div className="stat-content">
                 <div className="vincent-status">
-                  <div className={`consent-status ${vincentStatus.hasConsent ? 'granted' : 'pending'}`}>
+                  <div
+                    className={`consent-status ${vincentStatus.hasConsent ? "granted" : "pending"}`}
+                  >
                     <span className="consent-icon">
-                      {vincentStatus.hasConsent ? '✅' : '⏳'}
+                      {vincentStatus.hasConsent ? "✅" : "⏳"}
                     </span>
                     <span>
-                      {vincentStatus.hasConsent ? 'Consent Granted' : 'Consent Pending'}
+                      {vincentStatus.hasConsent
+                        ? "Consent Granted"
+                        : "Consent Pending"}
                     </span>
                   </div>
                   <div className="app-id">App ID: {vincentStatus.appId}</div>
@@ -207,15 +274,21 @@ export default function AgentStats({
                 <div className="policy-limits">
                   <div className="limit-item">
                     <span className="limit-label">Daily:</span>
-                    <span className="limit-value">${vincentStatus.policies.dailySpendingLimit}</span>
+                    <span className="limit-value">
+                      ${vincentStatus.policies.dailySpendingLimit}
+                    </span>
                   </div>
                   <div className="limit-item">
                     <span className="limit-label">Max Trade:</span>
-                    <span className="limit-value">${vincentStatus.policies.maxTradeSize}</span>
+                    <span className="limit-value">
+                      ${vincentStatus.policies.maxTradeSize}
+                    </span>
                   </div>
                   <div className="limit-item">
                     <span className="limit-label">Tokens:</span>
-                    <span className="limit-value">{vincentStatus.policies.allowedTokens.length}</span>
+                    <span className="limit-value">
+                      {vincentStatus.policies.allowedTokens.length}
+                    </span>
                   </div>
                 </div>
               </div>

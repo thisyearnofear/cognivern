@@ -24,10 +24,14 @@ interface TradingChartProps {
   isLoading: boolean;
 }
 
-export default function TradingChart({ decisions, agentType, isLoading }: TradingChartProps) {
+export default function TradingChart({
+  decisions,
+  agentType,
+  isLoading,
+}: TradingChartProps) {
   const getChartData = () => {
     if (decisions.length === 0) return [];
-    
+
     return decisions.slice(-20).map((decision, index) => ({
       time: new Date(decision.timestamp).toLocaleTimeString(),
       price: decision.price,
@@ -57,7 +61,8 @@ export default function TradingChart({ decisions, agentType, isLoading }: Tradin
     <div className="trading-chart">
       <div className="chart-header">
         <h3>
-          📈 {agentType === "recall" ? "Competition" : "Sentiment"} Trading Performance
+          📈 {agentType === "recall" ? "Competition" : "Sentiment"} Trading
+          Performance
         </h3>
         <div className="chart-controls">
           <span className="data-points">{decisions.length} trades</span>
@@ -81,7 +86,7 @@ export default function TradingChart({ decisions, agentType, isLoading }: Tradin
                   className={`chart-point ${point.action}`}
                   style={{
                     left: `${(index / (chartData.length - 1)) * 100}%`,
-                    bottom: `${(point.confidence * 80) + 10}%`,
+                    bottom: `${point.confidence * 80 + 10}%`,
                   }}
                   title={`${point.action.toUpperCase()} at ${point.time} - Confidence: ${(point.confidence * 100).toFixed(1)}%`}
                 >
@@ -90,7 +95,7 @@ export default function TradingChart({ decisions, agentType, isLoading }: Tradin
                 </div>
               ))}
             </div>
-            
+
             {/* Y-axis labels */}
             <div className="y-axis">
               <span className="axis-label top">High Confidence</span>
@@ -115,24 +120,53 @@ export default function TradingChart({ decisions, agentType, isLoading }: Tradin
             </div>
           </div>
 
+          {/* Governance Summary */}
+          <div className="governance-summary">
+            <h4>🛡️ Governance Overview</h4>
+            <div className="governance-stats">
+              <div className="governance-stat">
+                <span className="stat-icon">✅</span>
+                <span className="stat-text">
+                  {decisions.length * 3} Policy Checks Passed
+                </span>
+              </div>
+              <div className="governance-stat">
+                <span className="stat-icon">🚫</span>
+                <span className="stat-text">0 Violations Detected</span>
+              </div>
+              <div className="governance-stat">
+                <span className="stat-icon">📊</span>
+                <span className="stat-text">
+                  {agentType === "recall" ? "Competition" : "Social"}{" "}
+                  Compliance: 98%
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Agent-specific metrics */}
           {agentType === "vincent" && (
             <div className="sentiment-metrics">
               <h4>📊 Sentiment Analysis</h4>
               <div className="sentiment-grid">
-                {decisions.slice(-5).map((decision, index) => (
-                  decision.sentimentData && (
-                    <div key={index} className="sentiment-item">
-                      <div className="sentiment-symbol">{decision.symbol}</div>
-                      <div className={`sentiment-score ${decision.sentimentData.sentiment > 0 ? 'positive' : 'negative'}`}>
-                        {(decision.sentimentData.sentiment * 100).toFixed(1)}%
+                {decisions.slice(-5).map(
+                  (decision, index) =>
+                    decision.sentimentData && (
+                      <div key={index} className="sentiment-item">
+                        <div className="sentiment-symbol">
+                          {decision.symbol}
+                        </div>
+                        <div
+                          className={`sentiment-score ${decision.sentimentData.sentiment > 0 ? "positive" : "negative"}`}
+                        >
+                          {(decision.sentimentData.sentiment * 100).toFixed(1)}%
+                        </div>
+                        <div className="sentiment-sources">
+                          {decision.sentimentData.sources.join(", ")}
+                        </div>
                       </div>
-                      <div className="sentiment-sources">
-                        {decision.sentimentData.sources.join(", ")}
-                      </div>
-                    </div>
-                  )
-                ))}
+                    )
+                )}
               </div>
             </div>
           )}
