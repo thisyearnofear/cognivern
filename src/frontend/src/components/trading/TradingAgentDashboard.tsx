@@ -133,9 +133,12 @@ export default function TradingAgentDashboard() {
 
   const fetchVincentAgentData = async (headers: Record<string, string>) => {
     // Fetch Vincent trading decisions
-    const decisionsResponse = await fetch(getApiUrl("/api/agents/vincent/decisions"), {
-      headers,
-    });
+    const decisionsResponse = await fetch(
+      getApiUrl("/api/agents/vincent/decisions"),
+      {
+        headers,
+      }
+    );
     if (decisionsResponse.ok) {
       const decisions = await decisionsResponse.json();
       setTradingDecisions(
@@ -144,9 +147,12 @@ export default function TradingAgentDashboard() {
     }
 
     // Fetch Vincent agent status
-    const statusResponse = await fetch(getApiUrl("/api/agents/vincent/status"), {
-      headers,
-    });
+    const statusResponse = await fetch(
+      getApiUrl("/api/agents/vincent/status"),
+      {
+        headers,
+      }
+    );
     if (statusResponse.ok) {
       const status = await statusResponse.json();
       setAgentStatus(status.agentStatus);
@@ -234,10 +240,29 @@ export default function TradingAgentDashboard() {
   return (
     <div className="trading-agent-dashboard">
       <div className="dashboard-header">
-        <h2>🤖 AI Trading Agent Dashboard</h2>
-        <p>
-          Monitor and control your AI trading agents with governance oversight
-        </p>
+        <div className="header-content">
+          <div className="header-left">
+            <h2>🤖 AI Trading Agent Dashboard</h2>
+            <p>
+              Monitor and control your AI trading agents with governance
+              oversight
+            </p>
+          </div>
+          <div className="header-right">
+            <div className="live-status">
+              <div className="status-indicator">
+                <span className="pulse-dot"></span>
+                <span className="status-text">Live Trading</span>
+              </div>
+              {selectedAgentType === "recall" && (
+                <div className="competition-status">
+                  <span className="competition-badge">🏆 7 Day Challenge</span>
+                  <span className="competition-time">3d 12h remaining</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Agent Type Selector */}
