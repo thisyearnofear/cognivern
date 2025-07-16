@@ -26,6 +26,8 @@ Cognivern leverages Filecoin's sovereign data layer to create a comprehensive go
 - ✅ **Hybrid Dashboard**: Unified interface for both agent types with DRY architecture
 - ✅ **Real API Integration**: No mocks - using actual Recall clients and Vincent tools
 - ✅ **Clean Production Build**: No sample data creation on startup
+- ✅ **HTTPS Backend**: Secure domain with SSL certificate (`api.thisyearnofear.com`)
+- ✅ **Production Security**: End-to-end encryption with Let's Encrypt SSL
 
 ## 🚀 Key Features
 
@@ -254,6 +256,31 @@ The project has been organized with a clean directory structure:
 - `src/` - Source code for the application
 - `docs/` - Project documentation
 - `scripts/` - Utility scripts for deployment and maintenance
+
+## 🚀 Production Deployment
+
+### **Live URLs**
+
+- **Frontend**: `https://cognivern.vercel.app` (Vercel)
+- **Backend API**: `https://api.thisyearnofear.com` (Hetzner + SSL)
+- **Health Check**: `https://api.thisyearnofear.com/health`
+
+### **Architecture**
+
+```
+Frontend (Vercel) → HTTPS → api.thisyearnofear.com → Backend (Docker)
+```
+
+### **Security Features**
+
+- ✅ **End-to-End HTTPS**: Full SSL encryption
+- ✅ **Custom Domain**: Professional API endpoint
+- ✅ **Let's Encrypt SSL**: Auto-renewing certificates
+- ✅ **No IP Exposure**: Domain-based backend access
+
+### **Deployment Guide**
+
+See `src/frontend/DEPLOYMENT.md` for complete setup instructions.
 
 ## 🗺️ Current Status
 
