@@ -60,9 +60,9 @@ export function getApiUrl(endpoint: string): string {
     }
   }
 
-  // In production, call backend directly
+  // In production, call backend directly via HTTPS domain
   if (import.meta.env.PROD) {
-    const backendUrl = "http://157.180.36.156:3000";
+    const backendUrl = "https://api.thisyearnofear.com";
     return `${backendUrl}${cleanEndpoint}`;
   }
 
