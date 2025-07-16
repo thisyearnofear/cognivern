@@ -60,7 +60,7 @@ export function getApiUrl(endpoint: string): string {
     }
   }
 
-  // In production, call backend directly (temporarily HTTP until SSL is reconfigured)
+  // In production, call backend directly (HTTP for now, HTTPS to be restored)
   if (import.meta.env.PROD) {
     const backendUrl = "http://api.thisyearnofear.com";
     return `${backendUrl}${cleanEndpoint}`;
