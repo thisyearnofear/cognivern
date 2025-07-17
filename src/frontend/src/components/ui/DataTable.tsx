@@ -1,8 +1,22 @@
 import React, { useState, useMemo } from 'react';
-import { designTokens } from '../../styles/designTokens';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { Button } from './Button';
 import { Card } from './Card';
+import {
+  dataTableStyles,
+  dataTableHeaderStyles,
+  getDataTableHeaderCellStyles,
+  getDataTableRowStyles,
+  getDataTableCellStyles,
+  dataTablePaginationStyles,
+  dataTableSearchStyles,
+  dataTableMobileCardStyles,
+  dataTableMobileCardTitleStyles,
+  dataTableLoadingStyles,
+  dataTablePaginationInfoStyles,
+  dataTablePaginationControlsStyles,
+  dataTablePaginationPageInfoStyles,
+} from '../../styles/styles';
 
 export interface Column<T> {
   key: keyof T;
@@ -110,72 +124,18 @@ export function DataTable<T extends Record<string, any>>({
     return String(record[rowKey] || index);
   };
 
-  const tableStyle: React.CSSProperties = {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: designTokens.typography.fontSize.sm,
-  };
-
-  const headerStyle: React.CSSProperties = {
-    backgroundColor: designTokens.colors.neutral[50],
-    borderBottom: `2px solid ${designTokens.colors.neutral[200]}`,
-  };
-
-  const headerCellStyle = (column: Column<T>): React.CSSProperties => ({
-    padding: designTokens.spacing[3],
-    textAlign: column.align || 'left',
-    fontWeight: designTokens.typography.fontWeight.semibold,
-    color: designTokens.colors.neutral[700],
-    cursor: sortable && column.sortable ? 'pointer' : 'default',
-    userSelect: 'none',
-    position: 'relative',
-    width: column.width,
-  });
-
-  const rowStyle = (index: number): React.CSSProperties => ({
-    borderBottom: `1px solid ${designTokens.colors.neutral[200]}`,
-    cursor: onRowClick ? 'pointer' : 'default',
-    transition: `background-color ${designTokens.animation.duration.fast} ${designTokens.animation.easing.easeInOut}`,
-    backgroundColor: index % 2 === 0 ? 'transparent' : designTokens.colors.neutral[25],
-  });
-
-  const cellStyle = (column: Column<T>): React.CSSProperties => ({
-    padding: designTokens.spacing[3],
-    textAlign: column.align || 'left',
-    color: designTokens.colors.neutral[900],
-  });
-
   const getSortIcon = (column: Column<T>) => {
     if (!sortable || !column.sortable) return null;
     
     if (sortColumn !== column.key) {
-      return <span style={{ opacity: 0.3, marginLeft: designTokens.spacing[1] }}>↕️</span>;
+      return <span css={css`opacity: 0.3; margin-left: 4px;`}>↕️</span>;
     }
     
     return (
-      <span style={{ marginLeft: designTokens.spacing[1] }}>
+      <span css={css`margin-left: 4px;`}>
         {sortOrder === 'asc' ? '↑' : '↓'}
       </span>
     );
-  };
-
-  const paginationStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: designTokens.spacing[4],
-    padding: designTokens.spacing[3],
-    borderTop: `1px solid ${designTokens.colors.neutral[200]}`,
-  };
-
-  const searchStyle: React.CSSProperties = {
-    width: '100%',
-    maxWidth: '300px',
-    padding: designTokens.spacing[2],
-    border: `1px solid ${designTokens.colors.neutral[300]}`,
-    borderRadius: designTokens.borderRadius.md,
-    fontSize: designTokens.typography.fontSize.sm,
-    marginBottom: designTokens.spacing[4],
   };
 
   // Mobile card view
@@ -188,35 +148,31 @@ export function DataTable<T extends Record<string, any>>({
             placeholder={searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={searchStyle}
+            css={dataTableSearchStyles}
           />
         )}
         
         {loading ? (
-          <div style={{ textAlign: 'center', padding: designTokens.spacing[8] }}>
+          <div css={dataTableLoadingStyles}>
             <div>Loading...</div>
           </div>
         ) : paginatedData.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: designTokens.spacing[8] }}>
+          <div css={dataTableLoadingStyles}>
             <div>{emptyText}</div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: designTokens.spacing[3] }}>
+          <div css={css`display: flex; flex-direction: column; gap: 12px;`}>
             {paginatedData.map((record, index) => (
               <Card
                 key={getRowKey(record, index)}
                 interactive={!!onRowClick}
                 onClick={() => onRowClick?.(record, index)}
                 padding="md"
+                css={dataTableMobileCardStyles}
               >
                 {columns.map((column) => (
-                  <div key={String(column.key)} style={{ marginBottom: designTokens.spacing[2] }}>
-                    <div style={{ 
-                      fontSize: designTokens.typography.fontSize.xs,
-                      color: designTokens.colors.neutral[500],
-                      fontWeight: designTokens.typography.fontWeight.medium,
-                      marginBottom: designTokens.spacing[1],
-                    }}>
+                  <div key={String(column.key)} css={dataTableMobileCardStyles}>
+                    <div css={dataTableMobileCardTitleStyles}>
                       {column.title}
                     </div>
                     <div>
@@ -233,12 +189,12 @@ export function DataTable<T extends Record<string, any>>({
         )}
         
         {pagination && (
-          <div style={paginationStyle}>
-            <div style={{ fontSize: designTokens.typography.fontSize.sm, color: designTokens.colors.neutral[600] }}>
+          <div css={dataTablePaginationStyles}>
+            <div css={dataTablePaginationInfoStyles}>
               Showing {((pagination.current - 1) * pagination.pageSize) + 1} to{' '}
               {Math.min(pagination.current * pagination.pageSize, pagination.total)} of {pagination.total}
             </div>
-            <div style={{ display: 'flex', gap: designTokens.spacing[2] }}>
+            <div css={dataTablePaginationControlsStyles}>
               <Button
                 variant="outline"
                 size="sm"
@@ -271,18 +227,18 @@ export function DataTable<T extends Record<string, any>>({
           placeholder={searchPlaceholder}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          style={searchStyle}
+          css={dataTableSearchStyles}
         />
       )}
       
-      <div style={{ overflowX: 'auto' }}>
-        <table style={tableStyle}>
-          <thead style={headerStyle}>
+      <div css={css`overflow-x: auto;`}>
+        <table css={dataTableStyles}>
+          <thead css={dataTableHeaderStyles}>
             <tr>
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
-                  style={headerCellStyle(column)}
+                  css={getDataTableHeaderCellStyles(column.align || 'left', !!column.sortable)}
                   onClick={() => handleSort(column)}
                 >
                   {column.title}
@@ -294,13 +250,13 @@ export function DataTable<T extends Record<string, any>>({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={columns.length} style={{ textAlign: 'center', padding: designTokens.spacing[8] }}>
+                <td colSpan={columns.length} css={dataTableLoadingStyles}>
                   Loading...
                 </td>
               </tr>
             ) : paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} style={{ textAlign: 'center', padding: designTokens.spacing[8] }}>
+                <td colSpan={columns.length} css={dataTableLoadingStyles}>
                   {emptyText}
                 </td>
               </tr>
@@ -308,21 +264,11 @@ export function DataTable<T extends Record<string, any>>({
               paginatedData.map((record, index) => (
                 <tr
                   key={getRowKey(record, index)}
-                  style={rowStyle(index)}
+                  css={getDataTableRowStyles(!!onRowClick, index)}
                   onClick={() => onRowClick?.(record, index)}
-                  onMouseEnter={(e) => {
-                    if (onRowClick) {
-                      e.currentTarget.style.backgroundColor = designTokens.colors.neutral[50];
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (onRowClick) {
-                      e.currentTarget.style.backgroundColor = index % 2 === 0 ? 'transparent' : designTokens.colors.neutral[25];
-                    }
-                  }}
                 >
                   {columns.map((column) => (
-                    <td key={String(column.key)} style={cellStyle(column)}>
+                    <td key={String(column.key)} css={getDataTableCellStyles(column.align || 'left')}>
                       {column.render 
                         ? column.render(record[column.key], record, index)
                         : String(record[column.key] || '-')
@@ -337,12 +283,12 @@ export function DataTable<T extends Record<string, any>>({
       </div>
       
       {pagination && (
-        <div style={paginationStyle}>
-          <div style={{ fontSize: designTokens.typography.fontSize.sm, color: designTokens.colors.neutral[600] }}>
+        <div css={dataTablePaginationStyles}>
+          <div css={dataTablePaginationInfoStyles}>
             Showing {((pagination.current - 1) * pagination.pageSize) + 1} to{' '}
             {Math.min(pagination.current * pagination.pageSize, pagination.total)} of {pagination.total}
           </div>
-          <div style={{ display: 'flex', gap: designTokens.spacing[2] }}>
+          <div css={dataTablePaginationControlsStyles}>
             <Button
               variant="outline"
               size="sm"
@@ -351,12 +297,7 @@ export function DataTable<T extends Record<string, any>>({
             >
               Previous
             </Button>
-            <span style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              padding: `0 ${designTokens.spacing[2]}`,
-              fontSize: designTokens.typography.fontSize.sm,
-            }}>
+            <span css={dataTablePaginationPageInfoStyles}>
               Page {pagination.current} of {Math.ceil(pagination.total / pagination.pageSize)}
             </span>
             <Button

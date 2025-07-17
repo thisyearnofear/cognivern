@@ -7,11 +7,11 @@ import prettierConfig from './prettier.config.mjs';
 /** @type {import("eslint").Linter.FlatConfig[]} */ // ✅ Explicitly define type
 const config = [
   {
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ['**/*.ts', '**/*.tsx'], // This will now apply to root-level TS files
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: './tsconfig.json',
+        project: ['./tsconfig.json'], // Assumes a tsconfig.json at the root
       },
     },
     plugins: {
@@ -19,10 +19,10 @@ const config = [
       prettier,
     },
     rules: {
-      ...ts.configs.recommended.rules, // ✅ Ensures TypeScript rules load correctly
-      'prettier/prettier': ['error', prettierConfig], // ✅ Apply Prettier formatting rules
-      '@typescript-eslint/no-explicit-any': 'off', // ✅ Disable for the whole project
-      '@typescript-eslint/no-unused-vars': 'off', // ✅ Disable for the whole project
+      ...ts.configs.recommended.rules,
+      'prettier/prettier': ['error', prettierConfig],
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
   {
@@ -30,4 +30,4 @@ const config = [
   },
 ];
 
-export default config; // ✅ Explicitly export the properly typed config
+export default config;

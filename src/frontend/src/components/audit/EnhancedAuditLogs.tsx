@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { css } from '@emotion/react';
-import { designTokens, shadowSystem, keyframeAnimations, colorSystem } from '../styles/design-system';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/Card';
+import { designTokens, shadowSystem, keyframeAnimations, colorSystem } from '../../styles/design-system';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
 
 interface AuditLog {
   id: string;
@@ -307,7 +307,7 @@ const severityBadgeStyles = css`
   }
 `;
 
-export default function AuditLogs() {
+export default function EnhancedAuditLogs() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
   const [loading, setLoading] = useState(true);

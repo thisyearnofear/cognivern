@@ -69,148 +69,37 @@ export const Sidebar: React.FC = () => {
     updatePreferences({ sidebarCollapsed: !preferences.sidebarCollapsed });
   };
 
-  const sidebarStyle: React.CSSProperties = {
-    gridArea: 'sidebar',
-    backgroundColor: effectiveTheme === 'dark' 
-      ? designTokens.colors.neutral[900] 
-      : designTokens.colors.neutral[0],
-    borderRight: `1px solid ${effectiveTheme === 'dark' 
-      ? designTokens.colors.neutral[700] 
-      : designTokens.colors.neutral[200]}`,
-    padding: preferences.sidebarCollapsed ? designTokens.spacing[2] : designTokens.spacing[4],
-    display: 'flex',
-    flexDirection: 'column',
-    gap: designTokens.spacing[2],
-    transition: `all ${designTokens.animation.duration.normal} ${designTokens.animation.easing.easeInOut}`,
-    overflow: 'hidden',
-    // Mobile overlay behavior
-    ...(isMobile && !preferences.sidebarCollapsed ? {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      bottom: 0,
-      width: '280px',
-      zIndex: designTokens.zIndex.overlay,
-      boxShadow: designTokens.shadows.xl,
-    } : {}),
-  };
-
-  const logoStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: designTokens.spacing[3],
-    padding: designTokens.spacing[3],
-    marginBottom: designTokens.spacing[4],
-    borderBottom: `1px solid ${effectiveTheme === 'dark' 
-      ? designTokens.colors.neutral[700] 
-      : designTokens.colors.neutral[200]}`,
-  };
-
-  const userInfoStyle: React.CSSProperties = {
-    padding: designTokens.spacing[3],
-    backgroundColor: effectiveTheme === 'dark' 
-      ? designTokens.colors.neutral[800] 
-      : designTokens.colors.neutral[50],
-    borderRadius: designTokens.borderRadius.md,
-    marginBottom: designTokens.spacing[4],
-    display: preferences.sidebarCollapsed ? 'none' : 'block',
-  };
-
-  const navItemStyle = (isActive: boolean): React.CSSProperties => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: designTokens.spacing[3],
-    padding: designTokens.spacing[3],
-    borderRadius: designTokens.borderRadius.md,
-    cursor: 'pointer',
-    transition: `all ${designTokens.animation.duration.fast} ${designTokens.animation.easing.easeInOut}`,
-    backgroundColor: isActive 
-      ? (effectiveTheme === 'dark' 
-          ? designTokens.colors.primary[800] 
-          : designTokens.colors.primary[100])
-      : 'transparent',
-    color: isActive 
-      ? (effectiveTheme === 'dark' 
-          ? designTokens.colors.primary[200] 
-          : designTokens.colors.primary[700])
-      : (effectiveTheme === 'dark' 
-          ? designTokens.colors.neutral[300] 
-          : designTokens.colors.neutral[700]),
-    border: isActive 
-      ? `1px solid ${effectiveTheme === 'dark' 
-          ? designTokens.colors.primary[700] 
-          : designTokens.colors.primary[300]}`
-      : '1px solid transparent',
-  });
-
-  const iconStyle: React.CSSProperties = {
-    fontSize: '20px',
-    minWidth: '20px',
-    textAlign: 'center',
-  };
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: designTokens.typography.fontSize.sm,
-    fontWeight: designTokens.typography.fontWeight.medium,
-    display: preferences.sidebarCollapsed ? 'none' : 'block',
-  };
-
-  const descriptionStyle: React.CSSProperties = {
-    fontSize: designTokens.typography.fontSize.xs,
-    opacity: 0.7,
-    display: preferences.sidebarCollapsed ? 'none' : 'block',
-  };
+  const sidebarClasses = [
+    'sidebar',
+    isMobile ? 'is-mobile' : 'is-desktop',
+    preferences.sidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded',
+  ].join(' ');
 
   return (
     <>
       {/* Mobile Overlay */}
       {isMobile && !preferences.sidebarCollapsed && (
         <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: designTokens.zIndex.overlay - 1,
-          }}
+          className="sidebar-overlay"
           onClick={() => updatePreferences({ sidebarCollapsed: true })}
         />
       )}
 
-      <aside style={sidebarStyle}>
+      <aside className={sidebarClasses}>
         {/* Logo and Brand */}
-        <div style={logoStyle}>
-          <span style={{ fontSize: '24px' }}>🧠</span>
+        <div className="sidebar-logo">
+          <span className="sidebar-logo-icon">🧠</span>
           {!preferences.sidebarCollapsed && (
-            <div>
-              <h2 style={{ 
-                margin: 0, 
-                fontSize: designTokens.typography.fontSize.lg,
-                fontWeight: designTokens.typography.fontWeight.bold,
-                color: effectiveTheme === 'dark' 
-                  ? designTokens.colors.neutral[100] 
-                  : designTokens.colors.neutral[900],
-              }}>
-                Cognivern
-              </h2>
-              <p style={{ 
-                margin: 0, 
-                fontSize: designTokens.typography.fontSize.xs,
-                color: effectiveTheme === 'dark' 
-                  ? designTokens.colors.neutral[400] 
-                  : designTokens.colors.neutral[500],
-              }}>
-                AI Governance
-              </p>
+            <div className="sidebar-logo-text">
+              <h2>Cognivern</h2>
+              <p>AI Governance</p>
             </div>
           )}
         </div>
 
         {/* User Info */}
         {user.isConnected && (
-          <div style={userInfoStyle}>
+          <div className={`sidebar-user-info ${preferences.sidebarCollapsed ? 'collapsed' : ''}`}>
             <div style={{ display: 'flex', alignItems: 'center', gap: designTokens.spacing[2] }}>
               <div style={{
                 width: '32px',
@@ -256,26 +145,14 @@ export const Sidebar: React.FC = () => {
             return (
               <div
                 key={item.id}
-                style={navItemStyle(isActive)}
+                className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => navigate(item.path)}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.backgroundColor = effectiveTheme === 'dark' 
-                      ? designTokens.colors.neutral[800] 
-                      : designTokens.colors.neutral[100];
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }
-                }}
               >
-                <span style={iconStyle}>{item.icon}</span>
+                <span className="sidebar-nav-icon">{item.icon}</span>
                 <div>
-                  <div style={labelStyle}>{item.label}</div>
+                  <div className="sidebar-nav-label">{item.label}</div>
                   {item.description && (
-                    <div style={descriptionStyle}>{item.description}</div>
+                    <div className="sidebar-nav-description">{item.description}</div>
                   )}
                 </div>
               </div>
@@ -284,12 +161,7 @@ export const Sidebar: React.FC = () => {
         </nav>
 
         {/* Sidebar Toggle */}
-        <div style={{ 
-          borderTop: `1px solid ${effectiveTheme === 'dark' 
-            ? designTokens.colors.neutral[700] 
-            : designTokens.colors.neutral[200]}`,
-          paddingTop: designTokens.spacing[4],
-        }}>
+        <div className="sidebar-toggle">
           {!isMobile && (
             <Button
               variant="ghost"

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { designTokens } from '../../styles/designTokens';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
+import { chartContainerStyles, chartCanvasStyles, getChartTooltipStyles } from '../../styles/styles';
 
 export interface ChartDataPoint {
   x: number | string;
@@ -380,47 +381,19 @@ export const Chart: React.FC<ChartProps> = ({
     setHoveredPoint(null);
   };
 
-  const containerStyle: React.CSSProperties = {
-    position: 'relative',
-    width: '100%',
-    height: actualHeight,
-    backgroundColor: designTokens.colors.neutral[0],
-    borderRadius: designTokens.borderRadius.lg,
-    border: `1px solid ${designTokens.colors.neutral[200]}`,
-    overflow: 'hidden',
-  };
-
-  const canvasStyle: React.CSSProperties = {
-    display: 'block',
-    width: '100%',
-    height: '100%',
-  };
-
-  const tooltipStyle: React.CSSProperties = {
-    position: 'fixed',
-    left: mousePosition.x + 10,
-    top: mousePosition.y - 10,
-    backgroundColor: designTokens.colors.neutral[900],
-    color: designTokens.colors.neutral[0],
-    padding: designTokens.spacing[2],
-    borderRadius: designTokens.borderRadius.md,
-    fontSize: designTokens.typography.fontSize.sm,
-    pointerEvents: 'none',
-    zIndex: designTokens.zIndex.tooltip,
-    boxShadow: designTokens.shadows.lg,
-  };
+  const tooltipStyles = getChartTooltipStyles(mousePosition.x, mousePosition.y);
 
   return (
-    <div ref={containerRef} style={containerStyle}>
+    <div ref={containerRef} css={chartContainerStyles}>
       <canvas
         ref={canvasRef}
-        style={canvasStyle}
+        css={chartCanvasStyles}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       />
       
       {hoveredPoint && showTooltip && (
-        <div style={tooltipStyle}>
+        <div css={tooltipStyles}>
           <div><strong>{hoveredPoint.label || 'Value'}</strong></div>
           <div>X: {hoveredPoint.x}</div>
           <div>Y: {hoveredPoint.y}</div>

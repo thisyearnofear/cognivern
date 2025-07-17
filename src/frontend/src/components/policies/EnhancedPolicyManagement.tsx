@@ -267,7 +267,7 @@ const ruleTypeStyles = css`
   }
 `;
 
-export default function PolicyManagement() {
+export default function EnhancedPolicyManagement() {
   const [activeTab, setActiveTab] = useState<'templates' | 'policies' | 'agents'>('templates');
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [agentConnections, setAgentConnections] = useState<AgentConnection[]>([]);

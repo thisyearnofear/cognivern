@@ -1,8 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
-import { designTokens } from '../../styles/designTokens';
 import Modal from './Modal';
+import {
+  commandPaletteInputStyles,
+  commandPaletteListStyles,
+  commandPaletteCategoryStyles,
+  getCommandPaletteItemStyles,
+  commandPaletteIconStyles,
+  commandPaletteTextStyles,
+  commandPaletteTitleStyles,
+  commandPaletteDescriptionStyles,
+  commandPaletteInputContainerStyles,
+  commandPaletteNoResultsStyles,
+  commandPaletteFooterStyles,
+} from '../../styles/styles';
 
 interface Command {
   id: string;
@@ -222,71 +234,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     help: 'Help',
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: designTokens.spacing[4],
-    fontSize: designTokens.typography.fontSize.lg,
-    border: 'none',
-    outline: 'none',
-    backgroundColor: 'transparent',
-    color: designTokens.colors.neutral[900],
-  };
-
-  const commandListStyle: React.CSSProperties = {
-    maxHeight: '400px',
-    overflow: 'auto',
-  };
-
-  const categoryStyle: React.CSSProperties = {
-    fontSize: designTokens.typography.fontSize.xs,
-    fontWeight: designTokens.typography.fontWeight.semibold,
-    color: designTokens.colors.neutral[500],
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    padding: `${designTokens.spacing[3]} ${designTokens.spacing[4]}`,
-    marginTop: designTokens.spacing[2],
-  };
-
-  const commandItemStyle = (isSelected: boolean): React.CSSProperties => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: designTokens.spacing[3],
-    padding: designTokens.spacing[3],
-    margin: `0 ${designTokens.spacing[2]}`,
-    borderRadius: designTokens.borderRadius.md,
-    cursor: 'pointer',
-    backgroundColor: isSelected 
-      ? designTokens.colors.primary[50] 
-      : 'transparent',
-    border: isSelected 
-      ? `1px solid ${designTokens.colors.primary[200]}` 
-      : '1px solid transparent',
-    transition: `all ${designTokens.animation.duration.fast} ${designTokens.animation.easing.easeInOut}`,
-  });
-
-  const iconStyle: React.CSSProperties = {
-    fontSize: '20px',
-    width: '20px',
-    textAlign: 'center',
-  };
-
-  const textStyle: React.CSSProperties = {
-    flex: 1,
-  };
-
-  const titleStyle: React.CSSProperties = {
-    fontSize: designTokens.typography.fontSize.sm,
-    fontWeight: designTokens.typography.fontWeight.medium,
-    color: designTokens.colors.neutral[900],
-    margin: 0,
-  };
-
-  const descriptionStyle: React.CSSProperties = {
-    fontSize: designTokens.typography.fontSize.xs,
-    color: designTokens.colors.neutral[500],
-    margin: 0,
-  };
-
   let commandIndex = 0;
 
   return (
@@ -300,25 +247,22 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     >
       <div>
         {/* Search Input */}
-        <div style={{
-          borderBottom: `1px solid ${designTokens.colors.neutral[200]}`,
-          marginBottom: designTokens.spacing[2],
-        }}>
+        <div css={commandPaletteInputContainerStyles}>
           <input
             ref={inputRef}
             type="text"
             placeholder="Type a command or search..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            style={inputStyle}
+            css={commandPaletteInputStyles}
           />
         </div>
 
         {/* Commands List */}
-        <div style={commandListStyle}>
+        <div css={commandPaletteListStyles}>
           {Object.entries(groupedCommands).map(([category, categoryCommands]) => (
             <div key={category}>
-              <div style={categoryStyle}>
+              <div css={commandPaletteCategoryStyles}>
                 {categoryLabels[category as keyof typeof categoryLabels]}
               </div>
               {categoryCommands.map((command) => {
@@ -328,15 +272,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                 return (
                   <div
                     key={command.id}
-                    style={commandItemStyle(isSelected)}
+                    css={getCommandPaletteItemStyles(isSelected)}
                     onClick={() => command.action()}
                     onMouseEnter={() => setSelectedIndex(currentIndex)}
                   >
-                    <span style={iconStyle}>{command.icon}</span>
-                    <div style={textStyle}>
-                      <div style={titleStyle}>{command.title}</div>
+                    <span css={commandPaletteIconStyles}>{command.icon}</span>
+                    <div css={commandPaletteTextStyles}>
+                      <div css={commandPaletteTitleStyles}>{command.title}</div>
                       {command.description && (
-                        <div style={descriptionStyle}>{command.description}</div>
+                        <div css={commandPaletteDescriptionStyles}>{command.description}</div>
                       )}
                     </div>
                   </div>
@@ -346,16 +290,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
           ))}
           
           {filteredCommands.length === 0 && (
-            <div style={{
-              textAlign: 'center',
-              padding: designTokens.spacing[8],
-              color: designTokens.colors.neutral[500],
-            }}>
-              <div style={{ fontSize: '32px', marginBottom: designTokens.spacing[2] }}>
+            <div css={commandPaletteNoResultsStyles}>
+              <div>
                 🔍
               </div>
               <div>No commands found</div>
-              <div style={{ fontSize: designTokens.typography.fontSize.sm }}>
+              <div>
                 Try a different search term
               </div>
             </div>
@@ -363,14 +303,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         </div>
 
         {/* Footer */}
-        <div style={{
-          borderTop: `1px solid ${designTokens.colors.neutral[200]}`,
-          padding: designTokens.spacing[3],
-          fontSize: designTokens.typography.fontSize.xs,
-          color: designTokens.colors.neutral[500],
-          display: 'flex',
-          justifyContent: 'space-between',
-        }}>
+        <div css={commandPaletteFooterStyles}>
           <span>Use ↑↓ to navigate, ↵ to select, esc to close</span>
           <span>{filteredCommands.length} commands</span>
         </div>
