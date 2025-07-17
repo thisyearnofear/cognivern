@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { useAppStore, useTheme } from '../../stores/appStore';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { usePerformanceMonitor } from '../../hooks/usePerformanceMonitor';
-import { designTokens } from '../../styles/designTokens';
+import './AppLayout.css';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Toast from '../ui/Toast';
@@ -22,50 +22,20 @@ export const AppLayout: React.FC = () => {
 
   const { isMobile } = useBreakpoint();
 
-  const layoutStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: isMobile 
-      ? '1fr' 
-      : preferences.sidebarCollapsed ? '60px 1fr' : '280px 1fr',
-    gridTemplateRows: isMobile ? '60px 1fr' : '60px 1fr',
-    gridTemplateAreas: isMobile 
-      ? `
-        "header"
-        "main"
-      `
-      : `
-        "sidebar header"
-        "sidebar main"
-      `,
-    minHeight: '100vh',
-    backgroundColor: effectiveTheme === 'dark' 
-      ? designTokens.colors.neutral[900] 
-      : designTokens.colors.neutral[50],
-    color: effectiveTheme === 'dark' 
-      ? designTokens.colors.neutral[100] 
-      : designTokens.colors.neutral[900],
-    fontFamily: designTokens.typography.fontFamily.sans.join(', '),
-    transition: `all ${designTokens.animation.duration.normal} ${designTokens.animation.easing.easeInOut}`,
-  };
-
-  const mainStyle: React.CSSProperties = {
-    gridArea: 'main',
-    overflow: 'auto',
-    padding: designTokens.spacing[6],
-    backgroundColor: effectiveTheme === 'dark' 
-      ? designTokens.colors.neutral[800] 
-      : designTokens.colors.neutral[0],
-    borderRadius: `${designTokens.borderRadius.lg} 0 0 0`,
-    margin: `0 ${designTokens.spacing[4]} ${designTokens.spacing[4]} 0`,
-    boxShadow: designTokens.shadows.sm,
-  };
+  const layoutClasses = [
+    'app-layout',
+    isMobile ? 'is-mobile' : 'is-desktop',
+    preferences.sidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded',
+  ].join(' ');
 
   return (
-    <div style={layoutStyle}>
+    <div className={layoutClasses}>
       <Sidebar />
       <Header />
-      <main style={mainStyle}>
-        <Outlet />
+      <main className="app-main">
+        <div className="app-content-wrapper">
+          <Outlet />
+        </div>
       </main>
       
       {/* Global Toast Notifications */}

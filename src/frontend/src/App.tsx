@@ -6,27 +6,20 @@ import AppLayout from './components/layout/AppLayout';
 import SmartOnboarding from './components/onboarding/SmartOnboarding';
 import PageTransition from './components/ui/PageTransition';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { pageSkeletonContainerStyles, pageSkeletonCardStyles } from './styles/styles';
 import './App.css';
 
 // Lazy load components for better performance
-const SimplifiedDashboard = lazy(() => import('./components/dashboard/SimplifiedDashboard'));
+const ModernDashboard = lazy(() => import('./components/dashboard/ModernDashboard'));
 const TradingAgentDashboard = lazy(() => import('./components/trading/TradingAgentDashboard'));
 const PolicyManagement = lazy(() => import('./components/policies/PolicyManagement'));
 const AuditLogs = lazy(() => import('./components/AuditLogs'));
 
 // Enhanced loading component with animations
 const PageSkeleton: React.FC = () => (
-  <div style={{ 
-    padding: '2rem', 
-    display: 'flex', 
-    flexDirection: 'column',
-    alignItems: 'center', 
-    justifyContent: 'center',
-    minHeight: '400px',
-    gap: '2rem',
-  }}>
+  <div css={pageSkeletonContainerStyles}>
     <LoadingSpinner size="lg" text="Loading..." />
-    <div style={{ width: '100%', maxWidth: '600px' }}>
+    <div css={pageSkeletonCardStyles}>
       <LoadingSpinner type="skeleton" variant="card" height="200px" />
     </div>
   </div>
@@ -60,7 +53,7 @@ function App() {
               element={
                 <PageTransition type="slide">
                   <Suspense fallback={<PageSkeleton />}>
-                    <SimplifiedDashboard userType={user.userType || 'explorer'} />
+                    <ModernDashboard userType={user.userType || 'explorer'} />
                   </Suspense>
                 </PageTransition>
               } 

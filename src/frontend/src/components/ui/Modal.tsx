@@ -1,6 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { designTokens } from '../../styles/designTokens';
-import { Button } from './Button';
+import {
+  modalOverlayStyles,
+  getModalStyles,
+  modalHeaderStyles,
+  modalTitleStyles,
+  modalContentStyles,
+  modalFooterStyles,
+  modalCloseButtonStyles,
+} from '../../styles/styles';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -13,14 +20,6 @@ export interface ModalProps {
   closeOnEscape?: boolean;
   footer?: React.ReactNode;
 }
-
-const modalSizes = {
-  sm: '400px',
-  md: '600px',
-  lg: '800px',
-  xl: '1000px',
-  full: '95vw',
-};
 
 export const Modal: React.FC<ModalProps> = ({
   isOpen,
@@ -115,79 +114,11 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
-  const overlayStyle: React.CSSProperties = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: designTokens.zIndex.modal,
-    padding: designTokens.spacing[4],
-    backdropFilter: 'blur(4px)',
-  };
-
-  const modalStyle: React.CSSProperties = {
-    backgroundColor: designTokens.colors.neutral[0],
-    borderRadius: designTokens.borderRadius.xl,
-    boxShadow: designTokens.shadows['2xl'],
-    maxWidth: modalSizes[size],
-    width: '100%',
-    maxHeight: '90vh',
-    display: 'flex',
-    flexDirection: 'column',
-    outline: 'none',
-    position: 'relative',
-  };
-
-  const headerStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: designTokens.spacing[6],
-    borderBottom: `1px solid ${designTokens.colors.neutral[200]}`,
-    flexShrink: 0,
-  };
-
-  const titleStyle: React.CSSProperties = {
-    margin: 0,
-    fontSize: designTokens.typography.fontSize.xl,
-    fontWeight: designTokens.typography.fontWeight.semibold,
-    color: designTokens.colors.neutral[900],
-  };
-
-  const contentStyle: React.CSSProperties = {
-    padding: designTokens.spacing[6],
-    overflow: 'auto',
-    flex: 1,
-  };
-
-  const footerStyle: React.CSSProperties = {
-    padding: designTokens.spacing[6],
-    borderTop: `1px solid ${designTokens.colors.neutral[200]}`,
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: designTokens.spacing[3],
-    flexShrink: 0,
-  };
-
-  const closeButtonStyle: React.CSSProperties = {
-    background: 'none',
-    border: 'none',
-    fontSize: '24px',
-    cursor: 'pointer',
-    color: designTokens.colors.neutral[500],
-    padding: designTokens.spacing[1],
-    borderRadius: designTokens.borderRadius.sm,
-    transition: `color ${designTokens.animation.duration.fast} ${designTokens.animation.easing.easeInOut}`,
-  };
+  const modalStyles = getModalStyles(size);
 
   return (
     <div
-      style={overlayStyle}
+      css={modalOverlayStyles}
       onClick={closeOnOverlayClick ? onClose : undefined}
       role="dialog"
       aria-modal="true"
@@ -195,29 +126,23 @@ export const Modal: React.FC<ModalProps> = ({
     >
       <div
         ref={modalRef}
-        style={modalStyle}
+        css={modalStyles}
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div style={headerStyle}>
+          <div css={modalHeaderStyles}>
             {title && (
-              <h2 id="modal-title" style={titleStyle}>
+              <h2 id="modal-title" css={modalTitleStyles}>
                 {title}
               </h2>
             )}
             {showCloseButton && (
               <button
-                style={closeButtonStyle}
+                css={modalCloseButtonStyles}
                 onClick={onClose}
                 aria-label="Close modal"
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = designTokens.colors.neutral[700];
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = designTokens.colors.neutral[500];
-                }}
               >
                 ×
               </button>
@@ -226,13 +151,13 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Content */}
-        <div style={contentStyle}>
+        <div css={modalContentStyles}>
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div style={footerStyle}>
+          <div css={modalFooterStyles}>
             {footer}
           </div>
         )}

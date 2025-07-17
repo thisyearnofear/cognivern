@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
+import { css } from '@emotion/react';
 import { useAppStore, useTheme } from '../../stores/appStore';
-import { designTokens } from '../../styles/designTokens';
+import { 
+  designTokens, 
+  shadowSystem, 
+  colorSystem, 
+  keyframeAnimations, 
+  easings 
+} from '../../styles/design-system';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { Button } from '../ui/Button';
@@ -29,47 +36,89 @@ export const Header: React.FC = () => {
     setUser({ address: undefined, isConnected: false });
   };
 
-  const headerStyle: React.CSSProperties = {
-    gridArea: 'header',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: `0 ${designTokens.spacing[6]}`,
-    backgroundColor: effectiveTheme === 'dark' 
-      ? designTokens.colors.neutral[900] 
-      : designTokens.colors.neutral[0],
-    borderBottom: `1px solid ${effectiveTheme === 'dark' 
+  // Modern header styles
+  const headerStyles = css`
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 ${designTokens.spacing[6]};
+    height: 70px;
+    background: ${effectiveTheme === 'dark' 
+      ? `linear-gradient(135deg, ${designTokens.colors.neutral[900]} 0%, ${designTokens.colors.neutral[800]} 100%)` 
+      : `linear-gradient(135deg, ${designTokens.colors.neutral[0]} 0%, ${designTokens.colors.neutral[50]} 100%)`};
+    border-bottom: 1px solid ${effectiveTheme === 'dark' 
       ? designTokens.colors.neutral[700] 
-      : designTokens.colors.neutral[200]}`,
-    boxShadow: designTokens.shadows.sm,
-  };
+      : designTokens.colors.neutral[200]};
+    box-shadow: ${shadowSystem.floating};
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: ${designTokens.zIndex.sticky};
+    transition: ${easings.smooth};
+  `;
 
-  const titleStyle: React.CSSProperties = {
-    fontSize: designTokens.typography.fontSize.lg,
-    fontWeight: designTokens.typography.fontWeight.semibold,
-    color: effectiveTheme === 'dark' 
-      ? designTokens.colors.neutral[100] 
-      : designTokens.colors.neutral[900],
-    margin: 0,
-  };
+  const titleStyles = css`
+    font-size: ${designTokens.typography.fontSize.xl};
+    font-weight: ${designTokens.typography.fontWeight.bold};
+    background: ${colorSystem.gradients.primary};
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+    transition: ${easings.smooth};
+    
+    &:hover {
+      transform: scale(1.05);
+    }
+  `;
 
-  const actionsStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: isMobile ? designTokens.spacing[2] : designTokens.spacing[4],
-  };
+  const actionsStyles = css`
+    display: flex;
+    align-items: center;
+    gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[4]};
+  `;
 
-  const statusIndicatorStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: designTokens.spacing[2],
-    padding: `${designTokens.spacing[2]} ${designTokens.spacing[3]}`,
-    backgroundColor: effectiveTheme === 'dark' 
-      ? designTokens.colors.neutral[800] 
-      : designTokens.colors.neutral[50],
-    borderRadius: designTokens.borderRadius.md,
-    fontSize: designTokens.typography.fontSize.sm,
-  };
+  const statusIndicatorStyles = css`
+    display: flex;
+    align-items: center;
+    gap: ${designTokens.spacing[2]};
+    padding: ${designTokens.spacing[2]} ${designTokens.spacing[4]};
+    background: ${effectiveTheme === 'dark' 
+      ? `linear-gradient(135deg, ${designTokens.colors.neutral[800]} 0%, ${designTokens.colors.neutral[700]} 100%)` 
+      : `linear-gradient(135deg, ${designTokens.colors.semantic.success[50]} 0%, ${designTokens.colors.semantic.success[100]} 100%)`};
+    border-radius: ${designTokens.borderRadius.full};
+    font-size: ${designTokens.typography.fontSize.sm};
+    font-weight: ${designTokens.typography.fontWeight.medium};
+    color: ${designTokens.colors.semantic.success[700]};
+    border: 1px solid ${designTokens.colors.semantic.success[200]};
+    box-shadow: ${shadowSystem.sm};
+    transition: ${easings.smooth};
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: ${shadowSystem.md};
+    }
+  `;
+
+  const modernButtonStyle = css`
+    background: transparent;
+    border: 1px solid ${designTokens.colors.neutral[300]};
+    color: ${designTokens.colors.neutral[700]};
+    padding: ${designTokens.spacing[2]} ${designTokens.spacing[3]};
+    min-height: auto;
+    border-radius: ${designTokens.borderRadius.md};
+    font-size: ${designTokens.typography.fontSize.sm};
+    transition: ${easings.smooth};
+    cursor: pointer;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: ${shadowSystem.md};
+      background: ${designTokens.colors.neutral[50]};
+    }
+  `;
 
   const getPageTitle = () => {
     const path = window.location.pathname;
@@ -88,116 +137,100 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header style={headerStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: designTokens.spacing[4] }}>
-        <h1 style={titleStyle}>{getPageTitle()}</h1>
+    <header css={headerStyles}>
+      <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[4]};`}>
+        <h1 css={titleStyles}>{getPageTitle()}</h1>
         
         {/* Status Indicators */}
-        <div style={statusIndicatorStyle}>
-          <span style={{ 
-            width: '8px', 
-            height: '8px', 
-            borderRadius: '50%', 
-            backgroundColor: designTokens.colors.semantic.success[500],
-            boxShadow: `0 0 8px ${designTokens.colors.semantic.success[300]}`,
-          }} />
+        <div css={statusIndicatorStyles}>
+          <span css={css`
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: ${designTokens.colors.semantic.success[500]};
+            box-shadow: 0 0 8px ${designTokens.colors.semantic.success[300]};
+            ${keyframeAnimations.pulse}
+          `} />
           <span>System Online</span>
         </div>
       </div>
 
-      <div style={actionsStyle}>
+      <div css={actionsStyles}>
         {/* Command Palette Trigger */}
         {!isMobile && (
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            css={css`
+              ${modernButtonStyle}
+              display: flex;
+              align-items: center;
+              gap: ${designTokens.spacing[2]};
+              color: ${designTokens.colors.neutral[500]};
+              font-size: ${designTokens.typography.fontSize.xs};
+            `}
             onClick={() => setShowCommandPalette(true)}
-            style={{ 
-              padding: `${designTokens.spacing[2]} ${designTokens.spacing[3]}`,
-              minHeight: 'auto',
-              fontSize: designTokens.typography.fontSize.xs,
-              color: designTokens.colors.neutral[500],
-            }}
             title="Open command palette (Ctrl+K)"
           >
-            <span style={{ marginRight: designTokens.spacing[2] }}>⌘</span>
+            <span>⌘</span>
             <span>Search</span>
-          </Button>
+          </button>
         )}
 
         {/* Mobile Menu Toggle */}
         {isMobile && (
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            css={modernButtonStyle}
             onClick={() => updatePreferences({ sidebarCollapsed: !preferences.sidebarCollapsed })}
-            style={{ 
-              padding: designTokens.spacing[2],
-              minHeight: 'auto',
-            }}
             title="Toggle menu"
           >
             ☰
-          </Button>
+          </button>
         )}
 
         {/* Theme Toggle */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
+          css={modernButtonStyle}
           onClick={handleThemeToggle}
-          style={{ 
-            padding: designTokens.spacing[2],
-            minHeight: 'auto',
-          }}
           title={`Switch to ${effectiveTheme === 'dark' ? 'light' : 'dark'} mode`}
         >
           {effectiveTheme === 'dark' ? '☀️' : '🌙'}
-        </Button>
+        </button>
 
         {/* Search on Mobile */}
         {isMobile && (
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            css={modernButtonStyle}
             onClick={() => setShowCommandPalette(true)}
-            style={{ 
-              padding: designTokens.spacing[2],
-              minHeight: 'auto',
-            }}
             title="Search"
           >
             🔍
-          </Button>
+          </button>
         )}
 
         {/* Notifications */}
         {!isMobile && (
-          <Button
-            variant="ghost"
-            size="sm"
-            style={{ 
-              padding: designTokens.spacing[2],
-              minHeight: 'auto',
-              position: 'relative',
-            }}
+          <button
+            css={css`
+              ${modernButtonStyle}
+              position: relative;
+            `}
             title="Notifications"
           >
             🔔
             {/* Notification badge */}
-            <span style={{
-              position: 'absolute',
-              top: '4px',
-              right: '4px',
-              width: '8px',
-              height: '8px',
-              backgroundColor: designTokens.colors.semantic.error[500],
-              borderRadius: '50%',
-              fontSize: '0',
-            }}>
+            <span css={css`
+              position: absolute;
+              top: 4px;
+              right: 4px;
+              width: 8px;
+              height: 8px;
+              background: ${designTokens.colors.semantic.error[500]};
+              border-radius: 50%;
+              font-size: 0;
+              ${keyframeAnimations.pulse}
+            `}>
               •
             </span>
-          </Button>
+          </button>
         )}
 
         {/* Wallet Connection */}
@@ -208,17 +241,12 @@ export const Header: React.FC = () => {
 
         {/* User Menu */}
         {user.isConnected && !isMobile && (
-          <Button
-            variant="ghost"
-            size="sm"
-            style={{ 
-              padding: designTokens.spacing[2],
-              minHeight: 'auto',
-            }}
+          <button
+            css={modernButtonStyle}
             title="User menu"
           >
             ⚙️
-          </Button>
+          </button>
         )}
       </div>
 

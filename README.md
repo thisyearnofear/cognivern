@@ -237,15 +237,12 @@ All API endpoints require the `X-API-KEY` header for authentication.
 
 ## 📚 Documentation
 
-For more detailed information, please refer to the following documentation:
+For more detailed information, please refer to the following consolidated documentation:
 
-- [**UI/UX Improvement Plan**](docs/UI_UX_IMPROVEMENT_PLAN.md) - Comprehensive plan to transform the platform to production quality
-- [**TECHNICAL.md**](docs/TECHNICAL.md) - Detailed technical implementation and architecture
-- [**AGENT.md**](docs/AGENT.md) - Detailed information about the agent system, capabilities, and roadmap
-- [**HACKATHON.md**](docs/HACKATHON.md) - Hackathon submission details, implementation plan, and demo setup
-- [**TECHNICAL.md**](docs/TECHNICAL.md) - Technical documentation, core services, data types, and environment setup
-- [**ARCHITECTURE.md**](docs/ARCHITECTURE.md) - Clean architecture implementation, layers, and migration strategy
-- [**SECURITY.md**](docs/SECURITY.md) - Security guidelines, API key management, and best practices
+- [**AGENT.md**](docs/AGENT.md) - Comprehensive information about the agent system, capabilities, structure, security features, roadmap, and integration framework
+- [**TECHNICAL.md**](docs/TECHNICAL.md) - Detailed technical implementation, core services, data types, storage structure, environment configuration, smart contracts, and frontend architecture
+- [**TRADING.md**](docs/TRADING.md) - Trading showcase, competition setup, agent features, strategies, business value, and user testing scenarios
+- [**DEPLOYMENT.md**](docs/DEPLOYMENT.md) - Deployment guide, architecture overview, security implementation, domain configuration, production optimization, and demo setup
 
 ## 🛠️ Project Structure
 
@@ -282,7 +279,7 @@ Frontend (Vercel) → HTTPS → api.thisyearnofear.com → Backend (Docker)
 
 ### **Deployment Guide**
 
-See `src/frontend/DEPLOYMENT.md` for complete setup instructions.
+See [**DEPLOYMENT.md**](docs/DEPLOYMENT.md) for complete setup instructions.
 
 ## 🗺️ Current Status
 

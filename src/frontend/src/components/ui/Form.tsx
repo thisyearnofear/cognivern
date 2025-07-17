@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
-import { designTokens } from '../../styles/designTokens';
 import { Button } from './Button';
+import {
+  formStyles,
+  getFormFieldGroupStyles,
+  getFormLabelStyles,
+  getFormInputStyles,
+  formErrorStyles,
+  formDescriptionStyles,
+  formSubmitContainerStyles,
+} from '../../styles/styles';
 
 export interface FormFieldProps {
   label: string;
@@ -95,65 +103,6 @@ export const Form: React.FC<FormProps> = ({
     }
   };
 
-  const formStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: designTokens.spacing[4],
-  };
-
-  const fieldGroupStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: layout === 'horizontal' ? 'row' : 'column',
-    gap: layout === 'horizontal' ? designTokens.spacing[4] : designTokens.spacing[2],
-    alignItems: layout === 'horizontal' ? 'center' : 'stretch',
-  };
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: designTokens.typography.fontSize.sm,
-    fontWeight: designTokens.typography.fontWeight.medium,
-    color: designTokens.colors.neutral[700],
-    minWidth: layout === 'horizontal' ? '120px' : 'auto',
-  };
-
-  const inputStyle = (hasError: boolean): React.CSSProperties => ({
-    padding: designTokens.spacing[3],
-    border: `1px solid ${hasError 
-      ? designTokens.colors.semantic.error[500] 
-      : designTokens.colors.neutral[300]}`,
-    borderRadius: designTokens.borderRadius.md,
-    fontSize: designTokens.typography.fontSize.sm,
-    fontFamily: designTokens.typography.fontFamily.sans.join(', '),
-    transition: `border-color ${designTokens.animation.duration.fast} ${designTokens.animation.easing.easeInOut}`,
-    outline: 'none',
-    backgroundColor: designTokens.colors.neutral[0],
-    color: designTokens.colors.neutral[900],
-    flex: layout === 'horizontal' ? 1 : 'auto',
-  });
-
-  const textareaStyle = (hasError: boolean): React.CSSProperties => ({
-    ...inputStyle(hasError),
-    minHeight: '100px',
-    resize: 'vertical',
-    fontFamily: designTokens.typography.fontFamily.sans.join(', '),
-  });
-
-  const selectStyle = (hasError: boolean): React.CSSProperties => ({
-    ...inputStyle(hasError),
-    cursor: 'pointer',
-  });
-
-  const errorStyle: React.CSSProperties = {
-    fontSize: designTokens.typography.fontSize.xs,
-    color: designTokens.colors.semantic.error[600],
-    marginTop: designTokens.spacing[1],
-  };
-
-  const descriptionStyle: React.CSSProperties = {
-    fontSize: designTokens.typography.fontSize.xs,
-    color: designTokens.colors.neutral[500],
-    marginTop: designTokens.spacing[1],
-  };
-
   const renderField = (field: FormFieldProps) => {
     const value = values[field.name] || '';
     const error = errors[field.name];
@@ -176,7 +125,7 @@ export const Form: React.FC<FormProps> = ({
         input = (
           <textarea
             {...commonProps}
-            style={textareaStyle(!!showError)}
+            css={getFormInputStyles(!!showError)}
           />
         );
         break;
@@ -185,7 +134,7 @@ export const Form: React.FC<FormProps> = ({
         input = (
           <select
             {...commonProps}
-            style={selectStyle(!!showError)}
+            css={getFormInputStyles(!!showError)}
           >
             <option value="">{field.placeholder || `Select ${field.label}`}</option>
             {field.options?.map(option => (
@@ -202,22 +151,22 @@ export const Form: React.FC<FormProps> = ({
           <input
             {...commonProps}
             type={field.type || 'text'}
-            style={inputStyle(!!showError)}
+            css={getFormInputStyles(!!showError)}
           />
         );
     }
 
     return (
-      <div key={field.name} style={fieldGroupStyle}>
-        <label style={labelStyle}>
+      <div key={field.name} css={getFormFieldGroupStyles(layout)}>
+        <label css={getFormLabelStyles(layout)}>
           {field.label}
-          {field.required && <span style={{ color: designTokens.colors.semantic.error[500] }}>*</span>}
+          {field.required && <span css={css`color: red;`}>*</span>}
         </label>
-        <div style={{ flex: layout === 'horizontal' ? 1 : 'auto' }}>
+        <div css={css`flex: ${layout === 'horizontal' ? 1 : 'auto'};`}>
           {input}
-          {showError && <div style={errorStyle}>{error}</div>}
+          {showError && <div css={formErrorStyles}>{error}</div>}
           {field.description && !showError && (
-            <div style={descriptionStyle}>{field.description}</div>
+            <div css={formDescriptionStyles}>{field.description}</div>
           )}
         </div>
       </div>
@@ -225,14 +174,10 @@ export const Form: React.FC<FormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} style={formStyle}>
+    <form onSubmit={handleSubmit} css={formStyles}>
       {fields.map(renderField)}
       
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'flex-end',
-        marginTop: designTokens.spacing[2],
-      }}>
+      <div css={formSubmitContainerStyles}>
         <Button
           type="submit"
           variant="primary"
@@ -254,35 +199,6 @@ export const FormField: React.FC<{
   onChange: (value: string) => void;
   onBlur?: () => void;
 }> = ({ field, value, error, onChange, onBlur }) => {
-  const inputStyle = (hasError: boolean): React.CSSProperties => ({
-    width: '100%',
-    padding: designTokens.spacing[3],
-    border: `1px solid ${hasError 
-      ? designTokens.colors.semantic.error[500] 
-      : designTokens.colors.neutral[300]}`,
-    borderRadius: designTokens.borderRadius.md,
-    fontSize: designTokens.typography.fontSize.sm,
-    fontFamily: designTokens.typography.fontFamily.sans.join(', '),
-    transition: `border-color ${designTokens.animation.duration.fast} ${designTokens.animation.easing.easeInOut}`,
-    outline: 'none',
-    backgroundColor: designTokens.colors.neutral[0],
-    color: designTokens.colors.neutral[900],
-  });
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    marginBottom: designTokens.spacing[2],
-    fontSize: designTokens.typography.fontSize.sm,
-    fontWeight: designTokens.typography.fontWeight.medium,
-    color: designTokens.colors.neutral[700],
-  };
-
-  const errorStyle: React.CSSProperties = {
-    fontSize: designTokens.typography.fontSize.xs,
-    color: designTokens.colors.semantic.error[600],
-    marginTop: designTokens.spacing[1],
-  };
-
   const commonProps = {
     value,
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => 
@@ -291,18 +207,18 @@ export const FormField: React.FC<{
     placeholder: field.placeholder,
     disabled: field.disabled,
     required: field.required,
-    style: inputStyle(!!error),
+    css: getFormInputStyles(!!error),
   };
 
   return (
     <div>
-      <label style={labelStyle}>
+      <label css={getFormLabelStyles('vertical')}>
         {field.label}
-        {field.required && <span style={{ color: designTokens.colors.semantic.error[500] }}>*</span>}
+        {field.required && <span css={css`color: red;`}>*</span>}
       </label>
       
       {field.type === 'textarea' ? (
-        <textarea {...commonProps} style={{ ...commonProps.style, minHeight: '100px', resize: 'vertical' }} />
+        <textarea {...commonProps} />
       ) : field.type === 'select' ? (
         <select {...commonProps}>
           <option value="">{field.placeholder || `Select ${field.label}`}</option>
@@ -316,13 +232,9 @@ export const FormField: React.FC<{
         <input {...commonProps} type={field.type || 'text'} />
       )}
       
-      {error && <div style={errorStyle}>{error}</div>}
+      {error && <div css={formErrorStyles}>{error}</div>}
       {field.description && !error && (
-        <div style={{
-          fontSize: designTokens.typography.fontSize.xs,
-          color: designTokens.colors.neutral[500],
-          marginTop: designTokens.spacing[1],
-        }}>
+        <div css={formDescriptionStyles}>
           {field.description}
         </div>
       )}
