@@ -1,5 +1,7 @@
 # Technical Documentation
 
+> **📋 UI/UX Improvement Plan**: See [UI_UX_IMPROVEMENT_PLAN.md](UI_UX_IMPROVEMENT_PLAN.md) for comprehensive frontend modernization strategy.
+
 ## Core Services
 
 ### DirectTradingAgent

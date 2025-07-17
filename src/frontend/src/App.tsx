@@ -1,134 +1,113 @@
-import { useState, useRef, useEffect } from "react";
-import "./App.css";
-import UnifiedDashboard from "./components/dashboard/UnifiedDashboard";
-import PolicyManagement from "./components/policies/PolicyManagement";
-import AuditLogs from "./components/AuditLogs";
-import LandingDashboard from "./components/dashboard/LandingDashboard";
-import SimplifiedDashboard from "./components/dashboard/SimplifiedDashboard";
-import WelcomeFlow from "./components/onboarding/WelcomeFlow";
-import Web3Auth from "./components/auth/Web3Auth";
-import WalletConnect from "./components/web3/WalletConnect";
-import TradingAgentDashboard from "./components/trading/TradingAgentDashboard";
-import "./components/dashboard/Dashboard.css";
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAppStore } from './stores/appStore';
+import { generateKeyframes } from './styles/animations';
+import AppLayout from './components/layout/AppLayout';
+import SmartOnboarding from './components/onboarding/SmartOnboarding';
+import PageTransition from './components/ui/PageTransition';
+import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import './App.css';
+
+// Lazy load components for better performance
+const SimplifiedDashboard = lazy(() => import('./components/dashboard/SimplifiedDashboard'));
+const TradingAgentDashboard = lazy(() => import('./components/trading/TradingAgentDashboard'));
+const PolicyManagement = lazy(() => import('./components/policies/PolicyManagement'));
+const AuditLogs = lazy(() => import('./components/AuditLogs'));
+
+// Enhanced loading component with animations
+const PageSkeleton: React.FC = () => (
+  <div style={{ 
+    padding: '2rem', 
+    display: 'flex', 
+    flexDirection: 'column',
+    alignItems: 'center', 
+    justifyContent: 'center',
+    minHeight: '400px',
+    gap: '2rem',
+  }}>
+    <LoadingSpinner size="lg" text="Loading..." />
+    <div style={{ width: '100%', maxWidth: '600px' }}>
+      <LoadingSpinner type="skeleton" variant="card" height="200px" />
+    </div>
+  </div>
+);
 
 function App() {
-  const [activeTab, setActiveTab] = useState("welcome");
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [connectedWallet, setConnectedWallet] = useState<string>("");
-  const [userType, setUserType] = useState<string>("");
-  const [hasCompletedWelcome, setHasCompletedWelcome] = useState(false);
-  const agentsDropdownRef = useRef<HTMLDivElement>(null);
-  const advancedDropdownRef = useRef<HTMLDivElement>(null);
+  const { preferences, user } = useAppStore();
 
-  // Close dropdown when clicking outside
+  // Inject animation keyframes into the document
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      // Check if click is outside both dropdowns
-      const isOutsideAgentsDropdown =
-        !agentsDropdownRef.current ||
-        !agentsDropdownRef.current.contains(event.target as Node);
-      const isOutsideAdvancedDropdown =
-        !advancedDropdownRef.current ||
-        !advancedDropdownRef.current.contains(event.target as Node);
+    const styleElement = document.createElement('style');
+    styleElement.textContent = generateKeyframes();
+    document.head.appendChild(styleElement);
 
-      if (isOutsideAgentsDropdown && isOutsideAdvancedDropdown) {
-        setActiveDropdown(null);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.head.removeChild(styleElement);
     };
   }, []);
 
-  // Toggle dropdown menu
-  const toggleDropdown = (menu: string, event?: React.MouseEvent) => {
-    // Prevent event from bubbling up to document click handler
-    if (event) {
-      event.stopPropagation();
-    }
-    setActiveDropdown(activeDropdown === menu ? null : menu);
-  };
-
-  // Handle wallet connection
-  const handleWalletConnect = (address: string) => {
-    setConnectedWallet(address);
-    console.log("Wallet connected:", address);
-  };
-
-  const handleWalletDisconnect = () => {
-    setConnectedWallet("");
-    console.log("Wallet disconnected");
-  };
-
-  // Handle welcome flow completion
-  const handleWelcomeComplete = (selectedUserType: string) => {
-    setUserType(selectedUserType);
-    setHasCompletedWelcome(true);
-    setActiveTab("dashboard");
-  };
-
-  // Simplified navigation structure
-  const navigation = {
-    primary: [
-      { id: "dashboard", label: "Dashboard" },
-      { id: "trading", label: "AI Trading Agents" },
-      { id: "policies", label: "Policies" },
-      { id: "logs", label: "Audit Logs" },
-    ],
-  };
-
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <div className="header-content">
-          <h1
-            onClick={() => setActiveTab("landing")}
-            style={{ cursor: "pointer" }}
-          >
-            Cognivern
-          </h1>
-          <Web3Auth
-            onConnect={handleWalletConnect}
-            onDisconnect={handleWalletDisconnect}
-          />
-          {activeTab !== "landing" && (
-            <nav className="main-nav">
-              {navigation.primary.map((item) => (
-                <button
-                  key={item.id}
-                  className={activeTab === item.id ? "active" : ""}
-                  onClick={() => setActiveTab(item.id)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-          )}
-        </div>
-      </header>
-
-      <main className="app-content">
-        {activeTab === "welcome" && !hasCompletedWelcome && (
-          <WelcomeFlow onComplete={handleWelcomeComplete} />
-        )}
-        {activeTab === "landing" && (
-          <LandingDashboard onNavigate={setActiveTab} />
-        )}
-        {activeTab === "dashboard" && hasCompletedWelcome && (
-          <SimplifiedDashboard userType={userType} />
-        )}
-        {activeTab === "trading" && <TradingAgentDashboard />}
-        {activeTab === "advanced" && <UnifiedDashboard />}
-        {activeTab === "policies" && <PolicyManagement />}
-        {activeTab === "logs" && <AuditLogs />}
-      </main>
-
-      <footer className="app-footer">
-        <p>© Cognivern - Powered by Recall Network & Bitte Protocol</p>
-      </footer>
-    </div>
+    <Router>
+      <div className="app">
+        {/* Smart Onboarding - only shows when needed */}
+        <SmartOnboarding />
+        
+        <Routes>
+          <Route path="/" element={<AppLayout />}>
+            {/* Dashboard Route */}
+            <Route 
+              index 
+              element={
+                <PageTransition type="slide">
+                  <Suspense fallback={<PageSkeleton />}>
+                    <SimplifiedDashboard userType={user.userType || 'explorer'} />
+                  </Suspense>
+                </PageTransition>
+              } 
+            />
+            
+            {/* Trading Route */}
+            <Route 
+              path="trading" 
+              element={
+                <PageTransition type="slide">
+                  <Suspense fallback={<PageSkeleton />}>
+                    <TradingAgentDashboard />
+                  </Suspense>
+                </PageTransition>
+              } 
+            />
+            
+            {/* Policies Route */}
+            <Route 
+              path="policies" 
+              element={
+                <PageTransition type="slide">
+                  <Suspense fallback={<PageSkeleton />}>
+                    <PolicyManagement />
+                  </Suspense>
+                </PageTransition>
+              } 
+            />
+            
+            {/* Audit Logs Route */}
+            <Route 
+              path="audit" 
+              element={
+                <PageTransition type="slide">
+                  <Suspense fallback={<PageSkeleton />}>
+                    <AuditLogs />
+                  </Suspense>
+                </PageTransition>
+              } 
+            />
+            
+            {/* Redirect unknown routes to dashboard */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
