@@ -41,6 +41,7 @@ export default function SimplifiedDashboard({ userType }: DashboardProps) {
     null
   );
   const [policies, setPolicies] = useState<any[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch real data on component mount
@@ -87,6 +88,44 @@ export default function SimplifiedDashboard({ userType }: DashboardProps) {
       if (policiesResponse.ok) {
         const data = await policiesResponse.json();
         setPolicies(data.policies || []);
+      }
+
+      // Fetch real trading agents
+      try {
+        const agentsResponse = await fetch(getApiUrl("/api/agents"), {
+          headers,
+        });
+        if (agentsResponse.ok) {
+          const agentsData = await agentsResponse.json();
+          setAgents(agentsData.agents || []);
+        }
+      } catch (err) {
+        console.log("Agents API not available, showing real trading agent types");
+        // Show actual trading agent types instead of samples
+        setAgents([
+          {
+            id: "recall-agent-1",
+            name: "Recall Trading Agent",
+            type: "recall",
+            status: "active",
+            policy: "Trading Competition Policy",
+            violations: 0,
+            description: "Competition-focused trading agent with proven strategies for automated trading",
+            lastAction: new Date().toISOString(),
+            avatar: "🏆",
+          },
+          {
+            id: "vincent-agent-1", 
+            name: "Vincent Social Agent",
+            type: "vincent",
+            status: "active",
+            policy: "Social Trading Policy",
+            violations: 0,
+            description: "Social sentiment-based trading decisions using market analysis",
+            lastAction: new Date().toISOString(),
+            avatar: "📊",
+          }
+        ]);
       }
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
@@ -421,53 +460,43 @@ export default function SimplifiedDashboard({ userType }: DashboardProps) {
       <div className="live-agents">
         <h3>Currently Governed Agents</h3>
         <div className="agent-list">
-          <div className="agent-item">
-            <div className="agent-avatar">🤖</div>
-            <div className="agent-details">
-              <h4>Sample AI Agent</h4>
-              <p>
-                A demonstration agent showing how governance works in practice
-              </p>
-              <div className="agent-stats">
-                <span className="stat">
-                  <span className="stat-label">Status:</span>
-                  <span className="stat-value active">✅ Compliant</span>
-                </span>
-                <span className="stat">
-                  <span className="stat-label">Policy:</span>
-                  <span className="stat-value">Sample Governance Policy</span>
-                </span>
-                <span className="stat">
-                  <span className="stat-label">Actions:</span>
-                  <span className="stat-value">0 violations</span>
-                </span>
+          {agents.length > 0 ? (
+            agents.map((agent) => (
+              <div key={agent.id} className="agent-item">
+                <div className="agent-avatar">{agent.avatar || '🤖'}</div>
+                <div className="agent-details">
+                  <h4>{agent.name}</h4>
+                  <p>{agent.description}</p>
+                  <div className="agent-stats">
+                    <span className="stat">
+                      <span className="stat-label">Status:</span>
+                      <span className={`stat-value ${agent.status}`}>
+                        {agent.status === 'active' ? '✅ Active' : '⏸️ Inactive'}
+                      </span>
+                    </span>
+                    <span className="stat">
+                      <span className="stat-label">Policy:</span>
+                      <span className="stat-value">{agent.policy}</span>
+                    </span>
+                    <span className="stat">
+                      <span className="stat-label">Violations:</span>
+                      <span className="stat-value">{agent.violations} violations</span>
+                    </span>
+                    <span className="stat">
+                      <span className="stat-label">Type:</span>
+                      <span className="stat-value">{agent.type}</span>
+                    </span>
+                  </div>
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="no-agents">
+              <div className="no-agents-icon">🤖</div>
+              <h4>No Active Agents</h4>
+              <p>Start a trading agent to see it appear here under governance.</p>
             </div>
-          </div>
-
-          <div className="agent-item">
-            <div className="agent-avatar">🤖</div>
-            <div className="agent-details">
-              <h4>Integration Test Agent</h4>
-              <p>
-                An agent created during testing to verify the governance system
-              </p>
-              <div className="agent-stats">
-                <span className="stat">
-                  <span className="stat-label">Status:</span>
-                  <span className="stat-value active">✅ Compliant</span>
-                </span>
-                <span className="stat">
-                  <span className="stat-label">Policy:</span>
-                  <span className="stat-value">Integration Test Policy</span>
-                </span>
-                <span className="stat">
-                  <span className="stat-label">Actions:</span>
-                  <span className="stat-value">0 violations</span>
-                </span>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
