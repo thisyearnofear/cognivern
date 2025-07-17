@@ -92,7 +92,7 @@ export default function SimplifiedDashboard({ userType }: DashboardProps) {
 
       // Fetch real trading agents
       try {
-        const agentsResponse = await fetch(getApiUrl("/api/agents"), {
+        const agentsResponse = await fetch(getApiUrl("/api/agents/unified"), {
           headers,
         });
         if (agentsResponse.ok) {
