@@ -2,3 +2,7 @@ packages:
   - 'src/frontend'
   - 'contracts'
   - '.'
+
+# Fix dependency hoisting for build
+hoist-pattern:
+  - '*'

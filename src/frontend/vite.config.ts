@@ -10,9 +10,15 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    
+    // Simplified build configuration
+    build: {
+      minify: 'esbuild',
+      sourcemap: false,
+    },
+    
     server: {
       proxy: {
-        // Proxy API requests to the backend server
         "/api": {
           target: backendUrl,
           changeOrigin: true,

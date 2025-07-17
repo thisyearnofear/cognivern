@@ -235,10 +235,12 @@ await policyService.createPolicy(
 
 All API endpoints require the `X-API-KEY` header for authentication.
 
-## �📚 Documentation
+## 📚 Documentation
 
 For more detailed information, please refer to the following documentation:
 
+- [**UI/UX Improvement Plan**](docs/UI_UX_IMPROVEMENT_PLAN.md) - Comprehensive plan to transform the platform to production quality
+- [**TECHNICAL.md**](docs/TECHNICAL.md) - Detailed technical implementation and architecture
 - [**AGENT.md**](docs/AGENT.md) - Detailed information about the agent system, capabilities, and roadmap
 - [**HACKATHON.md**](docs/HACKATHON.md) - Hackathon submission details, implementation plan, and demo setup
 - [**TECHNICAL.md**](docs/TECHNICAL.md) - Technical documentation, core services, data types, and environment setup

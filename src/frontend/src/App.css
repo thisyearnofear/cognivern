@@ -1,8 +1,55 @@
+/* Modern App Styles */
+.app {
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Loading Animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Theme Variables */
+:root {
+  --color-primary-50: #f0f9ff;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-600: #475569;
+  --color-neutral-900: #0f172a;
+}
+
+[data-theme="dark"] {
+  --color-neutral-0: #0f172a;
+  --color-neutral-50: #1e293b;
+  --color-neutral-100: #334155;
+  --color-neutral-200: #475569;
+  --color-neutral-600: #cbd5e1;
+  --color-neutral-900: #f8fafc;
+}
+
+/* Reset and Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-neutral-50);
+  color: var(--color-neutral-900);
+  line-height: 1.5;
+}
+
+/* Legacy styles for compatibility */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .logo {
