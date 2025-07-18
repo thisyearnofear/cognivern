@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "buildCommand": "cd src/frontend && pnpm install && pnpm build",
+  "buildCommand": "pnpm run build:frontend",
   "outputDirectory": "src/frontend/dist",
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --frozen-lockfile",
   "framework": null,
   "functions": {
     "api/**/*.ts": {
-      "runtime": "nodejs18.x"
+      "runtime": "nodejs20.x"
     }
   },
   "rewrites": [

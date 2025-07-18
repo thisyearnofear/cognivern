@@ -38,6 +38,8 @@ class AutoCompetitionAgent {
   private governanceService: TradingCompetitionGovernanceService;
   private config: AutoTradingConfig;
   private tradingIntervals: NodeJS.Timeout[] = [];
+  private nextTradeInterval: number = 0;
+  private lastTradeTime: number = 0;
   private dailyStats = {
     trades: 0,
     dayStart: Date.now(),
@@ -310,31 +312,26 @@ class AutoCompetitionAgent {
 
     console.log(`🔄 Making trades every ${intervalHours.toFixed(1)} hours`);
 
-    // Schedule trades throughout the day
-    for (let i = 0; i < this.config.tradesPerDay; i++) {
-      const delayMs = i * intervalMs;
+    // Store the interval for next trade calculation
+    this.nextTradeInterval = intervalMs;
+    this.lastTradeTime = Date.now();
 
-      const timeout = setTimeout(async () => {
-        await this.executeTradingRound();
+    // Execute first trade immediately
+    await this.executeTradingRound();
 
-        // Reschedule for next day
-        const nextDayInterval = setInterval(
-          async () => {
-            await this.executeTradingRound(); // 24/7 trading
-          },
-          24 * 60 * 60 * 1000
-        ); // Every 24 hours
+    // Set up recurring trading schedule
+    const tradingInterval = setInterval(async () => {
+      await this.executeTradingRound();
+    }, intervalMs);
 
-        this.tradingIntervals.push(nextDayInterval);
-      }, delayMs);
-
-      // Store timeout for cleanup
-      this.tradingIntervals.push(timeout);
-    }
+    this.tradingIntervals.push(tradingInterval);
   }
 
   private async executeTradingRound() {
     try {
+      // Update last trade time
+      this.lastTradeTime = Date.now();
+
       // Crypto markets are 24/7 - always ready to trade!
       console.log("🚀 Executing trading round...");
 
@@ -451,9 +448,23 @@ class AutoCompetitionAgent {
   }
 
   private getNextTradeTime(): string {
-    const now = new Date();
-    const nextHour = now.getHours() + 1;
-    return `${nextHour}:00`;
+    if (this.nextTradeInterval === 0) return "Calculating...";
+
+    const nextTradeTime = this.lastTradeTime + this.nextTradeInterval;
+    const timeUntilNext = nextTradeTime - Date.now();
+
+    if (timeUntilNext <= 0) return "Now";
+
+    const hours = Math.floor(timeUntilNext / (1000 * 60 * 60));
+    const minutes = Math.floor(
+      (timeUntilNext % (1000 * 60 * 60)) / (1000 * 60)
+    );
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
   }
 
   private setupGracefulShutdown() {

@@ -78,12 +78,12 @@ class DirectTradingAgent {
   private readonly MIN_TRADE_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours between trades
   private readonly DAILY_TRADE_TARGET = 6; // 6 trades per day (every 4 hours)
 
-  // Common token addresses for trading
+  // Common token addresses for trading (Ethereum mainnet - sandbox is mainnet fork)
   private readonly TOKENS = {
-    USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // Solana USDC
-    SOL: "So11111111111111111111111111111111111111112", // Wrapped SOL
-    ETH: "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs", // Ethereum on Solana
-    BTC: "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E", // Bitcoin on Solana
+    USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC on Ethereum
+    WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // Wrapped ETH
+    WBTC: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", // Wrapped BTC
+    DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F", // DAI Stablecoin
   };
 
   constructor() {
@@ -139,8 +139,6 @@ class DirectTradingAgent {
       fromToken,
       toToken,
       amount,
-      fromChain: "svm",
-      toChain: "svm",
     });
 
     return await this.makeRequest(`/api/trade/quote?${params}`);
@@ -158,60 +156,48 @@ class DirectTradingAgent {
 
   private generateTradingStrategy(): TradeRequest[] {
     const strategies = [
-      // Strategy 1: USDC -> SOL -> USDC (momentum trading)
+      // Strategy 1: USDC -> WETH (momentum trading)
       {
         fromToken: this.TOKENS.USDC,
-        toToken: this.TOKENS.SOL,
-        amount: "50",
-        reason: "Momentum trading: USDC to SOL based on market analysis",
-        fromChain: "svm",
-        toChain: "svm",
+        toToken: this.TOKENS.WETH,
+        amount: "100",
+        reason: "Momentum trading: USDC to WETH based on market analysis",
       },
-      // Strategy 2: SOL -> ETH (diversification)
+      // Strategy 2: WETH -> WBTC (diversification)
       {
-        fromToken: this.TOKENS.SOL,
-        toToken: this.TOKENS.ETH,
-        amount: "0.1",
-        reason: "Portfolio diversification: SOL to ETH cross-asset trade",
-        fromChain: "svm",
-        toChain: "svm",
-      },
-      // Strategy 3: ETH -> BTC (crypto rotation)
-      {
-        fromToken: this.TOKENS.ETH,
-        toToken: this.TOKENS.BTC,
-        amount: "0.01",
-        reason:
-          "Crypto rotation strategy: ETH to BTC based on relative strength",
-        fromChain: "svm",
-        toChain: "svm",
-      },
-      // Strategy 4: BTC -> USDC (profit taking)
-      {
-        fromToken: this.TOKENS.BTC,
-        toToken: this.TOKENS.USDC,
-        amount: "0.001",
-        reason: "Profit taking: BTC to USDC to secure gains",
-        fromChain: "svm",
-        toChain: "svm",
-      },
-      // Strategy 5: USDC -> SOL (re-entry)
-      {
-        fromToken: this.TOKENS.USDC,
-        toToken: this.TOKENS.SOL,
-        amount: "25",
-        reason: "Re-entry strategy: USDC to SOL on dip opportunity",
-        fromChain: "svm",
-        toChain: "svm",
-      },
-      // Strategy 6: SOL -> USDC (risk management)
-      {
-        fromToken: this.TOKENS.SOL,
-        toToken: this.TOKENS.USDC,
+        fromToken: this.TOKENS.WETH,
+        toToken: this.TOKENS.WBTC,
         amount: "0.05",
-        reason: "Risk management: SOL to USDC to reduce exposure",
-        fromChain: "svm",
-        toChain: "svm",
+        reason: "Portfolio diversification: WETH to WBTC cross-asset trade",
+      },
+      // Strategy 3: WBTC -> DAI (crypto rotation)
+      {
+        fromToken: this.TOKENS.WBTC,
+        toToken: this.TOKENS.DAI,
+        amount: "0.001",
+        reason:
+          "Crypto rotation strategy: WBTC to DAI based on relative strength",
+      },
+      // Strategy 4: DAI -> USDC (stablecoin arbitrage)
+      {
+        fromToken: this.TOKENS.DAI,
+        toToken: this.TOKENS.USDC,
+        amount: "50",
+        reason: "Stablecoin arbitrage: DAI to USDC for yield optimization",
+      },
+      // Strategy 5: USDC -> WETH (re-entry)
+      {
+        fromToken: this.TOKENS.USDC,
+        toToken: this.TOKENS.WETH,
+        amount: "75",
+        reason: "Re-entry strategy: USDC to WETH on dip opportunity",
+      },
+      // Strategy 6: WETH -> USDC (risk management)
+      {
+        fromToken: this.TOKENS.WETH,
+        toToken: this.TOKENS.USDC,
+        amount: "0.03",
+        reason: "Risk management: WETH to USDC to reduce exposure",
       },
     ];
 
