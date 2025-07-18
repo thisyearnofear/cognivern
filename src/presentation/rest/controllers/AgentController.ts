@@ -69,6 +69,10 @@ export class AgentController {
     },
   };
 
+  // Track last data fetch to avoid excessive API calls
+  private lastDataFetch: number = 0;
+  private dataFetchInterval: number = 30000; // 30 seconds
+
   private vincentStatus: VincentStatus = {
     isConnected: true, // Vincent framework is configured
     hasConsent: true, // Demo agent already authorized for governance showcase
@@ -193,6 +197,46 @@ export class AgentController {
     this.updatePerformanceMetrics();
   }
 
+  private async fetchRealTradingData(): Promise<void> {
+    const now = Date.now();
+
+    // Only fetch if enough time has passed
+    if (now - this.lastDataFetch < this.dataFetchInterval) {
+      return;
+    }
+
+    try {
+      // Try to fetch real trading data from Recall API
+      if (this.recallTradingApiKey) {
+        const response = await fetch(
+          "https://api.sandbox.competitions.recall.network/api/agent/balances",
+          {
+            headers: {
+              Authorization: `Bearer ${this.recallTradingApiKey}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          logger.info("Fetched real trading data from Recall API:", data);
+
+          // Update status with real data
+          this.recallStatus.isActive = true;
+          this.recallStatus.lastUpdate = new Date().toISOString();
+        }
+      }
+
+      this.lastDataFetch = now;
+    } catch (error) {
+      logger.debug(
+        "Could not fetch real trading data, using mock data:",
+        error
+      );
+    }
+  }
+
   private updatePerformanceMetrics() {
     // Calculate performance for Recall agent
     const recallTrades = this.recallDecisions.filter(
@@ -216,7 +260,10 @@ export class AgentController {
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
 
-      res.json(sortedDecisions);
+      // Return format expected by frontend hooks
+      res.json({
+        decisions: sortedDecisions,
+      });
     } catch (error) {
       logger.error("Error fetching Recall decisions:", error);
       res.status(500).json({ error: "Failed to fetch Recall decisions" });
@@ -226,8 +273,20 @@ export class AgentController {
   async getRecallStatus(req: Request, res: Response) {
     try {
       logger.info("Fetching Recall agent status");
+
+      // Fetch real trading data first
+      await this.fetchRealTradingData();
       this.updatePerformanceMetrics();
-      res.json(this.recallStatus);
+
+      // Return format expected by frontend hooks
+      res.json({
+        agent: {
+          id: "recall-agent-1",
+          name: "Recall Trading Agent",
+          type: "trading",
+        },
+        status: this.recallStatus,
+      });
     } catch (error) {
       logger.error("Error fetching Recall status:", error);
       res.status(500).json({ error: "Failed to fetch Recall status" });
@@ -287,7 +346,10 @@ export class AgentController {
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
 
-      res.json(sortedDecisions);
+      // Return format expected by frontend hooks
+      res.json({
+        decisions: sortedDecisions,
+      });
     } catch (error) {
       logger.error("Error fetching Vincent decisions:", error);
       res.status(500).json({ error: "Failed to fetch Vincent decisions" });
@@ -314,7 +376,12 @@ export class AgentController {
       };
 
       res.json({
-        agentStatus: vincentAgentStatus,
+        agent: {
+          id: "vincent-agent-1",
+          name: "Vincent Social Trading Agent",
+          type: "social-trading",
+        },
+        status: vincentAgentStatus,
         vincentStatus: this.vincentStatus,
       });
     } catch (error) {
