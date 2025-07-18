@@ -1,5 +1,6 @@
 import { useState } from "react";
-import "./PolicyConfiguration.css";
+import { css } from '@emotion/react';
+import { designTokens, tradingStyles } from '../../styles/designTokens';
 
 interface PolicyConfigurationProps {
   policies: {
@@ -50,8 +51,12 @@ export default function PolicyConfiguration({ policies, onUpdate }: PolicyConfig
     }));
   };
 
+  const configStyles = css`
+    ${tradingStyles.glassCard}
+  `;
+
   return (
-    <div className="policy-configuration">
+    <div css={configStyles}>
       <div className="policy-header">
         <h3>🛡️ Trading Policies</h3>
         <p>Configure your trading agent's behavior and limits</p>

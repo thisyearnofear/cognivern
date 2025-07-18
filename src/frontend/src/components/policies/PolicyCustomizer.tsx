@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import './PolicyCustomizer.css';
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/designTokens';
 
 export interface PolicyRule {
   id: string;

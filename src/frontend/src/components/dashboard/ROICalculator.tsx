@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import './ROICalculator.css';
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/designTokens';
 
 interface ROIData {
   humanCost: number;

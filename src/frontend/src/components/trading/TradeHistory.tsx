@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AgentType } from "./TradingAgentDashboard";
-import "./TradeHistory.css";
+import { css } from '@emotion/react';
+import { designTokens, tradingStyles } from '../../styles/designTokens';
 
 interface TradingDecision {
   action: "buy" | "sell" | "hold";
@@ -104,8 +105,12 @@ export default function TradeHistory({
     );
   }
 
+  const historyStyles = css`
+    ${tradingStyles.glassCard}
+  `;
+
   return (
-    <div className="trade-history">
+    <div css={historyStyles}>
       <div className="history-header">
         <h3>
           📋 {agentType === "recall" ? "Competition" : "Sentiment"} Trade

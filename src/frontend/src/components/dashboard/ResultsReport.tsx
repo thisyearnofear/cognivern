@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import './ResultsReport.css';
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/designTokens';
 
 interface ReportInput {
   companyName: string;

@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
-import { getApiUrl } from "../../utils/api.js";
-import "./TradingAgentDashboard.css";
+import { useState } from "react";
+import { css } from '@emotion/react';
+import { designTokens, tradingStyles } from '../../styles/designTokens';
+import { AgentType, VincentStatus } from '../../types';
+import { useAgentData, useTradingData } from '../../hooks/useAgentData';
 import AgentTypeSelector from "./AgentTypeSelector";
 import VincentConsentFlow from "./VincentConsentFlow";
 import PolicyConfiguration from "./PolicyConfiguration";
@@ -8,239 +10,99 @@ import TradingChart from "./TradingChart";
 import TradeHistory from "./TradeHistory";
 import AgentStats from "./AgentStats";
 
-export type AgentType = "recall" | "vincent";
-
-interface TradingDecision {
-  action: "buy" | "sell" | "hold";
-  symbol: string;
-  quantity: number;
-  price: number;
-  confidence: number;
-  reasoning: string;
-  riskScore: number;
-  timestamp: string;
-  agentType: AgentType;
-  sentimentData?: {
-    sentiment: number;
-    confidence: number;
-    sources: string[];
-  };
-}
-
-interface AgentStatus {
-  isActive: boolean;
-  lastUpdate: string;
-  tradesExecuted: number;
-  performance: {
-    totalReturn: number;
-    winRate: number;
-    sharpeRatio: number;
-  };
-}
-
-interface VincentStatus {
-  isConnected: boolean;
-  hasConsent: boolean;
-  appId: string;
-  delegateeAddress?: string;
-  policies: {
-    dailySpendingLimit: number;
-    allowedTokens: string[];
-    maxTradeSize: number;
-  };
-}
-
 export default function TradingAgentDashboard() {
-  const [selectedAgentType, setSelectedAgentType] =
-    useState<AgentType>("recall");
-  const [tradingDecisions, setTradingDecisions] = useState<TradingDecision[]>(
-    []
-  );
-  const [agentStatus, setAgentStatus] = useState<AgentStatus>({
-    isActive: false,
-    lastUpdate: new Date().toISOString(),
-    tradesExecuted: 0,
-    performance: {
-      totalReturn: 0,
-      winRate: 0,
-      sharpeRatio: 0,
-    },
-  });
+  const [selectedAgentType, setSelectedAgentType] = useState<AgentType>("recall");
+  
+  // Use consolidated hooks instead of duplicate state management
+  const { 
+    status: agentStatus, 
+    isLoading: agentLoading, 
+    error: agentError,
+    startAgent,
+    stopAgent 
+  } = useAgentData(selectedAgentType);
+  
+  const { 
+    decisions: tradingDecisions, 
+    isLoading: tradingLoading,
+    error: tradingError 
+  } = useTradingData(selectedAgentType);
+  
+  const isLoading = agentLoading || tradingLoading;
+  const error = agentError || tradingError;
+  
   const [vincentStatus, setVincentStatus] = useState<VincentStatus>({
     isConnected: false,
-    hasConsent: false, // Will be updated from API call
+    hasConsent: false,
     appId: "827",
     policies: {
       dailySpendingLimit: 500,
       allowedTokens: ["ETH", "USDC", "WBTC"],
       maxTradeSize: 200,
     },
+    isConfigured: false,
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchAgentData();
-    const interval = setInterval(fetchAgentData, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
-  }, [selectedAgentType]);
-
-  const fetchAgentData = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
-      const headers = { "X-API-KEY": apiKey };
-
-      if (selectedAgentType === "recall") {
-        await fetchRecallAgentData(headers);
-      } else {
-        await fetchVincentAgentData(headers);
-      }
-    } catch (err) {
-      setError(`Failed to fetch ${selectedAgentType} agent data`);
-      console.error("Error fetching agent data:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchRecallAgentData = async (headers: Record<string, string>) => {
-    // Fetch Recall trading decisions
-    const decisionsResponse = await fetch(
-      getApiUrl("/api/agents/recall/decisions"),
-      {
-        headers,
-      }
-    );
-    if (decisionsResponse.ok) {
-      const decisions = await decisionsResponse.json();
-      setTradingDecisions(
-        decisions.map((d: any) => ({ ...d, agentType: "recall" }))
-      );
-    }
-
-    // Fetch Recall agent status
-    const statusResponse = await fetch(getApiUrl("/api/agents/recall/status"), {
-      headers,
-    });
-    if (statusResponse.ok) {
-      const status = await statusResponse.json();
-      setAgentStatus(status);
-    }
-  };
-
-  const fetchVincentAgentData = async (headers: Record<string, string>) => {
-    // Fetch Vincent trading decisions
-    const decisionsResponse = await fetch(
-      getApiUrl("/api/agents/vincent/decisions"),
-      {
-        headers,
-      }
-    );
-    if (decisionsResponse.ok) {
-      const decisions = await decisionsResponse.json();
-      setTradingDecisions(
-        decisions.map((d: any) => ({ ...d, agentType: "vincent" }))
-      );
-    }
-
-    // Fetch Vincent agent status
-    const statusResponse = await fetch(
-      getApiUrl("/api/agents/vincent/status"),
-      {
-        headers,
-      }
-    );
-    if (statusResponse.ok) {
-      const status = await statusResponse.json();
-      setAgentStatus(status.agentStatus);
-      setVincentStatus(status.vincentStatus);
-    }
-  };
 
   const handleAgentTypeChange = (agentType: AgentType) => {
     setSelectedAgentType(agentType);
-    setTradingDecisions([]); // Clear previous data
   };
 
-  const handleVincentConsent = async () => {
-    try {
-      // Redirect to Vincent consent page
-      const consentUrl = `https://dashboard.heyvincent.ai/appId/827/consent?redirectUri=${encodeURIComponent(window.location.origin + "/vincent/callback")}`;
-      window.location.href = consentUrl;
-    } catch (err) {
-      setError("Failed to initiate Vincent consent flow");
+  const handleVincentConsent = async (consent: boolean) => {
+    if (consent) {
+      setVincentStatus((prev) => ({
+        ...prev,
+        hasConsent: true,
+        isConfigured: true,
+      }));
     }
   };
 
-  const handlePolicyUpdate = async (policies: any) => {
-    try {
-      const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
-      const response = await fetch(getApiUrl("/api/agents/vincent/policies"), {
-        method: "POST",
-        headers: {
-          "X-API-KEY": apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(policies),
-      });
-
-      if (response.ok) {
-        setVincentStatus((prev) => ({ ...prev, policies }));
-      }
-    } catch (err) {
-      setError("Failed to update policies");
-    }
+  const handlePolicyUpdate = async (newPolicies: any) => {
+    setVincentStatus((prev) => ({
+      ...prev,
+      policies: newPolicies,
+    }));
   };
 
-  const startAgent = async () => {
-    try {
-      const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
-      const endpoint =
-        selectedAgentType === "recall"
-          ? "/api/agents/recall/start"
-          : "/api/agents/vincent/start";
+  const dashboardStyles = css`
+    ${tradingStyles.dashboardContainer}
+  `;
 
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "X-API-KEY": apiKey },
-      });
-
-      if (response.ok) {
-        setAgentStatus((prev) => ({ ...prev, isActive: true }));
-      }
-    } catch (err) {
-      setError(`Failed to start ${selectedAgentType} agent`);
+  const headerStyles = css`
+    text-align: center;
+    margin-bottom: ${designTokens.spacing[8]};
+    
+    h2 {
+      font-size: ${designTokens.typography.fontSize['3xl']};
+      font-weight: ${designTokens.typography.fontWeight.bold};
+      background: linear-gradient(45deg, #fff, #e0e7ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: ${designTokens.spacing[2]};
     }
-  };
-
-  const stopAgent = async () => {
-    try {
-      const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
-      const endpoint =
-        selectedAgentType === "recall"
-          ? "/api/agents/recall/stop"
-          : "/api/agents/vincent/stop";
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "X-API-KEY": apiKey },
-      });
-
-      if (response.ok) {
-        setAgentStatus((prev) => ({ ...prev, isActive: false }));
-      }
-    } catch (err) {
-      setError(`Failed to stop ${selectedAgentType} agent`);
+    
+    p {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: ${designTokens.typography.fontSize.lg};
     }
-  };
+  `;
+
+  const errorStyles = css`
+    background: ${designTokens.colors.semantic.errorBg};
+    color: ${designTokens.colors.semantic.error};
+    padding: ${designTokens.spacing[4]};
+    border-radius: ${designTokens.borderRadius.lg};
+    margin-bottom: ${designTokens.spacing[4]};
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  `;
 
   return (
-    <div className="trading-agent-dashboard">
-      <div className="dashboard-header">
-        <h2>🤖 AI Trading Agent Dashboard</h2>
+    <div css={dashboardStyles}>
+      <div css={headerStyles}>
+        <h2>🚀 AI Trading Agent Dashboard</h2>
         <p>
           Monitor and control your AI trading agents with governance oversight
         </p>
@@ -255,15 +117,14 @@ export default function TradingAgentDashboard() {
       />
 
       {error && (
-        <div className="error-banner">
+        <div css={errorStyles}>
           <span>⚠️ {error}</span>
-          <button onClick={() => setError(null)}>×</button>
         </div>
       )}
 
       {/* Vincent-specific components */}
       {selectedAgentType === "vincent" && (
-        <div className="vincent-section">
+        <div css={css`margin-bottom: ${designTokens.spacing[6]};`}>
           {!vincentStatus.hasConsent && (
             <VincentConsentFlow
               appId={vincentStatus.appId}

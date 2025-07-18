@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { getApiUrl } from "../../utils/api";
-import "./BlockchainStatus.css";
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/designTokens';
 
 interface ContractStats {
   filecoin: {

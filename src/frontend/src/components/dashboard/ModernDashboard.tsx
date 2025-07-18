@@ -15,11 +15,10 @@ interface DashboardProps {
   userType: string;
 }
 
-interface AgentMonitoringData {
-  id: string;
-  name: string;
+import { BaseAgent, AgentMetrics, SystemHealth } from '../../types';
+
+interface AgentMonitoringData extends BaseAgent {
   type: 'trading' | 'analysis' | 'monitoring';
-  status: 'active' | 'idle' | 'error' | 'maintenance';
   lastActivity: string;
   performance: {
     uptime: number;
@@ -39,21 +38,7 @@ interface AgentMonitoringData {
   };
 }
 
-interface SystemHealth {
-  overall: 'healthy' | 'warning' | 'critical';
-  components: {
-    blockchain: 'online' | 'degraded' | 'offline';
-    policies: 'active' | 'warning' | 'error';
-    audit: 'logging' | 'delayed' | 'failed';
-    ai: 'operational' | 'limited' | 'unavailable';
-  };
-  metrics: {
-    totalAgents: number;
-    activeAgents: number;
-    totalActions: number;
-    complianceRate: number;
-  };
-}
+// SystemHealth now imported from types
 
 interface AIRecommendation {
   id: string;

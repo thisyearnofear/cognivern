@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import "./UnifiedDashboard.css";
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/designTokens';
+import { useBreakpoint } from '../../hooks/useMediaQuery';
+import { Container } from '../layout/ResponsiveLayout';
 import BlockchainStatus from "../blockchain/BlockchainStatus";
 
+import { BaseAgent } from '../../types';
+
 // Unified interfaces for both Recall and Filecoin data
-interface CogniverseAgent {
-  id: string;
-  name: string;
+interface CogniverseAgent extends BaseAgent {
   avatar?: string;
   recallProfile: {
     agentRank: number;
@@ -62,7 +65,44 @@ interface ActivityFeedItem {
   data: any;
 }
 
+// Unified dashboard styles using design tokens
+const dashboardStyles = css`
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+`;
+
+const headerStyles = css`
+  padding: ${designTokens.spacing[6]} 0 ${designTokens.spacing[4]};
+  text-align: center;
+  
+  h1 {
+    font-size: ${designTokens.typography.fontSize['3xl']};
+    font-weight: ${designTokens.typography.fontWeight.bold};
+    color: ${designTokens.colors.text.primary};
+    margin-bottom: ${designTokens.spacing[2]};
+  }
+  
+  p {
+    color: ${designTokens.colors.text.secondary};
+    font-size: ${designTokens.typography.fontSize.lg};
+  }
+`;
+
+const gridStyles = css`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: ${designTokens.spacing[6]};
+  margin-bottom: ${designTokens.spacing[8]};
+  
+  @media (max-width: ${designTokens.breakpoints.md}) {
+    grid-template-columns: 1fr;
+    gap: ${designTokens.spacing[4]};
+  }
+`;
+
 export default function UnifiedDashboard() {
+  const { isMobile } = useBreakpoint();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [topAgents, setTopAgents] = useState<CogniverseAgent[]>([]);
   const [allAgents, setAllAgents] = useState<CogniverseAgent[]>([]);

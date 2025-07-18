@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import './AgentWorkshop.css';
+import { css } from '@emotion/react';
+import { designTokens, tradingStyles } from '../../styles/designTokens';
+import { BaseAgent } from '../../types';
+import { useLoadingState } from '../../hooks/useAgentData';
 
 interface AgentAction {
   id: string;
@@ -34,7 +37,7 @@ interface AgentTemplate {
 }
 
 export default function AgentWorkshop() {
-  const [loading, setLoading] = useState(false);
+  const { isLoading, withLoading } = useLoadingState(false);
   const [results, setResults] = useState<TestResult[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);

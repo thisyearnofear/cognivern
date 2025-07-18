@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/designTokens';
+import { Container } from '../layout/ResponsiveLayout';
 
 // Match the backend Metrics interface structure
 interface Metrics {

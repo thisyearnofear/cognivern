@@ -234,3 +234,121 @@ export const getColor = (color: string, shade?: number | string) => {
 export const getSpacing = (value: SpacingValue) => designTokens.spacing[value];
 export const getFontSize = (size: FontSize) => designTokens.typography.fontSize[size];
 export const getShadow = (shadow: Shadow) => designTokens.shadows[shadow];
+
+// Responsive mixins for consistent breakpoint usage
+export const responsive = {
+  mobile: (styles: string) => `
+    @media (max-width: ${designTokens.breakpoints.sm}) {
+      ${styles}
+    }
+  `,
+  
+  tablet: (styles: string) => `
+    @media (min-width: ${designTokens.breakpoints.sm}) and (max-width: ${designTokens.breakpoints.lg}) {
+      ${styles}
+    }
+  `,
+  
+  desktop: (styles: string) => `
+    @media (min-width: ${designTokens.breakpoints.lg}) {
+      ${styles}
+    }
+  `,
+  
+  maxMd: (styles: string) => `
+    @media (max-width: ${designTokens.breakpoints.md}) {
+      ${styles}
+    }
+  `,
+  
+  maxLg: (styles: string) => `
+    @media (max-width: ${designTokens.breakpoints.lg}) {
+      ${styles}
+    }
+  `,
+};
+
+// Container utilities for consistent layouts
+export const containers = {
+  standard: `
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 ${designTokens.spacing[4]};
+    
+    ${responsive.maxMd(`
+      padding: 0 ${designTokens.spacing[3]};
+    `)}
+  `,
+  
+  wide: `
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 ${designTokens.spacing[4]};
+    
+    ${responsive.maxMd(`
+      padding: 0 ${designTokens.spacing[3]};
+    `)}
+  `,
+  
+  fluid: `
+    width: 100%;
+    padding: 0 ${designTokens.spacing[4]};
+    
+    ${responsive.maxMd(`
+      padding: 0 ${designTokens.spacing[3]};
+    `)}
+  `,
+};
+
+// Trading-specific design patterns
+export const tradingStyles = {
+  // Glass morphism card pattern used across trading components
+  glassCard: `
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: ${designTokens.borderRadius.xl};
+    padding: ${designTokens.spacing[8]};
+    margin-bottom: ${designTokens.spacing[8]};
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    
+    ${responsive.maxMd(`
+      padding: ${designTokens.spacing[6]};
+      margin-bottom: ${designTokens.spacing[6]};
+    `)}
+  `,
+  
+  // Trading dashboard container
+  dashboardContainer: `
+    padding: ${designTokens.spacing[8]};
+    max-width: 1400px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: white;
+    
+    ${responsive.maxMd(`
+      padding: ${designTokens.spacing[4]};
+    `)}
+  `,
+  
+  // Common header pattern
+  sectionHeader: `
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: ${designTokens.spacing[8]};
+    
+    h3 {
+      font-size: ${designTokens.typography.fontSize.xl};
+      color: white;
+      margin: 0;
+    }
+    
+    ${responsive.maxMd(`
+      flex-direction: column;
+      gap: ${designTokens.spacing[4]};
+      align-items: flex-start;
+    `)}
+  `,
+};
