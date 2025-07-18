@@ -1,0 +1,59 @@
+# Multi-stage build for optimal size and security
+FROM node:20-alpine AS base
+
+# Install pnpm globally
+RUN npm install -g pnpm
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Development stage
+FROM base AS development
+RUN pnpm install --frozen-lockfile
+COPY . .
+CMD ["pnpm", "dev"]
+
+# Build stage
+FROM base AS builder
+RUN pnpm install --frozen-lockfile --prod=false
+COPY . .
+RUN pnpm build:backend
+
+# Production stage
+FROM node:20-alpine AS production
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S cognivern -u 1001
+
+# Install only production dependencies
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN npm install -g pnpm && \
+    pnpm install --frozen-lockfile --prod && \
+    pnpm store prune && \
+    npm cache clean --force
+
+# Copy built application
+COPY --from=builder --chown=cognivern:nodejs /app/dist ./dist
+COPY --from=builder --chown=cognivern:nodejs /app/src/types ./src/types
+
+# Create necessary directories
+RUN mkdir -p logs data && \
+    chown -R cognivern:nodejs logs data
+
+# Switch to non-root user
+USER cognivern
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+# Expose port
+EXPOSE 3000
+
+# Start application
+CMD ["node", "dist/server.js"]

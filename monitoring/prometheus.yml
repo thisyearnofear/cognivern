@@ -1,0 +1,53 @@
+# Prometheus configuration for Cognivern monitoring
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Cognivern API metrics
+  - job_name: 'cognivern-api'
+    static_configs:
+      - targets: ['cognivern-api:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Trading agents metrics
+  - job_name: 'cognivern-agents'
+    static_configs:
+      - targets: ['cognivern-agents:3001']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # System metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Docker metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # Database metrics
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Redis metrics
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # Nginx metrics
+  - job_name: 'nginx-exporter'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
