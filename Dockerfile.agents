@@ -1,0 +1,47 @@
+# Trading Agents Container - Optimized for autonomous operation
+FROM node:20-alpine AS base
+
+# Install pnpm and required tools
+RUN npm install -g pnpm && \
+    apk add --no-cache curl
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Build stage
+FROM base AS builder
+RUN pnpm install --frozen-lockfile --prod=false
+COPY . .
+RUN pnpm build:agents
+
+# Production stage
+FROM base AS production
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S agents -u 1001
+
+# Install only production dependencies
+RUN pnpm install --frozen-lockfile --prod && \
+    pnpm store prune && \
+    npm cache clean --force
+
+# Copy built agents
+COPY --from=builder --chown=agents:nodejs /app/dist/agents ./agents
+COPY --from=builder --chown=agents:nodejs /app/scripts ./scripts
+
+# Create necessary directories
+RUN mkdir -p logs data config && \
+    chown -R agents:nodejs logs data config
+
+# Switch to non-root user
+USER agents
+
+# Health check for agents
+HEALTHCHECK --interval=60s --timeout=30s --start-period=10s --retries=3 \
+    CMD pgrep -f "trading" > /dev/null || exit 1
+
+# Start trading agents
+CMD ["node", "scripts/startAllAgents.js"]
