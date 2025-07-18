@@ -163,38 +163,46 @@ export const usePerformanceMonitor = () => {
     requestAnimationFrame(measureFrame);
   }, []);
 
-  // Check thresholds and create alerts
+  // Check thresholds and create alerts (DISABLED IN PRODUCTION)
   const checkThresholds = useCallback((newMetrics: PerformanceMetrics) => {
+    // Completely disable performance alerts to prevent user spam
+    if (import.meta.env.PROD) {
+      return;
+    }
+    
+    // In development, severely limit alerts
+    const now = Date.now();
+    const alertCooldown = 60000; // 1 minute between any alerts
+    
+    // Check if we've shown any alert recently
+    const lastAlert = alerts[alerts.length - 1];
+    if (lastAlert && (now - lastAlert.timestamp) < alertCooldown) {
+      return; // Skip if we showed an alert recently
+    }
+    
+    // Only show alerts for truly critical issues
+    const criticalThreshold = 2; // Only show if 2x worse than "poor"
     const newAlerts: PerformanceAlert[] = [];
 
     Object.entries(PERFORMANCE_THRESHOLDS).forEach(([metric, thresholds]) => {
       const value = newMetrics[metric as keyof PerformanceMetrics] as number;
-      if (value !== null && value !== undefined) {
-        let alertType: 'warning' | 'error' | null = null;
-        
-        if (value > thresholds.poor) {
-          alertType = 'error';
-        } else if (value > thresholds.good) {
-          alertType = 'warning';
-        }
-
-        if (alertType) {
-          newAlerts.push({
-            type: alertType,
-            metric: metric as keyof PerformanceMetrics,
-            value,
-            threshold: alertType === 'error' ? thresholds.poor : thresholds.good,
-            message: `${metric.toUpperCase()} is ${alertType === 'error' ? 'poor' : 'needs improvement'}: ${value.toFixed(2)}ms`,
-            timestamp: Date.now(),
-          });
-        }
+      if (value !== null && value !== undefined && value > (thresholds.poor * criticalThreshold)) {
+        newAlerts.push({
+          type: 'warning', // Always warning, never error
+          metric: metric as keyof PerformanceMetrics,
+          value,
+          threshold: thresholds.poor,
+          message: `Dev: ${metric} critically slow`,
+          timestamp: now,
+        });
       }
     });
 
+    // Only keep 1 alert maximum
     if (newAlerts.length > 0) {
-      setAlerts(prev => [...prev, ...newAlerts]);
+      setAlerts([newAlerts[0]]); // Replace all alerts with just the first new one
     }
-  }, []);
+  }, [alerts]);
 
   // Start monitoring
   const startMonitoring = useCallback(() => {
