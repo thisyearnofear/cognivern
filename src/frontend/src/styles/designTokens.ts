@@ -33,6 +33,30 @@ export const designTokens = {
     
     // Semantic colors
     semantic: {
+      success: '#22c55e',
+      successHover: '#16a34a',
+      successBg: '#f0fdf4',
+      warning: '#f59e0b',
+      warningHover: '#d97706',
+      warningBg: '#fffbeb',
+      error: '#ef4444',
+      errorHover: '#dc2626',
+      errorBg: '#fef2f2',
+      info: '#3b82f6',
+      infoHover: '#2563eb',
+      infoBg: '#eff6ff',
+    },
+    
+    // Text colors
+    text: {
+      primary: '#1f2937',
+      secondary: '#6b7280',
+      tertiary: '#9ca3af',
+      inverse: '#ffffff',
+    },
+    
+    // Legacy semantic structure for backward compatibility
+    semanticLegacy: {
       success: {
         50: '#f0fdf4',
         500: '#22c55e',
@@ -61,6 +85,21 @@ export const designTokens = {
         700: '#1d4ed8',
         900: '#1e3a8a',
       },
+    },
+    
+    // Background colors
+    background: {
+      primary: '#ffffff',
+      secondary: '#f8fafc',
+      tertiary: '#f1f5f9',
+      inverse: '#0f172a',
+    },
+    
+    // Border colors
+    border: {
+      primary: '#e2e8f0',
+      secondary: '#cbd5e1',
+      focus: '#0ea5e9',
     },
     
     // Neutral grays
