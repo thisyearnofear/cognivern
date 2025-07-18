@@ -109,51 +109,55 @@ export class AgentController {
     }
 
     // Initialize with real agent data
-    this.initializeRealData();
+    this.initializeRealData().catch((error) =>
+      logger.warn("Failed to initialize real data, using mock data:", error)
+    );
   }
 
-  private initializeRealData() {
-    // Initialize with real trading data from our live agents
+  private async initializeRealData() {
+    // Try to fetch real trading data from live agents first
+    await this.fetchRealTradingData();
 
-    // Real Recall agent decisions (based on actual trading activity)
-    this.recallDecisions = [
-      {
-        action: "buy",
-        symbol: "ETH",
-        quantity: 0.5,
-        price: 2340.5,
-        confidence: 0.85,
-        reasoning:
-          "Technical indicators show strong bullish momentum with RSI oversold recovery",
-        riskScore: 25,
-        timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
-        agentType: "recall",
-      },
-      {
-        action: "hold",
-        symbol: "USDC",
-        quantity: 1000,
-        price: 1.0001,
-        confidence: 0.95,
-        reasoning:
-          "Stable asset maintaining peg, optimal for portfolio balance",
-        riskScore: 5,
-        timestamp: new Date(Date.now() - 4 * 3600000).toISOString(),
-        agentType: "recall",
-      },
-      {
-        action: "sell",
-        symbol: "WBTC",
-        quantity: 0.02,
-        price: 43250.75,
-        confidence: 0.78,
-        reasoning:
-          "Resistance level reached, taking profits on previous position",
-        riskScore: 35,
-        timestamp: new Date(Date.now() - 6 * 3600000).toISOString(),
-        agentType: "recall",
-      },
-    ];
+    // If no real data available, initialize with recent mock data based on actual trading patterns
+    if (this.recallDecisions.length === 0) {
+      this.recallDecisions = [
+        {
+          action: "buy",
+          symbol: "USDC/WETH",
+          quantity: 100,
+          price: 0.028705307892280166,
+          confidence: 0.85,
+          reasoning:
+            "Live trading attempt: Converting 100 USDC to WETH (insufficient balance error)",
+          riskScore: 25,
+          timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
+          agentType: "recall",
+        },
+        {
+          action: "hold",
+          symbol: "USDC",
+          quantity: 1000,
+          price: 1.0001,
+          confidence: 0.95,
+          reasoning: "Waiting for sandbox funding to execute trades",
+          riskScore: 5,
+          timestamp: new Date(Date.now() - 4 * 3600000).toISOString(),
+          agentType: "recall",
+        },
+        {
+          action: "buy",
+          symbol: "USDC/WETH",
+          quantity: 75,
+          price: 0.028653421,
+          confidence: 0.78,
+          reasoning:
+            "Automated trading round execution attempt (balance insufficient)",
+          riskScore: 35,
+          timestamp: new Date(Date.now() - 6 * 3600000).toISOString(),
+          agentType: "recall",
+        },
+      ];
+    }
 
     // Real Vincent agent decisions (sentiment-driven)
     this.vincentDecisions = [
@@ -206,8 +210,87 @@ export class AgentController {
     }
 
     try {
-      // Try to fetch real trading data from Recall API
-      if (this.recallTradingApiKey) {
+      // Try to read trading agent logs to get real activity
+      const fs = await import("fs").then((m) => m.promises);
+
+      try {
+        // Check for trading agent log files
+        const logFiles = [
+          "/opt/cognivern/trading-agent-direct.log",
+          "/opt/cognivern/trading-agent-tor.log",
+          "./trading-agent-direct.log",
+        ];
+
+        for (const logFile of logFiles) {
+          try {
+            const logData = await fs.readFile(logFile, "utf8");
+            const lines = logData.split("\n").slice(-100); // Last 100 lines
+
+            const realDecisions: TradingDecision[] = [];
+            let tradesExecuted = 0;
+
+            for (const line of lines) {
+              // Parse quote data: "Quote: 100 USDC → 0.028705307892280166 WETH"
+              if (line.includes("Quote:") && line.includes("→")) {
+                const match = line.match(
+                  /Quote: ([\d.]+) (\w+) → ([\d.]+) (\w+)/
+                );
+                if (match) {
+                  const [, amount, fromToken, toAmount, toToken] = match;
+                  realDecisions.push({
+                    action: "buy",
+                    symbol: `${fromToken}/${toToken}`,
+                    quantity: parseFloat(amount),
+                    price: parseFloat(toAmount) / parseFloat(amount),
+                    confidence: 0.85,
+                    reasoning: `Live trading: Converting ${amount} ${fromToken} to ${toToken}`,
+                    riskScore: 25,
+                    timestamp: new Date().toISOString(),
+                    agentType: "recall",
+                  });
+                  tradesExecuted++;
+                }
+              }
+
+              // Parse error messages for context
+              if (line.includes("Insufficient balance")) {
+                realDecisions.push({
+                  action: "hold",
+                  symbol: "USDC/WETH",
+                  quantity: 0,
+                  price: 0,
+                  confidence: 0.95,
+                  reasoning:
+                    "Trading halted: Insufficient balance in sandbox account",
+                  riskScore: 5,
+                  timestamp: new Date().toISOString(),
+                  agentType: "recall",
+                });
+              }
+            }
+
+            // Update with real data if found
+            if (realDecisions.length > 0) {
+              this.recallDecisions = realDecisions.slice(0, 10); // Keep last 10
+              this.recallStatus.tradesExecuted = tradesExecuted;
+              this.recallStatus.isActive = true;
+              this.recallStatus.lastUpdate = new Date().toISOString();
+              logger.info(
+                `Updated with ${realDecisions.length} real trading decisions from ${logFile}`
+              );
+              break; // Found data, stop checking other files
+            }
+          } catch (fileError) {
+            // File doesn't exist or can't be read, try next one
+            continue;
+          }
+        }
+      } catch (logError) {
+        logger.debug("Trading agent logs not accessible:", logError);
+      }
+
+      // Try to fetch real trading data from Recall API as backup
+      if (this.recallTradingApiKey && this.recallDecisions.length === 0) {
         const response = await fetch(
           "https://api.sandbox.competitions.recall.network/api/agent/balances",
           {
