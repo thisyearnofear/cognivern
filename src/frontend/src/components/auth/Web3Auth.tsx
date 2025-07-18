@@ -105,19 +105,84 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
     <div className="web3-auth">
       {!isConnected ? (
         <button 
-          className="connect-button" 
+          css={css`
+            background: ${designTokens.colors.primary[600]};
+            color: white;
+            border: none;
+            padding: ${designTokens.spacing[2]} ${designTokens.spacing[4]};
+            border-radius: ${designTokens.borderRadius.md};
+            cursor: pointer;
+            font-size: ${designTokens.typography.fontSize.sm};
+            
+            &:hover {
+              background: ${designTokens.colors.primary[700]};
+            }
+            
+            &:disabled {
+              opacity: 0.6;
+              cursor: not-allowed;
+            }
+          `}
           onClick={connectWallet}
           disabled={isConnecting}
         >
           {isConnecting ? 'Connecting...' : 'Connect Wallet'}
         </button>
       ) : (
-        <div className="connected-wallet">
-          <div className="wallet-info">
-            <div className="wallet-address">{formatAddress(address)}</div>
-            <div className="network-info">Filecoin Calibration</div>
+        <div css={css`
+          display: flex;
+          align-items: center;
+          gap: ${designTokens.spacing[3]};
+          
+          @media (max-width: ${designTokens.breakpoints.md}) {
+            flex-direction: column;
+            gap: ${designTokens.spacing[2]};
+          }
+        `}>
+          <div css={css`
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            
+            @media (max-width: ${designTokens.breakpoints.md}) {
+              display: none; /* Hide on mobile/tablet */
+            }
+          `}>
+            <div css={css`
+              font-size: ${designTokens.typography.fontSize.sm};
+              font-weight: ${designTokens.typography.fontWeight.medium};
+              color: ${designTokens.colors.text.primary};
+            `}>
+              {formatAddress(address)}
+            </div>
+            <div css={css`
+              font-size: ${designTokens.typography.fontSize.xs};
+              color: ${designTokens.colors.text.secondary};
+            `}>
+              Filecoin
+            </div>
           </div>
-          <button className="disconnect-button" onClick={disconnectWallet}>
+          <button 
+            css={css`
+              background: ${designTokens.colors.semantic.error};
+              color: white;
+              border: none;
+              padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
+              border-radius: ${designTokens.borderRadius.md};
+              cursor: pointer;
+              font-size: ${designTokens.typography.fontSize.xs};
+              
+              &:hover {
+                background: ${designTokens.colors.semantic.errorHover};
+              }
+              
+              @media (max-width: ${designTokens.breakpoints.md}) {
+                padding: ${designTokens.spacing[2]} ${designTokens.spacing[4]};
+                font-size: ${designTokens.typography.fontSize.sm};
+              }
+            `}
+            onClick={disconnectWallet}
+          >
             Disconnect
           </button>
         </div>
