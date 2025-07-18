@@ -1,5 +1,6 @@
 import { useState } from "react";
-import "./VincentConsentFlow.css";
+import { css } from '@emotion/react';
+import { designTokens, tradingStyles } from '../../styles/designTokens';
 
 interface VincentConsentFlowProps {
   appId: string;

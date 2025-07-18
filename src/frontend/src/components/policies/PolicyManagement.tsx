@@ -37,9 +37,9 @@ interface PolicyTemplate {
   icon: string;
 }
 
-interface AgentConnection {
-  id: string;
-  name: string;
+import { BaseAgent } from '../../types';
+
+interface AgentConnection extends BaseAgent {
   type: 'trading' | 'analysis' | 'monitoring';
   status: 'connected' | 'disconnected' | 'error';
   lastActivity: string;

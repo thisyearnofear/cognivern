@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import './AgentMarketplace.css';
+import { useState, useRef } from 'react';
+import { css } from '@emotion/react';
+import { designTokens, tradingStyles } from '../../styles/designTokens';
+import { useLoadingState } from '../../hooks/useAgentData';
 import InteractiveAgentDemo from './InteractiveAgentDemo';
 
-interface MCPAgent {
-  name: string;
-  type: string;
-  status: string;
-  capabilities: string[];
+import { BaseAgent } from '../../types';
+
+interface MCPAgent extends BaseAgent {
+  // MCPAgent inherits id, name, type, status, capabilities, createdAt, updatedAt from BaseAgent
 }
 
 interface MCPStatus {
@@ -27,8 +28,7 @@ interface AgentTemplate {
 
 export default function AgentMarketplace() {
   const [mcpStatus, setMcpStatus] = useState<MCPStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { isLoading, error, withLoading, clearError } = useLoadingState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedAgent, setSelectedAgent] = useState<AgentTemplate | null>(null);
@@ -47,8 +47,7 @@ export default function AgentMarketplace() {
   }, []);
 
   const fetchMCPStatus = async () => {
-    try {
-      setLoading(true);
+    const result = await withLoading(async () => {
       const response = await fetch('/api/mcp/status', {
         headers: {
           'X-API-KEY': import.meta.env.VITE_API_KEY || 'escheat-api-key-123456',
@@ -61,13 +60,11 @@ export default function AgentMarketplace() {
 
       const data = await response.json();
       setMcpStatus(data);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching MCP status:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      return data;
+    });
+    
+    if (!result) {
       setMcpStatus(null);
-    } finally {
-      setLoading(false);
     }
   };
 

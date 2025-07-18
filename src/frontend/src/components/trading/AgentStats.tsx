@@ -1,5 +1,6 @@
 import { AgentType } from "./TradingAgentDashboard";
-import "./AgentStats.css";
+import { css } from '@emotion/react';
+import { designTokens, tradingStyles } from '../../styles/designTokens';
 
 interface AgentStatus {
   isActive: boolean;
@@ -68,8 +69,12 @@ export default function AgentStats({
     agentType === "recall" ||
     (agentType === "vincent" && vincentStatus?.hasConsent);
 
+  const statsStyles = css`
+    ${tradingStyles.glassCard}
+  `;
+
   return (
-    <div className="agent-stats">
+    <div css={statsStyles}>
       <div className="stats-header">
         <h3>
           {agentType === "recall" ? "🏆 Recall Agent" : "🧠 Vincent Agent"}{" "}

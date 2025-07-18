@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import './AgentSimulation.css';
+import { css } from '@emotion/react';
+import { designTokens, tradingStyles } from '../../styles/designTokens';
 
 interface SimulationTask {
   id: string;

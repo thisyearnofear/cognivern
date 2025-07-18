@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import './MCPAgentsDashboard.css';
-import IntegrationDiagram from './IntegrationDiagram';
-import CaseStudies from './CaseStudies';
+import { css } from '@emotion/react';
+import { designTokens, responsive } from '../../styles/designTokens';
+import { Container } from '../layout/ResponsiveLayout';
+import IntegrationDiagram from '../integration/IntegrationDiagram';
+import CaseStudies from '../CaseStudies';
 import CaseStudyDemo from './CaseStudyDemo';
 
 interface MCPAgent {

@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import './MultiAgentInteraction.css';
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/designTokens';
 
-interface Agent {
-  id: string;
-  name: string;
+import { BaseAgent } from '../../types';
+
+interface InteractionAgent extends BaseAgent {
   description: string;
   icon: string;
-  capabilities: string[];
 }
 
 interface Message {
@@ -25,7 +25,7 @@ interface Message {
 
 interface MultiAgentInteractionProps {
   primaryAgentId: string;
-  availableAgents: Agent[];
+  availableAgents: InteractionAgent[];
   onClose: () => void;
 }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import './WalletConnect.css';
+import { css } from '@emotion/react';
+import { designTokens, tradingStyles } from '../../styles/designTokens';
 
 interface WalletConnectProps {
   onConnect: (address: string) => void;

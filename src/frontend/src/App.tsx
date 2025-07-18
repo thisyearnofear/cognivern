@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAppStore } from './stores/appStore';
 import { generateKeyframes } from './styles/animations';
-import AppLayout from './components/layout/AppLayout';
+import { AppLayout } from './components/layout';
 import SmartOnboarding from './components/onboarding/SmartOnboarding';
 import PageTransition from './components/ui/PageTransition';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
