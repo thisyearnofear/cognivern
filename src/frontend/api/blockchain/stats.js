@@ -3,17 +3,20 @@ export default async function handler(req, res) {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, DELETE, OPTIONS"
+    );
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     return res.status(200).end();
   }
 
   // Get API key from environment variable (server-side only)
-  const apiKey = process.env.RECALL_API_KEY || "5ffd36bb15925fe2_dd811d9881d72940";
-  
+  const apiKey = process.env.RECALL_API_KEY || "your_recall_api_key_here";
+
   // Build the target URL
   const targetUrl = "http://157.180.36.156/api/blockchain/stats";
-  
+
   console.log("Blockchain stats proxy request:", {
     method: req.method,
     targetUrl,
@@ -47,7 +50,10 @@ export default async function handler(req, res) {
 
     // Set CORS headers
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, DELETE, OPTIONS"
+    );
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
     // Return the data

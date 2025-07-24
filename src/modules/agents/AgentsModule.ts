@@ -1,6 +1,6 @@
 /**
  * Agents Module - Unified Agent Management
- * 
+ *
  * This module manages all trading agents with:
  * - DRY agent architecture
  * - Shared trading logic
@@ -8,15 +8,20 @@
  * - Modular agent types
  */
 
-import { BaseService } from '../../shared/services/BaseService.js';
-import { ServiceConfig, DependencyHealth, Agent, TradingDecision } from '../../shared/index.js';
-import { tradingConfig } from '../../shared/config/index.js';
-import { TradingAgent } from './types/TradingAgent.js';
-import { RecallTradingAgent } from './implementations/RecallTradingAgent.js';
-import { VincentTradingAgent } from './implementations/VincentTradingAgent.js';
-import { AgentOrchestrator } from './services/AgentOrchestrator.js';
-import { TradingService } from './services/TradingService.js';
-import { GovernanceService } from './services/GovernanceService.js';
+import { BaseService } from "../../shared/services/BaseService.js";
+import {
+  ServiceConfig,
+  DependencyHealth,
+  Agent,
+  TradingDecision,
+} from "../../shared/index.js";
+import { tradingConfig } from "../../shared/config/index.js";
+import { TradingAgent } from "./types/TradingAgent.js";
+import { RecallTradingAgent } from "./implementations/RecallTradingAgent.js";
+import { VincentTradingAgent } from "./implementations/VincentTradingAgent.js";
+import { AgentOrchestrator } from "./services/AgentOrchestrator.js";
+import { TradingService } from "./services/TradingService.js";
+import { GovernanceService } from "./services/GovernanceService.js";
 
 export class AgentsModule extends BaseService {
   private agents: Map<string, TradingAgent> = new Map();
@@ -27,12 +32,12 @@ export class AgentsModule extends BaseService {
 
   constructor() {
     const config: ServiceConfig = {
-      name: 'agents',
-      version: '1.0.0',
-      environment: process.env.NODE_ENV as any || 'development',
-      logLevel: 'info',
+      name: "agents",
+      version: "1.0.0",
+      environment: (process.env.NODE_ENV as any) || "development",
+      logLevel: "info",
     };
-    
+
     super(config);
   }
 
@@ -48,28 +53,30 @@ export class AgentsModule extends BaseService {
     await this.shutdownServices();
   }
 
-  protected async checkDependencies(): Promise<Record<string, DependencyHealth>> {
+  protected async checkDependencies(): Promise<
+    Record<string, DependencyHealth>
+  > {
     const dependencies: Record<string, DependencyHealth> = {};
 
     // Check trading service
     try {
       await this.tradingService.healthCheck();
-      dependencies.tradingService = { status: 'healthy' };
+      dependencies.tradingService = { status: "healthy" };
     } catch (error) {
-      dependencies.tradingService = { 
-        status: 'unhealthy', 
-        error: error.message 
+      dependencies.tradingService = {
+        status: "unhealthy",
+        error: error.message,
       };
     }
 
     // Check governance service
     try {
       await this.governanceService.healthCheck();
-      dependencies.governanceService = { status: 'healthy' };
+      dependencies.governanceService = { status: "healthy" };
     } catch (error) {
-      dependencies.governanceService = { 
-        status: 'unhealthy', 
-        error: error.message 
+      dependencies.governanceService = {
+        status: "unhealthy",
+        error: error.message,
       };
     }
 
@@ -77,13 +84,13 @@ export class AgentsModule extends BaseService {
     for (const [agentId, agent] of this.agents) {
       try {
         const isHealthy = await agent.isHealthy();
-        dependencies[`agent_${agentId}`] = { 
-          status: isHealthy ? 'healthy' : 'unhealthy' 
+        dependencies[`agent_${agentId}`] = {
+          status: isHealthy ? "healthy" : "unhealthy",
         };
       } catch (error) {
-        dependencies[`agent_${agentId}`] = { 
-          status: 'unhealthy', 
-          error: error.message 
+        dependencies[`agent_${agentId}`] = {
+          status: "unhealthy",
+          error: error.message,
         };
       }
     }
@@ -92,12 +99,17 @@ export class AgentsModule extends BaseService {
   }
 
   private async initializeServices(): Promise<void> {
-    this.logger.info('Initializing agent services...');
+    this.logger.info("Initializing agent services...");
 
     // Initialize shared services
     this.tradingService = new TradingService();
     this.governanceService = new GovernanceService();
-    this.orchestrator = new AgentOrchestrator(this.tradingService, this.governanceService);
+    this.orchestrator = new AgentOrchestrator({
+      maxConcurrentTrades: 5,
+      riskAllocationPerAgent: 0.2,
+      coordinationStrategy: "independent",
+      conflictResolution: "highest_confidence",
+    });
 
     await this.tradingService.initialize();
     await this.governanceService.initialize();
@@ -105,32 +117,40 @@ export class AgentsModule extends BaseService {
   }
 
   private async initializeAgents(): Promise<void> {
-    this.logger.info('Initializing trading agents...');
+    this.logger.info("Initializing trading agents...");
 
     if (!tradingConfig.enabled) {
-      this.logger.warn('Trading is disabled in configuration');
+      this.logger.warn("Trading is disabled in configuration");
       return;
     }
 
     // Initialize Recall Direct Trading Agent
-    const recallAgent = new RecallTradingAgent({
-      id: 'recall-agent-1',
-      name: 'Recall Trading Agent',
-      apiKey: tradingConfig.recallApiKeys.direct,
-      apiUrl: tradingConfig.sandboxUrl,
-      tradingService: this.tradingService,
-      governanceService: this.governanceService,
-    });
+    const recallAgent = new RecallTradingAgent(
+      "recall-agent-1",
+      "Recall Trading Agent",
+      {
+        apiKey: tradingConfig.recallApiKeys.direct,
+        maxTradeSize: 1000,
+        riskTolerance: 0.1,
+        tradingPairs: ["BTC/USD", "ETH/USD"],
+        strategies: ["momentum", "mean_reversion"],
+        governanceRules: [],
+      }
+    );
 
     // Initialize Vincent Social Trading Agent
-    const vincentAgent = new VincentTradingAgent({
-      id: 'vincent-agent-1',
-      name: 'Vincent Social Trading Agent',
-      apiKey: tradingConfig.recallApiKeys.vincent,
-      apiUrl: tradingConfig.sandboxUrl,
-      tradingService: this.tradingService,
-      governanceService: this.governanceService,
-    });
+    const vincentAgent = new VincentTradingAgent(
+      "vincent-agent-1",
+      "Vincent Social Trading Agent",
+      {
+        apiKey: tradingConfig.recallApiKeys.vincent,
+        maxTradeSize: 500,
+        riskTolerance: 0.05,
+        tradingPairs: ["ETH/USD", "BTC/USD"],
+        strategies: ["social_trading", "copy_trading"],
+        governanceRules: [],
+      }
+    );
 
     // Register agents
     this.agents.set(recallAgent.getId(), recallAgent);
@@ -140,7 +160,10 @@ export class AgentsModule extends BaseService {
     for (const [agentId, agent] of this.agents) {
       try {
         await agent.initialize();
-        this.logger.info(`Agent ${agentId} initialized successfully`);
+        await agent.start(); // Start the agent to make it active
+        this.logger.info(
+          `Agent ${agentId} initialized and started successfully`
+        );
       } catch (error) {
         this.logger.error(`Failed to initialize agent ${agentId}:`, error);
         // Remove failed agent
@@ -153,21 +176,27 @@ export class AgentsModule extends BaseService {
 
   private async startOrchestrator(): Promise<void> {
     if (this.agents.size === 0) {
-      this.logger.warn('No agents available to orchestrate');
+      this.logger.warn("No agents available to orchestrate");
       return;
     }
 
-    this.logger.info('Starting agent orchestrator...');
-    
+    this.logger.info("Starting agent orchestrator...");
+
     // Register all agents with orchestrator
     for (const agent of this.agents.values()) {
-      this.orchestrator.registerAgent(agent);
+      await this.orchestrator.registerAgent(agent, {
+        agentId: agent.getId(),
+        allocation: 0.5, // 50% allocation
+        maxRisk: 1000,
+        priority: 5,
+      });
     }
 
-    await this.orchestrator.start();
+    // Start automated trading
+    this.orchestrator.startAutomatedTrading();
     this.isRunning = true;
-    
-    this.logger.info('Agent orchestrator started successfully');
+
+    this.logger.info("Agent orchestrator started successfully");
   }
 
   private async stopOrchestrator(): Promise<void> {
@@ -175,52 +204,57 @@ export class AgentsModule extends BaseService {
       return;
     }
 
-    this.logger.info('Stopping agent orchestrator...');
+    this.logger.info("Stopping agent orchestrator...");
     await this.orchestrator.stop();
     this.isRunning = false;
-    this.logger.info('Agent orchestrator stopped');
+    this.logger.info("Agent orchestrator stopped");
   }
 
   private async shutdownAgents(): Promise<void> {
-    this.logger.info('Shutting down agents...');
+    this.logger.info("Shutting down agents...");
 
-    const shutdownPromises = Array.from(this.agents.values()).map(async (agent) => {
-      try {
-        await agent.shutdown();
-        this.logger.debug(`Agent ${agent.getId()} shut down successfully`);
-      } catch (error) {
-        this.logger.error(`Error shutting down agent ${agent.getId()}:`, error);
+    const shutdownPromises = Array.from(this.agents.values()).map(
+      async (agent) => {
+        try {
+          await agent.shutdown();
+          this.logger.debug(`Agent ${agent.getId()} shut down successfully`);
+        } catch (error) {
+          this.logger.error(
+            `Error shutting down agent ${agent.getId()}:`,
+            error
+          );
+        }
       }
-    });
+    );
 
     await Promise.allSettled(shutdownPromises);
     this.agents.clear();
-    this.logger.info('All agents shut down');
+    this.logger.info("All agents shut down");
   }
 
   private async shutdownServices(): Promise<void> {
-    this.logger.info('Shutting down agent services...');
+    this.logger.info("Shutting down agent services...");
 
     if (this.orchestrator) {
       await this.orchestrator.shutdown();
     }
-    
+
     if (this.tradingService) {
       await this.tradingService.shutdown();
     }
-    
+
     if (this.governanceService) {
       await this.governanceService.shutdown();
     }
 
-    this.logger.info('Agent services shut down');
+    this.logger.info("Agent services shut down");
   }
 
   /**
    * Get all registered agents
    */
   getAgents(): Agent[] {
-    return Array.from(this.agents.values()).map(agent => agent.getInfo());
+    return Array.from(this.agents.values()).map((agent) => agent.getInfo());
   }
 
   /**
@@ -246,7 +280,10 @@ export class AgentsModule extends BaseService {
   /**
    * Get agent trading decisions
    */
-  async getAgentDecisions(agentId: string, limit = 10): Promise<TradingDecision[]> {
+  async getAgentDecisions(
+    agentId: string,
+    limit = 10
+  ): Promise<TradingDecision[]> {
     const agent = this.agents.get(agentId);
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);

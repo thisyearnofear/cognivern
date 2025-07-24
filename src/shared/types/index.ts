@@ -1,6 +1,6 @@
 /**
  * Shared Types - Single Source of Truth
- * 
+ *
  * All types used across the platform are defined here to ensure consistency
  * and eliminate duplication between API, agents, and frontend.
  */
@@ -18,19 +18,23 @@ export interface Agent {
   currentPolicyId?: string;
 }
 
-export type AgentType = 
-  | 'trading' 
-  | 'social-trading' 
-  | 'contract' 
-  | 'governance' 
-  | 'external-trading';
+export type AgentType =
+  | "trading"
+  | "social-trading"
+  | "contract"
+  | "governance"
+  | "external-trading"
+  | "recall"
+  | "vincent"
+  | "custom";
 
-export type AgentStatus = 
-  | 'active' 
-  | 'inactive' 
-  | 'pending' 
-  | 'error' 
-  | 'maintenance';
+export type AgentStatus =
+  | "active"
+  | "inactive"
+  | "pending"
+  | "paused"
+  | "error"
+  | "maintenance";
 
 // Trading Types
 export interface TradingDecision {
@@ -41,13 +45,13 @@ export interface TradingDecision {
   price: number;
   confidence: number;
   reasoning: string;
-  riskScore: number;
-  timestamp: string;
-  agentType: string;
+  riskScore?: number;
+  timestamp: Date;
+  agentType?: string;
   agentId?: string;
 }
 
-export type TradingAction = 'buy' | 'sell' | 'hold';
+export type TradingAction = "buy" | "sell" | "hold";
 
 export interface TradingPerformance {
   totalReturn: number;
@@ -80,7 +84,7 @@ export interface PolicyRule {
   parameters: Record<string, any>;
 }
 
-export type PolicyStatus = 'active' | 'inactive' | 'draft' | 'deprecated';
+export type PolicyStatus = "active" | "inactive" | "draft" | "deprecated";
 
 // Monitoring Types
 export interface AgentMetrics {
@@ -130,9 +134,9 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 export interface ServiceConfig {
   name: string;
   version: string;
-  environment: 'development' | 'production' | 'test';
+  environment: "development" | "production" | "test";
   port?: number;
-  logLevel: 'error' | 'warn' | 'info' | 'debug';
+  logLevel: "error" | "warn" | "info" | "debug";
 }
 
 export interface DatabaseConfig {
@@ -161,7 +165,7 @@ export interface DomainEvent {
 
 // Health Check Types
 export interface HealthStatus {
-  status: 'healthy' | 'unhealthy' | 'degraded';
+  status: "healthy" | "unhealthy" | "degraded";
   timestamp: string;
   uptime: number;
   version: string;
@@ -169,7 +173,7 @@ export interface HealthStatus {
 }
 
 export interface DependencyHealth {
-  status: 'healthy' | 'unhealthy';
+  status: "healthy" | "unhealthy";
   responseTime?: number;
   error?: string;
 }
@@ -181,6 +185,6 @@ export interface AuditLog {
   action: string;
   details: Record<string, any>;
   timestamp: string;
-  outcome: 'success' | 'failure' | 'warning';
-  riskLevel: 'low' | 'medium' | 'high';
+  outcome: "success" | "failure" | "warning";
+  riskLevel: "low" | "medium" | "high";
 }

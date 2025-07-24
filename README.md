@@ -43,20 +43,30 @@ Cognivern leverages Filecoin's sovereign data layer to create a comprehensive go
 
 Cognivern showcases two distinct AI trading agents, each demonstrating different approaches to autonomous trading with governance oversight:
 
-### 🏆 Recall Competition Agent
+### 🏆 Recall Trading Agent (`recall-agent-1`)
 
-- **Purpose**: High-frequency trading optimized for competition performance
-- **Strategy**: Technical analysis, market data, and algorithmic trading
-- **Governance**: Platform-defined policies with performance tracking
-- **Competition**: Active participant in Recall's 7 Day Trading Challenge
+- **Purpose**: Direct trading with Recall Network integration
+- **API Integration**: `@recallnet/sdk` with environment variable `RECALL_API_KEY_DIRECT`
+- **Trading Configuration**:
+  - Max Trade Size: $1,000 USD
+  - Risk Tolerance: 10%
+  - Trading Pairs: BTC/USD, ETH/USD
+  - Strategies: Momentum, Mean Reversion
+- **Current Activity**: 208+ trades executed, trading every 10 minutes
+- **Governance**: Real-time policy enforcement with audit trails
 
-### 🧠 Vincent Social Trading Agent
+### 🧠 Vincent Social Trading Agent (`vincent-agent-1`)
 
-- **Purpose**: Sentiment-driven trading with community-defined guardrails
-- **Vincent App ID**: `827` (public app identifier)
-- **Strategy**: Social media sentiment analysis (Twitter, Reddit, News)
-- **Governance**: User-controlled policies (spending limits, token allowlists, time restrictions)
-- **Framework**: Built on Vincent Framework with Lit Protocol for secure execution
+- **Purpose**: Social trading with Vincent Framework integration
+- **Vincent App ID**: `827` with management wallet `0x8502d079f93AEcdaC7B0Fe71Fa877721995f1901`
+- **API Integration**: Recall Network key via `RECALL_API_KEY_VINCENT`
+- **Trading Configuration**:
+  - Max Trade Size: $500 USD (conservative)
+  - Risk Tolerance: 5% (lower risk for social trading)
+  - Trading Pairs: ETH/USD, BTC/USD
+  - Strategies: Social Trading, Copy Trading
+- **Current Activity**: 208+ trades executed with social features
+- **Framework**: Vincent Framework with governance overlay for user policies
 
 ### 🎯 Unified Dashboard
 
@@ -74,6 +84,7 @@ Both agents are managed through a single, hybrid dashboard that demonstrates:
 
 - Node.js v22.11.0 or higher
 - pnpm v9.15.4 or higher
+- PostgreSQL and Redis
 - Recall account with available credits
 
 ### Installation
@@ -86,11 +97,31 @@ cd cognivern
 # Install dependencies
 pnpm install
 
-# Build the project
-pnpm build
+# Local Development
+./scripts/local-dev.sh
 
-# Start the platform
-pnpm start
+# Production Deployment
+./scripts/deploy.sh
+```
+
+### Deployment Options
+
+#### 🖥️ Local Development
+
+```bash
+./scripts/local-dev.sh
+```
+
+#### 🚀 Production Server
+
+```bash
+./scripts/deploy.sh
+```
+
+#### 🔧 Manual Server Setup
+
+```bash
+./scripts/start-server.sh
 ```
 
 ### Configuration

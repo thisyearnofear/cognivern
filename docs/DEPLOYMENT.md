@@ -1,6 +1,32 @@
 # Cognivern Deployment Guide
 
-## 🚀 Deployment Status
+## 🌐 **Recommended: Phala Cloud Deployment**
+
+**For production AI agent deployments, we recommend Phala Cloud over self-hosting:**
+
+### **Why Phala Cloud?**
+
+After experiencing challenges with self-hosted infrastructure, Phala Cloud offers:
+
+- **🔄 Guaranteed Uptime**: Decentralized compute eliminates single points of failure
+- **📊 Built-in Monitoring**: Native observability without manual log analysis
+- **🚀 Seamless Deployment**: Git-based deployments with automatic scaling
+- **🛡️ Enhanced Security**: TEE (Trusted Execution Environment) for sensitive trading operations
+- **💰 Cost Efficiency**: Pay-per-use model vs. dedicated server costs
+
+### **Migration Benefits**
+
+| Self-Hosted (Current)    | Phala Cloud (Recommended)  |
+| ------------------------ | -------------------------- |
+| Manual server management | Automated infrastructure   |
+| Single point of failure  | Decentralized redundancy   |
+| Manual monitoring setup  | Built-in observability     |
+| Complex SSL management   | Automatic HTTPS            |
+| Manual scaling           | Auto-scaling based on load |
+
+---
+
+## 🚀 Current Self-Hosted Deployment Status
 
 **🔒 PRODUCTION READY - 100% DECENTRALIZED**
 
