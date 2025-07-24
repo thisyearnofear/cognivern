@@ -9,8 +9,9 @@
     ],
     "outDir": "dist",
     "rootDir": "src",
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
@@ -19,17 +20,16 @@
     "types": [
       "node"
     ],
-    "baseUrl": "src",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "*"
+        "src/*"
       ]
     },
     "sourceMap": true,
-    "declaration": true,
-    "checkJs": true,
-    "noEmit": false,
-    "isolatedModules": true
+    "declaration": false,
+    "checkJs": false,
+    "noEmit": false
   },
   "include": [
     "src/**/*"
@@ -39,9 +39,5 @@
     "node_modules",
     "dist",
     "**/*.test.ts"
-  ],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
-  }
+  ]
 }

@@ -1,6 +1,12 @@
 .env
 .env.*
 !.env.example
+agents/trading-agent/.env
+external/js-recall/.env.local
+
+# Logs
+logs/*.log
+*.log
 node_modules
 dist/
 external/

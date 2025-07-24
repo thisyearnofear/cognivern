@@ -33,8 +33,7 @@ export function getApiHeaders(): Record<string, string> {
   };
 
   // Always include API key for backend authentication
-  const apiKey =
-    import.meta.env.VITE_API_KEY || "5ffd36bb15925fe2_dd811d9881d72940";
+  const apiKey = import.meta.env.VITE_API_KEY || "showcase-api-key";
   if (apiKey) {
     headers["X-API-KEY"] = apiKey;
   }
@@ -62,7 +61,7 @@ export function getApiUrl(endpoint: string): string {
 
   // In production, call backend directly via HTTPS domain
   if (import.meta.env.PROD) {
-    const backendUrl = "https://api.thisyearnofear.com";
+    const backendUrl = "http://157.180.36.156:3000";
     return `${backendUrl}${cleanEndpoint}`;
   }
 

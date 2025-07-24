@@ -1,5 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
-import logger from '../utils/logger.js';
+import { Request, Response, NextFunction } from "express";
+
+// Simple console logger for middleware
+const logger = {
+  warn: (message: string) => console.warn(`[WARN] ${message}`),
+  error: (message: string) => console.error(`[ERROR] ${message}`),
+  info: (message: string) => console.log(`[INFO] ${message}`),
+};
 
 /**
  * Custom error class for API errors
@@ -8,10 +14,10 @@ export class APIError extends Error {
   constructor(
     public statusCode: number,
     message: string,
-    public details?: unknown,
+    public details?: unknown
   ) {
     super(message);
-    this.name = 'APIError';
+    this.name = "APIError";
   }
 }
 
@@ -25,13 +31,9 @@ export function errorHandler(
   next: NextFunction
 ): void {
   // Log the error
-  logger.error('API Error:', {
-    error: error.message,
-    stack: error.stack,
-    url: req.url,
-    method: req.method,
-    ip: req.ip,
-  });
+  logger.error(
+    `API Error: ${error.message} - ${req.method} ${req.url} from ${req.ip}`
+  );
 
   // Handle different error types
   if (error instanceof APIError) {
@@ -44,9 +46,9 @@ export function errorHandler(
   }
 
   // Handle validation errors
-  if (error.name === 'ValidationError') {
+  if (error.name === "ValidationError") {
     res.status(400).json({
-      error: 'Validation failed',
+      error: "Validation failed",
       details: error.message,
       timestamp: new Date().toISOString(),
     });
@@ -54,10 +56,14 @@ export function errorHandler(
   }
 
   // Handle blockchain/contract errors
-  if (error.message.includes('contract') || error.message.includes('transaction')) {
+  if (
+    error.message.includes("contract") ||
+    error.message.includes("transaction")
+  ) {
     res.status(502).json({
-      error: 'Blockchain service unavailable',
-      details: 'The blockchain service is currently unavailable. Please try again later.',
+      error: "Blockchain service unavailable",
+      details:
+        "The blockchain service is currently unavailable. Please try again later.",
       timestamp: new Date().toISOString(),
     });
     return;
@@ -65,8 +71,11 @@ export function errorHandler(
 
   // Default error response
   res.status(500).json({
-    error: 'Internal server error',
-    details: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred',
+    error: "Internal server error",
+    details:
+      process.env.NODE_ENV === "development"
+        ? error.message
+        : "An unexpected error occurred",
     timestamp: new Date().toISOString(),
   });
 }
