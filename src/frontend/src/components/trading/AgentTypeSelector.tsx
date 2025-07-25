@@ -1,6 +1,18 @@
 import { AgentType } from "./TradingAgentDashboard";
-import { css } from '@emotion/react';
-import { designTokens, tradingStyles } from '../../styles/designTokens';
+import { css } from "@emotion/react";
+import {
+  designTokens,
+  colorSystem,
+  shadowSystem,
+  keyframeAnimations,
+} from "../../styles/design-system";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "../ui/Card";
 
 interface AgentStatus {
   isActive: boolean;
@@ -67,12 +79,14 @@ export default function AgentTypeSelector({
               <h4>Recall Trading Agent</h4>
               <p>Competition-focused trading with Recall Network</p>
             </div>
-            <div className={`status-indicator ${getStatusColor(recallStatus.isActive)}`}>
+            <div
+              className={`status-indicator ${getStatusColor(recallStatus.isActive)}`}
+            >
               <span className="status-dot"></span>
               <span className="status-text">{getStatusText("recall")}</span>
             </div>
           </div>
-          
+
           <div className="agent-features">
             <div className="feature">
               <span className="feature-icon">🎯</span>
@@ -119,12 +133,14 @@ export default function AgentTypeSelector({
               <h4>Vincent Social Trading Agent</h4>
               <p>Sentiment-driven trading with community governance</p>
             </div>
-            <div className={`status-indicator ${getStatusColor(recallStatus.isActive, vincentStatus.hasConsent)}`}>
+            <div
+              className={`status-indicator ${getStatusColor(recallStatus.isActive, vincentStatus.hasConsent)}`}
+            >
               <span className="status-dot"></span>
               <span className="status-text">{getStatusText("vincent")}</span>
             </div>
           </div>
-          
+
           <div className="agent-features">
             <div className="feature">
               <span className="feature-icon">💭</span>
@@ -143,15 +159,21 @@ export default function AgentTypeSelector({
           <div className="agent-stats">
             <div className="stat">
               <span className="stat-label">Daily Limit</span>
-              <span className="stat-value">${vincentStatus.policies.dailySpendingLimit}</span>
+              <span className="stat-value">
+                ${vincentStatus.policies.dailySpendingLimit}
+              </span>
             </div>
             <div className="stat">
               <span className="stat-label">Tokens</span>
-              <span className="stat-value">{vincentStatus.policies.allowedTokens.length}</span>
+              <span className="stat-value">
+                {vincentStatus.policies.allowedTokens.length}
+              </span>
             </div>
             <div className="stat">
               <span className="stat-label">Max Trade</span>
-              <span className="stat-value">${vincentStatus.policies.maxTradeSize}</span>
+              <span className="stat-value">
+                ${vincentStatus.policies.maxTradeSize}
+              </span>
             </div>
           </div>
 
@@ -180,7 +202,9 @@ export default function AgentTypeSelector({
           </div>
           <div className="comparison-row">
             <div className="comparison-cell">Data Sources</div>
-            <div className="comparison-cell">Market data, Technical analysis</div>
+            <div className="comparison-cell">
+              Market data, Technical analysis
+            </div>
             <div className="comparison-cell">Social media, News, Sentiment</div>
           </div>
           <div className="comparison-row">
@@ -191,7 +215,9 @@ export default function AgentTypeSelector({
           <div className="comparison-row">
             <div className="comparison-cell">Execution</div>
             <div className="comparison-cell">Recall API</div>
-            <div className="comparison-cell">Vincent Framework + Lit Protocol</div>
+            <div className="comparison-cell">
+              Vincent Framework + Lit Protocol
+            </div>
           </div>
         </div>
       </div>

@@ -216,6 +216,15 @@ export class ApiModule extends BaseService {
       this.controllers.get("agents").getAgents(req, res);
     });
 
+    // Legacy routes for monitoring (must come before :id routes)
+    apiRouter.get("/agents/monitoring", (req, res) => {
+      this.controllers.get("agents").getMonitoring(req, res);
+    });
+
+    apiRouter.get("/agents/unified", (req, res) => {
+      this.controllers.get("agents").getUnified(req, res);
+    });
+
     apiRouter.get("/agents/:id", (req, res) => {
       this.controllers.get("agents").getAgent(req, res);
     });
@@ -230,15 +239,6 @@ export class ApiModule extends BaseService {
 
     apiRouter.post("/agents/:id/stop", (req, res) => {
       this.controllers.get("agents").stopAgent(req, res);
-    });
-
-    // Legacy routes for monitoring
-    apiRouter.get("/agents/monitoring", (req, res) => {
-      this.controllers.get("agents").getMonitoring(req, res);
-    });
-
-    apiRouter.get("/agents/unified", (req, res) => {
-      this.controllers.get("agents").getUnified(req, res);
     });
 
     // Trading routes
@@ -262,6 +262,11 @@ export class ApiModule extends BaseService {
     // Metrics routes
     apiRouter.get("/metrics/daily", (req, res) => {
       this.controllers.get("metrics").getDailyMetrics(req, res);
+    });
+
+    // Dashboard routes
+    apiRouter.get("/dashboard/unified", (req, res) => {
+      this.controllers.get("agents").getUnified(req, res);
     });
 
     // Mount API router
