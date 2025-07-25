@@ -61,7 +61,9 @@ export function getApiUrl(endpoint: string): string {
 
   // In production, call backend directly via HTTPS domain
   if (import.meta.env.PROD) {
-    const backendUrl = "http://157.180.36.156:3000";
+    // Use environment variable for backend URL, fallback to HTTPS
+    const backendUrl =
+      import.meta.env.VITE_BACKEND_URL || "https://api.thisyearnofear.com";
     return `${backendUrl}${cleanEndpoint}`;
   }
 
