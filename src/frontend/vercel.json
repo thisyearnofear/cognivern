@@ -1,13 +1,13 @@
 {
   "env": {
     "VITE_API_KEY": "showcase-api-key",
-    "VITE_BACKEND_URL": "http://api.thisyearnofear.com",
+    "VITE_BACKEND_URL": "https://api.thisyearnofear.com",
     "VITE_API_BASE_URL": "/api"
   },
   "build": {
     "env": {
       "VITE_API_KEY": "showcase-api-key",
-      "VITE_BACKEND_URL": "http://api.thisyearnofear.com",
+      "VITE_BACKEND_URL": "https://api.thisyearnofear.com",
       "VITE_API_BASE_URL": "/api"
     }
   }

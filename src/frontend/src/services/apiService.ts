@@ -19,15 +19,21 @@ class ApiService {
   private async requestWithRetry<T>(
     endpoint: string,
     options: RequestInit = {},
-    retries: number = 3,
+    retries: number = 2, // Reduced from 3
     delay: number = 1000
   ): Promise<ApiResponse<T>> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
         const response = await fetch(getApiUrl(endpoint), {
           headers: { ...DEFAULT_HEADERS, ...options.headers },
+          signal: controller.signal,
           ...options,
         });
+
+        clearTimeout(timeout);
 
         if (!response.ok) {
           // Don't retry on 4xx errors, only on 5xx or network errors
@@ -45,6 +51,16 @@ class ApiService {
         const data = await response.json();
         return { data, success: true };
       } catch (error) {
+        clearTimeout(timeout);
+        
+        // Handle abort errors
+        if (error instanceof Error && error.name === 'AbortError') {
+          return {
+            error: 'Request timeout - server took too long to respond',
+            success: false,
+          };
+        }
+
         // Network error or fetch failed
         if (attempt < retries - 1) {
           console.warn(`API request attempt ${attempt + 1} failed for ${endpoint}, retrying...`, error);

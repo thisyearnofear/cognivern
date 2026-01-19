@@ -108,18 +108,18 @@ export interface AgentComponentProps extends BaseComponentProps, LoadingProps {
 export interface DashboardMetrics {
   totalAgents: number;
   activeAgents: number;
-  totalActions: number;
+  totalForecasts: number;
   complianceRate: number;
-  averageResponseTime: number;
+  averageAttestationTime: number;
 }
 
 export interface SystemHealth {
   overall: 'healthy' | 'warning' | 'critical';
   components: {
-    blockchain: 'online' | 'degraded' | 'offline';
+    arbitrum: 'online' | 'degraded' | 'offline';
+    eas: 'operational' | 'delayed' | 'failed';
+    ethereal: 'online' | 'degraded' | 'offline';
     policies: 'active' | 'warning' | 'error';
-    audit: 'logging' | 'delayed' | 'failed';
-    ai: 'operational' | 'limited' | 'unavailable';
   };
   metrics: DashboardMetrics;
 }

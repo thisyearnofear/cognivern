@@ -63,7 +63,7 @@ export function getApiUrl(endpoint: string): string {
   if (import.meta.env.PROD) {
     // Use environment variable for backend URL, fallback to HTTP
     const backendUrl =
-      import.meta.env.VITE_BACKEND_URL || "http://api.thisyearnofear.com";
+      import.meta.env.VITE_BACKEND_URL || "https://api.thisyearnofear.com";
     return `${backendUrl}${cleanEndpoint}`;
   }
 
