@@ -67,9 +67,57 @@ pnpm start
 
 ## 🏗️ Architecture
 
+### Backend
 *   **`src/services/SapienceService.ts`**: Core integration with Sapience SDK. Handles EAS attestations and Ethereal provider connections.
-*   **`src/services/GovernanceAgent.ts`**: The "brain" of the agent, managing thought processes, asset discovery (mocked/stubbed for hackathon), and decision making.
-*   **`src/modules/agents`**: Contains the specific `SapienceTradingAgent` implementation.
+*   **`src/services/GovernanceAgent.ts`**: The "brain" of the agent, managing thought processes and decision making.
+*   **`src/modules/agents`**: Contains the `SapienceTradingAgent` implementation.
+*   **`src/modules/api`**: REST API with health checks and agent monitoring endpoints.
+
+### Frontend
+*   **`src/frontend/src/components/dashboard/ModernDashboard.tsx`**: Main dashboard displaying system health and agent status.
+*   **`src/frontend/src/components/auth/Web3Auth.tsx`**: Wallet connection (MetaMask, etc.) with Arbitrum One auto-switching.
+*   **`src/frontend/src/components/ui/ConnectionStatus.tsx`**: Connection status indicator with retry mechanism.
+*   **`src/frontend/src/services/apiService.ts`**: API client with exponential backoff retry logic.
+
+## 🔗 Frontend Features
+
+- **Sapience Branding**: Dashboard aligned to Sapience forecasting agent
+- **Wallet Integration**: Connects to Arbitrum One via Web3Auth
+- **Error Handling**: Graceful failures with retry buttons (no mock data masks problems)
+- **Connection Status**: Persistent badge showing API connectivity
+- **API Resilience**: 3-attempt retry with exponential backoff on network failures
+
+## 🚀 Running the App
+
+### Backend
+```bash
+pnpm build
+PORT=3000 pnpm start
+# API available at http://localhost:3000
+```
+
+### Frontend (Development)
+```bash
+cd src/frontend
+pnpm dev
+# Frontend available at http://localhost:5173
+```
+
+### Frontend (Production)
+```bash
+cd src/frontend
+pnpm build
+# Build output in dist/
+```
+
+## 🧪 Testing
+
+```bash
+# Backend tests
+curl http://localhost:3000/health
+curl http://localhost:3000/api/system/health -H "X-API-KEY: development-api-key"
+curl http://localhost:3000/api/agents/monitoring -H "X-API-KEY: development-api-key"
+```
 
 ## 📜 License
 
