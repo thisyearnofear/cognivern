@@ -26,6 +26,7 @@ export type AgentType =
   | "external-trading"
   | "recall"
   | "vincent"
+  | "sapience"
   | "custom";
 
 export type AgentStatus =

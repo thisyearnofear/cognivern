@@ -17,8 +17,7 @@ import {
 } from "../../shared/index.js";
 import { tradingConfig } from "../../shared/config/index.js";
 import { TradingAgent } from "./types/TradingAgent.js";
-import { RecallTradingAgent } from "./implementations/RecallTradingAgent.js";
-import { VincentTradingAgent } from "./implementations/VincentTradingAgent.js";
+import { SapienceTradingAgent } from "./implementations/SapienceTradingAgent.js";
 import { AgentOrchestrator } from "./services/AgentOrchestrator.js";
 import { TradingService } from "./services/TradingService.js";
 import { GovernanceService } from "./services/GovernanceService.js";
@@ -119,42 +118,21 @@ export class AgentsModule extends BaseService {
   private async initializeAgents(): Promise<void> {
     this.logger.info("Initializing trading agents...");
 
-    if (!tradingConfig.enabled) {
-      this.logger.warn("Trading is disabled in configuration");
-      return;
-    }
-
-    // Initialize Recall Direct Trading Agent
-    const recallAgent = new RecallTradingAgent(
-      "recall-agent-1",
-      "Recall Trading Agent",
+    // Initialize Sapience Trading Agent
+    const sapienceAgent = new SapienceTradingAgent(
+      "sapience-agent-1",
+      "Sapience Forecasting Agent",
       {
-        apiKey: tradingConfig.recallApiKeys.direct,
         maxTradeSize: 1000,
         riskTolerance: 0.1,
-        tradingPairs: ["BTC/USD", "ETH/USD"],
-        strategies: ["momentum", "mean_reversion"],
-        governanceRules: [],
-      }
-    );
-
-    // Initialize Vincent Social Trading Agent
-    const vincentAgent = new VincentTradingAgent(
-      "vincent-agent-1",
-      "Vincent Social Trading Agent",
-      {
-        apiKey: tradingConfig.recallApiKeys.vincent,
-        maxTradeSize: 500,
-        riskTolerance: 0.05,
-        tradingPairs: ["ETH/USD", "BTC/USD"],
-        strategies: ["social_trading", "copy_trading"],
+        tradingPairs: ["ETH/USD", "BTC/USD"], // Can be market IDs
+        strategies: ["forecasting"],
         governanceRules: [],
       }
     );
 
     // Register agents
-    this.agents.set(recallAgent.getId(), recallAgent);
-    this.agents.set(vincentAgent.getId(), vincentAgent);
+    this.agents.set(sapienceAgent.getId(), sapienceAgent);
 
     // Initialize all agents
     for (const [agentId, agent] of this.agents) {
@@ -186,7 +164,7 @@ export class AgentsModule extends BaseService {
     for (const agent of this.agents.values()) {
       await this.orchestrator.registerAgent(agent, {
         agentId: agent.getId(),
-        allocation: 0.5, // 50% allocation
+        allocation: 1.0, // 100% allocation
         maxRisk: 1000,
         priority: 5,
       });
