@@ -14,31 +14,62 @@ interface ApiResponse<T = any> {
   success: boolean;
 }
 
-// Base API service class
+// Base API service class with retry logic
 class ApiService {
+  private async requestWithRetry<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    retries: number = 3,
+    delay: number = 1000
+  ): Promise<ApiResponse<T>> {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const response = await fetch(getApiUrl(endpoint), {
+          headers: { ...DEFAULT_HEADERS, ...options.headers },
+          ...options,
+        });
+
+        if (!response.ok) {
+          // Don't retry on 4xx errors, only on 5xx or network errors
+          if (response.status >= 400 && response.status < 500) {
+            throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+          }
+          // Retry on 5xx errors
+          if (attempt < retries - 1 && response.status >= 500) {
+            await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt)));
+            continue;
+          }
+          throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return { data, success: true };
+      } catch (error) {
+        // Network error or fetch failed
+        if (attempt < retries - 1) {
+          console.warn(`API request attempt ${attempt + 1} failed for ${endpoint}, retrying...`, error);
+          await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt)));
+        } else {
+          console.error(`API request failed for ${endpoint} after ${retries} attempts:`, error);
+          return {
+            error: error instanceof Error ? error.message : 'Network error - failed to reach server',
+            success: false,
+          };
+        }
+      }
+    }
+    
+    return {
+      error: 'Failed after all retry attempts',
+      success: false,
+    };
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    try {
-      const response = await fetch(getApiUrl(endpoint), {
-        headers: { ...DEFAULT_HEADERS, ...options.headers },
-        ...options,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status} - ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return { data, success: true };
-    } catch (error) {
-      console.error(`API request failed for ${endpoint}:`, error);
-      return {
-        error: error instanceof Error ? error.message : 'Unknown API error',
-        success: false,
-      };
-    }
+    return this.requestWithRetry(endpoint, options);
   }
 
   // GET request

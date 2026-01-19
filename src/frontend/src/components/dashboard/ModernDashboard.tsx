@@ -10,6 +10,7 @@ import {
 import { Card, CardContent, CardTitle, CardDescription } from "../ui/Card";
 import { getApiUrl } from "../../utils/api";
 import BlockchainStatus from "../blockchain/BlockchainStatus";
+import ConnectionStatus from "../ui/ConnectionStatus";
 
 interface DashboardProps {
   userType: string;
@@ -284,6 +285,8 @@ export default function ModernDashboard({
     []
   );
   const [loading, setLoading] = useState(true);
+  const [isApiConnected, setIsApiConnected] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -294,59 +297,53 @@ export default function ModernDashboard({
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
       const headers = { "X-API-KEY": apiKey };
 
       // Fetch system health
-      try {
-        const healthResponse = await fetch(getApiUrl("/api/system/health"), {
-          headers,
-        });
-        if (healthResponse.ok) {
-          const health = await healthResponse.json();
-          setSystemHealth(health);
-        } else {
-          setSystemHealth(generateMockSystemHealth());
-        }
-      } catch {
-        setSystemHealth(generateMockSystemHealth());
+      const healthResponse = await fetch(getApiUrl("/api/system/health"), {
+        headers,
+      });
+      if (!healthResponse.ok) {
+        throw new Error(`System health unavailable (${healthResponse.status})`);
       }
+      const health = await healthResponse.json();
+      setSystemHealth(health);
 
       // Fetch agent monitoring data
-      try {
-        const agentsResponse = await fetch(
-          getApiUrl("/api/agents/monitoring"),
-          { headers }
-        );
-        if (agentsResponse.ok) {
-          const agentsResult = await agentsResponse.json();
-          // Handle both direct array and wrapped response formats
-          let agents;
-          if (Array.isArray(agentsResult)) {
-            agents = agentsResult;
-          } else if (agentsResult.success && Array.isArray(agentsResult.data)) {
-            agents = agentsResult.data;
-          } else {
-            console.warn("API returned non-array agent data:", agentsResult);
-            agents = generateMockAgentData();
-          }
-          setAgentData(agents);
-        } else {
-          setAgentData(generateMockAgentData());
-        }
-      } catch (error) {
-        console.error("Error fetching agent data:", error);
-        setAgentData(generateMockAgentData());
+      const agentsResponse = await fetch(
+        getApiUrl("/api/agents/monitoring"),
+        { headers }
+      );
+      if (!agentsResponse.ok) {
+        throw new Error(`Agent monitoring unavailable (${agentsResponse.status})`);
       }
+      const agentsResult = await agentsResponse.json();
+      
+      // Handle both direct array and wrapped response formats
+      let agents;
+      if (Array.isArray(agentsResult)) {
+        agents = agentsResult;
+      } else if (agentsResult.success && Array.isArray(agentsResult.data)) {
+        agents = agentsResult.data;
+      } else {
+        throw new Error("Invalid agent data format from API");
+      }
+      setAgentData(agents);
 
-      // Generate AI recommendations
+      // Generate AI recommendations (client-side, doesn't require API)
       setRecommendations(generateMockRecommendations());
+      
+      // All data loaded successfully
+      setIsApiConnected(true);
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      // Use mock data on error
-      setSystemHealth(generateMockSystemHealth());
-      setAgentData(generateMockAgentData());
-      setRecommendations(generateMockRecommendations());
+      const errorMessage = error instanceof Error ? error.message : "Failed to load dashboard data";
+      console.error("Error fetching dashboard data:", errorMessage);
+      setError(errorMessage);
+      setIsApiConnected(false);
+      setSystemHealth(null);
+      setAgentData([]);
     } finally {
       setLoading(false);
     }
@@ -355,75 +352,45 @@ export default function ModernDashboard({
   const generateMockSystemHealth = (): SystemHealth => ({
     overall: "healthy",
     components: {
-      blockchain: "online",
+      arbitrum: "online",
+      eas: "operational",
+      ethereal: "online",
       policies: "active",
-      audit: "logging",
-      ai: "operational",
     },
     metrics: {
-      totalAgents: 2,
-      activeAgents: 2,
-      totalActions: 1247,
-      complianceRate: 98.5,
-      averageResponseTime: 1225,
+      totalAgents: 1,
+      activeAgents: 1,
+      totalForecasts: 89,
+      complianceRate: 100,
+      averageAttestationTime: 2400,
     },
   });
 
   const generateMockAgentData = (): AgentMonitoringData[] => [
     {
-      id: "recall-agent-1",
-      name: "Recall Trading Agent",
-      type: "trading",
+      id: "sapience-forecast-1",
+      name: "Sapience Forecasting Agent",
+      type: "analysis",
       status: "active",
-      capabilities: ["trading", "risk-management", "market-analysis"],
-      createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-      updatedAt: new Date(Date.now() - 300000).toISOString(),
-      lastActivity: new Date(Date.now() - 300000).toISOString(),
+      capabilities: ["forecasting", "eas-attestation", "market-analysis", "policy-enforcement"],
+      createdAt: new Date(Date.now() - 86400000 * 60).toISOString(),
+      updatedAt: new Date(Date.now() - 120000).toISOString(),
+      lastActivity: new Date(Date.now() - 120000).toISOString(),
       performance: {
-        uptime: 99.8,
-        successRate: 94.2,
-        avgResponseTime: 150,
-        actionsToday: 47,
+        uptime: 99.9,
+        successRate: 96.6,
+        avgResponseTime: 2400,
+        actionsToday: 12,
       },
       riskMetrics: {
-        currentRiskScore: 0.3,
+        currentRiskScore: 0.15,
         violationsToday: 0,
         complianceRate: 100,
       },
       financialMetrics: {
-        totalValue: 12450.75,
-        dailyPnL: 234.5,
-        winRate: 68.5,
-      },
-    },
-    {
-      id: "vincent-agent-1",
-      name: "Vincent Social Trading Agent",
-      type: "trading",
-      status: "active",
-      capabilities: [
-        "social-trading",
-        "sentiment-analysis",
-        "portfolio-management",
-      ],
-      createdAt: new Date(Date.now() - 86400000 * 15).toISOString(),
-      updatedAt: new Date(Date.now() - 600000).toISOString(),
-      lastActivity: new Date(Date.now() - 600000).toISOString(),
-      performance: {
-        uptime: 97.2,
-        successRate: 89.1,
-        avgResponseTime: 2300,
-        actionsToday: 23,
-      },
-      riskMetrics: {
-        currentRiskScore: 0.6,
-        violationsToday: 2,
-        complianceRate: 91.3,
-      },
-      financialMetrics: {
-        totalValue: 8750.25,
-        dailyPnL: -45.2,
-        winRate: 72.1,
+        totalValue: 24500.50,
+        dailyPnL: 892.30,
+        winRate: 76.8,
       },
     },
   ];
@@ -432,34 +399,34 @@ export default function ModernDashboard({
     {
       id: "1",
       type: "performance",
-      title: "Optimize Vincent Agent Response Time",
+      title: "Improve Forecast Accuracy",
       description:
-        "Vincent agent response times are 40% higher than baseline. Consider implementing caching for sentiment analysis.",
+        "Current forecast model accuracy is 76.8%. Incorporate additional market sentiment data sources to improve calibration.",
       priority: "medium",
-      impact: "Reduce response time by ~1.5s",
+      impact: "Increase accuracy by 5-8%",
       actionRequired: true,
-      estimatedBenefit: "15% performance improvement",
+      estimatedBenefit: "Better position sizing and market timing",
     },
     {
       id: "2",
-      type: "security",
-      title: "Review Sentiment Source Whitelist",
+      type: "compliance",
+      title: "Review EAS Attestation Parameters",
       description:
-        "Vincent agent has attempted to access unapproved sentiment sources 3 times today.",
-      priority: "high",
-      impact: "Prevent potential security violations",
-      actionRequired: true,
+        "Consider optimizing confidence thresholds for EAS attestations to balance accuracy with on-chain costs.",
+      priority: "medium",
+      impact: "Reduce unnecessary on-chain submissions while maintaining forecast quality",
+      actionRequired: false,
     },
     {
       id: "3",
       type: "optimization",
-      title: "Increase Trading Frequency",
+      title: "Expand Market Coverage",
       description:
-        "Market conditions suggest increasing trade frequency could improve returns by 8-12%.",
+        "Agent is currently analyzing 8 markets. Expanding to 15 additional markets could diversify portfolio.",
       priority: "low",
-      impact: "Potential 10% return improvement",
+      impact: "Increase diversification and market exposure",
       actionRequired: false,
-      estimatedBenefit: "$1,200-1,800 additional monthly revenue",
+      estimatedBenefit: "Broader prediction market participation",
     },
   ];
 
@@ -568,7 +535,7 @@ export default function ModernDashboard({
                 margin-bottom: ${designTokens.spacing[3]};
               `}
             >
-              Total Actions
+              Total Forecasts
             </CardTitle>
             <div
               css={css`
@@ -585,7 +552,7 @@ export default function ModernDashboard({
                 color: ${designTokens.colors.neutral[600]};
               `}
             >
-              Actions logged
+              Forecasts generated
             </div>
           </CardContent>
         </Card>
@@ -603,7 +570,7 @@ export default function ModernDashboard({
           text-align: center;
         `}
       >
-        Agent Monitoring Dashboard
+        Forecasting Agent Status
       </h2>
 
       <div css={agentGridStyles}>
@@ -688,7 +655,7 @@ export default function ModernDashboard({
                     <div css={metricValueStyles}>
                       {agent.performance.actionsToday}
                     </div>
-                    <div css={metricLabelStyles}>Actions Today</div>
+                    <div css={metricLabelStyles}>Forecasts Today</div>
                   </div>
                 </div>
               </div>
@@ -1057,13 +1024,124 @@ export default function ModernDashboard({
     );
   }
 
+  if (error) {
+    return (
+      <div css={containerStyles}>
+        <div css={heroStyles}>
+          <h1 css={heroTitleStyles}>Sapience Forecasting Agent</h1>
+          <p css={heroSubtitleStyles}>
+            Autonomous prediction market agent with on-chain attestation via EAS,
+            policy-governed execution, and real-time market analysis
+          </p>
+        </div>
+
+        <div
+          css={css`
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+          `}
+        >
+          <Card variant="elevated">
+            <CardContent
+              css={css`
+                max-width: 500px;
+                text-align: center;
+              `}
+            >
+              <div
+                css={css`
+                  font-size: 48px;
+                  margin-bottom: ${designTokens.spacing[4]};
+                `}
+              >
+                ⚠️
+              </div>
+              <CardTitle
+                css={css`
+                  color: ${designTokens.colors.semantic.error[600]};
+                  margin-bottom: ${designTokens.spacing[2]};
+                `}
+              >
+                Dashboard Unavailable
+              </CardTitle>
+              <CardDescription
+                css={css`
+                  margin-bottom: ${designTokens.spacing[4]};
+                `}
+              >
+                Unable to load dashboard data from the API.
+              </CardDescription>
+
+              <div
+                css={css`
+                  background: ${designTokens.colors.semantic.error[50]};
+                  border: 1px solid ${designTokens.colors.semantic.error[200]};
+                  border-radius: ${designTokens.borderRadius.md};
+                  padding: ${designTokens.spacing[3]};
+                  margin-bottom: ${designTokens.spacing[4]};
+                  color: ${designTokens.colors.semantic.error[700]};
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  font-family: monospace;
+                  word-break: break-all;
+                `}
+              >
+                {error}
+              </div>
+
+              <div
+                css={css`
+                  display: flex;
+                  gap: ${designTokens.spacing[3]};
+                  flex-direction: column;
+                `}
+              >
+                <button
+                  css={css`
+                    padding: ${designTokens.spacing[3]};
+                    background: ${designTokens.colors.primary[500]};
+                    color: white;
+                    border: none;
+                    border-radius: ${designTokens.borderRadius.md};
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    font-weight: ${designTokens.typography.fontWeight.medium};
+                    cursor: pointer;
+                    transition: background 0.2s ease;
+
+                    &:hover {
+                      background: ${designTokens.colors.primary[600]};
+                    }
+                  `}
+                  onClick={() => fetchDashboardData()}
+                >
+                  🔄 Retry
+                </button>
+                <div
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize.xs};
+                    color: ${designTokens.colors.neutral[600]};
+                  `}
+                >
+                  Make sure the backend API is running and accessible at the configured URL.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <ConnectionStatus isConnected={isApiConnected} apiUrl="Sapience API" />
+      </div>
+    );
+  }
+
   return (
     <div css={containerStyles}>
       <div css={heroStyles}>
-        <h1 css={heroTitleStyles}>AI Agent Governance Platform</h1>
+        <h1 css={heroTitleStyles}>Sapience Forecasting Agent</h1>
         <p css={heroSubtitleStyles}>
-          Monitor, control, and optimize your autonomous agents with
-          enterprise-grade governance and real-time insights
+          Autonomous prediction market agent with on-chain attestation via EAS,
+          policy-governed execution, and real-time market analysis
         </p>
       </div>
 
@@ -1078,6 +1156,8 @@ export default function ModernDashboard({
       >
         <BlockchainStatus />
       </div>
+
+      <ConnectionStatus isConnected={isApiConnected} apiUrl="Sapience API" />
     </div>
   );
 }
