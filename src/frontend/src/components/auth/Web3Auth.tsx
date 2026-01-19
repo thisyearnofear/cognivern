@@ -34,15 +34,40 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    checkConnection();
-    // Listen for account/chain changes
-    if (typeof window.ethereum !== 'undefined') {
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', () => window.location.reload());
-      return () => {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-      };
-    }
+    // Wait for ethereum provider to be fully loaded
+    const initializeProvider = async () => {
+      if (typeof window.ethereum !== 'undefined') {
+        // Check if provider is ready
+        if (window.ethereum.isConnected && window.ethereum.isConnected()) {
+          await checkConnection();
+        } else {
+          // Wait for provider to be ready
+          window.ethereum.on('connect', checkConnection);
+        }
+
+        // Listen for account/chain changes with error handling
+        const handleAccountsChanged = (accounts: string[]) => {
+          if (accounts.length === 0) {
+            disconnectWallet();
+          } else {
+            setAddress(accounts[0]);
+            onConnect(accounts[0]);
+          }
+        };
+
+        window.ethereum.on('accountsChanged', handleAccountsChanged);
+        window.ethereum.on('chainChanged', () => window.location.reload());
+
+        return () => {
+          if (window.ethereum && window.ethereum.removeListener) {
+            window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+            window.ethereum.removeListener('connect', checkConnection);
+          }
+        };
+      }
+    };
+
+    initializeProvider();
   }, []);
 
   const handleAccountsChanged = (accounts: string[]) => {
@@ -63,13 +88,13 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
     try {
       const accounts = await window.ethereum.request({ method: 'eth_accounts' });
       const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-      
+
       if (accounts.length > 0) {
         setAddress(accounts[0]);
         setIsConnected(true);
         setError(null);
         onConnect(accounts[0]);
-        
+
         // Ensure we're on Arbitrum
         if (chainId !== ARBITRUM_CHAIN_ID) {
           await switchToArbitrum();
@@ -116,7 +141,7 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
 
     setIsConnecting(true);
     setError(null);
-    
+
     try {
       // Request account access
       const accounts = await window.ethereum.request({
@@ -126,7 +151,7 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
       if (accounts.length > 0) {
         // Switch to Arbitrum
         await switchToArbitrum();
-        
+
         setAddress(accounts[0]);
         setIsConnected(true);
         onConnect(accounts[0]);
@@ -171,7 +196,7 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
         </div>
       )}
       {!isConnected ? (
-        <button 
+        <button
           css={css`
             background: ${designTokens.colors.primary[600]};
             color: white;
@@ -229,7 +254,7 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
               Arbitrum One
             </div>
           </div>
-          <button 
+          <button
             css={css`
               background: ${designTokens.colors.semantic.error};
               color: white;

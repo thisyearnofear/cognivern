@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { css } from '@emotion/react';
 import { designTokens } from '../../styles/designTokens';
 import { Container } from '../layout/ResponsiveLayout';
+import { getApiUrl } from "../../utils/api";
 
 // Match the backend Metrics interface structure
 interface Metrics {
@@ -38,40 +39,71 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchMetrics() {
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout | undefined;
+
+    async function fetchMetrics(isInitial = false) {
+      if (!isMounted) return;
+
       try {
-        setLoading(true);
+        if (isInitial) setLoading(true);
         console.log("Fetching real blockchain metrics from backend");
+
+        const controller = new AbortController();
+        timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
         const response = await fetch(getApiUrl("/api/metrics/daily"), {
           headers: {
             "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
           },
+          signal: controller.signal,
         });
 
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
-          throw new Error(`Backend error: ${response.status}`);
+          throw new Error(`Backend error: ${response.status} - ${response.statusText}`);
         }
 
         const data = await response.json();
-        console.log("Received real blockchain metrics:", data);
-        setMetrics(data);
-        setError(null);
+        if (isMounted) {
+          console.log("Received real blockchain metrics:", data);
+          setMetrics(data);
+          setError(null);
+        }
       } catch (err) {
-        console.error("Error fetching metrics:", err);
-        setError(err instanceof Error ? err.message : "Unknown error");
-        setMetrics(null);
+        if (isMounted) {
+          console.error("Error fetching metrics:", err);
+          const errorMessage = err instanceof Error ? err.message : "Network error - unable to reach server";
+          
+          // Only show error if we don't have any data yet
+          if (isInitial || !metrics) {
+            setError(errorMessage);
+          }
+        }
       } finally {
-        setLoading(false);
+        if (isMounted && isInitial) {
+          setLoading(false);
+        }
       }
     }
 
+    // Initial fetch
     fetchMetrics();
 
-    // Set up polling every 30 seconds
-    const intervalId = setInterval(fetchMetrics, 30000);
+    // Set up polling every 60 seconds (reduced from 30s to prevent performance issues)
+    const intervalId = setInterval(() => {
+      if (isMounted) {
+        fetchMetrics();
+      }
+    }, 60000);
 
-    // Cleanup interval on component unmount
-    return () => clearInterval(intervalId);
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   if (loading) {

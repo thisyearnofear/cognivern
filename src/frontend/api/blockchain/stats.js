@@ -14,8 +14,8 @@ export default async function handler(req, res) {
   // Get API key from environment variable (server-side only)
   const apiKey = process.env.RECALL_API_KEY || "your_recall_api_key_here";
 
-  // Build the target URL
-  const targetUrl = "http://157.180.36.156/api/blockchain/stats";
+    // Build the target URL - use HTTPS for production
+    const targetUrl = "https://api.thisyearnofear.com/api/blockchain/stats";
 
   console.log("Blockchain stats proxy request:", {
     method: req.method,

@@ -7,17 +7,16 @@ import {
   keyframeAnimations,
   layoutUtils,
 } from "../../styles/design-system";
-import { Card, CardContent, CardTitle, CardDescription } from "../ui/Card";
+import { Card, CardContent, CardTitle } from "../ui/Card";
 import { getApiUrl } from "../../utils/api";
 import BlockchainStatus from "../blockchain/BlockchainStatus";
 import ConnectionStatus from "../ui/ConnectionStatus";
 import { Tooltip } from "../ui/Tooltip";
+import { BaseAgent, SystemHealth } from "../../types";
 
 interface DashboardProps {
   userType: string;
 }
-
-import { BaseAgent, SystemHealth } from "../../types";
 
 interface AgentMonitoringData extends BaseAgent {
   type: "trading" | "analysis" | "monitoring";
@@ -38,19 +37,6 @@ interface AgentMonitoringData extends BaseAgent {
     dailyPnL: number;
     winRate: number;
   };
-}
-
-// SystemHealth now imported from types
-
-interface AIRecommendation {
-  id: string;
-  type: "optimization" | "security" | "performance" | "compliance";
-  title: string;
-  description: string;
-  priority: "low" | "medium" | "high" | "critical";
-  impact: string;
-  actionRequired: boolean;
-  estimatedBenefit?: string;
 }
 
 const containerStyles = css`
@@ -159,283 +145,6 @@ const statusDotStyles = css`
   }
 `;
 
-const agentGridStyles = css`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: ${designTokens.spacing[6]};
-  margin-bottom: ${designTokens.spacing[8]};
-`;
-
-const agentCardStyles = css`
-  position: relative;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: ${shadowSystem.xl};
-  }
-`;
-
-const agentHeaderStyles = css`
-  display: flex;
-  justify-content: space-between;
-  align-items: start;
-  margin-bottom: ${designTokens.spacing[4]};
-`;
-
-const agentTypeStyles = css`
-  display: inline-block;
-  padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
-  background: ${designTokens.colors.primary[100]};
-  color: ${designTokens.colors.primary[700]};
-  border-radius: ${designTokens.borderRadius.full};
-  font-size: ${designTokens.typography.fontSize.xs};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
-  text-transform: uppercase;
-`;
-
-const metricsGridStyles = css`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${designTokens.spacing[3]};
-  margin-bottom: ${designTokens.spacing[4]};
-`;
-
-const metricItemStyles = css`
-  text-align: center;
-  padding: ${designTokens.spacing[3]};
-  background: ${designTokens.colors.neutral[50]};
-  border-radius: ${designTokens.borderRadius.md};
-`;
-
-const metricValueStyles = css`
-  font-size: ${designTokens.typography.fontSize.lg};
-  font-weight: ${designTokens.typography.fontWeight.bold};
-  color: ${designTokens.colors.primary[600]};
-  margin-bottom: ${designTokens.spacing[1]};
-`;
-
-const metricLabelStyles = css`
-  font-size: ${designTokens.typography.fontSize.xs};
-  color: ${designTokens.colors.neutral[600]};
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const recommendationsStyles = css`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: ${designTokens.spacing[4]};
-`;
-
-const recommendationCardStyles = css`
-  border-left: 4px solid ${designTokens.colors.primary[500]};
-
-  &.security {
-    border-left-color: ${designTokens.colors.semantic.error[500]};
-  }
-
-  &.performance {
-    border-left-color: ${designTokens.colors.semantic.warning[500]};
-  }
-
-  &.compliance {
-    border-left-color: ${designTokens.colors.semantic.info[500]};
-  }
-
-  &.optimization {
-    border-left-color: ${designTokens.colors.semantic.success[500]};
-  }
-`;
-
-const priorityBadgeStyles = css`
-  display: inline-block;
-  padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
-  border-radius: ${designTokens.borderRadius.full};
-  font-size: ${designTokens.typography.fontSize.xs};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
-  text-transform: uppercase;
-
-  &.low {
-    background: ${designTokens.colors.semantic.success[100]};
-    color: ${designTokens.colors.semantic.success[700]};
-  }
-
-  &.medium {
-    background: ${designTokens.colors.semantic.warning[100]};
-    color: ${designTokens.colors.semantic.warning[700]};
-  }
-
-  &.high {
-    background: ${designTokens.colors.semantic.error[100]};
-    color: ${designTokens.colors.semantic.error[700]};
-  }
-
-  &.critical {
-    background: ${designTokens.colors.semantic.error[500]};
-    color: white;
-  }
-`;
-
-const explanationBoxStyles = css`
-  max-width: 800px;
-  margin: 0 auto ${designTokens.spacing[6]};
-  padding: ${designTokens.spacing[5]};
-  background: ${designTokens.colors.neutral[0]};
-  border-radius: ${designTokens.borderRadius.lg};
-  border: 1px solid ${designTokens.colors.neutral[200]};
-  text-align: left;
-
-  @media (max-width: ${designTokens.breakpoints.md}) {
-    padding: ${designTokens.spacing[3]};
-  }
-
-  h3 {
-    font-size: ${designTokens.typography.fontSize.base};
-    font-weight: ${designTokens.typography.fontWeight.semibold};
-    margin: 0 0 ${designTokens.spacing[2]};
-    color: ${designTokens.colors.neutral[900]};
-  }
-
-  p {
-    font-size: ${designTokens.typography.fontSize.sm};
-    color: ${designTokens.colors.neutral[600]};
-    margin: 0 0 ${designTokens.spacing[2]};
-    line-height: ${designTokens.typography.lineHeight.relaxed};
-  }
-
-  strong {
-    color: ${designTokens.colors.neutral[900]};
-  }
-`;
-
-const nextStepsStyles = css`
-  margin-bottom: ${designTokens.spacing[8]};
-`;
-
-const nextStepItemStyles = css`
-  display: flex;
-  align-items: center;
-  gap: ${designTokens.spacing[3]};
-  padding: ${designTokens.spacing[4]};
-  background: ${designTokens.colors.neutral[0]};
-  border: 1px solid ${designTokens.colors.neutral[200]};
-  border-radius: ${designTokens.borderRadius.lg};
-  margin-bottom: ${designTokens.spacing[3]};
-  transition: all 0.2s ease;
-  cursor: pointer;
-  min-height: 48px;
-
-  &:hover {
-    border-color: ${designTokens.colors.primary[300]};
-    background: ${designTokens.colors.primary[50]};
-    transform: translateX(4px);
-  }
-
-  &:focus-visible {
-    outline: 2px solid ${designTokens.colors.primary[500]};
-    outline-offset: 2px;
-  }
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-
-  @media (max-width: ${designTokens.breakpoints.md}) {
-    padding: ${designTokens.spacing[3]};
-    min-height: 52px;
-  }
-`;
-
-const nextStepIconStyles = (
-  status: "pending" | "completed" | "optional",
-) => css`
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: ${designTokens.typography.fontSize.base};
-  flex-shrink: 0;
-
-  ${status === "pending"
-    ? `
-      background: ${designTokens.colors.semantic.warning[100]};
-      color: ${designTokens.colors.semantic.warning[700]};
-    `
-    : status === "completed"
-      ? `
-      background: ${designTokens.colors.semantic.success[100]};
-      color: ${designTokens.colors.semantic.success[700]};
-    `
-      : `
-      background: ${designTokens.colors.semantic.info[100]};
-      color: ${designTokens.colors.semantic.info[700]};
-    `}
-`;
-
-const nextStepContentStyles = css`
-  flex: 1;
-`;
-
-const nextStepTitleStyles = css`
-  font-size: ${designTokens.typography.fontSize.base};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
-  color: ${designTokens.colors.neutral[900]};
-  margin-bottom: ${designTokens.spacing[1]};
-`;
-
-const nextStepDescriptionStyles = css`
-  font-size: ${designTokens.typography.fontSize.sm};
-  color: ${designTokens.colors.neutral[600]};
-`;
-
-const activityItemStyles = css`
-  display: flex;
-  align-items: flex-start;
-  gap: ${designTokens.spacing[3]};
-  padding: ${designTokens.spacing[3]};
-  background: ${designTokens.colors.neutral[0]};
-  border: 1px solid ${designTokens.colors.neutral[200]};
-  border-radius: ${designTokens.borderRadius.lg};
-  margin-bottom: ${designTokens.spacing[3]};
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: ${designTokens.colors.primary[300]};
-    background: ${designTokens.colors.primary[50]};
-  }
-`;
-
-const activityIconStyles = css`
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: ${designTokens.colors.primary[100]};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: ${designTokens.typography.fontSize.lg};
-  flex-shrink: 0;
-`;
-
-const activityContentStyles = css`
-  flex: 1;
-`;
-
-const activityTitleStyles = css`
-  font-size: ${designTokens.typography.fontSize.base};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
-  color: ${designTokens.colors.neutral[900]};
-  margin-bottom: ${designTokens.spacing[1]};
-`;
-
-const activityMetaStyles = css`
-  font-size: ${designTokens.typography.fontSize.xs};
-  color: ${designTokens.colors.neutral[500]};
-`;
-
 const loadingStepsContainerStyles = css`
   display: grid;
   gap: ${designTokens.spacing[2]};
@@ -483,8 +192,7 @@ export default function ModernDashboard({
         await new Promise((resolve) => setTimeout(resolve, 300));
         setLoadingStep(1);
       }
-      
-      // Fetch system health
+
       const healthResponse = await fetch(getApiUrl("/api/system/health"), {
         headers,
       });
@@ -497,8 +205,7 @@ export default function ModernDashboard({
       if (isInitial) {
         setLoadingStep(2);
       }
-      
-      // Fetch agent monitoring data
+
       const agentsResponse = await fetch(getApiUrl("/api/agents/monitoring"), {
         headers,
       });
@@ -509,7 +216,6 @@ export default function ModernDashboard({
       }
       const agentsResult = await agentsResponse.json();
 
-      // Handle both direct array and wrapped response formats
       let agents;
       if (Array.isArray(agentsResult)) {
         agents = agentsResult;
@@ -525,7 +231,6 @@ export default function ModernDashboard({
         await new Promise((resolve) => setTimeout(resolve, 300));
       }
 
-      // All data loaded successfully
       setIsApiConnected(true);
       setLastUpdated(new Date());
     } catch (error) {
@@ -534,8 +239,7 @@ export default function ModernDashboard({
           ? error.message
           : "Failed to load dashboard data";
       console.error("Error fetching dashboard data:", errorMessage);
-      
-      // Only show error if we don't have any data yet
+
       if (isInitial || !systemHealth) {
         setError(errorMessage);
         setIsApiConnected(false);
@@ -549,8 +253,6 @@ export default function ModernDashboard({
       }
     }
   };
-
-
 
   const renderSystemHealth = () => {
     if (!systemHealth || !systemHealth.metrics) return null;
@@ -666,16 +368,9 @@ export default function ModernDashboard({
                 color: ${designTokens.colors.primary[600]};
               `}
             >
-              {(systemHealth.metrics?.totalActions || 0).toLocaleString()}
+              {(systemHealth.metrics?.totalForecasts || 0).toLocaleString()}
             </div>
-            <div
-              css={css`
-                font-size: ${designTokens.typography.fontSize.sm};
-                color: ${designTokens.colors.neutral[600]};
-              `}
-            >
-              Forecasts generated
-            </div>
+            <div css={textStyles.description}>Forecasts generated</div>
           </CardContent>
         </Card>
       </div>
@@ -695,12 +390,38 @@ export default function ModernDashboard({
         Forecasting Agent Status
       </h2>
 
-      <div css={agentGridStyles}>
+      <div
+        css={css`
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+          gap: ${designTokens.spacing[6]};
+          margin-bottom: ${designTokens.spacing[8]};
+        `}
+      >
         {Array.isArray(agentData) &&
           agentData.map((agent) => (
-            <Card key={agent.id} variant="elevated" css={agentCardStyles}>
+            <Card
+              key={agent.id}
+              variant="elevated"
+              css={css`
+                position: relative;
+                transition: all 0.3s ease;
+
+                &:hover {
+                  transform: translateY(-4px);
+                  box-shadow: ${shadowSystem.xl};
+                }
+              `}
+            >
               <CardContent>
-                <div css={agentHeaderStyles}>
+                <div
+                  css={css`
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: start;
+                    margin-bottom: ${designTokens.spacing[4]};
+                  `}
+                >
                   <div>
                     <CardTitle
                       css={css`
@@ -709,7 +430,22 @@ export default function ModernDashboard({
                     >
                       {agent.name}
                     </CardTitle>
-                    <span css={agentTypeStyles}>{agent.type}</span>
+                    <span
+                      css={css`
+                        display: inline-block;
+                        padding: ${designTokens.spacing[1]}
+                          ${designTokens.spacing[2]};
+                        background: ${designTokens.colors.primary[100]};
+                        color: ${designTokens.colors.primary[700]};
+                        border-radius: ${designTokens.borderRadius.full};
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        font-weight: ${designTokens.typography.fontWeight
+                          .semibold};
+                        text-transform: uppercase;
+                      `}
+                    >
+                      {agent.type}
+                    </span>
                   </div>
                   <div css={statusIndicatorStyles}>
                     <span css={css`${statusDotStyles}; &.${agent.status}`} />
@@ -757,12 +493,124 @@ export default function ModernDashboard({
                   >
                     Performance Metrics
                   </h4>
-                  <div css={metricsGridStyles}>
-                    <div css={metricItemStyles}>
-                      <div css={metricValueStyles}>
+                  <div
+                    css={css`
+                      display: grid;
+                      grid-template-columns: 1fr 1fr;
+                      gap: ${designTokens.spacing[3]};
+                      margin-bottom: ${designTokens.spacing[4]};
+                    `}
+                  >
+                    <div
+                      css={css`
+                        text-align: center;
+                        padding: ${designTokens.spacing[3]};
+                        background: ${designTokens.colors.neutral[50]};
+                        border-radius: ${designTokens.borderRadius.md};
+                      `}
+                    >
+                      <div
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.lg};
+                          font-weight: ${designTokens.typography.fontWeight
+                            .bold};
+                          color: ${designTokens.colors.primary[600]};
+                          margin-bottom: ${designTokens.spacing[1]};
+                        `}
+                      >
                         {agent.performance.uptime}%
                       </div>
-                      <div css={metricLabelStyles}>Uptime</div>
+                      <div
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.xs};
+                          color: ${designTokens.colors.neutral[600]};
+                          text-transform: uppercase;
+                          letter-spacing: 0.05em;
+                        `}
+                      >
+                        Uptime
+                      </div>
+                    </div>
+                    <div
+                      css={css`
+                        text-align: center;
+                        padding: ${designTokens.spacing[3]};
+                        background: ${designTokens.colors.neutral[50]};
+                        border-radius: ${designTokens.borderRadius.md};
+                      `}
+                    >
+                      <div
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.lg};
+                          font-weight: ${designTokens.typography.fontWeight
+                            .bold};
+                          color: ${designTokens.colors.primary[600]};
+                          margin-bottom: ${designTokens.spacing[1]};
+                        `}
+                      >
+                        {agent.performance.successRate}%
+                      </div>
+                      <div
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.xs};
+                          color: ${designTokens.colors.neutral[600]};
+                          text-transform: uppercase;
+                          letter-spacing: 0.05em;
+                        `}
+                      >
+                        Success Rate
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  css={css`
+                    margin-bottom: ${designTokens.spacing[4]};
+                  `}
+                >
+                  <h4
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      font-weight: ${designTokens.typography.fontWeight
+                        .semibold};
+                      margin-bottom: ${designTokens.spacing[3]};
+                    `}
+                  >
+                    Risk & Compliance
+                  </h4>
+                  <div
+                    css={css`
+                      margin-top: ${designTokens.spacing[2]};
+                    `}
+                  >
+                    <div
+                      css={css`
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: ${designTokens.spacing[1]};
+                      `}
+                    >
+                      <span
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.sm};
+                          color: ${designTokens.colors.neutral[600]};
+                        `}
+                      >
+                        Compliance Rate
+                      </span>
+                      <span
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.sm};
+                          font-weight: ${designTokens.typography.fontWeight
+                            .semibold};
+                        `}
+                      >
+                        {agent.riskMetrics.complianceRate}%
+                      </span>
+                    </div>
+                    <div
                       css={css`
                         width: 100%;
                         height: 4px;
@@ -803,38 +651,77 @@ export default function ModernDashboard({
                     >
                       Financial Performance
                     </h4>
-                    <div css={metricsGridStyles}>
-                      <div css={metricItemStyles}>
-                        <div css={metricValueStyles}>
-                          ${agent.financialMetrics.totalValue.toLocaleString()}
-                        </div>
-                        <div css={metricLabelStyles}>Total Value</div>
-                      </div>
-                      <div css={metricItemStyles}>
+                    <div
+                      css={css`
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: ${designTokens.spacing[3]};
+                        margin-bottom: ${designTokens.spacing[4]};
+                      `}
+                    >
+                      <div
+                        css={css`
+                          text-align: center;
+                          padding: ${designTokens.spacing[3]};
+                          background: ${designTokens.colors.neutral[50]};
+                          border-radius: ${designTokens.borderRadius.md};
+                        `}
+                      >
                         <div
                           css={css`
-                            ${metricValueStyles};
+                            font-size: ${designTokens.typography.fontSize.lg};
+                            font-weight: ${designTokens.typography.fontWeight
+                              .bold};
+                            color: ${designTokens.colors.primary[600]};
+                            margin-bottom: ${designTokens.spacing[1]};
+                          `}
+                        >
+                          ${agent.financialMetrics.totalValue.toLocaleString()}
+                        </div>
+                        <div
+                          css={css`
+                            font-size: ${designTokens.typography.fontSize.xs};
+                            color: ${designTokens.colors.neutral[600]};
+                            text-transform: uppercase;
+                            letter-spacing: 0.05em;
+                          `}
+                        >
+                          Total Value
+                        </div>
+                      </div>
+                      <div
+                        css={css`
+                          text-align: center;
+                          padding: ${designTokens.spacing[3]};
+                          background: ${designTokens.colors.neutral[50]};
+                          border-radius: ${designTokens.borderRadius.md};
+                        `}
+                      >
+                        <div
+                          css={css`
+                            font-size: ${designTokens.typography.fontSize.lg};
+                            font-weight: ${designTokens.typography.fontWeight
+                              .bold};
                             color: ${agent.financialMetrics.dailyPnL >= 0
                               ? designTokens.colors.semantic.success[600]
                               : designTokens.colors.semantic.error[600]};
+                            margin-bottom: ${designTokens.spacing[1]};
                           `}
                         >
                           {agent.financialMetrics.dailyPnL >= 0 ? "+" : ""}$
                           {agent.financialMetrics.dailyPnL.toFixed(2)}
                         </div>
-                        <div css={metricLabelStyles}>Daily P&L</div>
+                        <div
+                          css={css`
+                            font-size: ${designTokens.typography.fontSize.xs};
+                            color: ${designTokens.colors.neutral[600]};
+                            text-transform: uppercase;
+                            letter-spacing: 0.05em;
+                          `}
+                        >
+                          Daily P&L
+                        </div>
                       </div>
-                    </div>
-                    <div
-                      css={css`
-                        text-align: center;
-                        margin-top: ${designTokens.spacing[2]};
-                      `}
-                    >
-                      <div css={metricValueStyles}>
-                        {agent.financialMetrics.winRate}%
-                      </div>
-                      <div css={metricLabelStyles}>Win Rate</div>
                     </div>
                   </div>
                 )}
@@ -892,562 +779,6 @@ export default function ModernDashboard({
       </div>
     </div>
   );
-
-  const renderRecommendations = () => (
-    <div>
-      <h2
-        css={css`
-          font-size: ${designTokens.typography.fontSize["2xl"]};
-          font-weight: ${designTokens.typography.fontWeight.bold};
-          margin-bottom: ${designTokens.spacing[6]};
-          text-align: center;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: ${designTokens.spacing[2]};
-        `}
-      >
-        🤖 AI Recommendations
-        <span
-          css={css`
-            font-size: ${designTokens.typography.fontSize.sm};
-            color: ${designTokens.colors.neutral[500]};
-            font-weight: normal;
-          `}
-        >
-          Powered by Gemini
-        </span>
-      </h2>
-
-      <div css={recommendationsStyles}>
-        {recommendations.map((rec) => (
-          <Card
-            key={rec.id}
-            variant="default"
-            css={css`${recommendationCardStyles}; &.${rec.type}`}
-          >
-            <CardContent>
-              <div
-                css={css`
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: start;
-                  margin-bottom: ${designTokens.spacing[3]};
-                `}
-              >
-                <CardTitle
-                  css={css`
-                    margin-bottom: ${designTokens.spacing[2]};
-                  `}
-                >
-                  {rec.title}
-                </CardTitle>
-                <span css={css`${priorityBadgeStyles}; &.${rec.priority}`}>
-                  {rec.priority}
-                </span>
-              </div>
-
-              <CardDescription
-                css={css`
-                  margin-bottom: ${designTokens.spacing[4]};
-                `}
-              >
-                {rec.description}
-              </CardDescription>
-
-              <div
-                css={css`
-                  margin-bottom: ${designTokens.spacing[4]};
-                `}
-              >
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize.sm};
-                    color: ${designTokens.colors.neutral[600]};
-                    margin-bottom: ${designTokens.spacing[1]};
-                  `}
-                >
-                  <strong>Impact:</strong> {rec.impact}
-                </div>
-                {rec.estimatedBenefit && (
-                  <div
-                    css={css`
-                      font-size: ${designTokens.typography.fontSize.sm};
-                      color: ${designTokens.colors.semantic.success[600]};
-                    `}
-                  >
-                    <strong>Benefit:</strong> {rec.estimatedBenefit}
-                  </div>
-                )}
-              </div>
-
-              {rec.actionRequired && (
-                <button
-                  css={css`
-                    width: 100%;
-                    padding: ${designTokens.spacing[3]};
-                    background: ${designTokens.colors.primary[500]};
-                    color: white;
-                    border: none;
-                    border-radius: ${designTokens.borderRadius.md};
-                    font-size: ${designTokens.typography.fontSize.sm};
-                    font-weight: ${designTokens.typography.fontWeight.medium};
-                    cursor: pointer;
-                    transition: background 0.2s ease;
-
-                    &:hover {
-                      background: ${designTokens.colors.primary[600]};
-                    }
-                  `}
-                >
-                  Take Action
-                </button>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderNextSteps = () => {
-    const steps = [
-      {
-        title: "Connect Wallet",
-        description: "Link your Ethereum wallet to enable agent interactions",
-        status: "completed" as const,
-        icon: "✓",
-      },
-      {
-        title: "Configure Agent Parameters",
-        description: "Set forecast confidence thresholds and risk limits",
-        status: "pending" as const,
-        icon: "⚙️",
-      },
-      {
-        title: "Review Compliance Policies",
-        description: "Ensure agent adheres to your risk management rules",
-        status: "pending" as const,
-        icon: "⚠️",
-      },
-      {
-        title: "Enable Real-time Notifications",
-        description: "Get alerts for important agent activities and forecasts",
-        status: "optional" as const,
-        icon: "🔔",
-      },
-    ];
-
-    return (
-      <div css={nextStepsStyles}>
-        <h2
-          css={css`
-            font-size: ${designTokens.typography.fontSize["2xl"]};
-            font-weight: ${designTokens.typography.fontWeight.bold};
-            margin-bottom: ${designTokens.spacing[6]};
-            text-align: center;
-          `}
-        >
-          Next Steps
-        </h2>
-
-        {steps.map((step, index) => (
-          <button
-            key={index}
-            css={nextStepItemStyles}
-            role="menuitem"
-            tabIndex={0}
-            aria-label={`${step.title}: ${step.description}`}
-          >
-            <div css={nextStepIconStyles(step.status)}>{step.icon}</div>
-            <div css={nextStepContentStyles}>
-              <div css={nextStepTitleStyles}>{step.title}</div>
-              <div css={nextStepDescriptionStyles}>{step.description}</div>
-            </div>
-          </button>
-        ))}
-      </div>
-    );
-  };
-
-  const renderTimeline = () => {
-    const timelineData = [
-      {
-        time: "2 hours ago",
-        title: "Forecast Submitted",
-        description: "ETH price prediction at $4,250 (95% confidence)",
-        status: "success" as const,
-      },
-      {
-        time: "4 hours ago",
-        title: "EAS Attestation",
-        description: "On-chain attestation recorded for forecast #89",
-        status: "success" as const,
-      },
-      {
-        time: "6 hours ago",
-        title: "Market Analysis",
-        description: "Analyzed 8 prediction markets for opportunities",
-        status: "success" as const,
-      },
-      {
-        time: "8 hours ago",
-        title: "Policy Check",
-        description: "Risk parameters validated within compliance limits",
-        status: "pending" as const,
-      },
-    ];
-
-    return (
-      <div css={timelineStyles}>
-        <h2
-          css={css`
-            font-size: ${designTokens.typography.fontSize["2xl"]};
-            font-weight: ${designTokens.typography.fontWeight.bold};
-            margin-bottom: ${designTokens.spacing[6]};
-            text-align: center;
-          `}
-        >
-          Recent Activity Timeline
-        </h2>
-
-        <div
-          css={css`
-            max-width: 700px;
-            margin: 0 auto;
-          `}
-        >
-          {timelineData.map((item, index) => (
-            <div
-              key={index}
-              css={timelineItemStyles}
-              role="listitem"
-              aria-label={`${item.title} - ${item.time}`}
-            >
-              <div css={timelineDotStyles(item.status)} />
-              <div css={timelineContentStyles}>
-                <div css={timelineTimeStyles}>{item.time}</div>
-                <div css={timelineTitleStyles}>{item.title}</div>
-                <div css={timelineDescriptionStyles}>{item.description}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const renderActivityFeed = () => {
-    const activities = [
-      {
-        title: "New Forecast Generated",
-        description: "BTC price prediction created",
-        icon: "📊",
-        time: "10 minutes ago",
-        status: "success",
-      },
-      {
-        title: "Compliance Check Passed",
-        description: "Risk score within acceptable range",
-        icon: "✅",
-        time: "15 minutes ago",
-        status: "success",
-      },
-      {
-        title: "Market Opportunity Detected",
-        description: "New prediction market identified",
-        icon: "🎯",
-        time: "30 minutes ago",
-        status: "warning",
-      },
-      {
-        title: "Attestation Complete",
-        description: "EAS on-chain record updated",
-        icon: "🔗",
-        time: "1 hour ago",
-        status: "success",
-      },
-    ];
-
-    return (
-      <div css={activityFeedStyles}>
-        <h2
-          css={css`
-            font-size: ${designTokens.typography.fontSize["2xl"]};
-            font-weight: ${designTokens.typography.fontWeight.bold};
-            margin-bottom: ${designTokens.spacing[6]};
-            text-align: center;
-          `}
-        >
-          Agent Activity Feed
-        </h2>
-
-        <div
-          css={css`
-            max-width: 700px;
-            margin: 0 auto;
-          `}
-        >
-          {activities.map((activity, index) => (
-            <div
-              key={index}
-              css={activityItemStyles}
-              role="listitem"
-              aria-label={`${activity.title} - ${activity.time}`}
-            >
-              <div css={activityIconStyles}>{activity.icon}</div>
-              <div css={activityContentStyles}>
-                <div css={activityTitleStyles}>{activity.title}</div>
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize.sm};
-                    color: ${designTokens.colors.neutral[600]};
-                    margin-bottom: ${designTokens.spacing[1]};
-                  `}
-                >
-                  {activity.description}
-                </div>
-                <div css={activityMetaStyles}>{activity.time}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const renderProgressIndicator = () => {
-    const todayProgress = 78;
-    const targetForecasts = 15;
-    const completedForecasts = Math.round(
-      (todayProgress / 100) * targetForecasts,
-    );
-
-    return (
-      <div css={progressIndicatorStyles}>
-        <h2
-          css={css`
-            font-size: ${designTokens.typography.fontSize["2xl"]};
-            font-weight: ${designTokens.typography.fontWeight.bold};
-            margin-bottom: ${designTokens.spacing[6]};
-            text-align: center;
-          `}
-        >
-          Today's Forecast Progress
-        </h2>
-
-        <Card variant="default">
-          <CardContent
-            css={css`
-              max-width: 700px;
-              margin: 0 auto;
-            `}
-          >
-            <div css={progressHeaderStyles}>
-              <span css={progressLabelStyles}>
-                {completedForecasts} of {targetForecasts} forecasts completed
-              </span>
-              <span
-                css={css`
-                  font-size: ${designTokens.typography.fontSize.xl};
-                  font-weight: ${designTokens.typography.fontWeight.bold};
-                  color: ${designTokens.colors.primary[600]};
-                `}
-              >
-                {todayProgress}%
-              </span>
-            </div>
-
-            <div css={progressBarStyles}>
-              <div css={progressFillStyles(todayProgress)} />
-            </div>
-
-            <div
-              css={css`
-                display: flex;
-                justify-content: space-between;
-                margin-top: ${designTokens.spacing[3]};
-                font-size: ${designTokens.typography.fontSize.sm};
-                color: ${designTokens.colors.neutral[600]};
-              `}
-            >
-              <span>Started: 9:00 AM</span>
-              <span>Estimated completion: 5:00 PM</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  };
-
-  const renderMarketAnalysis = () => {
-    const marketData = [
-      {
-        name: "ETH Price Prediction",
-        value: 89,
-        color: designTokens.colors.primary[500],
-      },
-      {
-        name: "BTC Price Prediction",
-        value: 75,
-        color: designTokens.colors.semantic.success[500],
-      },
-      {
-        name: "DeFi Yield Analysis",
-        value: 62,
-        color: designTokens.colors.semantic.warning[500],
-      },
-      {
-        name: "Lending Rate Prediction",
-        value: 48,
-        color: designTokens.colors.semantic.info[500],
-      },
-    ];
-
-    const maxValue = Math.max(...marketData.map((m) => m.value));
-
-    return (
-      <div css={chartStyles}>
-        <h2
-          css={css`
-            font-size: ${designTokens.typography.fontSize["2xl"]};
-            font-weight: ${designTokens.typography.fontWeight.bold};
-            margin-bottom: ${designTokens.spacing[6]};
-            text-align: center;
-          `}
-        >
-          Market Analysis Coverage
-        </h2>
-
-        <Card variant="default">
-          <CardContent
-            css={css`
-              max-width: 700px;
-              margin: 0 auto;
-            `}
-          >
-            {marketData.map((market, index) => (
-              <div
-                key={index}
-                css={css`
-                  margin-bottom: ${designTokens.spacing[4]};
-                  &:last-child {
-                    margin-bottom: 0;
-                  }
-                `}
-              >
-                <div
-                  css={css`
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: ${designTokens.spacing[2]};
-                  `}
-                >
-                  <span
-                    css={css`
-                      font-size: ${designTokens.typography.fontSize.sm};
-                      font-weight: ${designTokens.typography.fontWeight.medium};
-                      color: ${designTokens.colors.neutral[700]};
-                    `}
-                  >
-                    {market.name}
-                  </span>
-                  <span
-                    css={css`
-                      font-size: ${designTokens.typography.fontSize.sm};
-                      font-weight: ${designTokens.typography.fontWeight
-                        .semibold};
-                      color: ${designTokens.colors.primary[600]};
-                    `}
-                  >
-                    {market.value}%
-                  </span>
-                </div>
-                <div css={chartBarStyles()}>
-                  <div
-                    css={css`
-                      ${chartFillStyles(market.value, maxValue)};
-                      background: ${market.color};
-                    `}
-                  />
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  };
-
-  const renderStatusLegend = () => {
-    const legendItems = [
-      {
-        label: "Active / Healthy",
-        color: designTokens.colors.semantic.success[500],
-        description: "Systems running normally",
-      },
-      {
-        label: "Warning / Degraded",
-        color: designTokens.colors.semantic.warning[500],
-        description: "Performance affected but operational",
-      },
-      {
-        label: "Critical / Error",
-        color: designTokens.colors.semantic.error[500],
-        description: "Immediate attention required",
-      },
-      {
-        label: "Idle / Maintenance",
-        color: designTokens.colors.neutral[400],
-        description: "System inactive or under maintenance",
-      },
-    ];
-
-    return (
-      <div css={statusLegendStyles}>
-        <h3 css={legendTitleStyles}>Status Legend</h3>
-        <div css={legendGridStyles}>
-          {legendItems.map((item, index) => (
-            <div
-              key={index}
-              css={legendItemStyles}
-              role="listitem"
-              aria-label={`${item.label}: ${item.description}`}
-            >
-              <div
-                css={css`
-                  ${legendDotStyles};
-                  background: ${item.color};
-                  ${item.label.includes("Active") ||
-                  item.label.includes("Healthy")
-                    ? `${keyframeAnimations.pulse}`
-                    : ""}
-                `}
-              />
-              <div css={legendTextStyles}>
-                <div
-                  css={css`
-                    font-weight: ${designTokens.typography.fontWeight.semibold};
-                    margin-bottom: ${designTokens.spacing[1]};
-                  `}
-                >
-                  {item.label}
-                </div>
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize.xs};
-                    color: ${designTokens.colors.neutral[500]};
-                  `}
-                >
-                  {item.description}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
 
   if (loading) {
     const loadingSteps = [
@@ -1574,14 +905,21 @@ export default function ModernDashboard({
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 400px;
+            min-height: 300px;
           `}
         >
-          <Card variant="elevated">
+          <Card
+            variant="default"
+            css={css`
+              max-width: 500px;
+              border-color: ${designTokens.colors.semantic.error[200]};
+              background: ${designTokens.colors.semantic.error[50]};
+            `}
+          >
             <CardContent
               css={css`
-                max-width: 500px;
                 text-align: center;
+                padding: ${designTokens.spacing[8]};
               `}
             >
               <div
@@ -1592,65 +930,50 @@ export default function ModernDashboard({
               >
                 ⚠️
               </div>
-              <CardTitle
+              <h3
                 css={css`
-                  color: ${designTokens.colors.semantic.error[600]};
+                  color: ${designTokens.colors.semantic.error[700]};
                   margin-bottom: ${designTokens.spacing[2]};
                 `}
               >
-                Dashboard Unavailable
-              </CardTitle>
-              <CardDescription
+                Data Fetching Failed
+              </h3>
+              <p
                 css={css`
-                  margin-bottom: ${designTokens.spacing[4]};
-                `}
-              >
-                Unable to load dashboard data from the API.
-              </CardDescription>
-
-              <div
-                css={css`
-                  background: ${designTokens.colors.semantic.error[50]};
-                  border: 1px solid ${designTokens.colors.semantic.error[200]};
-                  border-radius: ${designTokens.borderRadius.md};
-                  padding: ${designTokens.spacing[3]};
-                  margin-bottom: ${designTokens.spacing[4]};
-                  color: ${designTokens.colors.semantic.error[700]};
+                  color: ${designTokens.colors.neutral[600]};
+                  margin-bottom: ${designTokens.spacing[6]};
                   font-size: ${designTokens.typography.fontSize.sm};
-                  font-family: monospace;
-                  word-break: break-all;
                 `}
               >
                 {error}
-              </div>
+              </p>
+              <button
+                css={css`
+                  padding: ${designTokens.spacing[2]} ${designTokens.spacing[6]};
+                  background: ${designTokens.colors.primary[500]};
+                  color: white;
+                  border: none;
+                  border-radius: ${designTokens.borderRadius.md};
+                  cursor: pointer;
+                  font-weight: ${designTokens.typography.fontWeight.medium};
+
+                  &:hover {
+                    background: ${designTokens.colors.primary[600]};
+                  }
+                `}
+                onClick={() => fetchDashboardData(true)}
+              >
+                Retry Connection
+              </button>
 
               <div
                 css={css`
-                  display: flex;
-                  gap: ${designTokens.spacing[3]};
-                  flex-direction: column;
+                  margin-top: ${designTokens.spacing[4]};
+                  padding-top: ${designTokens.spacing[4]};
+                  border-top: 1px solid
+                    ${designTokens.colors.semantic.error[200]};
                 `}
               >
-                <button
-                  css={css`
-                    padding: ${designTokens.spacing[3]};
-                    background: ${designTokens.colors.primary[500]};
-                    color: white;
-                    border: none;
-                    border-radius: ${designTokens.borderRadius.md};
-                    font-size: ${designTokens.typography.fontSize.sm};
-                    font-weight: ${designTokens.typography.fontWeight.medium};
-                    cursor: pointer;
-                    transition: background 0.2s ease;
-
-                    &:hover {
-                      background: ${designTokens.colors.primary[600]};
-                    }
-                  `}
-                  onClick={() => fetchDashboardData()}
-                >
-                  🔄 Retry
-                </button>
                 <div
                   css={css`
                     font-size: ${designTokens.typography.fontSize.xs};
@@ -1691,7 +1014,39 @@ export default function ModernDashboard({
           , policy-governed execution, and real-time market analysis
         </p>
 
-        <div css={explanationBoxStyles}>
+        <div
+          css={css`
+            max-width: 800px;
+            margin: 0 auto ${designTokens.spacing[6]};
+            padding: ${designTokens.spacing[5]};
+            background: ${designTokens.colors.neutral[0]};
+            border-radius: ${designTokens.borderRadius.lg};
+            border: 1px solid ${designTokens.colors.neutral[200]};
+            text-align: left;
+
+            @media (max-width: ${designTokens.breakpoints.md}) {
+              padding: ${designTokens.spacing[3]};
+            }
+
+            h3 {
+              font-size: ${designTokens.typography.fontSize.base};
+              font-weight: ${designTokens.typography.fontWeight.semibold};
+              margin: 0 0 ${designTokens.spacing[2]};
+              color: ${designTokens.colors.neutral[900]};
+            }
+
+            p {
+              font-size: ${designTokens.typography.fontSize.sm};
+              color: ${designTokens.colors.neutral[600]};
+              margin: 0 0 ${designTokens.spacing[2]};
+              line-height: ${designTokens.typography.lineHeight.relaxed};
+            }
+
+            strong {
+              color: ${designTokens.colors.neutral[900]};
+            }
+          `}
+        >
           <h3>What is Sapience?</h3>
           <p>
             <strong>Sapience</strong> is an autonomous AI agent designed for
@@ -1718,15 +1073,8 @@ export default function ModernDashboard({
         </div>
       </div>
 
-      {renderProgressIndicator()}
-      {renderNextSteps()}
-      {renderTimeline()}
-      {renderMarketAnalysis()}
       {renderSystemHealth()}
       {renderAgentMonitoring()}
-      {renderActivityFeed()}
-      {renderStatusLegend()}
-      {renderRecommendations()}
 
       <div
         css={css`
