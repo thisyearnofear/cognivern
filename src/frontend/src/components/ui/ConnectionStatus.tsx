@@ -1,27 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { css } from '@emotion/react';
-import { designTokens, keyframeAnimations } from '../../styles/design-system';
+import React, { useState } from "react";
+import { css } from "@emotion/react";
+import { designTokens, keyframeAnimations } from "../../styles/design-system";
 
 interface ConnectionStatusProps {
   isConnected: boolean;
   apiUrl?: string;
 }
 
-export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ 
-  isConnected, 
-  apiUrl = 'API Server' 
+export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
+  isConnected,
+  apiUrl = "API Server",
 }) => {
   const [showStatus, setShowStatus] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (isConnected) {
-        setShowStatus(false);
-      }
-    }, 5000);
-
-    return () => clearTimeout(timer);
-  }, [isConnected]);
 
   if (!showStatus && isConnected) {
     return null;
@@ -37,12 +27,13 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     gap: ${designTokens.spacing[2]};
     padding: ${designTokens.spacing[3]} ${designTokens.spacing[4]};
     border-radius: ${designTokens.borderRadius.lg};
-    background: ${isConnected 
+    background: ${isConnected
       ? designTokens.colors.semantic.success[50]
       : designTokens.colors.semantic.error[50]};
-    border: 1px solid ${isConnected
-      ? designTokens.colors.semantic.success[200]
-      : designTokens.colors.semantic.error[200]};
+    border: 1px solid
+      ${isConnected
+        ? designTokens.colors.semantic.success[200]
+        : designTokens.colors.semantic.error[200]};
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     animation: slideIn 0.3s ease-out;
 
@@ -62,7 +53,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: ${isConnected 
+    background: ${isConnected
       ? designTokens.colors.semantic.success[500]
       : designTokens.colors.semantic.error[500]};
     ${isConnected && keyframeAnimations.pulse}
@@ -87,7 +78,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     padding: 0;
     display: flex;
     align-items: center;
-    
+
     &:hover {
       opacity: 0.7;
     }
