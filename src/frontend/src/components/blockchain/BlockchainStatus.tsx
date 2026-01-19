@@ -110,21 +110,24 @@ export default function BlockchainStatus() {
           <div className="contract-address">
             <span className="label">Address:</span>
             <code>
-              {stats.governance.address.slice(0, 10)}...
-              {stats.governance.address.slice(-8)}
+              {stats.governance?.address ? (
+                `${stats.governance.address.slice(0, 10)}...${stats.governance.address.slice(-8)}`
+              ) : (
+                'Not available'
+              )}
             </code>
           </div>
           <div className="stats-grid">
             <div className="stat">
-              <span className="value">{stats.governance.policies}</span>
+              <span className="value">{stats.governance?.policies || 0}</span>
               <span className="label">Policies</span>
             </div>
             <div className="stat">
-              <span className="value">{stats.governance.agents}</span>
+              <span className="value">{stats.governance?.agents || 0}</span>
               <span className="label">Agents</span>
             </div>
             <div className="stat">
-              <span className="value">{stats.governance.actions}</span>
+              <span className="value">{stats.governance?.actions || 0}</span>
               <span className="label">Actions</span>
             </div>
           </div>
@@ -135,21 +138,24 @@ export default function BlockchainStatus() {
           <div className="contract-address">
             <span className="label">Address:</span>
             <code>
-              {stats.filecoin.storageContract.slice(0, 10)}...
-              {stats.filecoin.storageContract.slice(-8)}
+              {stats.filecoin?.storageContract ? (
+                `${stats.filecoin.storageContract.slice(0, 10)}...${stats.filecoin.storageContract.slice(-8)}`
+              ) : (
+                'Not available'
+              )}
             </code>
           </div>
           <div className="stats-grid">
             <div className="stat">
-              <span className="value">{stats.governance.actions}</span>
+              <span className="value">{stats.governance?.actions || 0}</span>
               <span className="label">Total Actions</span>
             </div>
             <div className="stat">
-              <span className="value">{stats.governance.agents}</span>
+              <span className="value">{stats.governance?.agents || 0}</span>
               <span className="label">Active Agents</span>
             </div>
             <div className="stat">
-              <span className="value">{stats.governance.policies}</span>
+              <span className="value">{stats.governance?.policies || 0}</span>
               <span className="label">Policies</span>
             </div>
           </div>
