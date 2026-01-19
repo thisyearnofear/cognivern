@@ -93,7 +93,7 @@ export const sapienceConfig = {
 // Legacy stubs to prevent import errors in other modules
 export const databaseConfig = { url: '', maxConnections: 0, connectionTimeout: 0, queryTimeout: 0 };
 export const cacheConfig = { url: '', ttl: 0, maxSize: '' };
-export const tradingConfig = { enabled: true, recallApiKeys: { direct: '', vincent: '' } };
+export const tradingConfig = { enabled: true, recallApiKeys: { direct: '', vincent: '' }, maxRiskPerTrade: 0.02 };
 export const blockchainConfig = { privateKey: '', rpcUrl: '', network: 'calibration', contracts: { governance: '', storage: '' } };
 export const monitoringConfig = { enabled: false, healthCheckInterval: 30000, retentionDays: { audit: 90, logs: 30 } };
 
