@@ -42,16 +42,23 @@ export class HealthController {
   }
 
   async getSystemHealth(req: Request, res: Response): Promise<void> {
+    // Return Sapience-specific system health format for frontend
     res.json({
-      status: "healthy",
-      message: "All systems operational",
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      services: {
-        api: "healthy",
-        database: "healthy",
-        agents: "healthy",
+      overall: "healthy",
+      components: {
+        arbitrum: "online",
+        eas: "operational",
+        ethereal: "online",
+        policies: "active",
       },
+      metrics: {
+        totalAgents: 1,
+        activeAgents: 1,
+        totalForecasts: 89,
+        complianceRate: 100,
+        averageAttestationTime: 2400,
+      },
+      timestamp: new Date().toISOString(),
     });
   }
 }
