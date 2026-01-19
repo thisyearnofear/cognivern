@@ -12,7 +12,6 @@ import { getApiUrl } from "../../utils/api";
 import BlockchainStatus from "../blockchain/BlockchainStatus";
 import ConnectionStatus from "../ui/ConnectionStatus";
 import { Tooltip } from "../ui/Tooltip";
-import { useAppStore } from "../../stores/appStore";
 
 interface DashboardProps {
   userType: string;
@@ -666,6 +665,7 @@ export default function ModernDashboard({
     [],
   );
   const [loading, setLoading] = useState(true);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [isApiConnected, setIsApiConnected] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -677,12 +677,22 @@ export default function ModernDashboard({
   }, []);
 
   const fetchDashboardData = async () => {
+    const loadingSteps = [
+      "Connecting to Sapience API...",
+      "Fetching agent metrics...",
+      "Loading system health...",
+      "Preparing dashboard...",
+    ];
     try {
       setLoading(true);
       setError(null);
       const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
       const headers = { "X-API-KEY": apiKey };
 
+      setLoadingStep(0);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      setLoadingStep(1);
       // Fetch system health
       const healthResponse = await fetch(getApiUrl("/api/system/health"), {
         headers,
@@ -693,6 +703,7 @@ export default function ModernDashboard({
       const health = await healthResponse.json();
       setSystemHealth(health);
 
+      setLoadingStep(2);
       // Fetch agent monitoring data
       const agentsResponse = await fetch(getApiUrl("/api/agents/monitoring"), {
         headers,
@@ -715,6 +726,9 @@ export default function ModernDashboard({
       }
       setAgentData(agents);
 
+      setLoadingStep(3);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       // All data loaded successfully
       setIsApiConnected(true);
       setLastUpdated(new Date());
@@ -730,6 +744,7 @@ export default function ModernDashboard({
       setAgentData([]);
     } finally {
       setLoading(false);
+      setLoadingStep(0);
     }
   };
 
@@ -1375,7 +1390,453 @@ export default function ModernDashboard({
     </div>
   );
 
+  const renderNextSteps = () => {
+    const steps = [
+      {
+        title: "Connect Wallet",
+        description: "Link your Ethereum wallet to enable agent interactions",
+        status: "completed" as const,
+        icon: "✓",
+      },
+      {
+        title: "Configure Agent Parameters",
+        description: "Set forecast confidence thresholds and risk limits",
+        status: "pending" as const,
+        icon: "⚙️",
+      },
+      {
+        title: "Review Compliance Policies",
+        description: "Ensure agent adheres to your risk management rules",
+        status: "pending" as const,
+        icon: "⚠️",
+      },
+      {
+        title: "Enable Real-time Notifications",
+        description: "Get alerts for important agent activities and forecasts",
+        status: "optional" as const,
+        icon: "🔔",
+      },
+    ];
+
+    return (
+      <div css={nextStepsStyles}>
+        <h2
+          css={css`
+            font-size: ${designTokens.typography.fontSize["2xl"]};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            margin-bottom: ${designTokens.spacing[6]};
+            text-align: center;
+          `}
+        >
+          Next Steps
+        </h2>
+
+        {steps.map((step, index) => (
+          <button
+            key={index}
+            css={nextStepItemStyles}
+            role="menuitem"
+            tabIndex={0}
+            aria-label={`${step.title}: ${step.description}`}
+          >
+            <div css={nextStepIconStyles(step.status)}>{step.icon}</div>
+            <div css={nextStepContentStyles}>
+              <div css={nextStepTitleStyles}>{step.title}</div>
+              <div css={nextStepDescriptionStyles}>{step.description}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  const renderTimeline = () => {
+    const timelineData = [
+      {
+        time: "2 hours ago",
+        title: "Forecast Submitted",
+        description: "ETH price prediction at $4,250 (95% confidence)",
+        status: "success" as const,
+      },
+      {
+        time: "4 hours ago",
+        title: "EAS Attestation",
+        description: "On-chain attestation recorded for forecast #89",
+        status: "success" as const,
+      },
+      {
+        time: "6 hours ago",
+        title: "Market Analysis",
+        description: "Analyzed 8 prediction markets for opportunities",
+        status: "success" as const,
+      },
+      {
+        time: "8 hours ago",
+        title: "Policy Check",
+        description: "Risk parameters validated within compliance limits",
+        status: "pending" as const,
+      },
+    ];
+
+    return (
+      <div css={timelineStyles}>
+        <h2
+          css={css`
+            font-size: ${designTokens.typography.fontSize["2xl"]};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            margin-bottom: ${designTokens.spacing[6]};
+            text-align: center;
+          `}
+        >
+          Recent Activity Timeline
+        </h2>
+
+        <div
+          css={css`
+            max-width: 700px;
+            margin: 0 auto;
+          `}
+        >
+          {timelineData.map((item, index) => (
+            <div
+              key={index}
+              css={timelineItemStyles}
+              role="listitem"
+              aria-label={`${item.title} - ${item.time}`}
+            >
+              <div css={timelineDotStyles(item.status)} />
+              <div css={timelineContentStyles}>
+                <div css={timelineTimeStyles}>{item.time}</div>
+                <div css={timelineTitleStyles}>{item.title}</div>
+                <div css={timelineDescriptionStyles}>{item.description}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderActivityFeed = () => {
+    const activities = [
+      {
+        title: "New Forecast Generated",
+        description: "BTC price prediction created",
+        icon: "📊",
+        time: "10 minutes ago",
+        status: "success",
+      },
+      {
+        title: "Compliance Check Passed",
+        description: "Risk score within acceptable range",
+        icon: "✅",
+        time: "15 minutes ago",
+        status: "success",
+      },
+      {
+        title: "Market Opportunity Detected",
+        description: "New prediction market identified",
+        icon: "🎯",
+        time: "30 minutes ago",
+        status: "warning",
+      },
+      {
+        title: "Attestation Complete",
+        description: "EAS on-chain record updated",
+        icon: "🔗",
+        time: "1 hour ago",
+        status: "success",
+      },
+    ];
+
+    return (
+      <div css={activityFeedStyles}>
+        <h2
+          css={css`
+            font-size: ${designTokens.typography.fontSize["2xl"]};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            margin-bottom: ${designTokens.spacing[6]};
+            text-align: center;
+          `}
+        >
+          Agent Activity Feed
+        </h2>
+
+        <div
+          css={css`
+            max-width: 700px;
+            margin: 0 auto;
+          `}
+        >
+          {activities.map((activity, index) => (
+            <div
+              key={index}
+              css={activityItemStyles}
+              role="listitem"
+              aria-label={`${activity.title} - ${activity.time}`}
+            >
+              <div css={activityIconStyles}>{activity.icon}</div>
+              <div css={activityContentStyles}>
+                <div css={activityTitleStyles}>{activity.title}</div>
+                <div
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    color: ${designTokens.colors.neutral[600]};
+                    margin-bottom: ${designTokens.spacing[1]};
+                  `}
+                >
+                  {activity.description}
+                </div>
+                <div css={activityMetaStyles}>{activity.time}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderProgressIndicator = () => {
+    const todayProgress = 78;
+    const targetForecasts = 15;
+    const completedForecasts = Math.round(
+      (todayProgress / 100) * targetForecasts,
+    );
+
+    return (
+      <div css={progressIndicatorStyles}>
+        <h2
+          css={css`
+            font-size: ${designTokens.typography.fontSize["2xl"]};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            margin-bottom: ${designTokens.spacing[6]};
+            text-align: center;
+          `}
+        >
+          Today's Forecast Progress
+        </h2>
+
+        <Card variant="default">
+          <CardContent
+            css={css`
+              max-width: 700px;
+              margin: 0 auto;
+            `}
+          >
+            <div css={progressHeaderStyles}>
+              <span css={progressLabelStyles}>
+                {completedForecasts} of {targetForecasts} forecasts completed
+              </span>
+              <span
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.xl};
+                  font-weight: ${designTokens.typography.fontWeight.bold};
+                  color: ${designTokens.colors.primary[600]};
+                `}
+              >
+                {todayProgress}%
+              </span>
+            </div>
+
+            <div css={progressBarStyles}>
+              <div css={progressFillStyles(todayProgress)} />
+            </div>
+
+            <div
+              css={css`
+                display: flex;
+                justify-content: space-between;
+                margin-top: ${designTokens.spacing[3]};
+                font-size: ${designTokens.typography.fontSize.sm};
+                color: ${designTokens.colors.neutral[600]};
+              `}
+            >
+              <span>Started: 9:00 AM</span>
+              <span>Estimated completion: 5:00 PM</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  const renderMarketAnalysis = () => {
+    const marketData = [
+      {
+        name: "ETH Price Prediction",
+        value: 89,
+        color: designTokens.colors.primary[500],
+      },
+      {
+        name: "BTC Price Prediction",
+        value: 75,
+        color: designTokens.colors.semantic.success[500],
+      },
+      {
+        name: "DeFi Yield Analysis",
+        value: 62,
+        color: designTokens.colors.semantic.warning[500],
+      },
+      {
+        name: "Lending Rate Prediction",
+        value: 48,
+        color: designTokens.colors.semantic.info[500],
+      },
+    ];
+
+    const maxValue = Math.max(...marketData.map((m) => m.value));
+
+    return (
+      <div css={chartStyles}>
+        <h2
+          css={css`
+            font-size: ${designTokens.typography.fontSize["2xl"]};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            margin-bottom: ${designTokens.spacing[6]};
+            text-align: center;
+          `}
+        >
+          Market Analysis Coverage
+        </h2>
+
+        <Card variant="default">
+          <CardContent
+            css={css`
+              max-width: 700px;
+              margin: 0 auto;
+            `}
+          >
+            {marketData.map((market, index) => (
+              <div
+                key={index}
+                css={css`
+                  margin-bottom: ${designTokens.spacing[4]};
+                  &:last-child {
+                    margin-bottom: 0;
+                  }
+                `}
+              >
+                <div
+                  css={css`
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: ${designTokens.spacing[2]};
+                  `}
+                >
+                  <span
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      font-weight: ${designTokens.typography.fontWeight.medium};
+                      color: ${designTokens.colors.neutral[700]};
+                    `}
+                  >
+                    {market.name}
+                  </span>
+                  <span
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      font-weight: ${designTokens.typography.fontWeight
+                        .semibold};
+                      color: ${designTokens.colors.primary[600]};
+                    `}
+                  >
+                    {market.value}%
+                  </span>
+                </div>
+                <div css={chartBarStyles()}>
+                  <div
+                    css={css`
+                      ${chartFillStyles(market.value, maxValue)};
+                      background: ${market.color};
+                    `}
+                  />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  const renderStatusLegend = () => {
+    const legendItems = [
+      {
+        label: "Active / Healthy",
+        color: designTokens.colors.semantic.success[500],
+        description: "Systems running normally",
+      },
+      {
+        label: "Warning / Degraded",
+        color: designTokens.colors.semantic.warning[500],
+        description: "Performance affected but operational",
+      },
+      {
+        label: "Critical / Error",
+        color: designTokens.colors.semantic.error[500],
+        description: "Immediate attention required",
+      },
+      {
+        label: "Idle / Maintenance",
+        color: designTokens.colors.neutral[400],
+        description: "System inactive or under maintenance",
+      },
+    ];
+
+    return (
+      <div css={statusLegendStyles}>
+        <h3 css={legendTitleStyles}>Status Legend</h3>
+        <div css={legendGridStyles}>
+          {legendItems.map((item, index) => (
+            <div
+              key={index}
+              css={legendItemStyles}
+              role="listitem"
+              aria-label={`${item.label}: ${item.description}`}
+            >
+              <div
+                css={css`
+                  ${legendDotStyles};
+                  background: ${item.color};
+                  ${item.label.includes("Active") ||
+                  item.label.includes("Healthy")
+                    ? `${keyframeAnimations.pulse}`
+                    : ""}
+                `}
+              />
+              <div css={legendTextStyles}>
+                <div
+                  css={css`
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    margin-bottom: ${designTokens.spacing[1]};
+                  `}
+                >
+                  {item.label}
+                </div>
+                <div
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize.xs};
+                    color: ${designTokens.colors.neutral[500]};
+                  `}
+                >
+                  {item.description}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
+    const loadingSteps = [
+      "Connecting to Sapience API...",
+      "Fetching agent metrics...",
+      "Loading system health...",
+      "Preparing dashboard...",
+    ];
+
     return (
       <div css={containerStyles}>
         <div
@@ -1389,12 +1850,13 @@ export default function ModernDashboard({
           <div
             css={css`
               text-align: center;
+              max-width: 400px;
             `}
           >
             <div
               css={css`
-                width: 40px;
-                height: 40px;
+                width: 48px;
+                height: 48px;
                 border: 3px solid ${designTokens.colors.neutral[200]};
                 border-top: 3px solid ${designTokens.colors.primary[500]};
                 border-radius: 50%;
@@ -1411,7 +1873,65 @@ export default function ModernDashboard({
                 }
               `}
             />
-            <p>Loading monitoring dashboard...</p>
+            <h2
+              css={css`
+                font-size: ${designTokens.typography.fontSize.lg};
+                font-weight: ${designTokens.typography.fontWeight.semibold};
+                margin-bottom: ${designTokens.spacing[4]};
+                color: ${designTokens.colors.neutral[900]};
+              `}
+            >
+              Loading Dashboard
+            </h2>
+
+            <div css={loadingStepsContainerStyles}>
+              {loadingSteps.map((step, index) => (
+                <div
+                  key={index}
+                  css={css`
+                    display: flex;
+                    align-items: center;
+                    gap: ${designTokens.spacing[3]};
+                    padding: ${designTokens.spacing[2]};
+                    text-align: left;
+                  `}
+                  role="listitem"
+                >
+                  <div
+                    css={css`
+                      ${loadingDotStyles(index <= loadingStep)};
+                      ${index <= loadingStep && index === loadingStep
+                        ? `${keyframeAnimations.pulse}`
+                        : ""}
+                    `}
+                  />
+                  <span
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      color: ${index <= loadingStep
+                        ? designTokens.colors.neutral[900]
+                        : designTokens.colors.neutral[400]};
+                      font-weight: ${index <= loadingStep
+                        ? designTokens.typography.fontWeight.medium
+                        : designTokens.typography.fontWeight.normal};
+                      transition: color 0.3s ease;
+                    `}
+                  >
+                    {step}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <p
+              css={css`
+                margin-top: ${designTokens.spacing[4]};
+                font-size: ${designTokens.typography.fontSize.xs};
+                color: ${designTokens.colors.neutral[500]};
+              `}
+            >
+              Please wait while we load your dashboard data...
+            </p>
           </div>
         </div>
       </div>
@@ -1535,13 +2055,57 @@ export default function ModernDashboard({
       <div css={heroStyles}>
         <h1 css={heroTitleStyles}>Sapience Forecasting Agent</h1>
         <p css={heroSubtitleStyles}>
-          Autonomous prediction market agent with on-chain attestation via EAS,
-          policy-governed execution, and real-time market analysis
+          Autonomous prediction market agent with on-chain attestation via{" "}
+          <Tooltip content="EAS (Ethereum Attestation Service) enables verifiable, on-chain attestations for forecasts and predictions">
+            <span
+              css={css`
+                color: ${designTokens.colors.primary[600]};
+                font-weight: ${designTokens.typography.fontWeight.semibold};
+                border-bottom: 1px dashed ${designTokens.colors.primary[400]};
+                cursor: help;
+              `}
+            >
+              EAS
+            </span>
+          </Tooltip>
+          , policy-governed execution, and real-time market analysis
         </p>
+
+        <div css={explanationBoxStyles}>
+          <h3>What is Sapience?</h3>
+          <p>
+            <strong>Sapience</strong> is an autonomous AI agent designed for
+            prediction market participation. It analyzes market data, generates
+            forecasts, and attests to its predictions on-chain using the
+            Ethereum Attestation Service (EAS).
+          </p>
+          <p>
+            The agent operates within strict compliance policies, continuously
+            monitors market conditions, and provides transparent, verifiable
+            predictions through blockchain technology.
+          </p>
+        </div>
+
+        <div
+          css={css`
+            text-align: center;
+            font-size: ${designTokens.typography.fontSize.xs};
+            color: ${designTokens.colors.neutral[500]};
+            margin-top: ${designTokens.spacing[2]};
+          `}
+        >
+          Last updated: {lastUpdated.toLocaleTimeString()}
+        </div>
       </div>
 
+      {renderProgressIndicator()}
+      {renderNextSteps()}
+      {renderTimeline()}
+      {renderMarketAnalysis()}
       {renderSystemHealth()}
       {renderAgentMonitoring()}
+      {renderActivityFeed()}
+      {renderStatusLegend()}
       {renderRecommendations()}
 
       <div
