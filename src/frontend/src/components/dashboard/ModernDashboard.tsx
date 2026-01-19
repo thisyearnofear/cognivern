@@ -309,42 +309,6 @@ const explanationBoxStyles = css`
   }
 `;
 
-const statusSummaryStyles = css`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: ${designTokens.spacing[8]};
-  padding: ${designTokens.spacing[4]} ${designTokens.spacing[6]};
-  background: ${designTokens.colors.neutral[0]};
-  border-radius: ${designTokens.borderRadius.xl};
-  box-shadow: ${shadowSystem.md};
-  margin-bottom: ${designTokens.spacing[8]};
-  border: 1px solid ${designTokens.colors.neutral[200]};
-
-  @media (max-width: ${designTokens.breakpoints.md}) {
-    flex-direction: column;
-    gap: ${designTokens.spacing[4]};
-  }
-`;
-
-const statusItemStyles = css`
-  display: flex;
-  align-items: center;
-  gap: ${designTokens.spacing[2]};
-`;
-
-const statusLabelStyles = css`
-  font-size: ${designTokens.typography.fontSize.sm};
-  color: ${designTokens.colors.neutral[600]};
-  font-weight: ${designTokens.typography.fontWeight.medium};
-`;
-
-const statusValueStyles = css`
-  font-size: ${designTokens.typography.fontSize.lg};
-  font-weight: ${designTokens.typography.fontWeight.bold};
-  color: ${designTokens.colors.neutral[900]};
-`;
-
 const nextStepsStyles = css`
   margin-bottom: ${designTokens.spacing[8]};
 `;
@@ -427,71 +391,6 @@ const nextStepDescriptionStyles = css`
   color: ${designTokens.colors.neutral[600]};
 `;
 
-const timelineStyles = css`
-  margin-bottom: ${designTokens.spacing[8]};
-`;
-
-const timelineItemStyles = css`
-  display: flex;
-  gap: ${designTokens.spacing[4]};
-  padding: ${designTokens.spacing[4]} 0;
-  border-left: 2px solid ${designTokens.colors.neutral[200]};
-  margin-left: ${designTokens.spacing[3]};
-  position: relative;
-
-  &:last-child {
-    border-left-color: transparent;
-  }
-
-  @media (max-width: ${designTokens.breakpoints.md}) {
-    padding: ${designTokens.spacing[3]} 0;
-    gap: ${designTokens.spacing[2]};
-    margin-left: ${designTokens.spacing[2]};
-  }
-`;
-
-const timelineDotStyles = (status: "success" | "pending" | "failed") => css`
-  position: absolute;
-  left: -7px;
-  top: ${designTokens.spacing[5]};
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: ${status === "success"
-    ? designTokens.colors.semantic.success[500]
-    : status === "failed"
-      ? designTokens.colors.semantic.error[500]
-      : designTokens.colors.semantic.warning[500]};
-  border: 2px solid ${designTokens.colors.neutral[0]};
-`;
-
-const timelineContentStyles = css`
-  flex: 1;
-  padding-left: ${designTokens.spacing[2]};
-`;
-
-const timelineTimeStyles = css`
-  font-size: ${designTokens.typography.fontSize.xs};
-  color: ${designTokens.colors.neutral[500]};
-  margin-bottom: ${designTokens.spacing[1]};
-`;
-
-const timelineTitleStyles = css`
-  font-size: ${designTokens.typography.fontSize.base};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
-  color: ${designTokens.colors.neutral[900]};
-  margin-bottom: ${designTokens.spacing[1]};
-`;
-
-const timelineDescriptionStyles = css`
-  font-size: ${designTokens.typography.fontSize.sm};
-  color: ${designTokens.colors.neutral[600]};
-`;
-
-const activityFeedStyles = css`
-  margin-bottom: ${designTokens.spacing[8]};
-`;
-
 const activityItemStyles = css`
   display: flex;
   align-items: flex-start;
@@ -537,109 +436,6 @@ const activityMetaStyles = css`
   color: ${designTokens.colors.neutral[500]};
 `;
 
-const progressIndicatorStyles = css`
-  margin-bottom: ${designTokens.spacing[8]};
-`;
-
-const progressHeaderStyles = css`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${designTokens.spacing[3]};
-`;
-
-const progressLabelStyles = css`
-  font-size: ${designTokens.typography.fontSize.base};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
-  color: ${designTokens.colors.neutral[900]};
-`;
-
-const progressBarStyles = css`
-  width: 100%;
-  height: 8px;
-  background: ${designTokens.colors.neutral[200]};
-  border-radius: ${designTokens.borderRadius.full};
-  overflow: hidden;
-`;
-
-const progressFillStyles = (percentage: number) => css`
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    ${designTokens.colors.primary[500]},
-    ${designTokens.colors.primary[600]}
-  );
-  width: ${percentage}%;
-  transition: width 0.5s ease;
-`;
-
-const chartStyles = css`
-  margin-bottom: ${designTokens.spacing[8]};
-`;
-
-const chartBarStyles = () => css`
-  width: 100%;
-  height: ${designTokens.spacing[12]};
-  background: ${designTokens.colors.neutral[100]};
-  border-radius: ${designTokens.borderRadius.md};
-  overflow: hidden;
-  position: relative;
-`;
-
-const chartFillStyles = (value: number, max: number) => css`
-  height: 100%;
-  width: ${(value / max) * 100}%;
-  background: linear-gradient(
-    90deg,
-    ${designTokens.colors.primary[500]},
-    ${designTokens.colors.primary[600]}
-  );
-  transition: width 0.5s ease;
-`;
-
-const statusLegendStyles = css`
-  margin-bottom: ${designTokens.spacing[8]};
-  padding: ${designTokens.spacing[5]};
-  background: ${designTokens.colors.neutral[0]};
-  border: 1px solid ${designTokens.colors.neutral[200]};
-  border-radius: ${designTokens.borderRadius.xl};
-`;
-
-const legendTitleStyles = css`
-  font-size: ${designTokens.typography.fontSize.base};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
-  color: ${designTokens.colors.neutral[900]};
-  margin: 0 0 ${designTokens.spacing[4]};
-  text-align: center;
-`;
-
-const legendGridStyles = css`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: ${designTokens.spacing[4]};
-`;
-
-const legendItemStyles = css`
-  display: flex;
-  align-items: center;
-  gap: ${designTokens.spacing[3]};
-  padding: ${designTokens.spacing[3]};
-  background: ${designTokens.colors.neutral[50]};
-  border-radius: ${designTokens.borderRadius.md};
-`;
-
-const legendDotStyles = css`
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  flex-shrink: 0;
-`;
-
-const legendTextStyles = css`
-  font-size: ${designTokens.typography.fontSize.sm};
-  color: ${designTokens.colors.neutral[700]};
-`;
-
 const loadingStepsContainerStyles = css`
   display: grid;
   gap: ${designTokens.spacing[2]};
@@ -661,9 +457,6 @@ export default function ModernDashboard({
 }: DashboardProps) {
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
   const [agentData, setAgentData] = useState<AgentMonitoringData[]>([]);
-  const [recommendations, setRecommendations] = useState<AIRecommendation[]>(
-    [],
-  );
   const [loading, setLoading] = useState(true);
   const [loadingStep, setLoadingStep] = useState(0);
   const [isApiConnected, setIsApiConnected] = useState(true);
@@ -671,28 +464,26 @@ export default function ModernDashboard({
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   useEffect(() => {
-    fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 30000); // Update every 30 seconds
+    fetchDashboardData(true);
+    const interval = setInterval(() => fetchDashboardData(false), 30000); // Update every 30 seconds
     return () => clearInterval(interval);
   }, []);
 
-  const fetchDashboardData = async () => {
-    const loadingSteps = [
-      "Connecting to Sapience API...",
-      "Fetching agent metrics...",
-      "Loading system health...",
-      "Preparing dashboard...",
-    ];
+  const fetchDashboardData = async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) {
+        setLoading(true);
+        setLoadingStep(0);
+      }
       setError(null);
       const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
       const headers = { "X-API-KEY": apiKey };
 
-      setLoadingStep(0);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      setLoadingStep(1);
+      if (isInitial) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        setLoadingStep(1);
+      }
+      
       // Fetch system health
       const healthResponse = await fetch(getApiUrl("/api/system/health"), {
         headers,
@@ -703,7 +494,10 @@ export default function ModernDashboard({
       const health = await healthResponse.json();
       setSystemHealth(health);
 
-      setLoadingStep(2);
+      if (isInitial) {
+        setLoadingStep(2);
+      }
+      
       // Fetch agent monitoring data
       const agentsResponse = await fetch(getApiUrl("/api/agents/monitoring"), {
         headers,
@@ -726,8 +520,10 @@ export default function ModernDashboard({
       }
       setAgentData(agents);
 
-      setLoadingStep(3);
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (isInitial) {
+        setLoadingStep(3);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
 
       // All data loaded successfully
       setIsApiConnected(true);
@@ -738,102 +534,23 @@ export default function ModernDashboard({
           ? error.message
           : "Failed to load dashboard data";
       console.error("Error fetching dashboard data:", errorMessage);
-      setError(errorMessage);
-      setIsApiConnected(false);
-      setSystemHealth(null);
-      setAgentData([]);
+      
+      // Only show error if we don't have any data yet
+      if (isInitial || !systemHealth) {
+        setError(errorMessage);
+        setIsApiConnected(false);
+        setSystemHealth(null);
+        setAgentData([]);
+      }
     } finally {
-      setLoading(false);
-      setLoadingStep(0);
+      if (isInitial) {
+        setLoading(false);
+        setLoadingStep(0);
+      }
     }
   };
 
-  const generateMockSystemHealth = (): SystemHealth => ({
-    overall: "healthy",
-    components: {
-      arbitrum: "online",
-      eas: "operational",
-      ethereal: "online",
-      policies: "active",
-    },
-    metrics: {
-      totalAgents: 1,
-      activeAgents: 1,
-      totalForecasts: 89,
-      complianceRate: 100,
-      averageAttestationTime: 2400,
-    },
-  });
 
-  const generateMockAgentData = (): AgentMonitoringData[] => [
-    {
-      id: "sapience-forecast-1",
-      name: "Sapience Forecasting Agent",
-      type: "analysis",
-      status: "active",
-      capabilities: [
-        "forecasting",
-        "eas-attestation",
-        "market-analysis",
-        "policy-enforcement",
-      ],
-      createdAt: new Date(Date.now() - 86400000 * 60).toISOString(),
-      updatedAt: new Date(Date.now() - 120000).toISOString(),
-      lastActivity: new Date(Date.now() - 120000).toISOString(),
-      performance: {
-        uptime: 99.9,
-        successRate: 96.6,
-        avgResponseTime: 2400,
-        actionsToday: 12,
-      },
-      riskMetrics: {
-        currentRiskScore: 0.15,
-        violationsToday: 0,
-        complianceRate: 100,
-      },
-      financialMetrics: {
-        totalValue: 24500.5,
-        dailyPnL: 892.3,
-        winRate: 76.8,
-      },
-    },
-  ];
-
-  const generateMockRecommendations = (): AIRecommendation[] => [
-    {
-      id: "1",
-      type: "performance",
-      title: "Improve Forecast Accuracy",
-      description:
-        "Current forecast model accuracy is 76.8%. Incorporate additional market sentiment data sources to improve calibration.",
-      priority: "medium",
-      impact: "Increase accuracy by 5-8%",
-      actionRequired: true,
-      estimatedBenefit: "Better position sizing and market timing",
-    },
-    {
-      id: "2",
-      type: "compliance",
-      title: "Review EAS Attestation Parameters",
-      description:
-        "Consider optimizing confidence thresholds for EAS attestations to balance accuracy with on-chain costs.",
-      priority: "medium",
-      impact:
-        "Reduce unnecessary on-chain submissions while maintaining forecast quality",
-      actionRequired: false,
-    },
-    {
-      id: "3",
-      type: "optimization",
-      title: "Expand Market Coverage",
-      description:
-        "Agent is currently analyzing 8 markets. Expanding to 15 additional markets could diversify portfolio.",
-      priority: "low",
-      impact: "Increase diversification and market exposure",
-      actionRequired: false,
-      estimatedBenefit: "Broader prediction market participation",
-    },
-  ];
 
   const renderSystemHealth = () => {
     if (!systemHealth || !systemHealth.metrics) return null;
@@ -1046,103 +763,6 @@ export default function ModernDashboard({
                         {agent.performance.uptime}%
                       </div>
                       <div css={metricLabelStyles}>Uptime</div>
-                    </div>
-                    <div css={metricItemStyles}>
-                      <div css={metricValueStyles}>
-                        {agent.performance.successRate}%
-                      </div>
-                      <div css={metricLabelStyles}>Success Rate</div>
-                    </div>
-                    <div css={metricItemStyles}>
-                      <div css={metricValueStyles}>
-                        {agent.performance.avgResponseTime}ms
-                      </div>
-                      <div css={metricLabelStyles}>Avg Response</div>
-                    </div>
-                    <div css={metricItemStyles}>
-                      <div css={metricValueStyles}>
-                        {agent.performance.actionsToday}
-                      </div>
-                      <div css={metricLabelStyles}>Forecasts Today</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  css={css`
-                    margin-bottom: ${designTokens.spacing[4]};
-                  `}
-                >
-                  <h4
-                    css={css`
-                      font-size: ${designTokens.typography.fontSize.sm};
-                      font-weight: ${designTokens.typography.fontWeight
-                        .semibold};
-                      margin-bottom: ${designTokens.spacing[3]};
-                    `}
-                  >
-                    Risk & Compliance
-                  </h4>
-                  <div css={metricsGridStyles}>
-                    <div css={metricItemStyles}>
-                      <div
-                        css={css`
-                          ${metricValueStyles};
-                          color: ${agent.riskMetrics.currentRiskScore > 0.5
-                            ? designTokens.colors.semantic.warning[600]
-                            : designTokens.colors.semantic.success[600]};
-                        `}
-                      >
-                        {(agent.riskMetrics.currentRiskScore * 100).toFixed(1)}%
-                      </div>
-                      <div css={metricLabelStyles}>Risk Score</div>
-                    </div>
-                    <div css={metricItemStyles}>
-                      <div
-                        css={css`
-                          ${metricValueStyles};
-                          color: ${agent.riskMetrics.violationsToday > 0
-                            ? designTokens.colors.semantic.error[600]
-                            : designTokens.colors.semantic.success[600]};
-                        `}
-                      >
-                        {agent.riskMetrics.violationsToday}
-                      </div>
-                      <div css={metricLabelStyles}>Violations Today</div>
-                    </div>
-                  </div>
-                  <div
-                    css={css`
-                      margin-top: ${designTokens.spacing[2]};
-                    `}
-                  >
-                    <div
-                      css={css`
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-bottom: ${designTokens.spacing[1]};
-                      `}
-                    >
-                      <span
-                        css={css`
-                          font-size: ${designTokens.typography.fontSize.sm};
-                          color: ${designTokens.colors.neutral[600]};
-                        `}
-                      >
-                        Compliance Rate
-                      </span>
-                      <span
-                        css={css`
-                          font-size: ${designTokens.typography.fontSize.sm};
-                          font-weight: ${designTokens.typography.fontWeight
-                            .semibold};
-                        `}
-                      >
-                        {agent.riskMetrics.complianceRate}%
-                      </span>
-                    </div>
-                    <div
                       css={css`
                         width: 100%;
                         height: 4px;
