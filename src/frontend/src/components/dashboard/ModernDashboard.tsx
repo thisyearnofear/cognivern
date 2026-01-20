@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { css } from "@emotion/react";
 import {
   designTokens,
@@ -11,16 +11,26 @@ import { Card, CardContent, CardTitle } from "../ui/Card";
 import { getApiUrl } from "../../utils/api";
 import BlockchainStatus from "../blockchain/BlockchainStatus";
 import ConnectionStatus from "../ui/ConnectionStatus";
+import {
+  cardHoverStylesNoTransform,
+  textStyles,
+  buttonStyles,
+} from "./sharedStyles";
 import { Tooltip } from "../ui/Tooltip";
-import { BaseAgent, SystemHealth } from "../../types";
+import { BaseAgent, SystemHealth, AgentType } from "../../types";
+import { useSapienceData } from "../../hooks/useSapienceData";
+
+// Lazy load SapienceMarkets for code splitting
+const SapienceMarkets = lazy(() => import("../sapience/SapienceMarkets"));
 
 interface DashboardProps {
   userType: string;
 }
 
 interface AgentMonitoringData extends BaseAgent {
-  type: "trading" | "analysis" | "monitoring";
+  type: AgentType;
   lastActivity: string;
+  avatar?: string;
   performance: {
     uptime: number;
     successRate: number;
@@ -37,6 +47,49 @@ interface AgentMonitoringData extends BaseAgent {
     dailyPnL: number;
     winRate: number;
   };
+  sapienceProfile?: {
+    agentRank: number;
+    totalEarnings: number;
+    winRate: number;
+    forecastsWon: number;
+    reputation: number;
+  };
+  governanceProfile?: {
+    isDeployed: boolean;
+    policyCompliance: number;
+    auditScore: number;
+    riskLevel: "low" | "medium" | "high";
+    deploymentStatus: string;
+  };
+  trustScore?: number;
+  overallRank?: number;
+}
+
+// Note: Live markets are now fetched directly in SapienceMarkets component
+
+interface DashboardSummary {
+  sapience: {
+    liveMarkets: number;
+    activeAgents: number;
+    totalPoolValue: number;
+  };
+  governance: {
+    totalPolicies: number;
+    totalAgents: number;
+    totalActions: number;
+  };
+  unified: {
+    deployedAgents: number;
+    averageTrustScore: number;
+    totalValue: number;
+  };
+}
+
+interface ActivityFeedItem {
+  type: string;
+  source: "sapience" | "filecoin" | "system";
+  timestamp: string;
+  data: any;
 }
 
 const containerStyles = css`
@@ -161,16 +214,77 @@ const loadingDotStyles = (active: boolean) => css`
   transition: background 0.3s ease;
 `;
 
+const navContainerStyles = css`
+  display: flex;
+  justify-content: center;
+  gap: ${designTokens.spacing[2]};
+  margin-bottom: ${designTokens.spacing[8]};
+  padding: ${designTokens.spacing[1]};
+  background: ${designTokens.colors.neutral[100]};
+  border-radius: ${designTokens.borderRadius.full};
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+`;
+
+const navButtonStyles = (active: boolean) => css`
+  padding: ${designTokens.spacing[2]} ${designTokens.spacing[6]};
+  border-radius: ${designTokens.borderRadius.full};
+  border: none;
+  background: ${active ? designTokens.colors.neutral[0] : "transparent"};
+  color: ${active
+    ? designTokens.colors.primary[600]
+    : designTokens.colors.neutral[600]};
+  font-size: ${designTokens.typography.fontSize.sm};
+  font-weight: ${designTokens.typography.fontWeight.semibold};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: ${active ? shadowSystem.sm : "none"};
+
+  &:hover {
+    color: ${designTokens.colors.primary[500]};
+  }
+`;
+
+const activityFeedStyles = css`
+  display: flex;
+  flex-direction: column;
+  gap: ${designTokens.spacing[3]};
+`;
+
+const activityItemStyles = (source: string) => css`
+  display: flex;
+  gap: ${designTokens.spacing[3]};
+  padding: ${designTokens.spacing[4]};
+  background: ${designTokens.colors.neutral[0]};
+  border-radius: ${designTokens.borderRadius.lg};
+  border-left: 4px solid
+    ${source === "sapience"
+      ? designTokens.colors.secondary[500]
+      : source === "filecoin"
+        ? designTokens.colors.primary[500]
+        : designTokens.colors.neutral[400]};
+  ${cardHoverStylesNoTransform}
+`;
+
 export default function ModernDashboard({
   userType: _userType,
 }: DashboardProps) {
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
   const [agentData, setAgentData] = useState<AgentMonitoringData[]>([]);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingStep, setLoadingStep] = useState(0);
   const [isApiConnected, setIsApiConnected] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [activeView, setActiveView] = useState<
+    "overview" | "markets" | "agents" | "governance"
+  >("overview");
+
+  // Sapience real-time data
+  const { stats: sapienceStats, leaderboard: sapienceLeaderboard } = useSapienceData();
 
   useEffect(() => {
     fetchDashboardData(true);
@@ -193,6 +307,7 @@ export default function ModernDashboard({
         setLoadingStep(1);
       }
 
+      // 1. Fetch System Health
       const healthResponse = await fetch(getApiUrl("/api/system/health"), {
         headers,
       });
@@ -206,9 +321,24 @@ export default function ModernDashboard({
         setLoadingStep(2);
       }
 
-      const agentsResponse = await fetch(getApiUrl("/api/agents/monitoring"), {
+      // 2. Fetch Unified Summary (from UnifiedDashboard blueprint)
+      try {
+        const summaryResponse = await fetch(getApiUrl("/api/dashboard/summary"), {
+          headers,
+        });
+        if (summaryResponse.ok) {
+          const summaryData = await summaryResponse.json();
+          setSummary(summaryData);
+        }
+      } catch (e) {
+        console.warn("Summary API not available, falling back to basic metrics");
+      }
+
+      // 3. Fetch Agents (Unified/Monitoring)
+      const agentsResponse = await fetch(getApiUrl("/api/agents/unified?limit=50"), {
         headers,
-      });
+      }).catch(() => fetch(getApiUrl("/api/agents/monitoring"), { headers }));
+
       if (!agentsResponse.ok) {
         throw new Error(
           `Agent monitoring unavailable (${agentsResponse.status})`,
@@ -221,10 +351,27 @@ export default function ModernDashboard({
         agents = agentsResult;
       } else if (agentsResult.success && Array.isArray(agentsResult.data)) {
         agents = agentsResult.data;
+      } else if (agentsResult.agents && Array.isArray(agentsResult.agents)) {
+        agents = agentsResult.agents;
       } else {
         throw new Error("Invalid agent data format from API");
       }
       setAgentData(agents);
+
+      // Note: Live Sapience markets are now fetched by SapienceMarkets component via useSapienceData hook
+
+      // 4. Fetch Activity Feed
+      try {
+        const feedResponse = await fetch(getApiUrl("/api/feed/live"), {
+          headers,
+        });
+        if (feedResponse.ok) {
+          const feedData = await feedResponse.json();
+          setActivityFeed(feedData.feed || []);
+        }
+      } catch (e) {
+        console.warn("Activity Feed API not available");
+      }
 
       if (isInitial) {
         setLoadingStep(3);
@@ -377,6 +524,138 @@ export default function ModernDashboard({
     );
   };
 
+  const renderPlatformSummary = () => {
+    // Show Sapience stats from the hook, fallback to summary data if available
+    const activeMarkets = sapienceStats?.activeConditions ?? summary?.sapience?.liveMarkets ?? 0;
+    const totalForecasts = sapienceStats?.totalForecasts ?? summary?.sapience?.totalPoolValue ?? 0;
+    const totalConditions = sapienceStats?.totalConditions ?? 0;
+
+    return (
+      <div
+        css={css`
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: ${designTokens.spacing[6]};
+          margin-bottom: ${designTokens.spacing[8]};
+        `}
+      >
+        <Card
+          variant="elevated"
+          css={css`
+            background: linear-gradient(
+              135deg,
+              ${designTokens.colors.primary[900]} 0%,
+              ${designTokens.colors.primary[700]} 100%
+            );
+            color: white;
+          `}
+        >
+          <CardContent>
+            <CardTitle css={css`color: white; opacity: 0.9; font-size: 0.9rem;`}>🔮 Sapience Forecasts</CardTitle>
+            <div css={css`display: flex; justify-content: space-between; margin-top: 1rem;`}>
+              <div>
+                <div css={css`font-size: 1.5rem; font-weight: bold;`}>{activeMarkets}</div>
+                <div css={css`font-size: 0.75rem; opacity: 0.8;`}>Active Markets</div>
+              </div>
+              <div>
+                <div css={css`font-size: 1.5rem; font-weight: bold;`}>{totalForecasts.toLocaleString()}</div>
+                <div css={css`font-size: 0.75rem; opacity: 0.8;`}>Forecasts</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          variant="elevated"
+          css={css`
+            background: linear-gradient(
+              135deg,
+              ${designTokens.colors.secondary[900]} 0%,
+              ${designTokens.colors.secondary[700]} 100%
+            );
+            color: white;
+          `}
+        >
+          <CardContent>
+            <CardTitle css={css`color: white; opacity: 0.9; font-size: 0.9rem;`}>⛓️ Filecoin Governance</CardTitle>
+            <div css={css`display: flex; justify-content: space-between; margin-top: 1rem;`}>
+              <div>
+                <div css={css`font-size: 1.5rem; font-weight: bold;`}>{summary?.governance?.totalPolicies ?? 0}</div>
+                <div css={css`font-size: 0.75rem; opacity: 0.8;`}>Policies</div>
+              </div>
+              <div>
+                <div css={css`font-size: 1.5rem; font-weight: bold;`}>{summary?.governance?.totalActions ?? 0}</div>
+                <div css={css`font-size: 0.75rem; opacity: 0.8;`}>Actions</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          variant="elevated"
+          css={css`
+            background: white;
+            border-left: 4px solid ${designTokens.colors.primary[500]};
+          `}
+        >
+          <CardContent>
+            <CardTitle css={css`font-size: 0.9rem;`}>🌟 Unified Platform</CardTitle>
+            <div css={css`display: flex; justify-content: space-between; margin-top: 1rem;`}>
+              <div>
+                <div css={css`font-size: 1.5rem; font-weight: bold; color: ${designTokens.colors.primary[700]};`}>{totalConditions}</div>
+                <div css={css`font-size: 0.75rem; color: ${designTokens.colors.neutral[500]};`}>All Markets</div>
+              </div>
+              <div>
+                <div css={css`font-size: 1.5rem; font-weight: bold; color: ${designTokens.colors.primary[700]};`}>{sapienceLeaderboard.length}</div>
+                <div css={css`font-size: 0.75rem; color: ${designTokens.colors.neutral[500]};`}>Forecasters</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  const renderActivityFeed = () => {
+    if (activityFeed.length === 0) return null;
+
+    return (
+      <Card variant="default">
+        <CardContent>
+          <CardTitle css={css`margin-bottom: ${designTokens.spacing[6]};`}>📡 Live Activity Feed</CardTitle>
+          <div css={activityFeedStyles}>
+            {activityFeed.slice(0, 5).map((item, index) => (
+              <div key={index} css={activityItemStyles(item.source)}>
+                <div css={css`font-size: 1.25rem;`}>
+                  {item.source === "sapience" ? "🏁" : item.source === "filecoin" ? "⛓️" : "🤖"}
+                </div>
+                <div css={css`flex: 1;`}>
+                  <div css={css`font-weight: bold; font-size: 0.85rem; text-transform: uppercase; color: ${designTokens.colors.neutral[500]};`}>
+                    {item.type.replace("_", " ")}
+                  </div>
+                  <div css={css`font-size: 0.95rem; margin: 2px 0;`}>
+                    {item.type === "forecast_win" && (
+                      <><strong>{item.data.agent.name}</strong> correctly predicted market outcome</>
+                    )}
+                    {item.type === "governance_action" && (
+                      <>{item.data.details}</>
+                    )}
+                    {!["competition_win", "governance_action"].includes(item.type) && (
+                      <>{JSON.stringify(item.data)}</>
+                    )}
+                  </div>
+                  <div css={css`font-size: 0.75rem; color: ${designTokens.colors.neutral[400]};`}>
+                    {new Date(item.timestamp).toLocaleTimeString()}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   const renderAgentMonitoring = () => (
     <div>
       <h2
@@ -444,7 +723,7 @@ export default function ModernDashboard({
                         text-transform: uppercase;
                       `}
                     >
-                      {agent.type}
+                      {agent.type === "recall" ? "Sapience" : agent.type}
                     </span>
                   </div>
                   <div css={statusIndicatorStyles}>
@@ -467,12 +746,7 @@ export default function ModernDashboard({
                     margin-bottom: ${designTokens.spacing[4]};
                   `}
                 >
-                  <div
-                    css={css`
-                      font-size: ${designTokens.typography.fontSize.sm};
-                      color: ${designTokens.colors.neutral[600]};
-                    `}
-                  >
+                  <div css={textStyles.description}>
                     Last Activity:{" "}
                     {new Date(agent.lastActivity).toLocaleTimeString()}
                   </div>
@@ -735,19 +1009,7 @@ export default function ModernDashboard({
                   <button
                     css={css`
                       flex: 1;
-                      padding: ${designTokens.spacing[3]};
-                      background: ${designTokens.colors.primary[500]};
-                      color: white;
-                      border: none;
-                      border-radius: ${designTokens.borderRadius.md};
-                      font-size: ${designTokens.typography.fontSize.sm};
-                      font-weight: ${designTokens.typography.fontWeight.medium};
-                      cursor: pointer;
-                      transition: background 0.2s ease;
-
-                      &:hover {
-                        background: ${designTokens.colors.primary[600]};
-                      }
+                      ${buttonStyles.primary}
                     `}
                   >
                     View Details
@@ -755,19 +1017,7 @@ export default function ModernDashboard({
                   <button
                     css={css`
                       flex: 1;
-                      padding: ${designTokens.spacing[3]};
-                      background: transparent;
-                      color: ${designTokens.colors.primary[600]};
-                      border: 1px solid ${designTokens.colors.primary[300]};
-                      border-radius: ${designTokens.borderRadius.md};
-                      font-size: ${designTokens.typography.fontSize.sm};
-                      font-weight: ${designTokens.typography.fontWeight.medium};
-                      cursor: pointer;
-                      transition: all 0.2s ease;
-
-                      &:hover {
-                        background: ${designTokens.colors.primary[50]};
-                      }
+                      ${buttonStyles.secondary}
                     `}
                   >
                     Configure
@@ -950,16 +1200,7 @@ export default function ModernDashboard({
               <button
                 css={css`
                   padding: ${designTokens.spacing[2]} ${designTokens.spacing[6]};
-                  background: ${designTokens.colors.primary[500]};
-                  color: white;
-                  border: none;
-                  border-radius: ${designTokens.borderRadius.md};
-                  cursor: pointer;
-                  font-weight: ${designTokens.typography.fontWeight.medium};
-
-                  &:hover {
-                    background: ${designTokens.colors.primary[600]};
-                  }
+                  ${buttonStyles.primary}
                 `}
                 onClick={() => fetchDashboardData(true)}
               >
@@ -1014,51 +1255,32 @@ export default function ModernDashboard({
           , policy-governed execution, and real-time market analysis
         </p>
 
-        <div
-          css={css`
-            max-width: 800px;
-            margin: 0 auto ${designTokens.spacing[6]};
-            padding: ${designTokens.spacing[5]};
-            background: ${designTokens.colors.neutral[0]};
-            border-radius: ${designTokens.borderRadius.lg};
-            border: 1px solid ${designTokens.colors.neutral[200]};
-            text-align: left;
-
-            @media (max-width: ${designTokens.breakpoints.md}) {
-              padding: ${designTokens.spacing[3]};
-            }
-
-            h3 {
-              font-size: ${designTokens.typography.fontSize.base};
-              font-weight: ${designTokens.typography.fontWeight.semibold};
-              margin: 0 0 ${designTokens.spacing[2]};
-              color: ${designTokens.colors.neutral[900]};
-            }
-
-            p {
-              font-size: ${designTokens.typography.fontSize.sm};
-              color: ${designTokens.colors.neutral[600]};
-              margin: 0 0 ${designTokens.spacing[2]};
-              line-height: ${designTokens.typography.lineHeight.relaxed};
-            }
-
-            strong {
-              color: ${designTokens.colors.neutral[900]};
-            }
-          `}
-        >
-          <h3>What is Sapience?</h3>
-          <p>
-            <strong>Sapience</strong> is an autonomous AI agent designed for
-            prediction market participation. It analyzes market data, generates
-            forecasts, and attests to its predictions on-chain using the
-            Ethereum Attestation Service (EAS).
-          </p>
-          <p>
-            The agent operates within strict compliance policies, continuously
-            monitors market conditions, and provides transparent, verifiable
-            predictions through blockchain technology.
-          </p>
+        {/* Tabbed Navigation */}
+        <div css={navContainerStyles}>
+          <button
+            css={navButtonStyles(activeView === "overview")}
+            onClick={() => setActiveView("overview")}
+          >
+            📊 Overview
+          </button>
+          <button
+            css={navButtonStyles(activeView === "markets")}
+            onClick={() => setActiveView("markets")}
+          >
+            🏆 Markets
+          </button>
+          <button
+            css={navButtonStyles(activeView === "agents")}
+            onClick={() => setActiveView("agents")}
+          >
+            🤖 Agents
+          </button>
+          <button
+            css={navButtonStyles(activeView === "governance")}
+            onClick={() => setActiveView("governance")}
+          >
+            🛡️ Governance
+          </button>
         </div>
 
         <div
@@ -1073,12 +1295,172 @@ export default function ModernDashboard({
         </div>
       </div>
 
-      {renderSystemHealth()}
-      {renderAgentMonitoring()}
+      {/* Dynamic View Rendering */}
+      <div
+        css={css`
+          ${keyframeAnimations.fadeInUp}
+        `}
+      >
+        {activeView === "overview" && (
+          <>
+            {renderPlatformSummary()}
+            {renderSystemHealth()}
+            <div
+              css={css`
+                display: grid;
+                grid-template-columns: 1fr 350px;
+                gap: ${designTokens.spacing[6]};
+                margin-top: ${designTokens.spacing[8]};
+
+                @media (max-width: ${designTokens.breakpoints.lg}) {
+                  grid-template-columns: 1fr;
+                }
+              `}
+            >
+              <div
+                css={css`
+                  display: flex;
+                  flex-direction: column;
+                  gap: ${designTokens.spacing[6]};
+                `}
+              >
+                {renderAgentMonitoring()}
+                <div
+                  css={css`
+                    max-width: 100%;
+                    padding: ${designTokens.spacing[5]};
+                    background: ${designTokens.colors.neutral[0]};
+                    border-radius: ${designTokens.borderRadius.lg};
+                    border: 1px solid ${designTokens.colors.neutral[200]};
+                    text-align: left;
+
+                    h3 {
+                      font-size: ${designTokens.typography.fontSize.base};
+                      font-weight: ${designTokens.typography.fontWeight.semibold};
+                      margin: 0 0 ${designTokens.spacing[2]};
+                      color: ${designTokens.colors.neutral[900]};
+                    }
+
+                    p {
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      color: ${designTokens.colors.neutral[600]};
+                      margin: 0 0 ${designTokens.spacing[2]};
+                      line-height: ${designTokens.typography.lineHeight.relaxed};
+                    }
+
+                    strong {
+                      color: ${designTokens.colors.neutral[900]};
+                    }
+                  `}
+                >
+                  <h3>What is Sapience?</h3>
+                  <p>
+                    <strong>Sapience</strong> is an autonomous AI agent designed
+                    for prediction market participation. It analyzes market data,
+                    generates forecasts, and attests to its predictions on-chain.
+                  </p>
+                  <p>
+                    Operated within strict compliance policies, providing
+                    transparent, verifiable predictions through EAS.
+                  </p>
+                </div>
+              </div>
+              <div>{renderActivityFeed()}</div>
+            </div>
+          </>
+        )}
+
+        {activeView === "markets" && (
+          <Suspense fallback={
+            <div css={css`
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 300px;
+            `}>
+              <div css={css`
+                width: 40px;
+                height: 40px;
+                border: 3px solid ${designTokens.colors.neutral[200]};
+                border-top: 3px solid ${designTokens.colors.primary[500]};
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `} />
+            </div>
+          }>
+            <SapienceMarkets />
+          </Suspense>
+        )}
+
+        {activeView === "agents" && renderAgentMonitoring()}
+
+        {activeView === "governance" && (
+          <div css={css`max-width: 800px; margin: 0 auto;`}>
+            <Card variant="elevated">
+              <CardContent>
+                <CardTitle css={css`margin-bottom: 1.5rem;`}>
+                  🛡️ AI Governance Framework
+                </CardTitle>
+                <div css={css`display: flex; flex-direction: column; gap: 1.5rem;`}>
+                  <div
+                    css={css`
+                      padding: 1rem;
+                      background: ${designTokens.colors.neutral[50]};
+                      border-radius: 8px;
+                      border-left: 4px solid
+                        ${designTokens.colors.primary[500]};
+                    `}
+                  >
+                    <h4 css={css`margin-bottom: 0.5rem;`}>Immutable Logic</h4>
+                    <p
+                      css={css`
+                        font-size: 0.9rem;
+                        color: ${designTokens.colors.neutral[600]};
+                      `}
+                    >
+                      All agent decisions are governed by smart contracts on
+                      Filecoin FVM, ensuring compliance with predefined safety
+                      bounds.
+                    </p>
+                  </div>
+                  <div
+                    css={css`
+                      padding: 1rem;
+                      background: ${designTokens.colors.neutral[50]};
+                      border-radius: 8px;
+                      border-left: 4px solid
+                        ${designTokens.colors.secondary[500]};
+                    `}
+                  >
+                    <h4 css={css`margin-bottom: 0.5rem;`}>
+                      Real-Time Policy Enforcement
+                    </h4>
+                    <p
+                      css={css`
+                        font-size: 0.9rem;
+                        color: ${designTokens.colors.neutral[600]};
+                      `}
+                    >
+                      Decision audits are performed before any trading action is
+                      executed, preventing high-risk violations automatically.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
 
       <div
         css={css`
-          margin-top: ${designTokens.spacing[8]};
+          margin-top: ${designTokens.spacing[10]};
+          display: flex;
+          justify-content: center;
         `}
       >
         <BlockchainStatus />

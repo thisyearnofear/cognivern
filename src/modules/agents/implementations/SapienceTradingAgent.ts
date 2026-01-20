@@ -14,6 +14,7 @@ import {
   AgentInfo,
 } from "../types/TradingAgent.js";
 import { SapienceService, ForecastRequest } from "../../../services/SapienceService.js";
+import { RecallService } from "../../../services/RecallService.js";
 
 export class SapienceTradingAgent implements TradingAgent {
   public readonly id: string;
@@ -23,13 +24,16 @@ export class SapienceTradingAgent implements TradingAgent {
   public config: TradingAgentConfig;
 
   private sapienceService: SapienceService;
+  private recallService: RecallService;
   private portfolio: Portfolio | null = null;
+  private history: TradingDecision[] = [];
 
   constructor(id: string, name: string, config: TradingAgentConfig) {
     this.id = id;
     this.name = name;
     this.config = config;
     this.sapienceService = new SapienceService();
+    this.recallService = new RecallService();
   }
 
   async initialize(): Promise<void> {
@@ -112,7 +116,26 @@ export class SapienceTradingAgent implements TradingAgent {
         reasoning: decision.reasoning,
       };
 
-      await this.sapienceService.submitForecast(forecast);
+      const txHash = await this.sapienceService.submitForecast(forecast);
+
+      // Store reasoning in Recall Memory
+      try {
+        await this.recallService.store({
+            agentId: this.id,
+            type: "reasoning",
+            content: `Forecast submitted for ${forecast.marketId}. Probability: ${forecast.probability}%. Reasoning: ${forecast.reasoning}`,
+            confidence: forecast.confidence,
+            metadata: {
+            txHash,
+            marketId: forecast.marketId,
+            action: "forecast_submission"
+            }
+        });
+      } catch (recallError) {
+          // If Recall fails, we log it but don't fail the forecast transaction itself
+          // This is a design decision: core function works, secondary capability degraded
+          console.error("Failed to store memory in Recall:", recallError);
+      }
 
       const tradeResult: TradeResult = {
         id: `forecast_${Date.now()}`,
@@ -123,6 +146,10 @@ export class SapienceTradingAgent implements TradingAgent {
         fees: 0, 
         timestamp: new Date(),
       };
+
+      // Add to local history
+      this.history.unshift(decision);
+      if (this.history.length > 50) this.history.pop();
 
       await this.reportActivity({
         agentId: this.id,
@@ -234,6 +261,6 @@ export class SapienceTradingAgent implements TradingAgent {
   }
 
   async getRecentDecisions(limit: number = 10): Promise<TradingDecision[]> {
-    return [];
+    return this.history.slice(0, limit);
   }
 }
