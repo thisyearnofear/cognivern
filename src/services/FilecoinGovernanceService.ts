@@ -153,11 +153,13 @@ export class FilecoinGovernanceService {
       process.env.FILECOIN_GOVERNANCE_CONTRACT ||
       "";
 
+    // Attempt to initialize. If it fails, we remain unconfigured.
+    // Methods will throw if accessed in this state.
     try {
       this.initializeClients();
     } catch (error) {
       logger.warn(
-        "FilecoinGovernanceService initialized in simulation mode:",
+        "FilecoinGovernanceService configuration missing. Service will fail if used.",
         error
       );
     }
@@ -173,10 +175,11 @@ export class FilecoinGovernanceService {
       "https://api.calibration.node.glif.io/rpc/v1";
 
     if (!privateKey) {
-      logger.warn(
-        "FILECOIN_PRIVATE_KEY not provided. Contract interactions will be simulated."
-      );
-      return;
+      throw new Error("FILECOIN_PRIVATE_KEY not provided");
+    }
+
+    if (!this.contractAddress) {
+      throw new Error("GOVERNANCE_CONTRACT_ADDRESS not provided");
     }
 
     // Create public client for reading
@@ -206,18 +209,13 @@ export class FilecoinGovernanceService {
     approved: boolean,
     filecoinCID: string = ""
   ): Promise<string> {
+    if (!this.isConfigured || !this.contractAddress) {
+      throw new Error("Filecoin Governance Service is not configured. Check environment variables.");
+    }
+
     try {
       // Generate action ID hash
       const actionIdHash = keccak256(toBytes(action.id));
-
-      if (!this.isConfigured || !this.contractAddress) {
-        // Simulate storage for demo
-        const simulatedTxHash = `simulated_${action.id}_${Date.now()}`;
-        logger.info(
-          `📦 [SIMULATED] Governance action stored on Filecoin: ${simulatedTxHash}`
-        );
-        return simulatedTxHash;
-      }
 
       // Prepare policy result
       const policyResult = JSON.stringify({
@@ -230,7 +228,7 @@ export class FilecoinGovernanceService {
         timestamp: action.timestamp,
       });
 
-      // Generate agent address (for demo, use a deterministic address based on agent name)
+      // Generate agent address (deterministic for now, but real on-chain)
       const agentAddress = this.generateAgentAddress(
         action.metadata?.agent || "unknown"
       );
@@ -260,13 +258,7 @@ export class FilecoinGovernanceService {
       return hash;
     } catch (error) {
       logger.error("Failed to store governance action on Filecoin:", error);
-
-      // Return simulated hash for demo continuity
-      const simulatedTxHash = `error_simulated_${action.id}_${Date.now()}`;
-      logger.info(
-        `📦 [FALLBACK] Simulated governance action storage: ${simulatedTxHash}`
-      );
-      return simulatedTxHash;
+      throw error;
     }
   }
 
@@ -274,16 +266,12 @@ export class FilecoinGovernanceService {
    * Register an agent on Filecoin
    */
   async registerAgent(agentName: string, agentType: string): Promise<string> {
+    if (!this.isConfigured || !this.contractAddress) {
+      throw new Error("Filecoin Governance Service is not configured. Check environment variables.");
+    }
+
     try {
       const agentAddress = this.generateAgentAddress(agentName);
-
-      if (!this.isConfigured || !this.contractAddress) {
-        const simulatedTxHash = `simulated_agent_${agentName}_${Date.now()}`;
-        logger.info(
-          `🤖 [SIMULATED] Agent registered on Filecoin: ${simulatedTxHash}`
-        );
-        return simulatedTxHash;
-      }
 
       const hash = await this.walletClient.writeContract({
         address: this.contractAddress as `0x${string}`,
@@ -296,12 +284,7 @@ export class FilecoinGovernanceService {
       return hash;
     } catch (error) {
       logger.error("Failed to register agent on Filecoin:", error);
-
-      const simulatedTxHash = `error_simulated_agent_${agentName}_${Date.now()}`;
-      logger.info(
-        `🤖 [FALLBACK] Simulated agent registration: ${simulatedTxHash}`
-      );
-      return simulatedTxHash;
+      throw error;
     }
   }
 
@@ -311,23 +294,11 @@ export class FilecoinGovernanceService {
   async getGovernanceRecord(
     actionId: string
   ): Promise<GovernanceRecord | null> {
-    try {
-      if (!this.isConfigured || !this.contractAddress) {
-        // Return simulated record for demo
-        return {
-          actionId,
-          agentAddress: this.generateAgentAddress("demo-agent"),
-          actionType: "trading-decision",
-          description: "Simulated governance record",
-          approved: true,
-          policyCheckCount: 3,
-          policyResult: '{"approved": true, "checks": 3}',
-          timestamp: Date.now(),
-          filecoinCID: `ipfs_${actionId}`,
-          immutable: true,
-        };
-      }
+    if (!this.isConfigured || !this.contractAddress) {
+      throw new Error("Filecoin Governance Service is not configured. Check environment variables.");
+    }
 
+    try {
       const actionIdHash = keccak256(toBytes(actionId));
 
       const result = await this.publicClient.readContract({
@@ -340,7 +311,7 @@ export class FilecoinGovernanceService {
       return result as GovernanceRecord;
     } catch (error) {
       logger.error("Failed to get governance record from Filecoin:", error);
-      return null;
+      throw error;
     }
   }
 
@@ -353,17 +324,11 @@ export class FilecoinGovernanceService {
     totalAgents: number;
     approvalRate: number;
   }> {
-    try {
-      if (!this.isConfigured || !this.contractAddress) {
-        // Return simulated stats for demo
-        return {
-          totalActions: 42,
-          totalViolations: 3,
-          totalAgents: 5,
-          approvalRate: 93,
-        };
-      }
+    if (!this.isConfigured || !this.contractAddress) {
+      throw new Error("Filecoin Governance Service is not configured. Check environment variables.");
+    }
 
+    try {
       const result = await this.publicClient.readContract({
         address: this.contractAddress as `0x${string}`,
         abi: this.CONTRACT_ABI,
@@ -378,12 +343,7 @@ export class FilecoinGovernanceService {
       };
     } catch (error) {
       logger.error("Failed to get governance stats from Filecoin:", error);
-      return {
-        totalActions: 0,
-        totalViolations: 0,
-        totalAgents: 0,
-        approvalRate: 0,
-      };
+      throw error;
     }
   }
 

@@ -28,8 +28,8 @@ export class AgentsController {
         showcase: {
           description: "AI Agent Governance Platform - Showcase Agents",
           agents: [
-            "Recall Trading Agent - Direct trading with governance monitoring",
-            "Vincent Social Trading Agent - Social trading with compliance tracking",
+            "Sapience Forecasting Agent - Automated prediction markets with EAS attestations",
+            "Filecoin Governance Agent - Policy enforcement and audit storage",
           ],
         },
         timestamp: new Date().toISOString(),
@@ -58,7 +58,7 @@ export class AgentsController {
           success: false,
           error: {
             code: "NOT_FOUND",
-            message: `Showcase agent with id ${id} not found. Available agents: recall-agent-1, vincent-agent-1`,
+            message: `Showcase agent with id ${id} not found. Available agents: sapience-agent-1, filecoin-agent-1`,
           },
           timestamp: new Date().toISOString(),
         });
@@ -179,29 +179,44 @@ export class AgentsController {
       const agents = await this.agentsModule.getAgents();
 
       // Transform agents data for monitoring dashboard
-      const monitoringData = agents.map((agent) => ({
-        id: agent.id,
-        name: agent.name,
-        type: agent.type,
-        status: agent.status,
-        lastActivity: agent.lastActivity,
-        metrics: {
-          uptime: agent.status === "active" ? "99.8%" : "0%",
-          successRate: agent.type === "recall" ? "94.2%" : "89.1%",
-          avgResponse: agent.type === "recall" ? "150ms" : "2300ms",
-          actionsToday: agent.type === "recall" ? 47 : 23,
-        },
-        risk: {
-          riskScore: agent.type === "recall" ? 30.0 : 60.0,
-          violationsToday: agent.type === "recall" ? 0 : 2,
-          complianceRate: agent.type === "recall" ? 100 : 91.3,
-        },
-        financial: {
-          totalValue: agent.type === "recall" ? "$12,450.75" : "$8,750.25",
-          dailyPnL: agent.type === "recall" ? "+$234.50" : "-$45.20",
-          winRate: agent.type === "recall" ? 68.5 : 72.1,
-        },
-      }));
+      const monitoringDataPromises = agents.map(async (agentInfo) => {
+          let agentStatus;
+          try {
+             agentStatus = await this.agentsModule.getAgentStatus(agentInfo.id);
+          } catch(e) {
+             // If agent status fetch fails, we return a fallback error state but stick to the structure
+             agentStatus = { performance: {}, portfolio: {} };
+          }
+
+          const perf = agentStatus.performance || {};
+          const portfolio = agentStatus.portfolio || {};
+
+          return {
+            id: agentInfo.id,
+            name: agentInfo.name,
+            type: agentInfo.type,
+            status: agentInfo.status,
+            lastActivity: agentInfo.lastActivity,
+            metrics: {
+                uptime: agentInfo.status === "active" ? "100%" : "0%",
+                successRate: perf.winRate ? `${(perf.winRate * 100).toFixed(1)}%` : "0%",
+                avgResponse: "N/A", // Not tracked in basic metrics yet
+                actionsToday: perf.period?.totalTrades || 0,
+            },
+            risk: {
+                riskScore: 0, // Placeholder as we don't calculate risk score yet
+                violationsToday: agentStatus.policyViolations || 0,
+                complianceRate: 100, // Default until we have violation history
+            },
+            financial: {
+                totalValue: `$${(portfolio.totalValue || 0).toLocaleString()}`,
+                dailyPnL: `$${(perf.averageTradeReturn || 0).toFixed(2)}`, 
+                winRate: perf.winRate ? perf.winRate * 100 : 0,
+            },
+        };
+      });
+
+      const monitoringData = await Promise.all(monitoringDataPromises);
 
       res.json({
         success: true,
@@ -220,6 +235,31 @@ export class AgentsController {
   async getUnified(req: Request, res: Response): Promise<void> {
     try {
       const agents = await this.agentsModule.getAgents();
+      
+      const allActivity: any[] = [];
+
+      // Fetch recent decisions from all agents
+      for (const agent of agents) {
+          try {
+              const decisions = await this.agentsModule.getAgentDecisions(agent.id, 5);
+              const activityItems = decisions.map(d => ({
+                  id: d.id || `action-${Date.now()}-${Math.random()}`,
+                  type: agent.type === 'sapience' ? 'forecast' : 'governance',
+                  agent: agent.id,
+                  action: d.reasoning || `Action on ${d.symbol}`,
+                  amount: d.confidence || 0,
+                  timestamp: d.timestamp || new Date().toISOString(),
+                  status: 'completed'
+              }));
+              allActivity.push(...activityItems);
+          } catch (e) {
+              // Ignore failure for single agent to keep dashboard alive
+              console.warn(`Failed to fetch decisions for ${agent.id}`);
+          }
+      }
+
+      // Sort by timestamp descending
+      allActivity.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
       // Unified dashboard data
       const unifiedData = {
@@ -228,30 +268,11 @@ export class AgentsController {
           message: "All systems operational",
           activeAgents: agents.filter((a) => a.status === "active").length,
           totalAgents: agents.length,
-          complianceRate: 98.5,
-          totalActions: 1247,
+          complianceRate: 100, // Only tracking basic compliance
+          totalActions: allActivity.length,
         },
         agents: agents,
-        recentActivity: [
-          {
-            id: "trade-001",
-            type: "trade",
-            agent: "recall-agent-1",
-            action: "BUY ETH/USD",
-            amount: 10,
-            timestamp: new Date().toISOString(),
-            status: "completed",
-          },
-          {
-            id: "trade-002",
-            type: "trade",
-            agent: "vincent-agent-1",
-            action: "BUY ETH/USD",
-            amount: 10,
-            timestamp: new Date(Date.now() - 30000).toISOString(),
-            status: "completed",
-          },
-        ],
+        recentActivity: allActivity.slice(0, 20), // Top 20
         timestamp: new Date().toISOString(),
       };
 

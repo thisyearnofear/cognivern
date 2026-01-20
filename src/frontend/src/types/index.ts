@@ -1,7 +1,7 @@
 // Unified type definitions to eliminate duplication across components
 
 // ===== AGENT TYPES =====
-export type AgentType = "recall" | "vincent" | "trading" | "analysis" | "monitoring";
+export type AgentType = "recall" | "vincent" | "trading" | "analysis" | "monitoring" | "sapience" | "filecoin";
 
 export interface BaseAgent {
   id: string;

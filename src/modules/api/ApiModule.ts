@@ -25,6 +25,8 @@ import { AgentsController } from "./controllers/AgentsController.js";
 import { TradingController } from "./controllers/TradingController.js";
 import { GovernanceController } from "./controllers/GovernanceController.js";
 import { MetricsController } from "./controllers/MetricsController.js";
+import { SapienceController } from "./controllers/SapienceController.js";
+import { RecallController } from "./controllers/RecallController.js";
 
 export class ApiModule extends BaseService {
   private app: express.Application;
@@ -185,6 +187,8 @@ export class ApiModule extends BaseService {
     this.controllers.set("trading", new TradingController());
     this.controllers.set("governance", new GovernanceController());
     this.controllers.set("metrics", new MetricsController());
+    this.controllers.set("sapience", new SapienceController());
+    this.controllers.set("recall", new RecallController());
 
     // Initialize all controllers
     for (const [name, controller] of this.controllers) {
@@ -262,6 +266,36 @@ export class ApiModule extends BaseService {
     // Metrics routes
     apiRouter.get("/metrics/daily", (req, res) => {
       this.controllers.get("metrics").getDailyMetrics(req, res);
+    });
+
+    // Sapience routes
+    apiRouter.get("/sapience/status", (req, res) => {
+      this.controllers.get("sapience").getStatus(req, res);
+    });
+
+    apiRouter.post("/sapience/forecast", (req, res) => {
+      this.controllers.get("sapience").submitForecast(req, res);
+    });
+
+    apiRouter.post("/sapience/forecast/auto", (req, res) => {
+      this.controllers.get("sapience").submitAutomatedForecast(req, res);
+    });
+
+    apiRouter.get("/sapience/wallet", (req, res) => {
+      this.controllers.get("sapience").getWallet(req, res);
+    });
+
+    // Recall routes
+    apiRouter.get("/recall/status", (req, res) => {
+      this.controllers.get("recall").getStatus(req, res);
+    });
+
+    apiRouter.post("/recall/store", (req, res) => {
+      this.controllers.get("recall").storeMemory(req, res);
+    });
+
+    apiRouter.get("/recall/query", (req, res) => {
+      this.controllers.get("recall").queryMemories(req, res);
     });
 
     // Dashboard routes

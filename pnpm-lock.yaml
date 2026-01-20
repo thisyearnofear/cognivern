@@ -44,6 +44,9 @@ importers:
       express-rate-limit:
         specifier: ^7.1.5
         version: 7.5.1(express@4.21.2)
+      graphql-request:
+        specifier: 7.4.0
+        version: 7.4.0(graphql@16.12.0)
       helmet:
         specifier: ^7.1.0
         version: 7.2.0
@@ -3618,6 +3621,11 @@ packages:
 
   graphql-request@7.2.0:
     resolution: {integrity: sha512-0GR7eQHBFYz372u9lxS16cOtEekFlZYB2qOyq8wDvzRmdRSJ0mgUVX1tzNcIzk3G+4NY+mGtSz411wZdeDF/+A==, tarball: https://registry.npmjs.org/graphql-request/-/graphql-request-7.2.0.tgz}
+    peerDependencies:
+      graphql: 14 - 16
+
+  graphql-request@7.4.0:
+    resolution: {integrity: sha512-xfr+zFb/QYbs4l4ty0dltqiXIp07U6sl+tOKAb0t50/EnQek6CVVBLjETXi+FghElytvgaAWtIOt3EV7zLzIAQ==, tarball: https://registry.npmjs.org/graphql-request/-/graphql-request-7.4.0.tgz}
     peerDependencies:
       graphql: 14 - 16
 
@@ -10957,6 +10965,11 @@ snapshots:
       '@graphql-typed-document-node/core': 3.2.0(graphql@16.12.0)
       graphql: 16.12.0
 
+  graphql-request@7.4.0(graphql@16.12.0):
+    dependencies:
+      '@graphql-typed-document-node/core': 3.2.0(graphql@16.12.0)
+      graphql: 16.12.0
+
   graphql@16.12.0: {}
 
   h3@1.15.5:
@@ -11948,7 +11961,7 @@ snapshots:
   ox@0.6.7(typescript@5.7.3)(zod@3.25.76):
     dependencies:
       '@adraffy/ens-normalize': 1.11.0
-      '@noble/curves': 1.9.4
+      '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
