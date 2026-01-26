@@ -30,6 +30,8 @@ interface DashboardProps {
 interface AgentMonitoringData extends BaseAgent {
   type: AgentType;
   lastActivity: string;
+  internalThought?: string;
+  nextActionAt?: string;
   avatar?: string;
   performance: {
     uptime: number;
@@ -868,6 +870,59 @@ export default function ModernDashboard({
                     Last Activity:{" "}
                     {new Date(agent.lastActivity).toLocaleTimeString()}
                   </div>
+                </div>
+
+                {/* CURRENT FOCUS / THOUGHTS */}
+                <div css={css`
+                  margin-bottom: ${designTokens.spacing[6]};
+                  padding: ${designTokens.spacing[4]};
+                  background: ${designTokens.colors.primary[50]};
+                  border-radius: ${designTokens.borderRadius.lg};
+                  border-left: 4px solid ${designTokens.colors.primary[500]};
+                  position: relative;
+                `}>
+                  <div css={css`
+                    font-size: 0.65rem;
+                    font-weight: 800;
+                    color: ${designTokens.colors.primary[600]};
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    margin-bottom: 4px;
+                  `}>
+                    🧠 Current Focus
+                  </div>
+                  <div css={css`
+                    font-size: 0.9rem;
+                    color: ${designTokens.colors.neutral[800]};
+                    font-style: italic;
+                    line-height: 1.4;
+                  `}>
+                    "{agent.internalThought || 'Analyzing market patterns and scanning for opportunities...'}"
+                  </div>
+                  
+                  {agent.nextActionAt && (
+                    <div css={css`
+                      margin-top: 12px;
+                      padding-top: 8px;
+                      border-top: 1px dashed ${designTokens.colors.primary[200]};
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                    `}>
+                      <span css={css`font-size: 0.7rem; color: ${designTokens.colors.neutral[500]};`}>Next Scheduled Action:</span>
+                      <span css={css`
+                        font-size: 0.75rem;
+                        font-weight: 700;
+                        color: ${designTokens.colors.primary[700]};
+                        background: white;
+                        padding: 2px 8px;
+                        border-radius: 4px;
+                        border: 1px solid ${designTokens.colors.primary[100]};
+                      `}>
+                        {new Date(agent.nextActionAt).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div

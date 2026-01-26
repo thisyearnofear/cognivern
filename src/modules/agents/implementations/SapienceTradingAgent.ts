@@ -296,11 +296,15 @@ export class SapienceTradingAgent implements TradingAgent {
   }
 
   async getStatus(): Promise<any> {
+    const forecastingStats = this.forecastingService.getStats();
+    
     return {
       id: this.id,
       status: this.status,
       isHealthy: await this.isHealthy(),
       lastHeartbeat: new Date(),
+      internalThought: forecastingStats.lastThought,
+      nextActionAt: forecastingStats.nextRunAt,
       performance: await this.getPerformance(),
       portfolio: await this.getPortfolio(),
     };
