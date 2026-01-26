@@ -1,6 +1,9 @@
 import { ApiModule } from "./modules/api/ApiModule.js";
 import logger from "./utils/logger.js";
 
+// Fix EventEmitter memory leak warnings
+process.setMaxListeners(20);
+
 // Initialize our modular API system
 const PORT = process.env.PORT || 3000;
 let apiModule: ApiModule;

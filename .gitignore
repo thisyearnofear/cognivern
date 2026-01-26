@@ -11,6 +11,11 @@ node_modules
 dist/
 external/
 
+# Server logs (downloaded locally for debugging)
+server-logs/
+pm2-logs.txt
+test-llm.js
+
 # Database
 db.sqlite
 *.sqlite
@@ -61,3 +66,6 @@ build/
 .next/
 out/
 .cache/
+
+# Nginx configs (deployment specific)
+nginx/

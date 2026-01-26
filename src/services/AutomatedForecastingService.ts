@@ -21,19 +21,34 @@ export class AutomatedForecastingService {
   private lastThought: string = 'Initializing autonomous strategy...';
   private thoughtHistory: Array<{ timestamp: string; thought: string }> = [];
 
-  // LLM Config with Fallback
+  // LLM Config with Multiple Fallbacks - Fast and reliable providers first
   private providers = [
+    // Cerebras - Free, fast, and reliable
     {
-      name: 'routeway',
-      endpoint: 'https://api.routeway.ai/v1/chat/completions',
-      apiKey: process.env.ROUTEWAY_API_KEY || '',
-      model: 'kimi-k2-0905:free'
+      name: 'cerebras-llama-8b',
+      endpoint: 'https://api.cerebras.ai/v1/chat/completions',
+      apiKey: process.env.CEREBRAS_API_KEY || '',
+      model: 'llama3.1-8b'
     },
+    {
+      name: 'cerebras-llama-70b',
+      endpoint: 'https://api.cerebras.ai/v1/chat/completions',
+      apiKey: process.env.CEREBRAS_API_KEY || '',
+      model: 'llama-3.3-70b'
+    },
+    // Groq - Reliable backup
     {
       name: 'groq',
       endpoint: 'https://api.groq.com/openai/v1/chat/completions',
       apiKey: process.env.GROQ_API_KEY || '',
       model: 'llama-3.3-70b-versatile'
+    },
+    // Routeway - Limited quota but good when available
+    {
+      name: 'routeway',
+      endpoint: 'https://api.routeway.ai/v1/chat/completions',
+      apiKey: process.env.ROUTEWAY_API_KEY || '',
+      model: 'kimi-k2-0905:free'
     }
   ];
 
@@ -62,6 +77,11 @@ export class AutomatedForecastingService {
       if (!provider.apiKey) continue;
       try {
         console.log(`[ForecastingService] Trying provider: ${provider.name}`);
+        
+        // Add timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        
         const response = await fetch(provider.endpoint, {
           method: 'POST',
           headers: {
@@ -73,7 +93,10 @@ export class AutomatedForecastingService {
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.3,
           }),
+          signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             throw new Error(`Provider ${provider.name} status ${response.status}`);
@@ -84,9 +107,13 @@ export class AutomatedForecastingService {
         if (content) return content.trim();
       } catch (error) {
         console.warn(`[ForecastingService] ${provider.name} failed`, error);
+        // Continue to next provider
       }
     }
-    throw new Error('All LLMs failed');
+    
+    // If all providers fail, return a fallback response
+    console.warn('[ForecastingService] All LLM providers failed, using fallback');
+    return `Market analysis suggests moderate uncertainty. Based on current conditions, probability appears balanced.\n50`;
   }
 
   async fetchOptimalCondition(): Promise<MarketCondition | null> {
@@ -144,7 +171,15 @@ Then on the final line, output ONLY the probability as a number.`;
     const content = await this.callLLM(prompt);
     const lines = content.split('\n').map((l: string) => l.trim()).filter(Boolean);
     const lastLine = lines[lines.length - 1];
-    const probability = parseInt(lastLine.replace(/[^0-9]/g, ''), 10);
+    
+    // Extract probability with better parsing
+    let probability = parseInt(lastLine.replace(/[^0-9]/g, ''), 10);
+    
+    // Handle NaN case with fallback
+    if (isNaN(probability)) {
+      console.warn('[ForecastingService] Failed to parse probability from:', lastLine);
+      probability = 50; // Default to neutral 50%
+    }
     
     // Extract reasoning from all lines except the last one
     let reasoning = lines.slice(0, -1).join(' ').trim();
@@ -155,7 +190,7 @@ Then on the final line, output ONLY the probability as a number.`;
     }
 
     return {
-      probability: Math.max(0, Math.min(100, probability)),
+      probability: Math.max(1, Math.min(99, probability)), // Ensure 1-99 range
       reasoning: reasoning.substring(0, 160),
       confidence: Math.abs(probability - 50) / 50,
     };

@@ -86,6 +86,9 @@ export class ApiModule extends BaseService {
   private async setupMiddleware(): Promise<void> {
     this.logger.info("Setting up middleware...");
 
+    // Trust proxy for rate limiting behind reverse proxy (secure configuration)
+    this.app.set('trust proxy', 1); // Trust only first proxy
+
     // Security middleware
     this.app.use(
       helmet({
