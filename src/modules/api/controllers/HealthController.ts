@@ -49,14 +49,14 @@ export class HealthController {
         arbitrum: "online",
         eas: "operational",
         ethereal: "online",
-        policies: "active",
+        policies: "inactive",
       },
       metrics: {
         totalAgents: 1,
         activeAgents: 1,
-        totalForecasts: 89,
+        totalForecasts: 0, // Resetting hardcoded placeholder to 0 for honesty
         complianceRate: 100,
-        averageAttestationTime: 2400,
+        averageAttestationTime: 0,
       },
       timestamp: new Date().toISOString(),
     });

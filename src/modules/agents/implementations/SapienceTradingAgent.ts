@@ -304,6 +304,7 @@ export class SapienceTradingAgent implements TradingAgent {
       isHealthy: await this.isHealthy(),
       lastHeartbeat: new Date(),
       internalThought: forecastingStats.lastThought,
+      thoughtHistory: forecastingStats.thoughtHistory,
       nextActionAt: forecastingStats.nextRunAt,
       performance: await this.getPerformance(),
       portfolio: await this.getPortfolio(),

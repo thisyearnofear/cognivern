@@ -198,6 +198,7 @@ export class AgentsController {
             status: agentInfo.status,
             lastActivity: agentInfo.lastActivity,
             internalThought: agentStatus.internalThought || "Monitoring markets...",
+            thoughtHistory: agentStatus.thoughtHistory || [],
             nextActionAt: agentStatus.nextActionAt,
             metrics: {
                 uptime: agentInfo.status === "active" ? "100%" : "0%",
@@ -252,11 +253,12 @@ export class AgentsController {
               enrichedAgents.push({
                   ...agent,
                   internalThought: agentStatus.internalThought || "Initializing autonomous strategy...",
+                  thoughtHistory: agentStatus.thoughtHistory || [],
                   nextActionAt: agentStatus.nextActionAt,
                   performance: {
                       uptime: agent.status === "active" ? 100 : 0,
-                      successRate: perf.winRate ? perf.winRate * 100 : 0,
-                      avgResponseTime: 0, // Not currently tracked
+                      successRate: perf.winRate * 100, // Real win rate from resolution
+                      avgResponseTime: 0, 
                       actionsToday: perf.totalTrades || 0,
                   },
                   riskMetrics: {
@@ -266,8 +268,8 @@ export class AgentsController {
                   },
                   financialMetrics: {
                       totalValue: portfolio.totalValue || 0,
-                      dailyPnL: perf.averageTradeReturn || 0,
-                      winRate: perf.winRate ? perf.winRate * 100 : 0,
+                      dailyPnL: perf.totalTrades > 0 ? perf.averageTradeReturn : 0, // Using avgReturn (confidence) only if trades exist
+                      winRate: perf.winRate * 100,
                   }
               });
 
