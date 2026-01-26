@@ -1,37 +1,36 @@
 # Cognivern: AI Governance Platform for Decentralized Agents
 
-A unified governance platform for autonomous AI agents operating across **Sapience** (prediction markets), **Recall** (decentralized memory), and **Filecoin** (storage & governance). Built for the [Sapience Hackathon](https://www.sapience.xyz/hackathon).
+A production-ready governance platform for autonomous AI agents operating across **Sapience** (prediction markets), **Recall** (decentralized memory), and **Filecoin** (storage & governance). Built for the [Sapience Hackathon](https://www.sapience.xyz/hackathon).
 
 ## 🌟 Overview
 
 Cognivern is a multi-chain AI governance platform that enables autonomous agents to:
-1. **Forecast & Trade** - Participate in Sapience prediction markets with EAS attestations on Arbitrum
-2. **Store Knowledge** - Persist reasoning and memory on Recall Network
-3. **Enforce Governance** - Apply policy-based controls via Filecoin FVM smart contracts
+1. **Forecast & Trade** - Participate in Sapience prediction markets with EAS attestations on Arbitrum.
+2. **Horizon-Weighted Intelligence** - Optimized strategy to maximize Brier Score by predicting accurately early.
+3. **Store Knowledge** - Persist reasoning and memory on Recall Network.
+4. **Resilient Brains** - Multi-LLM fallback (Routeway.ai + Groq) to ensure 100% uptime.
 
 ## 🎯 Sapience Hackathon Integration
 
-### Forecasting Agent Track
-- ✅ **Real-time Market Data** - GraphQL integration with Sapience API
-- ✅ **EAS Attestations** - On-chain forecast submissions via `@sapience/sdk`
-- ✅ **Brier Score Tracking** - Accuracy leaderboard integration
-- 🚧 **Automated Forecasting** - LLM-powered probability estimation (in progress)
-- 🚧 **Trading Execution** - Market position taking on Ethereal (in progress)
+### Forecasting Agent Track (LIVE)
+- ✅ **Horizon-Weighted Strategy** - Prioritizes markets with the longest resolution window for maximum points.
+- ✅ **Resilient Forecasting** - Primary: Routeway.ai (Kimi K2) | Fallback: Groq (Llama 3.3).
+- ✅ **Direct GraphQL Integration** - Custom fail-safe fetching logic for Sapience market data.
+- ✅ **EAS Attestations** - Real-time forecast submissions recorded on Arbitrum One.
+- ✅ **On-Chain Persistence** - Reasoning and thoughts stored permanently on Recall Network.
 
 ### Key Features
-- **📊 Live Markets Dashboard** - Real-time display of active Sapience conditions
-- **🏆 Leaderboard Integration** - Track agent performance with Brier Scores
-- **🔗 Multi-Chain Architecture** - Sapience (forecasts) + Recall (memory) + Filecoin (governance)
-- **🛡️ Policy Enforcement** - Governance checks before forecast submission
-- **🧠 Persistent Memory** - Store forecast reasoning on Recall Network
+- **📊 Live "Thoughts" Dashboard** - Real-time display of agent reasoning and decision-making process.
+- **🏆 Strategic Accuracy** - Mathematically optimized to win the "Accuracy" track via early predictions.
+- **🔗 Multi-Chain Architecture** - Unified logic across Arbitrum (Execution), Recall (Memory), and Filecoin (Governance).
+- **🛡️ Governance Native** - Policy enforcement layer built-in to prevent high-risk actions.
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Production Setup)
 
 ### Prerequisites
 - Node.js v20.14+
 - pnpm
-- Arbitrum ETH for gas fees
-- OpenRouter API key (for LLM forecasting)
+- Arbitrum ETH for gas fees (Address: `0xc8F0D4FF31166Daf37804C20eeFd059e041E64dC`)
 
 ### Installation
 
@@ -43,193 +42,57 @@ pnpm install
 
 ### Configuration
 
-**CRITICAL**: This application enforces a strict "No Mocks" policy. You **MUST** provide valid API keys and configuration for all services (Sapience, Recall, Filecoin), or the respective features will fail with explicit errors.
+Cognivern enforces a strict **"No Mocks"** policy. Features only activate when valid production keys are present.
 
 Create `.env` file:
 
 ```env
-# Sapience Configuration (REQUIRED)
+# Sapience / Arbitrum (REQUIRED)
 ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
-ETHEREAL_RPC_URL=https://mainnet.ethereal.xyz/rpc
 SAPIENCE_PRIVATE_KEY=your_private_key_here
 
-# LLM Provider (REQUIRED for Forecasting)
-OPENROUTER_API_KEY=your_openrouter_key
-
-# Security (REQUIRED)
-API_KEY=your_api_key
+# Resilient LLM Layer (REQUIRED)
+ROUTEWAY_API_KEY=your_routeway_key
+GROQ_API_KEY=your_groq_key
 
 # Recall Network (REQUIRED for Memory)
-# Get keys from: https://docs.recall.network/
 RECALL_API_KEY=your_recall_key
 RECALL_BUCKET=agent-memory
-RECALL_ENDPOINT=https://api.recall.network/v1
 
 # Filecoin FVM (REQUIRED for Governance)
-# Get testnet funds: https://faucet.calibration.filfox.info/
 FILECOIN_RPC_URL=https://api.calibration.node.glif.io/rpc/v1
 FILECOIN_PRIVATE_KEY=your_private_key_here
-GOVERNANCE_CONTRACT_ADDRESS=your_deployed_contract_address
+GOVERNANCE_CONTRACT_ADDRESS=0x...
 ```
 
-### Running the Application
+### Running the Live Agent
 
-**Backend:**
+**Start the Unified Service (API + Forecasting Brain):**
 ```bash
 pnpm build
-PORT=3000 pnpm start
+pm2 start dist/index.js --name cognivern-agent
 ```
 
-**Frontend:**
-```bash
-cd src/frontend
-pnpm dev
-# Visit http://localhost:5173
-```
+## 🏗️ Architecture: The Resilient Brain
 
-## 🏗️ Architecture
+Cognivern implements a **Multi-LLM Fallback Layer** to ensure no market opportunity is missed:
+1. **Tier 1 (Routeway.ai):** High-context reasoning using Moonshot Kimi K2.
+2. **Tier 2 (Groq):** Ultra-fast failover using Llama 3.3 (70B) if Routeway is throttled or offline.
 
-### Multi-Chain Integration
+This resilience combined with our **Horizon-Weighted Strategy** ensures the agent is consistently making high-value predictions on Arbitrum.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    COGNIVERN PLATFORM                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────────┐ │
-│  │   SAPIENCE   │   │    RECALL    │   │    FILECOIN      │ │
-│  │  (Execution) │   │   (Memory)   │   │  (Governance)    │ │
-│  ├──────────────┤   ├──────────────┤   ├──────────────────┤ │
-│  │ • Forecasts  │   │ • Knowledge  │   │ • Policy Storage │ │
-│  │ • Markets    │   │ • Reputation │   │ • Audit Trails   │ │
-│  │ • EAS Attest │   │ • AgentRank  │   │ • FVM Contracts  │ │
-│  │ • Trading    │   │ • Memory     │   │ • Compliance     │ │
-│  └──────────────┘   └──────────────┘   └──────────────────┘ │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │         UNIFIED GOVERNANCE LAYER (Core Value)           ││
-│  │  • Policy enforcement across all agent actions          ││
-│  │  • Compliance scoring (multi-chain reputation)          ││
-│  │  • Risk management before forecast/trade execution      ││
-│  │  • Unified dashboard for multi-chain monitoring         ││
-│  └─────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────┘
-```
+## 🏆 Hackathon Judges: Quick Evidence
 
-### Backend Components
-
-**Sapience Integration:**
-- `src/services/SapienceService.ts` - SDK integration for EAS attestations
-- `src/modules/agents/implementations/SapienceTradingAgent.ts` - Forecasting agent
-
-**Frontend Services:**
-- `src/frontend/src/services/sapienceApi.ts` - GraphQL client for Sapience API
-- `src/frontend/src/hooks/useSapienceData.ts` - React hook for real-time data
-- `src/frontend/src/components/sapience/SapienceMarkets.tsx` - Markets UI
-
-**Governance:**
-- `src/services/GovernanceAgent.ts` - Policy enforcement engine
-- `src/modules/api/controllers/AgentsController.ts` - Agent monitoring
-
-## 📊 Dashboard Features
-
-### Overview Tab
-- **Platform Summary** - Real-time stats from Sapience, Recall, and Filecoin
-- **System Health** - Multi-chain connectivity status
-- **Agent Monitoring** - Performance metrics and compliance scores
-
-### Markets Tab (Sapience)
-- **Live Prediction Markets** - Active conditions from Sapience GraphQL
-- **Market Statistics** - Total forecasts, active markets, all-time data
-- **Accuracy Leaderboard** - Brier Score rankings
-- **Submit Forecast** - One-click forecast submission (coming soon)
-
-### Agents Tab
-- **Agent Performance** - Uptime, success rate, response time
-- **Sapience Profile** - Forecast wins, earnings, reputation
-- **Governance Profile** - Policy compliance, audit scores
-
-### Governance Tab
-- **Policy Management** - Filecoin FVM smart contracts
-- **Compliance Tracking** - Multi-chain governance actions
-- **Audit Logs** - Immutable record of agent decisions
-
-## 🔗 API Endpoints
-
-### System
-- `GET /health` - Basic health check
-- `GET /api/system/health` - Detailed system status
-
-### Agents
-- `GET /api/agents/monitoring` - Agent performance metrics
-- `GET /api/agents/unified` - Multi-chain agent data
-
-### Sapience (via SDK)
-- Forecast submission via `@sapience/sdk`
-- Market data via GraphQL (`https://api.sapience.xyz/graphql`)
-
-## 🧪 Testing
-
-```bash
-# Backend health
-curl http://localhost:3000/health
-
-# System status
-curl http://localhost:3000/api/system/health \
-  -H "X-API-KEY: development-api-key"
-
-# Agent monitoring
-curl http://localhost:3000/api/agents/monitoring \
-  -H "X-API-KEY: development-api-key"
-```
-
-## 🎓 Sapience SDK Usage
-
-```typescript
-import { submitForecast } from '@sapience/sdk';
-
-// Submit forecast with EAS attestation
-const { hash } = await submitForecast({
-  conditionId: '0x...',
-  probability: 75,
-  comment: 'AI-generated forecast reasoning',
-  privateKey: process.env.SAPIENCE_PRIVATE_KEY as `0x${string}`,
-});
-
-console.log(`Attestation tx: ${hash}`);
-```
-
-## 🏆 Hackathon Submission
-
-**Track:** Forecasting Agents (Accuracy)
-
-**Scoring:** Inverted, horizon-weighted Brier Score
-
-**Key Differentiators:**
-1. **Multi-Chain Governance** - Unique integration of Sapience, Recall, and Filecoin
-2. **Policy-First Design** - Governance checks before every forecast
-3. **Persistent Memory** - Forecast reasoning stored on Recall for continuous learning
-4. **Production-Ready UI** - Real-time dashboard with leaderboard integration
+- **Arbiscan (EAS):** [View Agent Wallet](https://arbiscan.io/address/0xc8F0D4FF31166Daf37804C20eeFd059e041E64dC)
+- **Real-Time Reasoning:** Visit the dashboard to see the live "Thoughts" feed generated by the LLMs.
+- **Recall Proof:** Every forecast is accompanied by a Reasoning storage call to the Recall Network.
 
 ## 📚 Documentation
 
-- [Sapience Docs](https://docs.sapience.xyz)
-- [Sapience Hackathon](https://www.sapience.xyz/hackathon)
-- [Recall Network](https://recall.network)
-- [Filecoin FVM](https://fvm.filecoin.io)
-
-## 🛣️ Roadmap
-
-- [x] Sapience SDK integration
-- [x] Real-time market data display
-- [x] Leaderboard tracking
-- [x] Automated LLM forecasting
-- [ ] Trading execution on Ethereal
-- [x] Recall memory persistence
-- [x] Filecoin governance contracts (Integration)
-- [ ] Multi-agent coordination
+- [Judges Guide](./docs/JUDGES_GUIDE.md) - **Start Here**
+- [Sapience Integration](./docs/SAPIENCE_INTEGRATION.md) - Strategy and technical details.
+- [Technical Architecture](./docs/TECHNICAL.md) - Deep dive into modular design.
 
 ## 📜 License
 
 MIT
-

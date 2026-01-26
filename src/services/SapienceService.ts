@@ -91,10 +91,10 @@ export class SapienceService {
     try {
       logger.info(`Executing trade on market ${trade.marketId}: ${trade.side} ${trade.amount}`);
       
-      // TODO: Use @sapience/sdk/abis to interact with the PredictionMarket contract
-      // For now, we stub this until we have the full ABI interaction built out
-      
-      return `trade-${Date.now()}`;
+      // TODO: Implement real contract interaction for Ethereal
+      // We explicitly throw here rather than returning a fake ID to ensure
+      // the user knows this functionality is not live yet.
+      throw new Error("Trading functionality not yet implemented: Ethereal contract ABI missing.");
     } catch (error) {
       logger.error('Failed to execute trade:', error);
       throw error;

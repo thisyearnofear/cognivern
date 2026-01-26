@@ -113,15 +113,22 @@ export class AgentOrchestrator extends BaseService {
       name: agent.name,
       trade: async () => {
         try {
-          // Create a simple trading decision for demonstration
+          // If it's a Sapience agent, perform a real forecast cycle
+          if (agent.type === "sapience" && (agent as any).performForecastCycle) {
+              this.logger.info(`Starting real-time forecast cycle for ${agent.name}`);
+              await (agent as any).performForecastCycle();
+              return;
+          }
+
+          // Fallback for other agent types (placeholder/legacy)
           const decision: TradingDecision = {
             id: `auto-${Date.now()}`,
             agentId: agent.id,
             timestamp: new Date(),
             action: "buy",
             symbol: "ETH/USD",
-            quantity: 10, // Small amount for testing
-            price: 0, // Market price
+            quantity: 10,
+            price: 0,
             confidence: 0.7,
             reasoning: "Automated trading test",
             riskScore: 0.1,

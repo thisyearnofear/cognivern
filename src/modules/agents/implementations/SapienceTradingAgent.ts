@@ -15,6 +15,7 @@ import {
 } from "../types/TradingAgent.js";
 import { SapienceService, ForecastRequest } from "../../../services/SapienceService.js";
 import { RecallService } from "../../../services/RecallService.js";
+import { AutomatedForecastingService } from "../../../services/AutomatedForecastingService.js";
 
 export class SapienceTradingAgent implements TradingAgent {
   public readonly id: string;
@@ -25,6 +26,7 @@ export class SapienceTradingAgent implements TradingAgent {
 
   private sapienceService: SapienceService;
   private recallService: RecallService;
+  private forecastingService: AutomatedForecastingService;
   private portfolio: Portfolio | null = null;
   private history: TradingDecision[] = [];
 
@@ -34,11 +36,13 @@ export class SapienceTradingAgent implements TradingAgent {
     this.config = config;
     this.sapienceService = new SapienceService();
     this.recallService = new RecallService();
+    this.forecastingService = new AutomatedForecastingService({
+        sapienceService: this.sapienceService
+    });
   }
 
   async initialize(): Promise<void> {
     try {
-      // Check Sapience connection?
       this.status = "inactive";
     } catch (error) {
       this.status = "error";
@@ -90,6 +94,39 @@ export class SapienceTradingAgent implements TradingAgent {
     });
   }
 
+  /**
+   * Perform a Real Forecast Cycle
+   * This is called by the orchestrator instead of a mock trade.
+   */
+  async performForecastCycle(): Promise<void> {
+      if (this.status !== "active") return;
+
+      try {
+          const result = await this.forecastingService.runForecastingCycle();
+          
+          if (result.success) {
+              // Create a decision record for the history/frontend
+              const decision: TradingDecision = {
+                  id: result.txHash || `forecast-${Date.now()}`,
+                  agentId: this.id,
+                  timestamp: new Date(),
+                  action: "buy", // Mapping forecast to 'buy' for dashboard consistency
+                  symbol: result.conditionId || "Sapience Market",
+                  quantity: 1,
+                  price: 0,
+                  confidence: result.forecast.probability / 100,
+                  reasoning: result.forecast.reasoning,
+                  riskScore: 0.1
+              };
+              
+              this.history.unshift(decision);
+              if (this.history.length > 50) this.history.pop();
+          }
+      } catch (error) {
+          console.error("Agent forecast cycle failed:", error);
+      }
+  }
+
   async executeTrade(decision: TradingDecision): Promise<TradeResult> {
     if (this.status !== "active") {
       throw new Error("Agent is not active");
@@ -132,8 +169,6 @@ export class SapienceTradingAgent implements TradingAgent {
             }
         });
       } catch (recallError) {
-          // If Recall fails, we log it but don't fail the forecast transaction itself
-          // This is a design decision: core function works, secondary capability degraded
           console.error("Failed to store memory in Recall:", recallError);
       }
 
