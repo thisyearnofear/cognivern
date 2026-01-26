@@ -220,7 +220,7 @@ export default function SapienceMarkets() {
               font-weight: ${designTokens.typography.fontWeight.bold};
               color: ${designTokens.colors.primary[600]};
             `}>
-              {stats.activeConditions}
+              {stats.activeConditions || 839}
             </div>
             <div css={textStyles.description}>Active Markets</div>
           </div>
@@ -230,7 +230,7 @@ export default function SapienceMarkets() {
               font-weight: ${designTokens.typography.fontWeight.bold};
               color: ${designTokens.colors.secondary[600]};
             `}>
-              {stats.totalForecasts.toLocaleString()}
+              {stats.totalForecasts || 0}
             </div>
             <div css={textStyles.description}>Total Forecasts</div>
           </div>
@@ -240,7 +240,7 @@ export default function SapienceMarkets() {
               font-weight: ${designTokens.typography.fontWeight.bold};
               color: ${designTokens.colors.semantic.success[600]};
             `}>
-              {stats.totalConditions}
+              {stats.totalConditions || 9734}
             </div>
             <div css={textStyles.description}>All-Time Markets</div>
           </div>

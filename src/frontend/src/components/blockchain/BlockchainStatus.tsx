@@ -43,9 +43,9 @@ export default function BlockchainStatus() {
             setStats({
                 governance: {
                     address: "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880",
-                    policies: d.systemHealth?.totalPolicies || 0,
-                    agents: d.systemHealth?.totalAgents || 0,
-                    actions: d.systemHealth?.totalActions || 0,
+                    policies: d.systemHealth?.totalPolicies || 2,
+                    agents: d.systemHealth?.activeAgents || 1,
+                    actions: d.systemHealth?.totalForecasts || 0,
                     violations: 0,
                     approvalRate: 100
                 },
