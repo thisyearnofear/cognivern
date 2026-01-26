@@ -280,6 +280,23 @@ export class ApiModule extends BaseService {
       this.controllers.get("agents").stopAgent(req, res);
     });
 
+    // Market Data Routes
+    apiRouter.get("/market/data/:symbol", (req, res) => {
+      this.controllers.get("agents").getMarketData(req, res);
+    });
+
+    apiRouter.get("/market/historical/:symbol", (req, res) => {
+      this.controllers.get("agents").getHistoricalData(req, res);
+    });
+
+    apiRouter.get("/market/stats", (req, res) => {
+      this.controllers.get("agents").getMarketStats(req, res);
+    });
+
+    apiRouter.get("/market/top", (req, res) => {
+      this.controllers.get("agents").getTopMarkets(req, res);
+    });
+
     // Legacy trading routes for backward compatibility
     apiRouter.get("/trading/status/:agentId", (req, res) => {
       this.controllers.get("trading").getStatus(req, res);

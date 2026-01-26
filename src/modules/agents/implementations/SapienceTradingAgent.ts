@@ -16,6 +16,7 @@ import {
 import { SapienceService, ForecastRequest } from "../../../services/SapienceService.js";
 import { RecallService } from "../../../services/RecallService.js";
 import { AutomatedForecastingService } from "../../../services/AutomatedForecastingService.js";
+import { TradingHistoryService } from "../../../services/TradingHistoryService.js";
 
 export class SapienceTradingAgent implements TradingAgent {
   public readonly id: string;
@@ -296,7 +297,7 @@ export class SapienceTradingAgent implements TradingAgent {
   }
 
   async getStatus(): Promise<any> {
-    const forecastingStats = this.forecastingService.getStats();
+    const forecastingStats = await this.forecastingService.getStats();
     
     return {
       id: this.id,

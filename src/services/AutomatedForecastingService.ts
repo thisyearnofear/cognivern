@@ -1,4 +1,5 @@
 import logger from '../utils/logger.js';
+import { MarketDataService } from './MarketDataService.js';
 
 export interface ForecastResult {
   probability: number;
@@ -15,6 +16,7 @@ export interface MarketCondition {
 
 export class AutomatedForecastingService {
   private sapienceService: any;
+  private marketDataService: MarketDataService;
   private forecastedMarkets: Set<string> = new Set();
   private graphqlEndpoint = 'https://api.sapience.xyz/graphql';
   private nextRunAt: Date | null = null;
@@ -54,9 +56,11 @@ export class AutomatedForecastingService {
 
   constructor(config: {
     sapienceService: any;
+    marketDataService?: MarketDataService;
   }) {
     this.sapienceService = config.sapienceService;
-    console.log('[ForecastingService] Initialized with Multi-LLM Fallback');
+    this.marketDataService = config.marketDataService || new MarketDataService();
+    console.log('[ForecastingService] Initialized with Multi-LLM Fallback and Market Data Integration');
   }
 
   private recordThought(thought: string) {
@@ -163,10 +167,35 @@ export class AutomatedForecastingService {
 
   async generateForecast(question: string): Promise<ForecastResult> {
     this.recordThought(`Generating forecast for: ${question.substring(0, 50)}...`);
-    const prompt = `You are a professional forecaster. Estimate the probability (0-100) that the answer to this question is YES.
-Question: "${question}"
-First, provide brief reasoning (1 sentence, max 150 chars).
-Then on the final line, output ONLY the probability as a number.`;
+    
+    // Get relevant market data for enhanced analysis
+    let marketContext = '';
+    try {
+      // Extract potential symbols from the question for market data
+      const symbols = this.extractSymbolsFromQuestion(question);
+      if (symbols.length > 0) {
+        const marketDataPromises = symbols.map(symbol => 
+          this.marketDataService.getMarketData(symbol).catch(() => null)
+        );
+        const marketDataResults = await Promise.all(marketDataPromises);
+        
+        const validMarketData = marketDataResults.filter(Boolean) as any[];
+        if (validMarketData.length > 0) {
+          marketContext = this.buildMarketContext(validMarketData);
+        }
+      }
+    } catch (error) {
+      logger.warn('[ForecastingService] Market data enhancement failed:', error);
+    }
+    
+    const prompt = `You are a professional forecaster with access to real-time market data. 
+    Estimate the probability (0-100) that the answer to this question is YES.
+    
+    Question: "${question}"
+    
+    ${marketContext ? `Market Context:\n${marketContext}\n\n` : ''}
+    First, provide brief reasoning (1 sentence, max 150 chars).
+    Then on the final line, output ONLY the probability as a number.`;
 
     const content = await this.callLLM(prompt);
     const lines = content.split('\n').map((l: string) => l.trim()).filter(Boolean);
@@ -194,6 +223,48 @@ Then on the final line, output ONLY the probability as a number.`;
       reasoning: reasoning.substring(0, 160),
       confidence: Math.abs(probability - 50) / 50,
     };
+  }
+
+  private extractSymbolsFromQuestion(question: string): string[] {
+    // Look for common cryptocurrency symbols and names in the question
+    const commonSymbols = ['BTC', 'ETH', 'SOL', 'ADA', 'DOT', 'BNB', 'XRP', 'DOGE', 'AVAX', 'MATIC',
+                          'LTC', 'BCH', 'LINK', 'UNI', 'ATOM', 'ALGO', 'FIL', 'Bitcoin', 'Ethereum',
+                          'Solana', 'Cardano', 'Polkadot', 'Binance', 'Ripple', 'Dogecoin', 'Avalanche'];
+    
+    const foundSymbols: string[] = [];
+    const upperQuestion = question.toUpperCase();
+    
+    for (const symbol of commonSymbols) {
+      if (upperQuestion.includes(symbol.toUpperCase())) {
+        // Map full names to symbols
+        const symbolMap: Record<string, string> = {
+          'BITCOIN': 'BTC',
+          'ETHEREUM': 'ETH',
+          'SOLANA': 'SOL',
+          'CARDANO': 'ADA',
+          'POLKADOT': 'DOT',
+          'BINANCE': 'BNB',
+          'RIPPLE': 'XRP',
+          'DOGECOIN': 'DOGE',
+          'AVALANCHE': 'AVAX',
+        };
+        
+        const mappedSymbol = symbolMap[symbol.toUpperCase()] || symbol;
+        if (!foundSymbols.includes(mappedSymbol)) {
+          foundSymbols.push(mappedSymbol);
+        }
+      }
+    }
+    
+    return foundSymbols.slice(0, 3); // Limit to 3 most relevant symbols
+  }
+
+  private buildMarketContext(marketData: any[]): string {
+    return marketData.map(data => {
+      const changeText = data.change24h >= 0 ? '↑' : '↓';
+      const absChange = Math.abs(data.change24h).toFixed(2);
+      return `${data.symbol}: $${data.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${changeText}${absChange}% 24h, Vol: $${(data.volume / 1000000).toFixed(1)}M)`;
+    }).join(' | ');
   }
 
   async runForecastingCycle(): Promise<any> {
@@ -242,13 +313,27 @@ Then on the final line, output ONLY the probability as a number.`;
     }, intervalMinutes * 60 * 1000);
   }
 
-  getStats() {
+  async getStats() {
+    // Get market stats for enhanced statistics
+    let marketStats = null;
+    try {
+      marketStats = await this.marketDataService.getMarketStats();
+    } catch (error) {
+      logger.warn('[ForecastingService] Failed to get market stats for enhanced statistics:', error);
+    }
+    
     return {
       providers: this.providers.map(p => ({ name: p.name, model: p.model })),
       forecastCount: this.forecastedMarkets.size,
       nextRunAt: this.nextRunAt?.toISOString(),
       lastThought: this.lastThought,
       thoughtHistory: this.thoughtHistory,
+      marketStats: marketStats || {
+        totalMarkets: 'N/A',
+        totalVolume: 'N/A',
+        marketCap: 'N/A',
+        dominance: {}
+      },
       timestamp: new Date().toISOString()
     };
   }

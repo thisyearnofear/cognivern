@@ -4,12 +4,16 @@
 
 import { Request, Response } from "express";
 import { AgentsModule } from "../../agents/AgentsModule.js";
+import { MarketDataService } from "../../../services/MarketDataService.js";
 
 export class AgentsController {
   private agentsModule: AgentsModule;
 
-  constructor(agentsModule?: AgentsModule) {
+  private marketDataService: MarketDataService;
+
+  constructor(agentsModule?: AgentsModule, marketDataService?: MarketDataService) {
     this.agentsModule = agentsModule || new AgentsModule();
+    this.marketDataService = marketDataService || new MarketDataService();
   }
 
   async initialize(): Promise<void> {
@@ -387,6 +391,105 @@ export class AgentsController {
       res.json({
         success: true,
         data: unifiedData,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  // Market Data Endpoints
+  async getMarketData(req: Request, res: Response): Promise<void> {
+    try {
+      const { symbol } = req.params;
+      if (!symbol) {
+        res.status(400).json({
+          success: false,
+          error: "Symbol parameter is required",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const marketData = await this.marketDataService.getMarketData(symbol);
+      
+      res.json({
+        success: true,
+        data: marketData,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  async getHistoricalData(req: Request, res: Response): Promise<void> {
+    try {
+      const { symbol } = req.params;
+      const days = parseInt(req.query.days as string) || 7;
+      
+      if (!symbol) {
+        res.status(400).json({
+          success: false,
+          error: "Symbol parameter is required",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const historicalData = await this.marketDataService.getHistoricalData(symbol, days);
+      
+      res.json({
+        success: true,
+        data: historicalData,
+        count: historicalData.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  async getMarketStats(req: Request, res: Response): Promise<void> {
+    try {
+      const marketStats = await this.marketDataService.getMarketStats();
+      
+      res.json({
+        success: true,
+        data: marketStats,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  async getTopMarkets(req: Request, res: Response): Promise<void> {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const topMarkets = await this.marketDataService.getTopMarkets(limit);
+      
+      res.json({
+        success: true,
+        data: topMarkets,
+        count: topMarkets.length,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
