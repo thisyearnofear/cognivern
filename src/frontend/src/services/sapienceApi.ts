@@ -61,7 +61,7 @@ export async function fetchActiveConditions(limit = 20): Promise<SapienceConditi
   const nowSec = Math.floor(Date.now() / 1000);
   
   const query = gql`
-    query Conditions($nowSec: Int, $limit: Int) {
+    query GetConditions($nowSec: Int, $limit: Int) {
       conditions(
         where: { 
           public: { equals: true }
@@ -74,8 +74,6 @@ export async function fetchActiveConditions(limit = 20): Promise<SapienceConditi
         question
         shortName
         endTime
-        startTime
-        outcomeSlotCount
         public
       }
     }
@@ -99,16 +97,14 @@ export async function fetchActiveConditions(limit = 20): Promise<SapienceConditi
  */
 export async function fetchCondition(conditionId: string): Promise<SapienceCondition | null> {
   const query = gql`
-    query Condition($id: String!) {
+    query GetCondition($id: String!) {
       condition(where: { id: $id }) {
         id
         question
         shortName
         endTime
-        startTime
         resolution
         resolutionTime
-        outcomeSlotCount
         public
       }
     }
@@ -132,7 +128,7 @@ export async function fetchCondition(conditionId: string): Promise<SapienceCondi
  */
 export async function fetchForecastsForCondition(conditionId: string): Promise<SapienceForecast[]> {
   const query = gql`
-    query Forecasts($conditionId: String!) {
+    query GetForecasts($conditionId: String!) {
       forecasts(
         where: { conditionId: { equals: $conditionId } }
         orderBy: { timestamp: desc }
@@ -167,7 +163,7 @@ export async function fetchForecastsForCondition(conditionId: string): Promise<S
  */
 export async function fetchForecastsByAddress(address: string): Promise<SapienceForecast[]> {
   const query = gql`
-    query ForecastsByAddress($address: String!) {
+    query GetForecastsByAddress($address: String!) {
       forecasts(
         where: { forecaster: { equals: $address } }
         orderBy: { timestamp: desc }
@@ -201,12 +197,9 @@ export async function fetchForecastsByAddress(address: string): Promise<Sapience
  * Fetch leaderboard (accuracy track)
  */
 export async function fetchAccuracyLeaderboard(limit = 50): Promise<SapienceLeaderboardEntry[]> {
-  // Note: The actual leaderboard endpoint might differ
-  // This is based on typical prediction market leaderboard structures
   const query = gql`
-    query Leaderboard($limit: Int) {
-      leaderboard(
-        orderBy: { brierScore: asc }
+    query GetLeaderboard($limit: Int) {
+      leaderboard: getLeaderboard(
         take: $limit
       ) {
         address
@@ -240,7 +233,7 @@ export async function fetchMarketStats(): Promise<SapienceMarketStats> {
   const nowSec = Math.floor(Date.now() / 1000);
   
   const query = gql`
-    query Stats($nowSec: Int) {
+    query GetStats($nowSec: Int) {
       aggregateCondition(
         where: { public: { equals: true } }
       ) {
@@ -258,11 +251,6 @@ export async function fetchMarketStats(): Promise<SapienceMarketStats> {
           id
         }
       }
-      aggregateForecast {
-        _count {
-          id
-        }
-      }
     }
   `;
 
@@ -270,14 +258,13 @@ export async function fetchMarketStats(): Promise<SapienceMarketStats> {
     const data = await request<{
       aggregateCondition: { _count: { id: number } };
       activeConditions: { _count: { id: number } };
-      aggregateForecast: { _count: { id: number } };
     }>(SAPIENCE_GRAPHQL_ENDPOINT, query, { nowSec });
 
     return {
       totalConditions: data.aggregateCondition._count.id,
       activeConditions: data.activeConditions._count.id,
-      totalForecasts: data.aggregateForecast._count.id,
-      totalForecasters: 0, // Would need separate query
+      totalForecasts: 0, // aggregateForecast removed as it failed
+      totalForecasters: 0,
     };
   } catch (error) {
     console.error('Failed to fetch market stats:', error);
