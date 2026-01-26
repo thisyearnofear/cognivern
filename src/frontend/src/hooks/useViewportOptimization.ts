@@ -1,23 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
-import { 
-  ViewportDimensions, 
+import { useState, useEffect, useCallback } from "react";
+import {
+  ViewportDimensions,
   LayoutOptimization,
   getViewportDimensions,
   calculateOptimalLayout,
-  viewportTracker
-} from '../utils/viewportOptimization';
-import { useLayout } from '../components/layout/ResponsiveLayout';
+  viewportTracker,
+} from "../utils/viewportOptimization";
+import { useLayout } from "../components/layout/ResponsiveLayout";
 
 /**
  * Hook for intelligent viewport optimization and layout management
  */
 export const useViewportOptimization = (
-  contentType: 'dashboard' | 'form' | 'table' | 'chart' | 'list' = 'dashboard',
-  autoOptimize: boolean = false
+  contentType: "dashboard" | "form" | "table" | "chart" | "list" = "dashboard",
+  autoOptimize: boolean = false,
 ) => {
-  const [viewport, setViewport] = useState<ViewportDimensions>(() => getViewportDimensions());
-  const [optimization, setOptimization] = useState<LayoutOptimization>(() => 
-    calculateOptimalLayout(getViewportDimensions(), contentType)
+  const [viewport, setViewport] = useState<ViewportDimensions>(() =>
+    getViewportDimensions(),
+  );
+  const [optimization, setOptimization] = useState<LayoutOptimization>(() =>
+    calculateOptimalLayout(getViewportDimensions(), contentType),
   );
   const { setSidebarState, sidebarState } = useLayout();
 
@@ -41,7 +43,12 @@ export const useViewportOptimization = (
     if (autoOptimize && optimization.recommendedSidebarState !== sidebarState) {
       setSidebarState(optimization.recommendedSidebarState);
     }
-  }, [autoOptimize, optimization.recommendedSidebarState, sidebarState, setSidebarState]);
+  }, [
+    autoOptimize,
+    optimization.recommendedSidebarState,
+    sidebarState,
+    setSidebarState,
+  ]);
 
   // Manual optimization trigger
   const optimizeLayout = useCallback(() => {
@@ -69,11 +76,15 @@ export const useViewportOptimization = (
   // Get responsive grid recommendations
   const getGridRecommendations = useCallback(() => {
     const { contentWidth } = optimization;
-    
+
     return {
       columns: optimization.recommendedColumns,
-      maxItemWidth: Math.floor(contentWidth / optimization.recommendedColumns) - 24, // Account for gaps
-      minItemWidth: Math.max(200, Math.floor(contentWidth / (optimization.recommendedColumns + 1))),
+      maxItemWidth:
+        Math.floor(contentWidth / optimization.recommendedColumns) - 24, // Account for gaps
+      minItemWidth: Math.max(
+        200,
+        Math.floor(contentWidth / (optimization.recommendedColumns + 1)),
+      ),
       gapSize: contentWidth > 1200 ? 24 : 16,
     };
   }, [optimization]);
@@ -81,7 +92,7 @@ export const useViewportOptimization = (
   // Performance monitoring
   const getPerformanceMetrics = useCallback(() => {
     const metrics = getSpaceMetrics();
-    
+
     return {
       ...metrics,
       layoutScore: optimization.spaceUtilization * 100,
@@ -99,15 +110,15 @@ export const useViewportOptimization = (
     viewport,
     optimization,
     isOptimal,
-    
+
     // Actions
     optimizeLayout,
-    
+
     // Utilities
     getSpaceMetrics,
     getGridRecommendations,
     getPerformanceMetrics,
-    
+
     // Computed values
     spaceUtilization: optimization.spaceUtilization,
     recommendedColumns: optimization.recommendedColumns,

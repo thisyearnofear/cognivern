@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { css } from '@emotion/react';
-import { designTokens, tradingStyles } from '../../styles/designTokens';
+import { css } from "@emotion/react";
+import { designTokens, tradingStyles } from "../../styles/designTokens";
 
 interface VincentConsentFlowProps {
   appId: string;
   onConsent: () => void;
 }
 
-export default function VincentConsentFlow({ appId, onConsent }: VincentConsentFlowProps) {
+export default function VincentConsentFlow({
+  appId,
+  onConsent,
+}: VincentConsentFlowProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleConsentClick = async () => {
@@ -25,7 +28,10 @@ export default function VincentConsentFlow({ appId, onConsent }: VincentConsentF
     <div className="vincent-consent-flow">
       <div className="consent-header">
         <h3>🔐 Vincent Framework Authorization</h3>
-        <p>Grant permission for the Social Trading Agent to execute trades on your behalf</p>
+        <p>
+          Grant permission for the Social Trading Agent to execute trades on
+          your behalf
+        </p>
       </div>
 
       <div className="consent-content">
@@ -83,7 +89,9 @@ export default function VincentConsentFlow({ appId, onConsent }: VincentConsentF
               </div>
               <div className="detail-row">
                 <span className="detail-label">App Name:</span>
-                <span className="detail-value">Cognivern Social Trading Agent</span>
+                <span className="detail-value">
+                  Cognivern Social Trading Agent
+                </span>
               </div>
               <div className="detail-row">
                 <span className="detail-label">Framework:</span>
@@ -91,7 +99,9 @@ export default function VincentConsentFlow({ appId, onConsent }: VincentConsentF
               </div>
               <div className="detail-row">
                 <span className="detail-label">Chains:</span>
-                <span className="detail-value">Ethereum, Polygon, Arbitrum, Base</span>
+                <span className="detail-value">
+                  Ethereum, Polygon, Arbitrum, Base
+                </span>
               </div>
             </div>
           </div>
@@ -101,8 +111,9 @@ export default function VincentConsentFlow({ appId, onConsent }: VincentConsentF
           <div className="consent-warning">
             <span className="warning-icon">⚠️</span>
             <p>
-              You will be redirected to the Vincent consent page to authorize this application.
-              Make sure you trust this application before proceeding.
+              You will be redirected to the Vincent consent page to authorize
+              this application. Make sure you trust this application before
+              proceeding.
             </p>
           </div>
 
@@ -126,8 +137,9 @@ export default function VincentConsentFlow({ appId, onConsent }: VincentConsentF
 
           <div className="consent-footer">
             <p>
-              By clicking "Authorize", you'll be taken to Vincent's secure consent page
-              where you can review and approve the specific permissions.
+              By clicking "Authorize", you'll be taken to Vincent's secure
+              consent page where you can review and approve the specific
+              permissions.
             </p>
           </div>
         </div>

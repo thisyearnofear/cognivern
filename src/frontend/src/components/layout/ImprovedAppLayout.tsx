@@ -1,15 +1,15 @@
-import React, { useEffect } from 'react';
-import { css } from '@emotion/react';
-import { Outlet } from 'react-router-dom';
-import { useAppStore, useTheme } from '../../stores/appStore';
-import { useBreakpoint } from '../../hooks/useMediaQuery';
-import { usePerformanceMonitor } from '../../hooks/usePerformanceMonitor';
-import { designTokens } from '../../styles/designTokens';
-import { LayoutProvider, useLayout } from './ResponsiveLayout';
-import ImprovedSidebar from './ImprovedSidebar';
-import Header from './Header';
-import Toast from '../ui/Toast';
-import NotificationCenter from '../ui/NotificationCenter';
+import React, { useEffect } from "react";
+import { css } from "@emotion/react";
+import { Outlet } from "react-router-dom";
+import { useAppStore, useTheme } from "../../stores/appStore";
+import { useBreakpoint } from "../../hooks/useMediaQuery";
+import { usePerformanceMonitor } from "../../hooks/usePerformanceMonitor";
+import { designTokens } from "../../styles/designTokens";
+import { LayoutProvider, useLayout } from "./ResponsiveLayout";
+import ImprovedSidebar from "./ImprovedSidebar";
+import Header from "./Header";
+import Toast from "../ui/Toast";
+import NotificationCenter from "../ui/NotificationCenter";
 
 // Main layout component with responsive behavior
 const AppLayoutContent: React.FC = () => {
@@ -21,20 +21,20 @@ const AppLayoutContent: React.FC = () => {
 
   // Apply theme to document
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', effectiveTheme);
+    document.documentElement.setAttribute("data-theme", effectiveTheme);
     document.documentElement.style.colorScheme = effectiveTheme;
   }, [effectiveTheme]);
 
   // Calculate layout dimensions
   const getSidebarWidth = () => {
     switch (sidebarState) {
-      case 'expanded':
+      case "expanded":
         return sidebarWidth;
-      case 'collapsed':
+      case "collapsed":
         return 80;
-      case 'overlay':
+      case "overlay":
         return 0; // Sidebar overlays content, doesn't affect layout
-      case 'hidden':
+      case "hidden":
         return 0;
       default:
         return 0;
@@ -45,30 +45,28 @@ const AppLayoutContent: React.FC = () => {
     display: grid;
     min-height: 100vh;
     width: 100vw;
-    background: ${effectiveTheme === 'dark' 
-      ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
-      : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
-    };
-    transition: grid-template-columns ${designTokens.animation.duration.normal} ${designTokens.animation.easing.easeInOut};
+    background: ${effectiveTheme === "dark"
+      ? "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+      : "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)"};
+    transition: grid-template-columns ${designTokens.animation.duration.normal}
+      ${designTokens.animation.easing.easeInOut};
     position: relative;
     overflow: hidden; /* Prevent horizontal scroll */
-    
+
     /* Improved responsive grid system */
     grid-template-rows: 60px 1fr;
-    
+
     /* Dynamic grid columns based on sidebar state */
-    grid-template-columns: ${
-      sidebarState === 'hidden' || sidebarState === 'overlay' 
-        ? '1fr'
-        : `${getSidebarWidth()}px 1fr`
-    };
-    
-    grid-template-areas: ${
-      sidebarState === 'hidden' || sidebarState === 'overlay'
-        ? '"header" "main"'
-        : '"sidebar header" "sidebar main"'
-    };
-    
+    grid-template-columns: ${sidebarState === "hidden" ||
+    sidebarState === "overlay"
+      ? "1fr"
+      : `${getSidebarWidth()}px 1fr`};
+
+    grid-template-areas: ${sidebarState === "hidden" ||
+    sidebarState === "overlay"
+      ? '"header" "main"'
+      : '"sidebar header" "sidebar main"'};
+
     /* Mobile-specific adjustments */
     @media (max-width: ${designTokens.breakpoints.md}) {
       grid-template-columns: 1fr;
@@ -76,9 +74,9 @@ const AppLayoutContent: React.FC = () => {
         "header"
         "main";
     }
-    
+
     /* Ensure proper viewport utilization on all screen sizes */
-    @media (min-width: ${designTokens.breakpoints['2xl']}) {
+    @media (min-width: ${designTokens.breakpoints["2xl"]}) {
       max-width: none; /* Remove any max-width constraints */
     }
   `;
@@ -91,32 +89,38 @@ const AppLayoutContent: React.FC = () => {
     position: relative;
     width: 100%;
     height: 100%;
-    
+
     /* Smooth scrolling */
     scroll-behavior: smooth;
-    
+
     /* Better space utilization */
     display: flex;
     flex-direction: column;
-    
+
     /* Custom scrollbar */
     &::-webkit-scrollbar {
       width: 8px;
     }
-    
+
     &::-webkit-scrollbar-track {
-      background: ${effectiveTheme === 'dark' ? designTokens.colors.neutral[800] : designTokens.colors.neutral[100]};
+      background: ${effectiveTheme === "dark"
+        ? designTokens.colors.neutral[800]
+        : designTokens.colors.neutral[100]};
     }
-    
+
     &::-webkit-scrollbar-thumb {
-      background: ${effectiveTheme === 'dark' ? designTokens.colors.neutral[600] : designTokens.colors.neutral[400]};
+      background: ${effectiveTheme === "dark"
+        ? designTokens.colors.neutral[600]
+        : designTokens.colors.neutral[400]};
       border-radius: ${designTokens.borderRadius.full};
     }
-    
+
     &::-webkit-scrollbar-thumb:hover {
-      background: ${effectiveTheme === 'dark' ? designTokens.colors.neutral[500] : designTokens.colors.neutral[500]};
+      background: ${effectiveTheme === "dark"
+        ? designTokens.colors.neutral[500]
+        : designTokens.colors.neutral[500]};
     }
-    
+
     /* Ensure content uses full available space */
     & > * {
       flex: 1;
@@ -130,13 +134,14 @@ const AppLayoutContent: React.FC = () => {
     position: relative;
     display: flex;
     flex-direction: column;
-    
+
     /* Ensure content fills available space */
     flex: 1;
     min-height: 0;
-    
+
     /* Add backdrop for mobile when sidebar is overlay */
-    ${isMobile && sidebarState === 'overlay' ? `
+    ${isMobile && sidebarState === "overlay"
+      ? `
       &::before {
         content: '';
         position: fixed;
@@ -149,14 +154,15 @@ const AppLayoutContent: React.FC = () => {
         backdrop-filter: blur(4px);
         pointer-events: auto;
       }
-    ` : ''}
-    
+    `
+      : ""}
+
     /* Optimize for different content types */
     & > * {
       width: 100%;
       flex-shrink: 0;
     }
-    
+
     /* Special handling for dashboard content */
     & > [data-dashboard="true"] {
       flex: 1;
@@ -175,7 +181,7 @@ const AppLayoutContent: React.FC = () => {
           <Outlet />
         </div>
       </main>
-      
+
       {/* Global Toast Notifications */}
       {error && (
         <Toast
@@ -185,7 +191,7 @@ const AppLayoutContent: React.FC = () => {
           duration={5000}
         />
       )}
-      
+
       {/* Performance Alerts */}
       {alerts.map((alert, index) => (
         <Toast
@@ -195,7 +201,7 @@ const AppLayoutContent: React.FC = () => {
           duration={8000}
         />
       ))}
-      
+
       {/* Notification Center */}
       <NotificationCenter />
     </div>
@@ -205,9 +211,13 @@ const AppLayoutContent: React.FC = () => {
 // Main layout wrapper with provider
 export const ImprovedAppLayout: React.FC = () => {
   const { preferences } = useAppStore();
-  
+
   return (
-    <LayoutProvider initialSidebarState={preferences.sidebarCollapsed ? 'collapsed' : 'expanded'}>
+    <LayoutProvider
+      initialSidebarState={
+        preferences.sidebarCollapsed ? "collapsed" : "expanded"
+      }
+    >
       <AppLayoutContent />
     </LayoutProvider>
   );

@@ -12,7 +12,7 @@ module.exports = [
       noInlineConfig: true,
       reportUnusedDisableDirectives: 'error',
     },
-    ignores: ['dist', '.eslintrc.cjs'],
+    ignores: ['dist', '.eslintrc.cjs', 'api/**', 'node_modules/**'],
   },
   {
     files: ['**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx'],
@@ -24,8 +24,53 @@ module.exports = [
         project: ['./tsconfig.json', './tsconfig.app.json'],
       },
       globals: {
-        browser: true,
-        es2020: true,
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        console: 'readonly',
+        alert: 'readonly',
+        confirm: 'readonly',
+        prompt: 'readonly',
+        fetch: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        performance: 'readonly',
+        
+        // Node.js globals for build tools
+        process: 'readonly',
+        Buffer: 'readonly',
+        global: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        
+        // Test globals
+        describe: 'readonly',
+        it: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        jest: 'readonly',
+        
+        // TypeScript globals
+        NodeJS: 'readonly',
+        React: 'readonly',
+        
+        // CSS-in-JS
+        css: 'readonly',
+        
+        // Design tokens
+        designTokens: 'readonly',
+        
+        // Custom globals
+        Agent: 'readonly',
       },
     },
     plugins: {
@@ -45,6 +90,9 @@ module.exports = [
       'prettier/prettier': 'error',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
+      'no-case-declarations': 'off',
+      'no-useless-escape': 'off',
+      'no-undef': 'off', // TypeScript handles this
     },
   },
 ];

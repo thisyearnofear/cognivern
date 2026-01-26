@@ -1,10 +1,10 @@
 /**
  * useSapienceData Hook
- * 
+ *
  * React hook for fetching and managing Sapience prediction market data
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   fetchActiveConditions,
   fetchMarketStats,
@@ -14,7 +14,7 @@ import {
   SapienceLeaderboardEntry,
   SapienceMarketStats,
   SapienceForecast,
-} from '../services/sapienceApi';
+} from "../services/sapienceApi";
 
 export interface UseSapienceDataResult {
   // Data
@@ -22,12 +22,12 @@ export interface UseSapienceDataResult {
   stats: SapienceMarketStats | null;
   leaderboard: SapienceLeaderboardEntry[];
   agentForecasts: SapienceForecast[];
-  
+
   // State
   isLoading: boolean;
   error: string | null;
   lastUpdated: Date | null;
-  
+
   // Actions
   refresh: () => Promise<void>;
   fetchAgentForecasts: (address: string) => Promise<void>;
@@ -36,7 +36,9 @@ export interface UseSapienceDataResult {
 export function useSapienceData(agentAddress?: string): UseSapienceDataResult {
   const [conditions, setConditions] = useState<SapienceCondition[]>([]);
   const [stats, setStats] = useState<SapienceMarketStats | null>(null);
-  const [leaderboard, setLeaderboard] = useState<SapienceLeaderboardEntry[]>([]);
+  const [leaderboard, setLeaderboard] = useState<SapienceLeaderboardEntry[]>(
+    [],
+  );
   const [agentForecasts, setAgentForecasts] = useState<SapienceForecast[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,9 +67,10 @@ export function useSapienceData(agentAddress?: string): UseSapienceDataResult {
         setAgentForecasts(forecasts);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch Sapience data';
+      const message =
+        err instanceof Error ? err.message : "Failed to fetch Sapience data";
       setError(message);
-      console.error('Sapience data fetch error:', err);
+      console.error("Sapience data fetch error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +81,7 @@ export function useSapienceData(agentAddress?: string): UseSapienceDataResult {
       const forecasts = await fetchForecastsByAddress(address);
       setAgentForecasts(forecasts);
     } catch (err) {
-      console.error('Failed to fetch agent forecasts:', err);
+      console.error("Failed to fetch agent forecasts:", err);
     }
   }, []);
 
@@ -122,7 +125,7 @@ export function useAgentLeaderboardPosition(agentAddress?: string) {
       try {
         const leaderboard = await fetchAccuracyLeaderboard(100);
         const entry = leaderboard.find(
-          (e) => e.address.toLowerCase() === agentAddress.toLowerCase()
+          (e) => e.address.toLowerCase() === agentAddress.toLowerCase(),
         );
         if (entry) {
           setPosition(entry.rank);
@@ -132,7 +135,7 @@ export function useAgentLeaderboardPosition(agentAddress?: string) {
           setBrierScore(null);
         }
       } catch (err) {
-        console.error('Failed to fetch leaderboard position:', err);
+        console.error("Failed to fetch leaderboard position:", err);
       } finally {
         setIsLoading(false);
       }

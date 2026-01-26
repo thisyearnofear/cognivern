@@ -1,10 +1,10 @@
 // Unified API service layer to eliminate fetch duplication across components
-import { getApiUrl } from '../utils/api';
+import { getApiUrl } from "../utils/api";
 
 // Base API configuration
 const DEFAULT_HEADERS = {
-  'Content-Type': 'application/json',
-  'X-API-KEY': import.meta.env.VITE_API_KEY || 'development-api-key',
+  "Content-Type": "application/json",
+  "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
 };
 
 // Generic API response type
@@ -20,7 +20,7 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {},
     retries: number = 2, // Reduced from 3
-    delay: number = 1000
+    delay: number = 1000,
   ): Promise<ApiResponse<T>> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
@@ -38,65 +38,82 @@ class ApiService {
         if (!response.ok) {
           // Don't retry on 4xx errors, only on 5xx or network errors
           if (response.status >= 400 && response.status < 500) {
-            throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+            throw new Error(
+              `API Error: ${response.status} - ${response.statusText}`,
+            );
           }
           // Retry on 5xx errors
           if (attempt < retries - 1 && response.status >= 500) {
-            await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt)));
+            await new Promise((resolve) =>
+              setTimeout(resolve, delay * Math.pow(2, attempt)),
+            );
             continue;
           }
-          throw new Error(`API Error: ${response.status} - ${response.statusText}`);
+          throw new Error(
+            `API Error: ${response.status} - ${response.statusText}`,
+          );
         }
 
         const data = await response.json();
         return { data, success: true };
       } catch (error) {
         clearTimeout(timeout);
-        
+
         // Handle abort errors
-        if (error instanceof Error && error.name === 'AbortError') {
+        if (error instanceof Error && error.name === "AbortError") {
           return {
-            error: 'Request timeout - server took too long to respond',
+            error: "Request timeout - server took too long to respond",
             success: false,
           };
         }
 
         // Network error or fetch failed
         if (attempt < retries - 1) {
-          console.warn(`API request attempt ${attempt + 1} failed for ${endpoint}, retrying...`, error);
-          await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, attempt)));
+          console.warn(
+            `API request attempt ${attempt + 1} failed for ${endpoint}, retrying...`,
+            error,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, delay * Math.pow(2, attempt)),
+          );
         } else {
-          console.error(`API request failed for ${endpoint} after ${retries} attempts:`, error);
+          console.error(
+            `API request failed for ${endpoint} after ${retries} attempts:`,
+            error,
+          );
           return {
-            error: error instanceof Error ? error.message : 'Network error - failed to reach server',
+            error:
+              error instanceof Error
+                ? error.message
+                : "Network error - failed to reach server",
             success: false,
           };
         }
       }
     }
-    
+
     return {
-      error: 'Failed after all retry attempts',
+      error: "Failed after all retry attempts",
       success: false,
     };
   }
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<ApiResponse<T>> {
     return this.requestWithRetry(endpoint, options);
   }
 
   // GET request
   async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'GET' });
+    return this.request<T>(endpoint, { method: "GET" });
   }
 
   // POST request
   async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
@@ -104,14 +121,14 @@ class ApiService {
   // PUT request
   async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: 'PUT',
+      method: "PUT",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
   // DELETE request
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+    return this.request<T>(endpoint, { method: "DELETE" });
   }
 }
 
@@ -147,17 +164,17 @@ export class AgentApiService extends ApiService {
 export class MCPApiService extends ApiService {
   // Get MCP status
   async getStatus() {
-    return this.get('/api/mcp/status');
+    return this.get("/api/mcp/status");
   }
 
   // Reconnect MCP
   async reconnect() {
-    return this.post('/api/mcp/reconnect');
+    return this.post("/api/mcp/reconnect");
   }
 
   // Get MCP agents
   async getAgents() {
-    return this.get('/api/mcp/agents');
+    return this.get("/api/mcp/agents");
   }
 }
 
@@ -165,12 +182,12 @@ export class MCPApiService extends ApiService {
 export class PolicyApiService extends ApiService {
   // Get all policies
   async getPolicies() {
-    return this.get('/api/policies');
+    return this.get("/api/policies");
   }
 
   // Create policy
   async createPolicy(policy: any) {
-    return this.post('/api/policies', policy);
+    return this.post("/api/policies", policy);
   }
 
   // Update policy
@@ -185,7 +202,7 @@ export class PolicyApiService extends ApiService {
 
   // Get policy violations
   async getViolations() {
-    return this.get('/api/policies/violations');
+    return this.get("/api/policies/violations");
   }
 }
 
@@ -193,22 +210,24 @@ export class PolicyApiService extends ApiService {
 export class DashboardApiService extends ApiService {
   // Get dashboard metrics
   async getMetrics() {
-    return this.get('/api/metrics/daily');
+    return this.get("/api/metrics/daily");
   }
 
   // Get system health
   async getSystemHealth() {
-    return this.get('/api/system/health');
+    return this.get("/api/system/health");
   }
 
   // Get activity feed
   async getActivityFeed() {
-    return this.get('/api/activity/feed');
+    return this.get("/api/activity/feed");
   }
 
   // Get competitions
   async getCompetitions(status?: string) {
-    const endpoint = status ? `/api/competitions?status=${status}` : '/api/competitions';
+    const endpoint = status
+      ? `/api/competitions?status=${status}`
+      : "/api/competitions";
     return this.get(endpoint);
   }
 }
@@ -217,17 +236,17 @@ export class DashboardApiService extends ApiService {
 export class VincentApiService extends ApiService {
   // Get Vincent status
   async getStatus() {
-    return this.get('/api/vincent/status');
+    return this.get("/api/vincent/status");
   }
 
   // Update Vincent consent
   async updateConsent(appId: string, consent: boolean) {
-    return this.post('/api/vincent/consent', { appId, consent });
+    return this.post("/api/vincent/consent", { appId, consent });
   }
 
   // Update Vincent policies
   async updatePolicies(policies: any) {
-    return this.put('/api/vincent/policies', policies);
+    return this.put("/api/vincent/policies", policies);
   }
 }
 
@@ -240,17 +259,17 @@ export class SapienceApiService extends ApiService {
     reasoning: string;
     confidence: number;
   }) {
-    return this.post('/api/sapience/forecast', data);
+    return this.post("/api/sapience/forecast", data);
   }
 
   // Get Sapience status
   async getStatus() {
-    return this.get('/api/sapience/status');
+    return this.get("/api/sapience/status");
   }
 
   // Get wallet info
   async getWallet() {
-    return this.get('/api/sapience/wallet');
+    return this.get("/api/sapience/wallet");
   }
 }
 

@@ -1,13 +1,20 @@
 // Unified type definitions to eliminate duplication across components
 
 // ===== AGENT TYPES =====
-export type AgentType = "recall" | "vincent" | "trading" | "analysis" | "monitoring" | "sapience" | "filecoin";
+export type AgentType =
+  | "recall"
+  | "vincent"
+  | "trading"
+  | "analysis"
+  | "monitoring"
+  | "sapience"
+  | "filecoin";
 
 export interface BaseAgent {
   id: string;
   name: string;
   type: AgentType;
-  status: 'active' | 'inactive' | 'error' | 'maintenance';
+  status: "active" | "inactive" | "error" | "maintenance";
   capabilities: string[];
   createdAt: string;
   updatedAt: string;
@@ -65,7 +72,7 @@ export interface Policy {
   version: string;
   rules: PolicyRule[];
   metadata: Record<string, any>;
-  status: 'active' | 'draft' | 'archived';
+  status: "active" | "draft" | "archived";
   createdAt: string;
   updatedAt: string;
   appliedToAgents: string[];
@@ -75,7 +82,7 @@ export interface Policy {
 
 export interface PolicyRule {
   id: string;
-  type: 'ALLOW' | 'DENY' | 'REQUIRE' | 'RATE_LIMIT';
+  type: "ALLOW" | "DENY" | "REQUIRE" | "RATE_LIMIT";
   condition: string;
   action: string;
   metadata: Record<string, any>;
@@ -114,12 +121,12 @@ export interface DashboardMetrics {
 }
 
 export interface SystemHealth {
-  overall: 'healthy' | 'warning' | 'critical';
+  overall: "healthy" | "warning" | "critical";
   components: {
-    arbitrum: 'online' | 'degraded' | 'offline';
-    eas: 'operational' | 'delayed' | 'failed';
-    ethereal: 'online' | 'degraded' | 'offline';
-    policies: 'active' | 'warning' | 'error';
+    arbitrum: "online" | "degraded" | "offline";
+    eas: "operational" | "delayed" | "failed";
+    ethereal: "online" | "degraded" | "offline";
+    policies: "active" | "warning" | "error";
   };
   metrics: DashboardMetrics;
 }

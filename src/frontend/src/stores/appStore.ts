@@ -1,11 +1,11 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 export interface UserPreferences {
-  theme: 'light' | 'dark' | 'system';
+  theme: "light" | "dark" | "system";
   sidebarCollapsed: boolean;
   onboardingCompleted: boolean;
   lastVisited: string;
-  dashboardLayout: 'simplified' | 'advanced';
+  dashboardLayout: "simplified" | "advanced";
   notifications: boolean;
 }
 
@@ -19,12 +19,12 @@ interface AppState {
   // User state
   user: User;
   preferences: UserPreferences;
-  
+
   // UI state
   activeTab: string;
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   setUser: (user: Partial<User>) => void;
   updatePreferences: (prefs: Partial<UserPreferences>) => void;
@@ -36,11 +36,11 @@ interface AppState {
 }
 
 const defaultPreferences: UserPreferences = {
-  theme: 'system',
+  theme: "system",
   sidebarCollapsed: false,
   onboardingCompleted: false,
-  lastVisited: '/',
-  dashboardLayout: 'simplified',
+  lastVisited: "/",
+  dashboardLayout: "simplified",
   notifications: true,
 };
 
@@ -49,7 +49,7 @@ const defaultUser: User = {
 };
 
 // Simple persist implementation without middleware
-const persistKey = 'cognivern-app-store';
+const persistKey = "cognivern-app-store";
 
 const getStoredState = () => {
   try {
@@ -75,11 +75,11 @@ const setStoredState = (state: Partial<AppState>) => {
 export const useAppStore = create<AppState>((set, get) => {
   // Load initial state from localStorage
   const stored = getStoredState();
-  
+
   const initialState = {
     user: { ...defaultUser, ...stored.user },
     preferences: { ...defaultPreferences, ...stored.preferences },
-    activeTab: 'dashboard',
+    activeTab: "dashboard",
     isLoading: false,
     error: null,
   };
@@ -122,7 +122,7 @@ export const useAppStore = create<AppState>((set, get) => {
         ...get(),
         user: { ...get().user, userType },
         preferences: { ...get().preferences, onboardingCompleted: true },
-        activeTab: 'dashboard',
+        activeTab: "dashboard",
       };
       set(newState);
       setStoredState(newState);
@@ -132,7 +132,7 @@ export const useAppStore = create<AppState>((set, get) => {
       const resetState = {
         user: defaultUser,
         preferences: defaultPreferences,
-        activeTab: 'dashboard',
+        activeTab: "dashboard",
         isLoading: false,
         error: null,
       };
@@ -145,10 +145,12 @@ export const useAppStore = create<AppState>((set, get) => {
 // Utility hook for theme detection
 export const useTheme = () => {
   const { preferences } = useAppStore();
-  
+
   const getEffectiveTheme = () => {
-    if (preferences.theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (preferences.theme === "system") {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
     }
     return preferences.theme;
   };
@@ -156,6 +158,6 @@ export const useTheme = () => {
   return {
     theme: preferences.theme,
     effectiveTheme: getEffectiveTheme(),
-    isDark: getEffectiveTheme() === 'dark',
+    isDark: getEffectiveTheme() === "dark",
   };
 };

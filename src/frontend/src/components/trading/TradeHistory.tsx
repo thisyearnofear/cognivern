@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AgentType } from "./TradingAgentDashboard";
-import { css } from '@emotion/react';
-import { designTokens, tradingStyles } from '../../styles/designTokens';
+import { css } from "@emotion/react";
+import { designTokens, tradingStyles } from "../../styles/designTokens";
 
 interface TradingDecision {
   action: "buy" | "sell" | "hold";
@@ -33,7 +33,7 @@ export default function TradeHistory({
 }: TradeHistoryProps) {
   const [filter, setFilter] = useState<"all" | "buy" | "sell" | "hold">("all");
   const [sortBy, setSortBy] = useState<"timestamp" | "confidence" | "price">(
-    "timestamp"
+    "timestamp",
   );
 
   const filteredDecisions = decisions

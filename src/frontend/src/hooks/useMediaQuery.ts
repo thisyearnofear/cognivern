@@ -1,32 +1,32 @@
-import { useState, useEffect } from 'react';
-import { designTokens } from '../styles/designTokens';
+import { useState, useEffect } from "react";
+import { designTokens } from "../styles/designTokens";
 
 export const useMediaQuery = (query: string): boolean => {
   const [matches, setMatches] = useState(false);
 
   useEffect(() => {
     const media = window.matchMedia(query);
-    
+
     // Set initial value
     setMatches(media.matches);
-    
+
     // Create listener
     const listener = (event: MediaQueryListEvent) => {
       setMatches(event.matches);
     };
-    
+
     // Add listener
     if (media.addEventListener) {
-      media.addEventListener('change', listener);
+      media.addEventListener("change", listener);
     } else {
       // Fallback for older browsers
       media.addListener(listener);
     }
-    
+
     // Cleanup
     return () => {
       if (media.removeEventListener) {
-        media.removeEventListener('change', listener);
+        media.removeEventListener("change", listener);
       } else {
         media.removeListener(listener);
       }
@@ -42,7 +42,9 @@ export const useBreakpoint = () => {
   const isMd = useMediaQuery(`(min-width: ${designTokens.breakpoints.md})`);
   const isLg = useMediaQuery(`(min-width: ${designTokens.breakpoints.lg})`);
   const isXl = useMediaQuery(`(min-width: ${designTokens.breakpoints.xl})`);
-  const is2Xl = useMediaQuery(`(min-width: ${designTokens.breakpoints['2xl']})`);
+  const is2Xl = useMediaQuery(
+    `(min-width: ${designTokens.breakpoints["2xl"]})`,
+  );
 
   // Mobile-first approach
   const isMobile = !isSm;
@@ -59,7 +61,17 @@ export const useBreakpoint = () => {
     isTablet,
     isDesktop,
     // Current breakpoint
-    current: is2Xl ? '2xl' : isXl ? 'xl' : isLg ? 'lg' : isMd ? 'md' : isSm ? 'sm' : 'xs',
+    current: is2Xl
+      ? "2xl"
+      : isXl
+        ? "xl"
+        : isLg
+          ? "lg"
+          : isMd
+            ? "md"
+            : isSm
+              ? "sm"
+              : "xs",
   };
 };
 
@@ -70,14 +82,14 @@ export const useResponsiveValue = <T>(values: {
   md?: T;
   lg?: T;
   xl?: T;
-  '2xl'?: T;
+  "2xl"?: T;
 }): T | undefined => {
   const { current } = useBreakpoint();
-  
+
   // Find the appropriate value based on current breakpoint
-  const breakpointOrder = ['2xl', 'xl', 'lg', 'md', 'sm', 'xs'] as const;
+  const breakpointOrder = ["2xl", "xl", "lg", "md", "sm", "xs"] as const;
   const currentIndex = breakpointOrder.indexOf(current as any);
-  
+
   // Look for value starting from current breakpoint and going down
   for (let i = currentIndex; i < breakpointOrder.length; i++) {
     const breakpoint = breakpointOrder[i];
@@ -85,7 +97,7 @@ export const useResponsiveValue = <T>(values: {
       return values[breakpoint];
     }
   }
-  
+
   return undefined;
 };
 
@@ -96,19 +108,19 @@ export const useTouchDevice = (): boolean => {
   useEffect(() => {
     const checkTouch = () => {
       setIsTouch(
-        'ontouchstart' in window ||
-        navigator.maxTouchPoints > 0 ||
-        (navigator as any).msMaxTouchPoints > 0
+        "ontouchstart" in window ||
+          navigator.maxTouchPoints > 0 ||
+          (navigator as any).msMaxTouchPoints > 0,
       );
     };
 
     checkTouch();
-    
+
     // Listen for changes (e.g., when external mouse is connected/disconnected)
-    window.addEventListener('touchstart', checkTouch, { once: true });
-    
+    window.addEventListener("touchstart", checkTouch, { once: true });
+
     return () => {
-      window.removeEventListener('touchstart', checkTouch);
+      window.removeEventListener("touchstart", checkTouch);
     };
   }, []);
 
@@ -117,10 +129,10 @@ export const useTouchDevice = (): boolean => {
 
 // Hook for detecting reduced motion preference
 export const useReducedMotion = (): boolean => {
-  return useMediaQuery('(prefers-reduced-motion: reduce)');
+  return useMediaQuery("(prefers-reduced-motion: reduce)");
 };
 
 // Hook for detecting high contrast preference
 export const useHighContrast = (): boolean => {
-  return useMediaQuery('(prefers-contrast: high)');
+  return useMediaQuery("(prefers-contrast: high)");
 };

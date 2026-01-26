@@ -1,13 +1,19 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
-import '@testing-library/jest-dom';
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
+import "@testing-library/jest-dom";
 
-import { LayoutProvider, Container, Grid, GridItem, useLayout } from '../ResponsiveLayout';
-import ImprovedAppLayout from '../ImprovedAppLayout';
+import {
+  LayoutProvider,
+  Container,
+  Grid,
+  GridItem,
+  useLayout,
+} from "../ResponsiveLayout";
+import ImprovedAppLayout from "../ImprovedAppLayout";
 
 // Mock the hooks and stores
-jest.mock('../../stores/appStore', () => ({
+jest.mock("../../stores/appStore", () => ({
   useAppStore: () => ({
     preferences: { sidebarCollapsed: false },
     updatePreferences: jest.fn(),
@@ -16,21 +22,21 @@ jest.mock('../../stores/appStore', () => ({
     setError: jest.fn(),
   }),
   useTheme: () => ({
-    effectiveTheme: 'light',
+    effectiveTheme: "light",
   }),
 }));
 
-jest.mock('../../hooks/useMediaQuery', () => ({
+jest.mock("../../hooks/useMediaQuery", () => ({
   useBreakpoint: () => ({
     isMobile: false,
     isTablet: false,
     isDesktop: true,
-    current: 'lg',
+    current: "lg",
   }),
   useMediaQuery: () => false,
 }));
 
-jest.mock('../../hooks/usePerformanceMonitor', () => ({
+jest.mock("../../hooks/usePerformanceMonitor", () => ({
   usePerformanceMonitor: () => ({
     metrics: {},
     alerts: [],
@@ -39,8 +45,9 @@ jest.mock('../../hooks/usePerformanceMonitor', () => ({
 
 // Test component that uses layout context
 const TestComponent: React.FC = () => {
-  const { sidebarWidth, contentMaxWidth, isCompactMode, sidebarState } = useLayout();
-  
+  const { sidebarWidth, contentMaxWidth, isCompactMode, sidebarState } =
+    useLayout();
+
   return (
     <div data-testid="test-component">
       <div data-testid="sidebar-width">{sidebarWidth}</div>
@@ -51,121 +58,125 @@ const TestComponent: React.FC = () => {
   );
 };
 
-describe('ResponsiveLayout', () => {
-  describe('LayoutProvider', () => {
-    it('provides layout context to children', () => {
+describe("ResponsiveLayout", () => {
+  describe("LayoutProvider", () => {
+    it("provides layout context to children", () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
-      expect(screen.getByTestId('sidebar-width')).toBeInTheDocument();
-      expect(screen.getByTestId('content-max-width')).toBeInTheDocument();
-      expect(screen.getByTestId('is-compact')).toBeInTheDocument();
-      expect(screen.getByTestId('sidebar-state')).toBeInTheDocument();
+      expect(screen.getByTestId("sidebar-width")).toBeInTheDocument();
+      expect(screen.getByTestId("content-max-width")).toBeInTheDocument();
+      expect(screen.getByTestId("is-compact")).toBeInTheDocument();
+      expect(screen.getByTestId("sidebar-state")).toBeInTheDocument();
     });
 
-    it('throws error when used outside provider', () => {
+    it("throws error when used outside provider", () => {
       // Suppress console.error for this test
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      
+      const consoleSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
       expect(() => {
         render(<TestComponent />);
-      }).toThrow('useLayout must be used within a LayoutProvider');
-      
+      }).toThrow("useLayout must be used within a LayoutProvider");
+
       consoleSpy.mockRestore();
     });
 
-    it('accepts initial sidebar state', () => {
+    it("accepts initial sidebar state", () => {
       render(
         <LayoutProvider initialSidebarState="collapsed">
           <TestComponent />
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
-      expect(screen.getByTestId('sidebar-state')).toHaveTextContent('collapsed');
+      expect(screen.getByTestId("sidebar-state")).toHaveTextContent(
+        "collapsed",
+      );
     });
   });
 
-  describe('Container', () => {
-    it('renders children with proper styling', () => {
+  describe("Container", () => {
+    it("renders children with proper styling", () => {
       render(
         <LayoutProvider>
           <Container data-testid="container">
             <div>Test content</div>
           </Container>
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
-      const container = screen.getByTestId('container');
+      const container = screen.getByTestId("container");
       expect(container).toBeInTheDocument();
-      expect(container).toHaveTextContent('Test content');
+      expect(container).toHaveTextContent("Test content");
     });
 
-    it('applies custom max-width when provided', () => {
+    it("applies custom max-width when provided", () => {
       render(
         <LayoutProvider>
           <Container maxWidth="800px" data-testid="container">
             Content
           </Container>
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
-      const container = screen.getByTestId('container');
+      const container = screen.getByTestId("container");
       expect(container).toBeInTheDocument();
     });
 
-    it('applies fluid width when specified', () => {
+    it("applies fluid width when specified", () => {
       render(
         <LayoutProvider>
           <Container fluid data-testid="container">
             Content
           </Container>
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
-      const container = screen.getByTestId('container');
+      const container = screen.getByTestId("container");
       expect(container).toBeInTheDocument();
     });
   });
 
-  describe('Grid', () => {
-    it('renders grid with children', () => {
+  describe("Grid", () => {
+    it("renders grid with children", () => {
       render(
         <LayoutProvider>
           <Grid data-testid="grid">
             <GridItem data-testid="grid-item">Item 1</GridItem>
             <GridItem data-testid="grid-item">Item 2</GridItem>
           </Grid>
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
-      const grid = screen.getByTestId('grid');
-      const items = screen.getAllByTestId('grid-item');
-      
+      const grid = screen.getByTestId("grid");
+      const items = screen.getAllByTestId("grid-item");
+
       expect(grid).toBeInTheDocument();
       expect(items).toHaveLength(2);
-      expect(items[0]).toHaveTextContent('Item 1');
-      expect(items[1]).toHaveTextContent('Item 2');
+      expect(items[0]).toHaveTextContent("Item 1");
+      expect(items[1]).toHaveTextContent("Item 2");
     });
 
-    it('handles responsive columns configuration', () => {
+    it("handles responsive columns configuration", () => {
       render(
         <LayoutProvider>
           <Grid columns={{ xs: 1, md: 2, lg: 3 }} data-testid="grid">
             <GridItem>Item</GridItem>
           </Grid>
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
-      const grid = screen.getByTestId('grid');
+      const grid = screen.getByTestId("grid");
       expect(grid).toBeInTheDocument();
     });
   });
 
-  describe('GridItem', () => {
-    it('renders with responsive span configuration', () => {
+  describe("GridItem", () => {
+    it("renders with responsive span configuration", () => {
       render(
         <LayoutProvider>
           <Grid>
@@ -173,73 +184,69 @@ describe('ResponsiveLayout', () => {
               Content
             </GridItem>
           </Grid>
-        </LayoutProvider>
+        </LayoutProvider>,
       );
 
-      const item = screen.getByTestId('grid-item');
+      const item = screen.getByTestId("grid-item");
       expect(item).toBeInTheDocument();
-      expect(item).toHaveTextContent('Content');
+      expect(item).toHaveTextContent("Content");
     });
   });
 });
 
-describe('ImprovedAppLayout', () => {
+describe("ImprovedAppLayout", () => {
   const renderWithRouter = (component: React.ReactElement) => {
-    return render(
-      <BrowserRouter>
-        {component}
-      </BrowserRouter>
-    );
+    return render(<BrowserRouter>{component}</BrowserRouter>);
   };
 
-  it('renders without crashing', () => {
+  it("renders without crashing", () => {
     renderWithRouter(<ImprovedAppLayout />);
-    
+
     // The layout should render even without specific content
     expect(document.body).toBeInTheDocument();
   });
 
-  it('applies theme to document element', async () => {
+  it("applies theme to document element", async () => {
     renderWithRouter(<ImprovedAppLayout />);
-    
+
     await waitFor(() => {
-      expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+      expect(document.documentElement).toHaveAttribute("data-theme", "light");
     });
   });
 });
 
 // Responsive behavior tests
-describe('Responsive Behavior', () => {
+describe("Responsive Behavior", () => {
   beforeEach(() => {
     // Reset window size
-    Object.defineProperty(window, 'innerWidth', {
+    Object.defineProperty(window, "innerWidth", {
       writable: true,
       configurable: true,
       value: 1024,
     });
-    
-    Object.defineProperty(window, 'innerHeight', {
+
+    Object.defineProperty(window, "innerHeight", {
       writable: true,
       configurable: true,
       value: 768,
     });
   });
 
-  it('adapts to mobile viewport', () => {
+  it("adapts to mobile viewport", () => {
     // Mock mobile viewport
-    Object.defineProperty(window, 'innerWidth', {
+    Object.defineProperty(window, "innerWidth", {
       writable: true,
       configurable: true,
       value: 375,
     });
 
     // Re-mock useBreakpoint for mobile
-    jest.doMock('../../hooks/useMediaQuery', () => ({
+    jest.doMock("../../hooks/useMediaQuery", () => ({
       useBreakpoint: () => ({
         isMobile: true,
         isTablet: false,
         isDesktop: false,
-        current: 'sm',
+        current: "sm",
       }),
       useMediaQuery: () => true,
     }));
@@ -247,23 +254,27 @@ describe('Responsive Behavior', () => {
     render(
       <LayoutProvider>
         <TestComponent />
-      </LayoutProvider>
+      </LayoutProvider>,
     );
 
     // Should adapt layout for mobile
-    expect(screen.getByTestId('test-component')).toBeInTheDocument();
+    expect(screen.getByTestId("test-component")).toBeInTheDocument();
   });
 
-  it('handles sidebar state changes', () => {
+  it("handles sidebar state changes", () => {
     const TestSidebarComponent: React.FC = () => {
       const { sidebarState, setSidebarState } = useLayout();
-      
+
       return (
         <div>
           <div data-testid="sidebar-state">{sidebarState}</div>
-          <button 
+          <button
             data-testid="toggle-sidebar"
-            onClick={() => setSidebarState(sidebarState === 'expanded' ? 'collapsed' : 'expanded')}
+            onClick={() =>
+              setSidebarState(
+                sidebarState === "expanded" ? "collapsed" : "expanded",
+              )
+            }
           >
             Toggle
           </button>
@@ -274,27 +285,27 @@ describe('Responsive Behavior', () => {
     render(
       <LayoutProvider>
         <TestSidebarComponent />
-      </LayoutProvider>
+      </LayoutProvider>,
     );
 
-    const toggleButton = screen.getByTestId('toggle-sidebar');
-    const sidebarState = screen.getByTestId('sidebar-state');
+    const toggleButton = screen.getByTestId("toggle-sidebar");
+    const sidebarState = screen.getByTestId("sidebar-state");
 
-    expect(sidebarState).toHaveTextContent('expanded');
-
-    fireEvent.click(toggleButton);
-    expect(sidebarState).toHaveTextContent('collapsed');
+    expect(sidebarState).toHaveTextContent("expanded");
 
     fireEvent.click(toggleButton);
-    expect(sidebarState).toHaveTextContent('expanded');
+    expect(sidebarState).toHaveTextContent("collapsed");
+
+    fireEvent.click(toggleButton);
+    expect(sidebarState).toHaveTextContent("expanded");
   });
 });
 
 // Performance tests
-describe('Performance', () => {
-  it('does not cause excessive re-renders', () => {
+describe("Performance", () => {
+  it("does not cause excessive re-renders", () => {
     const renderSpy = jest.fn();
-    
+
     const TestPerformanceComponent: React.FC = () => {
       renderSpy();
       const { sidebarWidth } = useLayout();
@@ -304,7 +315,7 @@ describe('Performance', () => {
     const { rerender } = render(
       <LayoutProvider>
         <TestPerformanceComponent />
-      </LayoutProvider>
+      </LayoutProvider>,
     );
 
     expect(renderSpy).toHaveBeenCalledTimes(1);
@@ -313,7 +324,7 @@ describe('Performance', () => {
     rerender(
       <LayoutProvider>
         <TestPerformanceComponent />
-      </LayoutProvider>
+      </LayoutProvider>,
     );
 
     // Should still be 1 if memoization is working correctly
@@ -323,8 +334,8 @@ describe('Performance', () => {
 });
 
 // Accessibility tests
-describe('Accessibility', () => {
-  it('maintains proper semantic structure', () => {
+describe("Accessibility", () => {
+  it("maintains proper semantic structure", () => {
     render(
       <LayoutProvider>
         <Container>
@@ -333,24 +344,24 @@ describe('Accessibility', () => {
             <p>Content</p>
           </main>
         </Container>
-      </LayoutProvider>
+      </LayoutProvider>,
     );
 
-    expect(screen.getByRole('main')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("main")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
   });
 
-  it('supports keyboard navigation', () => {
+  it("supports keyboard navigation", () => {
     const TestKeyboardComponent: React.FC = () => {
       const { setSidebarState } = useLayout();
-      
+
       return (
-        <button 
+        <button
           data-testid="keyboard-button"
-          onClick={() => setSidebarState('collapsed')}
+          onClick={() => setSidebarState("collapsed")}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              setSidebarState('collapsed');
+            if (e.key === "Enter" || e.key === " ") {
+              setSidebarState("collapsed");
             }
           }}
         >
@@ -362,17 +373,17 @@ describe('Accessibility', () => {
     render(
       <LayoutProvider>
         <TestKeyboardComponent />
-      </LayoutProvider>
+      </LayoutProvider>,
     );
 
-    const button = screen.getByTestId('keyboard-button');
-    
+    const button = screen.getByTestId("keyboard-button");
+
     // Should be focusable
     button.focus();
     expect(button).toHaveFocus();
 
     // Should respond to keyboard events
-    fireEvent.keyDown(button, { key: 'Enter' });
+    fireEvent.keyDown(button, { key: "Enter" });
     // Test passes if no errors are thrown
   });
 });

@@ -1,57 +1,66 @@
-import { css } from '@emotion/react';
-import { designTokens } from './designTokens';
+import { css } from "@emotion/react";
+import { designTokens } from "./designTokens";
 
 // Button Styles
-export const getButtonStyles = (variant: 'primary' | 'secondary' | 'outline' | 'ghost' = 'primary', size: 'sm' | 'md' | 'lg' = 'md') => css`
+export const getButtonStyles = (
+  variant: "primary" | "secondary" | "outline" | "ghost" = "primary",
+  size: "sm" | "md" | "lg" = "md",
+) => css`
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: ${designTokens.spacing[2]};
   border-radius: ${designTokens.borderRadius.md};
   font-weight: ${designTokens.typography.fontWeight.medium};
-  transition: all ${designTokens.animation.duration.normal} ${designTokens.animation.easing.easeInOut};
+  transition: all ${designTokens.animation.duration.normal}
+    ${designTokens.animation.easing.easeInOut};
   cursor: pointer;
   border: 1px solid transparent;
   text-decoration: none;
-  
-  ${size === 'sm' && css`
+
+  ${size === "sm" &&
+  css`
     padding: ${designTokens.spacing[2]} ${designTokens.spacing[3]};
     font-size: ${designTokens.typography.fontSize.sm};
     min-height: 32px;
   `}
-  
-  ${size === 'md' && css`
+
+  ${size === "md" &&
+  css`
     padding: ${designTokens.spacing[3]} ${designTokens.spacing[4]};
     font-size: ${designTokens.typography.fontSize.base};
     min-height: 40px;
   `}
   
-  ${size === 'lg' && css`
+  ${size === "lg" &&
+  css`
     padding: ${designTokens.spacing[4]} ${designTokens.spacing[6]};
     font-size: ${designTokens.typography.fontSize.lg};
     min-height: 48px;
   `}
   
-  ${variant === 'primary' && css`
+  ${variant === "primary" &&
+  css`
     background-color: ${designTokens.colors.primary[500]};
     color: ${designTokens.colors.neutral[0]};
-    
+
     &:hover {
       background-color: ${designTokens.colors.primary[600]};
       transform: translateY(-1px);
       box-shadow: ${designTokens.shadows.md};
     }
-    
+
     &:active {
       background-color: ${designTokens.colors.primary[700]};
       transform: translateY(0);
     }
   `}
   
-  ${variant === 'secondary' && css`
+  ${variant === "secondary" &&
+  css`
     background-color: ${designTokens.colors.secondary[100]};
     color: ${designTokens.colors.secondary[700]};
-    
+
     &:hover {
       background-color: ${designTokens.colors.secondary[200]};
       transform: translateY(-1px);
@@ -59,21 +68,23 @@ export const getButtonStyles = (variant: 'primary' | 'secondary' | 'outline' | '
     }
   `}
   
-  ${variant === 'outline' && css`
+  ${variant === "outline" &&
+  css`
     background-color: transparent;
     color: ${designTokens.colors.primary[600]};
     border-color: ${designTokens.colors.primary[300]};
-    
+
     &:hover {
       background-color: ${designTokens.colors.primary[50]};
       border-color: ${designTokens.colors.primary[400]};
     }
   `}
   
-  ${variant === 'ghost' && css`
+  ${variant === "ghost" &&
+  css`
     background-color: transparent;
     color: ${designTokens.colors.secondary[700]};
-    
+
     &:hover {
       background-color: ${designTokens.colors.secondary[100]};
     }
@@ -87,27 +98,33 @@ export const getButtonStyles = (variant: 'primary' | 'secondary' | 'outline' | '
 `;
 
 // Card Styles
-export const getCardStyles = (variant: 'default' | 'elevated' | 'outlined' = 'default') => css`
+export const getCardStyles = (
+  variant: "default" | "elevated" | "outlined" = "default",
+) => css`
   background-color: ${designTokens.colors.neutral[0]};
   border-radius: ${designTokens.borderRadius.lg};
   overflow: hidden;
-  
-  ${variant === 'default' && css`
+
+  ${variant === "default" &&
+  css`
     box-shadow: ${designTokens.shadows.sm};
   `}
-  
-  ${variant === 'elevated' && css`
+
+  ${variant === "elevated" &&
+  css`
     box-shadow: ${designTokens.shadows.lg};
   `}
   
-  ${variant === 'outlined' && css`
+  ${variant === "outlined" &&
+  css`
     border: 1px solid ${designTokens.colors.neutral[200]};
     box-shadow: none;
   `}
 `;
 
 export const cardHeaderStyles = css`
-  padding: ${designTokens.spacing[6]} ${designTokens.spacing[6]} ${designTokens.spacing[4]};
+  padding: ${designTokens.spacing[6]} ${designTokens.spacing[6]}
+    ${designTokens.spacing[4]};
   border-bottom: 1px solid ${designTokens.colors.neutral[200]};
 `;
 
@@ -130,7 +147,8 @@ export const cardContentStyles = css`
 `;
 
 export const cardFooterStyles = css`
-  padding: ${designTokens.spacing[4]} ${designTokens.spacing[6]} ${designTokens.spacing[6]};
+  padding: ${designTokens.spacing[4]} ${designTokens.spacing[6]}
+    ${designTokens.spacing[6]};
   border-top: 1px solid ${designTokens.colors.neutral[200]};
   display: flex;
   align-items: center;
@@ -147,7 +165,7 @@ export const performanceDashboardGridStyles = css`
 `;
 
 export const getPerformanceScoreStyles = (scoreColor: string) => css`
-  font-size: ${designTokens.typography.fontSize['3xl']};
+  font-size: ${designTokens.typography.fontSize["3xl"]};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: ${scoreColor};
   text-align: center;
@@ -255,7 +273,7 @@ export const commandPaletteInputStyles = css`
   font-size: ${designTokens.typography.fontSize.base};
   outline: none;
   background: transparent;
-  
+
   &::placeholder {
     color: ${designTokens.colors.neutral[500]};
   }
@@ -282,12 +300,13 @@ export const getCommandPaletteItemStyles = (isSelected: boolean) => css`
   padding: ${designTokens.spacing[3]} ${designTokens.spacing[4]};
   cursor: pointer;
   border-bottom: 1px solid ${designTokens.colors.neutral[100]};
-  
-  ${isSelected && css`
+
+  ${isSelected &&
+  css`
     background-color: ${designTokens.colors.primary[50]};
     border-left: 3px solid ${designTokens.colors.primary[500]};
   `}
-  
+
   &:hover {
     background-color: ${designTokens.colors.neutral[50]};
   }
@@ -348,37 +367,46 @@ export const loadingSpinnerContainerStyles = css`
   gap: ${designTokens.spacing[3]};
 `;
 
-export const getLoadingSpinnerStyles = (size: 'sm' | 'md' | 'lg' = 'md') => css`
+export const getLoadingSpinnerStyles = (size: "sm" | "md" | "lg" = "md") => css`
   border: 2px solid ${designTokens.colors.neutral[200]};
   border-top: 2px solid ${designTokens.colors.primary[500]};
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  
-  ${size === 'sm' && css`
+
+  ${size === "sm" &&
+  css`
     width: 16px;
     height: 16px;
   `}
-  
-  ${size === 'md' && css`
+
+  ${size === "md" &&
+  css`
     width: 24px;
     height: 24px;
   `}
   
-  ${size === 'lg' && css`
+  ${size === "lg" &&
+  css`
     width: 32px;
     height: 32px;
   `}
   
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
-export const getLoadingDotsStyles = (color: string = designTokens.colors.primary[500]) => css`
+export const getLoadingDotsStyles = (
+  color: string = designTokens.colors.primary[500],
+) => css`
   display: flex;
   gap: ${designTokens.spacing[1]};
-  
+
   & > div {
     width: 8px;
     height: 8px;
@@ -386,12 +414,18 @@ export const getLoadingDotsStyles = (color: string = designTokens.colors.primary
     border-radius: 50%;
     animation: loadingDots 1.4s ease-in-out infinite both;
   }
-  
-  & > div:nth-of-type(1) { animation-delay: -0.32s; }
-  & > div:nth-of-type(2) { animation-delay: -0.16s; }
-  
+
+  & > div:nth-of-type(1) {
+    animation-delay: -0.32s;
+  }
+  & > div:nth-of-type(2) {
+    animation-delay: -0.16s;
+  }
+
   @keyframes loadingDots {
-    0%, 80%, 100% {
+    0%,
+    80%,
+    100% {
       transform: scale(0);
     }
     40% {
@@ -400,13 +434,15 @@ export const getLoadingDotsStyles = (color: string = designTokens.colors.primary
   }
 `;
 
-export const getLoadingPulseStyles = (color: string = designTokens.colors.primary[500]) => css`
+export const getLoadingPulseStyles = (
+  color: string = designTokens.colors.primary[500],
+) => css`
   width: 40px;
   height: 40px;
   background-color: ${color};
   border-radius: 50%;
-  animation: loadingPulse 1.0s ease-in-out infinite;
-  
+  animation: loadingPulse 1s ease-in-out infinite;
+
   @keyframes loadingPulse {
     0% {
       transform: scale(0);
@@ -418,35 +454,49 @@ export const getLoadingPulseStyles = (color: string = designTokens.colors.primar
   }
 `;
 
-export const getLoadingBarsStyles = (color: string = designTokens.colors.primary[500]) => css`
+export const getLoadingBarsStyles = (
+  color: string = designTokens.colors.primary[500],
+) => css`
   display: flex;
   gap: ${designTokens.spacing[1]};
-  
+
   & > div {
     width: 4px;
     height: 20px;
     background-color: ${color};
     animation: loadingBars 1.2s ease-in-out infinite;
   }
-  
-  & > div:nth-of-type(1) { animation-delay: -1.1s; }
-  & > div:nth-of-type(2) { animation-delay: -1.0s; }
-  & > div:nth-of-type(3) { animation-delay: -0.9s; }
-  
+
+  & > div:nth-of-type(1) {
+    animation-delay: -1.1s;
+  }
+  & > div:nth-of-type(2) {
+    animation-delay: -1s;
+  }
+  & > div:nth-of-type(3) {
+    animation-delay: -0.9s;
+  }
+
   @keyframes loadingBars {
-    0%, 40%, 100% {
+    0%,
+    40%,
+    100% {
       transform: scaleY(0.4);
     }
     20% {
-      transform: scaleY(1.0);
+      transform: scaleY(1);
     }
   }
 `;
 
-export const getLoadingSpinnerTextStyles = (size: 'sm' | 'md' | 'lg' = 'md') => css`
-  font-size: ${size === 'sm' ? designTokens.typography.fontSize.sm : 
-              size === 'lg' ? designTokens.typography.fontSize.lg : 
-              designTokens.typography.fontSize.base};
+export const getLoadingSpinnerTextStyles = (
+  size: "sm" | "md" | "lg" = "md",
+) => css`
+  font-size: ${size === "sm"
+    ? designTokens.typography.fontSize.sm
+    : size === "lg"
+      ? designTokens.typography.fontSize.lg
+      : designTokens.typography.fontSize.base};
   color: ${designTokens.colors.neutral[600]};
   text-align: center;
 `;
@@ -466,31 +516,35 @@ export const modalOverlayStyles = css`
   padding: ${designTokens.spacing[4]};
 `;
 
-export const getModalStyles = (size: 'sm' | 'md' | 'lg' | 'xl' = 'md') => css`
+export const getModalStyles = (size: "sm" | "md" | "lg" | "xl" = "md") => css`
   background-color: ${designTokens.colors.neutral[0]};
   border-radius: ${designTokens.borderRadius.lg};
-  box-shadow: ${designTokens.shadows['2xl']};
+  box-shadow: ${designTokens.shadows["2xl"]};
   max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  
-  ${size === 'sm' && css`
+
+  ${size === "sm" &&
+  css`
     width: 100%;
     max-width: 400px;
   `}
-  
-  ${size === 'md' && css`
+
+  ${size === "md" &&
+  css`
     width: 100%;
     max-width: 500px;
   `}
   
-  ${size === 'lg' && css`
+  ${size === "lg" &&
+  css`
     width: 100%;
     max-width: 700px;
   `}
   
-  ${size === 'xl' && css`
+  ${size === "xl" &&
+  css`
     width: 100%;
     max-width: 900px;
   `}
@@ -518,7 +572,8 @@ export const modalContentStyles = css`
 `;
 
 export const modalFooterStyles = css`
-  padding: ${designTokens.spacing[4]} ${designTokens.spacing[6]} ${designTokens.spacing[6]};
+  padding: ${designTokens.spacing[4]} ${designTokens.spacing[6]}
+    ${designTokens.spacing[6]};
   border-top: 1px solid ${designTokens.colors.neutral[200]};
   display: flex;
   align-items: center;
@@ -534,7 +589,7 @@ export const modalCloseButtonStyles = css`
   cursor: pointer;
   padding: ${designTokens.spacing[1]};
   border-radius: ${designTokens.borderRadius.sm};
-  
+
   &:hover {
     background-color: ${designTokens.colors.neutral[100]};
     color: ${designTokens.colors.neutral[700]};
@@ -542,36 +597,48 @@ export const modalCloseButtonStyles = css`
 `;
 
 // Notification Styles
-export const getNotificationContainerStyles = (position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' = 'top-right') => css`
+export const getNotificationContainerStyles = (
+  position:
+    | "top-right"
+    | "top-left"
+    | "bottom-right"
+    | "bottom-left" = "top-right",
+) => css`
   position: fixed;
   z-index: ${designTokens.zIndex.toast};
   display: flex;
   flex-direction: column;
   gap: ${designTokens.spacing[2]};
   max-width: 400px;
-  
-  ${position === 'top-right' && css`
+
+  ${position === "top-right" &&
+  css`
     top: ${designTokens.spacing[4]};
     right: ${designTokens.spacing[4]};
   `}
-  
-  ${position === 'top-left' && css`
+
+  ${position === "top-left" &&
+  css`
     top: ${designTokens.spacing[4]};
     left: ${designTokens.spacing[4]};
   `}
   
-  ${position === 'bottom-right' && css`
+  ${position === "bottom-right" &&
+  css`
     bottom: ${designTokens.spacing[4]};
     right: ${designTokens.spacing[4]};
   `}
   
-  ${position === 'bottom-left' && css`
+  ${position === "bottom-left" &&
+  css`
     bottom: ${designTokens.spacing[4]};
     left: ${designTokens.spacing[4]};
   `}
 `;
 
-export const getNotificationItemStyles = (type: 'success' | 'error' | 'warning' | 'info' = 'info') => css`
+export const getNotificationItemStyles = (
+  type: "success" | "error" | "warning" | "info" = "info",
+) => css`
   background-color: ${designTokens.colors.neutral[0]};
   border-radius: ${designTokens.borderRadius.md};
   box-shadow: ${designTokens.shadows.lg};
@@ -581,25 +648,31 @@ export const getNotificationItemStyles = (type: 'success' | 'error' | 'warning' 
   gap: ${designTokens.spacing[3]};
   min-width: 300px;
   border-left: 4px solid;
-  
-  ${type === 'success' && css`
+
+  ${type === "success" &&
+  css`
     border-left-color: ${designTokens.colors.semantic.success[500]};
   `}
-  
-  ${type === 'error' && css`
+
+  ${type === "error" &&
+  css`
     border-left-color: ${designTokens.colors.semantic.error[500]};
   `}
   
-  ${type === 'warning' && css`
+  ${type === "warning" &&
+  css`
     border-left-color: ${designTokens.colors.semantic.warning[500]};
   `}
   
-  ${type === 'info' && css`
+  ${type === "info" &&
+  css`
     border-left-color: ${designTokens.colors.semantic.info[500]};
   `}
 `;
 
-export const getNotificationIconStyles = (type: 'success' | 'error' | 'warning' | 'info' = 'info') => css`
+export const getNotificationIconStyles = (
+  type: "success" | "error" | "warning" | "info" = "info",
+) => css`
   width: 20px;
   height: 20px;
   display: flex;
@@ -607,23 +680,27 @@ export const getNotificationIconStyles = (type: 'success' | 'error' | 'warning' 
   justify-content: center;
   border-radius: 50%;
   flex-shrink: 0;
-  
-  ${type === 'success' && css`
+
+  ${type === "success" &&
+  css`
     background-color: ${designTokens.colors.semantic.success[100]};
     color: ${designTokens.colors.semantic.success[600]};
   `}
-  
-  ${type === 'error' && css`
+
+  ${type === "error" &&
+  css`
     background-color: ${designTokens.colors.semantic.error[100]};
     color: ${designTokens.colors.semantic.error[600]};
   `}
   
-  ${type === 'warning' && css`
+  ${type === "warning" &&
+  css`
     background-color: ${designTokens.colors.semantic.warning[100]};
     color: ${designTokens.colors.semantic.warning[600]};
   `}
   
-  ${type === 'info' && css`
+  ${type === "info" &&
+  css`
     background-color: ${designTokens.colors.semantic.info[100]};
     color: ${designTokens.colors.semantic.info[600]};
   `}
@@ -661,7 +738,7 @@ export const notificationCloseButtonStyles = css`
   padding: ${designTokens.spacing[1]};
   border-radius: ${designTokens.borderRadius.sm};
   flex-shrink: 0;
-  
+
   &:hover {
     background-color: ${designTokens.colors.neutral[100]};
     color: ${designTokens.colors.neutral[700]};
@@ -686,28 +763,37 @@ export const pageTransitionContainerStyles = css`
   height: 100%;
 `;
 
-export const getPageTransitionContentStyles = (type: 'fade' | 'slide' | 'scale' = 'fade', isEntering: boolean = true) => css`
+export const getPageTransitionContentStyles = (
+  type: "fade" | "slide" | "scale" = "fade",
+  isEntering: boolean = true,
+) => css`
   width: 100%;
   height: 100%;
-  transition: all ${designTokens.animation.duration.normal} ${designTokens.animation.easing.easeInOut};
-  
-  ${type === 'fade' && css`
+  transition: all ${designTokens.animation.duration.normal}
+    ${designTokens.animation.easing.easeInOut};
+
+  ${type === "fade" &&
+  css`
+    opacity: ${isEntering ? 1 : 0};
+  `}
+
+  ${type === "slide" &&
+  css`
+    transform: translateX(${isEntering ? "0" : "20px"});
     opacity: ${isEntering ? 1 : 0};
   `}
   
-  ${type === 'slide' && css`
-    transform: translateX(${isEntering ? '0' : '20px'});
-    opacity: ${isEntering ? 1 : 0};
-  `}
-  
-  ${type === 'scale' && css`
+  ${type === "scale" &&
+  css`
     transform: scale(${isEntering ? 1 : 0.95});
     opacity: ${isEntering ? 1 : 0};
   `}
 `;
 
 // Toast Styles
-export const getToastItemStyles = (type: 'success' | 'error' | 'warning' | 'info' = 'info') => css`
+export const getToastItemStyles = (
+  type: "success" | "error" | "warning" | "info" = "info",
+) => css`
   background-color: ${designTokens.colors.neutral[0]};
   border-radius: ${designTokens.borderRadius.md};
   box-shadow: ${designTokens.shadows.lg};
@@ -718,25 +804,31 @@ export const getToastItemStyles = (type: 'success' | 'error' | 'warning' | 'info
   min-width: 300px;
   max-width: 500px;
   border-left: 4px solid;
-  
-  ${type === 'success' && css`
+
+  ${type === "success" &&
+  css`
     border-left-color: ${designTokens.colors.semantic.success[500]};
   `}
-  
-  ${type === 'error' && css`
+
+  ${type === "error" &&
+  css`
     border-left-color: ${designTokens.colors.semantic.error[500]};
   `}
   
-  ${type === 'warning' && css`
+  ${type === "warning" &&
+  css`
     border-left-color: ${designTokens.colors.semantic.warning[500]};
   `}
   
-  ${type === 'info' && css`
+  ${type === "info" &&
+  css`
     border-left-color: ${designTokens.colors.semantic.info[500]};
   `}
 `;
 
-export const getToastIconStyles = (type: 'success' | 'error' | 'warning' | 'info' = 'info') => css`
+export const getToastIconStyles = (
+  type: "success" | "error" | "warning" | "info" = "info",
+) => css`
   width: 20px;
   height: 20px;
   display: flex;
@@ -744,23 +836,27 @@ export const getToastIconStyles = (type: 'success' | 'error' | 'warning' | 'info
   justify-content: center;
   border-radius: 50%;
   flex-shrink: 0;
-  
-  ${type === 'success' && css`
+
+  ${type === "success" &&
+  css`
     background-color: ${designTokens.colors.semantic.success[100]};
     color: ${designTokens.colors.semantic.success[600]};
   `}
-  
-  ${type === 'error' && css`
+
+  ${type === "error" &&
+  css`
     background-color: ${designTokens.colors.semantic.error[100]};
     color: ${designTokens.colors.semantic.error[600]};
   `}
   
-  ${type === 'warning' && css`
+  ${type === "warning" &&
+  css`
     background-color: ${designTokens.colors.semantic.warning[100]};
     color: ${designTokens.colors.semantic.warning[600]};
   `}
   
-  ${type === 'info' && css`
+  ${type === "info" &&
+  css`
     background-color: ${designTokens.colors.semantic.info[100]};
     color: ${designTokens.colors.semantic.info[600]};
   `}
@@ -792,7 +888,7 @@ export const toastActionButtonStyles = css`
   font-weight: ${designTokens.typography.fontWeight.medium};
   padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
   border-radius: ${designTokens.borderRadius.sm};
-  
+
   &:hover {
     background-color: ${designTokens.colors.primary[50]};
   }
@@ -806,7 +902,7 @@ export const toastCloseButtonStyles = css`
   padding: ${designTokens.spacing[1]};
   border-radius: ${designTokens.borderRadius.sm};
   flex-shrink: 0;
-  
+
   &:hover {
     background-color: ${designTokens.colors.neutral[100]};
     color: ${designTokens.colors.neutral[700]};
@@ -815,7 +911,7 @@ export const toastCloseButtonStyles = css`
 
 export const toastInAnimation = css`
   animation: toastSlideIn 0.3s ease-out;
-  
+
   @keyframes toastSlideIn {
     from {
       transform: translateX(100%);
@@ -830,7 +926,7 @@ export const toastInAnimation = css`
 
 export const toastOutAnimation = css`
   animation: toastSlideOut 0.3s ease-in;
-  
+
   @keyframes toastSlideOut {
     from {
       transform: translateX(0);

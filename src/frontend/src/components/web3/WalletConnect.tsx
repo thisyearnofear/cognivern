@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { css } from '@emotion/react';
-import { designTokens, tradingStyles } from '../../styles/designTokens';
+import { useState, useEffect } from "react";
+import { css } from "@emotion/react";
+import { designTokens, tradingStyles } from "../../styles/designTokens";
 
 interface WalletConnectProps {
   onConnect: (address: string) => void;
@@ -13,44 +13,51 @@ declare global {
   }
 }
 
-export default function WalletConnect({ onConnect, onDisconnect }: WalletConnectProps) {
+export default function WalletConnect({
+  onConnect,
+  onDisconnect,
+}: WalletConnectProps) {
   const [isConnected, setIsConnected] = useState(false);
-  const [address, setAddress] = useState<string>('');
+  const [address, setAddress] = useState<string>("");
   const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     checkConnection();
   }, []);
 
   const checkConnection = async () => {
-    if (typeof window.ethereum !== 'undefined') {
+    if (typeof window.ethereum !== "undefined") {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        const accounts = await window.ethereum.request({
+          method: "eth_accounts",
+        });
         if (accounts.length > 0) {
           setAddress(accounts[0]);
           setIsConnected(true);
           onConnect(accounts[0]);
         }
       } catch (error) {
-        console.error('Error checking wallet connection:', error);
+        console.error("Error checking wallet connection:", error);
       }
     }
   };
 
   const connectWallet = async () => {
-    if (typeof window.ethereum === 'undefined') {
-      setError('MetaMask is not installed. Please install MetaMask to continue.');
+    if (typeof window.ethereum === "undefined") {
+      setError(
+        "MetaMask is not installed. Please install MetaMask to continue.",
+      );
       return;
     }
 
     setIsConnecting(true);
-    setError('');
+    setError("");
 
     try {
       // Request account access
       const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts',
+        method: "eth_requestAccounts",
       });
 
       if (accounts.length > 0) {
@@ -62,42 +69,42 @@ export default function WalletConnect({ onConnect, onDisconnect }: WalletConnect
         // Switch to Filecoin Calibration testnet
         try {
           await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x4cb2f' }], // 314159 in hex (Filecoin Calibration)
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: "0x4cb2f" }], // 314159 in hex (Filecoin Calibration)
           });
         } catch (switchError: any) {
           // If the chain doesn't exist, add it
           if (switchError.code === 4902) {
             try {
               await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
+                method: "wallet_addEthereumChain",
                 params: [
                   {
-                    chainId: '0x4cb2f',
-                    chainName: 'Filecoin Calibration',
+                    chainId: "0x4cb2f",
+                    chainName: "Filecoin Calibration",
                     nativeCurrency: {
-                      name: 'Filecoin',
-                      symbol: 'FIL',
+                      name: "Filecoin",
+                      symbol: "FIL",
                       decimals: 18,
                     },
-                    rpcUrls: ['https://api.calibration.node.glif.io/rpc/v1'],
-                    blockExplorerUrls: ['https://calibration.filscan.io/'],
+                    rpcUrls: ["https://api.calibration.node.glif.io/rpc/v1"],
+                    blockExplorerUrls: ["https://calibration.filscan.io/"],
                   },
                 ],
               });
             } catch (addError) {
-              console.error('Error adding Filecoin network:', addError);
-              setError('Failed to add Filecoin network to wallet');
+              console.error("Error adding Filecoin network:", addError);
+              setError("Failed to add Filecoin network to wallet");
             }
           } else {
-            console.error('Error switching to Filecoin network:', switchError);
-            setError('Failed to switch to Filecoin network');
+            console.error("Error switching to Filecoin network:", switchError);
+            setError("Failed to switch to Filecoin network");
           }
         }
       }
     } catch (error: any) {
-      console.error('Error connecting wallet:', error);
-      setError(error.message || 'Failed to connect wallet');
+      console.error("Error connecting wallet:", error);
+      setError(error.message || "Failed to connect wallet");
     } finally {
       setIsConnecting(false);
     }
@@ -105,8 +112,8 @@ export default function WalletConnect({ onConnect, onDisconnect }: WalletConnect
 
   const disconnectWallet = () => {
     setIsConnected(false);
-    setAddress('');
-    setError('');
+    setAddress("");
+    setError("");
     onDisconnect();
   };
 
@@ -140,9 +147,9 @@ export default function WalletConnect({ onConnect, onDisconnect }: WalletConnect
           <span>⚠️ {error}</span>
         </div>
       )}
-      
-      <button 
-        className={`connect-btn ${isConnecting ? 'connecting' : ''}`}
+
+      <button
+        className={`connect-btn ${isConnecting ? "connecting" : ""}`}
         onClick={connectWallet}
         disabled={isConnecting}
       >
@@ -152,18 +159,16 @@ export default function WalletConnect({ onConnect, onDisconnect }: WalletConnect
             Connecting...
           </>
         ) : (
-          <>
-            🦊 Connect Wallet
-          </>
+          <>🦊 Connect Wallet</>
         )}
       </button>
-      
-      {typeof window.ethereum === 'undefined' && (
+
+      {typeof window.ethereum === "undefined" && (
         <div className="install-metamask">
           <p>Need MetaMask?</p>
-          <a 
-            href="https://metamask.io/download/" 
-            target="_blank" 
+          <a
+            href="https://metamask.io/download/"
+            target="_blank"
             rel="noopener noreferrer"
             className="install-link"
           >

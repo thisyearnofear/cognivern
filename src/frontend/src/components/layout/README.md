@@ -5,6 +5,7 @@ This document outlines the improved responsive layout architecture for the Cogni
 ## Overview
 
 The new layout system provides:
+
 - **Consistent viewport utilization** across all screen sizes
 - **Reliable sidebar behavior** with proper responsive states
 - **Modular layout components** for reusable patterns
@@ -16,6 +17,7 @@ The new layout system provides:
 ### Core Components
 
 #### 1. ResponsiveLayout.tsx
+
 The foundation of the responsive system, providing:
 
 - **LayoutProvider**: Context provider for layout state management
@@ -25,7 +27,7 @@ The foundation of the responsive system, providing:
 - **Spacer**: Consistent spacing component
 
 ```tsx
-import { LayoutProvider, Container, Grid, GridItem } from './ResponsiveLayout';
+import { LayoutProvider, Container, Grid, GridItem } from "./ResponsiveLayout";
 
 // Usage example
 <LayoutProvider>
@@ -34,10 +36,11 @@ import { LayoutProvider, Container, Grid, GridItem } from './ResponsiveLayout';
       <GridItem span={{ xs: 1, lg: 2 }}>Content</GridItem>
     </Grid>
   </Container>
-</LayoutProvider>
+</LayoutProvider>;
 ```
 
 #### 2. ImprovedAppLayout.tsx
+
 Enhanced main layout component featuring:
 
 - **Responsive grid system** that adapts to screen size
@@ -46,6 +49,7 @@ Enhanced main layout component featuring:
 - **Accessibility features** including focus management
 
 #### 3. ImprovedSidebar.tsx
+
 Redesigned sidebar with:
 
 - **Consistent visibility states**: expanded, collapsed, hidden, overlay
@@ -54,6 +58,7 @@ Redesigned sidebar with:
 - **Smooth animations** and transitions
 
 #### 4. ContentWrapper.tsx
+
 Specialized wrapper components:
 
 - **ContentWrapper**: General-purpose content container
@@ -67,23 +72,25 @@ The system uses a mobile-first approach with the following breakpoints:
 
 ```typescript
 const breakpoints = {
-  sm: '640px',   // Small tablets and large phones
-  md: '768px',   // Tablets
-  lg: '1024px',  // Small desktops
-  xl: '1280px',  // Large desktops
-  '2xl': '1536px' // Extra large screens
+  sm: "640px", // Small tablets and large phones
+  md: "768px", // Tablets
+  lg: "1024px", // Small desktops
+  xl: "1280px", // Large desktops
+  "2xl": "1536px", // Extra large screens
 };
 ```
 
 ### Layout States
 
 #### Sidebar States
+
 - **expanded**: Full width sidebar (280-320px depending on screen size)
 - **collapsed**: Minimal sidebar (80px) with icons only
 - **hidden**: Sidebar completely hidden (mobile)
 - **overlay**: Sidebar overlays content (tablet touch devices)
 
 #### Responsive Behavior
+
 - **Mobile (< 1024px)**: Sidebar hidden by default, overlay when opened
 - **Tablet (768px - 1024px)**: Collapsed sidebar or overlay for touch devices
 - **Desktop (≥ 1024px)**: Expanded sidebar with collapse option
@@ -93,7 +100,7 @@ const breakpoints = {
 ### Basic Layout Setup
 
 ```tsx
-import { ImprovedAppLayout } from './components/layout/ImprovedAppLayout';
+import { ImprovedAppLayout } from "./components/layout/ImprovedAppLayout";
 
 function App() {
   return (
@@ -112,7 +119,11 @@ function App() {
 ### Dashboard with Responsive Grid
 
 ```tsx
-import { DashboardWrapper, Grid, GridItem } from './components/layout/ResponsiveLayout';
+import {
+  DashboardWrapper,
+  Grid,
+  GridItem,
+} from "./components/layout/ResponsiveLayout";
 
 function Dashboard() {
   return (
@@ -122,9 +133,15 @@ function Dashboard() {
       actions={<Button>New Agent</Button>}
     >
       <Grid columns={{ xs: 1, sm: 2, lg: 4 }}>
-        <GridItem><MetricCard /></GridItem>
-        <GridItem><MetricCard /></GridItem>
-        <GridItem span={{ xs: 1, lg: 2 }}><ChartCard /></GridItem>
+        <GridItem>
+          <MetricCard />
+        </GridItem>
+        <GridItem>
+          <MetricCard />
+        </GridItem>
+        <GridItem span={{ xs: 1, lg: 2 }}>
+          <ChartCard />
+        </GridItem>
       </Grid>
     </DashboardWrapper>
   );
@@ -134,24 +151,20 @@ function Dashboard() {
 ### Custom Responsive Component
 
 ```tsx
-import { useLayout } from './components/layout/ResponsiveLayout';
-import { responsive } from './utils/responsive';
+import { useLayout } from "./components/layout/ResponsiveLayout";
+import { responsive } from "./utils/responsive";
 
 function CustomComponent() {
   const { isCompactMode, sidebarState } = useLayout();
-  
+
   const columns = responsive.getValue({
     sm: 1,
     md: 2,
-    lg: sidebarState === 'expanded' ? 2 : 3,
-    xl: 4
+    lg: sidebarState === "expanded" ? 2 : 3,
+    xl: 4,
   });
-  
-  return (
-    <Grid columns={columns}>
-      {/* Content */}
-    </Grid>
-  );
+
+  return <Grid columns={columns}>{/* Content */}</Grid>;
 }
 ```
 
@@ -160,8 +173,9 @@ function CustomComponent() {
 ### Responsive Utilities (`utils/responsive.ts`)
 
 #### Viewport Detection
+
 ```typescript
-import { viewport } from './utils/responsive';
+import { viewport } from "./utils/responsive";
 
 // Check current breakpoint
 const breakpoint = viewport.getCurrentBreakpoint(); // 'sm' | 'md' | 'lg' | 'xl' | '2xl'
@@ -174,27 +188,29 @@ const isTouch = viewport.isTouch();
 ```
 
 #### Responsive Values
+
 ```typescript
-import { responsive } from './utils/responsive';
+import { responsive } from "./utils/responsive";
 
 // Get value based on current breakpoint
 const padding = responsive.getValue({
-  sm: '16px',
-  md: '24px',
-  lg: '32px'
+  sm: "16px",
+  md: "24px",
+  lg: "32px",
 });
 
 // Generate responsive CSS
-const css = responsive.css('padding', {
-  sm: '16px',
-  md: '24px',
-  lg: '32px'
+const css = responsive.css("padding", {
+  sm: "16px",
+  md: "24px",
+  lg: "32px",
 });
 ```
 
 #### Layout Calculations
+
 ```typescript
-import { layout } from './utils/responsive';
+import { layout } from "./utils/responsive";
 
 // Get optimal layout configuration
 const config = layout.getOptimalLayout(800); // min content width
@@ -207,17 +223,21 @@ const shouldCollapse = layout.shouldCollapseSidebar(800, 280);
 ## Performance Optimizations
 
 ### 1. Lazy Loading
+
 Components are lazy-loaded to reduce initial bundle size:
 
 ```tsx
-const Dashboard = lazy(() => import('./components/dashboard/ResponsiveDashboard'));
+const Dashboard = lazy(
+  () => import("./components/dashboard/ResponsiveDashboard"),
+);
 ```
 
 ### 2. Debounced Resize Handling
+
 Resize events are debounced to prevent excessive re-renders:
 
 ```typescript
-import { performance } from './utils/responsive';
+import { performance } from "./utils/responsive";
 
 const debouncedResize = performance.debounceResize(() => {
   // Handle resize
@@ -225,28 +245,34 @@ const debouncedResize = performance.debounceResize(() => {
 ```
 
 ### 3. Efficient State Management
+
 Layout state is managed efficiently with context to prevent unnecessary re-renders.
 
 ### 4. CSS-in-JS Optimizations
+
 Emotion CSS-in-JS is used for dynamic styling with proper caching.
 
 ## Accessibility Features
 
 ### 1. Keyboard Navigation
+
 - Sidebar can be toggled with keyboard shortcuts
 - Focus management when sidebar state changes
 - Proper tab order maintained
 
 ### 2. Screen Reader Support
+
 - Semantic HTML structure
 - Proper ARIA labels and roles
 - Descriptive text for interactive elements
 
 ### 3. Reduced Motion Support
+
 - Respects `prefers-reduced-motion` setting
 - Smooth transitions that can be disabled
 
 ### 4. High Contrast Support
+
 - Adapts to `prefers-contrast: high`
 - Sufficient color contrast ratios
 
@@ -255,15 +281,17 @@ Emotion CSS-in-JS is used for dynamic styling with proper caching.
 ### From Old Layout System
 
 1. **Replace AppLayout import**:
+
    ```tsx
    // Old
-   import AppLayout from './components/layout/AppLayout';
-   
+   import AppLayout from "./components/layout/AppLayout";
+
    // New
-   import ImprovedAppLayout from './components/layout/ImprovedAppLayout';
+   import ImprovedAppLayout from "./components/layout/ImprovedAppLayout";
    ```
 
 2. **Wrap content with responsive containers**:
+
    ```tsx
    // Old
    <div className="content">
@@ -271,7 +299,7 @@ Emotion CSS-in-JS is used for dynamic styling with proper caching.
        <div className="card">Content</div>
      </div>
    </div>
-   
+
    // New
    <DashboardWrapper title="Page Title">
      <Grid columns={{ xs: 1, md: 2, lg: 3 }}>
@@ -281,10 +309,11 @@ Emotion CSS-in-JS is used for dynamic styling with proper caching.
    ```
 
 3. **Update responsive logic**:
+
    ```tsx
    // Old
    const { isMobile } = useBreakpoint();
-   
+
    // New
    const { isCompactMode, sidebarState } = useLayout();
    const isMobile = viewport.isMobile();
@@ -293,6 +322,7 @@ Emotion CSS-in-JS is used for dynamic styling with proper caching.
 ## Best Practices
 
 ### 1. Mobile-First Design
+
 Always design for mobile first, then enhance for larger screens:
 
 ```tsx
@@ -300,6 +330,7 @@ Always design for mobile first, then enhance for larger screens:
 ```
 
 ### 2. Content-Aware Layouts
+
 Consider content requirements when choosing layout:
 
 ```tsx
@@ -311,6 +342,7 @@ Consider content requirements when choosing layout:
 ```
 
 ### 3. Consistent Spacing
+
 Use the spacing scale consistently:
 
 ```tsx
@@ -319,6 +351,7 @@ Use the spacing scale consistently:
 ```
 
 ### 4. Performance Considerations
+
 - Use `useLayout` hook sparingly to avoid unnecessary re-renders
 - Prefer CSS-based responsive design over JavaScript when possible
 - Implement proper loading states for dynamic content
@@ -326,6 +359,7 @@ Use the spacing scale consistently:
 ## Testing
 
 ### Responsive Testing Checklist
+
 - [ ] Layout works on all breakpoints (320px - 2560px)
 - [ ] Sidebar behavior is consistent across devices
 - [ ] Content is readable and accessible at all sizes
@@ -334,6 +368,7 @@ Use the spacing scale consistently:
 - [ ] Performance is acceptable on slower devices
 
 ### Browser Support
+
 - Chrome 90+
 - Firefox 88+
 - Safari 14+

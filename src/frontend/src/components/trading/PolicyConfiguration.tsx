@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { css } from '@emotion/react';
-import { designTokens, tradingStyles } from '../../styles/designTokens';
+import { css } from "@emotion/react";
+import { designTokens, tradingStyles } from "../../styles/designTokens";
 
 interface PolicyConfigurationProps {
   policies: {
@@ -11,16 +11,15 @@ interface PolicyConfigurationProps {
   onUpdate: (policies: any) => void;
 }
 
+// Token list should be fetched from API or configuration
 const AVAILABLE_TOKENS = [
-  { symbol: "ETH", name: "Ethereum", address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" },
-  { symbol: "USDC", name: "USD Coin", address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" },
-  { symbol: "WBTC", name: "Wrapped Bitcoin", address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599" },
-  { symbol: "UNI", name: "Uniswap", address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984" },
-  { symbol: "LINK", name: "Chainlink", address: "0x514910771AF9Ca656af840dff83E8264EcF986CA" },
-  { symbol: "AAVE", name: "Aave", address: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9" },
+  // This should be populated from API call to get supported tokens
 ];
 
-export default function PolicyConfiguration({ policies, onUpdate }: PolicyConfigurationProps) {
+export default function PolicyConfiguration({
+  policies,
+  onUpdate,
+}: PolicyConfigurationProps) {
   const [localPolicies, setLocalPolicies] = useState(policies);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -43,11 +42,11 @@ export default function PolicyConfiguration({ policies, onUpdate }: PolicyConfig
   };
 
   const toggleToken = (tokenSymbol: string) => {
-    setLocalPolicies(prev => ({
+    setLocalPolicies((prev) => ({
       ...prev,
       allowedTokens: prev.allowedTokens.includes(tokenSymbol)
-        ? prev.allowedTokens.filter(t => t !== tokenSymbol)
-        : [...prev.allowedTokens, tokenSymbol]
+        ? prev.allowedTokens.filter((t) => t !== tokenSymbol)
+        : [...prev.allowedTokens, tokenSymbol],
     }));
   };
 
@@ -79,10 +78,12 @@ export default function PolicyConfiguration({ policies, onUpdate }: PolicyConfig
               <input
                 type="number"
                 value={localPolicies.dailySpendingLimit}
-                onChange={(e) => setLocalPolicies(prev => ({
-                  ...prev,
-                  dailySpendingLimit: Number(e.target.value)
-                }))}
+                onChange={(e) =>
+                  setLocalPolicies((prev) => ({
+                    ...prev,
+                    dailySpendingLimit: Number(e.target.value),
+                  }))
+                }
                 disabled={!isEditing}
                 min="1"
                 max="10000"
@@ -106,10 +107,12 @@ export default function PolicyConfiguration({ policies, onUpdate }: PolicyConfig
               <input
                 type="number"
                 value={localPolicies.maxTradeSize}
-                onChange={(e) => setLocalPolicies(prev => ({
-                  ...prev,
-                  maxTradeSize: Number(e.target.value)
-                }))}
+                onChange={(e) =>
+                  setLocalPolicies((prev) => ({
+                    ...prev,
+                    maxTradeSize: Number(e.target.value),
+                  }))
+                }
                 disabled={!isEditing}
                 min="1"
                 max={localPolicies.dailySpendingLimit}
@@ -131,7 +134,7 @@ export default function PolicyConfiguration({ policies, onUpdate }: PolicyConfig
             {AVAILABLE_TOKENS.map((token) => (
               <div
                 key={token.symbol}
-                className={`token-card ${localPolicies.allowedTokens.includes(token.symbol) ? 'selected' : ''} ${!isEditing ? 'disabled' : ''}`}
+                className={`token-card ${localPolicies.allowedTokens.includes(token.symbol) ? "selected" : ""} ${!isEditing ? "disabled" : ""}`}
                 onClick={() => isEditing && toggleToken(token.symbol)}
               >
                 <div className="token-header">
@@ -159,20 +162,32 @@ export default function PolicyConfiguration({ policies, onUpdate }: PolicyConfig
           <div className="summary-grid">
             <div className="summary-item">
               <span className="summary-label">Daily Limit:</span>
-              <span className="summary-value">${localPolicies.dailySpendingLimit}</span>
+              <span className="summary-value">
+                ${localPolicies.dailySpendingLimit}
+              </span>
             </div>
             <div className="summary-item">
               <span className="summary-label">Max Trade:</span>
-              <span className="summary-value">${localPolicies.maxTradeSize}</span>
+              <span className="summary-value">
+                ${localPolicies.maxTradeSize}
+              </span>
             </div>
             <div className="summary-item">
               <span className="summary-label">Allowed Tokens:</span>
-              <span className="summary-value">{localPolicies.allowedTokens.length}</span>
+              <span className="summary-value">
+                {localPolicies.allowedTokens.length}
+              </span>
             </div>
             <div className="summary-item">
               <span className="summary-label">Risk Level:</span>
-              <span className={`summary-value risk-${localPolicies.dailySpendingLimit > 1000 ? 'high' : localPolicies.dailySpendingLimit > 500 ? 'medium' : 'low'}`}>
-                {localPolicies.dailySpendingLimit > 1000 ? 'High' : localPolicies.dailySpendingLimit > 500 ? 'Medium' : 'Low'}
+              <span
+                className={`summary-value risk-${localPolicies.dailySpendingLimit > 1000 ? "high" : localPolicies.dailySpendingLimit > 500 ? "medium" : "low"}`}
+              >
+                {localPolicies.dailySpendingLimit > 1000
+                  ? "High"
+                  : localPolicies.dailySpendingLimit > 500
+                    ? "Medium"
+                    : "Low"}
               </span>
             </div>
           </div>
@@ -214,21 +229,29 @@ export default function PolicyConfiguration({ policies, onUpdate }: PolicyConfig
       <div className="policy-validation">
         <h4>✅ Policy Validation</h4>
         <div className="validation-checks">
-          <div className={`validation-item ${localPolicies.dailySpendingLimit > 0 ? 'valid' : 'invalid'}`}>
+          <div
+            className={`validation-item ${localPolicies.dailySpendingLimit > 0 ? "valid" : "invalid"}`}
+          >
             <span className="validation-icon">
-              {localPolicies.dailySpendingLimit > 0 ? '✅' : '❌'}
+              {localPolicies.dailySpendingLimit > 0 ? "✅" : "❌"}
             </span>
             <span>Daily spending limit is set</span>
           </div>
-          <div className={`validation-item ${localPolicies.maxTradeSize <= localPolicies.dailySpendingLimit ? 'valid' : 'invalid'}`}>
+          <div
+            className={`validation-item ${localPolicies.maxTradeSize <= localPolicies.dailySpendingLimit ? "valid" : "invalid"}`}
+          >
             <span className="validation-icon">
-              {localPolicies.maxTradeSize <= localPolicies.dailySpendingLimit ? '✅' : '❌'}
+              {localPolicies.maxTradeSize <= localPolicies.dailySpendingLimit
+                ? "✅"
+                : "❌"}
             </span>
             <span>Max trade size is within daily limit</span>
           </div>
-          <div className={`validation-item ${localPolicies.allowedTokens.length > 0 ? 'valid' : 'invalid'}`}>
+          <div
+            className={`validation-item ${localPolicies.allowedTokens.length > 0 ? "valid" : "invalid"}`}
+          >
             <span className="validation-icon">
-              {localPolicies.allowedTokens.length > 0 ? '✅' : '❌'}
+              {localPolicies.allowedTokens.length > 0 ? "✅" : "❌"}
             </span>
             <span>At least one token is allowed</span>
           </div>

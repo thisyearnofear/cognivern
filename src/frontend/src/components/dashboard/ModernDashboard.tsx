@@ -281,7 +281,9 @@ const navButtonStyles = (active: boolean) => css`
 
   &:hover {
     color: ${designTokens.colors.primary[500]};
-    background: ${active ? designTokens.colors.neutral[0] : "rgba(255, 255, 255, 0.3)"};
+    background: ${active
+      ? designTokens.colors.neutral[0]
+      : "rgba(255, 255, 255, 0.3)"};
     transform: translateY(-1px);
   }
 
@@ -328,7 +330,8 @@ export default function ModernDashboard({
   >("overview");
 
   // Sapience real-time data
-  const { stats: sapienceStats, leaderboard: sapienceLeaderboard } = useSapienceData();
+  const { stats: sapienceStats, leaderboard: sapienceLeaderboard } =
+    useSapienceData();
 
   useEffect(() => {
     fetchDashboardData(true);
@@ -343,12 +346,15 @@ export default function ModernDashboard({
         setLoadingStep(0);
       }
       setError(null);
-      const rawApiKey = import.meta.env.VITE_API_KEY || "sapience-hackathon-key";
+      const rawApiKey =
+        import.meta.env.VITE_API_KEY || "sapience-hackathon-key";
       const apiKey = rawApiKey.trim();
       const headers = { "X-API-KEY": apiKey };
-      
+
       // Debug: Log masked key to verify it's being picked up
-      console.log(`[Dashboard] Using API Key: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
+      console.log(
+        `[Dashboard] Using API Key: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`,
+      );
 
       if (isInitial) {
         await new Promise((resolve) => setTimeout(resolve, 300));
@@ -360,10 +366,13 @@ export default function ModernDashboard({
       const healthResponse = await fetch(healthUrl, {
         headers,
       });
-      
+
       if (!healthResponse.ok) {
-        const errorBody = await healthResponse.text().catch(() => 'No body');
-        console.error(`[Dashboard] Health check failed (${healthResponse.status}):`, errorBody);
+        const errorBody = await healthResponse.text().catch(() => "No body");
+        console.error(
+          `[Dashboard] Health check failed (${healthResponse.status}):`,
+          errorBody,
+        );
         throw new Error(`System health unavailable (${healthResponse.status})`);
       }
       const health = await healthResponse.json();
@@ -375,43 +384,55 @@ export default function ModernDashboard({
 
       // 2. Fetch Unified Summary
       try {
-        const summaryResponse = await fetch(getApiUrl("/api/dashboard/unified"), {
-          headers,
-        });
+        const summaryResponse = await fetch(
+          getApiUrl("/api/dashboard/unified"),
+          {
+            headers,
+          },
+        );
         if (summaryResponse.ok) {
           const summaryResult = await summaryResponse.json();
           if (summaryResult.success && summaryResult.data) {
-              const data = summaryResult.data;
-              setSummary({
-                  sapience: {
-                      liveMarkets: data.systemHealth?.activeAgents || 0,
-                      activeAgents: data.systemHealth?.activeAgents || 0,
-                      totalPoolValue: 0
-                  },
-                  governance: {
-                      totalPolicies: 0,
-                      totalAgents: data.systemHealth?.totalAgents || 0,
-                      totalActions: data.systemHealth?.totalActions || 0
-                  },
-                  unified: {
-                      deployedAgents: data.systemHealth?.activeAgents || 0,
-                      averageTrustScore: data.systemHealth?.complianceRate || 0,
-                      totalValue: 0
-                  }
-              });
-              
-              if (data.recentActivity) {
-                  setActivityFeed(data.recentActivity.map((a: any) => ({
-                      type: a.type,
-                      source: a.type === 'forecast' ? 'sapience' : a.type === 'governance' ? 'filecoin' : 'system',
-                      timestamp: a.timestamp,
-                      data: a.data || { details: a.action }
-                  })));
-              }
+            const data = summaryResult.data;
+            setSummary({
+              sapience: {
+                liveMarkets: data.systemHealth?.activeAgents || 0,
+                activeAgents: data.systemHealth?.activeAgents || 0,
+                totalPoolValue: 0,
+              },
+              governance: {
+                totalPolicies: 0,
+                totalAgents: data.systemHealth?.totalAgents || 0,
+                totalActions: data.systemHealth?.totalActions || 0,
+              },
+              unified: {
+                deployedAgents: data.systemHealth?.activeAgents || 0,
+                averageTrustScore: data.systemHealth?.complianceRate || 0,
+                totalValue: 0,
+              },
+            });
+
+            if (data.recentActivity) {
+              setActivityFeed(
+                data.recentActivity.map((a: any) => ({
+                  type: a.type,
+                  source:
+                    a.type === "forecast"
+                      ? "sapience"
+                      : a.type === "governance"
+                        ? "filecoin"
+                        : "system",
+                  timestamp: a.timestamp,
+                  data: a.data || { details: a.action },
+                })),
+              );
+            }
           }
         }
       } catch (e) {
-        console.warn("Summary API not available, falling back to basic metrics");
+        console.warn(
+          "Summary API not available, falling back to basic metrics",
+        );
       }
 
       // 3. Fetch Agents (Unified/Monitoring)
@@ -432,7 +453,11 @@ export default function ModernDashboard({
         agents = agentsResult;
       } else if (agentsResult.success && Array.isArray(agentsResult.data)) {
         agents = agentsResult.data;
-      } else if (agentsResult.success && agentsResult.data && Array.isArray(agentsResult.data.agents)) {
+      } else if (
+        agentsResult.success &&
+        agentsResult.data &&
+        Array.isArray(agentsResult.data.agents)
+      ) {
         agents = agentsResult.data.agents;
       } else if (agentsResult.agents && Array.isArray(agentsResult.agents)) {
         agents = agentsResult.agents;
@@ -446,21 +471,32 @@ export default function ModernDashboard({
 
       // 4. Fetch Activity Feed
       try {
-        if (agentsResult.success && agentsResult.data && agentsResult.data.recentActivity) {
-            setActivityFeed(agentsResult.data.recentActivity.map((a: any) => ({
-                type: a.type,
-                source: a.type === 'forecast' ? 'sapience' : a.type === 'governance' ? 'filecoin' : 'system',
-                timestamp: a.timestamp,
-                data: a.data || { details: a.action }
-            })));
+        if (
+          agentsResult.success &&
+          agentsResult.data &&
+          agentsResult.data.recentActivity
+        ) {
+          setActivityFeed(
+            agentsResult.data.recentActivity.map((a: any) => ({
+              type: a.type,
+              source:
+                a.type === "forecast"
+                  ? "sapience"
+                  : a.type === "governance"
+                    ? "filecoin"
+                    : "system",
+              timestamp: a.timestamp,
+              data: a.data || { details: a.action },
+            })),
+          );
         } else {
-            const feedResponse = await fetch(getApiUrl("/api/feed/live"), {
-              headers,
-            });
-            if (feedResponse.ok) {
-              const feedData = await feedResponse.json();
-              setActivityFeed(feedData.feed || []);
-            }
+          const feedResponse = await fetch(getApiUrl("/api/feed/live"), {
+            headers,
+          });
+          if (feedResponse.ok) {
+            const feedData = await feedResponse.json();
+            setActivityFeed(feedData.feed || []);
+          }
         }
       } catch (e) {
         console.warn("Activity Feed API not available");
@@ -477,7 +513,11 @@ export default function ModernDashboard({
       console.error("Error fetching dashboard data:", error);
 
       if (isInitial || !systemHealth) {
-        setError(error instanceof Error ? error.message : "Failed to load dashboard data");
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load dashboard data",
+        );
         setIsApiConnected(false);
         setSystemHealth(null);
         setAgentData([]);
@@ -549,7 +589,13 @@ export default function ModernDashboard({
               `}
             >
               {systemHealth.metrics?.activeAgents || 0}
-              <span css={css`font-size: 1rem; color: ${designTokens.colors.neutral[400]}; font-weight: normal;`}>
+              <span
+                css={css`
+                  font-size: 1rem;
+                  color: ${designTokens.colors.neutral[400]};
+                  font-weight: normal;
+                `}
+              >
                 / {systemHealth.metrics?.totalAgents || 0}
               </span>
             </div>
@@ -563,7 +609,14 @@ export default function ModernDashboard({
                 gap: 4px;
               `}
             >
-              <span css={css`width: 4px; height: 4px; border-radius: 50%; background: ${designTokens.colors.semantic.success[500]};`} />
+              <span
+                css={css`
+                  width: 4px;
+                  height: 4px;
+                  border-radius: 50%;
+                  background: ${designTokens.colors.semantic.success[500]};
+                `}
+              />
               System Load: Nominal
             </div>
           </CardContent>
@@ -617,11 +670,15 @@ export default function ModernDashboard({
             >
               {(systemHealth.metrics?.totalForecasts || 0).toLocaleString()}
             </div>
-            <div css={css`
+            <div
+              css={css`
                 font-size: 0.7rem;
                 color: ${designTokens.colors.neutral[500]};
                 margin-top: 4px;
-            `}>Session Activity</div>
+              `}
+            >
+              Session Activity
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -631,7 +688,10 @@ export default function ModernDashboard({
   const renderPlatformSummary = () => {
     // Show Sapience stats from the hook, fallback to summary data if available
     const activeMarkets = sapienceStats?.activeConditions ?? 839;
-    const totalForecasts = systemHealth?.metrics?.totalForecasts ?? sapienceStats?.totalForecasts ?? 0;
+    const totalForecasts =
+      systemHealth?.metrics?.totalForecasts ??
+      sapienceStats?.totalForecasts ??
+      0;
     const totalConditions = sapienceStats?.totalConditions ?? 9734;
 
     return (
@@ -652,7 +712,7 @@ export default function ModernDashboard({
             position: relative;
             overflow: hidden;
             &::after {
-              content: '';
+              content: "";
               position: absolute;
               top: -50%;
               right: -50%;
@@ -665,17 +725,69 @@ export default function ModernDashboard({
           `}
         >
           <CardContent>
-            <div css={css`display: flex; align-items: center; gap: 8px; color: rgba(255, 255, 255, 0.9); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;`}>
+            <div
+              css={css`
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: rgba(255, 255, 255, 0.9);
+                font-size: 0.85rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+              `}
+            >
               <span>🔮</span> Sapience Intelligence
             </div>
-            <div css={css`display: flex; justify-content: space-between; align-items: flex-end; margin-top: 1.5rem;`}>
+            <div
+              css={css`
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                margin-top: 1.5rem;
+              `}
+            >
               <div>
-                <div css={css`font-size: 2.5rem; font-weight: 800; line-height: 1;`}>{activeMarkets}</div>
-                <div css={css`font-size: 0.85rem; color: rgba(255, 255, 255, 0.8); margin-top: 4px;`}>Active Markets</div>
+                <div
+                  css={css`
+                    font-size: 2.5rem;
+                    font-weight: 800;
+                    line-height: 1;
+                  `}
+                >
+                  {activeMarkets}
+                </div>
+                <div
+                  css={css`
+                    font-size: 0.85rem;
+                    color: rgba(255, 255, 255, 0.8);
+                    margin-top: 4px;
+                  `}
+                >
+                  Active Markets
+                </div>
               </div>
-              <div css={css`text-align: right;`}>
-                <div css={css`font-size: 1.25rem; font-weight: 700;`}>{totalForecasts}</div>
-                <div css={css`font-size: 0.75rem; color: rgba(255, 255, 255, 0.7);`}>Live Forecasts</div>
+              <div
+                css={css`
+                  text-align: right;
+                `}
+              >
+                <div
+                  css={css`
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                  `}
+                >
+                  {totalForecasts}
+                </div>
+                <div
+                  css={css`
+                    font-size: 0.75rem;
+                    color: rgba(255, 255, 255, 0.7);
+                  `}
+                >
+                  Live Forecasts
+                </div>
               </div>
             </div>
           </CardContent>
@@ -692,17 +804,69 @@ export default function ModernDashboard({
           `}
         >
           <CardContent>
-            <div css={css`display: flex; align-items: center; gap: 8px; color: rgba(255, 255, 255, 0.9); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;`}>
+            <div
+              css={css`
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: rgba(255, 255, 255, 0.9);
+                font-size: 0.85rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+              `}
+            >
               <span>⛓️</span> Filecoin Governance
             </div>
-            <div css={css`display: flex; justify-content: space-between; align-items: flex-end; margin-top: 1.5rem;`}>
+            <div
+              css={css`
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                margin-top: 1.5rem;
+              `}
+            >
               <div>
-                <div css={css`font-size: 2.5rem; font-weight: 800; line-height: 1;`}>{summary?.governance?.totalPolicies ?? 2}</div>
-                <div css={css`font-size: 0.85rem; color: rgba(255, 255, 255, 0.8); margin-top: 4px;`}>Active Policies</div>
+                <div
+                  css={css`
+                    font-size: 2.5rem;
+                    font-weight: 800;
+                    line-height: 1;
+                  `}
+                >
+                  {summary?.governance?.totalPolicies ?? 2}
+                </div>
+                <div
+                  css={css`
+                    font-size: 0.85rem;
+                    color: rgba(255, 255, 255, 0.8);
+                    margin-top: 4px;
+                  `}
+                >
+                  Active Policies
+                </div>
               </div>
-              <div css={css`text-align: right;`}>
-                <div css={css`font-size: 1.25rem; font-weight: 700;`}>{systemHealth?.metrics?.totalActions ?? 1}</div>
-                <div css={css`font-size: 0.75rem; color: rgba(255, 255, 255, 0.7);`}>On-Chain Proofs</div>
+              <div
+                css={css`
+                  text-align: right;
+                `}
+              >
+                <div
+                  css={css`
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                  `}
+                >
+                  {systemHealth?.metrics?.totalActions ?? 1}
+                </div>
+                <div
+                  css={css`
+                    font-size: 0.75rem;
+                    color: rgba(255, 255, 255, 0.7);
+                  `}
+                >
+                  On-Chain Proofs
+                </div>
               </div>
             </div>
           </CardContent>
@@ -717,17 +881,71 @@ export default function ModernDashboard({
           `}
         >
           <CardContent>
-            <div css={css`display: flex; align-items: center; gap: 8px; color: ${designTokens.colors.neutral[500]}; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;`}>
+            <div
+              css={css`
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: ${designTokens.colors.neutral[500]};
+                font-size: 0.85rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+              `}
+            >
               <span>🌟</span> Protocol Coverage
             </div>
-            <div css={css`display: flex; justify-content: space-between; align-items: flex-end; margin-top: 1.5rem;`}>
+            <div
+              css={css`
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                margin-top: 1.5rem;
+              `}
+            >
               <div>
-                <div css={css`font-size: 2.5rem; font-weight: 800; line-height: 1; color: ${designTokens.colors.neutral[900]};`}>{totalConditions}</div>
-                <div css={css`font-size: 0.85rem; color: ${designTokens.colors.neutral[500]}; margin-top: 4px;`}>Total Conditions</div>
+                <div
+                  css={css`
+                    font-size: 2.5rem;
+                    font-weight: 800;
+                    line-height: 1;
+                    color: ${designTokens.colors.neutral[900]};
+                  `}
+                >
+                  {totalConditions}
+                </div>
+                <div
+                  css={css`
+                    font-size: 0.85rem;
+                    color: ${designTokens.colors.neutral[500]};
+                    margin-top: 4px;
+                  `}
+                >
+                  Total Conditions
+                </div>
               </div>
-              <div css={css`text-align: right;`}>
-                <div css={css`font-size: 1.25rem; font-weight: 700; color: ${designTokens.colors.primary[600]};`}>{sapienceLeaderboard.length || 124}</div>
-                <div css={css`font-size: 0.75rem; color: ${designTokens.colors.neutral[400]};`}>Participants</div>
+              <div
+                css={css`
+                  text-align: right;
+                `}
+              >
+                <div
+                  css={css`
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    color: ${designTokens.colors.primary[600]};
+                  `}
+                >
+                  {sapienceLeaderboard.length || 124}
+                </div>
+                <div
+                  css={css`
+                    font-size: 0.75rem;
+                    color: ${designTokens.colors.neutral[400]};
+                  `}
+                >
+                  Participants
+                </div>
               </div>
             </div>
           </CardContent>
@@ -740,76 +958,154 @@ export default function ModernDashboard({
     if (activityFeed.length === 0) return null;
 
     return (
-      <Card variant="default" css={css`border: 1px solid ${designTokens.colors.neutral[200]};`}>
+      <Card
+        variant="default"
+        css={css`
+          border: 1px solid ${designTokens.colors.neutral[200]};
+        `}
+      >
         <CardContent>
-          <div css={css`display: flex; justify-content: space-between; align-items: center; margin-bottom: ${designTokens.spacing[6]};`}>
-            <CardTitle css={css`margin-bottom: 0;`}>📡 System Audit Trail</CardTitle>
-            <span css={css`
+          <div
+            css={css`
               display: flex;
+              justify-content: space-between;
               align-items: center;
-              gap: 6px;
-              font-size: 0.7rem;
-              font-weight: 800;
-              color: ${designTokens.colors.secondary[600]};
-              text-transform: uppercase;
-              background: ${designTokens.colors.secondary[50]};
-              padding: 2px 8px;
-              border-radius: 4px;
-            `}>
-              <span css={css`
-                width: 6px;
-                height: 6px;
-                background: ${designTokens.colors.secondary[500]};
-                border-radius: 50%;
-                ${keyframeAnimations.pulse}
-              `} />
+              margin-bottom: ${designTokens.spacing[6]};
+            `}
+          >
+            <CardTitle
+              css={css`
+                margin-bottom: 0;
+              `}
+            >
+              📡 System Audit Trail
+            </CardTitle>
+            <span
+              css={css`
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 0.7rem;
+                font-weight: 800;
+                color: ${designTokens.colors.secondary[600]};
+                text-transform: uppercase;
+                background: ${designTokens.colors.secondary[50]};
+                padding: 2px 8px;
+                border-radius: 4px;
+              `}
+            >
+              <span
+                css={css`
+                  width: 6px;
+                  height: 6px;
+                  background: ${designTokens.colors.secondary[500]};
+                  border-radius: 50%;
+                  ${keyframeAnimations.pulse}
+                `}
+              />
               Live
             </span>
           </div>
           <div css={activityFeedStyles}>
             {activityFeed.slice(0, 5).map((item, index) => (
               <div key={index} css={activityItemStyles(item.source)}>
-                <div css={css`
-                  font-size: 1.25rem;
-                  width: 40px;
-                  height: 40px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  background: ${designTokens.colors.neutral[50]};
-                  border-radius: 10px;
-                `}>
-                  {item.source === "sapience" ? "🔮" : item.source === "filecoin" ? "⛓️" : "🤖"}
+                <div
+                  css={css`
+                    font-size: 1.25rem;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: ${designTokens.colors.neutral[50]};
+                    border-radius: 10px;
+                  `}
+                >
+                  {item.source === "sapience"
+                    ? "🔮"
+                    : item.source === "filecoin"
+                      ? "⛓️"
+                      : "🤖"}
                 </div>
-                <div css={css`flex: 1;`}>
-                  <div css={css`display: flex; justify-content: space-between;`}>
-                    <div css={css`font-weight: bold; font-size: 0.75rem; text-transform: uppercase; color: ${designTokens.colors.neutral[400]}; letter-spacing: 0.05em;`}>
+                <div
+                  css={css`
+                    flex: 1;
+                  `}
+                >
+                  <div
+                    css={css`
+                      display: flex;
+                      justify-content: space-between;
+                    `}
+                  >
+                    <div
+                      css={css`
+                        font-weight: bold;
+                        font-size: 0.75rem;
+                        text-transform: uppercase;
+                        color: ${designTokens.colors.neutral[400]};
+                        letter-spacing: 0.05em;
+                      `}
+                    >
                       {item.type.replace("_", " ")}
                     </div>
-                    <div css={css`font-size: 0.7rem; color: ${designTokens.colors.neutral[400]};`}>
+                    <div
+                      css={css`
+                        font-size: 0.7rem;
+                        color: ${designTokens.colors.neutral[400]};
+                      `}
+                    >
                       {new Date(item.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
-                  <div css={css`font-size: 0.95rem; margin: 4px 0; line-height: 1.4; color: ${designTokens.colors.neutral[800]};`}>
-                    {item.type === 'forecast' && (
+                  <div
+                    css={css`
+                      font-size: 0.95rem;
+                      margin: 4px 0;
+                      line-height: 1.4;
+                      color: ${designTokens.colors.neutral[800]};
+                    `}
+                  >
+                    {item.type === "forecast" && (
                       <>
-                        <span css={css`font-weight: 600; color: ${designTokens.colors.primary[700]};`}>
-                          {item.data.agent?.name || 'Agent'}
+                        <span
+                          css={css`
+                            font-weight: 600;
+                            color: ${designTokens.colors.primary[700]};
+                          `}
+                        >
+                          {item.data.agent?.name || "Agent"}
                         </span>{" "}
                         generated a forecast:{" "}
-                        <span css={css`font-style: italic; color: ${designTokens.colors.neutral[600]};`}>
+                        <span
+                          css={css`
+                            font-style: italic;
+                            color: ${designTokens.colors.neutral[600]};
+                          `}
+                        >
                           "{item.data.details || item.data.action}"
                         </span>
                       </>
                     )}
                     {item.type === "forecast_win" && (
-                      <><strong>{item.data.agent?.name || 'Agent'}</strong> correctly predicted market outcome</>
+                      <>
+                        <strong>{item.data.agent?.name || "Agent"}</strong>{" "}
+                        correctly predicted market outcome
+                      </>
                     )}
                     {item.type === "governance_action" && (
                       <>{item.data.details}</>
                     )}
-                    {!['forecast', "forecast_win", "governance_action"].includes(item.type) && (
-                      <>{typeof item.data === 'string' ? item.data : (item.data.details || JSON.stringify(item.data))}</>
+                    {![
+                      "forecast",
+                      "forecast_win",
+                      "governance_action",
+                    ].includes(item.type) && (
+                      <>
+                        {typeof item.data === "string"
+                          ? item.data
+                          : item.data.details || JSON.stringify(item.data)}
+                      </>
                     )}
                   </div>
                 </div>
@@ -918,26 +1214,31 @@ export default function ModernDashboard({
                 </div>
 
                 {/* CURRENT FOCUS / THOUGHTS */}
-                <div css={css`
-                  margin-bottom: ${designTokens.spacing[6]};
-                  padding: ${designTokens.spacing[4]};
-                  background: ${designTokens.colors.primary[50]};
-                  border-radius: ${designTokens.borderRadius.lg};
-                  border-left: 4px solid ${designTokens.colors.primary[500]};
-                  position: relative;
-                `}>
-                  <div css={css`
-                    font-size: 0.65rem;
-                    font-weight: 800;
-                    color: ${designTokens.colors.primary[600]};
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                    margin-bottom: 4px;
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                  `}>
-                    <span css={css`
+                <div
+                  css={css`
+                    margin-bottom: ${designTokens.spacing[6]};
+                    padding: ${designTokens.spacing[4]};
+                    background: ${designTokens.colors.primary[50]};
+                    border-radius: ${designTokens.borderRadius.lg};
+                    border-left: 4px solid ${designTokens.colors.primary[500]};
+                    position: relative;
+                  `}
+                >
+                  <div
+                    css={css`
+                      font-size: 0.65rem;
+                      font-weight: 800;
+                      color: ${designTokens.colors.primary[600]};
+                      text-transform: uppercase;
+                      letter-spacing: 0.05em;
+                      margin-bottom: 4px;
+                      display: flex;
+                      align-items: center;
+                      gap: 6px;
+                    `}
+                  >
+                    <span
+                      css={css`
                         display: inline-block;
                         width: 12px;
                         height: 12px;
@@ -945,51 +1246,75 @@ export default function ModernDashboard({
                         border-top-color: ${designTokens.colors.primary[600]};
                         border-radius: 50%;
                         animation: spin 1s linear infinite;
-                        @keyframes spin { to { transform: rotate(360deg); } }
-                    `} />
+                        @keyframes spin {
+                          to {
+                            transform: rotate(360deg);
+                          }
+                        }
+                      `}
+                    />
                     🧠 Internal Thought Stream
                   </div>
-                  <div css={css`
-                    font-size: 0.9rem;
-                    color: ${designTokens.colors.neutral[800]};
-                    font-style: italic;
-                    line-height: 1.4;
-                    position: relative;
-                    z-index: 1;
-                  `}>
-                    "{agent.internalThought || 'Analyzing market patterns and scanning for opportunities...'}"
+                  <div
+                    css={css`
+                      font-size: 0.9rem;
+                      color: ${designTokens.colors.neutral[800]};
+                      font-style: italic;
+                      line-height: 1.4;
+                      position: relative;
+                      z-index: 1;
+                    `}
+                  >
+                    "
+                    {agent.internalThought ||
+                      "Analyzing market patterns and scanning for opportunities..."}
+                    "
                   </div>
-                  
+
                   {agent.nextActionAt && (
-                    <div css={css`
-                      margin-top: 12px;
-                      padding-top: 8px;
-                      border-top: 1px dashed ${designTokens.colors.primary[200]};
-                      display: flex;
-                      justify-content: space-between;
-                      align-items: center;
-                    `}>
-                      <span css={css`font-size: 0.7rem; color: ${designTokens.colors.neutral[500]};`}>Next Cycle In:</span>
-                      <span css={css`
-                        font-size: 0.75rem;
-                        font-weight: 800;
-                        color: ${designTokens.colors.primary[700]};
-                        background: white;
-                        padding: 4px 10px;
-                        border-radius: 6px;
-                        border: 1px solid ${designTokens.colors.primary[200]};
-                        box-shadow: ${shadowSystem.sm};
+                    <div
+                      css={css`
+                        margin-top: 12px;
+                        padding-top: 8px;
+                        border-top: 1px dashed
+                          ${designTokens.colors.primary[200]};
                         display: flex;
+                        justify-content: space-between;
                         align-items: center;
-                        gap: 4px;
-                      `}>
-                        <span css={css`
+                      `}
+                    >
+                      <span
+                        css={css`
+                          font-size: 0.7rem;
+                          color: ${designTokens.colors.neutral[500]};
+                        `}
+                      >
+                        Next Cycle In:
+                      </span>
+                      <span
+                        css={css`
+                          font-size: 0.75rem;
+                          font-weight: 800;
+                          color: ${designTokens.colors.primary[700]};
+                          background: white;
+                          padding: 4px 10px;
+                          border-radius: 6px;
+                          border: 1px solid ${designTokens.colors.primary[200]};
+                          box-shadow: ${shadowSystem.sm};
+                          display: flex;
+                          align-items: center;
+                          gap: 4px;
+                        `}
+                      >
+                        <span
+                          css={css`
                             width: 6px;
                             height: 6px;
                             background: ${designTokens.colors.primary[500]};
                             border-radius: 50%;
                             ${keyframeAnimations.pulse}
-                        `} />
+                          `}
+                        />
                         <ActionCountdown targetDate={agent.nextActionAt} />
                       </span>
                     </div>
@@ -998,33 +1323,48 @@ export default function ModernDashboard({
 
                 {/* RECENT REASONING TRAIL */}
                 {agent.thoughtHistory && agent.thoughtHistory.length > 0 && (
-                  <div css={css`
-                    margin-bottom: ${designTokens.spacing[6]};
-                  `}>
-                    <div css={css`
-                      font-size: 0.65rem;
-                      font-weight: 800;
-                      color: ${designTokens.colors.neutral[400]};
-                      text-transform: uppercase;
-                      letter-spacing: 0.05em;
-                      margin-bottom: 8px;
-                    `}>
+                  <div
+                    css={css`
+                      margin-bottom: ${designTokens.spacing[6]};
+                    `}
+                  >
+                    <div
+                      css={css`
+                        font-size: 0.65rem;
+                        font-weight: 800;
+                        color: ${designTokens.colors.neutral[400]};
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                        margin-bottom: 8px;
+                      `}
+                    >
                       🕰️ Recent Reasoning Trail
                     </div>
-                    <div css={css`
-                      display: flex;
-                      flex-direction: column;
-                      gap: 8px;
-                    `}>
+                    <div
+                      css={css`
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                      `}
+                    >
                       {agent.thoughtHistory.slice(1, 4).map((item, i) => (
-                        <div key={i} css={css`
-                          font-size: 0.75rem;
-                          color: ${designTokens.colors.neutral[500]};
-                          padding-left: 12px;
-                          border-left: 2px solid ${designTokens.colors.neutral[100]};
-                          line-height: 1.3;
-                        `}>
-                          <div css={css`font-size: 0.65rem; color: ${designTokens.colors.neutral[300]};`}>
+                        <div
+                          key={i}
+                          css={css`
+                            font-size: 0.75rem;
+                            color: ${designTokens.colors.neutral[500]};
+                            padding-left: 12px;
+                            border-left: 2px solid
+                              ${designTokens.colors.neutral[100]};
+                            line-height: 1.3;
+                          `}
+                        >
+                          <div
+                            css={css`
+                              font-size: 0.65rem;
+                              color: ${designTokens.colors.neutral[300]};
+                            `}
+                          >
                             {new Date(item.timestamp).toLocaleTimeString()}
                           </div>
                           {item.thought}
@@ -1178,7 +1518,8 @@ export default function ModernDashboard({
                       <div
                         css={css`
                           height: 100%;
-                          background: ${(agent.riskMetrics?.complianceRate ?? 100) > 95
+                          background: ${(agent.riskMetrics?.complianceRate ??
+                            100) > 95
                             ? designTokens.colors.semantic.success[500]
                             : (agent.riskMetrics?.complianceRate ?? 100) > 90
                               ? designTokens.colors.semantic.warning[500]
@@ -1205,7 +1546,9 @@ export default function ModernDashboard({
                         margin-bottom: ${designTokens.spacing[3]};
                       `}
                     >
-                      {agent.type === 'sapience' ? 'Model Performance' : 'Financial Performance'}
+                      {agent.type === "sapience"
+                        ? "Model Performance"
+                        : "Financial Performance"}
                     </h4>
                     <div
                       css={css`
@@ -1232,7 +1575,9 @@ export default function ModernDashboard({
                             margin-bottom: ${designTokens.spacing[1]};
                           `}
                         >
-                          {agent.type === 'sapience' ? '' : '$'}{agent.financialMetrics.totalValue.toLocaleString()}{agent.type === 'sapience' ? ' ETH' : ''}
+                          {agent.type === "sapience" ? "" : "$"}
+                          {agent.financialMetrics.totalValue.toLocaleString()}
+                          {agent.type === "sapience" ? " ETH" : ""}
                         </div>
                         <div
                           css={css`
@@ -1242,7 +1587,7 @@ export default function ModernDashboard({
                             letter-spacing: 0.05em;
                           `}
                         >
-                          {agent.type === 'sapience' ? 'Wallet' : 'Total Value'}
+                          {agent.type === "sapience" ? "Wallet" : "Total Value"}
                         </div>
                       </div>
                       <div
@@ -1274,7 +1619,9 @@ export default function ModernDashboard({
                             letter-spacing: 0.05em;
                           `}
                         >
-                          {agent.type === 'sapience' ? 'Avg Confidence' : 'Daily P&L'}
+                          {agent.type === "sapience"
+                            ? "Avg Confidence"
+                            : "Daily P&L"}
                         </div>
                       </div>
                     </div>
@@ -1518,42 +1865,53 @@ export default function ModernDashboard({
   return (
     <div css={containerStyles}>
       <div css={heroStyles}>
-        <div css={css`
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 6px 16px;
-          background: rgba(34, 197, 94, 0.1);
-          border: 1px solid rgba(34, 197, 94, 0.2);
-          border-radius: ${designTokens.borderRadius.full};
-          color: ${designTokens.colors.semantic.success[600]};
-          font-size: 0.75rem;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          margin-bottom: ${designTokens.spacing[4]};
-          box-shadow: 0 0 20px rgba(34, 197, 94, 0.1);
-          animation: ${keyframeAnimations.fadeIn} 0.5s ease-out;
-        `}>
-          <span css={css`
-            width: 8px;
-            height: 8px;
-            background: #22c55e;
-            border-radius: 50%;
-            box-shadow: 0 0 8px #22c55e;
-            ${keyframeAnimations.pulse}
-          `} />
+        <div
+          css={css`
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: ${designTokens.borderRadius.full};
+            color: ${designTokens.colors.semantic.success[600]};
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: ${designTokens.spacing[4]};
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.1);
+            animation: ${keyframeAnimations.fadeIn} 0.5s ease-out;
+          `}
+        >
+          <span
+            css={css`
+              width: 8px;
+              height: 8px;
+              background: #22c55e;
+              border-radius: 50%;
+              box-shadow: 0 0 8px #22c55e;
+              ${keyframeAnimations.pulse}
+            `}
+          />
           Autonomous System Online
         </div>
-        <h1 css={css`
+        <h1
+          css={css`
             ${heroTitleStyles};
             animation: ${keyframeAnimations.fadeInUp} 0.6s ease-out;
-        `}>Sapience Forecasting Agent</h1>
-        <p css={css`
+          `}
+        >
+          Sapience Forecasting Agent
+        </h1>
+        <p
+          css={css`
             ${heroSubtitleStyles};
             animation: ${keyframeAnimations.fadeInUp} 0.8s ease-out;
-        `}>
-          Autonomous AI agent for prediction markets with on-chain attestation via{" "}
+          `}
+        >
+          Autonomous AI agent for prediction markets with on-chain attestation
+          via{" "}
           <Tooltip content="EAS (Ethereum Attestation Service) enables verifiable, on-chain attestations for forecasts and predictions">
             <span
               css={css`
@@ -1646,27 +2004,37 @@ export default function ModernDashboard({
         )}
 
         {activeView === "markets" && (
-          <Suspense fallback={
-            <div css={css`
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              min-height: 300px;
-            `}>
-              <div css={css`
-                width: 40px;
-                height: 40px;
-                border: 3px solid ${designTokens.colors.neutral[200]};
-                border-top: 3px solid ${designTokens.colors.primary[500]};
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-                @keyframes spin {
-                  0% { transform: rotate(0deg); }
-                  100% { transform: rotate(360deg); }
-                }
-              `} />
-            </div>
-          }>
+          <Suspense
+            fallback={
+              <div
+                css={css`
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  min-height: 300px;
+                `}
+              >
+                <div
+                  css={css`
+                    width: 40px;
+                    height: 40px;
+                    border: 3px solid ${designTokens.colors.neutral[200]};
+                    border-top: 3px solid ${designTokens.colors.primary[500]};
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    @keyframes spin {
+                      0% {
+                        transform: rotate(0deg);
+                      }
+                      100% {
+                        transform: rotate(360deg);
+                      }
+                    }
+                  `}
+                />
+              </div>
+            }
+          >
             <SapienceMarkets />
           </Suspense>
         )}
@@ -1674,23 +2042,43 @@ export default function ModernDashboard({
         {activeView === "agents" && renderAgentMonitoring()}
 
         {activeView === "governance" && (
-          <div css={css`max-width: 800px; margin: 0 auto;`}>
+          <div
+            css={css`
+              max-width: 800px;
+              margin: 0 auto;
+            `}
+          >
             <Card variant="elevated">
               <CardContent>
-                <CardTitle css={css`margin-bottom: 1.5rem;`}>
+                <CardTitle
+                  css={css`
+                    margin-bottom: 1.5rem;
+                  `}
+                >
                   🛡️ AI Governance Framework
                 </CardTitle>
-                <div css={css`display: flex; flex-direction: column; gap: 1.5rem;`}>
+                <div
+                  css={css`
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1.5rem;
+                  `}
+                >
                   <div
                     css={css`
                       padding: 1rem;
                       background: ${designTokens.colors.neutral[50]};
                       border-radius: 8px;
-                      border-left: 4px solid
-                        ${designTokens.colors.primary[500]};
+                      border-left: 4px solid ${designTokens.colors.primary[500]};
                     `}
                   >
-                    <h4 css={css`margin-bottom: 0.5rem;`}>Immutable Logic</h4>
+                    <h4
+                      css={css`
+                        margin-bottom: 0.5rem;
+                      `}
+                    >
+                      Immutable Logic
+                    </h4>
                     <p
                       css={css`
                         font-size: 0.9rem;
@@ -1711,7 +2099,11 @@ export default function ModernDashboard({
                         ${designTokens.colors.secondary[500]};
                     `}
                   >
-                    <h4 css={css`margin-bottom: 0.5rem;`}>
+                    <h4
+                      css={css`
+                        margin-bottom: 0.5rem;
+                      `}
+                    >
                       Real-Time Policy Enforcement
                     </h4>
                     <p

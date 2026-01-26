@@ -45,7 +45,7 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
           headers: {
             "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -73,7 +73,7 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
           headers: {
             "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -142,7 +142,7 @@ export const useTradingData = (agentType: AgentType): UseTradingData => {
           headers: {
             "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -196,7 +196,7 @@ export const useLoadingState = (initialLoading = false) => {
         setIsLoading(false);
       }
     },
-    []
+    [],
   );
 
   const clearError = useCallback(() => setError(null), []);
