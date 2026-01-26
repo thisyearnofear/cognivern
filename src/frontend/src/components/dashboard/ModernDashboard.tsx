@@ -1,4 +1,33 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense, useCallback } from "react";
+
+// Helper for real-time countdown
+const ActionCountdown = ({ targetDate }: { targetDate: string }) => {
+  const [timeLeft, setTimeRemaining] = useState("");
+
+  const updateCountdown = useCallback(() => {
+    const now = new Date().getTime();
+    const target = new Date(targetDate).getTime();
+    const distance = target - now;
+
+    if (distance < 0) {
+      setTimeRemaining("Executing...");
+      return;
+    }
+
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+    setTimeRemaining(`${minutes}m ${seconds}s`);
+  }, [targetDate]);
+
+  useEffect(() => {
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [updateCountdown]);
+
+  return <span>{timeLeft}</span>;
+};
+
 import { css } from "@emotion/react";
 import {
   designTokens,
@@ -513,18 +542,28 @@ export default function ModernDashboard({
                 font-size: ${designTokens.typography.fontSize["2xl"]};
                 font-weight: ${designTokens.typography.fontWeight.bold};
                 color: ${designTokens.colors.primary[600]};
+                display: flex;
+                align-items: baseline;
+                gap: 4px;
               `}
             >
-              {systemHealth.metrics?.activeAgents || 0}/
-              {systemHealth.metrics?.totalAgents || 0}
+              {systemHealth.metrics?.activeAgents || 0}
+              <span css={css`font-size: 1rem; color: ${designTokens.colors.neutral[400]}; font-weight: normal;`}>
+                / {systemHealth.metrics?.totalAgents || 0}
+              </span>
             </div>
             <div
               css={css`
-                font-size: ${designTokens.typography.fontSize.sm};
-                color: ${designTokens.colors.neutral[600]};
+                font-size: 0.7rem;
+                color: ${designTokens.colors.neutral[500]};
+                margin-top: 4px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
               `}
             >
-              Agents monitored
+              <span css={css`width: 4px; height: 4px; border-radius: 50%; background: ${designTokens.colors.semantic.success[500]};`} />
+              System Load: Nominal
             </div>
           </CardContent>
         </Card>
@@ -549,11 +588,12 @@ export default function ModernDashboard({
             </div>
             <div
               css={css`
-                font-size: ${designTokens.typography.fontSize.sm};
-                color: ${designTokens.colors.neutral[600]};
+                font-size: 0.7rem;
+                color: ${designTokens.colors.neutral[500]};
+                margin-top: 4px;
               `}
             >
-              Policy compliance
+              Verified via Filecoin FVM
             </div>
           </CardContent>
         </Card>
@@ -565,7 +605,7 @@ export default function ModernDashboard({
                 margin-bottom: ${designTokens.spacing[3]};
               `}
             >
-              Total Forecasts
+              Autonomous Actions
             </CardTitle>
             <div
               css={css`
@@ -576,7 +616,11 @@ export default function ModernDashboard({
             >
               {(systemHealth.metrics?.totalForecasts || 0).toLocaleString()}
             </div>
-            <div css={textStyles.description}>Forecasts generated</div>
+            <div css={css`
+                font-size: 0.7rem;
+                color: ${designTokens.colors.neutral[500]};
+                margin-top: 4px;
+            `}>Session Activity</div>
           </CardContent>
         </Card>
       </div>
@@ -888,14 +932,29 @@ export default function ModernDashboard({
                     text-transform: uppercase;
                     letter-spacing: 0.05em;
                     margin-bottom: 4px;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
                   `}>
-                    🧠 Current Focus
+                    <span css={css`
+                        display: inline-block;
+                        width: 12px;
+                        height: 12px;
+                        border: 2px solid ${designTokens.colors.primary[300]};
+                        border-top-color: ${designTokens.colors.primary[600]};
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                        @keyframes spin { to { transform: rotate(360deg); } }
+                    `} />
+                    🧠 Internal Thought Stream
                   </div>
                   <div css={css`
                     font-size: 0.9rem;
                     color: ${designTokens.colors.neutral[800]};
                     font-style: italic;
                     line-height: 1.4;
+                    position: relative;
+                    z-index: 1;
                   `}>
                     "{agent.internalThought || 'Analyzing market patterns and scanning for opportunities...'}"
                   </div>
@@ -909,17 +968,28 @@ export default function ModernDashboard({
                       justify-content: space-between;
                       align-items: center;
                     `}>
-                      <span css={css`font-size: 0.7rem; color: ${designTokens.colors.neutral[500]};`}>Next Scheduled Action:</span>
+                      <span css={css`font-size: 0.7rem; color: ${designTokens.colors.neutral[500]};`}>Next Cycle In:</span>
                       <span css={css`
                         font-size: 0.75rem;
-                        font-weight: 700;
+                        font-weight: 800;
                         color: ${designTokens.colors.primary[700]};
                         background: white;
-                        padding: 2px 8px;
-                        border-radius: 4px;
-                        border: 1px solid ${designTokens.colors.primary[100]};
+                        padding: 4px 10px;
+                        border-radius: 6px;
+                        border: 1px solid ${designTokens.colors.primary[200]};
+                        box-shadow: ${shadowSystem.sm};
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
                       `}>
-                        {new Date(agent.nextActionAt).toLocaleTimeString()}
+                        <span css={css`
+                            width: 6px;
+                            height: 6px;
+                            background: ${designTokens.colors.primary[500]};
+                            border-radius: 50%;
+                            ${keyframeAnimations.pulse}
+                        `} />
+                        <ActionCountdown targetDate={agent.nextActionAt} />
                       </span>
                     </div>
                   )}
@@ -1420,22 +1490,31 @@ export default function ModernDashboard({
           border-radius: ${designTokens.borderRadius.full};
           color: ${designTokens.colors.semantic.success[600]};
           font-size: 0.75rem;
-          font-weight: 700;
+          font-weight: 800;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.1em;
           margin-bottom: ${designTokens.spacing[4]};
+          box-shadow: 0 0 20px rgba(34, 197, 94, 0.1);
+          animation: ${keyframeAnimations.fadeIn} 0.5s ease-out;
         `}>
           <span css={css`
             width: 8px;
             height: 8px;
-            background: ${designTokens.colors.semantic.success[500]};
+            background: #22c55e;
             border-radius: 50%;
+            box-shadow: 0 0 8px #22c55e;
             ${keyframeAnimations.pulse}
           `} />
           Autonomous System Online
         </div>
-        <h1 css={heroTitleStyles}>Sapience Forecasting Agent</h1>
-        <p css={heroSubtitleStyles}>
+        <h1 css={css`
+            ${heroTitleStyles};
+            animation: ${keyframeAnimations.fadeInUp} 0.6s ease-out;
+        `}>Sapience Forecasting Agent</h1>
+        <p css={css`
+            ${heroSubtitleStyles};
+            animation: ${keyframeAnimations.fadeInUp} 0.8s ease-out;
+        `}>
           Autonomous AI agent for prediction markets with on-chain attestation via{" "}
           <Tooltip content="EAS (Ethereum Attestation Service) enables verifiable, on-chain attestations for forecasts and predictions">
             <span
