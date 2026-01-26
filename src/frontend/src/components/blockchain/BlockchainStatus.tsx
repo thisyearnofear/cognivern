@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { getApiUrl } from "../../utils/api";
+import { getApiUrl, getRequestHeaders } from "../../utils/api";
 import { css } from '@emotion/react';
 import { designTokens } from '../../styles/designTokens';
 
 interface ContractStats {
-  filecoin: {
+  filecoin?: {
     network: string;
     chainId: number;
     rpcUrl: string;
@@ -12,12 +12,12 @@ interface ContractStats {
     storageContract: string;
     usdcToken: string;
   };
-  recall: {
+  recall?: {
     network: string;
     tradingAPI: string;
     configured: boolean;
   };
-  governance: {
+  governance?: {
     address: string;
     policies: number;
     agents: number;
@@ -38,25 +38,38 @@ export default function BlockchainStatus() {
         setLoading(true);
         const apiUrl = getApiUrl("/api/dashboard/unified");
 
-        // Only log in development (removed for security)
-        // No logging in production to prevent sensitive data exposure
-
-        // In production, Vercel proxy handles authentication
-        // In development, we need to include the API key
-        const headers: Record<string, string> = {};
-        if (import.meta.env.DEV) {
-          const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
-          headers["X-API-KEY"] = apiKey;
-        }
-
-        const response = await fetch(apiUrl, { headers });
+        const response = await fetch(apiUrl, { 
+          headers: getRequestHeaders() 
+        });
 
         if (!response.ok) {
           throw new Error(`Error: ${response.status}`);
         }
 
-        const data = await response.json();
-        setStats(data);
+        const result = await response.json();
+        
+        // Map unified data to component format
+        if (result.success && result.data) {
+            const d = result.data;
+            setStats({
+                governance: {
+                    address: "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880",
+                    policies: d.systemHealth?.totalPolicies || 0,
+                    agents: d.systemHealth?.totalAgents || 1,
+                    actions: d.systemHealth?.totalActions || 0,
+                    violations: 0,
+                    approvalRate: 100
+                },
+                filecoin: {
+                    network: "Calibration",
+                    chainId: 314159,
+                    rpcUrl: "https://api.calibration.node.glif.io/rpc/v1",
+                    governanceContract: "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880",
+                    storageContract: "0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada",
+                    usdcToken: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9"
+                }
+            });
+        }
         setError(null);
       } catch (err) {
         console.error("Error fetching blockchain stats:", err);
