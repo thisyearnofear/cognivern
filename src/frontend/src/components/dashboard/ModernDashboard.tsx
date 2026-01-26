@@ -299,8 +299,12 @@ export default function ModernDashboard({
         setLoadingStep(0);
       }
       setError(null);
-      const apiKey = import.meta.env.VITE_API_KEY || "sapience-hackathon-key";
+      const rawApiKey = import.meta.env.VITE_API_KEY || "sapience-hackathon-key";
+      const apiKey = rawApiKey.trim();
       const headers = { "X-API-KEY": apiKey };
+      
+      // Debug: Log masked key to verify it's being picked up
+      console.log(`[Dashboard] Using API Key: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
 
       if (isInitial) {
         await new Promise((resolve) => setTimeout(resolve, 300));
@@ -308,10 +312,14 @@ export default function ModernDashboard({
       }
 
       // 1. Fetch System Health
-      const healthResponse = await fetch(getApiUrl("/api/system/health"), {
+      const healthUrl = getApiUrl("/api/system/health");
+      const healthResponse = await fetch(healthUrl, {
         headers,
       });
+      
       if (!healthResponse.ok) {
+        const errorBody = await healthResponse.text().catch(() => 'No body');
+        console.error(`[Dashboard] Health check failed (${healthResponse.status}):`, errorBody);
         throw new Error(`System health unavailable (${healthResponse.status})`);
       }
       const health = await healthResponse.json();
