@@ -115,6 +115,8 @@ const rankBadgeStyles = (rank: number) => css`
   ${rank > 3 && `background: ${designTokens.colors.neutral[100]}; color: ${designTokens.colors.neutral[600]};`}
 `;
 
+import { sapienceApi as sapienceBackendApi } from '../../services/apiService';
+
 export default function SapienceMarkets() {
   const { conditions, stats, leaderboard, isLoading, error, lastUpdated, refresh } = useSapienceData();
   const [submittingId, setSubmittingId] = useState<string | null>(null);
@@ -133,27 +135,18 @@ export default function SapienceMarkets() {
 
     try {
       setSubmittingId(conditionId);
-      const response = await fetch('/api/sapience/forecast', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-KEY': 'development-api-key' // Hardcoded for demo
-        },
-        body: JSON.stringify({
+      const result = await sapienceBackendApi.submitForecast({
           conditionId,
           probability,
           reasoning,
           confidence: 1.0
-        })
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        alert(`Forecast submitted! Tx: ${data.txHash}`);
+      if (result.success) {
+        alert("Forecast submitted successfully!");
         refresh(); // Refresh data
       } else {
-        alert(`Error: ${data.message || 'Submission failed'}`);
+        alert(`Error: ${result.error || 'Submission failed'}`);
       }
     } catch (err) {
       console.error(err);

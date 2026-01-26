@@ -231,12 +231,36 @@ export class VincentApiService extends ApiService {
   }
 }
 
+// Sapience-specific API service
+export class SapienceApiService extends ApiService {
+  // Submit manual forecast
+  async submitForecast(data: {
+    conditionId: string;
+    probability: number;
+    reasoning: string;
+    confidence: number;
+  }) {
+    return this.post('/api/sapience/forecast', data);
+  }
+
+  // Get Sapience status
+  async getStatus() {
+    return this.get('/api/sapience/status');
+  }
+
+  // Get wallet info
+  async getWallet() {
+    return this.get('/api/sapience/wallet');
+  }
+}
+
 // Export singleton instances
 export const agentApi = new AgentApiService();
 export const mcpApi = new MCPApiService();
 export const policyApi = new PolicyApiService();
 export const dashboardApi = new DashboardApiService();
 export const vincentApi = new VincentApiService();
+export const sapienceApi = new SapienceApiService();
 
 // Export default instance for general use
 export default new ApiService();
