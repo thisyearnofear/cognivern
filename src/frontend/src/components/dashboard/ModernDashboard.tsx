@@ -743,6 +743,35 @@ export default function ModernDashboard({
                       {new Date(item.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
+                  <div css={css`font-size: 0.95rem; margin: 4px 0; line-height: 1.4; color: ${designTokens.colors.neutral[800]};`}>
+                    {item.type === 'forecast' && (
+                      <>
+                        <span css={css`font-weight: 600; color: ${designTokens.colors.primary[700]};`}>
+                          {item.data.agent?.name || 'Agent'}
+                        </span>{" "}
+                        generated a forecast:{" "}
+                        <span css={css`font-style: italic; color: ${designTokens.colors.neutral[600]};`}>
+                          "{item.data.details || item.data.action}"
+                        </span>
+                      </>
+                    )}
+                    {item.type === "forecast_win" && (
+                      <><strong>{item.data.agent?.name || 'Agent'}</strong> correctly predicted market outcome</>
+                    )}
+                    {item.type === "governance_action" && (
+                      <>{item.data.details}</>
+                    )}
+                    {!['forecast', "forecast_win", "governance_action"].includes(item.type) && (
+                      <>{typeof item.data === 'string' ? item.data : (item.data.details || JSON.stringify(item.data))}</>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
 
   const renderAgentMonitoring = () => (

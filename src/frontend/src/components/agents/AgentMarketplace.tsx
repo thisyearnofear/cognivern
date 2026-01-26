@@ -771,7 +771,7 @@ export default function AgentMarketplace() {
     );
   };
 
-  if (loading && !mcpStatus) {
+  if (isLoading && !mcpStatus) {
     return <div className="marketplace-loading">Loading Agent Marketplace...</div>;
   }
 
@@ -796,8 +796,8 @@ export default function AgentMarketplace() {
             {mcpStatus?.status === 'connected' ? 'Connected' : 'Disconnected'} to Agent Network
           </span>
           {mcpStatus?.status !== 'connected' && (
-            <button className="reconnect-button" onClick={reconnectMCP} disabled={loading}>
-              {loading ? 'Connecting...' : 'Connect'}
+            <button className="reconnect-button" onClick={reconnectMCP} disabled={isLoading}>
+              {isLoading ? 'Connecting...' : 'Connect'}
             </button>
           )}
         </div>
