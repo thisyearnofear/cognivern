@@ -321,14 +321,42 @@ export default function ModernDashboard({
         setLoadingStep(2);
       }
 
-      // 2. Fetch Unified Summary (from UnifiedDashboard blueprint)
+      // 2. Fetch Unified Summary
       try {
-        const summaryResponse = await fetch(getApiUrl("/api/dashboard/summary"), {
+        const summaryResponse = await fetch(getApiUrl("/api/dashboard/unified"), {
           headers,
         });
         if (summaryResponse.ok) {
-          const summaryData = await summaryResponse.json();
-          setSummary(summaryData);
+          const summaryResult = await summaryResponse.json();
+          if (summaryResult.success && summaryResult.data) {
+              const data = summaryResult.data;
+              setSummary({
+                  sapience: {
+                      liveMarkets: data.systemHealth?.activeAgents || 0,
+                      activeAgents: data.systemHealth?.activeAgents || 0,
+                      totalPoolValue: 0
+                  },
+                  governance: {
+                      totalPolicies: 0,
+                      totalAgents: data.systemHealth?.totalAgents || 0,
+                      totalActions: data.systemHealth?.totalActions || 0
+                  },
+                  unified: {
+                      deployedAgents: data.systemHealth?.activeAgents || 0,
+                      averageTrustScore: data.systemHealth?.complianceRate || 0,
+                      totalValue: 0
+                  }
+              });
+              
+              if (data.recentActivity) {
+                  setActivityFeed(data.recentActivity.map((a: any) => ({
+                      type: a.type,
+                      source: a.agent?.includes('sapience') ? 'sapience' : 'system',
+                      timestamp: a.timestamp,
+                      data: { details: a.action }
+                  })));
+              }
+          }
         }
       } catch (e) {
         console.warn("Summary API not available, falling back to basic metrics");
@@ -360,18 +388,7 @@ export default function ModernDashboard({
 
       // Note: Live Sapience markets are now fetched by SapienceMarkets component via useSapienceData hook
 
-      // 4. Fetch Activity Feed
-      try {
-        const feedResponse = await fetch(getApiUrl("/api/feed/live"), {
-          headers,
-        });
-        if (feedResponse.ok) {
-          const feedData = await feedResponse.json();
-          setActivityFeed(feedData.feed || []);
-        }
-      } catch (e) {
-        console.warn("Activity Feed API not available");
-      }
+      // Note: Activity feed is now populated via the unified dashboard call above
 
       if (isInitial) {
         setLoadingStep(3);
