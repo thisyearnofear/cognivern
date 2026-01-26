@@ -307,6 +307,8 @@ const severityBadgeStyles = css`
   }
 `;
 
+import { getApiUrl, getRequestHeaders } from '../utils/api';
+
 export default function AuditLogs() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
@@ -341,16 +343,14 @@ export default function AuditLogs() {
         Object.entries(filters).filter(([_, value]) => value !== '')
       ).toString();
 
-      const response = await fetch(`/api/audit-logs?${queryParams}`, {
-        headers: {
-          'X-API-KEY': import.meta.env.VITE_API_KEY || 'development-api-key',
-        },
+      const response = await fetch(getApiUrl(`/api/audit-logs?${queryParams}`), {
+        headers: getRequestHeaders(),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setLogs(data);
-        calculateMetrics(data);
+        setLogs(data.data || []);
+        calculateMetrics(data.data || []);
       } else {
         // Mock data for demonstration
         const mockLogs = generateMockLogs();

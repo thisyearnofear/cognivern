@@ -33,7 +33,7 @@ export function getApiHeaders(): Record<string, string> {
   };
 
   // Always include API key for backend authentication
-  const apiKey = import.meta.env.VITE_API_KEY || "showcase-api-key";
+  const apiKey = import.meta.env.VITE_API_KEY || "sapience-hackathon-key";
   if (apiKey) {
     headers["X-API-KEY"] = apiKey;
   }
@@ -80,7 +80,7 @@ export function getRequestHeaders(): Record<string, string> {
   };
 
   // Add API key if it exists
-  const apiKey = import.meta.env.VITE_API_KEY;
+  const apiKey = import.meta.env.VITE_API_KEY || "sapience-hackathon-key";
   if (apiKey) {
     headers["X-API-KEY"] = apiKey;
   }

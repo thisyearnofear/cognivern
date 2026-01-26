@@ -27,6 +27,7 @@ import { GovernanceController } from "./controllers/GovernanceController.js";
 import { MetricsController } from "./controllers/MetricsController.js";
 import { SapienceController } from "./controllers/SapienceController.js";
 import { RecallController } from "./controllers/RecallController.js";
+import { AuditLogController } from "./controllers/AuditLogController.js";
 
 export class ApiModule extends BaseService {
   private app: express.Application;
@@ -189,6 +190,7 @@ export class ApiModule extends BaseService {
     this.controllers.set("metrics", new MetricsController());
     this.controllers.set("sapience", new SapienceController());
     this.controllers.set("recall", new RecallController());
+    this.controllers.set("audit", new AuditLogController());
 
     // Initialize all controllers
     for (const [name, controller] of this.controllers) {
@@ -266,6 +268,11 @@ export class ApiModule extends BaseService {
     // Metrics routes
     apiRouter.get("/metrics/daily", (req, res) => {
       this.controllers.get("metrics").getDailyMetrics(req, res);
+    });
+
+    // Audit routes
+    apiRouter.get("/audit-logs", (req, res) => {
+      this.controllers.get("audit").getLogs(req, res);
     });
 
     // Sapience routes
