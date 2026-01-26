@@ -19,6 +19,7 @@ export class AutomatedForecastingService {
   private graphqlEndpoint = 'https://api.sapience.xyz/graphql';
   private nextRunAt: Date | null = null;
   private lastThought: string = 'Initializing autonomous strategy...';
+  private thoughtHistory: Array<{ timestamp: string; thought: string }> = [];
 
   // LLM Config with Fallback
   private providers = [
@@ -43,8 +44,19 @@ export class AutomatedForecastingService {
     console.log('[ForecastingService] Initialized with Multi-LLM Fallback');
   }
 
+  private recordThought(thought: string) {
+    this.lastThought = thought;
+    this.thoughtHistory.unshift({
+      timestamp: new Date().toISOString(),
+      thought
+    });
+    if (this.thoughtHistory.length > 10) {
+      this.thoughtHistory.pop();
+    }
+  }
+
   private async callLLM(prompt: string): Promise<string> {
-    this.lastThought = 'Consulting LLM cluster for market analysis...';
+    this.recordThought('Consulting LLM cluster for market analysis...');
     console.log('[ForecastingService] Calling LLM...');
     for (const provider of this.providers) {
       if (!provider.apiKey) continue;
@@ -78,7 +90,7 @@ export class AutomatedForecastingService {
   }
 
   async fetchOptimalCondition(): Promise<MarketCondition | null> {
-    this.lastThought = 'Scanning Sapience GraphQL for optimal market conditions...';
+    this.recordThought('Scanning Sapience GraphQL for optimal market conditions...');
     console.log('[ForecastingService] Fetching optimal condition...');
     const nowSec = Math.floor(Date.now() / 1000);
     const query = `
@@ -123,7 +135,7 @@ export class AutomatedForecastingService {
   }
 
   async generateForecast(question: string): Promise<ForecastResult> {
-    this.lastThought = `Generating forecast for: ${question.substring(0, 50)}...`;
+    this.recordThought(`Generating forecast for: ${question.substring(0, 50)}...`);
     const prompt = `You are a professional forecaster. Estimate the probability (0-100) that the answer to this question is YES.
 Question: "${question}"
 First, provide brief reasoning (1 sentence, max 150 chars).
@@ -154,7 +166,7 @@ Then on the final line, output ONLY the probability as a number.`;
     try {
       const condition = await this.fetchOptimalCondition();
       if (!condition) {
-          this.lastThought = 'No suitable markets found. Waiting for next cycle.';
+          this.recordThought('No suitable markets found. Waiting for next cycle.');
           return { success: false, error: 'No markets' };
       }
       console.log('[ForecastingService] Selected market:', condition.question);
@@ -162,7 +174,7 @@ Then on the final line, output ONLY the probability as a number.`;
       const forecast = await this.generateForecast(condition.shortName || condition.question);
       console.log(`[ForecastingService] Generated forecast: ${forecast.probability}%`);
 
-      this.lastThought = `Submitting on-chain attestation for ${condition.id.substring(0, 8)}...`;
+      this.recordThought(`Submitting on-chain attestation for ${condition.id.substring(0, 8)}...`);
       const txHash = await this.sapienceService.submitForecast({
         marketId: condition.id,
         probability: forecast.probability,
@@ -172,7 +184,7 @@ Then on the final line, output ONLY the probability as a number.`;
       console.log('[ForecastingService] Forecast submitted! Tx:', txHash);
 
       this.forecastedMarkets.add(condition.id);
-      this.lastThought = 'Forecast successfully attested. Monitoring market updates.';
+      this.recordThought('Forecast successfully attested. Monitoring market updates.');
       return { 
           success: true, 
           txHash,
@@ -181,7 +193,7 @@ Then on the final line, output ONLY the probability as a number.`;
       };
     } catch (error) {
       console.error('[ForecastingService] Cycle failed', error);
-      this.lastThought = 'Last cycle failed. Recovering for next attempt.';
+      this.recordThought('Last cycle failed. Recovering for next attempt.');
       return { success: false, error: 'Internal' };
     }
   }
@@ -201,6 +213,7 @@ Then on the final line, output ONLY the probability as a number.`;
       forecastCount: this.forecastedMarkets.size,
       nextRunAt: this.nextRunAt?.toISOString(),
       lastThought: this.lastThought,
+      thoughtHistory: this.thoughtHistory,
       timestamp: new Date().toISOString()
     };
   }

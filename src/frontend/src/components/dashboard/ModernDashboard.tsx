@@ -60,6 +60,7 @@ interface AgentMonitoringData extends BaseAgent {
   type: AgentType;
   lastActivity: string;
   internalThought?: string;
+  thoughtHistory?: Array<{ timestamp: string; thought: string }>;
   nextActionAt?: string;
   avatar?: string;
   performance: {
@@ -995,6 +996,44 @@ export default function ModernDashboard({
                   )}
                 </div>
 
+                {/* RECENT REASONING TRAIL */}
+                {agent.thoughtHistory && agent.thoughtHistory.length > 0 && (
+                  <div css={css`
+                    margin-bottom: ${designTokens.spacing[6]};
+                  `}>
+                    <div css={css`
+                      font-size: 0.65rem;
+                      font-weight: 800;
+                      color: ${designTokens.colors.neutral[400]};
+                      text-transform: uppercase;
+                      letter-spacing: 0.05em;
+                      margin-bottom: 8px;
+                    `}>
+                      🕰️ Recent Reasoning Trail
+                    </div>
+                    <div css={css`
+                      display: flex;
+                      flex-direction: column;
+                      gap: 8px;
+                    `}>
+                      {agent.thoughtHistory.slice(1, 4).map((item, i) => (
+                        <div key={i} css={css`
+                          font-size: 0.75rem;
+                          color: ${designTokens.colors.neutral[500]};
+                          padding-left: 12px;
+                          border-left: 2px solid ${designTokens.colors.neutral[100]};
+                          line-height: 1.3;
+                        `}>
+                          <div css={css`font-size: 0.65rem; color: ${designTokens.colors.neutral[300]};`}>
+                            {new Date(item.timestamp).toLocaleTimeString()}
+                          </div>
+                          {item.thought}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div
                   css={css`
                     margin-bottom: ${designTokens.spacing[4]};
@@ -1166,7 +1205,7 @@ export default function ModernDashboard({
                         margin-bottom: ${designTokens.spacing[3]};
                       `}
                     >
-                      Financial Performance
+                      {agent.type === 'sapience' ? 'Model Performance' : 'Financial Performance'}
                     </h4>
                     <div
                       css={css`
@@ -1193,7 +1232,7 @@ export default function ModernDashboard({
                             margin-bottom: ${designTokens.spacing[1]};
                           `}
                         >
-                          ${agent.financialMetrics.totalValue.toLocaleString()}
+                          {agent.type === 'sapience' ? '' : '$'}{agent.financialMetrics.totalValue.toLocaleString()}{agent.type === 'sapience' ? ' ETH' : ''}
                         </div>
                         <div
                           css={css`
@@ -1203,7 +1242,7 @@ export default function ModernDashboard({
                             letter-spacing: 0.05em;
                           `}
                         >
-                          Total Value
+                          {agent.type === 'sapience' ? 'Wallet' : 'Total Value'}
                         </div>
                       </div>
                       <div
@@ -1219,14 +1258,13 @@ export default function ModernDashboard({
                             font-size: ${designTokens.typography.fontSize.lg};
                             font-weight: ${designTokens.typography.fontWeight
                               .bold};
-                            color: ${agent.financialMetrics.dailyPnL >= 0
+                            color: ${agent.financialMetrics.dailyPnL >= 0.5
                               ? designTokens.colors.semantic.success[600]
                               : designTokens.colors.semantic.error[600]};
                             margin-bottom: ${designTokens.spacing[1]};
                           `}
                         >
-                          {agent.financialMetrics.dailyPnL >= 0 ? "+" : ""}$
-                          {agent.financialMetrics.dailyPnL.toFixed(2)}
+                          {(agent.financialMetrics.dailyPnL * 100).toFixed(1)}%
                         </div>
                         <div
                           css={css`
@@ -1236,7 +1274,7 @@ export default function ModernDashboard({
                             letter-spacing: 0.05em;
                           `}
                         >
-                          Daily P&L
+                          {agent.type === 'sapience' ? 'Avg Confidence' : 'Daily P&L'}
                         </div>
                       </div>
                     </div>
