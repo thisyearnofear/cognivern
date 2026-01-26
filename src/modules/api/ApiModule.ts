@@ -130,6 +130,7 @@ export class ApiModule extends BaseService {
       },
       standardHeaders: true,
       legacyHeaders: false,
+      validate: { trustProxy: false }, // We've already set trust proxy to 1 (first proxy only)
     });
     this.app.use("/api/", limiter);
 
