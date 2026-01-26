@@ -182,9 +182,13 @@ export class ApiModule extends BaseService {
   private async setupControllers(): Promise<void> {
     this.logger.info("Setting up controllers...");
 
+    const { AgentsModule } = await import("../agents/AgentsModule.js");
+    const agentsModule = new AgentsModule();
+    await agentsModule.initialize();
+
     // Initialize controllers with dependency injection
-    this.controllers.set("health", new HealthController());
-    this.controllers.set("agents", new AgentsController());
+    this.controllers.set("health", new HealthController(agentsModule));
+    this.controllers.set("agents", new AgentsController(agentsModule));
     this.controllers.set("trading", new TradingController());
     this.controllers.set("governance", new GovernanceController());
     this.controllers.set("metrics", new MetricsController());
@@ -194,7 +198,7 @@ export class ApiModule extends BaseService {
 
     // Initialize all controllers
     for (const [name, controller] of this.controllers) {
-      if (controller.initialize) {
+      if (controller.initialize && name !== "agents") { 
         await controller.initialize();
         this.logger.debug(`${name} controller initialized`);
       }

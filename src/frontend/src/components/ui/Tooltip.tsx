@@ -33,6 +33,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
     max-width: 300px;
     white-space: normal;
     opacity: ${isVisible ? "1" : "0"};
+    display: ${isVisible ? "block" : "none"};
     pointer-events: ${isVisible ? "auto" : "none"};
     transition:
       opacity ${designTokens.animation.duration.fast}

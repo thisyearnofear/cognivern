@@ -113,7 +113,8 @@ export class SapienceService {
    */
   async getEthBalance(): Promise<string> {
     try {
-        const balance = await this.etherealProvider.getBalance(this.wallet.address);
+        const provider = new ethers.JsonRpcProvider(this.config.arbitrumRpcUrl);
+        const balance = await provider.getBalance(this.wallet.address);
         return ethers.formatEther(balance);
     } catch (error) {
         logger.error('Failed to fetch ETH balance:', error);

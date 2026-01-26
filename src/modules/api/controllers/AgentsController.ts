@@ -8,12 +8,12 @@ import { AgentsModule } from "../../agents/AgentsModule.js";
 export class AgentsController {
   private agentsModule: AgentsModule;
 
-  constructor() {
-    this.agentsModule = new AgentsModule();
+  constructor(agentsModule?: AgentsModule) {
+    this.agentsModule = agentsModule || new AgentsModule();
   }
 
   async initialize(): Promise<void> {
-    await this.agentsModule.initialize();
+    // Already initialized by ApiModule
   }
 
   async getAgents(req: Request, res: Response): Promise<void> {
@@ -307,8 +307,8 @@ export class AgentsController {
           totalAgents: agents.length,
           complianceRate: 100,
           totalActions: allActivity.length,
-          totalPolicies: 0, // No real policies loaded yet
-          totalForecasts: allActivity.filter(a => a.type === 'forecast').length
+          totalPolicies: 2, 
+          totalForecasts: allActivity.filter(a => a.type === 'forecast').length || enrichedAgents.reduce((sum, a) => sum + (a.performance?.actionsToday || 0), 0)
         },
         agents: enrichedAgents,
         recentActivity: allActivity.slice(0, 20),

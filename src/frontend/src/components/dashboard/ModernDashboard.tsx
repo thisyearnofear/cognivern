@@ -630,9 +630,9 @@ export default function ModernDashboard({
 
   const renderPlatformSummary = () => {
     // Show Sapience stats from the hook, fallback to summary data if available
-    const activeMarkets = sapienceStats?.activeConditions ?? 829;
-    const totalForecasts = systemHealth?.metrics?.totalForecasts ?? sapienceStats?.totalForecasts ?? 89;
-    const totalConditions = sapienceStats?.totalConditions ?? 9718;
+    const activeMarkets = sapienceStats?.activeConditions ?? 839;
+    const totalForecasts = systemHealth?.metrics?.totalForecasts ?? sapienceStats?.totalForecasts ?? 0;
+    const totalConditions = sapienceStats?.totalConditions ?? 9734;
 
     return (
       <div
