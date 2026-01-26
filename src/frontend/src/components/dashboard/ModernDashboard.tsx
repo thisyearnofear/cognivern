@@ -359,9 +359,9 @@ export default function ModernDashboard({
               if (data.recentActivity) {
                   setActivityFeed(data.recentActivity.map((a: any) => ({
                       type: a.type,
-                      source: a.agent?.includes('sapience') ? 'sapience' : 'system',
+                      source: a.type === 'forecast' ? 'sapience' : a.type === 'governance' ? 'filecoin' : 'system',
                       timestamp: a.timestamp,
-                      data: { details: a.action }
+                      data: a.data || { details: a.action }
                   })));
               }
           }
@@ -405,9 +405,9 @@ export default function ModernDashboard({
         if (agentsResult.success && agentsResult.data && agentsResult.data.recentActivity) {
             setActivityFeed(agentsResult.data.recentActivity.map((a: any) => ({
                 type: a.type,
-                source: a.agent?.includes('sapience') ? 'sapience' : 'system',
+                source: a.type === 'forecast' ? 'sapience' : a.type === 'governance' ? 'filecoin' : 'system',
                 timestamp: a.timestamp,
-                data: { details: a.action }
+                data: a.data || { details: a.action }
             })));
         } else {
             const feedResponse = await fetch(getApiUrl("/api/feed/live"), {
