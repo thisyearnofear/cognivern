@@ -51,7 +51,7 @@ export class AgentOrchestrator extends BaseService {
 
     // Initialize trading scheduler
     this.tradingScheduler = new TradingScheduler({
-      intervalMinutes: 10, // Trade every 10 minutes
+      intervalMinutes: 120, // Trade every 2 hours to conserve API quota
       enabled: tradingConfig.enabled,
       maxRiskPerTrade: tradingConfig.maxRiskPerTrade,
     });
