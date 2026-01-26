@@ -363,7 +363,8 @@ export default function ModernDashboard({
       }
 
       // 3. Fetch Agents (Unified/Monitoring)
-      const agentsResponse = await fetch(getApiUrl("/api/agents/unified?limit=50"), {
+      let agentsResult;
+      const agentsResponse = await fetch(getApiUrl("/api/agents/unified"), {
         headers,
       }).catch(() => fetch(getApiUrl("/api/agents/monitoring"), { headers }));
 
@@ -372,23 +373,46 @@ export default function ModernDashboard({
           `Agent monitoring unavailable (${agentsResponse.status})`,
         );
       }
-      const agentsResult = await agentsResponse.json();
+      agentsResult = await agentsResponse.json();
 
       let agents;
       if (Array.isArray(agentsResult)) {
         agents = agentsResult;
       } else if (agentsResult.success && Array.isArray(agentsResult.data)) {
         agents = agentsResult.data;
+      } else if (agentsResult.success && agentsResult.data && Array.isArray(agentsResult.data.agents)) {
+        agents = agentsResult.data.agents;
       } else if (agentsResult.agents && Array.isArray(agentsResult.agents)) {
         agents = agentsResult.agents;
       } else {
+        console.error("Invalid agent data format. Received:", agentsResult);
         throw new Error("Invalid agent data format from API");
       }
       setAgentData(agents);
 
       // Note: Live Sapience markets are now fetched by SapienceMarkets component via useSapienceData hook
 
-      // Note: Activity feed is now populated via the unified dashboard call above
+      // 4. Fetch Activity Feed
+      try {
+        if (agentsResult.success && agentsResult.data && agentsResult.data.recentActivity) {
+            setActivityFeed(agentsResult.data.recentActivity.map((a: any) => ({
+                type: a.type,
+                source: a.agent?.includes('sapience') ? 'sapience' : 'system',
+                timestamp: a.timestamp,
+                data: { details: a.action }
+            })));
+        } else {
+            const feedResponse = await fetch(getApiUrl("/api/feed/live"), {
+              headers,
+            });
+            if (feedResponse.ok) {
+              const feedData = await feedResponse.json();
+              setActivityFeed(feedData.feed || []);
+            }
+        }
+      } catch (e) {
+        console.warn("Activity Feed API not available");
+      }
 
       if (isInitial) {
         setLoadingStep(3);
@@ -398,14 +422,10 @@ export default function ModernDashboard({
       setIsApiConnected(true);
       setLastUpdated(new Date());
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to load dashboard data";
-      console.error("Error fetching dashboard data:", errorMessage);
+      console.error("Error fetching dashboard data:", error);
 
       if (isInitial || !systemHealth) {
-        setError(errorMessage);
+        setError(error instanceof Error ? error.message : "Failed to load dashboard data");
         setIsApiConnected(false);
         setSystemHealth(null);
         setAgentData([]);

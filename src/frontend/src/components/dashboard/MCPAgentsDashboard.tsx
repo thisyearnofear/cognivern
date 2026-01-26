@@ -54,6 +54,8 @@ interface DemoResult {
   status: 'success' | 'pending' | 'failed';
 }
 
+import { getApiUrl, getRequestHeaders } from '../../utils/api';
+
 export default function MCPAgentsDashboard() {
   const [mcpStatus, setMcpStatus] = useState<MCPStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,10 +81,8 @@ export default function MCPAgentsDashboard() {
   const fetchMCPStatus = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/mcp/status', {
-        headers: {
-          'X-API-KEY': import.meta.env.VITE_API_KEY || 'escheat-api-key-123456',
-        },
+      const response = await fetch(getApiUrl('/api/mcp/status'), {
+        headers: getRequestHeaders(),
       });
 
       if (!response.ok) {
@@ -112,11 +112,9 @@ export default function MCPAgentsDashboard() {
       setLoading(true);
       addLog('Attempting to reconnect to MCP server...', 'info');
 
-      const response = await fetch('/api/mcp/reconnect', {
+      const response = await fetch(getApiUrl('/api/mcp/reconnect'), {
         method: 'POST',
-        headers: {
-          'X-API-KEY': import.meta.env.VITE_API_KEY || 'escheat-api-key-123456',
-        },
+        headers: getRequestHeaders(),
       });
 
       if (!response.ok) {

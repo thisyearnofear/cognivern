@@ -168,4 +168,12 @@ Then on the final line, output ONLY the probability as a number.`;
   startContinuousForecasting(intervalMinutes: number = 60) {
     setInterval(() => this.runForecastingCycle(), intervalMinutes * 60 * 1000);
   }
+
+  getStats() {
+    return {
+      providers: this.providers.map(p => ({ name: p.name, model: p.model })),
+      forecastCount: this.forecastedMarkets.size,
+      timestamp: new Date().toISOString()
+    };
+  }
 }

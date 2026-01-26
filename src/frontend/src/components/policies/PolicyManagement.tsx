@@ -267,6 +267,8 @@ const ruleTypeStyles = css`
   }
 `;
 
+import { getApiUrl, getRequestHeaders } from '../../utils/api';
+
 export default function PolicyManagement() {
   const [activeTab, setActiveTab] = useState<'templates' | 'policies' | 'agents'>('templates');
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -281,14 +283,12 @@ export default function PolicyManagement() {
 
   const fetchPolicies = async () => {
     try {
-      const response = await fetch('/api/policies', {
-        headers: {
-          'X-API-KEY': import.meta.env.VITE_API_KEY || 'development-api-key',
-        },
+      const response = await fetch(getApiUrl('/api/governance/policies'), {
+        headers: getRequestHeaders(),
       });
       if (response.ok) {
         const data = await response.json();
-        setPolicies(data.policies || []);
+        setPolicies(data.data || []);
       }
     } catch (error) {
       console.error('Error fetching policies:', error);
@@ -299,20 +299,20 @@ export default function PolicyManagement() {
     // Mock data for demonstration - in real app, this would fetch from API
     setAgentConnections([
       {
-        id: 'recall-agent-1',
-        name: 'Recall Trading Agent',
+        id: 'sapience-agent-1',
+        name: 'Sapience Forecasting Agent',
         type: 'trading',
         status: 'connected',
         lastActivity: new Date().toISOString(),
         policiesApplied: ['trading-risk-control']
       },
       {
-        id: 'vincent-agent-1',
-        name: 'Vincent Social Trading Agent',
-        type: 'trading',
+        id: 'filecoin-agent-1',
+        name: 'Filecoin Governance Agent',
+        type: 'analysis',
         status: 'connected',
         lastActivity: new Date(Date.now() - 300000).toISOString(),
-        policiesApplied: ['trading-risk-control', 'security-baseline']
+        policiesApplied: ['security-baseline']
       }
     ]);
   };
@@ -330,11 +330,11 @@ export default function PolicyManagement() {
         status: 'draft' as const
       };
 
-      const response = await fetch('/api/policies', {
+      const response = await fetch(getApiUrl('/api/governance/policies'), {
         method: 'POST',
         headers: {
+          ...getRequestHeaders(),
           'Content-Type': 'application/json',
-          'X-API-KEY': import.meta.env.VITE_API_KEY || 'development-api-key',
         },
         body: JSON.stringify(newPolicy)
       });

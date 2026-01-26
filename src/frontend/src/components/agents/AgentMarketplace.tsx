@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { css } from '@emotion/react';
 import { designTokens, tradingStyles } from '../../styles/designTokens';
 import { useLoadingState } from '../../hooks/useAgentData';
 import InteractiveAgentDemo from './InteractiveAgentDemo';
+import { getApiUrl, getRequestHeaders } from '../../utils/api';
 
 import { BaseAgent } from '../../types';
 
@@ -48,10 +49,8 @@ export default function AgentMarketplace() {
 
   const fetchMCPStatus = async () => {
     const result = await withLoading(async () => {
-      const response = await fetch('/api/mcp/status', {
-        headers: {
-          'X-API-KEY': import.meta.env.VITE_API_KEY || 'escheat-api-key-123456',
-        },
+      const response = await fetch(getApiUrl('/api/mcp/status'), {
+        headers: getRequestHeaders(),
       });
 
       if (!response.ok) {
@@ -70,13 +69,9 @@ export default function AgentMarketplace() {
 
   const reconnectMCP = async () => {
     try {
-      setLoading(true);
-
-      const response = await fetch('/api/mcp/reconnect', {
+      const response = await fetch(getApiUrl('/api/mcp/reconnect'), {
         method: 'POST',
-        headers: {
-          'X-API-KEY': import.meta.env.VITE_API_KEY || 'escheat-api-key-123456',
-        },
+        headers: getRequestHeaders(),
       });
 
       if (!response.ok) {
@@ -89,8 +84,6 @@ export default function AgentMarketplace() {
       setTimeout(fetchMCPStatus, 2000);
     } catch (err) {
       console.error('Error reconnecting to MCP:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
