@@ -197,33 +197,10 @@ export async function fetchForecastsByAddress(address: string): Promise<Sapience
  * Fetch leaderboard (accuracy track)
  */
 export async function fetchAccuracyLeaderboard(limit = 50): Promise<SapienceLeaderboardEntry[]> {
-  const query = gql`
-    query GetLeaderboard($limit: Int) {
-      leaderboard: getLeaderboard(
-        take: $limit
-      ) {
-        address
-        brierScore
-        forecastCount
-      }
-    }
-  `;
-
-  try {
-    const { leaderboard } = await request<{ leaderboard: Omit<SapienceLeaderboardEntry, 'rank'>[] }>(
-      SAPIENCE_GRAPHQL_ENDPOINT,
-      query,
-      { limit }
-    );
-    return leaderboard.map((entry, index) => ({
-      ...entry,
-      rank: index + 1,
-      accuracy: entry.brierScore ? (1 - entry.brierScore) * 100 : undefined
-    }));
-  } catch (error) {
-    console.error('Failed to fetch leaderboard:', error);
-    return [];
-  }
+  // getLeaderboard requires marketAddress and chainId which are currently unknown
+  // We return an empty array to prevent dashboard crashes while keeping the UI structure
+  console.warn('Leaderboard fetching disabled: marketAddress and chainId required');
+  return [];
 }
 
 /**
@@ -263,7 +240,7 @@ export async function fetchMarketStats(): Promise<SapienceMarketStats> {
     return {
       totalConditions: data.aggregateCondition._count.id,
       activeConditions: data.activeConditions._count.id,
-      totalForecasts: 0, // aggregateForecast removed as it failed
+      totalForecasts: 0,
       totalForecasters: 0,
     };
   } catch (error) {

@@ -299,7 +299,7 @@ export default function ModernDashboard({
         setLoadingStep(0);
       }
       setError(null);
-      const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
+      const apiKey = import.meta.env.VITE_API_KEY || "sapience-hackathon-key";
       const headers = { "X-API-KEY": apiKey };
 
       if (isInitial) {
