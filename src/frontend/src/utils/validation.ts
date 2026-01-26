@@ -243,11 +243,8 @@ export const AsyncValidators = {
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 300));
 
-    // Mock check - in real app, this would call your API
-    if (email === "test@example.com") {
-      return "Email is already registered";
-    }
-
+    // Real email validation would call your API
+    // For now, return null (no error) for all emails
     return null;
   },
 

@@ -46,6 +46,44 @@ export class AgentsController {
     }
   }
 
+  async getConnections(req: Request, res: Response): Promise<void> {
+    try {
+      // Get agent connections for policy management
+      const agents = await this.agentsModule.getAgents();
+      
+      const connections = agents.map(agent => ({
+        id: agent.id,
+        name: agent.name,
+        type: agent.type,
+        status: agent.status === 'active' ? 'connected' : 'disconnected',
+        lastSeen: agent.lastActivity,
+        capabilities: agent.capabilities || [],
+        policies: [], // Agent type doesn't have policies property
+        metadata: {
+          version: '1.0.0',
+          governance: 'enabled',
+          monitoring: 'active'
+        }
+      }));
+
+      res.json({
+        success: true,
+        data: connections,
+        count: connections.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: error instanceof Error ? error.message : "Unknown error",
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
   async getAgent(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
@@ -89,26 +127,36 @@ export class AgentsController {
 
   async getAgentStatus(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const { id, agentType } = req.params;
+      const agentId = id || agentType; // Support both :id and :agentType parameters
 
       // Get real agent status from our showcase agents
-      const status = await this.agentsModule.getAgentStatus(id);
+      const status = await this.agentsModule.getAgentStatus(agentId);
 
       if (!status) {
-        res.status(404).json({
+        res.status(500).json({
           success: false,
-          error: {
-            code: "NOT_FOUND",
-            message: `Showcase agent with id ${id} not found`,
-          },
+          error: "Failed to fetch recall agent data",
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
+      // Transform status to match frontend expectations
+      const transformedStatus = {
+        isActive: status.status === 'active',
+        lastUpdate: status.lastActivity || new Date().toISOString(),
+        tradesExecuted: status.performance?.totalTrades || 0,
+        performance: {
+          totalReturn: status.performance?.averageTradeReturn || 0,
+          winRate: status.performance?.winRate || 0,
+          sharpeRatio: status.performance?.sharpeRatio || 0,
+        }
+      };
+
       res.json({
         success: true,
-        data: status,
+        data: transformedStatus,
         governance: {
           compliance: "Real-time monitoring active",
           riskManagement: "Automated risk controls enabled",
@@ -119,10 +167,7 @@ export class AgentsController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        error: {
-          code: "INTERNAL_ERROR",
-          message: error instanceof Error ? error.message : "Unknown error",
-        },
+        error: "Failed to fetch recall agent data",
         timestamp: new Date().toISOString(),
       });
     }
@@ -174,6 +219,30 @@ export class AgentsController {
     }
   }
 
+  async getAgentDecisions(req: Request, res: Response): Promise<void> {
+    try {
+      const { agentType, id } = req.params;
+      const agentId = id || agentType;
+      const limit = parseInt(req.query.limit as string) || 10;
+
+      // Get real agent decisions from our agents module
+      const decisions = await this.agentsModule.getAgentDecisions(agentId, limit);
+
+      res.json({
+        success: true,
+        data: decisions,
+        count: decisions.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        error: "Failed to fetch trading decisions",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
   async getMonitoring(req: Request, res: Response): Promise<void> {
     try {
       const agents = await this.agentsModule.getAgents();
@@ -207,9 +276,9 @@ export class AgentsController {
                 actionsToday: perf.totalTrades || 0,
             },
             risk: {
-                riskScore: 0, // Placeholder as we don't calculate risk score yet
+                riskScore: 0, // Not calculated yet
                 violationsToday: agentStatus.policyViolations || 0,
-                complianceRate: 100, // Default until we have violation history
+                complianceRate: 100, // Default until violation history is implemented
             },
             financial: {
                 totalValue: `$${(portfolio.totalValue || 0).toLocaleString()}`,

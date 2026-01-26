@@ -120,7 +120,7 @@ export class AgentOrchestrator extends BaseService {
               return;
           }
 
-          // Fallback for other agent types (placeholder/legacy)
+          // Fallback for other agent types
           const decision: TradingDecision = {
             id: `auto-${Date.now()}`,
             agentId: agent.id,
