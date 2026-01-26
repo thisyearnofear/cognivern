@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense, useCallback } from "react";
+import { useState, useEffect, lazy, Suspense, useCallback, Fragment } from "react";
 
 // Helper for real-time countdown
 const ActionCountdown = ({ targetDate }: { targetDate: string }) => {
@@ -37,6 +37,7 @@ import {
   layoutUtils,
 } from "../../styles/design-system";
 import { Card, CardContent, CardTitle } from "../ui/Card";
+import { Modal } from "../ui/Modal";
 import { getApiUrl } from "../../utils/api";
 import BlockchainStatus from "../blockchain/BlockchainStatus";
 import ConnectionStatus from "../ui/ConnectionStatus";
@@ -328,6 +329,11 @@ export default function ModernDashboard({
   const [activeView, setActiveView] = useState<
     "overview" | "markets" | "agents" | "governance"
   >("overview");
+  
+  // Modal state
+  const [selectedAgent, setSelectedAgent] = useState<AgentMonitoringData | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
 
   // Sapience real-time data
   const { stats: sapienceStats, leaderboard: sapienceLeaderboard } =
@@ -1639,6 +1645,10 @@ export default function ModernDashboard({
                       flex: 1;
                       ${buttonStyles.primary}
                     `}
+                    onClick={() => {
+                      setSelectedAgent(agent);
+                      setShowDetailsModal(true);
+                    }}
                   >
                     View Details
                   </button>
@@ -1647,6 +1657,10 @@ export default function ModernDashboard({
                       flex: 1;
                       ${buttonStyles.secondary}
                     `}
+                    onClick={() => {
+                      setSelectedAgent(agent);
+                      setShowConfigModal(true);
+                    }}
                   >
                     Configure
                   </button>
@@ -2134,6 +2148,402 @@ export default function ModernDashboard({
       </div>
 
       <ConnectionStatus isConnected={isApiConnected} apiUrl="Sapience API" />
+
+      {/* Agent Details Modal */}
+      <Modal
+        isOpen={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedAgent(null);
+        }}
+        title={selectedAgent ? `${selectedAgent.name} - Details` : "Agent Details"}
+      >
+        {selectedAgent && (
+          <div
+            css={css`
+              display: flex;
+              flex-direction: column;
+              gap: ${designTokens.spacing[4]};
+            `}
+          >
+            <div
+              css={css`
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: ${designTokens.spacing[4]};
+              `}
+            >
+              <div
+                css={css`
+                  padding: ${designTokens.spacing[4]};
+                  background: ${designTokens.colors.neutral[50]};
+                  border-radius: ${designTokens.borderRadius.lg};
+                `}
+              >
+                <h4
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    color: ${designTokens.colors.neutral[500]};
+                    margin-bottom: ${designTokens.spacing[1]};
+                  `}
+                >
+                  Uptime
+                </h4>
+                <p
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize.xl};
+                    font-weight: ${designTokens.typography.fontWeight.bold};
+                    color: ${designTokens.colors.semantic.success[600]};
+                  `}
+                >
+                  {selectedAgent.performance.uptime}%
+                </p>
+              </div>
+              <div
+                css={css`
+                  padding: ${designTokens.spacing[4]};
+                  background: ${designTokens.colors.neutral[50]};
+                  border-radius: ${designTokens.borderRadius.lg};
+                `}
+              >
+                <h4
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    color: ${designTokens.colors.neutral[500]};
+                    margin-bottom: ${designTokens.spacing[1]};
+                  `}
+                >
+                  Success Rate
+                </h4>
+                <p
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize.xl};
+                    font-weight: ${designTokens.typography.fontWeight.bold};
+                  `}
+                >
+                  {selectedAgent.performance.successRate}%
+                </p>
+              </div>
+            </div>
+
+            <div
+              css={css`
+                padding: ${designTokens.spacing[4]};
+                background: ${designTokens.colors.primary[50]};
+                border-radius: ${designTokens.borderRadius.lg};
+                border-left: 4px solid ${designTokens.colors.primary[500]};
+              `}
+            >
+              <h4
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                  margin-bottom: ${designTokens.spacing[2]};
+                `}
+              >
+                Latest Thought
+              </h4>
+              <p
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  color: ${designTokens.colors.neutral[700]};
+                  font-style: italic;
+                `}
+              >
+                "{selectedAgent.internalThought || "No recent thoughts"}"
+              </p>
+            </div>
+
+            {selectedAgent.thoughtHistory && selectedAgent.thoughtHistory.length > 0 && (
+              <div>
+                <h4
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    margin-bottom: ${designTokens.spacing[3]};
+                  `}
+                >
+                  Reasoning History
+                </h4>
+                <div
+                  css={css`
+                    max-height: 200px;
+                    overflow-y: auto;
+                    display: flex;
+                    flex-direction: column;
+                    gap: ${designTokens.spacing[2]};
+                  `}
+                >
+                  {selectedAgent.thoughtHistory.map((item, i) => (
+                    <div
+                      key={i}
+                      css={css`
+                        padding: ${designTokens.spacing[3]};
+                        background: ${designTokens.colors.neutral[50]};
+                        border-radius: ${designTokens.borderRadius.md};
+                        border-left: 2px solid ${designTokens.colors.neutral[200]};
+                      `}
+                    >
+                      <div
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.xs};
+                          color: ${designTokens.colors.neutral[400]};
+                          margin-bottom: ${designTokens.spacing[1]};
+                        `}
+                      >
+                        {new Date(item.timestamp).toLocaleString()}
+                      </div>
+                      <div
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.sm};
+                          color: ${designTokens.colors.neutral[600]};
+                        `}
+                      >
+                        {item.thought}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div
+              css={css`
+                padding: ${designTokens.spacing[4]};
+                background: ${designTokens.colors.neutral[100]};
+                border-radius: ${designTokens.borderRadius.lg};
+              `}
+            >
+              <h4
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                  margin-bottom: ${designTokens.spacing[2]};
+                `}
+              >
+                Compliance & Risk
+              </h4>
+              <div
+                css={css`
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                `}
+              >
+                <span>Compliance Rate</span>
+                <span
+                  css={css`
+                    font-weight: ${designTokens.typography.fontWeight.bold};
+                    color: ${(selectedAgent.riskMetrics?.complianceRate ?? 100) > 95
+                      ? designTokens.colors.semantic.success[600]
+                      : designTokens.colors.semantic.warning[600]};
+                  `}
+                >
+                  {selectedAgent.riskMetrics?.complianceRate ?? 100}%
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Agent Configuration Modal */}
+      <Modal
+        isOpen={showConfigModal}
+        onClose={() => {
+          setShowConfigModal(false);
+          setSelectedAgent(null);
+        }}
+        title={selectedAgent ? `${selectedAgent.name} - Configuration` : "Agent Configuration"}
+      >
+        {selectedAgent && (
+          <div
+            css={css`
+              display: flex;
+              flex-direction: column;
+              gap: ${designTokens.spacing[4]};
+            `}
+          >
+            <div
+              css={css`
+                padding: ${designTokens.spacing[4]};
+                background: ${designTokens.colors.semantic.info[50]};
+                border-radius: ${designTokens.borderRadius.lg};
+                border: 1px solid ${designTokens.colors.semantic.info[200]};
+              `}
+            >
+              <p
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  color: ${designTokens.colors.semantic.info[700]};
+                `}
+              >
+                ℹ️ Agent configuration is managed through on-chain governance policies. 
+                The current agent operates with autonomous forecasting capabilities.
+              </p>
+            </div>
+
+            <div
+              css={css`
+                padding: ${designTokens.spacing[4]};
+                background: ${designTokens.colors.neutral[50]};
+                border-radius: ${designTokens.borderRadius.lg};
+              `}
+            >
+              <h4
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                  margin-bottom: ${designTokens.spacing[3]};
+                `}
+              >
+                Current Settings
+              </h4>
+              <div
+                css={css`
+                  display: flex;
+                  flex-direction: column;
+                  gap: ${designTokens.spacing[2]};
+                `}
+              >
+                <div
+                  css={css`
+                    display: flex;
+                    justify-content: space-between;
+                    padding: ${designTokens.spacing[2]} 0;
+                    border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+                  `}
+                >
+                  <span>Agent Type</span>
+                  <span
+                    css={css`
+                      font-weight: ${designTokens.typography.fontWeight.medium};
+                      text-transform: capitalize;
+                    `}
+                  >
+                    {selectedAgent.type}
+                  </span>
+                </div>
+                <div
+                  css={css`
+                    display: flex;
+                    justify-content: space-between;
+                    padding: ${designTokens.spacing[2]} 0;
+                    border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+                  `}
+                >
+                  <span>Status</span>
+                  <span
+                    css={css`
+                      font-weight: ${designTokens.typography.fontWeight.medium};
+                      color: ${selectedAgent.status === "active"
+                        ? designTokens.colors.semantic.success[600]
+                        : designTokens.colors.neutral[500]};
+                      text-transform: capitalize;
+                    `}
+                  >
+                    {selectedAgent.status}
+                  </span>
+                </div>
+                <div
+                  css={css`
+                    display: flex;
+                    justify-content: space-between;
+                    padding: ${designTokens.spacing[2]} 0;
+                    border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+                  `}
+                >
+                  <span>Avg Confidence</span>
+                  <span
+                    css={css`
+                      font-weight: ${designTokens.typography.fontWeight.medium};
+                    `}
+                  >
+                    {selectedAgent.financialMetrics?.winRate ?? 0}%
+                  </span>
+                </div>
+                <div
+                  css={css`
+                    display: flex;
+                    justify-content: space-between;
+                    padding: ${designTokens.spacing[2]} 0;
+                  `}
+                >
+                  <span>Wallet Balance</span>
+                  <span
+                    css={css`
+                      font-weight: ${designTokens.typography.fontWeight.medium};
+                    `}
+                  >
+                    {selectedAgent.financialMetrics?.totalValue?.toFixed(4) ?? "0"} ETH
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              css={css`
+                padding: ${designTokens.spacing[4]};
+                background: ${designTokens.colors.neutral[100]};
+                border-radius: ${designTokens.borderRadius.lg};
+              `}
+            >
+              <h4
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                  margin-bottom: ${designTokens.spacing[2]};
+                `}
+              >
+                Governance Controls
+              </h4>
+              <p
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  color: ${designTokens.colors.neutral[600]};
+                  margin-bottom: ${designTokens.spacing[3]};
+                `}
+              >
+                Policy enforcement is active. All forecasts are validated against 
+                risk thresholds before on-chain attestation.
+              </p>
+              <div
+                css={css`
+                  display: flex;
+                  gap: ${designTokens.spacing[2]};
+                `}
+              >
+                <span
+                  css={css`
+                    display: inline-block;
+                    padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+                    background: ${designTokens.colors.semantic.success[100]};
+                    color: ${designTokens.colors.semantic.success[700]};
+                    border-radius: ${designTokens.borderRadius.full};
+                    font-size: ${designTokens.typography.fontSize.xs};
+                    font-weight: ${designTokens.typography.fontWeight.medium};
+                  `}
+                >
+                  ✓ Policy Active
+                </span>
+                <span
+                  css={css`
+                    display: inline-block;
+                    padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+                    background: ${designTokens.colors.semantic.success[100]};
+                    color: ${designTokens.colors.semantic.success[700]};
+                    border-radius: ${designTokens.borderRadius.full};
+                    font-size: ${designTokens.typography.fontSize.xs};
+                    font-weight: ${designTokens.typography.fontWeight.medium};
+                  `}
+                >
+                  ✓ EAS Attestation
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
