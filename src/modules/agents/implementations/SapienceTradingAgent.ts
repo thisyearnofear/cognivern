@@ -215,29 +215,40 @@ export class SapienceTradingAgent implements TradingAgent {
   }
 
   async getPortfolio(): Promise<Portfolio> {
-    if (!this.portfolio) {
-      this.portfolio = {
-        totalValue: 0,
-        cash: 0,
-        positions: [],
-        lastUpdated: new Date(),
-      };
+    try {
+        const balance = await this.sapienceService.getEthBalance();
+        this.portfolio = {
+            totalValue: parseFloat(balance),
+            cash: parseFloat(balance),
+            positions: [],
+            lastUpdated: new Date(),
+        };
+    } catch (e) {
+        console.warn("Failed to fetch real portfolio balance:", e);
+        if (!this.portfolio) {
+            this.portfolio = { totalValue: 0, cash: 0, positions: [], lastUpdated: new Date() };
+        }
     }
     return this.portfolio;
   }
 
   async getPerformance(): Promise<PerformanceMetrics> {
+    const totalForecasts = this.history.length;
+    const avgConfidence = totalForecasts > 0 
+        ? this.history.reduce((sum, d) => sum + d.confidence, 0) / totalForecasts 
+        : 0;
+
     return {
-      totalReturn: 0,
+      totalReturn: 0, // No trading PnL yet, only forecasting
       totalReturnPercent: 0,
       sharpeRatio: 0,
       maxDrawdown: 0,
-      winRate: 0,
-      totalTrades: 0,
+      winRate: 0, // Win rate depends on market resolution (not yet implemented)
+      totalTrades: totalForecasts,
       profitableTrades: 0,
-      averageTradeReturn: 0,
+      averageTradeReturn: avgConfidence, // Using confidence as a session metric
       period: {
-        start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        start: this.history.length > 0 ? this.history[this.history.length - 1].timestamp : new Date(),
         end: new Date(),
       },
     };

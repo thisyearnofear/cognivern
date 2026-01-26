@@ -251,19 +251,19 @@ export class AgentsController {
                   ...agent,
                   performance: {
                       uptime: agent.status === "active" ? 100 : 0,
-                      successRate: perf.winRate ? perf.winRate * 100 : 95.0, // Fallback to 95 for demo if 0
-                      avgResponseTime: 1250,
-                      actionsToday: perf.period?.totalTrades || 0,
+                      successRate: perf.winRate ? perf.winRate * 100 : 0,
+                      avgResponseTime: 0, // Not currently tracked
+                      actionsToday: perf.totalTrades || 0,
                   },
                   riskMetrics: {
-                      currentRiskScore: 0.15,
+                      currentRiskScore: 0,
                       violationsToday: agentStatus.policyViolations || 0,
                       complianceRate: 100,
                   },
                   financialMetrics: {
-                      totalValue: portfolio.totalValue || 12500,
-                      dailyPnL: perf.averageTradeReturn || 24.50,
-                      winRate: perf.winRate ? perf.winRate * 100 : 72.5,
+                      totalValue: portfolio.totalValue || 0,
+                      dailyPnL: perf.averageTradeReturn || 0,
+                      winRate: perf.winRate ? perf.winRate * 100 : 0,
                   }
               });
 
@@ -301,8 +301,8 @@ export class AgentsController {
           totalAgents: agents.length,
           complianceRate: 100,
           totalActions: allActivity.length,
-          totalPolicies: 2,
-          totalForecasts: allActivity.filter(a => a.type === 'forecast').length || 89
+          totalPolicies: 0, // No real policies loaded yet
+          totalForecasts: allActivity.filter(a => a.type === 'forecast').length
         },
         agents: enrichedAgents,
         recentActivity: allActivity.slice(0, 20),

@@ -125,11 +125,21 @@ First, provide brief reasoning (1 sentence, max 150 chars).
 Then on the final line, output ONLY the probability as a number.`;
 
     const content = await this.callLLM(prompt);
-    const lines = content.split('\n').filter((l: string) => l.trim());
-    const probability = parseInt(lines[lines.length - 1].replace(/[^0-9]/g, ''), 10);
+    const lines = content.split('\n').map((l: string) => l.trim()).filter(Boolean);
+    const lastLine = lines[lines.length - 1];
+    const probability = parseInt(lastLine.replace(/[^0-9]/g, ''), 10);
+    
+    // Extract reasoning from all lines except the last one
+    let reasoning = lines.slice(0, -1).join(' ').trim();
+    
+    // Fallback if reasoning is empty or too short
+    if (!reasoning || reasoning.length < 5) {
+        reasoning = `Predicted ${probability}% probability for: ${question}`;
+    }
+
     return {
       probability: Math.max(0, Math.min(100, probability)),
-      reasoning: lines.slice(0, -1).join(' ').trim().substring(0, 160),
+      reasoning: reasoning.substring(0, 160),
       confidence: Math.abs(probability - 50) / 50,
     };
   }
