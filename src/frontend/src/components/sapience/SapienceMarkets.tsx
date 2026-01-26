@@ -299,25 +299,62 @@ export default function SapienceMarkets() {
                     `} />}
                     {isActive ? 'LIVE' : 'ENDED'}
                   </span>
+                  
+                  {isActive && (
+                    <span css={css`
+                      font-size: 0.65rem;
+                      font-weight: 800;
+                      color: ${designTokens.colors.primary[600]};
+                      background: ${designTokens.colors.primary[50]};
+                      padding: 2px 8px;
+                      border-radius: 4px;
+                      text-transform: uppercase;
+                    `}>
+                      Strategy: Horizon-Weighted
+                    </span>
+                  )}
                 </div>
 
                 <CardTitle css={css`
                   font-size: ${designTokens.typography.fontSize.base};
                   line-height: 1.4;
-                  margin-bottom: ${designTokens.spacing[3]};
+                  margin-bottom: ${designTokens.spacing[2]};
+                  min-height: 2.8em;
+                  display: -webkit-box;
+                  -webkit-line-clamp: 2;
+                  -webkit-box-orient: vertical;
+                  overflow: hidden;
                 `}>
                   {condition.shortName || condition.question}
                 </CardTitle>
 
-                <div css={timeRemainingStyles}>
-                  <span>⏱️</span>
-                  <span>{timeRemaining}</span>
+                <div css={css`
+                  display: flex;
+                  flex-direction: column;
+                  gap: 8px;
+                  margin-bottom: 16px;
+                `}>
+                  <div css={timeRemainingStyles}>
+                    <span>⏱️</span>
+                    <span>Ends: {timeRemaining}</span>
+                  </div>
+                  
+                  <div css={css`
+                    font-size: 0.75rem;
+                    color: ${designTokens.colors.neutral[500]};
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                  `}>
+                    <span>📈</span>
+                    <span>Horizon Weight: <strong>{((condition.endTime - (Date.now()/1000)) / 86400).toFixed(1)}x</strong></span>
+                  </div>
                 </div>
 
                 <div css={css`
                   display: flex;
                   gap: ${designTokens.spacing[2]};
-                  margin-top: ${designTokens.spacing[4]};
+                  margin-top: auto;
                 `}>
                   <button 
                     css={css`flex: 1; ${buttonStyles.primary}`}
