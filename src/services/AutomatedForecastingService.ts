@@ -1,12 +1,3 @@
-/**
- * Automated Forecasting Service
- * 
- * Generates AI-powered forecasts for Sapience prediction markets
- */
-
-import { gql } from 'graphql-request';
-import { graphqlRequest } from '@sapience/sdk';
-import { SapienceService, ForecastRequest } from './SapienceService.js';
 import logger from '../utils/logger.js';
 
 export interface ForecastResult {
@@ -20,235 +11,161 @@ export interface MarketCondition {
   question: string;
   shortName?: string;
   endTime: number;
-  startTime?: number;
 }
 
 export class AutomatedForecastingService {
-  private sapienceService: SapienceService;
-  private llmApiKey: string;
-  private llmModel: string;
-  private minConfidence: number;
+  private sapienceService: any;
+  private forecastedMarkets: Set<string> = new Set();
+  private graphqlEndpoint = 'https://api.sapience.xyz/graphql';
+
+  // LLM Config with Fallback
+  private providers = [
+    {
+      name: 'routeway',
+      endpoint: 'https://api.routeway.ai/v1/chat/completions',
+      apiKey: process.env.ROUTEWAY_API_KEY || '',
+      model: 'kimi-k2-0905:free'
+    },
+    {
+      name: 'groq',
+      endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+      apiKey: process.env.GROQ_API_KEY || '',
+      model: 'llama-3.3-70b-versatile'
+    }
+  ];
 
   constructor(config: {
-    sapienceService: SapienceService;
-    llmApiKey?: string;
-    llmModel?: string;
-    minConfidence?: number;
+    sapienceService: any;
   }) {
     this.sapienceService = config.sapienceService;
-    this.llmApiKey = config.llmApiKey || process.env.OPENROUTER_API_KEY || '';
-    this.llmModel = config.llmModel || 'openai/gpt-4o-mini';
-    this.minConfidence = config.minConfidence || 0.6;
-
-    if (!this.llmApiKey) {
-      logger.warn('AutomatedForecastingService initialized without LLM API key');
-    }
-
-    logger.info('AutomatedForecastingService initialized');
+    console.log('[ForecastingService] Initialized with Multi-LLM Fallback');
   }
 
-  /**
-   * Fetch random active condition from Sapience
-   */
-  async fetchRandomCondition(): Promise<MarketCondition | null> {
+  private async callLLM(prompt: string): Promise<string> {
+    console.log('[ForecastingService] Calling LLM...');
+    for (const provider of this.providers) {
+      if (!provider.apiKey) continue;
+      try {
+        console.log(`[ForecastingService] Trying provider: ${provider.name}`);
+        const response = await fetch(provider.endpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${provider.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: provider.model,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.3,
+          }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Provider ${provider.name} status ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices[0]?.message?.content;
+        if (content) return content.trim();
+      } catch (error) {
+        console.warn(`[ForecastingService] ${provider.name} failed`, error);
+      }
+    }
+    throw new Error('All LLMs failed');
+  }
+
+  async fetchOptimalCondition(): Promise<MarketCondition | null> {
+    console.log('[ForecastingService] Fetching optimal condition...');
     const nowSec = Math.floor(Date.now() / 1000);
-    
-    const query = gql`
-      query Conditions($nowSec: Int) {
+    const query = `
+      query GetConditions($nowSec: Int, $limit: Int) {
         conditions(
           where: { 
             public: { equals: true }
             endTime: { gt: $nowSec }
           }
-          take: 50
+          take: $limit
+          orderBy: { endTime: asc }
         ) {
           id
           question
           shortName
           endTime
-          startTime
         }
       }
     `;
 
     try {
-      const { conditions } = await graphqlRequest<{ conditions: MarketCondition[] }>(query, {
-        nowSec,
-      });
-
-      if (conditions.length === 0) {
-        logger.warn('No active conditions found');
-        return null;
-      }
-
-      // Pick a random condition
-      const randomIndex = Math.floor(Math.random() * conditions.length);
-      return conditions[randomIndex];
-    } catch (error) {
-      logger.error('Failed to fetch conditions:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Generate forecast using LLM
-   */
-  async generateForecast(question: string): Promise<ForecastResult> {
-    if (!this.llmApiKey) {
-      throw new Error('LLM API key not configured');
-    }
-
-    const prompt = `You are a forecaster. Estimate the probability (0-100) that the answer to this question is YES.
-
-Question: "${question}"
-
-First, provide brief reasoning (1-2 sentences, under 160 characters total, no URLs or citations).
-Then on the final line, output ONLY the probability as a number (e.g., "75").`;
-
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const response = await fetch(this.graphqlEndpoint, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.llmApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: this.llmModel,
-          messages: [{
-            role: 'user',
-            content: prompt,
-          }],
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { nowSec, limit: 50 } })
       });
-
-      if (!response.ok) {
-        throw new Error(`LLM API error: ${response.status} ${response.statusText}`);
+      const result = await response.json();
+      const conditions = result.data?.conditions as MarketCondition[];
+      if (!conditions || conditions.length === 0) return null;
+      
+      const candidates = conditions.filter(c => !this.forecastedMarkets.has(c.id));
+      if (candidates.length === 0) {
+        this.forecastedMarkets.clear();
+        return conditions[0];
       }
-
-      const data = await response.json();
-      const content = data.choices[0].message.content.trim();
-
-      // Extract probability from last line
-      const lines = content.split('\n').filter((line: string) => line.trim());
-      const lastLine = lines[lines.length - 1];
-      const probability = parseInt(lastLine.replace(/[^0-9]/g, ''), 10);
-
-      // Reasoning is everything except the last line
-      const reasoning = lines.slice(0, -1).join(' ').trim();
-
-      // Calculate confidence based on how decisive the probability is
-      // Probabilities near 50% indicate low confidence, near 0/100 indicate high confidence
-      const confidence = Math.abs(probability - 50) / 50;
-
-      return {
-        probability: Math.max(0, Math.min(100, probability)),
-        reasoning: reasoning.substring(0, 160), // Enforce character limit
-        confidence,
-      };
+      candidates.sort((a, b) => b.endTime - a.endTime);
+      return candidates[0];
     } catch (error) {
-      logger.error('Failed to generate forecast:', error);
+      console.error('[ForecastingService] GraphQL fetch failed', error);
       throw error;
     }
   }
 
-  /**
-   * Submit automated forecast for a condition
-   */
-  async submitAutomatedForecast(condition: MarketCondition): Promise<string> {
-    const question = condition.shortName || condition.question;
-    
-    logger.info(`Generating forecast for: ${question}`);
-    
-    // Generate forecast
-    const forecast = await this.generateForecast(question);
-    
-    logger.info(`Forecast generated: ${forecast.probability}% (confidence: ${forecast.confidence.toFixed(2)})`);
-    logger.info(`Reasoning: ${forecast.reasoning}`);
+  async generateForecast(question: string): Promise<ForecastResult> {
+    const prompt = `You are a professional forecaster. Estimate the probability (0-100) that the answer to this question is YES.
+Question: "${question}"
+First, provide brief reasoning (1 sentence, max 150 chars).
+Then on the final line, output ONLY the probability as a number.`;
 
-    // Check confidence threshold
-    if (forecast.confidence < this.minConfidence) {
-      logger.warn(`Forecast confidence ${forecast.confidence.toFixed(2)} below threshold ${this.minConfidence}. Skipping submission.`);
-      throw new Error('Forecast confidence too low');
-    }
-
-    // Submit forecast
-    const forecastRequest: ForecastRequest = {
-      marketId: condition.id,
-      probability: forecast.probability,
-      confidence: forecast.confidence,
-      reasoning: forecast.reasoning,
+    const content = await this.callLLM(prompt);
+    const lines = content.split('\n').filter((l: string) => l.trim());
+    const probability = parseInt(lines[lines.length - 1].replace(/[^0-9]/g, ''), 10);
+    return {
+      probability: Math.max(0, Math.min(100, probability)),
+      reasoning: lines.slice(0, -1).join(' ').trim().substring(0, 160),
+      confidence: Math.abs(probability - 50) / 50,
     };
-
-    const txHash = await this.sapienceService.submitForecast(forecastRequest);
-    
-    logger.info(`Forecast submitted successfully! Tx: ${txHash}`);
-    
-    return txHash;
   }
 
-  /**
-   * Run automated forecasting loop
-   * Fetches a random condition and submits a forecast
-   */
-  async runForecastingCycle(): Promise<{
-    success: boolean;
-    conditionId?: string;
-    txHash?: string;
-    error?: string;
-  }> {
+  async runForecastingCycle(): Promise<any> {
+    console.log('[ForecastingService] Starting cycle...');
     try {
-      // Fetch random condition
-      const condition = await this.fetchRandomCondition();
-      
-      if (!condition) {
-        return {
-          success: false,
-          error: 'No active conditions available',
-        };
-      }
+      const condition = await this.fetchOptimalCondition();
+      if (!condition) return { success: false, error: 'No markets' };
+      console.log('[ForecastingService] Selected market:', condition.question);
 
-      // Submit forecast
-      const txHash = await this.submitAutomatedForecast(condition);
+      const forecast = await this.generateForecast(condition.shortName || condition.question);
+      console.log(`[ForecastingService] Generated forecast: ${forecast.probability}%`);
 
-      return {
-        success: true,
-        conditionId: condition.id,
-        txHash,
+      const txHash = await this.sapienceService.submitForecast({
+        marketId: condition.id,
+        probability: forecast.probability,
+        confidence: forecast.confidence,
+        reasoning: forecast.reasoning
+      });
+      console.log('[ForecastingService] Forecast submitted! Tx:', txHash);
+
+      this.forecastedMarkets.add(condition.id);
+      return { 
+          success: true, 
+          txHash,
+          forecast,
+          conditionId: condition.id
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Forecasting cycle failed:', error);
-      
-      return {
-        success: false,
-        error: errorMessage,
-      };
+      console.error('[ForecastingService] Cycle failed', error);
+      return { success: false, error: 'Internal' };
     }
   }
 
-  /**
-   * Start continuous forecasting with interval
-   */
-  startContinuousForecasting(intervalMinutes: number = 60): NodeJS.Timeout {
-    logger.info(`Starting continuous forecasting with ${intervalMinutes} minute interval`);
-    
-    // Run immediately
-    this.runForecastingCycle();
-    
-    // Then run on interval
-    return setInterval(() => {
-      this.runForecastingCycle();
-    }, intervalMinutes * 60 * 1000);
-  }
-
-  /**
-   * Get forecasting statistics
-   */
-  getStats() {
-    return {
-      llmModel: this.llmModel,
-      minConfidence: this.minConfidence,
-      walletAddress: this.sapienceService.getAddress(),
-    };
+  startContinuousForecasting(intervalMinutes: number = 60) {
+    setInterval(() => this.runForecastingCycle(), intervalMinutes * 60 * 1000);
   }
 }

@@ -24,7 +24,6 @@ export interface RecallConfig {
 export class RecallService {
   private config: RecallConfig;
   private isConnected: boolean = false;
-  private memoryStore: Map<string, RecallMemory> = new Map();
 
   constructor(config: Partial<RecallConfig> = {}) {
     this.config = {
