@@ -1,6 +1,6 @@
 import { AgentType } from "./TradingAgentDashboard";
 import { css } from "@emotion/react";
-import { designTokens, tradingStyles } from "../../styles/designTokens";
+import { designTokens, shadowSystem } from "../../styles/design-system";
 
 interface TradingDecision {
   action: "buy" | "sell" | "hold";
@@ -44,174 +44,292 @@ export default function TradingChart({
 
   const chartData = getChartData();
 
-  const chartStyles = css`
-    ${tradingStyles.glassCard}
-    ${isLoading
-      ? `
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 300px;
-    `
-      : ""}
+  const containerStyles = css`
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
   `;
 
-  const headerStyles = css`
-    ${tradingStyles.sectionHeader}
+  const loadingStyles = css`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    text-align: center;
+    color: ${designTokens.colors.neutral[600]};
+  `;
+
+  const spinnerStyles = css`
+    width: 40px;
+    height: 40px;
+    border: 3px solid ${designTokens.colors.neutral[200]};
+    border-top: 3px solid ${designTokens.colors.primary[500]};
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: ${designTokens.spacing[4]};
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  `;
+
+  const emptyStateStyles = css`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    text-align: center;
+    padding: ${designTokens.spacing[8]};
+  `;
+
+  const emptyIconStyles = css`
+    font-size: 3rem;
+    margin-bottom: ${designTokens.spacing[4]};
+  `;
+
+  const chartAreaStyles = css`
+    position: relative;
+    height: 200px;
+    background: linear-gradient(135deg, ${designTokens.colors.neutral[50]} 0%, ${designTokens.colors.neutral[100]} 100%);
+    border-radius: ${designTokens.borderRadius.lg};
+    margin-bottom: ${designTokens.spacing[4]};
+    overflow: hidden;
+  `;
+
+  const chartGridStyles = css`
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: ${designTokens.spacing[4]};
+  `;
+
+  const chartPointStyles = (action: string, index: number, total: number) => css`
+    position: absolute;
+    left: ${(index / Math.max(total - 1, 1)) * 100}%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateX(-50%) scale(1.1);
+    }
+  `;
+
+  const pointMarkerStyles = (action: string) => {
+    const colors = {
+      buy: designTokens.colors.semantic.success[500],
+      sell: designTokens.colors.semantic.error[500],
+      hold: designTokens.colors.neutral[500],
+    };
+
+    return css`
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: ${colors[action as keyof typeof colors]};
+      border: 2px solid white;
+      box-shadow: ${shadowSystem.sm};
+      margin-bottom: ${designTokens.spacing[1]};
+    `;
+  };
+
+  const pointLabelStyles = css`
+    font-size: ${designTokens.typography.fontSize.xs};
+    font-weight: ${designTokens.typography.fontWeight.semibold};
+    color: ${designTokens.colors.neutral[700]};
+    text-transform: uppercase;
+    background: white;
+    padding: 2px 6px;
+    border-radius: ${designTokens.borderRadius.sm};
+    box-shadow: ${shadowSystem.sm};
+  `;
+
+  const legendStyles = css`
+    display: flex;
+    justify-content: center;
+    gap: ${designTokens.spacing[4]};
+    margin-bottom: ${designTokens.spacing[4]};
+  `;
+
+  const legendItemStyles = css`
+    display: flex;
+    align-items: center;
+    gap: ${designTokens.spacing[2]};
+    font-size: ${designTokens.typography.fontSize.sm};
+    color: ${designTokens.colors.neutral[600]};
+  `;
+
+  const legendColorStyles = (action: string) => {
+    const colors = {
+      buy: designTokens.colors.semantic.success[500],
+      sell: designTokens.colors.semantic.error[500],
+      hold: designTokens.colors.neutral[500],
+    };
+
+    return css`
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: ${colors[action as keyof typeof colors]};
+    `;
+  };
+
+  const summaryGridStyles = css`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: ${designTokens.spacing[4]};
+    margin-top: ${designTokens.spacing[4]};
+  `;
+
+  const summaryCardStyles = css`
+    background: ${designTokens.colors.neutral[50]};
+    border-radius: ${designTokens.borderRadius.md};
+    padding: ${designTokens.spacing[3]};
+    text-align: center;
+  `;
+
+  const summaryValueStyles = css`
+    font-size: ${designTokens.typography.fontSize.lg};
+    font-weight: ${designTokens.typography.fontWeight.bold};
+    color: ${designTokens.colors.primary[600]};
+    margin-bottom: ${designTokens.spacing[1]};
+  `;
+
+  const summaryLabelStyles = css`
+    font-size: ${designTokens.typography.fontSize.sm};
+    color: ${designTokens.colors.neutral[600]};
   `;
 
   if (isLoading) {
     return (
-      <div css={chartStyles}>
-        <div css={headerStyles}>
-          <h3>📈 Trading Performance</h3>
-        </div>
-        <div
-          css={css`
-            text-align: center;
-            color: white;
-          `}
-        >
-          <div
-            css={css`
-              width: 40px;
-              height: 40px;
-              border: 4px solid rgba(255, 255, 255, 0.3);
-              border-top: 4px solid white;
-              border-radius: 50%;
-              animation: spin 1s linear infinite;
-              margin: 0 auto 1rem;
-
-              @keyframes spin {
-                0% {
-                  transform: rotate(0deg);
-                }
-                100% {
-                  transform: rotate(360deg);
-                }
-              }
-            `}
-          ></div>
-          <p>Loading chart data...</p>
+      <div css={containerStyles}>
+        <div css={loadingStyles}>
+          <div css={spinnerStyles}></div>
+          <p>Loading trading data...</p>
         </div>
       </div>
     );
   }
 
+  if (chartData.length === 0) {
+    return (
+      <div css={containerStyles}>
+        <div css={emptyStateStyles}>
+          <div css={emptyIconStyles}>📊</div>
+          <h4 css={css`margin: 0 0 ${designTokens.spacing[2]} 0; color: ${designTokens.colors.neutral[700]};`}>
+            No trading data yet
+          </h4>
+          <p css={css`margin: 0; color: ${designTokens.colors.neutral[600]};`}>
+            Start the {agentType} agent to see trading performance
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const buyCount = chartData.filter(d => d.action === 'buy').length;
+  const sellCount = chartData.filter(d => d.action === 'sell').length;
+  const holdCount = chartData.filter(d => d.action === 'hold').length;
+  const avgConfidence = chartData.reduce((sum, d) => sum + d.confidence, 0) / chartData.length;
+
   return (
-    <div css={chartStyles}>
-      <div className="chart-header">
-        <h3>
-          📈 {agentType === "recall" ? "Competition" : "Sentiment"} Trading
-          Performance
-        </h3>
-        <div className="chart-controls">
-          <span className="data-points">{decisions.length} trades</span>
+    <div css={containerStyles}>
+      {/* Chart Area */}
+      <div css={chartAreaStyles}>
+        <div css={chartGridStyles}>
+          {chartData.map((point, index) => (
+            <div
+              key={index}
+              css={chartPointStyles(point.action, index, chartData.length)}
+              style={{
+                bottom: `${point.confidence * 70 + 20}%`,
+              }}
+              title={`${point.action.toUpperCase()} at ${point.time} - Confidence: ${(point.confidence * 100).toFixed(1)}%`}
+            >
+              <div css={pointMarkerStyles(point.action)}></div>
+              <div css={pointLabelStyles}>{point.action}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {chartData.length === 0 ? (
-        <div className="no-data">
-          <div className="no-data-icon">📊</div>
-          <h4>No trading data yet</h4>
-          <p>Start the {agentType} agent to see trading performance charts</p>
+      {/* Legend */}
+      <div css={legendStyles}>
+        <div css={legendItemStyles}>
+          <div css={legendColorStyles('buy')}></div>
+          <span>Buy Orders</span>
         </div>
-      ) : (
-        <div className="chart-container">
-          {/* Simple chart visualization */}
-          <div className="chart-area">
-            <div className="chart-grid">
-              {chartData.map((point, index) => (
-                <div
-                  key={index}
-                  className={`chart-point ${point.action}`}
-                  style={{
-                    left: `${(index / (chartData.length - 1)) * 100}%`,
-                    bottom: `${point.confidence * 80 + 10}%`,
-                  }}
-                  title={`${point.action.toUpperCase()} at ${point.time} - Confidence: ${(point.confidence * 100).toFixed(1)}%`}
-                >
-                  <div className="point-marker"></div>
-                  <div className="point-label">{point.action}</div>
+        <div css={legendItemStyles}>
+          <div css={legendColorStyles('sell')}></div>
+          <span>Sell Orders</span>
+        </div>
+        <div css={legendItemStyles}>
+          <div css={legendColorStyles('hold')}></div>
+          <span>Hold Decisions</span>
+        </div>
+      </div>
+
+      {/* Summary Stats */}
+      <div css={summaryGridStyles}>
+        <div css={summaryCardStyles}>
+          <div css={summaryValueStyles}>{buyCount}</div>
+          <div css={summaryLabelStyles}>Buy Orders</div>
+        </div>
+        <div css={summaryCardStyles}>
+          <div css={summaryValueStyles}>{sellCount}</div>
+          <div css={summaryLabelStyles}>Sell Orders</div>
+        </div>
+        <div css={summaryCardStyles}>
+          <div css={summaryValueStyles}>{holdCount}</div>
+          <div css={summaryLabelStyles}>Hold Decisions</div>
+        </div>
+        <div css={summaryCardStyles}>
+          <div css={summaryValueStyles}>{(avgConfidence * 100).toFixed(0)}%</div>
+          <div css={summaryLabelStyles}>Avg Confidence</div>
+        </div>
+      </div>
+
+      {/* Agent-specific insights */}
+      {agentType === "vincent" && chartData.some(d => d.sentiment !== 0) && (
+        <div css={css`
+          margin-top: ${designTokens.spacing[4]};
+          padding: ${designTokens.spacing[4]};
+          background: ${designTokens.colors.secondary[50]};
+          border-radius: ${designTokens.borderRadius.md};
+        `}>
+          <h4 css={css`margin: 0 0 ${designTokens.spacing[3]} 0; color: ${designTokens.colors.secondary[700]};`}>
+            💭 Sentiment Analysis
+          </h4>
+          <div css={css`
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: ${designTokens.spacing[3]};
+          `}>
+            {chartData.slice(-3).map((decision, index) =>
+              decision.sentiment !== 0 && (
+                <div key={index} css={css`text-align: center;`}>
+                  <div css={css`
+                    font-weight: ${designTokens.typography.fontWeight.bold};
+                    color: ${decision.sentiment > 0 ? designTokens.colors.semantic.success[600] : designTokens.colors.semantic.error[600]};
+                  `}>
+                    {(decision.sentiment * 100).toFixed(0)}%
+                  </div>
+                  <div css={css`
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    color: ${designTokens.colors.neutral[600]};
+                  `}>
+                    Sentiment
+                  </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Y-axis labels */}
-            <div className="y-axis">
-              <span className="axis-label top">High Confidence</span>
-              <span className="axis-label middle">Medium</span>
-              <span className="axis-label bottom">Low Confidence</span>
-            </div>
+              )
+            )}
           </div>
-
-          {/* Chart legend */}
-          <div className="chart-legend">
-            <div className="legend-item">
-              <div className="legend-color buy"></div>
-              <span>Buy Orders</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-color sell"></div>
-              <span>Sell Orders</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-color hold"></div>
-              <span>Hold Decisions</span>
-            </div>
-          </div>
-
-          {/* Governance Summary */}
-          <div className="governance-summary">
-            <h4>🛡️ Governance Overview</h4>
-            <div className="governance-stats">
-              <div className="governance-stat">
-                <span className="stat-icon">✅</span>
-                <span className="stat-text">
-                  {decisions.length * 3} Policy Checks Passed
-                </span>
-              </div>
-              <div className="governance-stat">
-                <span className="stat-icon">🚫</span>
-                <span className="stat-text">0 Violations Detected</span>
-              </div>
-              <div className="governance-stat">
-                <span className="stat-icon">📊</span>
-                <span className="stat-text">
-                  {agentType === "recall" ? "Competition" : "Social"}{" "}
-                  Compliance: 98%
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Agent-specific metrics */}
-          {agentType === "vincent" && (
-            <div className="sentiment-metrics">
-              <h4>📊 Sentiment Analysis</h4>
-              <div className="sentiment-grid">
-                {decisions.slice(-5).map(
-                  (decision, index) =>
-                    decision.sentimentData && (
-                      <div key={index} className="sentiment-item">
-                        <div className="sentiment-symbol">
-                          {decision.symbol}
-                        </div>
-                        <div
-                          className={`sentiment-score ${decision.sentimentData.sentiment > 0 ? "positive" : "negative"}`}
-                        >
-                          {(decision.sentimentData.sentiment * 100).toFixed(1)}%
-                        </div>
-                        <div className="sentiment-sources">
-                          {decision.sentimentData.sources.join(", ")}
-                        </div>
-                      </div>
-                    ),
-                )}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

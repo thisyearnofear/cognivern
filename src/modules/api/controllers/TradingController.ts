@@ -5,6 +5,46 @@
 import { Request, Response } from 'express';
 
 export class TradingController {
+  async getStatus(req: Request, res: Response): Promise<void> {
+    try {
+      const { agentId, agentType } = req.params;
+      const id = agentId || agentType;
+      
+      // Return empty status - no real trading data available
+      res.status(404).json({
+        success: false,
+        error: "Trading status not available - no active trading agents",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch trading data",
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  async getDecisions(req: Request, res: Response): Promise<void> {
+    try {
+      const { agentId, agentType } = req.params;
+      const id = agentId || agentType;
+      
+      // Return empty decisions - no real trading decisions available
+      res.status(404).json({
+        success: false,
+        error: "Trading decisions not available - no active trading agents",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        error: "Failed to fetch trading decisions",
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
   async getTrades(req: Request, res: Response): Promise<void> {
     try {
       const trades = [];

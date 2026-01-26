@@ -229,7 +229,11 @@ export class ApiModule extends BaseService {
       this.controllers.get("agents").getAgents(req, res);
     });
 
-    // Legacy routes for monitoring (must come before :id routes)
+    // Specific routes must come before parameterized routes
+    apiRouter.get("/agents/connections", (req, res) => {
+      this.controllers.get("agents").getConnections(req, res);
+    });
+
     apiRouter.get("/agents/monitoring", (req, res) => {
       this.controllers.get("agents").getMonitoring(req, res);
     });
@@ -238,12 +242,17 @@ export class ApiModule extends BaseService {
       this.controllers.get("agents").getUnified(req, res);
     });
 
+    // Parameterized routes come after specific routes
     apiRouter.get("/agents/:id", (req, res) => {
       this.controllers.get("agents").getAgent(req, res);
     });
 
     apiRouter.get("/agents/:id/status", (req, res) => {
       this.controllers.get("agents").getAgentStatus(req, res);
+    });
+
+    apiRouter.get("/agents/:id/decisions", (req, res) => {
+      this.controllers.get("agents").getAgentDecisions(req, res);
     });
 
     apiRouter.post("/agents/:id/start", (req, res) => {
@@ -254,7 +263,24 @@ export class ApiModule extends BaseService {
       this.controllers.get("agents").stopAgent(req, res);
     });
 
-    // Trading routes
+    // Trading routes - Updated to match frontend expectations
+    apiRouter.get("/agents/:agentType/status", (req, res) => {
+      this.controllers.get("agents").getAgentStatus(req, res);
+    });
+
+    apiRouter.get("/agents/:agentType/decisions", (req, res) => {
+      this.controllers.get("agents").getAgentDecisions(req, res);
+    });
+
+    apiRouter.post("/agents/:agentType/start", (req, res) => {
+      this.controllers.get("agents").startAgent(req, res);
+    });
+
+    apiRouter.post("/agents/:agentType/stop", (req, res) => {
+      this.controllers.get("agents").stopAgent(req, res);
+    });
+
+    // Legacy trading routes for backward compatibility
     apiRouter.get("/trading/status/:agentId", (req, res) => {
       this.controllers.get("trading").getStatus(req, res);
     });
@@ -277,7 +303,16 @@ export class ApiModule extends BaseService {
       this.controllers.get("metrics").getDailyMetrics(req, res);
     });
 
-    // Audit routes
+    // Audit routes - Updated to match frontend expectations
+    apiRouter.get("/audit/logs", (req, res) => {
+      this.controllers.get("audit").getLogs(req, res);
+    });
+
+    apiRouter.get("/audit/insights", (req, res) => {
+      this.controllers.get("audit").getInsights(req, res);
+    });
+
+    // Legacy audit route for backward compatibility
     apiRouter.get("/audit-logs", (req, res) => {
       this.controllers.get("audit").getLogs(req, res);
     });

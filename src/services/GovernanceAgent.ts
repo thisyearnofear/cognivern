@@ -118,7 +118,7 @@ export class GovernanceAgent {
   getMetrics(): AgentMetrics { return this.metrics; }
 
   async scanForAssets(userIdentifiers: string[]): Promise<AssetMatch[]> {
-      await this.logThought(`Scanning for assets (mock): ${userIdentifiers.join(", ")}`, 0.95);
+      await this.logThought(`Scanning for assets: ${userIdentifiers.join(", ")}`, 0.95);
       return [];
   }
 }

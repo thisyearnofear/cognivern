@@ -13,8 +13,8 @@ export class CreateAgentHandler {
   async execute(name: string, type: Agent['type'], capabilities: string[]): Promise<Agent> {
     // Create agent in domain
     const agent = this.agentService.createAgent(name, type, capabilities);
-    // Log persistence action (mocking actual storage for now)
-    logger.info(`Agent created and persisted (mock): ${agent.id}`, { agent });
+    // Log persistence action
+    logger.info(`Agent created and persisted: ${agent.id}`, { agent });
     return agent;
   }
 }

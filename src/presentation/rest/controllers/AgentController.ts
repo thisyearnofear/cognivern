@@ -28,18 +28,12 @@ export class AgentController {
 
   // Sapience Endpoints
   async getDecisions(req: Request, res: Response) {
-    // Mock data for now until we connect real agent events
-    const decisions: SapienceDecision[] = [
-      {
-         action: "forecast",
-         marketId: "Will ETH be above $3000 by Dec 31?",
-         probability: 0.75,
-         confidence: 0.8,
-         reasoning: "Strong technical indicators and network growth.",
-         timestamp: new Date().toISOString()
-      }
-    ];
-    res.json({ decisions });
+    // No real agent decisions available
+    res.status(404).json({ 
+      success: false,
+      error: "Agent decisions not available - no active agents",
+      decisions: [] 
+    });
   }
 
   async getStatus(req: Request, res: Response) {

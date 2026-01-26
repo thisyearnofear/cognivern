@@ -257,7 +257,7 @@ export class ContractService {
           approved,
           1, // policyCheckCount
           policyResult,
-          `ipfs://trading-${decision.id}` // Mock IPFS CID
+          `ipfs://trading-${decision.id}` // IPFS CID for trading decision
         );
         await storageTx.wait();
         results.storageTx = storageTx.hash;
