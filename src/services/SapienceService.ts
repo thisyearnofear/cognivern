@@ -107,4 +107,17 @@ export class SapienceService {
   getAddress(): string {
     return this.wallet.address;
   }
+
+  /**
+   * Get real ETH balance from the network
+   */
+  async getEthBalance(): Promise<string> {
+    try {
+        const balance = await this.etherealProvider.getBalance(this.wallet.address);
+        return ethers.formatEther(balance);
+    } catch (error) {
+        logger.error('Failed to fetch ETH balance:', error);
+        return "0";
+    }
+  }
 }
