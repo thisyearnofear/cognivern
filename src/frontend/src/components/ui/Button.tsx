@@ -1,12 +1,13 @@
-import React from 'react';
-import { css } from '@emotion/react';
-import { 
-  getButtonStyles, 
-  type ButtonVariant, 
-  type ButtonSize 
-} from '../../styles/design-system';
+import React from "react";
+import { css } from "@emotion/react";
+import {
+  getButtonStyles,
+  type ButtonVariant,
+  type ButtonSize,
+} from "../../styles/design-system";
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   isLoading?: boolean;
@@ -16,21 +17,21 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 export const Button: React.FC<ButtonProps> = ({
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   isLoading = false,
   leftIcon,
   rightIcon,
   fullWidth = false,
   children,
   disabled,
-  className = '',
+  className = "",
   ...props
 }) => {
   const buttonCss = css`
     ${getButtonStyles(variant, size)}
-    ${fullWidth && 'width: 100%;'}
-    ${isLoading && 'pointer-events: none;'}
+    ${fullWidth && "width: 100%;"}
+    ${isLoading && "pointer-events: none;"}
   `;
 
   const LoadingSpinner = () => (
@@ -42,10 +43,14 @@ export const Button: React.FC<ButtonProps> = ({
         border-top: 2px solid currentColor;
         border-radius: 50%;
         animation: spin 1s linear infinite;
-        
+
         @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
         }
       `}
     />

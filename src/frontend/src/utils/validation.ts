@@ -36,12 +36,12 @@ export class FormValidator {
     if (!rule) return null;
 
     // Required validation
-    if (rule.required && (!value || value.trim() === '')) {
+    if (rule.required && (!value || value.trim() === "")) {
       return `${this.formatFieldName(fieldName)} is required`;
     }
 
     // Skip other validations if field is empty and not required
-    if (!value || value.trim() === '') {
+    if (!value || value.trim() === "") {
       return null;
     }
 
@@ -105,8 +105,8 @@ export class FormValidator {
     this.setValues(values);
     const errors: ValidationErrors = {};
 
-    Object.keys(this.schema).forEach(fieldName => {
-      const error = this.validateField(fieldName, values[fieldName] || '');
+    Object.keys(this.schema).forEach((fieldName) => {
+      const error = this.validateField(fieldName, values[fieldName] || "");
       if (error) {
         errors[fieldName] = error;
       }
@@ -122,8 +122,8 @@ export class FormValidator {
 
   private formatFieldName(fieldName: string): string {
     return fieldName
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase())
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (str) => str.toUpperCase())
       .trim();
   }
 
@@ -146,8 +146,8 @@ export class FormValidator {
 export const ValidationRules = {
   required: { required: true },
   email: { required: true, email: true },
-  password: { 
-    required: true, 
+  password: {
+    required: true,
     minLength: 8,
     pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
   },
@@ -192,7 +192,7 @@ export class AsyncValidator {
   async validateAsync(
     fieldName: string,
     value: string,
-    validator: (value: string) => Promise<string | null>
+    validator: (value: string) => Promise<string | null>,
   ): Promise<string | null> {
     // Cancel previous validation for this field
     if (this.pendingValidations.has(fieldName)) {
@@ -204,17 +204,17 @@ export class AsyncValidator {
 
     try {
       const result = await validationPromise;
-      
+
       // Only return result if this is still the latest validation for this field
       if (this.pendingValidations.get(fieldName) === validationPromise) {
         this.pendingValidations.delete(fieldName);
         return result;
       }
-      
+
       return null; // Validation was superseded
     } catch (error) {
       this.pendingValidations.delete(fieldName);
-      return 'Validation failed';
+      return "Validation failed";
     }
   }
 
@@ -225,39 +225,41 @@ export class AsyncValidator {
 
 // Common async validators
 export const AsyncValidators = {
-  checkUsernameAvailability: async (username: string): Promise<string | null> => {
+  checkUsernameAvailability: async (
+    username: string,
+  ): Promise<string | null> => {
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const unavailableUsernames = ['admin', 'root', 'user', 'test'];
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const unavailableUsernames = ["admin", "root", "user", "test"];
     if (unavailableUsernames.includes(username.toLowerCase())) {
-      return 'Username is already taken';
+      return "Username is already taken";
     }
-    
+
     return null;
   },
 
   checkEmailAvailability: async (email: string): Promise<string | null> => {
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
     // Mock check - in real app, this would call your API
-    if (email === 'test@example.com') {
-      return 'Email is already registered';
+    if (email === "test@example.com") {
+      return "Email is already registered";
     }
-    
+
     return null;
   },
 
   validateWalletAddress: async (address: string): Promise<string | null> => {
     // Simulate blockchain validation
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     // Basic Ethereum address validation
     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      return 'Invalid wallet address format';
+      return "Invalid wallet address format";
     }
-    
+
     return null;
   },
 };
@@ -268,18 +270,20 @@ export const useFormValidation = (schema: ValidationSchema) => {
   const asyncValidator = new AsyncValidator();
 
   return {
-    validateField: (fieldName: string, value: string) => 
+    validateField: (fieldName: string, value: string) =>
       validator.validateField(fieldName, value),
-    
-    validateAll: (values: Record<string, string>) => 
+
+    validateAll: (values: Record<string, string>) =>
       validator.validateAll(values),
-    
-    isValid: (values: Record<string, string>) => 
-      validator.isValid(values),
-    
-    validateAsync: (fieldName: string, value: string, validatorFn: (value: string) => Promise<string | null>) =>
-      asyncValidator.validateAsync(fieldName, value, validatorFn),
-    
+
+    isValid: (values: Record<string, string>) => validator.isValid(values),
+
+    validateAsync: (
+      fieldName: string,
+      value: string,
+      validatorFn: (value: string) => Promise<string | null>,
+    ) => asyncValidator.validateAsync(fieldName, value, validatorFn),
+
     cancelAsyncValidations: () => asyncValidator.cancelAll(),
   };
 };

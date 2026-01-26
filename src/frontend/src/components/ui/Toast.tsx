@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   toastContainerStyles,
   getToastItemStyles,
@@ -10,11 +10,11 @@ import {
   toastCloseButtonStyles,
   toastInAnimation,
   toastOutAnimation,
-} from '../../styles/styles';
-import { css } from '@emotion/react';
+} from "../../styles/styles";
+import { css } from "@emotion/react";
 
 export interface ToastProps {
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: "success" | "error" | "warning" | "info";
   message: string;
   duration?: number;
   onClose: () => void;
@@ -54,7 +54,9 @@ export const Toast: React.FC<ToastProps> = ({
     setIsExiting(true);
     if (toastRef.current) {
       toastRef.current.style.animation = `${toastOutAnimation} 0.3s ease-out forwards`;
-      toastRef.current.addEventListener('animationend', onClose, { once: true });
+      toastRef.current.addEventListener("animationend", onClose, {
+        once: true,
+      });
     } else {
       onClose();
     }
@@ -65,21 +67,21 @@ export const Toast: React.FC<ToastProps> = ({
       ref={toastRef}
       css={css`
         ${getToastItemStyles(type)};
-        animation: ${isVisible && !isExiting ? toastInAnimation : toastOutAnimation} 0.3s ease-out forwards;
+        animation: ${isVisible && !isExiting
+            ? toastInAnimation
+            : toastOutAnimation}
+          0.3s ease-out forwards;
       `}
       role="alert"
     >
       <span css={getToastIconStyles(type)}>{toastVariants[type].icon}</span>
-      
+
       <div css={toastContentStyles}>
         <p css={toastMessageStyles}>{message}</p>
-        
+
         {action && (
           <div css={toastActionsStyles}>
-            <button
-              css={toastActionButtonStyles}
-              onClick={action.onClick}
-            >
+            <button css={toastActionButtonStyles} onClick={action.onClick}>
               {action.label}
             </button>
           </div>
@@ -99,16 +101,16 @@ export const Toast: React.FC<ToastProps> = ({
 
 const toastVariants = {
   success: {
-    icon: '✅',
+    icon: "✅",
   },
   error: {
-    icon: '❌',
+    icon: "❌",
   },
   warning: {
-    icon: '⚠️',
+    icon: "⚠️",
   },
   info: {
-    icon: 'ℹ️',
+    icon: "ℹ️",
   },
 };
 

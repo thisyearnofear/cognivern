@@ -1,7 +1,7 @@
 // Main layout components
-export { default as AppLayout } from './ImprovedAppLayout';
-export { default as Sidebar } from './ImprovedSidebar';
-export { default as Header } from './Header';
+export { default as AppLayout } from "./ImprovedAppLayout";
+export { default as Sidebar } from "./ImprovedSidebar";
+export { default as Header } from "./Header";
 
 // Responsive layout system
 export {
@@ -12,7 +12,7 @@ export {
   GridItem,
   Flex,
   Spacer,
-} from './ResponsiveLayout';
+} from "./ResponsiveLayout";
 
 // Content wrappers
 export {
@@ -20,7 +20,7 @@ export {
   DashboardWrapper,
   PageWrapper,
   ModalContentWrapper,
-} from './ContentWrapper';
+} from "./ContentWrapper";
 
 // Types
 export type {
@@ -30,24 +30,22 @@ export type {
   GridItemProps,
   FlexProps,
   SpacerProps,
-} from './ResponsiveLayout';
+} from "./ResponsiveLayout";
 
-export type {
-  ContentWrapperProps,
-} from './ContentWrapper';
+export type { ContentWrapperProps } from "./ContentWrapper";
 
 // Re-export responsive utilities
-export { 
-  viewport, 
-  responsive, 
-  layout, 
-  performance, 
-  a11y 
-} from '../../utils/responsive';
+export {
+  viewport,
+  responsive,
+  layout,
+  performance,
+  a11y,
+} from "../../utils/responsive";
 
 // Re-export viewport optimization utilities
-export * from '../../utils/viewportOptimization';
+export * from "../../utils/viewportOptimization";
 
 // Re-export enhanced hooks
-export { default as useSidebarState } from '../../hooks/useSidebarState';
-export { default as useViewportOptimization } from '../../hooks/useViewportOptimization';
+export { default as useSidebarState } from "../../hooks/useSidebarState";
+export { default as useViewportOptimization } from "../../hooks/useViewportOptimization";

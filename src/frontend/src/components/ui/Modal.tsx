@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from "react";
 import {
   modalOverlayStyles,
   getModalStyles,
@@ -7,13 +7,13 @@ import {
   modalContentStyles,
   modalFooterStyles,
   modalCloseButtonStyles,
-} from '../../styles/styles';
+} from "../../styles/styles";
 
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  size?: "sm" | "md" | "lg" | "xl" | "full";
   children: React.ReactNode;
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
@@ -25,7 +25,7 @@ export const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
   title,
-  size = 'md',
+  size = "md",
   children,
   showCloseButton = true,
   closeOnOverlayClick = true,
@@ -40,7 +40,7 @@ export const Modal: React.FC<ModalProps> = ({
     if (isOpen) {
       // Store the currently focused element
       previousFocusRef.current = document.activeElement as HTMLElement;
-      
+
       // Focus the modal
       setTimeout(() => {
         modalRef.current?.focus();
@@ -56,13 +56,13 @@ export const Modal: React.FC<ModalProps> = ({
     if (!closeOnEscape) return;
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
+      if (event.key === "Escape" && isOpen) {
         onClose();
       }
     };
 
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose, closeOnEscape]);
 
   // Focus trap
@@ -70,17 +70,19 @@ export const Modal: React.FC<ModalProps> = ({
     if (!isOpen) return;
 
     const handleTabKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab') return;
+      if (event.key !== "Tab") return;
 
       const modal = modalRef.current;
       if (!modal) return;
 
       const focusableElements = modal.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
-      
+
       const firstElement = focusableElements[0] as HTMLElement;
-      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+      const lastElement = focusableElements[
+        focusableElements.length - 1
+      ] as HTMLElement;
 
       if (event.shiftKey) {
         if (document.activeElement === firstElement) {
@@ -95,20 +97,20 @@ export const Modal: React.FC<ModalProps> = ({
       }
     };
 
-    document.addEventListener('keydown', handleTabKey);
-    return () => document.removeEventListener('keydown', handleTabKey);
+    document.addEventListener("keydown", handleTabKey);
+    return () => document.removeEventListener("keydown", handleTabKey);
   }, [isOpen]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
 
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [isOpen]);
 
@@ -122,7 +124,7 @@ export const Modal: React.FC<ModalProps> = ({
       onClick={closeOnOverlayClick ? onClose : undefined}
       role="dialog"
       aria-modal="true"
-      aria-labelledby={title ? 'modal-title' : undefined}
+      aria-labelledby={title ? "modal-title" : undefined}
     >
       <div
         ref={modalRef}
@@ -151,16 +153,10 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Content */}
-        <div css={modalContentStyles}>
-          {children}
-        </div>
+        <div css={modalContentStyles}>{children}</div>
 
         {/* Footer */}
-        {footer && (
-          <div css={modalFooterStyles}>
-            {footer}
-          </div>
-        )}
+        {footer && <div css={modalFooterStyles}>{footer}</div>}
       </div>
     </div>
   );

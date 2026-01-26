@@ -1,5 +1,5 @@
-import React from 'react';
-import { designTokens } from '../../styles/designTokens';
+import React from "react";
+import { designTokens } from "../../styles/designTokens";
 import {
   loadingSpinnerContainerStyles,
   getLoadingSpinnerStyles,
@@ -7,35 +7,35 @@ import {
   getLoadingPulseStyles,
   getLoadingBarsStyles,
   getLoadingSpinnerTextStyles,
-} from '../../styles/styles';
+} from "../../styles/styles";
 
 export interface LoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   color?: string;
-  type?: 'spinner' | 'dots' | 'pulse' | 'bars' | 'skeleton';
+  type?: "spinner" | "dots" | "pulse" | "bars" | "skeleton";
   text?: string;
   // Skeleton-specific props
   width?: string | number;
   height?: string | number;
   lines?: number;
-  variant?: 'text' | 'rectangular' | 'circular' | 'card';
+  variant?: "text" | "rectangular" | "circular" | "card";
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
-  size = 'md',
+  size = "md",
   color = designTokens.colors.primary[500],
-  type = 'spinner',
+  type = "spinner",
   text,
 }) => {
   const renderSpinner = () => {
     switch (type) {
-      case 'spinner':
+      case "spinner":
         return <div css={getLoadingSpinnerStyles(size, color)} />;
-      case 'dots':
+      case "dots":
         return <div css={getLoadingDotsStyles(size, color)} />;
-      case 'pulse':
+      case "pulse":
         return <div css={getLoadingPulseStyles(size, color)} />;
-      case 'bars':
+      case "bars":
         return <div css={getLoadingBarsStyles(size, color)} />;
       default:
         return null;

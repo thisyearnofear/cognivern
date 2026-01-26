@@ -1,7 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { css } from '@emotion/react';
-import { designTokens, shadowSystem, keyframeAnimations, colorSystem } from '../styles/design-system';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/Card';
+import React, { useState, useEffect } from "react";
+import { css } from "@emotion/react";
+import {
+  designTokens,
+  shadowSystem,
+  keyframeAnimations,
+  colorSystem,
+} from "../styles/design-system";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "./ui/Card";
+import { Badge } from "./ui/Badge";
+import { Button } from "./ui/Button";
+import { getApiUrl, getRequestHeaders } from "../utils/api";
 
 interface AuditLog {
   id: string;
@@ -31,15 +45,15 @@ interface AuditLog {
     executionContext?: string;
   };
   impact: {
-    severity: 'low' | 'medium' | 'high' | 'critical';
-    category: 'trading' | 'security' | 'compliance' | 'performance';
+    severity: "low" | "medium" | "high" | "critical";
+    category: "trading" | "security" | "compliance" | "performance";
     financialImpact?: number;
   };
 }
 
 interface AIInsight {
   id: string;
-  type: 'pattern' | 'anomaly' | 'recommendation' | 'trend';
+  type: "pattern" | "anomaly" | "recommendation" | "trend";
   title: string;
   description: string;
   confidence: number;
@@ -59,9 +73,11 @@ interface FilterState {
 }
 
 const containerStyles = css`
-  padding: ${designTokens.spacing[6]};
   max-width: 1600px;
   margin: 0 auto;
+  padding: ${designTokens.spacing[6]};
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  min-height: 100vh;
 `;
 
 const headerStyles = css`
@@ -70,13 +86,13 @@ const headerStyles = css`
 `;
 
 const titleStyles = css`
-  font-size: ${designTokens.typography.fontSize['3xl']};
+  font-size: ${designTokens.typography.fontSize["3xl"]};
   font-weight: ${designTokens.typography.fontWeight.bold};
-  background: ${colorSystem.gradients.primary};
+  color: ${designTokens.colors.neutral[900]};
+  margin-bottom: ${designTokens.spacing[3]};
+  background: linear-gradient(135deg, #1e293b, #475569);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: ${designTokens.spacing[4]};
 `;
 
 const subtitleStyles = css`
@@ -86,14 +102,14 @@ const subtitleStyles = css`
   margin: 0 auto;
 `;
 
-const dashboardGridStyles = css`
+const metricsGridStyles = css`
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: ${designTokens.spacing[4]};
   margin-bottom: ${designTokens.spacing[8]};
 
   @media (max-width: 1024px) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   @media (max-width: 640px) {
@@ -102,57 +118,61 @@ const dashboardGridStyles = css`
 `;
 
 const metricCardStyles = css`
-  text-align: center;
+  background: white;
+  border-radius: ${designTokens.borderRadius.xl};
+  padding: ${designTokens.spacing[6]};
+  box-shadow: ${shadowSystem.md};
+  border: 1px solid ${designTokens.colors.neutral[200]};
   position: relative;
   overflow: hidden;
-  
+
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 4px;
-    background: ${colorSystem.gradients.primary};
+    background: linear-gradient(
+      90deg,
+      ${designTokens.colors.primary[500]},
+      ${designTokens.colors.primary[600]}
+    );
   }
 `;
 
 const metricValueStyles = css`
-  font-size: ${designTokens.typography.fontSize['2xl']};
+  font-size: ${designTokens.typography.fontSize["3xl"]};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: ${designTokens.colors.primary[600]};
   margin-bottom: ${designTokens.spacing[2]};
+  line-height: 1;
 `;
 
 const metricLabelStyles = css`
-  font-size: ${designTokens.typography.fontSize.sm};
   color: ${designTokens.colors.neutral[600]};
+  font-size: ${designTokens.typography.fontSize.sm};
   font-weight: ${designTokens.typography.fontWeight.medium};
 `;
 
 const filtersStyles = css`
+  background: white;
+  border-radius: ${designTokens.borderRadius.xl};
+  padding: ${designTokens.spacing[6]};
+  box-shadow: ${shadowSystem.sm};
+  border: 1px solid ${designTokens.colors.neutral[200]};
+  margin-bottom: ${designTokens.spacing[8]};
+`;
+
+const filterGridStyles = css`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: ${designTokens.spacing[4]};
-  margin-bottom: ${designTokens.spacing[6]};
-  padding: ${designTokens.spacing[6]};
-  background: ${designTokens.colors.neutral[50]};
-  border-radius: ${designTokens.borderRadius.lg};
-`;
-
-const filterGroupStyles = css`
-  display: flex;
-  flex-direction: column;
-  gap: ${designTokens.spacing[2]};
-`;
-
-const labelStyles = css`
-  font-size: ${designTokens.typography.fontSize.sm};
-  font-weight: ${designTokens.typography.fontWeight.medium};
-  color: ${designTokens.colors.neutral[700]};
+  margin-top: ${designTokens.spacing[4]};
 `;
 
 const inputStyles = css`
+  width: 100%;
   padding: ${designTokens.spacing[3]};
   border: 1px solid ${designTokens.colors.neutral[300]};
   border-radius: ${designTokens.borderRadius.md};
@@ -166,148 +186,137 @@ const inputStyles = css`
   }
 `;
 
+const selectStyles = css`
+  ${inputStyles}
+  background: white;
+  cursor: pointer;
+`;
+
 const insightsGridStyles = css`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: ${designTokens.spacing[4]};
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: ${designTokens.spacing[6]};
   margin-bottom: ${designTokens.spacing[8]};
 `;
 
 const insightCardStyles = css`
-  border-left: 4px solid ${designTokens.colors.primary[500]};
-  
+  background: white;
+  border-radius: ${designTokens.borderRadius.xl};
+  padding: ${designTokens.spacing[6]};
+  box-shadow: ${shadowSystem.md};
+  border: 1px solid ${designTokens.colors.neutral[200]};
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: ${shadowSystem.lg};
+  }
+`;
+
+const insightTypeStyles = css`
+  display: inline-flex;
+  align-items: center;
+  gap: ${designTokens.spacing[2]};
+  padding: ${designTokens.spacing[2]} ${designTokens.spacing[3]};
+  border-radius: ${designTokens.borderRadius.full};
+  font-size: ${designTokens.typography.fontSize.xs};
+  font-weight: ${designTokens.typography.fontWeight.bold};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: ${designTokens.spacing[3]};
+
   &.pattern {
-    border-left-color: ${designTokens.colors.primary[500]};
+    background: ${designTokens.colors.secondary[100]};
+    color: ${designTokens.colors.secondary[700]};
   }
-  
-  &.anomaly {
-    border-left-color: ${designTokens.colors.semantic.warning[500]};
-  }
-  
+
   &.recommendation {
-    border-left-color: ${designTokens.colors.semantic.success[500]};
+    background: ${designTokens.colors.primary[100]};
+    color: ${designTokens.colors.primary[700]};
   }
-  
+
   &.trend {
-    border-left-color: ${designTokens.colors.semantic.info[500]};
+    background: ${designTokens.colors.semantic.success[100]};
+    color: ${designTokens.colors.semantic.success[700]};
+  }
+
+  &.anomaly {
+    background: ${designTokens.colors.semantic.warning[100]};
+    color: ${designTokens.colors.semantic.warning[700]};
   }
 `;
 
 const confidenceBarStyles = css`
   width: 100%;
-  height: 4px;
+  height: 6px;
   background: ${designTokens.colors.neutral[200]};
   border-radius: ${designTokens.borderRadius.full};
   overflow: hidden;
-  margin-top: ${designTokens.spacing[2]};
+  margin-top: ${designTokens.spacing[3]};
 `;
 
-const confidenceFillStyles = (confidence: number) => css`
-  height: 100%;
-  background: ${confidence > 80 ? designTokens.colors.semantic.success[500] : 
-              confidence > 60 ? designTokens.colors.semantic.warning[500] : 
-              designTokens.colors.semantic.error[500]};
-  width: ${confidence}%;
-  transition: width 0.3s ease;
+const timelineStyles = css`
+  background: white;
+  border-radius: ${designTokens.borderRadius.xl};
+  padding: ${designTokens.spacing[6]};
+  box-shadow: ${shadowSystem.sm};
+  border: 1px solid ${designTokens.colors.neutral[200]};
 `;
 
-const logTimelineStyles = css`
+const timelineItemStyles = css`
   display: flex;
-  flex-direction: column;
   gap: ${designTokens.spacing[4]};
-`;
-
-const logItemStyles = css`
+  padding: ${designTokens.spacing[4]};
+  border-left: 2px solid ${designTokens.colors.neutral[200]};
+  margin-left: ${designTokens.spacing[3]};
   position: relative;
-  padding-left: ${designTokens.spacing[8]};
-  
+
   &::before {
-    content: '';
+    content: "";
     position: absolute;
-    left: ${designTokens.spacing[3]};
-    top: ${designTokens.spacing[4]};
-    width: 2px;
-    height: calc(100% - ${designTokens.spacing[4]});
-    background: ${designTokens.colors.neutral[200]};
-  }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    left: ${designTokens.spacing[2]};
-    top: ${designTokens.spacing[4]};
-    width: 12px;
-    height: 12px;
+    left: -6px;
+    top: ${designTokens.spacing[6]};
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: ${designTokens.colors.primary[500]};
-    border: 2px solid white;
-    box-shadow: ${shadowSystem.sm};
   }
-  
-  &.non-compliant::after {
-    background: ${designTokens.colors.semantic.error[500]};
-  }
-  
-  &.warning::after {
-    background: ${designTokens.colors.semantic.warning[500]};
+
+  &:last-child {
+    border-left-color: transparent;
   }
 `;
 
-const statusBadgeStyles = css`
-  display: inline-block;
-  padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
-  border-radius: ${designTokens.borderRadius.full};
-  font-size: ${designTokens.typography.fontSize.xs};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
-  text-transform: uppercase;
-  
-  &.compliant {
-    background: ${designTokens.colors.semantic.success[100]};
-    color: ${designTokens.colors.semantic.success[700]};
-  }
-  
-  &.non-compliant {
-    background: ${designTokens.colors.semantic.error[100]};
-    color: ${designTokens.colors.semantic.error[700]};
-  }
-  
-  &.warning {
-    background: ${designTokens.colors.semantic.warning[100]};
-    color: ${designTokens.colors.semantic.warning[700]};
-  }
+const emptyStateStyles = css`
+  text-align: center;
+  padding: ${designTokens.spacing[12]};
+  color: ${designTokens.colors.neutral[500]};
 `;
 
-const severityBadgeStyles = css`
-  display: inline-block;
-  padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
-  border-radius: ${designTokens.borderRadius.full};
-  font-size: ${designTokens.typography.fontSize.xs};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
-  text-transform: uppercase;
-  margin-left: ${designTokens.spacing[2]};
-  
-  &.low {
-    background: ${designTokens.colors.semantic.success[100]};
-    color: ${designTokens.colors.semantic.success[700]};
-  }
-  
-  &.medium {
-    background: ${designTokens.colors.semantic.warning[100]};
-    color: ${designTokens.colors.semantic.warning[700]};
-  }
-  
-  &.high {
-    background: ${designTokens.colors.semantic.error[100]};
-    color: ${designTokens.colors.semantic.error[700]};
-  }
-  
-  &.critical {
-    background: ${designTokens.colors.semantic.error[500]};
-    color: white;
-  }
+const loadingStyles = css`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
 `;
 
-import { getApiUrl, getRequestHeaders } from '../utils/api';
+const spinnerStyles = css`
+  width: 40px;
+  height: 40px;
+  border: 3px solid ${designTokens.colors.neutral[200]};
+  border-top: 3px solid ${designTokens.colors.primary[500]};
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+`;
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -315,518 +324,181 @@ export default function AuditLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>({
-    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
-    agentId: '',
-    actionType: '',
-    complianceStatus: '',
-    severity: '',
-    category: ''
+    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
+    agentId: "",
+    actionType: "",
+    complianceStatus: "",
+    severity: "",
+    category: "",
   });
 
   const [metrics, setMetrics] = useState({
     totalLogs: 0,
     complianceRate: 0,
     avgResponseTime: 0,
-    criticalIssues: 0
+    criticalIssues: 0,
   });
 
   useEffect(() => {
     fetchLogs();
-    generateAIInsights();
+    fetchAIInsights();
   }, [filters]);
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
+      setError(null);
+
       const queryParams = new URLSearchParams(
-        Object.entries(filters).filter(([_, value]) => value !== '')
+        Object.entries(filters).filter(([_, value]) => value !== ""),
       ).toString();
 
-      const response = await fetch(getApiUrl(`/api/audit-logs?${queryParams}`), {
-        headers: getRequestHeaders(),
-      });
+      const response = await fetch(
+        getApiUrl(`/api/audit/logs?${queryParams}`),
+        {
+          headers: getRequestHeaders(),
+        },
+      );
 
       if (response.ok) {
         const data = await response.json();
-        setLogs(data.data || []);
-        calculateMetrics(data.data || []);
+        const logsData = data.data || data.logs || [];
+        setLogs(logsData);
+        calculateMetrics(logsData);
       } else {
-        // Mock data for demonstration
-        const mockLogs = generateMockLogs();
-        setLogs(mockLogs);
-        calculateMetrics(mockLogs);
+        throw new Error(`Failed to fetch audit logs (${response.status})`);
       }
     } catch (err) {
-      console.error('Error fetching audit logs:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load audit logs');
-      // Use mock data on error
-      const mockLogs = generateMockLogs();
-      setLogs(mockLogs);
-      calculateMetrics(mockLogs);
+      console.error("Error fetching audit logs:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to load audit logs",
+      );
+      setLogs([]);
+      calculateMetrics([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const generateMockLogs = (): AuditLog[] => [
-    {
-      id: '1',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      agentId: 'recall-agent-1',
-      agentName: 'Recall Trading Agent',
-      action: {
-        type: 'trade_execution',
-        description: 'Execute buy order for ETH/USDC',
-        input: 'Buy 0.5 ETH at market price',
-        decision: 'Approved - within risk limits',
-        confidence: 0.92,
-        riskScore: 0.3
-      },
-      policyChecks: [
-        {
-          policyId: 'trading-risk-control',
-          policyName: 'Trading Risk Control',
-          result: true,
-          reason: 'Position size within 10% limit',
-          ruleTriggered: 'position_size_check'
-        }
-      ],
-      metadata: {
-        modelVersion: '1.2.3',
-        governancePolicy: 'trading-risk-control',
-        complianceStatus: 'compliant',
-        latencyMs: 150,
-        executionContext: 'automated_trading'
-      },
-      impact: {
-        severity: 'low',
-        category: 'trading',
-        financialImpact: 1250.50
+  const fetchAIInsights = async () => {
+    try {
+      const response = await fetch(getApiUrl("/api/audit/insights"), {
+        headers: getRequestHeaders(),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAiInsights(data.data || data.insights || []);
+      } else {
+        console.warn("AI insights not available");
+        setAiInsights([]);
       }
-    },
-    {
-      id: '2',
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
-      agentId: 'vincent-agent-1',
-      agentName: 'Vincent Social Trading Agent',
-      action: {
-        type: 'sentiment_analysis',
-        description: 'Analyze social sentiment for DOGE',
-        input: 'Twitter sentiment analysis for DOGE trading decision',
-        decision: 'Hold - mixed sentiment signals',
-        confidence: 0.67,
-        riskScore: 0.6
-      },
-      policyChecks: [
-        {
-          policyId: 'security-baseline',
-          policyName: 'Security Baseline',
-          result: false,
-          reason: 'Sentiment source not in approved list',
-          ruleTriggered: 'approved_sources_only'
-        }
-      ],
-      metadata: {
-        modelVersion: '1.2.3',
-        governancePolicy: 'security-baseline',
-        complianceStatus: 'non-compliant',
-        latencyMs: 2300,
-        executionContext: 'social_trading'
-      },
-      impact: {
-        severity: 'medium',
-        category: 'security'
-      }
+    } catch (error) {
+      console.error("Error fetching AI insights:", error);
+      setAiInsights([]);
     }
-  ];
+  };
 
   const calculateMetrics = (logs: AuditLog[]) => {
     const totalLogs = logs.length;
-    const compliantLogs = logs.filter(log => log.metadata.complianceStatus === 'compliant').length;
-    const complianceRate = totalLogs > 0 ? (compliantLogs / totalLogs) * 100 : 0;
-    const avgResponseTime = logs.reduce((sum, log) => sum + log.metadata.latencyMs, 0) / totalLogs || 0;
-    const criticalIssues = logs.filter(log => log.impact.severity === 'critical').length;
+    const compliantLogs = logs.filter(
+      (log) => log.metadata.complianceStatus === "compliant",
+    ).length;
+    const complianceRate =
+      totalLogs > 0 ? (compliantLogs / totalLogs) * 100 : 0;
+    const avgResponseTime =
+      logs.reduce((sum, log) => sum + (log.metadata.latencyMs || 0), 0) /
+        totalLogs || 0;
+    const criticalIssues = logs.filter(
+      (log) => log.impact.severity === "critical",
+    ).length;
 
     setMetrics({
       totalLogs,
-      complianceRate,
-      avgResponseTime,
-      criticalIssues
+      complianceRate: Math.round(complianceRate * 10) / 10,
+      avgResponseTime: Math.round(avgResponseTime),
+      criticalIssues,
     });
   };
 
-  const generateAIInsights = async () => {
-    // Mock AI insights - in real app, this would call Gemini API
-    const mockInsights: AIInsight[] = [
-      {
-        id: '1',
-        type: 'pattern',
-        title: 'Recurring Policy Violations',
-        description: 'Vincent agent has violated security policies 3 times in the last 24 hours, primarily due to unapproved sentiment sources.',
-        confidence: 87,
-        actionable: true,
-        relatedLogs: ['2'],
-        generatedAt: new Date().toISOString()
-      },
-      {
-        id: '2',
-        type: 'recommendation',
-        title: 'Optimize Response Times',
-        description: 'Social trading agent response times are 40% higher than baseline. Consider implementing caching for sentiment analysis.',
-        confidence: 92,
-        actionable: true,
-        relatedLogs: ['2'],
-        generatedAt: new Date().toISOString()
-      },
-      {
-        id: '3',
-        type: 'trend',
-        title: 'Increasing Trade Volume',
-        description: 'Trading activity has increased 25% over the past week, with compliance rate remaining stable at 98.5%.',
-        confidence: 95,
-        actionable: false,
-        relatedLogs: ['1'],
-        generatedAt: new Date().toISOString()
-      }
-    ];
-
-    setAiInsights(mockInsights);
-  };
-
   const handleFilterChange = (key: keyof FilterState, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const renderMetrics = () => (
-    <div css={dashboardGridStyles}>
-      <Card variant="default" css={metricCardStyles}>
-        <CardContent>
-          <div css={metricValueStyles}>{metrics.totalLogs.toLocaleString()}</div>
-          <div css={metricLabelStyles}>Total Actions Logged</div>
-        </CardContent>
-      </Card>
-      
-      <Card variant="default" css={metricCardStyles}>
-        <CardContent>
-          <div css={metricValueStyles}>{metrics.complianceRate.toFixed(1)}%</div>
-          <div css={metricLabelStyles}>Compliance Rate</div>
-        </CardContent>
-      </Card>
-      
-      <Card variant="default" css={metricCardStyles}>
-        <CardContent>
-          <div css={metricValueStyles}>{metrics.avgResponseTime.toFixed(0)}ms</div>
-          <div css={metricLabelStyles}>Avg Response Time</div>
-        </CardContent>
-      </Card>
-      
-      <Card variant="default" css={metricCardStyles}>
-        <CardContent>
-          <div css={metricValueStyles}>{metrics.criticalIssues}</div>
-          <div css={metricLabelStyles}>Critical Issues</div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  const clearFilters = () => {
+    setFilters({
+      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+      endDate: new Date().toISOString().split("T")[0],
+      agentId: "",
+      actionType: "",
+      complianceStatus: "",
+      severity: "",
+      category: "",
+    });
+  };
 
-  const renderFilters = () => (
-    <Card variant="outlined">
-      <CardContent>
-        <CardTitle css={css`margin-bottom: ${designTokens.spacing[4]};`}>
-          Filter Audit Logs
-        </CardTitle>
-        <div css={filtersStyles}>
-          <div css={filterGroupStyles}>
-            <label css={labelStyles}>Start Date</label>
-            <input
-              type="date"
-              value={filters.startDate}
-              onChange={(e) => handleFilterChange('startDate', e.target.value)}
-              css={inputStyles}
-            />
-          </div>
-          
-          <div css={filterGroupStyles}>
-            <label css={labelStyles}>End Date</label>
-            <input
-              type="date"
-              value={filters.endDate}
-              onChange={(e) => handleFilterChange('endDate', e.target.value)}
-              css={inputStyles}
-            />
-          </div>
-          
-          <div css={filterGroupStyles}>
-            <label css={labelStyles}>Agent</label>
-            <select
-              value={filters.agentId}
-              onChange={(e) => handleFilterChange('agentId', e.target.value)}
-              css={inputStyles}
-            >
-              <option value="">All Agents</option>
-              <option value="recall-agent-1">Recall Trading Agent</option>
-              <option value="vincent-agent-1">Vincent Social Trading Agent</option>
-            </select>
-          </div>
-          
-          <div css={filterGroupStyles}>
-            <label css={labelStyles}>Action Type</label>
-            <select
-              value={filters.actionType}
-              onChange={(e) => handleFilterChange('actionType', e.target.value)}
-              css={inputStyles}
-            >
-              <option value="">All Actions</option>
-              <option value="trade_execution">Trade Execution</option>
-              <option value="sentiment_analysis">Sentiment Analysis</option>
-              <option value="risk_assessment">Risk Assessment</option>
-            </select>
-          </div>
-          
-          <div css={filterGroupStyles}>
-            <label css={labelStyles}>Compliance Status</label>
-            <select
-              value={filters.complianceStatus}
-              onChange={(e) => handleFilterChange('complianceStatus', e.target.value)}
-              css={inputStyles}
-            >
-              <option value="">All Status</option>
-              <option value="compliant">Compliant</option>
-              <option value="non-compliant">Non-Compliant</option>
-              <option value="warning">Warning</option>
-            </select>
-          </div>
-          
-          <div css={filterGroupStyles}>
-            <label css={labelStyles}>Severity</label>
-            <select
-              value={filters.severity}
-              onChange={(e) => handleFilterChange('severity', e.target.value)}
-              css={inputStyles}
-            >
-              <option value="">All Severities</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
-            </select>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+  const getInsightIcon = (type: string) => {
+    switch (type) {
+      case "pattern":
+        return "🔍";
+      case "recommendation":
+        return "💡";
+      case "trend":
+        return "📈";
+      case "anomaly":
+        return "⚠️";
+      default:
+        return "🤖";
+    }
+  };
 
-  const renderAIInsights = () => (
-    <div>
-      <h3 css={css`font-size: ${designTokens.typography.fontSize.xl}; margin-bottom: ${designTokens.spacing[4]}; display: flex; align-items: center; gap: ${designTokens.spacing[2]};`}>
-        🤖 AI-Powered Insights
-        <span css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[500]}; font-weight: normal;`}>
-          Powered by Gemini
-        </span>
-      </h3>
-      
-      <div css={insightsGridStyles}>
-        {aiInsights.map((insight) => (
-          <Card key={insight.id} variant="default" css={css`${insightCardStyles}; &.${insight.type}`}>
-            <CardContent>
-              <div css={css`display: flex; justify-content: between; align-items: start; margin-bottom: ${designTokens.spacing[3]};`}>
-                <CardTitle css={css`margin-bottom: ${designTokens.spacing[2]};`}>
-                  {insight.title}
-                </CardTitle>
-                <span css={css`
-                  padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
-                  background: ${designTokens.colors.primary[100]};
-                  color: ${designTokens.colors.primary[700]};
-                  border-radius: ${designTokens.borderRadius.full};
-                  font-size: ${designTokens.typography.fontSize.xs};
-                  font-weight: ${designTokens.typography.fontWeight.medium};
-                  text-transform: uppercase;
-                `}>
-                  {insight.type}
-                </span>
-              </div>
-              
-              <CardDescription css={css`margin-bottom: ${designTokens.spacing[4]};`}>
-                {insight.description}
-              </CardDescription>
-              
-              <div css={css`margin-bottom: ${designTokens.spacing[3]};`}>
-                <div css={css`display: flex; justify-content: between; align-items: center; margin-bottom: ${designTokens.spacing[1]};`}>
-                  <span css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[600]};`}>
-                    Confidence
-                  </span>
-                  <span css={css`font-size: ${designTokens.typography.fontSize.sm}; font-weight: ${designTokens.typography.fontWeight.semibold};`}>
-                    {insight.confidence}%
-                  </span>
-                </div>
-                <div css={confidenceBarStyles}>
-                  <div css={confidenceFillStyles(insight.confidence)} />
-                </div>
-              </div>
-              
-              {insight.actionable && (
-                <button css={css`
-                  width: 100%;
-                  padding: ${designTokens.spacing[3]};
-                  background: ${designTokens.colors.primary[500]};
-                  color: white;
-                  border: none;
-                  border-radius: ${designTokens.borderRadius.md};
-                  font-size: ${designTokens.typography.fontSize.sm};
-                  font-weight: ${designTokens.typography.fontWeight.medium};
-                  cursor: pointer;
-                  transition: background 0.2s ease;
-                  
-                  &:hover {
-                    background: ${designTokens.colors.primary[600]};
-                  }
-                `}>
-                  Take Action
-                </button>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
+  const getComplianceColor = (status: string) => {
+    switch (status) {
+      case "compliant":
+        return designTokens.colors.semantic.success[500];
+      case "non-compliant":
+        return designTokens.colors.semantic.error[500];
+      case "warning":
+        return designTokens.colors.semantic.warning[500];
+      default:
+        return designTokens.colors.neutral[400];
+    }
+  };
 
-  const renderLogs = () => (
-    <div>
-      <h3 css={css`font-size: ${designTokens.typography.fontSize.xl}; margin-bottom: ${designTokens.spacing[4]};`}>
-        Audit Timeline
-      </h3>
-      
-      <div css={logTimelineStyles}>
-        {logs.map((log) => (
-          <div key={log.id} css={css`${logItemStyles}; &.${log.metadata.complianceStatus}`}>
-            <Card variant="default">
-              <CardContent>
-                <div css={css`display: flex; justify-content: between; align-items: start; margin-bottom: ${designTokens.spacing[3]};`}>
-                  <div>
-                    <CardTitle css={css`margin-bottom: ${designTokens.spacing[1]};`}>
-                      {log.agentName}
-                    </CardTitle>
-                    <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[500]};`}>
-                      {new Date(log.timestamp).toLocaleString()}
-                    </div>
-                  </div>
-                  <div css={css`display: flex; align-items: center;`}>
-                    <span css={css`${statusBadgeStyles}; &.${log.metadata.complianceStatus}`}>
-                      {log.metadata.complianceStatus}
-                    </span>
-                    <span css={css`${severityBadgeStyles}; &.${log.impact.severity}`}>
-                      {log.impact.severity}
-                    </span>
-                  </div>
-                </div>
-                
-                <div css={css`margin-bottom: ${designTokens.spacing[4]};`}>
-                  <h4 css={css`font-size: ${designTokens.typography.fontSize.sm}; font-weight: ${designTokens.typography.fontWeight.semibold}; margin-bottom: ${designTokens.spacing[2]};`}>
-                    Action: {log.action.type}
-                  </h4>
-                  <p css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[600]}; margin-bottom: ${designTokens.spacing[2]};`}>
-                    {log.action.description}
-                  </p>
-                  <div css={css`display: grid; grid-template-columns: 1fr 1fr; gap: ${designTokens.spacing[4]};`}>
-                    <div>
-                      <strong>Input:</strong> {log.action.input}
-                    </div>
-                    <div>
-                      <strong>Decision:</strong> {log.action.decision}
-                    </div>
-                  </div>
-                  {log.action.confidence && (
-                    <div css={css`margin-top: ${designTokens.spacing[2]};`}>
-                      <strong>Confidence:</strong> {(log.action.confidence * 100).toFixed(1)}%
-                      {log.action.riskScore && (
-                        <span css={css`margin-left: ${designTokens.spacing[4]};`}>
-                          <strong>Risk Score:</strong> {(log.action.riskScore * 100).toFixed(1)}%
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-                
-                <div css={css`margin-bottom: ${designTokens.spacing[4]};`}>
-                  <h4 css={css`font-size: ${designTokens.typography.fontSize.sm}; font-weight: ${designTokens.typography.fontWeight.semibold}; margin-bottom: ${designTokens.spacing[2]};`}>
-                    Policy Checks ({log.policyChecks.length})
-                  </h4>
-                  {log.policyChecks.map((check, index) => (
-                    <div key={index} css={css`
-                      padding: ${designTokens.spacing[3]};
-                      background: ${check.result ? designTokens.colors.semantic.success[50] : designTokens.colors.semantic.error[50]};
-                      border-radius: ${designTokens.borderRadius.md};
-                      border-left: 4px solid ${check.result ? designTokens.colors.semantic.success[500] : designTokens.colors.semantic.error[500]};
-                      margin-bottom: ${designTokens.spacing[2]};
-                    `}>
-                      <div css={css`display: flex; justify-content: between; align-items: center; margin-bottom: ${designTokens.spacing[1]};`}>
-                        <strong>{check.policyName}</strong>
-                        <span css={css`
-                          padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
-                          background: ${check.result ? designTokens.colors.semantic.success[100] : designTokens.colors.semantic.error[100]};
-                          color: ${check.result ? designTokens.colors.semantic.success[700] : designTokens.colors.semantic.error[700]};
-                          border-radius: ${designTokens.borderRadius.full};
-                          font-size: ${designTokens.typography.fontSize.xs};
-                          font-weight: ${designTokens.typography.fontWeight.semibold};
-                        `}>
-                          {check.result ? 'PASSED' : 'FAILED'}
-                        </span>
-                      </div>
-                      <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[600]};`}>
-                        {check.reason}
-                      </div>
-                      {check.ruleTriggered && (
-                        <div css={css`font-size: ${designTokens.typography.fontSize.xs}; color: ${designTokens.colors.neutral[500]}; margin-top: ${designTokens.spacing[1]};`}>
-                          Rule: {check.ruleTriggered}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                
-                <div css={css`display: flex; justify-content: between; align-items: center; padding-top: ${designTokens.spacing[3]}; border-top: 1px solid ${designTokens.colors.neutral[200]};`}>
-                  <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[600]};`}>
-                    Response Time: {log.metadata.latencyMs}ms
-                    {log.impact.financialImpact && (
-                      <span css={css`margin-left: ${designTokens.spacing[4]};`}>
-                        Impact: ${log.impact.financialImpact > 0 ? '+' : ''}${log.impact.financialImpact.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-                      </span>
-                    )}
-                  </div>
-                  <div css={css`font-size: ${designTokens.typography.fontSize.xs}; color: ${designTokens.colors.neutral[500]};`}>
-                    {log.metadata.executionContext}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "low":
+        return designTokens.colors.semantic.success[500];
+      case "medium":
+        return designTokens.colors.semantic.warning[500];
+      case "high":
+        return designTokens.colors.semantic.error[500];
+      case "critical":
+        return designTokens.colors.semantic.error[700];
+      default:
+        return designTokens.colors.neutral[400];
+    }
+  };
 
   if (loading) {
     return (
       <div css={containerStyles}>
-        <div css={css`display: flex; justify-content: center; align-items: center; min-height: 400px;`}>
-          <div css={css`text-align: center;`}>
-            <div css={css`
-              width: 40px;
-              height: 40px;
-              border: 3px solid ${designTokens.colors.neutral[200]};
-              border-top: 3px solid ${designTokens.colors.primary[500]};
-              border-radius: 50%;
-              animation: spin 1s linear infinite;
-              margin: 0 auto ${designTokens.spacing[4]};
-              
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `} />
-            <p>Loading audit logs...</p>
+        <div css={loadingStyles}>
+          <div>
+            <div css={spinnerStyles} />
+            <p
+              style={{
+                marginTop: designTokens.spacing[4],
+                color: designTokens.colors.neutral[600],
+              }}
+            >
+              Loading audit logs...
+            </p>
           </div>
         </div>
       </div>
@@ -838,14 +510,433 @@ export default function AuditLogs() {
       <div css={headerStyles}>
         <h1 css={titleStyles}>Audit Logs & Insights</h1>
         <p css={subtitleStyles}>
-          Monitor your autonomous agents with comprehensive audit trails and AI-powered insights
+          Monitor your autonomous agents with comprehensive audit trails and
+          AI-powered insights
         </p>
       </div>
 
-      {renderMetrics()}
-      {renderFilters()}
-      {renderAIInsights()}
-      {renderLogs()}
+      {/* Metrics Dashboard */}
+      <div css={metricsGridStyles}>
+        <div css={metricCardStyles}>
+          <div css={metricValueStyles}>
+            {metrics.totalLogs.toLocaleString()}
+          </div>
+          <div css={metricLabelStyles}>Total Actions Logged</div>
+        </div>
+        <div css={metricCardStyles}>
+          <div css={metricValueStyles}>{metrics.complianceRate}%</div>
+          <div css={metricLabelStyles}>Compliance Rate</div>
+        </div>
+        <div css={metricCardStyles}>
+          <div css={metricValueStyles}>{metrics.avgResponseTime}ms</div>
+          <div css={metricLabelStyles}>Avg Response Time</div>
+        </div>
+        <div css={metricCardStyles}>
+          <div css={metricValueStyles}>{metrics.criticalIssues}</div>
+          <div css={metricLabelStyles}>Critical Issues</div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div css={filtersStyles}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: designTokens.spacing[4],
+          }}
+        >
+          <h3
+            style={{
+              margin: 0,
+              fontSize: designTokens.typography.fontSize.lg,
+              fontWeight: designTokens.typography.fontWeight.semibold,
+            }}
+          >
+            Filter Audit Logs
+          </h3>
+          <Button variant="secondary" size="sm" onClick={clearFilters}>
+            Clear Filters
+          </Button>
+        </div>
+
+        <div css={filterGridStyles}>
+          <div>
+            <label
+              style={{
+                display: "block",
+                marginBottom: designTokens.spacing[2],
+                fontSize: designTokens.typography.fontSize.sm,
+                fontWeight: designTokens.typography.fontWeight.medium,
+              }}
+            >
+              Start Date
+            </label>
+            <input
+              type="date"
+              css={inputStyles}
+              value={filters.startDate}
+              onChange={(e) => handleFilterChange("startDate", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: "block",
+                marginBottom: designTokens.spacing[2],
+                fontSize: designTokens.typography.fontSize.sm,
+                fontWeight: designTokens.typography.fontWeight.medium,
+              }}
+            >
+              End Date
+            </label>
+            <input
+              type="date"
+              css={inputStyles}
+              value={filters.endDate}
+              onChange={(e) => handleFilterChange("endDate", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: "block",
+                marginBottom: designTokens.spacing[2],
+                fontSize: designTokens.typography.fontSize.sm,
+                fontWeight: designTokens.typography.fontWeight.medium,
+              }}
+            >
+              Agent
+            </label>
+            <select
+              css={selectStyles}
+              value={filters.agentId}
+              onChange={(e) => handleFilterChange("agentId", e.target.value)}
+            >
+              <option value="">All Agents</option>
+              <option value="recall-agent-1">Recall Trading Agent</option>
+              <option value="vincent-agent-1">
+                Vincent Social Trading Agent
+              </option>
+              <option value="sapience-agent-1">
+                Sapience Forecasting Agent
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: "block",
+                marginBottom: designTokens.spacing[2],
+                fontSize: designTokens.typography.fontSize.sm,
+                fontWeight: designTokens.typography.fontWeight.medium,
+              }}
+            >
+              Action Type
+            </label>
+            <select
+              css={selectStyles}
+              value={filters.actionType}
+              onChange={(e) => handleFilterChange("actionType", e.target.value)}
+            >
+              <option value="">All Actions</option>
+              <option value="trade_execution">Trade Execution</option>
+              <option value="sentiment_analysis">Sentiment Analysis</option>
+              <option value="risk_assessment">Risk Assessment</option>
+              <option value="forecast">Forecast Generation</option>
+              <option value="policy_check">Policy Check</option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: "block",
+                marginBottom: designTokens.spacing[2],
+                fontSize: designTokens.typography.fontSize.sm,
+                fontWeight: designTokens.typography.fontWeight.medium,
+              }}
+            >
+              Compliance Status
+            </label>
+            <select
+              css={selectStyles}
+              value={filters.complianceStatus}
+              onChange={(e) =>
+                handleFilterChange("complianceStatus", e.target.value)
+              }
+            >
+              <option value="">All Status</option>
+              <option value="compliant">Compliant</option>
+              <option value="non-compliant">Non-Compliant</option>
+              <option value="warning">Warning</option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: "block",
+                marginBottom: designTokens.spacing[2],
+                fontSize: designTokens.typography.fontSize.sm,
+                fontWeight: designTokens.typography.fontWeight.medium,
+              }}
+            >
+              Severity
+            </label>
+            <select
+              css={selectStyles}
+              value={filters.severity}
+              onChange={(e) => handleFilterChange("severity", e.target.value)}
+            >
+              <option value="">All Severities</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Insights */}
+      {aiInsights.length > 0 && (
+        <div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: designTokens.spacing[3],
+              marginBottom: designTokens.spacing[6],
+            }}
+          >
+            <h2
+              style={{
+                margin: 0,
+                fontSize: designTokens.typography.fontSize["2xl"],
+                fontWeight: designTokens.typography.fontWeight.bold,
+              }}
+            >
+              🤖 AI-Powered Insights
+            </h2>
+            <Badge variant="secondary" size="sm">
+              Powered by Gemini
+            </Badge>
+          </div>
+
+          <div css={insightsGridStyles}>
+            {aiInsights.map((insight) => (
+              <div key={insight.id} css={insightCardStyles}>
+                <div css={[insightTypeStyles, css`&.${insight.type}`]}>
+                  <span>{getInsightIcon(insight.type)}</span>
+                  {insight.type}
+                </div>
+
+                <h3
+                  style={{
+                    margin: `0 0 ${designTokens.spacing[3]} 0`,
+                    fontSize: designTokens.typography.fontSize.lg,
+                    fontWeight: designTokens.typography.fontWeight.semibold,
+                  }}
+                >
+                  {insight.title}
+                </h3>
+
+                <p
+                  style={{
+                    margin: `0 0 ${designTokens.spacing[4]} 0`,
+                    color: designTokens.colors.neutral[600],
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {insight.description}
+                </p>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize: designTokens.typography.fontSize.sm,
+                        color: designTokens.colors.neutral[500],
+                        marginBottom: designTokens.spacing[1],
+                      }}
+                    >
+                      Confidence
+                    </div>
+                    <div
+                      style={{
+                        fontSize: designTokens.typography.fontSize.lg,
+                        fontWeight: designTokens.typography.fontWeight.bold,
+                        color: designTokens.colors.primary[600],
+                      }}
+                    >
+                      {insight.confidence}%
+                    </div>
+                  </div>
+
+                  {insight.actionable && (
+                    <Button variant="primary" size="sm">
+                      Take Action
+                    </Button>
+                  )}
+                </div>
+
+                <div css={confidenceBarStyles}>
+                  <div
+                    style={{
+                      width: `${insight.confidence}%`,
+                      height: "100%",
+                      background:
+                        insight.confidence > 80
+                          ? designTokens.colors.semantic.success[500]
+                          : insight.confidence > 60
+                            ? designTokens.colors.semantic.warning[500]
+                            : designTokens.colors.semantic.error[500],
+                      transition: "width 0.3s ease",
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Audit Timeline */}
+      <div css={timelineStyles}>
+        <h2
+          style={{
+            margin: `0 0 ${designTokens.spacing[6]} 0`,
+            fontSize: designTokens.typography.fontSize["2xl"],
+            fontWeight: designTokens.typography.fontWeight.bold,
+          }}
+        >
+          Audit Timeline
+        </h2>
+
+        {error && (
+          <div
+            style={{
+              padding: designTokens.spacing[4],
+              background: designTokens.colors.semantic.error[50],
+              border: `1px solid ${designTokens.colors.semantic.error[200]}`,
+              borderRadius: designTokens.borderRadius.md,
+              color: designTokens.colors.semantic.error[700],
+              marginBottom: designTokens.spacing[6],
+            }}
+          >
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+
+        {logs.length === 0 && !error ? (
+          <div css={emptyStateStyles}>
+            <div
+              style={{
+                fontSize: "3rem",
+                marginBottom: designTokens.spacing[4],
+              }}
+            >
+              📝
+            </div>
+            <h3>No audit logs found</h3>
+            <p>
+              No audit logs match your current filters. Try adjusting the date
+              range or clearing filters.
+            </p>
+            <Button
+              onClick={clearFilters}
+              style={{ marginTop: designTokens.spacing[4] }}
+            >
+              Clear Filters
+            </Button>
+          </div>
+        ) : (
+          <div>
+            {logs.map((log) => (
+              <div key={log.id} css={timelineItemStyles}>
+                <div
+                  style={{
+                    minWidth: "120px",
+                    fontSize: designTokens.typography.fontSize.sm,
+                    color: designTokens.colors.neutral[500],
+                  }}
+                >
+                  {new Date(log.timestamp).toLocaleString()}
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: designTokens.spacing[3],
+                      marginBottom: designTokens.spacing[2],
+                    }}
+                  >
+                    <h4
+                      style={{
+                        margin: 0,
+                        fontSize: designTokens.typography.fontSize.base,
+                        fontWeight: designTokens.typography.fontWeight.semibold,
+                      }}
+                    >
+                      {log.agentName}
+                    </h4>
+                    <Badge
+                      variant={
+                        log.metadata.complianceStatus === "compliant"
+                          ? "success"
+                          : log.metadata.complianceStatus === "warning"
+                            ? "warning"
+                            : "error"
+                      }
+                      size="sm"
+                    >
+                      {log.metadata.complianceStatus}
+                    </Badge>
+                    <Badge variant="secondary" size="sm">
+                      {log.impact.severity}
+                    </Badge>
+                  </div>
+
+                  <p
+                    style={{
+                      margin: `0 0 ${designTokens.spacing[2]} 0`,
+                      color: designTokens.colors.neutral[700],
+                    }}
+                  >
+                    <strong>{log.action.type.replace("_", " ")}:</strong>{" "}
+                    {log.action.description}
+                  </p>
+
+                  {log.action.confidence && (
+                    <div
+                      style={{
+                        fontSize: designTokens.typography.fontSize.sm,
+                        color: designTokens.colors.neutral[500],
+                      }}
+                    >
+                      Confidence: {Math.round(log.action.confidence * 100)}% |
+                      Response Time: {log.metadata.latencyMs}ms
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

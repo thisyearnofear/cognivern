@@ -1,27 +1,27 @@
-import React from 'react';
-import { css } from '@emotion/react';
-import { 
-  getCardStyles as getModernCardStyles, 
+import React from "react";
+import { css } from "@emotion/react";
+import {
+  getCardStyles as getModernCardStyles,
   type CardVariant,
-  designTokens 
-} from '../../styles/design-system';
+  designTokens,
+} from "../../styles/design-system";
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: CardVariant;
-  padding?: 'none' | 'sm' | 'md' | 'lg';
+  padding?: "none" | "sm" | "md" | "lg";
   interactive?: boolean;
 }
 
 export const Card: React.FC<CardProps> = ({
-  variant = 'default',
-  padding = 'md',
+  variant = "default",
+  padding = "md",
   interactive = false,
   children,
-  className = '',
+  className = "",
   ...props
 }) => {
   const paddingStyles = {
-    none: '0',
+    none: "0",
     sm: designTokens.spacing[3],
     md: designTokens.spacing[6],
     lg: designTokens.spacing[8],
@@ -30,13 +30,13 @@ export const Card: React.FC<CardProps> = ({
   const cardStyles = css`
     ${getModernCardStyles(variant)}
     padding: ${paddingStyles[padding]};
-    ${interactive && 'cursor: pointer;'}
+    ${interactive && "cursor: pointer;"}
   `;
 
   return (
     <div
       css={cardStyles}
-      className={`cognivern-card ${interactive ? 'interactive' : ''} ${className}`}
+      className={`cognivern-card ${interactive ? "interactive" : ""} ${className}`}
       {...props}
     >
       {children}
@@ -80,50 +80,68 @@ const cardFooterStyles = css`
 
 export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   children,
-  className = '',
+  className = "",
   ...props
 }) => (
-  <div css={cardHeaderStyles} className={`cognivern-card-header ${className}`} {...props}>
+  <div
+    css={cardHeaderStyles}
+    className={`cognivern-card-header ${className}`}
+    {...props}
+  >
     {children}
   </div>
 );
 
 export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
   children,
-  className = '',
+  className = "",
   ...props
 }) => (
-  <h3 css={cardTitleStyles} className={`cognivern-card-title ${className}`} {...props}>
+  <h3
+    css={cardTitleStyles}
+    className={`cognivern-card-title ${className}`}
+    {...props}
+  >
     {children}
   </h3>
 );
 
-export const CardDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement>> = ({
-  children,
-  className = '',
-  ...props
-}) => (
-  <p css={cardDescriptionStyles} className={`cognivern-card-description ${className}`} {...props}>
+export const CardDescription: React.FC<
+  React.HTMLAttributes<HTMLParagraphElement>
+> = ({ children, className = "", ...props }) => (
+  <p
+    css={cardDescriptionStyles}
+    className={`cognivern-card-description ${className}`}
+    {...props}
+  >
     {children}
   </p>
 );
 
 export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   children,
-  className = '',
+  className = "",
   ...props
 }) => (
-  <div css={cardContentStyles} className={`cognivern-card-content ${className}`} {...props}>
+  <div
+    css={cardContentStyles}
+    className={`cognivern-card-content ${className}`}
+    {...props}
+  >
     {children}
   </div>
 );
 
 export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   children,
-  className = '',
+  className = "",
   ...props
 }) => (
-  <div css={cardFooterStyles} className={`cognivern-card-footer ${className}`} {...props}>
+  <div
+    css={cardFooterStyles}
+    className={`cognivern-card-footer ${className}`}
+    {...props}
+  >
     {children}
   </div>
 );

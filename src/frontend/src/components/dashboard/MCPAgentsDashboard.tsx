@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
-import { css } from '@emotion/react';
-import { designTokens, responsive } from '../../styles/designTokens';
-import { Container } from '../layout/ResponsiveLayout';
-import IntegrationDiagram from '../integration/IntegrationDiagram';
-import CaseStudies from '../CaseStudies';
-import CaseStudyDemo from './CaseStudyDemo';
+import { useState, useEffect, useRef } from "react";
+import { css } from "@emotion/react";
+import { designTokens, responsive } from "../../styles/designTokens";
+import { Container } from "../layout/ResponsiveLayout";
+import IntegrationDiagram from "../integration/IntegrationDiagram";
+import CaseStudies from "../CaseStudies";
+import CaseStudyDemo from "./CaseStudyDemo";
 
 interface MCPAgent {
   name: string;
@@ -49,12 +49,12 @@ interface ContractCall {
 interface DemoResult {
   id: string;
   timestamp: string;
-  type: 'action' | 'contract' | 'transaction';
+  type: "action" | "contract" | "transaction";
   data: AgentAction | ContractCall;
-  status: 'success' | 'pending' | 'failed';
+  status: "success" | "pending" | "failed";
 }
 
-import { getApiUrl, getRequestHeaders } from '../../utils/api';
+import { getApiUrl, getRequestHeaders } from "../../utils/api";
 
 export default function MCPAgentsDashboard() {
   const [mcpStatus, setMcpStatus] = useState<MCPStatus | null>(null);
@@ -63,7 +63,9 @@ export default function MCPAgentsDashboard() {
   const [selectedAgent, setSelectedAgent] = useState<MCPAgent | null>(null);
   const [demoResults, setDemoResults] = useState<DemoResult[]>([]);
   const [demoRunning, setDemoRunning] = useState(false);
-  const [logs, setLogs] = useState<Array<{ message: string; type: string }>>([]);
+  const [logs, setLogs] = useState<Array<{ message: string; type: string }>>(
+    [],
+  );
   const logRef = useRef<HTMLDivElement>(null);
 
   // Fetch MCP status on component mount
@@ -81,7 +83,7 @@ export default function MCPAgentsDashboard() {
   const fetchMCPStatus = async () => {
     try {
       setLoading(true);
-      const response = await fetch(getApiUrl('/api/mcp/status'), {
+      const response = await fetch(getApiUrl("/api/mcp/status"), {
         headers: getRequestHeaders(),
       });
 
@@ -99,8 +101,8 @@ export default function MCPAgentsDashboard() {
 
       setError(null);
     } catch (err) {
-      console.error('Error fetching MCP status:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      console.error("Error fetching MCP status:", err);
+      setError(err instanceof Error ? err.message : "Unknown error");
       setMcpStatus(null);
     } finally {
       setLoading(false);
@@ -110,10 +112,10 @@ export default function MCPAgentsDashboard() {
   const reconnectMCP = async () => {
     try {
       setLoading(true);
-      addLog('Attempting to reconnect to MCP server...', 'info');
+      addLog("Attempting to reconnect to MCP server...", "info");
 
-      const response = await fetch(getApiUrl('/api/mcp/reconnect'), {
-        method: 'POST',
+      const response = await fetch(getApiUrl("/api/mcp/reconnect"), {
+        method: "POST",
         headers: getRequestHeaders(),
       });
 
@@ -122,16 +124,16 @@ export default function MCPAgentsDashboard() {
       }
 
       const data = await response.json();
-      addLog(`Reconnection status: ${data.status}`, 'success');
-      addLog(data.message, 'info');
+      addLog(`Reconnection status: ${data.status}`, "success");
+      addLog(data.message, "info");
 
       // Refresh status after reconnection
       setTimeout(fetchMCPStatus, 2000);
     } catch (err) {
-      console.error('Error reconnecting to MCP:', err);
+      console.error("Error reconnecting to MCP:", err);
       addLog(
-        `Reconnection failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
-        'error',
+        `Reconnection failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+        "error",
       );
     } finally {
       setLoading(false);
@@ -150,13 +152,16 @@ export default function MCPAgentsDashboard() {
     if (!selectedAgent || demoRunning) return;
 
     setDemoRunning(true);
-    addLog(`Starting demo with ${selectedAgent.name}...`, 'info');
+    addLog(`Starting demo with ${selectedAgent.name}...`, "info");
 
     try {
       // Simulate a series of agent actions
       await simulateAgentActions();
     } catch (err) {
-      addLog(`Demo error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
+      addLog(
+        `Demo error: ${err instanceof Error ? err.message : "Unknown error"}`,
+        "error",
+      );
     } finally {
       setDemoRunning(false);
     }
@@ -166,63 +171,63 @@ export default function MCPAgentsDashboard() {
     // Clear previous results
     setDemoResults([]);
 
-    if (selectedAgent?.type === 'showcase') {
+    if (selectedAgent?.type === "showcase") {
       await simulateShowcaseAgentActions();
-    } else if (selectedAgent?.type === 'contract-agent') {
+    } else if (selectedAgent?.type === "contract-agent") {
       await simulateContractAgentActions();
     }
   };
 
   const simulateShowcaseAgentActions = async () => {
     // Simulate policy check
-    addLog('Performing policy check...', 'info');
+    addLog("Performing policy check...", "info");
     await delay(800);
 
     const policyCheckResult: DemoResult = {
       id: `demo-${Date.now()}-1`,
       timestamp: new Date().toISOString(),
-      type: 'action',
+      type: "action",
       data: {
         id: `showcase-${Date.now()}-1`,
-        type: 'policy-check',
+        type: "policy-check",
         timestamp: new Date().toISOString(),
-        description: 'Performing policy check for data-access action',
+        description: "Performing policy check for data-access action",
         metadata: {
-          agent: 'showcase',
-          version: '1.0.0',
-          policyId: 'data-access-policy',
-          actionType: 'data-access',
+          agent: "showcase",
+          version: "1.0.0",
+          policyId: "data-access-policy",
+          actionType: "data-access",
         },
         policyChecks: [
           {
-            policyId: 'data-access-policy',
+            policyId: "data-access-policy",
             result: true,
-            reason: 'Action complies with data access policy',
+            reason: "Action complies with data access policy",
           },
         ],
       },
-      status: 'success',
+      status: "success",
     };
 
     setDemoResults((prev) => [...prev, policyCheckResult]);
-    addLog('Policy check completed successfully', 'success');
+    addLog("Policy check completed successfully", "success");
 
     // Simulate metrics collection
-    addLog('Collecting platform metrics...', 'info');
+    addLog("Collecting platform metrics...", "info");
     await delay(1000);
 
     const metricsResult: DemoResult = {
       id: `demo-${Date.now()}-2`,
       timestamp: new Date().toISOString(),
-      type: 'action',
+      type: "action",
       data: {
         id: `showcase-${Date.now()}-2`,
-        type: 'metrics-collection',
+        type: "metrics-collection",
         timestamp: new Date().toISOString(),
-        description: 'Collecting platform performance metrics',
+        description: "Collecting platform performance metrics",
         metadata: {
-          agent: 'showcase',
-          version: '1.0.0',
+          agent: "showcase",
+          version: "1.0.0",
           metrics: {
             responseTime: 87,
             successRate: 98.5,
@@ -232,81 +237,82 @@ export default function MCPAgentsDashboard() {
         },
         policyChecks: [],
       },
-      status: 'success',
+      status: "success",
     };
 
     setDemoResults((prev) => [...prev, metricsResult]);
-    addLog('Metrics collection completed', 'success');
+    addLog("Metrics collection completed", "success");
   };
 
   const simulateContractAgentActions = async () => {
     // Simulate contract call generation
-    addLog('Generating smart contract transaction...', 'info');
+    addLog("Generating smart contract transaction...", "info");
     await delay(1200);
 
     const contractCallResult: DemoResult = {
       id: `demo-${Date.now()}-1`,
       timestamp: new Date().toISOString(),
-      type: 'contract',
+      type: "contract",
       data: {
-        type: 'FunctionCall',
+        type: "FunctionCall",
         params: {
-          methodName: 'transfer',
+          methodName: "transfer",
           args: {
-            receiver_id: 'alice.near',
-            amount: '1000000000000000000000000',
+            receiver_id: "alice.near",
+            amount: "1000000000000000000000000",
           },
-          gas: '30000000000000',
-          deposit: '1',
+          gas: "30000000000000",
+          deposit: "1",
         },
       },
-      status: 'success',
+      status: "success",
     };
 
     setDemoResults((prev) => [...prev, contractCallResult]);
-    addLog('Contract transaction generated', 'success');
+    addLog("Contract transaction generated", "success");
 
     // Simulate policy check
-    addLog('Checking contract policy compliance...', 'info');
+    addLog("Checking contract policy compliance...", "info");
     await delay(800);
 
     const policyCheckResult: DemoResult = {
       id: `demo-${Date.now()}-2`,
       timestamp: new Date().toISOString(),
-      type: 'action',
+      type: "action",
       data: {
         id: `contract-${Date.now()}`,
-        type: 'contract-policy-check',
+        type: "contract-policy-check",
         timestamp: new Date().toISOString(),
-        description: 'Checking policy compliance for contract interaction',
+        description: "Checking policy compliance for contract interaction",
         metadata: {
-          agent: 'contract-agent',
-          version: '1.0.0',
-          contractAddress: 'example.near',
-          methodName: 'transfer',
-          chain: 'near',
+          agent: "contract-agent",
+          version: "1.0.0",
+          contractAddress: "example.near",
+          methodName: "transfer",
+          chain: "near",
         },
         policyChecks: [
           {
-            policyId: 'contract-interaction-policy',
+            policyId: "contract-interaction-policy",
             result: true,
-            reason: 'Contract interaction complies with security policies',
+            reason: "Contract interaction complies with security policies",
           },
           {
-            policyId: 'gas-limit-policy',
+            policyId: "gas-limit-policy",
             result: true,
-            reason: 'Gas limit within acceptable range',
+            reason: "Gas limit within acceptable range",
           },
         ],
       },
-      status: 'success',
+      status: "success",
     };
 
     setDemoResults((prev) => [...prev, policyCheckResult]);
-    addLog('Contract policy check completed', 'success');
+    addLog("Contract policy check completed", "success");
   };
 
-  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
 
   if (loading && !mcpStatus) {
     return <div className="mcp-loading">Loading MCP status...</div>;
@@ -328,18 +334,18 @@ export default function MCPAgentsDashboard() {
         <h2>Bitte Protocol MCP Integration</h2>
         <div className="mcp-status-indicator">
           <span
-            className={`status-dot ${mcpStatus?.status === 'connected' ? 'connected' : 'disconnected'}`}
+            className={`status-dot ${mcpStatus?.status === "connected" ? "connected" : "disconnected"}`}
           ></span>
           <span className="status-text">
-            {mcpStatus?.status === 'connected' ? 'Connected' : 'Disconnected'} to{' '}
-            {mcpStatus?.server || 'MCP Server'}
+            {mcpStatus?.status === "connected" ? "Connected" : "Disconnected"}{" "}
+            to {mcpStatus?.server || "MCP Server"}
           </span>
           <button
             className="reconnect-button"
             onClick={reconnectMCP}
-            disabled={loading || mcpStatus?.status === 'connected'}
+            disabled={loading || mcpStatus?.status === "connected"}
           >
-            {loading ? 'Connecting...' : 'Reconnect'}
+            {loading ? "Connecting..." : "Reconnect"}
           </button>
         </div>
       </div>
@@ -352,7 +358,7 @@ export default function MCPAgentsDashboard() {
               {mcpStatus.agents.map((agent, index) => (
                 <div
                   key={index}
-                  className={`agent-card ${selectedAgent?.name === agent.name ? 'selected' : ''}`}
+                  className={`agent-card ${selectedAgent?.name === agent.name ? "selected" : ""}`}
                   onClick={() => setSelectedAgent(agent)}
                 >
                   <h4>{agent.name}</h4>
@@ -382,7 +388,7 @@ export default function MCPAgentsDashboard() {
               onClick={runAgentDemo}
               disabled={!selectedAgent || demoRunning}
             >
-              {demoRunning ? 'Running...' : 'Run Demo'}
+              {demoRunning ? "Running..." : "Run Demo"}
             </button>
           </div>
 
@@ -417,7 +423,9 @@ export default function MCPAgentsDashboard() {
                     <div key={result.id} className="result-item">
                       <div className="result-header">
                         <span className="result-type">{result.type}</span>
-                        <span className={`result-status ${result.status}`}>{result.status}</span>
+                        <span className={`result-status ${result.status}`}>
+                          {result.status}
+                        </span>
                       </div>
                       <div className="result-timestamp">
                         {new Date(result.timestamp).toLocaleString()}

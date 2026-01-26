@@ -1,6 +1,6 @@
 import { AgentType } from "./TradingAgentDashboard";
-import { css } from '@emotion/react';
-import { designTokens, tradingStyles } from '../../styles/designTokens';
+import { css } from "@emotion/react";
+import { designTokens, tradingStyles } from "../../styles/designTokens";
 
 interface TradingDecision {
   action: "buy" | "sell" | "hold";
@@ -46,13 +46,15 @@ export default function TradingChart({
 
   const chartStyles = css`
     ${tradingStyles.glassCard}
-    ${isLoading ? `
+    ${isLoading
+      ? `
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 300px;
-    ` : ''}
+    `
+      : ""}
   `;
 
   const headerStyles = css`
@@ -65,21 +67,32 @@ export default function TradingChart({
         <div css={headerStyles}>
           <h3>📈 Trading Performance</h3>
         </div>
-        <div css={css`text-align: center; color: white;`}>
-          <div css={css`
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-            
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}></div>
+        <div
+          css={css`
+            text-align: center;
+            color: white;
+          `}
+        >
+          <div
+            css={css`
+              width: 40px;
+              height: 40px;
+              border: 4px solid rgba(255, 255, 255, 0.3);
+              border-top: 4px solid white;
+              border-radius: 50%;
+              animation: spin 1s linear infinite;
+              margin: 0 auto 1rem;
+
+              @keyframes spin {
+                0% {
+                  transform: rotate(0deg);
+                }
+                100% {
+                  transform: rotate(360deg);
+                }
+              }
+            `}
+          ></div>
           <p>Loading chart data...</p>
         </div>
       </div>
@@ -194,7 +207,7 @@ export default function TradingChart({
                           {decision.sentimentData.sources.join(", ")}
                         </div>
                       </div>
-                    )
+                    ),
                 )}
               </div>
             </div>

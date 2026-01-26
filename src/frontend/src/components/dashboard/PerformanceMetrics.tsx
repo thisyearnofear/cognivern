@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { css } from '@emotion/react';
-import { designTokens } from '../../styles/designTokens';
+import { useState, useEffect } from "react";
+import { css } from "@emotion/react";
+import { designTokens } from "../../styles/designTokens";
 
 export interface MetricsData {
   responseTime: number;
@@ -31,7 +31,8 @@ export default function PerformanceMetrics({
     timestamp: new Date().toISOString(),
   });
 
-  const [comparisonMetrics, setComparisonMetrics] = useState<MetricsData | null>(null);
+  const [comparisonMetrics, setComparisonMetrics] =
+    useState<MetricsData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showDetailedCharts, setShowDetailedCharts] = useState<boolean>(false);
@@ -44,50 +45,36 @@ export default function PerformanceMetrics({
   const fetchMetrics = async () => {
     setLoading(true);
     try {
-      // In a real implementation, this would fetch from an API
-      // For demo purposes, we'll generate simulated metrics
+      const response = await fetch(
+        `/api/agents/${agentId}/metrics?governance=${governanceEnabled}`,
+      );
 
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (response.ok) {
+        const data = await response.json();
+        setMetrics(data.metrics);
 
-      // Generate metrics based on governance status
-      const newMetrics = generateMetrics(governanceEnabled);
-      setMetrics(newMetrics);
-
-      // If we don't have comparison metrics yet, generate them with opposite governance setting
-      if (!comparisonMetrics) {
-        setComparisonMetrics(generateMetrics(!governanceEnabled));
+        if (data.comparison) {
+          setComparisonMetrics(data.comparison);
+        }
+      } else {
+        throw new Error("Failed to fetch metrics");
       }
 
       setError(null);
     } catch (err) {
-      console.error('Error fetching metrics:', err);
-      setError('Failed to load metrics data');
+      console.error("Error fetching metrics:", err);
+      setError("Failed to load metrics data");
+      // Set empty metrics on error
+      setMetrics({
+        responseTime: 0,
+        successRate: 0,
+        policyCompliance: 0,
+        blockedActions: 0,
+        totalActions: 0,
+        timestamp: new Date().toISOString(),
+      });
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Generate simulated metrics
-  const generateMetrics = (withGovernance: boolean): MetricsData => {
-    if (withGovernance) {
-      return {
-        responseTime: Math.floor(Math.random() * 100) + 150, // 150-250ms
-        successRate: Math.floor(Math.random() * 10) + 90, // 90-100%
-        policyCompliance: 100,
-        blockedActions: Math.floor(Math.random() * 5) + 1, // 1-5
-        totalActions: Math.floor(Math.random() * 20) + 30, // 30-50
-        timestamp: new Date().toISOString(),
-      };
-    } else {
-      return {
-        responseTime: Math.floor(Math.random() * 50) + 50, // 50-100ms (faster without governance)
-        successRate: Math.floor(Math.random() * 15) + 80, // 80-95% (more variable without governance)
-        policyCompliance: Math.floor(Math.random() * 30) + 70, // 70-100% (less compliance without governance)
-        blockedActions: 0, // No blocked actions without governance
-        totalActions: Math.floor(Math.random() * 20) + 30, // 30-50
-        timestamp: new Date().toISOString(),
-      };
     }
   };
 
@@ -98,7 +85,7 @@ export default function PerformanceMetrics({
     const current = metrics[metricName];
     const comparison = comparisonMetrics[metricName];
 
-    if (typeof current === 'number' && typeof comparison === 'number') {
+    if (typeof current === "number" && typeof comparison === "number") {
       return current - comparison;
     }
 
@@ -110,7 +97,7 @@ export default function PerformanceMetrics({
     const diff = calculateDifference(metricName);
 
     // For response time, lower is better
-    if (metricName === 'responseTime') {
+    if (metricName === "responseTime") {
       return diff < 0;
     }
 
@@ -122,15 +109,15 @@ export default function PerformanceMetrics({
   const formatDifference = (metricName: keyof MetricsData): string => {
     const diff = calculateDifference(metricName);
 
-    if (metricName === 'responseTime') {
-      return `${Math.abs(diff)}ms ${diff < 0 ? 'faster' : 'slower'}`;
+    if (metricName === "responseTime") {
+      return `${Math.abs(diff)}ms ${diff < 0 ? "faster" : "slower"}`;
     }
 
-    if (metricName === 'successRate' || metricName === 'policyCompliance') {
-      return `${diff > 0 ? '+' : ''}${diff}%`;
+    if (metricName === "successRate" || metricName === "policyCompliance") {
+      return `${diff > 0 ? "+" : ""}${diff}%`;
     }
 
-    return `${diff > 0 ? '+' : ''}${diff}`;
+    return `${diff > 0 ? "+" : ""}${diff}`;
   };
 
   return (
@@ -140,10 +127,10 @@ export default function PerformanceMetrics({
         <div className="governance-toggle">
           <span className="toggle-label">Governance:</span>
           <button
-            className={`toggle-button ${governanceEnabled ? 'enabled' : 'disabled'}`}
+            className={`toggle-button ${governanceEnabled ? "enabled" : "disabled"}`}
             onClick={onToggleGovernance}
           >
-            {governanceEnabled ? 'Enabled' : 'Disabled'}
+            {governanceEnabled ? "Enabled" : "Disabled"}
           </button>
         </div>
       </div>
@@ -161,9 +148,9 @@ export default function PerformanceMetrics({
               <div className="metric-value">{metrics.responseTime}ms</div>
               {comparisonMetrics && (
                 <div
-                  className={`metric-comparison ${isDifferencePositive('responseTime') ? 'positive' : 'negative'}`}
+                  className={`metric-comparison ${isDifferencePositive("responseTime") ? "positive" : "negative"}`}
                 >
-                  {formatDifference('responseTime')}
+                  {formatDifference("responseTime")}
                 </div>
               )}
             </div>
@@ -176,9 +163,9 @@ export default function PerformanceMetrics({
               <div className="metric-value">{metrics.successRate}%</div>
               {comparisonMetrics && (
                 <div
-                  className={`metric-comparison ${isDifferencePositive('successRate') ? 'positive' : 'negative'}`}
+                  className={`metric-comparison ${isDifferencePositive("successRate") ? "positive" : "negative"}`}
                 >
-                  {formatDifference('successRate')}
+                  {formatDifference("successRate")}
                 </div>
               )}
             </div>
@@ -191,9 +178,9 @@ export default function PerformanceMetrics({
               <div className="metric-value">{metrics.policyCompliance}%</div>
               {comparisonMetrics && (
                 <div
-                  className={`metric-comparison ${isDifferencePositive('policyCompliance') ? 'positive' : 'negative'}`}
+                  className={`metric-comparison ${isDifferencePositive("policyCompliance") ? "positive" : "negative"}`}
                 >
-                  {formatDifference('policyCompliance')}
+                  {formatDifference("policyCompliance")}
                 </div>
               )}
             </div>
@@ -204,7 +191,9 @@ export default function PerformanceMetrics({
             <div className="metric-content">
               <div className="metric-name">Blocked Actions</div>
               <div className="metric-value">{metrics.blockedActions}</div>
-              <div className="metric-detail">of {metrics.totalActions} total</div>
+              <div className="metric-detail">
+                of {metrics.totalActions} total
+              </div>
             </div>
           </div>
         </div>
@@ -233,7 +222,9 @@ export default function PerformanceMetrics({
                 <div className="chart-bar-container">
                   <div
                     className="chart-bar with-governance"
-                    style={{ width: `${Math.min(100, (metrics.responseTime / 300) * 100)}%` }}
+                    style={{
+                      width: `${Math.min(100, (metrics.responseTime / 300) * 100)}%`,
+                    }}
                   >
                     {metrics.responseTime}ms
                   </div>
@@ -292,7 +283,9 @@ export default function PerformanceMetrics({
                   <div className="chart-bar-container">
                     <div
                       className="chart-bar without-governance"
-                      style={{ width: `${comparisonMetrics.policyCompliance}%` }}
+                      style={{
+                        width: `${comparisonMetrics.policyCompliance}%`,
+                      }}
                     >
                       {comparisonMetrics.policyCompliance}%
                     </div>
@@ -305,9 +298,15 @@ export default function PerformanceMetrics({
       ) : (
         <div className="metrics-summary">
           <div className="summary-message">
-            <p>Toggle governance on/off to see how it affects performance metrics.</p>
+            <p>
+              Toggle governance on/off to see how it affects performance
+              metrics.
+            </p>
           </div>
-          <button className="show-details-button" onClick={() => setShowDetailedCharts(true)}>
+          <button
+            className="show-details-button"
+            onClick={() => setShowDetailedCharts(true)}
+          >
             Show Detailed Charts
           </button>
         </div>

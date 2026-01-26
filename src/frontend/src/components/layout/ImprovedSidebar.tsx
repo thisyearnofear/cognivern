@@ -26,6 +26,13 @@ const navigationItems: NavItem[] = [
     description: "Overview and metrics",
   },
   {
+    id: "trading",
+    label: "Trading",
+    icon: "💹",
+    path: "/trading",
+    description: "Trading agents",
+  },
+  {
     id: "policies",
     label: "Policies",
     icon: "📋",

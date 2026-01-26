@@ -1,4 +1,4 @@
-import { css } from '@emotion/react';
+import { css } from "@emotion/react";
 
 // Reusable keyframe animations
 export const keyframeAnimations = {
@@ -15,7 +15,7 @@ export const keyframeAnimations = {
     }
     animation: fadeInUp 0.6s ease-out;
   `,
-  
+
   slideInRight: css`
     @keyframes slideInRight {
       from {
@@ -29,7 +29,7 @@ export const keyframeAnimations = {
     }
     animation: slideInRight 0.5s ease-out;
   `,
-  
+
   scaleIn: css`
     @keyframes scaleIn {
       from {
@@ -43,10 +43,11 @@ export const keyframeAnimations = {
     }
     animation: scaleIn 0.4s ease-out;
   `,
-  
+
   pulse: css`
     @keyframes pulse {
-      0%, 100% {
+      0%,
+      100% {
         transform: scale(1);
       }
       50% {
@@ -55,10 +56,11 @@ export const keyframeAnimations = {
     }
     animation: pulse 2s ease-in-out infinite;
   `,
-  
+
   float: css`
     @keyframes float {
-      0%, 100% {
+      0%,
+      100% {
         transform: translateY(0px);
       }
       50% {
@@ -67,11 +69,15 @@ export const keyframeAnimations = {
     }
     animation: float 3s ease-in-out infinite;
   `,
-  
+
   spin: css`
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
     }
     animation: spin 1s linear infinite;
   `,
@@ -79,7 +85,7 @@ export const keyframeAnimations = {
 
 // Animation timing functions
 export const easings = {
-  smooth: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  bounce: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-  spring: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+  smooth: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+  bounce: "all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+  spring: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
 } as const;

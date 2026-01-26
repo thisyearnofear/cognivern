@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { css } from '@emotion/react';
-import { designTokens } from '../../styles/designTokens';
+import { useState, useEffect } from "react";
+import { css } from "@emotion/react";
+import { designTokens } from "../../styles/designTokens";
 
 interface Web3AuthProps {
   onConnect: (address: string) => void;
@@ -14,35 +14,35 @@ declare global {
 }
 
 // Arbitrum One mainnet configuration
-const ARBITRUM_CHAIN_ID = '0xa4b1'; // 42161 in decimal
+const ARBITRUM_CHAIN_ID = "0xa4b1"; // 42161 in decimal
 const ARBITRUM_CONFIG = {
   chainId: ARBITRUM_CHAIN_ID,
-  chainName: 'Arbitrum One',
+  chainName: "Arbitrum One",
   nativeCurrency: {
-    name: 'Ethereum',
-    symbol: 'ETH',
+    name: "Ethereum",
+    symbol: "ETH",
     decimals: 18,
   },
-  rpcUrls: ['https://arb1.arbitrum.io/rpc'],
-  blockExplorerUrls: ['https://arbiscan.io/'],
+  rpcUrls: ["https://arb1.arbitrum.io/rpc"],
+  blockExplorerUrls: ["https://arbiscan.io/"],
 };
 
 export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
   const [isConnected, setIsConnected] = useState(false);
-  const [address, setAddress] = useState<string>('');
+  const [address, setAddress] = useState<string>("");
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Wait for ethereum provider to be fully loaded
     const initializeProvider = async () => {
-      if (typeof window.ethereum !== 'undefined') {
+      if (typeof window.ethereum !== "undefined") {
         // Check if provider is ready
         if (window.ethereum.isConnected && window.ethereum.isConnected()) {
           await checkConnection();
         } else {
           // Wait for provider to be ready
-          window.ethereum.on('connect', checkConnection);
+          window.ethereum.on("connect", checkConnection);
         }
 
         // Listen for account/chain changes with error handling
@@ -55,13 +55,16 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
           }
         };
 
-        window.ethereum.on('accountsChanged', handleAccountsChanged);
-        window.ethereum.on('chainChanged', () => window.location.reload());
+        window.ethereum.on("accountsChanged", handleAccountsChanged);
+        window.ethereum.on("chainChanged", () => window.location.reload());
 
         return () => {
           if (window.ethereum && window.ethereum.removeListener) {
-            window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-            window.ethereum.removeListener('connect', checkConnection);
+            window.ethereum.removeListener(
+              "accountsChanged",
+              handleAccountsChanged,
+            );
+            window.ethereum.removeListener("connect", checkConnection);
           }
         };
       }
@@ -80,14 +83,16 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
   };
 
   const checkConnection = async () => {
-    if (typeof window.ethereum === 'undefined') {
-      setError('Web3 wallet not detected');
+    if (typeof window.ethereum === "undefined") {
+      setError("Web3 wallet not detected");
       return;
     }
 
     try {
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      const accounts = await window.ethereum.request({
+        method: "eth_accounts",
+      });
+      const chainId = await window.ethereum.request({ method: "eth_chainId" });
 
       if (accounts.length > 0) {
         setAddress(accounts[0]);
@@ -101,17 +106,17 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
         }
       }
     } catch (error) {
-      console.error('Error checking connection:', error);
+      console.error("Error checking connection:", error);
       setError(null); // Clear error on initial check
     }
   };
 
   const switchToArbitrum = async () => {
-    if (typeof window.ethereum === 'undefined') return;
+    if (typeof window.ethereum === "undefined") return;
 
     try {
       await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
+        method: "wallet_switchEthereumChain",
         params: [{ chainId: ARBITRUM_CHAIN_ID }],
       });
     } catch (switchError: any) {
@@ -119,23 +124,27 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
       if (switchError.code === 4902) {
         try {
           await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
+            method: "wallet_addEthereumChain",
             params: [ARBITRUM_CONFIG],
           });
         } catch (addError) {
-          console.error('Failed to add Arbitrum chain:', addError);
-          setError('Failed to add Arbitrum chain. Please add it manually.');
+          console.error("Failed to add Arbitrum chain:", addError);
+          setError("Failed to add Arbitrum chain. Please add it manually.");
         }
       } else {
-        console.error('Failed to switch to Arbitrum:', switchError);
-        setError('Failed to switch network. Please switch to Arbitrum One manually.');
+        console.error("Failed to switch to Arbitrum:", switchError);
+        setError(
+          "Failed to switch network. Please switch to Arbitrum One manually.",
+        );
       }
     }
   };
 
   const connectWallet = async () => {
-    if (typeof window.ethereum === 'undefined') {
-      setError('Web3 wallet not detected. Please install MetaMask or another compatible wallet.');
+    if (typeof window.ethereum === "undefined") {
+      setError(
+        "Web3 wallet not detected. Please install MetaMask or another compatible wallet.",
+      );
       return;
     }
 
@@ -145,7 +154,7 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
     try {
       // Request account access
       const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts',
+        method: "eth_requestAccounts",
       });
 
       if (accounts.length > 0) {
@@ -157,12 +166,12 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
         onConnect(accounts[0]);
       }
     } catch (error: any) {
-      console.error('Error connecting wallet:', error);
+      console.error("Error connecting wallet:", error);
       // Only show error if user rejected the request
       if (error.code === 4001) {
-        setError('Connection rejected. Please try again.');
+        setError("Connection rejected. Please try again.");
       } else {
-        setError('Failed to connect wallet. Please try again.');
+        setError("Failed to connect wallet. Please try again.");
       }
     } finally {
       setIsConnecting(false);
@@ -170,7 +179,7 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
   };
 
   const disconnectWallet = () => {
-    setAddress('');
+    setAddress("");
     setIsConnected(false);
     setError(null);
     onDisconnect();
@@ -183,15 +192,17 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
   return (
     <div className="web3-auth">
       {error && (
-        <div css={css`
-          font-size: ${designTokens.typography.fontSize.xs};
-          color: ${designTokens.colors.semantic.error[600]};
-          padding: ${designTokens.spacing[2]};
-          margin-bottom: ${designTokens.spacing[2]};
-          background: ${designTokens.colors.semantic.error[50]};
-          border-radius: ${designTokens.borderRadius.sm};
-          border: 1px solid ${designTokens.colors.semantic.error[200]};
-        `}>
+        <div
+          css={css`
+            font-size: ${designTokens.typography.fontSize.xs};
+            color: ${designTokens.colors.semantic.error[600]};
+            padding: ${designTokens.spacing[2]};
+            margin-bottom: ${designTokens.spacing[2]};
+            background: ${designTokens.colors.semantic.error[50]};
+            border-radius: ${designTokens.borderRadius.sm};
+            border: 1px solid ${designTokens.colors.semantic.error[200]};
+          `}
+        >
           {error}
         </div>
       )}
@@ -205,11 +216,11 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
             border-radius: ${designTokens.borderRadius.md};
             cursor: pointer;
             font-size: ${designTokens.typography.fontSize.sm};
-            
+
             &:hover {
               background: ${designTokens.colors.primary[700]};
             }
-            
+
             &:disabled {
               opacity: 0.6;
               cursor: not-allowed;
@@ -218,39 +229,47 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
           onClick={connectWallet}
           disabled={isConnecting}
         >
-          {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+          {isConnecting ? "Connecting..." : "Connect Wallet"}
         </button>
       ) : (
-        <div css={css`
-          display: flex;
-          align-items: center;
-          gap: ${designTokens.spacing[3]};
-          
-          @media (max-width: ${designTokens.breakpoints.md}) {
-            flex-direction: column;
-            gap: ${designTokens.spacing[2]};
-          }
-        `}>
-          <div css={css`
+        <div
+          css={css`
             display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            
+            align-items: center;
+            gap: ${designTokens.spacing[3]};
+
             @media (max-width: ${designTokens.breakpoints.md}) {
-              display: none; /* Hide on mobile/tablet */
+              flex-direction: column;
+              gap: ${designTokens.spacing[2]};
             }
-          `}>
-            <div css={css`
-              font-size: ${designTokens.typography.fontSize.sm};
-              font-weight: ${designTokens.typography.fontWeight.medium};
-              color: ${designTokens.colors.text.primary};
-            `}>
+          `}
+        >
+          <div
+            css={css`
+              display: flex;
+              flex-direction: column;
+              align-items: flex-end;
+
+              @media (max-width: ${designTokens.breakpoints.md}) {
+                display: none; /* Hide on mobile/tablet */
+              }
+            `}
+          >
+            <div
+              css={css`
+                font-size: ${designTokens.typography.fontSize.sm};
+                font-weight: ${designTokens.typography.fontWeight.medium};
+                color: ${designTokens.colors.text.primary};
+              `}
+            >
               {formatAddress(address)}
             </div>
-            <div css={css`
-              font-size: ${designTokens.typography.fontSize.xs};
-              color: ${designTokens.colors.text.secondary};
-            `}>
+            <div
+              css={css`
+                font-size: ${designTokens.typography.fontSize.xs};
+                color: ${designTokens.colors.text.secondary};
+              `}
+            >
               Arbitrum One
             </div>
           </div>
@@ -263,11 +282,11 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
               border-radius: ${designTokens.borderRadius.md};
               cursor: pointer;
               font-size: ${designTokens.typography.fontSize.xs};
-              
+
               &:hover {
                 background: ${designTokens.colors.semantic.errorHover};
               }
-              
+
               @media (max-width: ${designTokens.breakpoints.md}) {
                 padding: ${designTokens.spacing[2]} ${designTokens.spacing[4]};
                 font-size: ${designTokens.typography.fontSize.sm};

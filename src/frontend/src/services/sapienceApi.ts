@@ -1,16 +1,16 @@
 /**
  * Sapience API Service - Frontend Integration
- * 
+ *
  * Integrates with Sapience prediction markets for:
  * - Fetching active conditions/markets
  * - Viewing forecasts and attestations
  * - Leaderboard and Brier Score tracking
  */
 
-import { gql, request } from 'graphql-request';
+import { gql, request } from "graphql-request";
 
 // Sapience GraphQL endpoint
-const SAPIENCE_GRAPHQL_ENDPOINT = 'https://api.sapience.xyz/graphql';
+const SAPIENCE_GRAPHQL_ENDPOINT = "https://api.sapience.xyz/graphql";
 
 // Chain IDs
 export const CHAIN_ID_ARBITRUM = 42161;
@@ -57,16 +57,15 @@ export interface SapienceMarketStats {
 /**
  * Fetch active prediction market conditions from Sapience
  */
-export async function fetchActiveConditions(limit = 20): Promise<SapienceCondition[]> {
+export async function fetchActiveConditions(
+  limit = 20,
+): Promise<SapienceCondition[]> {
   const nowSec = Math.floor(Date.now() / 1000);
-  
+
   const query = gql`
     query GetConditions($nowSec: Int, $limit: Int) {
       conditions(
-        where: { 
-          public: { equals: true }
-          endTime: { gt: $nowSec }
-        }
+        where: { public: { equals: true }, endTime: { gt: $nowSec } }
         take: $limit
         orderBy: { endTime: asc }
       ) {
@@ -83,11 +82,11 @@ export async function fetchActiveConditions(limit = 20): Promise<SapienceConditi
     const { conditions } = await request<{ conditions: SapienceCondition[] }>(
       SAPIENCE_GRAPHQL_ENDPOINT,
       query,
-      { nowSec, limit }
+      { nowSec, limit },
     );
     return conditions;
   } catch (error) {
-    console.error('Failed to fetch Sapience conditions:', error);
+    console.error("Failed to fetch Sapience conditions:", error);
     return [];
   }
 }
@@ -95,7 +94,9 @@ export async function fetchActiveConditions(limit = 20): Promise<SapienceConditi
 /**
  * Fetch a specific condition by ID
  */
-export async function fetchCondition(conditionId: string): Promise<SapienceCondition | null> {
+export async function fetchCondition(
+  conditionId: string,
+): Promise<SapienceCondition | null> {
   const query = gql`
     query GetCondition($id: String!) {
       condition(where: { id: $id }) {
@@ -114,11 +115,11 @@ export async function fetchCondition(conditionId: string): Promise<SapienceCondi
     const { condition } = await request<{ condition: SapienceCondition }>(
       SAPIENCE_GRAPHQL_ENDPOINT,
       query,
-      { id: conditionId }
+      { id: conditionId },
     );
     return condition;
   } catch (error) {
-    console.error('Failed to fetch condition:', error);
+    console.error("Failed to fetch condition:", error);
     return null;
   }
 }
@@ -126,7 +127,9 @@ export async function fetchCondition(conditionId: string): Promise<SapienceCondi
 /**
  * Fetch forecasts for a specific condition
  */
-export async function fetchForecastsForCondition(conditionId: string): Promise<SapienceForecast[]> {
+export async function fetchForecastsForCondition(
+  conditionId: string,
+): Promise<SapienceForecast[]> {
   const query = gql`
     query GetForecasts($conditionId: String!) {
       forecasts(
@@ -149,11 +152,11 @@ export async function fetchForecastsForCondition(conditionId: string): Promise<S
     const { forecasts } = await request<{ forecasts: SapienceForecast[] }>(
       SAPIENCE_GRAPHQL_ENDPOINT,
       query,
-      { conditionId }
+      { conditionId },
     );
     return forecasts;
   } catch (error) {
-    console.error('Failed to fetch forecasts:', error);
+    console.error("Failed to fetch forecasts:", error);
     return [];
   }
 }
@@ -161,7 +164,9 @@ export async function fetchForecastsForCondition(conditionId: string): Promise<S
 /**
  * Fetch forecasts by a specific address
  */
-export async function fetchForecastsByAddress(address: string): Promise<SapienceForecast[]> {
+export async function fetchForecastsByAddress(
+  address: string,
+): Promise<SapienceForecast[]> {
   const query = gql`
     query GetForecastsByAddress($address: String!) {
       forecasts(
@@ -184,11 +189,11 @@ export async function fetchForecastsByAddress(address: string): Promise<Sapience
     const { forecasts } = await request<{ forecasts: SapienceForecast[] }>(
       SAPIENCE_GRAPHQL_ENDPOINT,
       query,
-      { address: address.toLowerCase() }
+      { address: address.toLowerCase() },
     );
     return forecasts;
   } catch (error) {
-    console.error('Failed to fetch forecasts by address:', error);
+    console.error("Failed to fetch forecasts by address:", error);
     return [];
   }
 }
@@ -196,10 +201,14 @@ export async function fetchForecastsByAddress(address: string): Promise<Sapience
 /**
  * Fetch leaderboard (accuracy track)
  */
-export async function fetchAccuracyLeaderboard(limit = 50): Promise<SapienceLeaderboardEntry[]> {
+export async function fetchAccuracyLeaderboard(
+  limit = 50,
+): Promise<SapienceLeaderboardEntry[]> {
   // getLeaderboard requires marketAddress and chainId which are currently unknown
   // We return an empty array to prevent dashboard crashes while keeping the UI structure
-  console.warn('Leaderboard fetching disabled: marketAddress and chainId required');
+  console.warn(
+    "Leaderboard fetching disabled: marketAddress and chainId required",
+  );
   return [];
 }
 
@@ -208,21 +217,16 @@ export async function fetchAccuracyLeaderboard(limit = 50): Promise<SapienceLead
  */
 export async function fetchMarketStats(): Promise<SapienceMarketStats> {
   const nowSec = Math.floor(Date.now() / 1000);
-  
+
   const query = gql`
     query GetStats($nowSec: Int) {
-      aggregateCondition(
-        where: { public: { equals: true } }
-      ) {
+      aggregateCondition(where: { public: { equals: true } }) {
         _count {
           id
         }
       }
       activeConditions: aggregateCondition(
-        where: { 
-          public: { equals: true }
-          endTime: { gt: $nowSec }
-        }
+        where: { public: { equals: true }, endTime: { gt: $nowSec } }
       ) {
         _count {
           id
@@ -244,7 +248,7 @@ export async function fetchMarketStats(): Promise<SapienceMarketStats> {
       totalForecasters: 0,
     };
   } catch (error) {
-    console.error('Failed to fetch market stats:', error);
+    console.error("Failed to fetch market stats:", error);
     return {
       totalConditions: 0,
       activeConditions: 0,
@@ -260,13 +264,13 @@ export async function fetchMarketStats(): Promise<SapienceMarketStats> {
 export function getTimeRemaining(endTime: number): string {
   const now = Date.now() / 1000;
   const remaining = endTime - now;
-  
-  if (remaining <= 0) return 'Ended';
-  
+
+  if (remaining <= 0) return "Ended";
+
   const days = Math.floor(remaining / 86400);
   const hours = Math.floor((remaining % 86400) / 3600);
   const minutes = Math.floor((remaining % 3600) / 60);
-  
+
   if (days > 0) return `${days}d ${hours}h`;
   if (hours > 0) return `${hours}h ${minutes}m`;
   return `${minutes}m`;

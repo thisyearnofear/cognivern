@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
-import { css } from '@emotion/react';
-import { designTokens } from '../../styles/designTokens';
+import { useState, useEffect, useRef } from "react";
+import { css } from "@emotion/react";
+import { designTokens } from "../../styles/designTokens";
 
-import { BaseAgent } from '../../types';
+import { BaseAgent } from "../../types";
 
 interface InteractionAgent extends BaseAgent {
   description: string;
@@ -15,7 +15,7 @@ interface Message {
   toAgentId: string;
   content: string;
   timestamp: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   policyChecks?: {
     policyId: string;
     result: boolean;
@@ -34,11 +34,15 @@ export default function MultiAgentInteraction({
   availableAgents,
   onClose,
 }: MultiAgentInteractionProps) {
-  const [selectedAgents, setSelectedAgents] = useState<string[]>([primaryAgentId]);
+  const [selectedAgents, setSelectedAgents] = useState<string[]>([
+    primaryAgentId,
+  ]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [userInput, setUserInput] = useState('');
+  const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'interaction' | 'governance'>('interaction');
+  const [activeTab, setActiveTab] = useState<"interaction" | "governance">(
+    "interaction",
+  );
   const [showAllAgents, setShowAllAgents] = useState<boolean>(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -46,7 +50,7 @@ export default function MultiAgentInteraction({
   // Auto-scroll to bottom of messages
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
@@ -80,15 +84,15 @@ export default function MultiAgentInteraction({
       // Create a new message from user to primary agent
       const userMessage: Message = {
         id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        fromAgentId: 'user',
+        fromAgentId: "user",
         toAgentId: primaryAgentId,
         content: userInput,
         timestamp: new Date().toISOString(),
-        status: 'approved',
+        status: "approved",
       };
 
       setMessages((prev) => [...prev, userMessage]);
-      setUserInput('');
+      setUserInput("");
 
       // Simulate processing time
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -105,7 +109,7 @@ export default function MultiAgentInteraction({
         await generateAgentInteractions();
       }
     } catch (error) {
-      console.error('Error in multi-agent interaction:', error);
+      console.error("Error in multi-agent interaction:", error);
     } finally {
       setLoading(false);
     }
@@ -120,48 +124,61 @@ export default function MultiAgentInteraction({
     if (!agent) return;
 
     // Generate a response based on the agent's capabilities
-    let response = '';
-    let status: 'approved' | 'rejected' | 'pending' = 'approved';
+    let response = "";
+    let status: "approved" | "rejected" | "pending" = "approved";
     let policyChecks = [];
 
     // Generate different responses based on the prompt content
-    if (prompt.toLowerCase().includes('delete') || prompt.toLowerCase().includes('remove')) {
+    if (
+      prompt.toLowerCase().includes("delete") ||
+      prompt.toLowerCase().includes("remove")
+    ) {
       response = `I've analyzed the request to delete/remove data. This requires additional verification.`;
-      status = 'pending';
+      status = "pending";
       policyChecks = [
         {
-          policyId: 'data-protection',
+          policyId: "data-protection",
           result: false,
-          reason: 'Delete operations require explicit authorization',
+          reason: "Delete operations require explicit authorization",
         },
-        { policyId: 'audit-logging', result: true },
+        { policyId: "audit-logging", result: true },
       ];
-    } else if (prompt.toLowerCase().includes('send') || prompt.toLowerCase().includes('email')) {
+    } else if (
+      prompt.toLowerCase().includes("send") ||
+      prompt.toLowerCase().includes("email")
+    ) {
       response = `I've prepared the message content based on your request. It's ready for review before sending.`;
-      status = 'pending';
+      status = "pending";
       policyChecks = [
-        { policyId: 'communication', result: true, reason: 'Message content approved' },
         {
-          policyId: 'human-in-loop',
+          policyId: "communication",
+          result: true,
+          reason: "Message content approved",
+        },
+        {
+          policyId: "human-in-loop",
           result: false,
-          reason: 'External communications require human approval',
+          reason: "External communications require human approval",
         },
       ];
     } else {
       // Generate a response based on the agent's capabilities
-      const capability = agent.capabilities[Math.floor(Math.random() * agent.capabilities.length)];
+      const capability =
+        agent.capabilities[
+          Math.floor(Math.random() * agent.capabilities.length)
+        ];
       response = `I've processed your request using my ${capability} capability. The task has been completed successfully.`;
       policyChecks = [
-        { policyId: 'data-access', result: true },
-        { policyId: 'audit-logging', result: true },
-        { policyId: 'rate-limiting', result: true },
+        { policyId: "data-access", result: true },
+        { policyId: "audit-logging", result: true },
+        { policyId: "rate-limiting", result: true },
       ];
     }
 
     const newMessage: Message = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       fromAgentId: agentId,
-      toAgentId: 'user',
+      toAgentId: "user",
       content: response,
       timestamp: new Date().toISOString(),
       status,
@@ -175,7 +192,9 @@ export default function MultiAgentInteraction({
   // Generate interactions between agents
   const generateAgentInteractions = async () => {
     // Get agents other than the primary one
-    const secondaryAgents = selectedAgents.filter((id) => id !== primaryAgentId);
+    const secondaryAgents = selectedAgents.filter(
+      (id) => id !== primaryAgentId,
+    );
 
     // For each secondary agent, generate an interaction
     for (const agentId of secondaryAgents) {
@@ -194,10 +213,10 @@ export default function MultiAgentInteraction({
         toAgentId: agentId,
         content: `I need assistance with a task that requires your ${agent.capabilities[0]} capability. Can you help process this request?`,
         timestamp: new Date().toISOString(),
-        status: 'approved',
+        status: "approved",
         policyChecks: [
-          { policyId: 'agent-collaboration', result: true },
-          { policyId: 'data-sharing', result: true },
+          { policyId: "agent-collaboration", result: true },
+          { policyId: "data-sharing", result: true },
         ],
       };
 
@@ -213,11 +232,11 @@ export default function MultiAgentInteraction({
         toAgentId: primaryAgentId,
         content: `I've analyzed the request and completed the task using my ${agent.capabilities[0]} capability. Here are the results for your review.`,
         timestamp: new Date().toISOString(),
-        status: 'approved',
+        status: "approved",
         policyChecks: [
-          { policyId: 'agent-collaboration', result: true },
-          { policyId: 'data-sharing', result: true },
-          { policyId: 'result-verification', result: true },
+          { policyId: "agent-collaboration", result: true },
+          { policyId: "data-sharing", result: true },
+          { policyId: "result-verification", result: true },
         ],
       };
 
@@ -230,13 +249,13 @@ export default function MultiAgentInteraction({
       const confirmationMessage: Message = {
         id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         fromAgentId: primaryAgentId,
-        toAgentId: 'user',
+        toAgentId: "user",
         content: `I've collaborated with the ${agent.name} to complete your request. The task has been successfully processed with enhanced capabilities.`,
         timestamp: new Date().toISOString(),
-        status: 'approved',
+        status: "approved",
         policyChecks: [
-          { policyId: 'result-verification', result: true },
-          { policyId: 'audit-logging', result: true },
+          { policyId: "result-verification", result: true },
+          { policyId: "audit-logging", result: true },
         ],
       };
 
@@ -247,14 +266,18 @@ export default function MultiAgentInteraction({
   // Approve a pending message
   const approveMessage = (messageId: string) => {
     setMessages((prev) =>
-      prev.map((msg) => (msg.id === messageId ? { ...msg, status: 'approved' } : msg)),
+      prev.map((msg) =>
+        msg.id === messageId ? { ...msg, status: "approved" } : msg,
+      ),
     );
   };
 
   // Reject a pending message
   const rejectMessage = (messageId: string) => {
     setMessages((prev) =>
-      prev.map((msg) => (msg.id === messageId ? { ...msg, status: 'rejected' } : msg)),
+      prev.map((msg) =>
+        msg.id === messageId ? { ...msg, status: "rejected" } : msg,
+      ),
     );
   };
 
@@ -264,10 +287,14 @@ export default function MultiAgentInteraction({
         <h2>Multi-Agent Collaboration</h2>
         <div className="header-actions">
           <button
-            className={`view-toggle ${activeTab === 'governance' ? 'active' : ''}`}
-            onClick={() => setActiveTab(activeTab === 'interaction' ? 'governance' : 'interaction')}
+            className={`view-toggle ${activeTab === "governance" ? "active" : ""}`}
+            onClick={() =>
+              setActiveTab(
+                activeTab === "interaction" ? "governance" : "interaction",
+              )
+            }
           >
-            {activeTab === 'interaction' ? 'Show Governance' : 'Show Chat'}
+            {activeTab === "interaction" ? "Show Governance" : "Show Chat"}
           </button>
           <button className="close-button" onClick={onClose}>
             Close
@@ -281,11 +308,17 @@ export default function MultiAgentInteraction({
             <h3>Participating Agents</h3>
             {availableAgents.length > 3 &&
               (showAllAgents ? (
-                <button className="show-less-button" onClick={() => setShowAllAgents(false)}>
+                <button
+                  className="show-less-button"
+                  onClick={() => setShowAllAgents(false)}
+                >
                   Show Less
                 </button>
               ) : (
-                <button className="show-more-button" onClick={() => setShowAllAgents(true)}>
+                <button
+                  className="show-more-button"
+                  onClick={() => setShowAllAgents(true)}
+                >
                   Show All Agents
                 </button>
               ))}
@@ -302,50 +335,56 @@ export default function MultiAgentInteraction({
               .map((agent) => (
                 <div
                   key={agent.id}
-                  className={`agent-card ${selectedAgents.includes(agent.id) ? 'selected' : ''} ${agent.id === primaryAgentId ? 'primary' : ''}`}
+                  className={`agent-card ${selectedAgents.includes(agent.id) ? "selected" : ""} ${agent.id === primaryAgentId ? "primary" : ""}`}
                   onClick={() => toggleAgentSelection(agent.id)}
                 >
                   <div className="agent-icon">{agent.icon}</div>
                   <div className="agent-info">
                     <div className="agent-name">{agent.name}</div>
                     <div className="agent-capabilities">
-                      {agent.capabilities.slice(0, 2).map((capability, index) => (
-                        <span key={index} className="capability-tag">
-                          {capability}
-                        </span>
-                      ))}
+                      {agent.capabilities
+                        .slice(0, 2)
+                        .map((capability, index) => (
+                          <span key={index} className="capability-tag">
+                            {capability}
+                          </span>
+                        ))}
                       {agent.capabilities.length > 2 && (
-                        <span className="capability-more">+{agent.capabilities.length - 2}</span>
+                        <span className="capability-more">
+                          +{agent.capabilities.length - 2}
+                        </span>
                       )}
                     </div>
                   </div>
-                  {agent.id === primaryAgentId && <div className="primary-badge">Primary</div>}
+                  {agent.id === primaryAgentId && (
+                    <div className="primary-badge">Primary</div>
+                  )}
                 </div>
               ))}
           </div>
         </div>
 
-        {activeTab === 'interaction' ? (
+        {activeTab === "interaction" ? (
           <div className="interaction-panel">
             <div className="messages-container">
               {messages.length === 0 ? (
                 <div className="empty-messages">
                   <p>
-                    No messages yet. Start the conversation to see multi-agent collaboration in
-                    action.
+                    No messages yet. Start the conversation to see multi-agent
+                    collaboration in action.
                   </p>
                 </div>
               ) : (
                 <div className="messages">
                   {messages.map((message) => {
                     const fromAgent =
-                      message.fromAgentId === 'user'
-                        ? { name: 'You', icon: '👤' }
+                      message.fromAgentId === "user"
+                        ? { name: "You", icon: "👤" }
                         : getAgent(message.fromAgentId);
 
                     const toAgent =
-                      message.toAgentId === 'user'
-                        ? { name: 'You', icon: '👤' }
+                      message.toAgentId === "user"
+                        ? { name: "You", icon: "👤" }
                         : getAgent(message.toAgentId);
 
                     if (!fromAgent || !toAgent) return null;
@@ -353,7 +392,7 @@ export default function MultiAgentInteraction({
                     return (
                       <div
                         key={message.id}
-                        className={`message ${message.fromAgentId === 'user' ? 'user-message' : 'agent-message'} ${message.status}`}
+                        className={`message ${message.fromAgentId === "user" ? "user-message" : "agent-message"} ${message.status}`}
                       >
                         <div className="message-header">
                           <div className="message-from">
@@ -369,9 +408,11 @@ export default function MultiAgentInteraction({
 
                         <div className="message-content">{message.content}</div>
 
-                        {message.status === 'pending' && (
+                        {message.status === "pending" && (
                           <div className="message-actions">
-                            <div className="action-label">This message requires approval:</div>
+                            <div className="action-label">
+                              This message requires approval:
+                            </div>
                             <div className="action-buttons">
                               <button
                                 className="approve-button"
@@ -389,7 +430,7 @@ export default function MultiAgentInteraction({
                           </div>
                         )}
 
-                        {message.status === 'rejected' && (
+                        {message.status === "rejected" && (
                           <div className="rejection-notice">
                             This message was rejected due to policy violations.
                           </div>
@@ -411,11 +452,11 @@ export default function MultiAgentInteraction({
                 type="text"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                placeholder={`Send a message to ${getAgent(primaryAgentId)?.name || 'primary agent'}...`}
+                placeholder={`Send a message to ${getAgent(primaryAgentId)?.name || "primary agent"}...`}
                 disabled={loading}
               />
               <button type="submit" disabled={loading || !userInput.trim()}>
-                {loading ? 'Sending...' : 'Send'}
+                {loading ? "Sending..." : "Send"}
               </button>
             </form>
           </div>
@@ -431,19 +472,27 @@ export default function MultiAgentInteraction({
               <div className="checks-summary">
                 <div className="check-stat">
                   <div className="stat-value">
-                    {messages.filter((m) => m.policyChecks?.every((c) => c.result)).length}
+                    {
+                      messages.filter((m) =>
+                        m.policyChecks?.every((c) => c.result),
+                      ).length
+                    }
                   </div>
                   <div className="stat-label">Passed</div>
                 </div>
                 <div className="check-stat">
                   <div className="stat-value">
-                    {messages.filter((m) => m.policyChecks?.some((c) => !c.result)).length}
+                    {
+                      messages.filter((m) =>
+                        m.policyChecks?.some((c) => !c.result),
+                      ).length
+                    }
                   </div>
                   <div className="stat-label">Failed</div>
                 </div>
                 <div className="check-stat">
                   <div className="stat-value">
-                    {messages.filter((m) => m.status === 'pending').length}
+                    {messages.filter((m) => m.status === "pending").length}
                   </div>
                   <div className="stat-label">Pending</div>
                 </div>
@@ -454,8 +503,8 @@ export default function MultiAgentInteraction({
                   .filter((m) => m.policyChecks && m.policyChecks.length > 0)
                   .map((message) => {
                     const agent =
-                      message.fromAgentId === 'user'
-                        ? { name: 'You', icon: '👤' }
+                      message.fromAgentId === "user"
+                        ? { name: "You", icon: "👤" }
                         : getAgent(message.fromAgentId);
 
                     if (!agent || !message.policyChecks) return null;
@@ -476,12 +525,20 @@ export default function MultiAgentInteraction({
                           {message.policyChecks.map((check, index) => (
                             <div
                               key={index}
-                              className={`policy-check ${check.result ? 'passed' : 'failed'}`}
+                              className={`policy-check ${check.result ? "passed" : "failed"}`}
                             >
-                              <div className="check-status">{check.result ? '✓' : '✗'}</div>
+                              <div className="check-status">
+                                {check.result ? "✓" : "✗"}
+                              </div>
                               <div className="check-details">
-                                <div className="policy-name">{check.policyId}</div>
-                                {check.reason && <div className="check-reason">{check.reason}</div>}
+                                <div className="policy-name">
+                                  {check.policyId}
+                                </div>
+                                {check.reason && (
+                                  <div className="check-reason">
+                                    {check.reason}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -509,8 +566,12 @@ export default function MultiAgentInteraction({
                     <div className="flow-arrow">→</div>
 
                     <div className="flow-node primary">
-                      <div className="node-icon">{getAgent(primaryAgentId)?.icon}</div>
-                      <div className="node-label">{getAgent(primaryAgentId)?.name}</div>
+                      <div className="node-icon">
+                        {getAgent(primaryAgentId)?.icon}
+                      </div>
+                      <div className="node-label">
+                        {getAgent(primaryAgentId)?.name}
+                      </div>
                     </div>
 
                     {selectedAgents

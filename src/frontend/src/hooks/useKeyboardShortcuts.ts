@@ -1,6 +1,6 @@
-import { useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppStore } from '../stores/appStore';
+import { useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAppStore } from "../stores/appStore";
 
 interface KeyboardShortcut {
   key: string;
@@ -18,110 +18,113 @@ export const useKeyboardShortcuts = () => {
 
   const shortcuts: KeyboardShortcut[] = [
     {
-      key: 'k',
+      key: "k",
       ctrlKey: true,
       action: () => {
         // TODO: Open command palette
-        console.log('Opening command palette...');
+        console.log("Opening command palette...");
       },
-      description: 'Open command palette',
+      description: "Open command palette",
     },
     {
-      key: 'k',
+      key: "k",
       metaKey: true, // For Mac
       action: () => {
-        console.log('Opening command palette...');
+        console.log("Opening command palette...");
       },
-      description: 'Open command palette',
+      description: "Open command palette",
     },
     {
-      key: '/',
+      key: "/",
       action: () => {
         // TODO: Focus search
-        console.log('Focus search...');
+        console.log("Focus search...");
       },
-      description: 'Focus search',
+      description: "Focus search",
     },
     {
-      key: 'd',
+      key: "d",
       altKey: true,
-      action: () => navigate('/'),
-      description: 'Go to Dashboard',
+      action: () => navigate("/"),
+      description: "Go to Dashboard",
     },
     {
-      key: 't',
+      key: "t",
       altKey: true,
-      action: () => navigate('/trading'),
-      description: 'Go to Trading',
+      action: () => navigate("/trading"),
+      description: "Go to Trading",
     },
     {
-      key: 'p',
+      key: "p",
       altKey: true,
-      action: () => navigate('/policies'),
-      description: 'Go to Policies',
+      action: () => navigate("/policies"),
+      description: "Go to Policies",
     },
     {
-      key: 'a',
+      key: "a",
       altKey: true,
-      action: () => navigate('/audit'),
-      description: 'Go to Audit Logs',
+      action: () => navigate("/audit"),
+      description: "Go to Audit Logs",
     },
     {
-      key: 'b',
+      key: "b",
       ctrlKey: true,
       action: () => {
         updatePreferences({ sidebarCollapsed: !preferences.sidebarCollapsed });
       },
-      description: 'Toggle sidebar',
+      description: "Toggle sidebar",
     },
     {
-      key: 'b',
+      key: "b",
       metaKey: true, // For Mac
       action: () => {
         updatePreferences({ sidebarCollapsed: !preferences.sidebarCollapsed });
       },
-      description: 'Toggle sidebar',
+      description: "Toggle sidebar",
     },
     {
-      key: 'Escape',
+      key: "Escape",
       action: () => {
         // Close any open modals/dropdowns
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
       },
-      description: 'Close modals/dropdowns',
+      description: "Close modals/dropdowns",
     },
   ];
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    // Don't trigger shortcuts when typing in inputs
-    if (
-      event.target instanceof HTMLInputElement ||
-      event.target instanceof HTMLTextAreaElement ||
-      event.target instanceof HTMLSelectElement ||
-      (event.target as HTMLElement)?.contentEditable === 'true'
-    ) {
-      return;
-    }
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in inputs
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        event.target instanceof HTMLSelectElement ||
+        (event.target as HTMLElement)?.contentEditable === "true"
+      ) {
+        return;
+      }
 
-    const matchingShortcut = shortcuts.find(shortcut => {
-      return (
-        shortcut.key.toLowerCase() === event.key.toLowerCase() &&
-        !!shortcut.ctrlKey === event.ctrlKey &&
-        !!shortcut.metaKey === event.metaKey &&
-        !!shortcut.shiftKey === event.shiftKey &&
-        !!shortcut.altKey === event.altKey
-      );
-    });
+      const matchingShortcut = shortcuts.find((shortcut) => {
+        return (
+          shortcut.key.toLowerCase() === event.key.toLowerCase() &&
+          !!shortcut.ctrlKey === event.ctrlKey &&
+          !!shortcut.metaKey === event.metaKey &&
+          !!shortcut.shiftKey === event.shiftKey &&
+          !!shortcut.altKey === event.altKey
+        );
+      });
 
-    if (matchingShortcut) {
-      event.preventDefault();
-      matchingShortcut.action();
-    }
-  }, [shortcuts, navigate, updatePreferences, preferences.sidebarCollapsed]);
+      if (matchingShortcut) {
+        event.preventDefault();
+        matchingShortcut.action();
+      }
+    },
+    [shortcuts, navigate, updatePreferences, preferences.sidebarCollapsed],
+  );
 
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
   return { shortcuts };
@@ -133,24 +136,24 @@ export const useShortcutsHelp = () => {
 
   const formatShortcut = (shortcut: KeyboardShortcut) => {
     const keys = [];
-    
+
     if (shortcut.ctrlKey || shortcut.metaKey) {
-      keys.push(navigator.platform.includes('Mac') ? '⌘' : 'Ctrl');
+      keys.push(navigator.platform.includes("Mac") ? "⌘" : "Ctrl");
     }
     if (shortcut.altKey) {
-      keys.push(navigator.platform.includes('Mac') ? '⌥' : 'Alt');
+      keys.push(navigator.platform.includes("Mac") ? "⌥" : "Alt");
     }
     if (shortcut.shiftKey) {
-      keys.push('⇧');
+      keys.push("⇧");
     }
-    
+
     keys.push(shortcut.key.toUpperCase());
-    
-    return keys.join(' + ');
+
+    return keys.join(" + ");
   };
 
   return {
-    shortcuts: shortcuts.map(shortcut => ({
+    shortcuts: shortcuts.map((shortcut) => ({
       ...shortcut,
       formatted: formatShortcut(shortcut),
     })),
