@@ -837,7 +837,7 @@ export default function ModernDashboard({
                           margin-bottom: ${designTokens.spacing[1]};
                         `}
                       >
-                        {agent.performance.uptime}%
+                        {agent.performance?.uptime ?? 0}%
                       </div>
                       <div
                         css={css`
@@ -867,7 +867,7 @@ export default function ModernDashboard({
                           margin-bottom: ${designTokens.spacing[1]};
                         `}
                       >
-                        {agent.performance.successRate}%
+                        {agent.performance?.successRate ?? 0}%
                       </div>
                       <div
                         css={css`
@@ -926,7 +926,7 @@ export default function ModernDashboard({
                             .semibold};
                         `}
                       >
-                        {agent.riskMetrics.complianceRate}%
+                        {agent.riskMetrics?.complianceRate ?? 100}%
                       </span>
                     </div>
                     <div
@@ -941,12 +941,12 @@ export default function ModernDashboard({
                       <div
                         css={css`
                           height: 100%;
-                          background: ${agent.riskMetrics.complianceRate > 95
+                          background: ${(agent.riskMetrics?.complianceRate ?? 100) > 95
                             ? designTokens.colors.semantic.success[500]
-                            : agent.riskMetrics.complianceRate > 90
+                            : (agent.riskMetrics?.complianceRate ?? 100) > 90
                               ? designTokens.colors.semantic.warning[500]
                               : designTokens.colors.semantic.error[500]};
-                          width: ${agent.riskMetrics.complianceRate}%;
+                          width: ${agent.riskMetrics?.complianceRate ?? 100}%;
                           transition: width 0.3s ease;
                         `}
                       />
