@@ -197,11 +197,13 @@ export class AgentsController {
             type: agentInfo.type,
             status: agentInfo.status,
             lastActivity: agentInfo.lastActivity,
+            internalThought: agentStatus.internalThought || "Monitoring markets...",
+            nextActionAt: agentStatus.nextActionAt,
             metrics: {
                 uptime: agentInfo.status === "active" ? "100%" : "0%",
                 successRate: perf.winRate ? `${(perf.winRate * 100).toFixed(1)}%` : "0%",
                 avgResponse: "N/A", // Not tracked in basic metrics yet
-                actionsToday: perf.period?.totalTrades || 0,
+                actionsToday: perf.totalTrades || 0,
             },
             risk: {
                 riskScore: 0, // Placeholder as we don't calculate risk score yet
@@ -249,6 +251,8 @@ export class AgentsController {
 
               enrichedAgents.push({
                   ...agent,
+                  internalThought: agentStatus.internalThought || "Initializing autonomous strategy...",
+                  nextActionAt: agentStatus.nextActionAt,
                   performance: {
                       uptime: agent.status === "active" ? 100 : 0,
                       successRate: perf.winRate ? perf.winRate * 100 : 0,

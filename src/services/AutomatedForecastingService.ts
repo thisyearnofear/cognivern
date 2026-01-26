@@ -17,6 +17,8 @@ export class AutomatedForecastingService {
   private sapienceService: any;
   private forecastedMarkets: Set<string> = new Set();
   private graphqlEndpoint = 'https://api.sapience.xyz/graphql';
+  private nextRunAt: Date | null = null;
+  private lastThought: string = 'Initializing autonomous strategy...';
 
   // LLM Config with Fallback
   private providers = [
@@ -42,6 +44,7 @@ export class AutomatedForecastingService {
   }
 
   private async callLLM(prompt: string): Promise<string> {
+    this.lastThought = 'Consulting LLM cluster for market analysis...';
     console.log('[ForecastingService] Calling LLM...');
     for (const provider of this.providers) {
       if (!provider.apiKey) continue;
@@ -75,6 +78,7 @@ export class AutomatedForecastingService {
   }
 
   async fetchOptimalCondition(): Promise<MarketCondition | null> {
+    this.lastThought = 'Scanning Sapience GraphQL for optimal market conditions...';
     console.log('[ForecastingService] Fetching optimal condition...');
     const nowSec = Math.floor(Date.now() / 1000);
     const query = `
@@ -119,6 +123,7 @@ export class AutomatedForecastingService {
   }
 
   async generateForecast(question: string): Promise<ForecastResult> {
+    this.lastThought = `Generating forecast for: ${question.substring(0, 50)}...`;
     const prompt = `You are a professional forecaster. Estimate the probability (0-100) that the answer to this question is YES.
 Question: "${question}"
 First, provide brief reasoning (1 sentence, max 150 chars).
@@ -148,12 +153,16 @@ Then on the final line, output ONLY the probability as a number.`;
     console.log('[ForecastingService] Starting cycle...');
     try {
       const condition = await this.fetchOptimalCondition();
-      if (!condition) return { success: false, error: 'No markets' };
+      if (!condition) {
+          this.lastThought = 'No suitable markets found. Waiting for next cycle.';
+          return { success: false, error: 'No markets' };
+      }
       console.log('[ForecastingService] Selected market:', condition.question);
 
       const forecast = await this.generateForecast(condition.shortName || condition.question);
       console.log(`[ForecastingService] Generated forecast: ${forecast.probability}%`);
 
+      this.lastThought = `Submitting on-chain attestation for ${condition.id.substring(0, 8)}...`;
       const txHash = await this.sapienceService.submitForecast({
         marketId: condition.id,
         probability: forecast.probability,
@@ -163,6 +172,7 @@ Then on the final line, output ONLY the probability as a number.`;
       console.log('[ForecastingService] Forecast submitted! Tx:', txHash);
 
       this.forecastedMarkets.add(condition.id);
+      this.lastThought = 'Forecast successfully attested. Monitoring market updates.';
       return { 
           success: true, 
           txHash,
@@ -171,18 +181,26 @@ Then on the final line, output ONLY the probability as a number.`;
       };
     } catch (error) {
       console.error('[ForecastingService] Cycle failed', error);
+      this.lastThought = 'Last cycle failed. Recovering for next attempt.';
       return { success: false, error: 'Internal' };
     }
   }
 
   startContinuousForecasting(intervalMinutes: number = 60) {
-    setInterval(() => this.runForecastingCycle(), intervalMinutes * 60 * 1000);
+    this.nextRunAt = new Date(Date.now() + intervalMinutes * 60 * 1000);
+    
+    setInterval(() => {
+        this.runForecastingCycle();
+        this.nextRunAt = new Date(Date.now() + intervalMinutes * 60 * 1000);
+    }, intervalMinutes * 60 * 1000);
   }
 
   getStats() {
     return {
       providers: this.providers.map(p => ({ name: p.name, model: p.model })),
       forecastCount: this.forecastedMarkets.size,
+      nextRunAt: this.nextRunAt?.toISOString(),
+      lastThought: this.lastThought,
       timestamp: new Date().toISOString()
     };
   }
