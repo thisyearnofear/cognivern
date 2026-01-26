@@ -55,3 +55,19 @@ export interface AgentState {
   metrics: Metrics;
   lastAction?: AgentAction;
 }
+
+export interface TradingDecision {
+  id: string;
+  timestamp: string;
+  action: 'buy' | 'sell' | 'hold';
+  asset: string;
+  amount: number;
+  price: number;
+  confidence: number;
+  reasoning?: string;
+  outcome?: {
+    success: boolean;
+    profit?: number;
+    executedPrice?: number;
+  };
+}
