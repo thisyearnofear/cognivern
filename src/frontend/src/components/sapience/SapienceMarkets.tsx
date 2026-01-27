@@ -9,6 +9,7 @@ import { css } from "@emotion/react";
 import { Card, CardContent, CardTitle } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { MultiFieldDialog, ConfirmDialog } from "../ui/Dialog";
 import {
   designTokens,
   shadowSystem,
@@ -462,39 +463,64 @@ export default function SapienceMarkets() {
 
   const featuredMarkets = getFeaturedMarkets();
 
-  const handleForecast = async (conditionId: string, question: string) => {
-    const probabilityStr = prompt(
-      `Enter probability (0-100) for:\n"${question}"`,
-    );
-    if (!probabilityStr) return;
+  // Dialog state
+  const [forecastDialogOpen, setForecastDialogOpen] = useState(false);
+  const [selectedMarket, setSelectedMarket] = useState<{
+    id: string;
+    question: string;
+  } | null>(null);
+  const [confirmDialogState, setConfirmDialogState] = useState<{
+    open: boolean;
+    message: string;
+    variant: "success" | "error";
+  }>({ open: false, message: "", variant: "success" });
 
-    const probability = parseInt(probabilityStr, 10);
-    if (isNaN(probability) || probability < 0 || probability > 100) {
-      alert("Invalid probability");
-      return;
-    }
+  const handleForecast = (conditionId: string, question: string) => {
+    setSelectedMarket({ id: conditionId, question });
+    setForecastDialogOpen(true);
+  };
 
-    const reasoning =
-      prompt("Enter reasoning (optional):") || "Manual forecast";
+  const handleForecastSubmit = async (values: Record<string, string>) => {
+    if (!selectedMarket) return;
+
+    const probability = parseInt(values.probability, 10);
+    const reasoning = values.reasoning || "Manual forecast";
 
     try {
-      setSubmittingId(conditionId);
+      setSubmittingId(selectedMarket.id);
       const result = await sapienceBackendApi.submitForecast({
-        conditionId,
+        conditionId: selectedMarket.id,
         probability,
         reasoning,
         confidence: 1.0,
       });
 
+      setForecastDialogOpen(false);
+      setSelectedMarket(null);
+
       if (result.success) {
-        alert("Forecast submitted successfully!");
+        setConfirmDialogState({
+          open: true,
+          message: "Forecast submitted successfully!",
+          variant: "success",
+        });
         refresh(); // Refresh data
       } else {
-        alert(`Error: ${result.error || "Submission failed"}`);
+        setConfirmDialogState({
+          open: true,
+          message: result.error || "Submission failed",
+          variant: "error",
+        });
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to submit forecast");
+      setForecastDialogOpen(false);
+      setSelectedMarket(null);
+      setConfirmDialogState({
+        open: true,
+        message: "Failed to submit forecast",
+        variant: "error",
+      });
     } finally {
       setSubmittingId(null);
     }
@@ -1042,6 +1068,62 @@ export default function SapienceMarkets() {
           sapience.xyz →
         </a>
       </div>
+
+      {/* Forecast Dialog */}
+      {selectedMarket && (
+        <MultiFieldDialog
+          isOpen={forecastDialogOpen}
+          onClose={() => {
+            setForecastDialogOpen(false);
+            setSelectedMarket(null);
+          }}
+          onSubmit={handleForecastSubmit}
+          title="Submit Forecast"
+          message={`Predict the probability for: "${selectedMarket.question}"`}
+          fields={[
+            {
+              name: "probability",
+              label: "Probability (%)",
+              type: "number",
+              placeholder: "Enter 0-100",
+              required: true,
+              validation: (value) => {
+                const num = parseInt(value, 10);
+                if (isNaN(num)) return "Please enter a valid number";
+                if (num < 0 || num > 100)
+                  return "Probability must be between 0 and 100";
+                return null;
+              },
+            },
+            {
+              name: "reasoning",
+              label: "Reasoning",
+              type: "textarea",
+              placeholder: "Explain your forecast (optional)",
+              defaultValue: "Manual forecast",
+            },
+          ]}
+          submitText="Submit Forecast"
+          isLoading={submittingId === selectedMarket.id}
+        />
+      )}
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialogState.open}
+        onClose={() =>
+          setConfirmDialogState({ open: false, message: "", variant: "success" })
+        }
+        onConfirm={() =>
+          setConfirmDialogState({ open: false, message: "", variant: "success" })
+        }
+        title={
+          confirmDialogState.variant === "success" ? "Success" : "Error"
+        }
+        message={confirmDialogState.message}
+        variant={confirmDialogState.variant === "success" ? "info" : "error"}
+        confirmText="OK"
+      />
     </div>
   );
 }
