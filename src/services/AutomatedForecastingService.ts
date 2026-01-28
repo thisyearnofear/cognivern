@@ -280,22 +280,82 @@ export class AutomatedForecastingService {
       const forecast = await this.generateForecast(condition.shortName || condition.question);
       console.log(`[ForecastingService] Generated forecast: ${forecast.probability}%`);
 
+      // Step 1: Submit forecast to Arbitrum (Forecasting Track)
       this.recordThought(`Submitting on-chain attestation for ${condition.id.substring(0, 8)}...`);
-      const txHash = await this.sapienceService.submitForecast({
+      const forecastTxHash = await this.sapienceService.submitForecast({
         marketId: condition.id,
         probability: forecast.probability,
         confidence: forecast.confidence,
         reasoning: forecast.reasoning
       });
-      console.log('[ForecastingService] Forecast submitted! Tx:', txHash);
+      console.log('[ForecastingService] Forecast submitted! Tx:', forecastTxHash);
+
+      // Step 2: Check for trading opportunity (Trading Track)
+      // Only trade if we have high confidence
+      if (forecast.confidence >= 0.6) {
+        try {
+          console.log('[ForecastingService] Checking for trading opportunity...');
+          this.recordThought('Analyzing market price for trading edge...');
+          
+          const marketPrice = await this.sapienceService.getMarketPrice(condition.id);
+          if (marketPrice) {
+            const edge = this.sapienceService.calculateEdge(forecast.probability, marketPrice);
+            console.log(`[ForecastingService] Market price - YES: ${marketPrice.yesPrice}, NO: ${marketPrice.noPrice}, Edge: ${edge.toFixed(4)}`);
+            
+            // Trade if edge > 10%
+            if (Math.abs(edge) > 0.1) {
+              const side = edge > 0 ? 'YES' : 'NO';
+              const tradeAmount = '10.0'; // Start with 10 USDe per trade
+              
+              console.log(`[ForecastingService] Significant edge detected (${(edge * 100).toFixed(1)}%). Executing ${side} trade...`);
+              this.recordThought(`Executing ${side} trade with ${edge > 0 ? 'positive' : 'negative'} edge...`);
+              
+              const tradeTxHash = await this.sapienceService.executeTrade({
+                marketId: condition.id,
+                conditionId: condition.id,
+                amount: tradeAmount,
+                side: side,
+                resolver: undefined // Use default resolver
+              });
+              
+              console.log('[ForecastingService] Trade executed! Tx:', tradeTxHash);
+              this.recordThought(`Trade executed successfully! Monitoring position.`);
+              
+              this.forecastedMarkets.add(condition.id);
+              return {
+                  success: true,
+                  forecastTxHash,
+                  tradeTxHash,
+                  forecast,
+                  conditionId: condition.id,
+                  traded: true,
+                  side,
+                  edge
+              };
+            } else {
+              console.log('[ForecastingService] No significant edge found. Skipping trade.');
+              this.recordThought('No trading edge detected. Forecast only.');
+            }
+          } else {
+            console.log('[ForecastingService] Could not fetch market price. Skipping trade.');
+          }
+        } catch (tradeError) {
+          console.error('[ForecastingService] Trading failed:', tradeError);
+          this.recordThought('Trading attempt failed. Continuing with forecast only.');
+          // Don't fail the whole cycle if trading fails
+        }
+      } else {
+        console.log('[ForecastingService] Confidence too low for trading. Skipping trade.');
+      }
 
       this.forecastedMarkets.add(condition.id);
       this.recordThought('Forecast successfully attested. Monitoring market updates.');
-      return { 
-          success: true, 
-          txHash,
+      return {
+          success: true,
+          forecastTxHash,
           forecast,
-          conditionId: condition.id
+          conditionId: condition.id,
+          traded: false
       };
     } catch (error) {
       console.error('[ForecastingService] Cycle failed', error);
