@@ -10,6 +10,9 @@ TS="$(date -u +%Y%m%dT%H%M%SZ)"
 NAME="cognivern-backend-${TS}-${VERSION_TAG}"
 OUT_TGZ="$ARTIFACT_DIR/${NAME}.tgz"
 
+# Prevent macOS from writing AppleDouble files and xattrs into tarballs
+export COPYFILE_DISABLE=1
+
 mkdir -p "$ARTIFACT_DIR"
 
 echo "== building backend"
@@ -37,9 +40,11 @@ fi
 (
   cd "$TMP/app"
   # Avoid macOS extended attributes in archives (reduces noise on Linux untar)
-  # --no-xattrs is GNU tar; bsdtar ignores unknown flags, so we feature-detect.
+  # Prefer bsdtar/gtar flags when available.
   if tar --help 2>/dev/null | grep -q -- "--no-xattrs"; then
     tar --no-xattrs -czf "$OUT_TGZ" .
+  elif tar --help 2>/dev/null | grep -q -- "--disable-copyfile"; then
+    tar --disable-copyfile -czf "$OUT_TGZ" .
   else
     tar -czf "$OUT_TGZ" .
   fi
