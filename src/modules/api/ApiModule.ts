@@ -383,6 +383,10 @@ export class ApiModule extends BaseService {
       this.controllers.get("ingest").listProjects(req, res);
     });
 
+    apiRouter.get("/projects/:projectId/usage", (req, res) => {
+      this.controllers.get("ingest").getUsage(req, res);
+    });
+
 
     // Sapience routes
     apiRouter.get("/sapience/status", (req, res) => {
