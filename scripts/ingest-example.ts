@@ -8,6 +8,7 @@ async function main() {
   const projectId = process.env.COGNIVERN_PROJECT_ID || "default";
   const ingestKey = process.env.COGNIVERN_INGEST_KEY || "dev-ingest-key";
 
+  // apiKey is still accepted by the client config but ingestion now uses ingestKey only.
   const client = new CognivernClient({ baseUrl, apiKey, projectId, ingestKey });
 
   const now = new Date().toISOString();
@@ -34,7 +35,7 @@ async function main() {
         id: crypto.randomUUID(),
         type: "observation",
         createdAt: now,
-        data: { message: "This run was ingested via /api/runs/ingest" },
+        data: { message: "This run was ingested via /ingest/runs" },
       },
     ],
   };

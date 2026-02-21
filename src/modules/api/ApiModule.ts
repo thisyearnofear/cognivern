@@ -120,8 +120,15 @@ export class ApiModule extends BaseService {
     this.app.use(compression());
 
     // Body parsing
+    // Control plane can accept larger payloads for dashboards, etc.
     this.app.use(express.json({ limit: "10mb" }));
     this.app.use(express.urlencoded({ extended: true }));
+
+    // Data plane: tighter limits to reduce abuse risk
+    this.app.use(
+      "/ingest",
+      express.json({ limit: process.env.INGEST_BODY_LIMIT || "512kb" })
+    );
 
     // Rate limiting
     const limiter = rateLimit({
@@ -135,6 +142,19 @@ export class ApiModule extends BaseService {
       validate: { trustProxy: false }, // We've already set trust proxy to 1 (first proxy only)
     });
     this.app.use("/api/", limiter);
+
+    // Data plane rate limit (separate from control plane)
+    const ingestLimiter = rateLimit({
+      windowMs: 60_000, // 1 min
+      max: Number(process.env.INGEST_RATE_LIMIT_PER_MINUTE || 120),
+      message: {
+        error: "Too many ingest requests, please slow down.",
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      validate: { trustProxy: false },
+    });
+    this.app.use("/ingest/", ingestLimiter);
 
     // Request logging
     this.app.use((req, res, next) => {
@@ -219,6 +239,12 @@ export class ApiModule extends BaseService {
     // Health check (no API key required)
     this.app.get("/health", (req, res) => {
       this.controllers.get("health").getHealth(req, res);
+    });
+
+    // Data plane ingestion (NO API key middleware)
+    // Keep this outside of the /api router so it can be locked down independently.
+    this.app.post("/ingest/runs", (req, res) => {
+      this.controllers.get("ingest").ingestRun(req, res);
     });
 
     // API routes (require API key)
@@ -357,10 +383,6 @@ export class ApiModule extends BaseService {
       this.controllers.get("ingest").listProjects(req, res);
     });
 
-    // BYO Agent Ingestion (Run Ledger)
-    apiRouter.post("/runs/ingest", (req, res) => {
-      this.controllers.get("ingest").ingestRun(req, res);
-    });
 
     // Sapience routes
     apiRouter.get("/sapience/status", (req, res) => {

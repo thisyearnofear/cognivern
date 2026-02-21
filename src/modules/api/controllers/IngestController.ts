@@ -30,11 +30,13 @@ export class IngestController {
         return;
       }
 
-      const projectId = parsed.data.projectId || "default";
+      const projectId =
+        parsed.data.projectId ||
+        ((req.headers["x-project-id"] as string) || "default");
 
       const ingestKey =
         (req.headers["x-ingest-key"] as string) ||
-        (req.headers["x-project-ingest-key"] as string) ||
+        (req.headers["authorization"] as string)?.replace(/^Bearer\s+/i, "") ||
         "";
 
       if (!projectRegistry.verifyIngestKey(projectId, ingestKey)) {
