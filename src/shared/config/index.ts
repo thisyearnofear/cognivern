@@ -16,6 +16,10 @@ const baseConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   PORT: z.coerce.number().default(3000),
+  AGENTS_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => (v || "").toLowerCase() === "true"),
 });
 
 // Sapience configuration
@@ -93,7 +97,11 @@ export const sapienceConfig = {
 // Legacy stubs to prevent import errors in other modules
 export const databaseConfig = { url: '', maxConnections: 0, connectionTimeout: 0, queryTimeout: 0 };
 export const cacheConfig = { url: '', ttl: 0, maxSize: '' };
-export const tradingConfig = { enabled: true, recallApiKeys: { direct: '', vincent: '' }, maxRiskPerTrade: 0.02 };
+export const tradingConfig = {
+  enabled: Boolean((config as any).AGENTS_ENABLED),
+  recallApiKeys: { direct: '', vincent: '' },
+  maxRiskPerTrade: 0.02,
+};
 export const blockchainConfig = { privateKey: '', rpcUrl: '', network: 'calibration', contracts: { governance: '', storage: '' } };
 export const monitoringConfig = { enabled: false, healthCheckInterval: 30000, retentionDays: { audit: 90, logs: 30 } };
 

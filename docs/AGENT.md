@@ -2,7 +2,7 @@
 
 ## Mission & Vision
 
-**Mission Statement**: "Showcase best-in-class decentralized AI governance for prediction markets, powered by Chainlink CRE — building trust in autonomous forecasting agents through consensus-verified operations."
+**Mission Statement**: "Make agent systems operable: every run is observable, auditable, and (when needed) provable."
 
 ### Core Value Propositions
 
@@ -14,7 +14,12 @@
 
 ## Overview
 
-Cognivern is a specialized forecasting agent built for **prediction markets**, powered by the **Chainlink Runtime Environment (CRE)**. Unlike centralized trading bots, Cognivern's entire prediction pipeline runs across Decentralized Oracle Networks — from market data ingestion to LLM reasoning to on-chain attestation. Every forecast is cryptographically signed, consensus-verified, and attested on Arbitrum One.
+Cognivern is an **Agent Reliability + Proof Layer**.
+
+Instead of replacing your runtime, Cognivern provides a **Run Ledger + Ingestion API**:
+- agents POST their runs to Cognivern (`/ingest/runs`)
+- teams inspect, debug, and govern agent behavior via the dashboard
+- for high-stakes actions, Cognivern can attach **verifiable inputs** (e.g., Chainlink price feeds) and optional on-chain proof
 
 ## Agent Capabilities
 

@@ -2,7 +2,14 @@
 
 ## Architecture Overview
 
-Cognivern creates a modular, verifiable AI agent system powered by **Chainlink Runtime Environment (CRE)**. The architecture separates **CRE workflows** (decentralized orchestration), **domain logic** (decision making), **infrastructure** (blockchain interaction), and **application** (API & dashboard) concerns.
+Cognivern is an **Agent Reliability + Proof Layer**.
+
+It is designed as two planes:
+
+- **Data plane** (`/ingest/*`): high-volume write path for agent run ingestion (ingest-key auth).
+- **Control plane** (`/api/*`): UI + admin APIs (API key today; OAuth/RBAC later).
+
+Chainlink integration remains a differentiator (verified inputs / proof), not the core wedge.
 
 ### System Diagram
 
@@ -66,13 +73,13 @@ Manages the lifecycle of multiple agents.
 
 ## Data Persistence
 
-### In-Memory Storage
+Cognivern uses **local-first persistence** so runs survive restarts without requiring a database.
 
-For the purpose of the hackathon and rapid iteration, the system currently uses **In-Memory Repositories** (`InMemoryPolicyRepository.ts`) for storing policies and logs.
+- Runs: `data/cre-runs.jsonl` (append-only JSONL)
+- Quota usage: `data/usage.json`
+- Token telemetry: `data/token-telemetry.json`
 
-*   **Why?**: Reduces infrastructure complexity (no database to provision).
-*   **Trade-off**: Data is lost on server restart.
-*   **Future**: Can be easily swapped for `PostgresPolicyRepository` or `FilecoinPolicyRepository` due to the Repository Pattern.
+This is intentionally simple for early adoption and can later be replaced by Postgres + object storage.
 
 ## Configuration (`src/shared/config/index.ts`)
 
@@ -85,11 +92,21 @@ Configuration is centralized and validated using **Zod**.
 
 ## API Endpoints
 
-The backend exposes a REST API for monitoring the agent.
+### Data Plane
 
-*   `GET /health`: System status.
-*   `GET /api/agents/sapience/status`: Current status of the forecasting agent.
-*   `GET /api/agents/sapience/decisions`: Recent forecasts and trades.
+- `POST /ingest/runs`: Ingest a run (`Authorization: Bearer <ingestKey>`, `X-PROJECT-ID`)
+
+### Control Plane
+
+- `GET /api/cre/runs?projectId=...`: List runs for a project
+- `GET /api/cre/runs/:runId`: Run details
+- `POST /api/cre/forecast`: Trigger internal forecasting workflow
+- `GET /api/projects`: List projects (discovery-safe)
+- `GET /api/projects/:projectId/usage`: Quota usage
+- `GET /api/projects/:projectId/tokens`: Token telemetry
+
+### Health
+- `GET /health`
 
 ## Deployment
 
