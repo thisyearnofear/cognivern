@@ -17,6 +17,11 @@ This repo uses a **backend artifact + releases** deployment model.
 
 ### Server Layout (Hetzner)
 
+#### Secrets handling
+- Secrets live in: `/opt/cognivern/shared/.env` (server-local)
+- PM2 runs via: `/opt/cognivern/shared/run.sh` which sources `shared/.env`
+- **Do not** put secrets into `config/ecosystem.config.cjs` (commit-safe config only)
+
 ```
 /opt/cognivern/
   releases/
