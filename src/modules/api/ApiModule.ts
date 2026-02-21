@@ -209,8 +209,16 @@ export class ApiModule extends BaseService {
     this.logger.info("Setting up controllers...");
 
     const { AgentsModule } = await import("../agents/AgentsModule.js");
+    const agentsEnabled = (process.env.AGENTS_ENABLED || "false").toLowerCase() === "true";
+
     const agentsModule = new AgentsModule();
-    await agentsModule.initialize();
+    if (agentsEnabled) {
+      await agentsModule.initialize();
+    } else {
+      this.logger.warn(
+        "AgentsModule disabled (set AGENTS_ENABLED=true to enable background agent loops)"
+      );
+    }
 
     // Initialize controllers with dependency injection
     this.controllers.set("health", new HealthController(agentsModule));
@@ -385,6 +393,10 @@ export class ApiModule extends BaseService {
 
     apiRouter.get("/projects/:projectId/usage", (req, res) => {
       this.controllers.get("ingest").getUsage(req, res);
+    });
+
+    apiRouter.get("/projects/:projectId/tokens", (req, res) => {
+      this.controllers.get("ingest").listTokens(req, res);
     });
 
 

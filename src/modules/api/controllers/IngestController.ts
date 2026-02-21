@@ -3,6 +3,7 @@ import { creRunStore } from "../../../cre/storage/CreRunStore.js";
 import { creRunSchema } from "../../../cre/validation.js";
 import { projectRegistry } from "../../../cre/projects/projectRegistry.js";
 import { usageMeter } from "../../../cre/projects/usageMeter.js";
+import { tokenTelemetryStore } from "../../../cre/projects/tokenTelemetry.js";
 
 /**
  * Ingestion endpoint for BYO agents.
@@ -23,6 +24,12 @@ export class IngestController {
     const projectId = req.params.projectId;
     const usage = await usageMeter.getUsage(projectId);
     res.json({ success: true, projectId, usage });
+  }
+
+  async listTokens(req: Request, res: Response) {
+    const projectId = req.params.projectId;
+    const tokens = await tokenTelemetryStore.listByProject(projectId);
+    res.json({ success: true, projectId, tokens });
   }
 
   async ingestRun(req: Request, res: Response) {
@@ -46,7 +53,8 @@ export class IngestController {
         (req.headers["authorization"] as string)?.replace(/^Bearer\s+/i, "") ||
         "";
 
-      if (!projectRegistry.verifyIngestKey(projectId, ingestKey)) {
+      const match = projectRegistry.matchIngestKey(projectId, ingestKey);
+      if (!match) {
         res.status(401).json({
           success: false,
           error: "Invalid ingest key for project",
@@ -66,9 +74,14 @@ export class IngestController {
 
       await creRunStore.add({ ...(parsed.data as any), projectId });
       const usage = await usageMeter.recordIngest(projectId);
+      const tokenTelemetry = await tokenTelemetryStore.record(
+        match.projectId,
+        match.ingestKeyId
+      );
 
       // Commercially useful headers
       res.setHeader("X-Cognivern-Project", projectId);
+      res.setHeader("X-Cognivern-Ingest-Key-Id", match.ingestKeyId);
       res.setHeader("X-Cognivern-Usage-Window-Start", usage.windowStart);
       res.setHeader("X-Cognivern-Usage-Window-Seconds", String(usage.windowSeconds));
       res.setHeader("X-Cognivern-Usage-Ingested", String(usage.ingestedRuns));
@@ -79,7 +92,13 @@ export class IngestController {
         String(Math.max(0, max - usage.ingestedRuns))
       );
 
-      res.json({ success: true, runId: parsed.data.runId, projectId, usage });
+      res.json({
+        success: true,
+        runId: parsed.data.runId,
+        projectId,
+        usage,
+        token: tokenTelemetry,
+      });
     } catch (err: any) {
       res.status(500).json({
         success: false,

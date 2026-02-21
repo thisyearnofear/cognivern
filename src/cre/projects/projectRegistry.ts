@@ -3,7 +3,14 @@ import crypto from "node:crypto";
 export type Project = {
   projectId: string;
   name: string;
+  // Note: ingest keys are NOT exposed via control-plane endpoints.
+  // This field remains for internal bootstrapping only.
   ingestKey: string;
+};
+
+export type IngestKeyMatch = {
+  projectId: string;
+  ingestKeyId: string; // stable identifier for telemetry (sha256 of key)
 };
 
 /**
@@ -72,11 +79,18 @@ export class ProjectRegistry {
     return this.projects.get(projectId);
   }
 
-  verifyIngestKey(projectId: string, ingestKey: string): boolean {
+  private keyId(key: string) {
+    // stable id for analytics/telemetry without storing secrets
+    return crypto.createHash("sha256").update(key).digest("hex").slice(0, 16);
+  }
+
+  matchIngestKey(projectId: string, ingestKey: string): IngestKeyMatch | null {
     const p = this.projects.get(projectId);
-    if (!p) return false;
+    if (!p) return null;
     const keys = this.ingestKeys.get(projectId) || [p.ingestKey];
-    return keys.includes(ingestKey);
+    const ok = keys.includes(ingestKey);
+    if (!ok) return null;
+    return { projectId, ingestKeyId: this.keyId(ingestKey) };
   }
 }
 

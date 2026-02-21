@@ -1,17 +1,30 @@
-# Cognivern: Decentralized AI Prediction Agent powered by Chainlink CRE
+# Cognivern: Agent Reliability + Proof Layer
 
-A consensus-verified AI forecasting agent that uses **Chainlink Runtime Environment (CRE)** to orchestrate prediction market analysis, LLM reasoning, and on-chain attestations — all executed across Decentralized Oracle Networks with Byzantine Fault Tolerant consensus.
+Cognivern is a **Run Ledger + Ingestion API** for teams building in the agentic era.
 
-Built for [Convergence: A Chainlink Hackathon](https://chain.link/hackathon) (Feb 6 – Mar 1, 2026).
+It gives you a durable, queryable record of what agents did (steps + artifacts), with optional **verifiability** via Chainlink primitives (price feeds today; CRE-style workflows as the execution target).
 
-## 🌟 Overview
+**Wedge:** don’t replace your agent runtime — just *send runs* to Cognivern.
 
-Cognivern transforms autonomous AI agents from centralized bots into **decentralized, verifiable prediction systems**:
+## What it does (today)
 
-1. **CRE-Orchestrated Forecasting** — Cron-triggered CRE workflows fetch market data, generate predictions, and submit attestations — every step consensus-verified by a DON.
-2. **Confidential AI Reasoning** — LLM calls execute via Confidential HTTP capability, keeping prediction logic private until attested on-chain.
-3. **Chainlink Data Feeds** — On-chain price data (ETH/USD, BTC/USD) consumed as inputs to the forecasting model via EVM Read capability.
-4. **Multi-LLM Resilience** — Fallback across Routeway.ai (Kimi K2) and Groq (Llama 3.3) within CRE callbacks.
+- **Run Ledger UI**: browse runs, drill into steps and artifacts, copy run links/JSON.
+- **Data-plane ingestion**: `POST /ingest/runs` (project-scoped ingest keys).
+- **Multi-project support**: `projectId` scoping across runs.
+- **Persistence**: run history and usage survive restarts (local-first JSONL/JSON).
+- **Commercial primitives**: per-project quotas, usage headers, token-level telemetry.
+- **Chainlink integration (differentiator)**: forecasting workflow reads Arbitrum Chainlink price feeds and can optionally attest forecasts.
+
+## Who it’s for
+
+- Teams running agents in production who need **debugging, governance, and accountability**.
+- Builders shipping on-chain automation who need **proof** for high-stakes actions.
+
+## Key idea
+
+Agents are cheap. **Trust and reliability are expensive.**
+
+Cognivern is the layer that turns “agent runs” into something you can operate, audit, and bill.
 
 ## 🎯 Chainlink Convergence Hackathon
 
@@ -33,7 +46,7 @@ Cognivern transforms autonomous AI agents from centralized bots into **decentral
 - **🔐 Confidential AI** — LLM reasoning stays private via CRE enclaves, preventing front-running
 - **🛡️ Governance Native** — Policy enforcement layer with on-chain risk guardrails
 
-## 🚀 Quick Start (Production Setup)
+## Quick Start
 
 ### Prerequisites
 - Node.js v20.14+
@@ -73,12 +86,32 @@ FILECOIN_PRIVATE_KEY=your_private_key_here
 GOVERNANCE_CONTRACT_ADDRESS=0x...
 ```
 
-### Running the Live Agent
+### Run the backend
 
-**Start the Unified Service (API + Forecasting Brain):**
 ```bash
+pnpm install
 pnpm build
-pm2 start dist/index.js --name cognivern-agent
+pnpm start
+```
+
+### Ingest a run from any agent
+
+```bash
+# Configure projects/keys
+export COGNIVERN_PROJECTS="default:Default Project"
+export COGNIVERN_INGEST_KEYS="default=dev-ingest-key"
+
+# Send a run
+curl -X POST http://localhost:3000/ingest/runs \
+  -H 'Authorization: Bearer dev-ingest-key' \
+  -H 'X-PROJECT-ID: default' \
+  -H 'Content-Type: application/json' \
+  -d '{"runId":"123","projectId":"default","workflow":"forecasting","mode":"local","startedAt":"2026-01-01T00:00:00.000Z","finishedAt":"2026-01-01T00:00:01.000Z","ok":true,"steps":[],"artifacts":[]}'
+```
+
+Or use the included example:
+```bash
+pnpm ingest-example
 ```
 
 ## 🏗️ Architecture: CRE-Powered Prediction Pipeline
