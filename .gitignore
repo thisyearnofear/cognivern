@@ -1,73 +1,10 @@
-# Environment files
+node_modules
+*.log
+logs
 .env
 .env.*
-!.env.example
-agents/trading-agent/.env
-external/js-recall/.env.local
+dist
+build
 
-# Runtime logs (keep .gitkeep for directory structure)
-logs/*.log
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Dependencies
-node_modules/
-external/
-
-# Build artifacts
-dist/
-build/
-.next/
-out/
-.cache/
-
-# Local development files
-server-logs/
-pm2-logs.txt
-test-*.js
-
-# Database
-db.sqlite
-*.sqlite
-*.sqlite3
-
-# IDE
-.idea
-.vscode
-*.swp
-*.swo
-
-# JavaScript/TypeScript build files
-/**/*.js
-/**/*.js.map
-*.tsbuildinfo
-
-# Rust/Cargo
-/target/
-**/*.rs.bk
-Cargo.lock
-rust-recall/target/
-rust-recall/**/*.rs.bk
-rust-recall/Cargo.lock
-
-# Recall specific
-.recall/
-.recall-cache/
-
-# System files
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Testing
-coverage/
-.nyc_output/
-
-# Deployment-specific configs (these should be in deploy/ folder instead)
-nginx/
-
-# Legacy
-legacy/
+# Local deploy artifacts
+.artifacts
