@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { creRunStore } from "../../../cre/storage/CreRunStore.js";
 import { creRunSchema } from "../../../cre/validation.js";
 import { projectRegistry } from "../../../cre/projects/projectRegistry.js";
+import { usageMeter } from "../../../cre/projects/usageMeter.js";
 
 /**
  * Ingestion endpoint for BYO agents.
@@ -16,6 +17,12 @@ export class IngestController {
       name: p.name,
     }));
     res.json({ success: true, projects });
+  }
+
+  async getUsage(req: Request, res: Response) {
+    const projectId = req.params.projectId;
+    const usage = await usageMeter.getUsage(projectId);
+    res.json({ success: true, projectId, usage });
   }
 
   async ingestRun(req: Request, res: Response) {
@@ -47,9 +54,32 @@ export class IngestController {
         return;
       }
 
-      await creRunStore.add({ ...(parsed.data as any), projectId });
+      const quota = await usageMeter.canIngest(projectId);
+      if (!quota.allowed) {
+        res.status(429).json({
+          success: false,
+          error: quota.reason || "Quota exceeded",
+          usage: quota.usage,
+        });
+        return;
+      }
 
-      res.json({ success: true, runId: parsed.data.runId, projectId });
+      await creRunStore.add({ ...(parsed.data as any), projectId });
+      const usage = await usageMeter.recordIngest(projectId);
+
+      // Commercially useful headers
+      res.setHeader("X-Cognivern-Project", projectId);
+      res.setHeader("X-Cognivern-Usage-Window-Start", usage.windowStart);
+      res.setHeader("X-Cognivern-Usage-Window-Seconds", String(usage.windowSeconds));
+      res.setHeader("X-Cognivern-Usage-Ingested", String(usage.ingestedRuns));
+      const max = usageMeter.getMaxRunsForProject(projectId);
+
+      res.setHeader(
+        "X-Cognivern-Usage-Remaining",
+        String(Math.max(0, max - usage.ingestedRuns))
+      );
+
+      res.json({ success: true, runId: parsed.data.runId, projectId, usage });
     } catch (err: any) {
       res.status(500).json({
         success: false,
