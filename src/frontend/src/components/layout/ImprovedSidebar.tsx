@@ -46,6 +46,14 @@ const navigationItems: NavItem[] = [
     path: "/audit",
     description: "Activity history",
   },
+  {
+    id: "runs",
+    label: "Run Ledger",
+    icon: "⛓️",
+    path: "/runs",
+    description: "Verifiable agent traces",
+    badge: "NEW",
+  },
 ];
 
 export const ImprovedSidebar: React.FC = () => {

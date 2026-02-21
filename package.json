@@ -26,6 +26,7 @@
     "deploy": "./scripts/deploy.sh",
     "dev:local": "./scripts/local-dev.sh",
     "start-agent": "tsx scripts/startFirstAgent.ts",
+    "ingest-example": "tsx scripts/ingest-example.ts",
     "dev": "tsx watch src/index.ts",
     "dev:api": "tsx watch src/modules/api/index.ts",
     "dev:agents": "tsx watch src/modules/agents/index.ts",

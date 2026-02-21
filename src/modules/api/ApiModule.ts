@@ -28,6 +28,8 @@ import { MetricsController } from "./controllers/MetricsController.js";
 import { SapienceController } from "./controllers/SapienceController.js";
 import { RecallController } from "./controllers/RecallController.js";
 import { AuditLogController } from "./controllers/AuditLogController.js";
+import { CreController } from "./controllers/CreController.js";
+import { IngestController } from "./controllers/IngestController.js";
 
 export class ApiModule extends BaseService {
   private app: express.Application;
@@ -199,6 +201,8 @@ export class ApiModule extends BaseService {
     this.controllers.set("sapience", new SapienceController());
     this.controllers.set("recall", new RecallController());
     this.controllers.set("audit", new AuditLogController());
+    this.controllers.set("cre", new CreController());
+    this.controllers.set("ingest", new IngestController());
 
     // Initialize all controllers
     for (const [name, controller] of this.controllers) {
@@ -333,6 +337,29 @@ export class ApiModule extends BaseService {
     // Legacy audit route for backward compatibility
     apiRouter.get("/audit-logs", (req, res) => {
       this.controllers.get("audit").getLogs(req, res);
+    });
+
+    // CRE / Agent Run Ledger routes
+    apiRouter.get("/cre/runs", (req, res) => {
+      this.controllers.get("cre").listRuns(req, res);
+    });
+
+    apiRouter.get("/cre/runs/:runId", (req, res) => {
+      this.controllers.get("cre").getRun(req, res);
+    });
+
+    apiRouter.post("/cre/forecast", (req, res) => {
+      this.controllers.get("cre").triggerForecast(req, res);
+    });
+
+    // Projects (multi-project support)
+    apiRouter.get("/projects", (req, res) => {
+      this.controllers.get("ingest").listProjects(req, res);
+    });
+
+    // BYO Agent Ingestion (Run Ledger)
+    apiRouter.post("/runs/ingest", (req, res) => {
+      this.controllers.get("ingest").ingestRun(req, res);
     });
 
     // Sapience routes
