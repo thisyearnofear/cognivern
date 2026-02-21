@@ -36,7 +36,13 @@ fi
 # Create tarball
 (
   cd "$TMP/app"
-  tar -czf "$OUT_TGZ" .
+  # Avoid macOS extended attributes in archives (reduces noise on Linux untar)
+  # --no-xattrs is GNU tar; bsdtar ignores unknown flags, so we feature-detect.
+  if tar --help 2>/dev/null | grep -q -- "--no-xattrs"; then
+    tar --no-xattrs -czf "$OUT_TGZ" .
+  else
+    tar -czf "$OUT_TGZ" .
+  fi
 )
 
 echo "== artifact created: $OUT_TGZ"
