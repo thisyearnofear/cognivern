@@ -1,29 +1,37 @@
-# Cognivern: AI Governance Platform for Decentralized Agents
+# Cognivern: Decentralized AI Prediction Agent powered by Chainlink CRE
 
-A production-ready governance platform for autonomous AI agents operating across **Sapience** (prediction markets), **Recall** (decentralized memory), and **Filecoin** (storage & governance). Built for the [Sapience Hackathon](https://www.sapience.xyz/hackathon).
+A consensus-verified AI forecasting agent that uses **Chainlink Runtime Environment (CRE)** to orchestrate prediction market analysis, LLM reasoning, and on-chain attestations — all executed across Decentralized Oracle Networks with Byzantine Fault Tolerant consensus.
+
+Built for [Convergence: A Chainlink Hackathon](https://chain.link/hackathon) (Feb 6 – Mar 1, 2026).
 
 ## 🌟 Overview
 
-Cognivern is a multi-chain AI governance platform that enables autonomous agents to:
-1. **Forecast & Trade** - Participate in Sapience prediction markets with EAS attestations on Arbitrum.
-2. **Horizon-Weighted Intelligence** - Optimized strategy to maximize Brier Score by predicting accurately early.
-3. **Store Knowledge** - Persist reasoning and memory on Recall Network.
-4. **Resilient Brains** - Multi-LLM fallback (Routeway.ai + Groq) to ensure 100% uptime.
+Cognivern transforms autonomous AI agents from centralized bots into **decentralized, verifiable prediction systems**:
 
-## 🎯 Sapience Hackathon Integration
+1. **CRE-Orchestrated Forecasting** — Cron-triggered CRE workflows fetch market data, generate predictions, and submit attestations — every step consensus-verified by a DON.
+2. **Confidential AI Reasoning** — LLM calls execute via Confidential HTTP capability, keeping prediction logic private until attested on-chain.
+3. **Chainlink Data Feeds** — On-chain price data (ETH/USD, BTC/USD) consumed as inputs to the forecasting model via EVM Read capability.
+4. **Multi-LLM Resilience** — Fallback across Routeway.ai (Kimi K2) and Groq (Llama 3.3) within CRE callbacks.
 
-### Forecasting Agent Track (LIVE)
-- ✅ **Horizon-Weighted Strategy** - Prioritizes markets with the longest resolution window for maximum points.
-- ✅ **Resilient Forecasting** - Primary: Routeway.ai (Kimi K2) | Fallback: Groq (Llama 3.3).
-- ✅ **Direct GraphQL Integration** - Custom fail-safe fetching logic for Sapience market data.
-- ✅ **EAS Attestations** - Real-time forecast submissions recorded on Arbitrum One.
-- ✅ **On-Chain Persistence** - Reasoning and thoughts stored permanently on Recall Network.
+## 🎯 Chainlink Convergence Hackathon
+
+### Target Tracks
+- 🤖 **AI Agents: DeFi & Web3** — AI-powered prediction market agent consuming CRE workflows
+- 🔗 **AI Agents: Multi-agent & orchestration** — Multi-LLM orchestrated forecasting with decentralized consensus
+- 🏆 **Grand Prize** — Best overall project showcasing Chainlink technologies
+
+### CRE Integration
+- ✅ **Cron-Triggered Workflows** — Scheduled forecasting pipeline running on Chainlink DON
+- ✅ **HTTP Capability** — Sapience market data fetched with multi-node consensus
+- ✅ **Confidential HTTP** — Private LLM API calls with enclave execution
+- ✅ **EVM Read** — Chainlink Data Feeds for real-time price inputs
+- ✅ **EVM Write** — Consensus-verified EAS attestation submission on Arbitrum
 
 ### Key Features
-- **📊 Live "Thoughts" Dashboard** - Real-time display of agent reasoning and decision-making process.
-- **🏆 Strategic Accuracy** - Mathematically optimized to win the "Accuracy" track via early predictions.
-- **🔗 Multi-Chain Architecture** - Unified logic across Arbitrum (Execution), Recall (Memory), and Filecoin (Governance).
-- **🛡️ Governance Native** - Policy enforcement layer built-in to prevent high-risk actions.
+- **📊 Live "Thoughts" Dashboard** — Real-time display of agent reasoning and decision-making process
+- **🏆 Horizon-Weighted Strategy** — Mathematically optimized market selection for maximum accuracy scoring
+- **🔐 Confidential AI** — LLM reasoning stays private via CRE enclaves, preventing front-running
+- **🛡️ Governance Native** — Policy enforcement layer with on-chain risk guardrails
 
 ## 🚀 Quick Start (Production Setup)
 
@@ -73,25 +81,49 @@ pnpm build
 pm2 start dist/index.js --name cognivern-agent
 ```
 
-## 🏗️ Architecture: The Resilient Brain
+## 🏗️ Architecture: CRE-Powered Prediction Pipeline
 
-Cognivern implements a **Multi-LLM Fallback Layer** to ensure no market opportunity is missed:
-1. **Tier 1 (Routeway.ai):** High-context reasoning using Moonshot Kimi K2.
-2. **Tier 2 (Groq):** Ultra-fast failover using Llama 3.3 (70B) if Routeway is throttled or offline.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CRE Workflow DON                              │
+│                                                                 │
+│  [Cron Trigger]  ──→  [HTTP Fetch]  ──→  [Confidential HTTP]   │
+│   Every 10 min        Market Data         LLM Reasoning         │
+│                       (consensus)         (private enclave)     │
+│                            │                    │               │
+│                            ▼                    ▼               │
+│                     [EVM Read]           [EVM Write]            │
+│                     Price Feeds          EAS Attestation        │
+│                     (consensus)          (consensus)            │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                    ┌──────────────────┐
+                    │   Arbitrum One   │
+                    │  EAS Attestation │
+                    │  + Data Feeds    │
+                    └──────────────────┘
+```
 
-This resilience combined with our **Horizon-Weighted Strategy** ensures the agent is consistently making high-value predictions on Arbitrum.
+### Multi-LLM Resilience Layer
+1. **Tier 1 (Routeway.ai):** High-context reasoning using Moonshot Kimi K2 via Confidential HTTP.
+2. **Tier 2 (Groq):** Ultra-fast failover using Llama 3.3 (70B) if Tier 1 is throttled or offline.
 
-## 🏆 Hackathon Judges: Quick Evidence
+Both LLM calls execute within CRE's Confidential HTTP capability — API keys and reasoning remain private within enclave execution.
 
-- **Arbiscan (EAS):** [View Agent Wallet](https://arbiscan.io/address/0xc8F0D4FF31166Daf37804C20eeFd059e041E64dC) Ethereal https://explorer.ethereal.trade/address/0xc8F0D4FF31166Daf37804C20eeFd059e041E64dC
-- **Real-Time Reasoning:** Visit the dashboard to see the live "Thoughts" feed generated by the LLMs.
-- **Recall Proof:** Every forecast is accompanied by a Reasoning storage call to the Recall Network.
+## 🏆 Evidence of Prior Work
+
+Cognivern has a proven track record from the Sapience Hackathon:
+- **Arbiscan (EAS):** [View Agent Wallet & Attestations](https://arbiscan.io/address/0xc8F0D4FF31166Daf37804C20eeFd059e041E64dC)
+- **Real-Time Reasoning:** Live "Thoughts" feed generated by the Multi-LLM layer
+- **On-Chain History:** Existing EAS attestations demonstrate production-ready forecasting
 
 ## 📚 Documentation
 
-- [Judges Guide](./docs/JUDGES_GUIDE.md) - **Start Here**
-- [Sapience Integration](./docs/SAPIENCE_INTEGRATION.md) - Strategy and technical details.
-- [Technical Architecture](./docs/TECHNICAL.md) - Deep dive into modular design.
+- [Chainlink CRE Integration Plan](./docs/CHAINLINK_INTEGRATION.md) - **Start Here** — CRE workflow design, implementation phases, and architecture
+- [Judges Guide](./docs/JUDGES_GUIDE.md) - Quick evidence and evaluation guide
+- [Technical Architecture](./docs/TECHNICAL.md) - Deep dive into modular design
+- [Sapience Integration](./docs/SAPIENCE_INTEGRATION.md) - Prediction market strategy details
 
 ## 📜 License
 

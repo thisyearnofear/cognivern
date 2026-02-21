@@ -2,11 +2,19 @@
 
 ## Architecture Overview
 
-Cognivern creates a modular, verifiable AI agent system. The architecture is designed to separate **domain logic** (decision making), **infrastructure** (blockchain interaction), and **application** (orchestration) concerns.
+Cognivern creates a modular, verifiable AI agent system powered by **Chainlink Runtime Environment (CRE)**. The architecture separates **CRE workflows** (decentralized orchestration), **domain logic** (decision making), **infrastructure** (blockchain interaction), and **application** (API & dashboard) concerns.
 
 ### System Diagram
 
 ```
+┌──────────────────────────────────────────────────────────────────────┐
+│                         CRE Workflow DON                             │
+│                                                                      │
+│  [Cron Trigger] → [HTTP: Market Data] → [Confidential HTTP: LLM]   │
+│                   [EVM Read: Price Feeds]   [EVM Write: Attestation] │
+└──────────────────────────────────────────────────────────────────────┘
+         │                                            │
+         ▼                                            ▼
 [ Application Layer ]       [ Domain Layer ]           [ Infrastructure Layer ]
       |                           |                              |
       v                           v                              v
@@ -17,8 +25,8 @@ Cognivern creates a modular, verifiable AI agent system. The architecture is des
       ^                           ^                              |
       |                           |                              v
       |                     +-----------+          +-------------------------+
-      +-------------------- |  Policy   | <------- |  InMemoryRepository     |
-                            |  Service  |          |  (Storage)              |
+      +-------------------- |  Policy   | <------- |  Chainlink Data Feeds   |
+                            |  Service  |          |  (EVM Read)             |
                             +-----------+          +-------------------------+
 ```
 

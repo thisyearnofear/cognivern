@@ -28,6 +28,8 @@ const PolicyManagement = lazy(
   () => import("./components/policies/PolicyManagement"),
 );
 const AuditLogs = lazy(() => import("./components/AuditLogs"));
+const RunLedger = lazy(() => import("./components/cre/RunLedger"));
+const RunDetails = lazy(() => import("./components/cre/RunDetails"));
 
 // Enhanced loading component with animations
 const PageSkeleton: React.FC = () => (
@@ -67,7 +69,7 @@ function App() {
               element={
                 <PageTransition type="slide">
                   <Suspense fallback={<PageSkeleton />}>
-                    <ModernDashboard userType={user.userType || "explorer"} />
+                    <RunLedger />
                   </Suspense>
                 </PageTransition>
               }
@@ -104,6 +106,29 @@ function App() {
                 <PageTransition type="slide">
                   <Suspense fallback={<PageSkeleton />}>
                     <AuditLogs />
+                  </Suspense>
+                </PageTransition>
+              }
+            />
+
+            {/* Run Ledger Routes */}
+            <Route
+              path="runs"
+              element={
+                <PageTransition type="slide">
+                  <Suspense fallback={<PageSkeleton />}>
+                    <RunLedger />
+                  </Suspense>
+                </PageTransition>
+              }
+            />
+
+            <Route
+              path="runs/:runId"
+              element={
+                <PageTransition type="slide">
+                  <Suspense fallback={<PageSkeleton />}>
+                    <RunDetails />
                   </Suspense>
                 </PageTransition>
               }
