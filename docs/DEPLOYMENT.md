@@ -1,118 +1,102 @@
-# Sapience Agent Deployment Guide
+# Deployment
 
-## 🌐 **Recommended: Phala Cloud Deployment**
+This repo uses a **backend artifact + releases** deployment model.
 
-**For production AI agent deployments, we recommend Phala Cloud over self-hosting:**
-
-### **Why Phala Cloud?**
-
-- **🛡️ TEE Security**: Secure enclaves protect your private key and trading strategy.
-- **🔄 Guaranteed Uptime**: Decentralized compute eliminates single points of failure.
-- **💰 Cost Efficiency**: Pay-per-use model.
+## Why
+- Keeps production servers as **runtime environments** (no TypeScript builds required).
+- Enables fast, safe rollbacks.
+- Avoids installing frontend dependencies on the backend server.
 
 ---
 
-## 🚀 Current Self-Hosted Deployment Status
+## Architecture
 
-**🔒 PRODUCTION READY - SAPIENCE FORECASTER ACTIVE**
+### Data Plane / Control Plane
+- Data plane ingestion: `POST /ingest/runs`
+- Control plane APIs: `/api/*`
 
-- ✅ **Agent Type**: Sapience Forecasting & Trading Agent
-- ✅ **Network**: Arbitrum One (EAS Attestations) & Ethereal
-- ✅ **Integration**: `@sapience/sdk` v0.2.0
-- **Process Manager**: PM2 (`cognivern-agent`)
-- **Server Location**: `/opt/cognivern` on `snel-bot`
-
-## 📋 Architecture Overview
+### Server Layout (Hetzner)
 
 ```
-Frontend (Vercel) → HTTPS → api.thisyearnofear.com (Nginx) → Local Agent (Port 10000) → Arbitrum RPC
-```
-
-- **Frontend**: Deployed on Vercel (`cognivern.vercel.app`)
-- **Backend**: Deployed on Hetzner server (`snel-bot`) at `/opt/cognivern`
-- **Process**: Node.js managed by PM2
-- **Blockchain**: Arbitrum One (via RPC)
-
-## 🔧 Server Configuration
-
-The agent is deployed on the `snel-bot` server.
-
-### **Directory Structure**
-```bash
 /opt/cognivern/
-├── .env                # Secrets (SAPIENCE_PRIVATE_KEY, API_KEY)
-├── dist/               # Compiled JS code
-├── node_modules/       # Dependencies
-└── logs/               # PM2 logs
+  releases/
+    <release-id>/
+      dist/
+      node_modules/        # prod deps only
+      .env -> ../shared/.env
+      data -> ../shared/data
+      logs -> ../shared/logs
+  current -> releases/<release-id>
+  shared/
+    .env
+    data/
+    logs/
+  config/
+    ecosystem.config.cjs   # PM2 config (NO SECRETS ideally)
 ```
 
-### **Management Commands**
+**Rule:** application must run from `/opt/cognivern/current`.
 
-**Check Status:**
+---
+
+## Local developer workflow
+
+### Build backend artifact
+
 ```bash
-pm2 status cognivern-agent
+bash scripts/deploy/build-backend-artifact.sh
 ```
 
-**View Logs:**
+This creates a tarball under `.artifacts/` containing the minimal runtime payload:
+- `dist/`
+- `package.json`, `pnpm-lock.yaml`
+- `config/` (runtime config)
+
+### Deploy to Hetzner
+
 ```bash
-pm2 logs cognivern-agent
+bash scripts/deploy/deploy-backend-artifact-hetzner.sh
 ```
 
-**Restart Agent:**
+The deploy script:
+- uploads the tarball to `/opt/cognivern/releases/`
+- installs **prod dependencies only** inside the release
+- links shared state (`shared/.env`, `shared/data`, `shared/logs`)
+- updates `/opt/cognivern/current`
+- restarts PM2
+- runs a health check
+
+### List releases
+
 ```bash
-pm2 restart cognivern-agent
+bash scripts/deploy/list-releases-hetzner.sh
 ```
 
-**Update & Redeploy:**
+### Rollback
+
 ```bash
-cd /opt/cognivern
-git pull
-pnpm install
-pnpm build
-pm2 restart cognivern-agent
+bash scripts/deploy/rollback-hetzner.sh <release-dir-name>
 ```
 
-## 🔒 Security Implementation
+---
 
-- **Private Keys**: Stored in `.env` (git-ignored), never exposed in code.
-- **RPC Communication**: Over HTTPS to secure Arbitrum nodes.
-- **API Access**: Protected by `X-API-KEY` header.
+## Secrets policy (IMPORTANT)
 
-## 🌐 Environment Variables
+### Do NOT commit
+- `.env`, `.env.production`, any private keys, API keys, ingest keys
+- PM2 ecosystem files containing secrets
 
-Ensure `.env` on the server contains:
+### Safe to commit
+- deployment scripts that do not embed secrets
+- deployment docs
+- `.env.example` with placeholders
 
-```env
-NODE_ENV=production
-PORT=10000
-ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
-SAPIENCE_PRIVATE_KEY=your_private_key_here
-API_KEY=your_api_key_here
-```
+### Where secrets live
+- `/opt/cognivern/shared/.env` on the server (not in git)
 
-## 🚀 Production Optimization
+---
 
-The agent runs in `production` mode, which:
-- Disables debug logging
-- Enables strict policy enforcement
-- Uses optimized build artifacts (`dist/`)
+## Notes
 
-## 📊 Monitoring
-
-Monitor the agent's performance and connectivity:
-
-1.  **Process Health**: `pm2 monit`
-2.  **API Health Check**: `curl http://localhost:10000/health`
-3.  **Logs**: Check `~/.pm2/logs/cognivern-agent-out.log` and `error.log`
-
-## 🚨 Troubleshooting
-
-**Agent not starting?**
-- Check Node.js version (`node -v`). Must be v18+.
-- Verify `.env` exists and has valid keys.
-- Check for port conflicts (Port 10000).
-
-**Forecasts failing?**
-- Verify Arbitrum ETH balance for gas.
-- Check RPC URL connectivity.
-- Inspect logs for specific SDK errors.
+- If you need to run background agents/trading loops, set `AGENTS_ENABLED=true`.
+  - Default should remain `false` for an ingestion-first product.

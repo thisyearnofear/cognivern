@@ -48,9 +48,8 @@ ln -sfn "$REMOTE_BASE/releases/$RELEASE_NAME" "$REMOTE_BASE/current"
 
 # Ensure PM2 ecosystem points at /opt/cognivern/current
 if [ -f "$REMOTE_BASE/config/ecosystem.config.cjs" ]; then
-  # patch cwd to current, script remains dist/index.js
-  perl -0777 -i -pe "s/cwd: \"\/opt\/cognivern\"/cwd: \"\/opt\/cognivern\/current\"/" "$REMOTE_BASE/config/ecosystem.config.cjs" || true
-  perl -0777 -i -pe "s/script: \"dist\/index\.js\"/script: \"dist\/index.js\"/" "$REMOTE_BASE/config/ecosystem.config.cjs" || true
+  sed -i "s|cwd: \"/opt/cognivern\"|cwd: \"/opt/cognivern/current\"|" "$REMOTE_BASE/config/ecosystem.config.cjs" || true
+  sed -i "s|script: \"/opt/cognivern/dist/index.js\"|script: \"dist/index.js\"|" "$REMOTE_BASE/config/ecosystem.config.cjs" 2>/dev/null || true
 fi
 
 # Restart PM2

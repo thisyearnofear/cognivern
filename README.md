@@ -114,6 +114,10 @@ Or use the included example:
 pnpm ingest-example
 ```
 
+## Deployment
+
+See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for the standard artifact-based release process (build locally, deploy to Hetzner, rollback via symlink).
+
 ## 🏗️ Architecture: CRE-Powered Prediction Pipeline
 
 ```
