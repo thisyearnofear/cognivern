@@ -157,10 +157,12 @@ Cognivern has a proven track record from the Sapience Hackathon:
 
 ## 📚 Documentation
 
-- [Chainlink CRE Integration Plan](./docs/CHAINLINK_INTEGRATION.md) - **Start Here** — CRE workflow design, implementation phases, and architecture
-- [Judges Guide](./docs/JUDGES_GUIDE.md) - Quick evidence and evaluation guide
-- [Technical Architecture](./docs/TECHNICAL.md) - Deep dive into modular design
-- [Sapience Integration](./docs/SAPIENCE_INTEGRATION.md) - Prediction market strategy details
+| Doc | Description |
+| :--- | :--- |
+| **[Architecture](./docs/ARCHITECTURE.md)** | System overview, components, and design |
+| **[Developer Guide](./docs/DEVELOPER.md)** | API reference, testing, and contributing |
+| **[CRE Integration](./docs/CRE.md)** | Chainlink workflow implementation |
+| **[Deployment](./docs/DEPLOYMENT.md)** | Release process, rollback, and operations |
 
 ## 📜 License
 

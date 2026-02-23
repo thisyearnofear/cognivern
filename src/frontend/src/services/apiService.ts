@@ -158,6 +158,86 @@ export class AgentApiService extends ApiService {
   async getAgentMetrics(agentType: string) {
     return this.get(`/api/agents/${agentType}/metrics`);
   }
+
+  // COMPARISON ENDPOINTS - New functionality for agent comparison
+  
+  // Compare multiple agents
+  async compareAgents(params: {
+    agentIds?: string[];
+    agentTypes?: string[];
+    ecosystems?: string[];
+    status?: string[];
+    timeRange?: { start: string; end: string };
+    sortBy?: string;
+    sortDirection?: 'asc' | 'desc';
+  }) {
+    const queryParams = new URLSearchParams();
+    
+    if (params.agentIds) queryParams.set('agentIds', params.agentIds.join(','));
+    if (params.agentTypes) queryParams.set('agentTypes', params.agentTypes.join(','));
+    if (params.ecosystems) queryParams.set('ecosystems', params.ecosystems.join(','));
+    if (params.status) queryParams.set('status', params.status.join(','));
+    if (params.timeRange) {
+      queryParams.set('startDate', params.timeRange.start);
+      queryParams.set('endDate', params.timeRange.end);
+    }
+    if (params.sortBy) queryParams.set('sortBy', params.sortBy);
+    if (params.sortDirection) queryParams.set('sortDirection', params.sortDirection);
+    
+    const query = queryParams.toString();
+    return this.get(`/api/agents/compare${query ? `?${query}` : ''}`);
+  }
+
+  // Get leaderboard across ecosystems
+  async getLeaderboard(params?: {
+    ecosystem?: string;
+    metric?: 'winRate' | 'totalReturn' | 'sharpeRatio';
+    limit?: number;
+  }) {
+    const queryParams = new URLSearchParams();
+    
+    if (params?.ecosystem) queryParams.set('ecosystem', params.ecosystem);
+    if (params?.metric) queryParams.set('metric', params.metric);
+    if (params?.limit) queryParams.set('limit', params.limit.toString());
+    
+    const query = queryParams.toString();
+    return this.get(`/api/agents/leaderboard${query ? `?${query}` : ''}`);
+  }
+
+  // Get aggregate statistics
+  async getAggregateStats(params?: {
+    agentTypes?: string[];
+    ecosystems?: string[];
+    timeRange?: { start: string; end: string };
+  }) {
+    const queryParams = new URLSearchParams();
+    
+    if (params?.agentTypes) queryParams.set('agentTypes', params.agentTypes.join(','));
+    if (params?.ecosystems) queryParams.set('ecosystems', params.ecosystems.join(','));
+    if (params?.timeRange) {
+      queryParams.set('startDate', params.timeRange.start);
+      queryParams.set('endDate', params.timeRange.end);
+    }
+    
+    const query = queryParams.toString();
+    return this.get(`/api/agents/stats${query ? `?${query}` : ''}`);
+  }
+
+  // Get all agents with basic info (for filtering)
+  async listAgents(params?: {
+    status?: string[];
+    types?: string[];
+    ecosystems?: string[];
+  }) {
+    const queryParams = new URLSearchParams();
+    
+    if (params?.status) queryParams.set('status', params.status.join(','));
+    if (params?.types) queryParams.set('types', params.types.join(','));
+    if (params?.ecosystems) queryParams.set('ecosystems', params.ecosystems.join(','));
+    
+    const query = queryParams.toString();
+    return this.get(`/api/agents${query ? `?${query}` : ''}`);
+  }
 }
 
 // MCP-specific API service

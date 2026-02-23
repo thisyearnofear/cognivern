@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { css } from "@emotion/react";
 import {
   designTokens,
@@ -20,10 +20,21 @@ import VincentConsentFlow from "./VincentConsentFlow";
 import PolicyConfiguration from "./PolicyConfiguration";
 import TradingChart from "./TradingChart";
 import TradeHistory from "./TradeHistory";
+import { agentApi } from "../../services/apiService";
+import { 
+  agentComparisonSchema, 
+  defaultFilters, 
+  filterFieldDefinitions,
+  type AgentComparisonFilters 
+} from "../../lib/store/agentComparisonSchema";
 
 export default function TradingAgentDashboard() {
   const [selectedAgentType, setSelectedAgentType] = useState<AgentType>("recall");
   const [showComparison, setShowComparison] = useState(false);
+  const [comparisonFilters, setComparisonFilters] = useState<AgentComparisonFilters>(defaultFilters);
+  const [comparisonData, setComparisonData] = useState<any[]>([]);
+  const [isLoadingComparison, setIsLoadingComparison] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   const {
     status: agentStatus,
@@ -74,6 +85,83 @@ export default function TradingAgentDashboard() {
       policies: newPolicies,
     }));
   };
+
+  // Fetch comparison data when comparison view is shown
+  useEffect(() => {
+    if (showComparison) {
+      fetchComparisonData();
+    }
+  }, [showComparison, comparisonFilters]);
+
+  const fetchComparisonData = async () => {
+    setIsLoadingComparison(true);
+    try {
+      const response = await agentApi.compareAgents({
+        agentTypes: comparisonFilters.agentTypes?.length ? comparisonFilters.agentTypes : undefined,
+        ecosystems: comparisonFilters.ecosystems?.length ? comparisonFilters.ecosystems : undefined,
+        status: comparisonFilters.status?.length ? comparisonFilters.status : undefined,
+        sortBy: comparisonFilters.sortBy || 'totalReturn',
+        sortDirection: comparisonFilters.sortDirection || 'desc',
+      });
+
+      if (response.success && response.data) {
+        setComparisonData(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch comparison data:', error);
+    } finally {
+      setIsLoadingComparison(false);
+    }
+  };
+
+  const updateFilter = <K extends keyof AgentComparisonFilters>(
+    key: K,
+    value: AgentComparisonFilters[K]
+  ) => {
+    setComparisonFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const resetFilters = () => {
+    setComparisonFilters(defaultFilters);
+  };
+
+  // Filter comparison data based on local filters
+  const filteredComparisonData = useMemo(() => {
+    let filtered = [...comparisonData];
+
+    // Apply search filter
+    if (comparisonFilters.search) {
+      const search = comparisonFilters.search.toLowerCase();
+      filtered = filtered.filter(agent =>
+        agent.agentName?.toLowerCase().includes(search) ||
+        agent.agentType?.toLowerCase().includes(search)
+      );
+    }
+
+    // Apply range filters
+    if (comparisonFilters.winRate) {
+      const [min, max] = comparisonFilters.winRate;
+      filtered = filtered.filter(agent =>
+        agent.winRate >= min && agent.winRate <= max
+      );
+    }
+
+    if (comparisonFilters.totalReturn) {
+      const [min, max] = comparisonFilters.totalReturn;
+      filtered = filtered.filter(agent =>
+        agent.totalReturn >= min && agent.totalReturn <= max
+      );
+    }
+
+    if (comparisonFilters.sharpeRatio) {
+      const [min, max] = comparisonFilters.sharpeRatio;
+      filtered = filtered.filter(agent =>
+        agent.sharpeRatio >= min && agent.sharpeRatio <= max
+      );
+    }
+
+    return filtered;
+  }, [comparisonData, comparisonFilters]);
 
   const containerStyles = css`
     max-width: 1400px;
@@ -380,7 +468,13 @@ export default function TradingAgentDashboard() {
       </div>
 
       {/* Agent Comparison Toggle */}
-      <div css={css`text-align: center; margin-bottom: ${designTokens.spacing[6]};`}>
+      <div css={css`
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: ${designTokens.spacing[3]};
+        margin-bottom: ${designTokens.spacing[6]};
+      `}>
         <Button
           variant="secondary"
           size="sm"
@@ -388,51 +482,366 @@ export default function TradingAgentDashboard() {
         >
           {showComparison ? "Hide" : "Show"} Agent Comparison
         </Button>
+        {showComparison && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            {showFilters ? "Hide" : "Show"} Filters
+          </Button>
+        )}
       </div>
 
-      {/* Agent Comparison Table */}
+      {/* Enhanced Agent Comparison */}
       {showComparison && (
         <Card css={css`margin-bottom: ${designTokens.spacing[8]};`}>
           <CardHeader>
-            <CardTitle>Agent Comparison</CardTitle>
-            <CardDescription>Compare features and capabilities</CardDescription>
+            <div css={css`
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            `}>
+              <div>
+                <CardTitle>Agent Performance Comparison</CardTitle>
+                <CardDescription>
+                  Compare metrics across all agents and ecosystems
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+              >
+                Reset Filters
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <div css={css`
-              display: grid;
-              grid-template-columns: 1fr 1fr 1fr;
-              gap: ${designTokens.spacing[2]};
-              
-              & > div {
-                padding: ${designTokens.spacing[3]};
-                border-bottom: 1px solid ${designTokens.colors.neutral[200]};
-              }
-              
-              & > div:nth-of-type(3n+1) {
-                font-weight: ${designTokens.typography.fontWeight.semibold};
+            {/* Filters Section */}
+            {showFilters && (
+              <div css={css`
+                padding: ${designTokens.spacing[4]};
                 background: ${designTokens.colors.neutral[50]};
-              }
-            `}>
-              <div>Feature</div>
-              <div>Recall Agent</div>
-              <div>Vincent Agent</div>
+                border-radius: ${designTokens.borderRadius.lg};
+                margin-bottom: ${designTokens.spacing[4]};
+              `}>
+                <h4 css={css`
+                  margin: 0 0 ${designTokens.spacing[3]} 0;
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                  text-transform: uppercase;
+                  color: ${designTokens.colors.neutral[600]};
+                `}>
+                  Filters
+                </h4>
+                
+                <div css={css`
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                  gap: ${designTokens.spacing[4]};
+                `}>
+                  {/* Search */}
+                  <div>
+                    <label css={css`
+                      display: block;
+                      margin-bottom: ${designTokens.spacing[2]};
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      font-weight: ${designTokens.typography.fontWeight.medium};
+                    `}>
+                      Search
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Search agents..."
+                      value={comparisonFilters.search || ''}
+                      onChange={(e) => updateFilter('search', e.target.value || null)}
+                      css={css`
+                        width: 100%;
+                        padding: ${designTokens.spacing[2]};
+                        border: 1px solid ${designTokens.colors.neutral[300]};
+                        border-radius: ${designTokens.borderRadius.md};
+                        font-size: ${designTokens.typography.fontSize.sm};
+                      `}
+                    />
+                  </div>
 
-              <div>Trading Style</div>
-              <div>Competition-focused</div>
-              <div>Sentiment-driven</div>
+                  {/* Agent Types */}
+                  <div>
+                    <label css={css`
+                      display: block;
+                      margin-bottom: ${designTokens.spacing[2]};
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      font-weight: ${designTokens.typography.fontWeight.medium};
+                    `}>
+                      Agent Types
+                    </label>
+                    <div css={css`display: flex; flex-wrap: wrap; gap: ${designTokens.spacing[2]};`}>
+                      {['recall', 'vincent', 'sapience'].map(type => (
+                        <label key={type} css={css`
+                          display: flex;
+                          align-items: center;
+                          gap: ${designTokens.spacing[1]};
+                          font-size: ${designTokens.typography.fontSize.sm};
+                          cursor: pointer;
+                        `}>
+                          <input
+                            type="checkbox"
+                            checked={comparisonFilters.agentTypes?.includes(type as any) || false}
+                            onChange={(e) => {
+                              const current = comparisonFilters.agentTypes || [];
+                              const updated = e.target.checked
+                                ? [...current, type as any]
+                                : current.filter(t => t !== type);
+                              updateFilter('agentTypes', updated);
+                            }}
+                          />
+                          {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
 
-              <div>Data Sources</div>
-              <div>Market data, Technical analysis</div>
-              <div>Social media, News, Sentiment</div>
+                  {/* Status */}
+                  <div>
+                    <label css={css`
+                      display: block;
+                      margin-bottom: ${designTokens.spacing[2]};
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      font-weight: ${designTokens.typography.fontWeight.medium};
+                    `}>
+                      Status
+                    </label>
+                    <div css={css`display: flex; flex-wrap: wrap; gap: ${designTokens.spacing[2]};`}>
+                      {['active', 'inactive'].map(status => (
+                        <label key={status} css={css`
+                          display: flex;
+                          align-items: center;
+                          gap: ${designTokens.spacing[1]};
+                          font-size: ${designTokens.typography.fontSize.sm};
+                          cursor: pointer;
+                        `}>
+                          <input
+                            type="checkbox"
+                            checked={comparisonFilters.status?.includes(status as any) || false}
+                            onChange={(e) => {
+                              const current = comparisonFilters.status || [];
+                              const updated = e.target.checked
+                                ? [...current, status as any]
+                                : current.filter(s => s !== status);
+                              updateFilter('status', updated);
+                            }}
+                          />
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
-              <div>Governance</div>
-              <div>Platform policies</div>
-              <div>User-defined policies</div>
+            {/* Comparison Table */}
+            {isLoadingComparison ? (
+              <div css={css`
+                text-align: center;
+                padding: ${designTokens.spacing[8]};
+                color: ${designTokens.colors.neutral[500]};
+              `}>
+                Loading comparison data...
+              </div>
+            ) : filteredComparisonData.length === 0 ? (
+              <div css={css`
+                text-align: center;
+                padding: ${designTokens.spacing[8]};
+                color: ${designTokens.colors.neutral[500]};
+              `}>
+                No agents found matching your filters
+              </div>
+            ) : (
+              <div css={css`
+                overflow-x: auto;
+                border: 1px solid ${designTokens.colors.neutral[200]};
+                border-radius: ${designTokens.borderRadius.lg};
+              `}>
+                <table css={css`
+                  width: 100%;
+                  border-collapse: collapse;
+                  font-size: ${designTokens.typography.fontSize.sm};
 
-              <div>Execution</div>
-              <div>Recall API</div>
-              <div>Vincent Framework + Lit Protocol</div>
-            </div>
+                  th, td {
+                    padding: ${designTokens.spacing[3]};
+                    text-align: left;
+                    border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+                  }
+
+                  th {
+                    background: ${designTokens.colors.neutral[50]};
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    color: ${designTokens.colors.neutral[700]};
+                    position: sticky;
+                    top: 0;
+                    cursor: pointer;
+                    user-select: none;
+
+                    &:hover {
+                      background: ${designTokens.colors.neutral[100]};
+                    }
+                  }
+
+                  tbody tr:hover {
+                    background: ${designTokens.colors.neutral[50]};
+                  }
+
+                  tbody tr:last-child td {
+                    border-bottom: none;
+                  }
+                `}>
+                  <thead>
+                    <tr>
+                      <th onClick={() => updateFilter('sortBy', 'agentName')}>
+                        Agent {comparisonFilters.sortBy === 'agentName' && (comparisonFilters.sortDirection === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th onClick={() => updateFilter('sortBy', 'agentType')}>
+                        Type {comparisonFilters.sortBy === 'agentType' && (comparisonFilters.sortDirection === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th>Status</th>
+                      <th onClick={() => updateFilter('sortBy', 'totalTrades')}>
+                        Trades {comparisonFilters.sortBy === 'totalTrades' && (comparisonFilters.sortDirection === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th onClick={() => updateFilter('sortBy', 'winRate')}>
+                        Win Rate {comparisonFilters.sortBy === 'winRate' && (comparisonFilters.sortDirection === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th onClick={() => updateFilter('sortBy', 'totalReturn')}>
+                        Return {comparisonFilters.sortBy === 'totalReturn' && (comparisonFilters.sortDirection === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th onClick={() => updateFilter('sortBy', 'sharpeRatio')}>
+                        Sharpe {comparisonFilters.sortBy === 'sharpeRatio' && (comparisonFilters.sortDirection === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th onClick={() => updateFilter('sortBy', 'avgLatency')}>
+                        Latency {comparisonFilters.sortBy === 'avgLatency' && (comparisonFilters.sortDirection === 'asc' ? '↑' : '↓')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredComparisonData.map((agent, idx) => (
+                      <tr key={agent.agentId || idx}>
+                        <td css={css`font-weight: ${designTokens.typography.fontWeight.medium};`}>
+                          {agent.agentName || 'Unknown'}
+                        </td>
+                        <td>
+                          <Badge variant="secondary" size="sm">
+                            {agent.agentType || 'N/A'}
+                          </Badge>
+                        </td>
+                        <td>
+                          <Badge 
+                            variant={agent.status === 'active' ? 'success' : 'secondary'}
+                            size="sm"
+                          >
+                            {agent.status || 'unknown'}
+                          </Badge>
+                        </td>
+                        <td>{agent.totalTrades || 0}</td>
+                        <td css={css`
+                          color: ${(agent.winRate || 0) >= 50 
+                            ? designTokens.colors.semantic.success[600] 
+                            : designTokens.colors.neutral[600]};
+                          font-weight: ${designTokens.typography.fontWeight.medium};
+                        `}>
+                          {((agent.winRate || 0) * 100).toFixed(1)}%
+                        </td>
+                        <td css={css`
+                          color: ${(agent.totalReturn || 0) >= 0 
+                            ? designTokens.colors.semantic.success[600] 
+                            : designTokens.colors.semantic.error[600]};
+                          font-weight: ${designTokens.typography.fontWeight.medium};
+                        `}>
+                          {(agent.totalReturn || 0) >= 0 ? '+' : ''}
+                          {((agent.totalReturn || 0) * 100).toFixed(2)}%
+                        </td>
+                        <td>{(agent.sharpeRatio || 0).toFixed(2)}</td>
+                        <td>{agent.avgLatency ? `${agent.avgLatency}ms` : 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Summary Stats */}
+            {filteredComparisonData.length > 0 && (
+              <div css={css`
+                margin-top: ${designTokens.spacing[4]};
+                padding: ${designTokens.spacing[4]};
+                background: ${designTokens.colors.primary[50]};
+                border-radius: ${designTokens.borderRadius.lg};
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: ${designTokens.spacing[4]};
+              `}>
+                <div css={css`text-align: center;`}>
+                  <div css={css`
+                    font-size: ${designTokens.typography.fontSize['2xl']};
+                    font-weight: ${designTokens.typography.fontWeight.bold};
+                    color: ${designTokens.colors.primary[600]};
+                  `}>
+                    {filteredComparisonData.length}
+                  </div>
+                  <div css={css`
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    color: ${designTokens.colors.neutral[600]};
+                  `}>
+                    Total Agents
+                  </div>
+                </div>
+                <div css={css`text-align: center;`}>
+                  <div css={css`
+                    font-size: ${designTokens.typography.fontSize['2xl']};
+                    font-weight: ${designTokens.typography.fontWeight.bold};
+                    color: ${designTokens.colors.primary[600]};
+                  `}>
+                    {(filteredComparisonData.reduce((sum, a) => sum + (a.winRate || 0), 0) / filteredComparisonData.length * 100).toFixed(1)}%
+                  </div>
+                  <div css={css`
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    color: ${designTokens.colors.neutral[600]};
+                  `}>
+                    Avg Win Rate
+                  </div>
+                </div>
+                <div css={css`text-align: center;`}>
+                  <div css={css`
+                    font-size: ${designTokens.typography.fontSize['2xl']};
+                    font-weight: ${designTokens.typography.fontWeight.bold};
+                    color: ${designTokens.colors.primary[600]};
+                  `}>
+                    {(filteredComparisonData.reduce((sum, a) => sum + (a.totalReturn || 0), 0) / filteredComparisonData.length * 100).toFixed(2)}%
+                  </div>
+                  <div css={css`
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    color: ${designTokens.colors.neutral[600]};
+                  `}>
+                    Avg Return
+                  </div>
+                </div>
+                <div css={css`text-align: center;`}>
+                  <div css={css`
+                    font-size: ${designTokens.typography.fontSize['2xl']};
+                    font-weight: ${designTokens.typography.fontWeight.bold};
+                    color: ${designTokens.colors.primary[600]};
+                  `}>
+                    {filteredComparisonData.reduce((sum, a) => sum + (a.totalTrades || 0), 0)}
+                  </div>
+                  <div css={css`
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    color: ${designTokens.colors.neutral[600]};
+                  `}>
+                    Total Trades
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
