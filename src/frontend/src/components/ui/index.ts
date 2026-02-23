@@ -9,7 +9,12 @@ export {
   CardFooter,
 } from "./Card";
 export { Modal } from "./Modal";
-export { Dialog, ConfirmDialog, PromptDialog, MultiFieldDialog } from "./Dialog";
+export {
+  Dialog,
+  ConfirmDialog,
+  PromptDialog,
+  MultiFieldDialog,
+} from "./Dialog";
 export { Toast } from "./Toast";
 export { DataTable } from "./DataTable";
 export { Form, FormField } from "./Form";
@@ -25,7 +30,12 @@ export { Tooltip } from "./Tooltip";
 export type { ButtonProps } from "./Button";
 export type { CardProps } from "./Card";
 export type { ModalProps } from "./Modal";
-export type { DialogProps, ConfirmDialogProps, PromptDialogProps, MultiFieldDialogProps } from "./Dialog";
+export type {
+  DialogProps,
+  ConfirmDialogProps,
+  PromptDialogProps,
+  MultiFieldDialogProps,
+} from "./Dialog";
 export type { ToastProps } from "./Toast";
 export type { DataTableProps, Column } from "./DataTable";
 export type { FormProps, FormFieldProps } from "./Form";

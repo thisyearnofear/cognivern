@@ -70,8 +70,12 @@ export default function TradingChart({
     margin-bottom: ${designTokens.spacing[4]};
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
     }
   `;
 
@@ -93,7 +97,11 @@ export default function TradingChart({
   const chartAreaStyles = css`
     position: relative;
     height: 200px;
-    background: linear-gradient(135deg, ${designTokens.colors.neutral[50]} 0%, ${designTokens.colors.neutral[100]} 100%);
+    background: linear-gradient(
+      135deg,
+      ${designTokens.colors.neutral[50]} 0%,
+      ${designTokens.colors.neutral[100]} 100%
+    );
     border-radius: ${designTokens.borderRadius.lg};
     margin-bottom: ${designTokens.spacing[4]};
     overflow: hidden;
@@ -106,7 +114,11 @@ export default function TradingChart({
     padding: ${designTokens.spacing[4]};
   `;
 
-  const chartPointStyles = (action: string, index: number, total: number) => css`
+  const chartPointStyles = (
+    action: string,
+    index: number,
+    total: number,
+  ) => css`
     position: absolute;
     left: ${(index / Math.max(total - 1, 1)) * 100}%;
     transform: translateX(-50%);
@@ -222,10 +234,20 @@ export default function TradingChart({
       <div css={containerStyles}>
         <div css={emptyStateStyles}>
           <div css={emptyIconStyles}>📊</div>
-          <h4 css={css`margin: 0 0 ${designTokens.spacing[2]} 0; color: ${designTokens.colors.neutral[700]};`}>
+          <h4
+            css={css`
+              margin: 0 0 ${designTokens.spacing[2]} 0;
+              color: ${designTokens.colors.neutral[700]};
+            `}
+          >
             No trading data yet
           </h4>
-          <p css={css`margin: 0; color: ${designTokens.colors.neutral[600]};`}>
+          <p
+            css={css`
+              margin: 0;
+              color: ${designTokens.colors.neutral[600]};
+            `}
+          >
             Start the {agentType} agent to see trading performance
           </p>
         </div>
@@ -233,10 +255,11 @@ export default function TradingChart({
     );
   }
 
-  const buyCount = chartData.filter(d => d.action === 'buy').length;
-  const sellCount = chartData.filter(d => d.action === 'sell').length;
-  const holdCount = chartData.filter(d => d.action === 'hold').length;
-  const avgConfidence = chartData.reduce((sum, d) => sum + d.confidence, 0) / chartData.length;
+  const buyCount = chartData.filter((d) => d.action === "buy").length;
+  const sellCount = chartData.filter((d) => d.action === "sell").length;
+  const holdCount = chartData.filter((d) => d.action === "hold").length;
+  const avgConfidence =
+    chartData.reduce((sum, d) => sum + d.confidence, 0) / chartData.length;
 
   return (
     <div css={containerStyles}>
@@ -262,15 +285,15 @@ export default function TradingChart({
       {/* Legend */}
       <div css={legendStyles}>
         <div css={legendItemStyles}>
-          <div css={legendColorStyles('buy')}></div>
+          <div css={legendColorStyles("buy")}></div>
           <span>Buy Orders</span>
         </div>
         <div css={legendItemStyles}>
-          <div css={legendColorStyles('sell')}></div>
+          <div css={legendColorStyles("sell")}></div>
           <span>Sell Orders</span>
         </div>
         <div css={legendItemStyles}>
-          <div css={legendColorStyles('hold')}></div>
+          <div css={legendColorStyles("hold")}></div>
           <span>Hold Decisions</span>
         </div>
       </div>
@@ -290,44 +313,67 @@ export default function TradingChart({
           <div css={summaryLabelStyles}>Hold Decisions</div>
         </div>
         <div css={summaryCardStyles}>
-          <div css={summaryValueStyles}>{(avgConfidence * 100).toFixed(0)}%</div>
+          <div css={summaryValueStyles}>
+            {(avgConfidence * 100).toFixed(0)}%
+          </div>
           <div css={summaryLabelStyles}>Avg Confidence</div>
         </div>
       </div>
 
       {/* Agent-specific insights */}
-      {agentType === "vincent" && chartData.some(d => d.sentiment !== 0) && (
-        <div css={css`
-          margin-top: ${designTokens.spacing[4]};
-          padding: ${designTokens.spacing[4]};
-          background: ${designTokens.colors.secondary[50]};
-          border-radius: ${designTokens.borderRadius.md};
-        `}>
-          <h4 css={css`margin: 0 0 ${designTokens.spacing[3]} 0; color: ${designTokens.colors.secondary[700]};`}>
+      {agentType === "vincent" && chartData.some((d) => d.sentiment !== 0) && (
+        <div
+          css={css`
+            margin-top: ${designTokens.spacing[4]};
+            padding: ${designTokens.spacing[4]};
+            background: ${designTokens.colors.secondary[50]};
+            border-radius: ${designTokens.borderRadius.md};
+          `}
+        >
+          <h4
+            css={css`
+              margin: 0 0 ${designTokens.spacing[3]} 0;
+              color: ${designTokens.colors.secondary[700]};
+            `}
+          >
             💭 Sentiment Analysis
           </h4>
-          <div css={css`
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: ${designTokens.spacing[3]};
-          `}>
-            {chartData.slice(-3).map((decision, index) =>
-              decision.sentiment !== 0 && (
-                <div key={index} css={css`text-align: center;`}>
-                  <div css={css`
-                    font-weight: ${designTokens.typography.fontWeight.bold};
-                    color: ${decision.sentiment > 0 ? designTokens.colors.semantic.success[600] : designTokens.colors.semantic.error[600]};
-                  `}>
-                    {(decision.sentiment * 100).toFixed(0)}%
+          <div
+            css={css`
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+              gap: ${designTokens.spacing[3]};
+            `}
+          >
+            {chartData.slice(-3).map(
+              (decision, index) =>
+                decision.sentiment !== 0 && (
+                  <div
+                    key={index}
+                    css={css`
+                      text-align: center;
+                    `}
+                  >
+                    <div
+                      css={css`
+                        font-weight: ${designTokens.typography.fontWeight.bold};
+                        color: ${decision.sentiment > 0
+                          ? designTokens.colors.semantic.success[600]
+                          : designTokens.colors.semantic.error[600]};
+                      `}
+                    >
+                      {(decision.sentiment * 100).toFixed(0)}%
+                    </div>
+                    <div
+                      css={css`
+                        font-size: ${designTokens.typography.fontSize.sm};
+                        color: ${designTokens.colors.neutral[600]};
+                      `}
+                    >
+                      Sentiment
+                    </div>
                   </div>
-                  <div css={css`
-                    font-size: ${designTokens.typography.fontSize.sm};
-                    color: ${designTokens.colors.neutral[600]};
-                  `}>
-                    Sentiment
-                  </div>
-                </div>
-              )
+                ),
             )}
           </div>
         </div>

@@ -5,7 +5,10 @@
  * Provides unified comparison and filtering logic
  */
 
-import { TradingDecision, AgentMetrics, AgentStatus } from '../types/index.js';
+import { AgentStatus } from '../types/index.js';
+import { TradingDecision } from '../../types/Agent.js';
+import { TradingHistoryService } from '../../services/TradingHistoryService.js';
+import { MetricsService } from '../../services/MetricsService.js';
 
 export interface AgentComparisonMetrics {
   agentId: string;
@@ -68,6 +71,20 @@ export class AgentMetricsAggregator {
   private metricsCache: Map<string, AgentComparisonMetrics> = new Map();
   private cacheExpiry: Map<string, number> = new Map();
   private readonly CACHE_TTL_MS = 30000; // 30 seconds
+  
+  private tradingHistory: TradingHistoryService;
+  private metricsService: MetricsService;
+  private agentsModule: any; // AgentsModule type
+
+  constructor(
+    tradingHistory: TradingHistoryService,
+    metricsService: MetricsService,
+    agentsModule: any
+  ) {
+    this.tradingHistory = tradingHistory;
+    this.metricsService = metricsService;
+    this.agentsModule = agentsModule;
+  }
 
   /**
    * Get comparison metrics for multiple agents
@@ -195,11 +212,97 @@ export class AgentMetricsAggregator {
 
   /**
    * Fetch agent metrics from data sources
-   * TODO: Integrate with TradingHistoryService and MetricsService
    */
   private async fetchAgentMetrics(agentId: string): Promise<AgentComparisonMetrics | null> {
-    // Placeholder - will be implemented with actual service integration
-    return null;
+    try {
+      // Get agent info
+      const agent = await this.agentsModule.getAgent(agentId);
+      if (!agent) return null;
+      
+      // Get agent status with performance data
+      const status = await this.agentsModule.getAgentStatus(agentId);
+      
+      // Get trading history for this agent
+      const allHistory = this.tradingHistory.getHistory();
+      // Filter by matching agent ID in the decision ID or use all history for now
+      // TODO: Add agentId field to TradingDecision type
+      const agentHistory = allHistory; // Use all history for now since agentId isn't in the type
+      const performance = this.tradingHistory.calculatePerformance(agentHistory);
+      
+      // Get operational metrics
+      const metrics = await this.metricsService.getMetrics({ period: 'daily' } as any);
+      
+      // Combine into comparison metrics
+      return {
+        agentId: agent.id,
+        agentName: agent.name,
+        agentType: agent.type,
+        status: agent.status,
+        ecosystem: (agent as any).ecosystem || 'sapience',
+        
+        // Performance metrics from trading history
+        totalTrades: performance.totalTrades,
+        winRate: performance.winRate,
+        totalReturn: performance.totalReturn,
+        sharpeRatio: performance.sharpeRatio,
+        maxDrawdown: performance.maxDrawdown,
+        
+        // Operational metrics
+        avgLatency: metrics.data.performance.averageResponseTime,
+        uptime: this.calculateUptime(agent),
+        successRate: metrics.data.actions.total > 0 
+          ? metrics.data.actions.successful / metrics.data.actions.total 
+          : 0,
+        errorRate: metrics.data.actions.total > 0
+          ? metrics.data.actions.failed / metrics.data.actions.total
+          : 0,
+        lastActive: agent.lastActivity,
+        
+        // Time-based performance
+        performance24h: this.calculateTimeBasedPerformance(agentHistory, 24),
+        performance7d: this.calculateTimeBasedPerformance(agentHistory, 168),
+        performance30d: this.calculateTimeBasedPerformance(agentHistory, 720),
+      };
+    } catch (error) {
+      console.error(`Failed to fetch metrics for agent ${agentId}:`, error);
+      return null;
+    }
+  }
+  
+  private calculateUptime(agent: any): number {
+    // Calculate uptime percentage based on agent activity
+    const now = Date.now();
+    const lastActive = new Date(agent.lastActivity).getTime();
+    const hoursSinceActive = (now - lastActive) / (1000 * 60 * 60);
+    
+    // If active within last hour, consider 100% uptime
+    if (hoursSinceActive < 1) return 100;
+    
+    // Otherwise calculate based on expected activity
+    return Math.max(0, 100 - (hoursSinceActive * 2));
+  }
+  
+  private calculateTimeBasedPerformance(
+    history: TradingDecision[],
+    hoursAgo: number
+  ): PerformanceSnapshot {
+    const cutoff = Date.now() - (hoursAgo * 60 * 60 * 1000);
+    const recentHistory = history.filter(d => 
+      new Date(d.timestamp).getTime() > cutoff
+    );
+    
+    if (recentHistory.length === 0) {
+      return { trades: 0, winRate: 0, return: 0, sharpeRatio: 0 };
+    }
+    
+    const performance = this.tradingHistory.calculatePerformance(recentHistory);
+    
+    return {
+      trades: performance.totalTrades,
+      winRate: performance.winRate,
+      return: performance.totalReturn,
+      sharpeRatio: performance.sharpeRatio,
+    };
   }
 
   /**

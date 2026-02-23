@@ -38,7 +38,10 @@ async function request<T>(endpoint: string, options: RequestInit = {}) {
 
   const json = await res.json();
   if (!res.ok) {
-    return { success: false, error: json?.error || res.statusText } as ApiResponse<T>;
+    return {
+      success: false,
+      error: json?.error || res.statusText,
+    } as ApiResponse<T>;
   }
 
   return { success: true, data: json } as ApiResponse<T>;
@@ -47,13 +50,18 @@ async function request<T>(endpoint: string, options: RequestInit = {}) {
 export const creApi = {
   listRuns: async (projectId: string = "default") =>
     request<{ success: boolean; runs: CreRun[] }>(
-      `/api/cre/runs?projectId=${encodeURIComponent(projectId)}`
+      `/api/cre/runs?projectId=${encodeURIComponent(projectId)}`,
     ),
   getRun: async (runId: string) =>
     request<{ success: boolean; run: CreRun }>(`/api/cre/runs/${runId}`),
   triggerForecast: async (params: { writeAttestation?: boolean } = {}) =>
-    request<{ success: boolean; runId: string; run: CreRun }>("/api/cre/forecast", {
-      method: "POST",
-      body: JSON.stringify({ writeAttestation: Boolean(params.writeAttestation) }),
-    }),
+    request<{ success: boolean; runId: string; run: CreRun }>(
+      "/api/cre/forecast",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          writeAttestation: Boolean(params.writeAttestation),
+        }),
+      },
+    ),
 };

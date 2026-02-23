@@ -268,6 +268,19 @@ export class ApiModule extends BaseService {
       this.controllers.get("agents").getAgents(req, res);
     });
 
+    // Agent comparison routes (must come before parameterized routes)
+    apiRouter.get("/agents/compare", (req, res) => {
+      this.controllers.get("agents").compareAgents(req, res);
+    });
+
+    apiRouter.get("/agents/leaderboard", (req, res) => {
+      this.controllers.get("agents").getLeaderboard(req, res);
+    });
+
+    apiRouter.get("/agents/stats", (req, res) => {
+      this.controllers.get("agents").getAggregateStats(req, res);
+    });
+
     // Specific routes must come before parameterized routes
     apiRouter.get("/agents/connections", (req, res) => {
       this.controllers.get("agents").getConnections(req, res);

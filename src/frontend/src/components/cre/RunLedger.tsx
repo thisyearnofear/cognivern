@@ -75,7 +75,9 @@ function formatDuration(run: CreRun) {
 
 export default function RunLedger() {
   const [runs, setRuns] = useState<CreRun[]>([]);
-  const [projects, setProjects] = useState<Array<{ projectId: string; name: string }>>([]);
+  const [projects, setProjects] = useState<
+    Array<{ projectId: string; name: string }>
+  >([]);
   const [projectId, setProjectId] = useState<string>("default");
   const [isLoading, setIsLoading] = useState(true);
   const [isTriggering, setIsTriggering] = useState(false);
@@ -159,7 +161,14 @@ export default function RunLedger() {
             Verifiable agent execution traces (steps + artifacts). This is the
             product.
           </p>
-          <div css={css`display:flex; gap:${designTokens.spacing[2]}; align-items:center; flex-wrap:wrap;`}>
+          <div
+            css={css`
+              display: flex;
+              gap: ${designTokens.spacing[2]};
+              align-items: center;
+              flex-wrap: wrap;
+            `}
+          >
             <span css={smallText}>Project</span>
             <select
               value={projectId}
@@ -171,7 +180,10 @@ export default function RunLedger() {
                 background: rgba(255, 255, 255, 0.7);
               `}
             >
-              {(projects.length ? projects : [{ projectId: "default", name: "Default Project" }]).map((p) => (
+              {(projects.length
+                ? projects
+                : [{ projectId: "default", name: "Default Project" }]
+              ).map((p) => (
                 <option key={p.projectId} value={p.projectId}>
                   {p.name} ({p.projectId})
                 </option>
@@ -261,7 +273,12 @@ export default function RunLedger() {
               verifiable trace.
             </div>
           ) : (
-            <div css={css`display: grid; gap: ${designTokens.spacing[4]};`}>
+            <div
+              css={css`
+                display: grid;
+                gap: ${designTokens.spacing[4]};
+              `}
+            >
               {runs.map((r) => (
                 <div key={r.runId} css={runRowStyles}>
                   <div css={runMetaStyles}>
@@ -269,14 +286,23 @@ export default function RunLedger() {
                       <strong>{r.workflow}</strong> · <span>{r.mode}</span>
                     </div>
                     <div css={smallText}>
-                      {new Date(r.startedAt).toLocaleString()} · {formatDuration(r)}
+                      {new Date(r.startedAt).toLocaleString()} ·{" "}
+                      {formatDuration(r)}
                     </div>
                     <div css={smallText}>
-                      Steps: {r.steps?.length || 0} · Artifacts: {r.artifacts?.length || 0}
+                      Steps: {r.steps?.length || 0} · Artifacts:{" "}
+                      {r.artifacts?.length || 0}
                     </div>
                   </div>
 
-                  <div css={css`display:flex; gap:${designTokens.spacing[2]}; align-items:center; justify-content:flex-end;`}>
+                  <div
+                    css={css`
+                      display: flex;
+                      gap: ${designTokens.spacing[2]};
+                      align-items: center;
+                      justify-content: flex-end;
+                    `}
+                  >
                     {r.ok ? (
                       <Badge variant="success">OK</Badge>
                     ) : (
