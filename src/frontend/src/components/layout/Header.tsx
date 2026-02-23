@@ -125,13 +125,15 @@ export const Header: React.FC = () => {
     const path = window.location.pathname;
     switch (path) {
       case "/":
-        return "Sapience Forecasting Agent";
-      case "/trading":
-        return "Forecasting Dashboard";
+        return "Dashboard";
+      case "/agents":
+        return "Agent Management";
       case "/policies":
         return "Policy Management";
       case "/audit":
         return "Audit Logs";
+      case "/runs":
+        return "Run Ledger";
       default:
         return "Cognivern";
     }

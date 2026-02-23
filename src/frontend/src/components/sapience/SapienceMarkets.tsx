@@ -1112,14 +1112,20 @@ export default function SapienceMarkets() {
       <ConfirmDialog
         isOpen={confirmDialogState.open}
         onClose={() =>
-          setConfirmDialogState({ open: false, message: "", variant: "success" })
+          setConfirmDialogState({
+            open: false,
+            message: "",
+            variant: "success",
+          })
         }
         onConfirm={() =>
-          setConfirmDialogState({ open: false, message: "", variant: "success" })
+          setConfirmDialogState({
+            open: false,
+            message: "",
+            variant: "success",
+          })
         }
-        title={
-          confirmDialogState.variant === "success" ? "Success" : "Error"
-        }
+        title={confirmDialogState.variant === "success" ? "Success" : "Error"}
         message={confirmDialogState.message}
         variant={confirmDialogState.variant === "success" ? "info" : "error"}
         confirmText="OK"

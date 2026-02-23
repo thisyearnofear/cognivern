@@ -5,15 +5,27 @@
 import { Request, Response } from "express";
 import { AgentsModule } from "../../agents/AgentsModule.js";
 import { MarketDataService } from "../../../services/MarketDataService.js";
+import { AgentMetricsAggregator } from "../../../shared/services/AgentMetricsAggregator.js";
+import { TradingHistoryService } from "../../../services/TradingHistoryService.js";
+import { MetricsService } from "../../../services/MetricsService.js";
 
 export class AgentsController {
   private agentsModule: AgentsModule;
-
   private marketDataService: MarketDataService;
+  private metricsAggregator: AgentMetricsAggregator;
+  private tradingHistory: TradingHistoryService;
+  private metricsService: MetricsService;
 
   constructor(agentsModule?: AgentsModule, marketDataService?: MarketDataService) {
     this.agentsModule = agentsModule || new AgentsModule();
     this.marketDataService = marketDataService || new MarketDataService();
+    this.tradingHistory = new TradingHistoryService();
+    this.metricsService = new MetricsService();
+    this.metricsAggregator = new AgentMetricsAggregator(
+      this.tradingHistory,
+      this.metricsService,
+      this.agentsModule
+    );
   }
 
   async initialize(): Promise<void> {
@@ -499,5 +511,125 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     }
+  }
+
+  // Agent Comparison Endpoints
+  async compareAgents(req: Request, res: Response): Promise<void> {
+    try {
+      const filters = this.parseComparisonFilters(req.query);
+      
+      // Get agent IDs matching filters
+      const agents = await this.agentsModule.getAgents();
+      let filteredAgents = agents;
+      
+      if (filters.agentTypes && filters.agentTypes.length > 0) {
+        filteredAgents = filteredAgents.filter(a => filters.agentTypes!.includes(a.type));
+      }
+      
+      if (filters.status && filters.status.length > 0) {
+        filteredAgents = filteredAgents.filter(a => filters.status!.includes(a.status));
+      }
+      
+      const agentIds = filteredAgents.map(a => a.id);
+      
+      // Fetch comparison metrics
+      const metrics = await this.metricsAggregator.getComparisonMetrics(agentIds, filters);
+      
+      // Sort results
+      const sorted = this.metricsAggregator.sortMetrics(metrics, {
+        field: (filters.sortBy as any) || 'totalReturn',
+        direction: filters.sortDirection || 'desc',
+      });
+      
+      res.json({
+        success: true,
+        data: sorted,
+        count: sorted.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Comparison API error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  async getLeaderboard(req: Request, res: Response): Promise<void> {
+    try {
+      const { ecosystem, metric = 'totalReturn', limit = 10 } = req.query;
+      
+      const filters: any = {};
+      if (ecosystem) {
+        filters.ecosystems = [ecosystem as string];
+      }
+      
+      // Get all agents
+      const agents = await this.agentsModule.getAgents();
+      const agentIds = agents.map(a => a.id);
+      const metrics = await this.metricsAggregator.getComparisonMetrics(agentIds, filters);
+      
+      // Sort by metric and limit
+      const sorted = this.metricsAggregator.sortMetrics(metrics, {
+        field: metric as any,
+        direction: 'desc',
+      }).slice(0, parseInt(limit as string));
+      
+      res.json({
+        success: true,
+        data: sorted,
+        count: sorted.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Leaderboard API error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  async getAggregateStats(req: Request, res: Response): Promise<void> {
+    try {
+      const filters = this.parseComparisonFilters(req.query);
+      
+      const agents = await this.agentsModule.getAgents();
+      const agentIds = agents.map(a => a.id);
+      const metrics = await this.metricsAggregator.getComparisonMetrics(agentIds, filters);
+      
+      const stats = this.metricsAggregator.calculateAggregateMetrics(metrics);
+      
+      res.json({
+        success: true,
+        data: stats,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Stats API error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  private parseComparisonFilters(query: any): any {
+    return {
+      agentIds: query.agentIds ? (query.agentIds as string).split(',') : undefined,
+      agentTypes: query.agentTypes ? (query.agentTypes as string).split(',') : undefined,
+      ecosystems: query.ecosystems ? (query.ecosystems as string).split(',') : undefined,
+      status: query.status ? (query.status as string).split(',') : undefined,
+      timeRange: query.startDate && query.endDate ? {
+        start: new Date(query.startDate as string),
+        end: new Date(query.endDate as string),
+      } : undefined,
+      sortBy: query.sortBy as string,
+      sortDirection: query.sortDirection as 'asc' | 'desc',
+    };
   }
 }

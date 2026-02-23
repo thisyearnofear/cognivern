@@ -23,8 +23,9 @@ const headerStyles = css`
 `;
 
 const mono = css`
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
   font-size: ${designTokens.typography.fontSize.sm};
 `;
 
@@ -101,16 +102,34 @@ export default function RunDetails() {
           >
             Run Details
           </h1>
-          <div css={css`margin-top:${designTokens.spacing[2]}; display:flex; gap:${designTokens.spacing[2]}; align-items:center; flex-wrap:wrap;`}>
+          <div
+            css={css`
+              margin-top: ${designTokens.spacing[2]};
+              display: flex;
+              gap: ${designTokens.spacing[2]};
+              align-items: center;
+              flex-wrap: wrap;
+            `}
+          >
             {statusBadge}
             <span css={mono}>{runId}</span>
           </div>
-          <div css={css`margin-top:${designTokens.spacing[2]};`}>
+          <div
+            css={css`
+              margin-top: ${designTokens.spacing[2]};
+            `}
+          >
             <Link to="/runs">← Back to Run Ledger</Link>
           </div>
         </div>
 
-        <div css={css`display:flex; gap:${designTokens.spacing[2]}; flex-wrap:wrap;`}>
+        <div
+          css={css`
+            display: flex;
+            gap: ${designTokens.spacing[2]};
+            flex-wrap: wrap;
+          `}
+        >
           <Button onClick={() => load()} variant="secondary">
             Refresh
           </Button>
@@ -155,7 +174,12 @@ export default function RunDetails() {
               <CardTitle>Steps</CardTitle>
             </CardHeader>
             <CardContent>
-              <div css={css`display:grid; gap:${designTokens.spacing[3]};`}>
+              <div
+                css={css`
+                  display: grid;
+                  gap: ${designTokens.spacing[3]};
+                `}
+              >
                 {run.steps.map((s, idx) => (
                   <div
                     key={`${s.name}-${idx}`}
@@ -167,7 +191,14 @@ export default function RunDetails() {
                       gap: ${designTokens.spacing[1]};
                     `}
                   >
-                    <div css={css`display:flex; gap:${designTokens.spacing[2]}; align-items:center; flex-wrap:wrap;`}>
+                    <div
+                      css={css`
+                        display: flex;
+                        gap: ${designTokens.spacing[2]};
+                        align-items: center;
+                        flex-wrap: wrap;
+                      `}
+                    >
                       <Badge variant={s.ok ? "success" : "danger"}>
                         {s.kind}
                       </Badge>
@@ -203,7 +234,12 @@ export default function RunDetails() {
               <CardTitle>Artifacts</CardTitle>
             </CardHeader>
             <CardContent>
-              <div css={css`display:grid; gap:${designTokens.spacing[3]};`}>
+              <div
+                css={css`
+                  display: grid;
+                  gap: ${designTokens.spacing[3]};
+                `}
+              >
                 {run.artifacts.map((a) => (
                   <details
                     key={a.id}
@@ -225,88 +261,98 @@ export default function RunDetails() {
                       <span css={mono}>{a.createdAt}</span>
                     </summary>
 
-                    {a.type === "chainlink_price_feeds" && Array.isArray(a.data) && (
-                      <div
-                        css={css`
-                          margin-top: ${designTokens.spacing[3]};
-                          overflow: auto;
-                        `}
-                      >
-                        <table
+                    {a.type === "chainlink_price_feeds" &&
+                      Array.isArray(a.data) && (
+                        <div
                           css={css`
-                            width: 100%;
-                            border-collapse: collapse;
-                            font-size: ${designTokens.typography.fontSize.sm};
+                            margin-top: ${designTokens.spacing[3]};
+                            overflow: auto;
                           `}
                         >
-                          <thead>
-                            <tr>
-                              <th
-                                css={css`
-                                  text-align: left;
-                                  padding: ${designTokens.spacing[2]};
-                                  border-bottom: 1px solid ${designTokens.colors.neutral[200]};
-                                `}
-                              >
-                                Feed
-                              </th>
-                              <th
-                                css={css`
-                                  text-align: left;
-                                  padding: ${designTokens.spacing[2]};
-                                  border-bottom: 1px solid ${designTokens.colors.neutral[200]};
-                                `}
-                              >
-                                Value
-                              </th>
-                              <th
-                                css={css`
-                                  text-align: left;
-                                  padding: ${designTokens.spacing[2]};
-                                  border-bottom: 1px solid ${designTokens.colors.neutral[200]};
-                                `}
-                              >
-                                Updated
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(a.data as any[]).map((f, idx) => (
-                              <tr key={idx}>
-                                <td
+                          <table
+                            css={css`
+                              width: 100%;
+                              border-collapse: collapse;
+                              font-size: ${designTokens.typography.fontSize.sm};
+                            `}
+                          >
+                            <thead>
+                              <tr>
+                                <th
                                   css={css`
+                                    text-align: left;
                                     padding: ${designTokens.spacing[2]};
-                                    border-bottom: 1px solid ${designTokens.colors.neutral[100]};
+                                    border-bottom: 1px solid
+                                      ${designTokens.colors.neutral[200]};
                                   `}
                                 >
-                                  <div>{f.feedName}</div>
-                                  <div css={mono}>{f.feedAddress}</div>
-                                </td>
-                                <td
+                                  Feed
+                                </th>
+                                <th
                                   css={css`
+                                    text-align: left;
                                     padding: ${designTokens.spacing[2]};
-                                    border-bottom: 1px solid ${designTokens.colors.neutral[100]};
+                                    border-bottom: 1px solid
+                                      ${designTokens.colors.neutral[200]};
                                   `}
                                 >
-                                  <div css={mono}>
-                                    {formatFeedValue(String(f.value), Number(f.decimals))}
-                                  </div>
-                                  <div css={mono}>raw: {String(f.value)}</div>
-                                </td>
-                                <td
+                                  Value
+                                </th>
+                                <th
                                   css={css`
+                                    text-align: left;
                                     padding: ${designTokens.spacing[2]};
-                                    border-bottom: 1px solid ${designTokens.colors.neutral[100]};
+                                    border-bottom: 1px solid
+                                      ${designTokens.colors.neutral[200]};
                                   `}
                                 >
-                                  <div css={mono}>{f.updatedAt || ""}</div>
-                                </td>
+                                  Updated
+                                </th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                            </thead>
+                            <tbody>
+                              {(a.data as any[]).map((f, idx) => (
+                                <tr key={idx}>
+                                  <td
+                                    css={css`
+                                      padding: ${designTokens.spacing[2]};
+                                      border-bottom: 1px solid
+                                        ${designTokens.colors.neutral[100]};
+                                    `}
+                                  >
+                                    <div>{f.feedName}</div>
+                                    <div css={mono}>{f.feedAddress}</div>
+                                  </td>
+                                  <td
+                                    css={css`
+                                      padding: ${designTokens.spacing[2]};
+                                      border-bottom: 1px solid
+                                        ${designTokens.colors.neutral[100]};
+                                    `}
+                                  >
+                                    <div css={mono}>
+                                      {formatFeedValue(
+                                        String(f.value),
+                                        Number(f.decimals),
+                                      )}
+                                    </div>
+                                    <div css={mono}>raw: {String(f.value)}</div>
+                                  </td>
+                                  <td
+                                    css={css`
+                                      padding: ${designTokens.spacing[2]};
+                                      border-bottom: 1px solid
+                                        ${designTokens.colors.neutral[100]};
+                                    `}
+                                  >
+                                    <div css={mono}>{f.updatedAt || ""}</div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
 
                     <pre
                       css={css`

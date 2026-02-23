@@ -18,22 +18,22 @@ interface DialogState {
 
 /**
  * Custom hook for managing dialogs
- * 
+ *
  * Provides a simple API to show alert, confirm, prompt, and multi-field dialogs
  * without using native browser dialogs.
- * 
+ *
  * @example
  * const { showAlert, showConfirm, showPrompt, DialogComponent } = useDialog();
- * 
+ *
  * // Show an alert
  * showAlert("Success!", "Your changes have been saved.", "success");
- * 
+ *
  * // Show a confirmation
  * const confirmed = await showConfirm("Delete Item", "Are you sure?", "warning");
  * if (confirmed) {
  *   // delete item
  * }
- * 
+ *
  * // Show a prompt
  * const name = await showPrompt("Enter Name", "What's your name?");
  * if (name) {

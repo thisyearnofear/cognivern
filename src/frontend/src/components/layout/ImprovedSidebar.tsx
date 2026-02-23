@@ -23,14 +23,14 @@ const navigationItems: NavItem[] = [
     label: "Dashboard",
     icon: "📊",
     path: "/",
-    description: "Overview and metrics",
+    description: "Unified overview",
   },
   {
-    id: "trading",
-    label: "Trading",
-    icon: "💹",
-    path: "/trading",
-    description: "Trading agents",
+    id: "agents",
+    label: "Agents",
+    icon: "🤖",
+    path: "/agents",
+    description: "Agent management",
   },
   {
     id: "policies",
@@ -41,18 +41,17 @@ const navigationItems: NavItem[] = [
   },
   {
     id: "audit",
-    label: "Audit Logs",
+    label: "Audit",
     icon: "📝",
     path: "/audit",
-    description: "Activity history",
+    description: "Activity logs",
   },
   {
     id: "runs",
-    label: "Run Ledger",
+    label: "Runs",
     icon: "⛓️",
     path: "/runs",
-    description: "Verifiable agent traces",
-    badge: "NEW",
+    description: "Verifiable traces",
   },
 ];
 

@@ -238,16 +238,22 @@ export const PromptDialog: React.FC<PromptDialogProps> = ({
             width: 100%;
             padding: ${designTokens.spacing[3]};
             border: 1px solid
-              ${error ? designTokens.colors.semantic.error[500] : designTokens.colors.neutral[300]};
+              ${error
+                ? designTokens.colors.semantic.error[500]
+                : designTokens.colors.neutral[300]};
             border-radius: ${designTokens.borderRadius.md};
             font-size: ${designTokens.typography.fontSize.base};
             transition: border-color 0.2s ease;
 
             &:focus {
               outline: none;
-              border-color: ${error ? designTokens.colors.semantic.error[500] : designTokens.colors.primary[500]};
+              border-color: ${error
+                ? designTokens.colors.semantic.error[500]
+                : designTokens.colors.primary[500]};
               box-shadow: 0 0 0 3px
-                ${error ? designTokens.colors.semantic.error[100] : designTokens.colors.primary[100]};
+                ${error
+                  ? designTokens.colors.semantic.error[100]
+                  : designTokens.colors.primary[100]};
             }
 
             &::placeholder {
@@ -304,7 +310,10 @@ export const MultiFieldDialog: React.FC<MultiFieldDialogProps> = ({
   isLoading = false,
 }) => {
   const [values, setValues] = useState<Record<string, string>>(
-    fields.reduce((acc, field) => ({ ...acc, [field.name]: field.defaultValue || "" }), {}),
+    fields.reduce(
+      (acc, field) => ({ ...acc, [field.name]: field.defaultValue || "" }),
+      {},
+    ),
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -337,7 +346,10 @@ export const MultiFieldDialog: React.FC<MultiFieldDialogProps> = ({
 
   const handleClose = () => {
     setValues(
-      fields.reduce((acc, field) => ({ ...acc, [field.name]: field.defaultValue || "" }), {}),
+      fields.reduce(
+        (acc, field) => ({ ...acc, [field.name]: field.defaultValue || "" }),
+        {},
+      ),
     );
     setErrors({});
     onClose();
@@ -369,7 +381,8 @@ export const MultiFieldDialog: React.FC<MultiFieldDialogProps> = ({
       >
         {fields.map((field) => {
           const error = errors[field.name];
-          const InputComponent = field.type === "textarea" ? "textarea" : "input";
+          const InputComponent =
+            field.type === "textarea" ? "textarea" : "input";
 
           return (
             <div key={field.name}>
@@ -406,17 +419,25 @@ export const MultiFieldDialog: React.FC<MultiFieldDialogProps> = ({
                   width: 100%;
                   padding: ${designTokens.spacing[3]};
                   border: 1px solid
-                    ${error ? designTokens.colors.semantic.error[500] : designTokens.colors.neutral[300]};
+                    ${error
+                      ? designTokens.colors.semantic.error[500]
+                      : designTokens.colors.neutral[300]};
                   border-radius: ${designTokens.borderRadius.md};
                   font-size: ${designTokens.typography.fontSize.base};
                   transition: border-color 0.2s ease;
-                  ${field.type === "textarea" ? "min-height: 100px; resize: vertical;" : ""}
+                  ${field.type === "textarea"
+                    ? "min-height: 100px; resize: vertical;"
+                    : ""}
 
                   &:focus {
                     outline: none;
-                    border-color: ${error ? designTokens.colors.semantic.error[500] : designTokens.colors.primary[500]};
+                    border-color: ${error
+                      ? designTokens.colors.semantic.error[500]
+                      : designTokens.colors.primary[500]};
                     box-shadow: 0 0 0 3px
-                      ${error ? designTokens.colors.semantic.error[100] : designTokens.colors.primary[100]};
+                      ${error
+                        ? designTokens.colors.semantic.error[100]
+                        : designTokens.colors.primary[100]};
                   }
 
                   &::placeholder {

@@ -18,8 +18,8 @@ import {
 import "./App.css";
 
 // Lazy load components for better performance
-const ModernDashboard = lazy(
-  () => import("./components/dashboard/ModernDashboard"),
+const UnifiedDashboard = lazy(
+  () => import("./components/dashboard/UnifiedDashboard"),
 );
 const TradingAgentDashboard = lazy(
   () => import("./components/trading/TradingAgentDashboard"),
@@ -63,21 +63,21 @@ function App() {
 
         <Routes>
           <Route path="/" element={<AppLayout />}>
-            {/* Dashboard Route */}
+            {/* Unified Dashboard - Single source of truth */}
             <Route
               index
               element={
                 <PageTransition type="slide">
                   <Suspense fallback={<PageSkeleton />}>
-                    <RunLedger />
+                    <UnifiedDashboard />
                   </Suspense>
                 </PageTransition>
               }
             />
 
-            {/* Trading Route */}
+            {/* Agents Route - Detailed agent management */}
             <Route
-              path="trading"
+              path="agents"
               element={
                 <PageTransition type="slide">
                   <Suspense fallback={<PageSkeleton />}>
@@ -86,6 +86,9 @@ function App() {
                 </PageTransition>
               }
             />
+
+            {/* Legacy trading route - redirect to agents */}
+            <Route path="trading" element={<Navigate to="/agents" replace />} />
 
             {/* Policies Route */}
             <Route

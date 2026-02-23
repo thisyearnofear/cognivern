@@ -33,14 +33,18 @@ export default function TradeHistory({
   isLoading,
 }: TradeHistoryProps) {
   const [filter, setFilter] = useState<"all" | "buy" | "sell" | "hold">("all");
-  const [sortBy, setSortBy] = useState<"timestamp" | "confidence" | "price">("timestamp");
+  const [sortBy, setSortBy] = useState<"timestamp" | "confidence" | "price">(
+    "timestamp",
+  );
 
   const filteredDecisions = decisions
     .filter((decision) => filter === "all" || decision.action === filter)
     .sort((a, b) => {
       switch (sortBy) {
         case "timestamp":
-          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+          return (
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
         case "confidence":
           return b.confidence - a.confidence;
         case "price":
@@ -57,10 +61,14 @@ export default function TradeHistory({
 
   const getActionVariant = (action: string) => {
     switch (action) {
-      case "buy": return "success" as const;
-      case "sell": return "error" as const;
-      case "hold": return "secondary" as const;
-      default: return "secondary" as const;
+      case "buy":
+        return "success" as const;
+      case "sell":
+        return "error" as const;
+      case "hold":
+        return "secondary" as const;
+      default:
+        return "secondary" as const;
     }
   };
 
@@ -109,7 +117,7 @@ export default function TradeHistory({
     background: white;
     font-size: ${designTokens.typography.fontSize.sm};
     cursor: pointer;
-    
+
     &:focus {
       outline: none;
       border-color: ${designTokens.colors.primary[500]};
@@ -136,8 +144,12 @@ export default function TradeHistory({
     margin-bottom: ${designTokens.spacing[4]};
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
     }
   `;
 
@@ -256,7 +268,11 @@ export default function TradeHistory({
 
   const confidenceFillStyles = (confidence: number) => css`
     height: 100%;
-    background: linear-gradient(90deg, ${designTokens.colors.primary[400]}, ${designTokens.colors.primary[600]});
+    background: linear-gradient(
+      90deg,
+      ${designTokens.colors.primary[400]},
+      ${designTokens.colors.primary[600]}
+    );
     width: ${confidence * 100}%;
     transition: width 0.3s ease;
   `;
@@ -319,7 +335,9 @@ export default function TradeHistory({
     align-items: center;
     gap: ${designTokens.spacing[1]};
     font-size: ${designTokens.typography.fontSize.xs};
-    color: ${passed ? designTokens.colors.semantic.success[700] : designTokens.colors.semantic.error[700]};
+    color: ${passed
+      ? designTokens.colors.semantic.success[700]
+      : designTokens.colors.semantic.error[700]};
   `;
 
   const sentimentStyles = css`
@@ -358,13 +376,21 @@ export default function TradeHistory({
         <div css={headerStyles}>
           <h3>📋 Trade History</h3>
           <div css={controlsStyles}>
-            <select css={selectStyles} value={filter} onChange={(e) => setFilter(e.target.value as any)}>
+            <select
+              css={selectStyles}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as any)}
+            >
               <option value="all">All Actions</option>
               <option value="buy">Buy Orders</option>
               <option value="sell">Sell Orders</option>
               <option value="hold">Hold Decisions</option>
             </select>
-            <select css={selectStyles} value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
+            <select
+              css={selectStyles}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+            >
               <option value="timestamp">Sort by Time</option>
               <option value="confidence">Sort by Confidence</option>
               <option value="price">Sort by Price</option>
@@ -373,11 +399,28 @@ export default function TradeHistory({
         </div>
 
         <div css={emptyStateStyles}>
-          <div css={css`font-size: 3rem; margin-bottom: ${designTokens.spacing[4]};`}>📊</div>
-          <h4 css={css`margin: 0 0 ${designTokens.spacing[2]} 0; color: ${designTokens.colors.neutral[700]};`}>
+          <div
+            css={css`
+              font-size: 3rem;
+              margin-bottom: ${designTokens.spacing[4]};
+            `}
+          >
+            📊
+          </div>
+          <h4
+            css={css`
+              margin: 0 0 ${designTokens.spacing[2]} 0;
+              color: ${designTokens.colors.neutral[700]};
+            `}
+          >
             No trades found
           </h4>
-          <p css={css`margin: 0; color: ${designTokens.colors.neutral[600]};`}>
+          <p
+            css={css`
+              margin: 0;
+              color: ${designTokens.colors.neutral[600]};
+            `}
+          >
             {decisions.length === 0
               ? `Start the ${agentType} agent to see trade history`
               : `No trades match the current filter`}
@@ -387,21 +430,33 @@ export default function TradeHistory({
     );
   }
 
-  const avgConfidence = filteredDecisions.reduce((sum, d) => sum + d.confidence, 0) / filteredDecisions.length;
-  const executedTrades = filteredDecisions.filter((d) => d.action !== "hold").length;
+  const avgConfidence =
+    filteredDecisions.reduce((sum, d) => sum + d.confidence, 0) /
+    filteredDecisions.length;
+  const executedTrades = filteredDecisions.filter(
+    (d) => d.action !== "hold",
+  ).length;
 
   return (
     <div css={containerStyles}>
       <div css={headerStyles}>
         <h3>📋 Trade History</h3>
         <div css={controlsStyles}>
-          <select css={selectStyles} value={filter} onChange={(e) => setFilter(e.target.value as any)}>
+          <select
+            css={selectStyles}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as any)}
+          >
             <option value="all">All Actions</option>
             <option value="buy">Buy Orders</option>
             <option value="sell">Sell Orders</option>
             <option value="hold">Hold Decisions</option>
           </select>
-          <select css={selectStyles} value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
+          <select
+            css={selectStyles}
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+          >
             <option value="timestamp">Sort by Time</option>
             <option value="confidence">Sort by Confidence</option>
             <option value="price">Sort by Price</option>
@@ -437,7 +492,9 @@ export default function TradeHistory({
                 </Badge>
                 <span css={tradeSymbolStyles}>{decision.symbol}</span>
               </div>
-              <span css={tradeTimeStyles}>{formatTime(decision.timestamp)}</span>
+              <span css={tradeTimeStyles}>
+                {formatTime(decision.timestamp)}
+              </span>
             </div>
 
             {/* Trade Details */}
@@ -448,7 +505,9 @@ export default function TradeHistory({
               </div>
               <div css={detailItemStyles}>
                 <span css={detailLabelStyles}>Price</span>
-                <span css={detailValueStyles}>${decision.price.toFixed(2)}</span>
+                <span css={detailValueStyles}>
+                  ${decision.price.toFixed(2)}
+                </span>
               </div>
               <div css={detailItemStyles}>
                 <span css={detailLabelStyles}>Confidence</span>
@@ -461,13 +520,18 @@ export default function TradeHistory({
               </div>
               <div css={detailItemStyles}>
                 <span css={detailLabelStyles}>Risk Score</span>
-                <span css={[detailValueStyles, css`
-                  color: ${decision.riskScore > 0.7
-                    ? designTokens.colors.semantic.error[600]
-                    : decision.riskScore > 0.4
-                      ? designTokens.colors.semantic.warning[600]
-                      : designTokens.colors.semantic.success[600]};
-                `]}>
+                <span
+                  css={[
+                    detailValueStyles,
+                    css`
+                      color: ${decision.riskScore > 0.7
+                        ? designTokens.colors.semantic.error[600]
+                        : decision.riskScore > 0.4
+                          ? designTokens.colors.semantic.warning[600]
+                          : designTokens.colors.semantic.success[600]};
+                    `,
+                  ]}
+                >
                   {(decision.riskScore * 100).toFixed(0)}%
                 </span>
               </div>
@@ -487,13 +551,23 @@ export default function TradeHistory({
                   const governance = getGovernanceStatus(decision);
                   return (
                     <>
-                      <Badge variant={governance.status === "approved" ? "success" : "warning"}>
-                        {governance.status === "approved" ? "✅ Approved" : "⚠️ Flagged"}
+                      <Badge
+                        variant={
+                          governance.status === "approved"
+                            ? "success"
+                            : "warning"
+                        }
+                      >
+                        {governance.status === "approved"
+                          ? "✅ Approved"
+                          : "⚠️ Flagged"}
                       </Badge>
-                      <span css={css`
-                        font-size: ${designTokens.typography.fontSize.sm};
-                        color: ${designTokens.colors.neutral[600]};
-                      `}>
+                      <span
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.sm};
+                          color: ${designTokens.colors.neutral[600]};
+                        `}
+                      >
                         {governance.score}% compliance
                       </span>
                     </>
@@ -516,11 +590,16 @@ export default function TradeHistory({
                 <div css={sentimentGridStyles}>
                   <div css={detailItemStyles}>
                     <span css={detailLabelStyles}>Score</span>
-                    <span css={[detailValueStyles, css`
-                      color: ${decision.sentimentData.sentiment > 0
-                        ? designTokens.colors.semantic.success[600]
-                        : designTokens.colors.semantic.error[600]};
-                    `]}>
+                    <span
+                      css={[
+                        detailValueStyles,
+                        css`
+                          color: ${decision.sentimentData.sentiment > 0
+                            ? designTokens.colors.semantic.success[600]
+                            : designTokens.colors.semantic.error[600]};
+                        `,
+                      ]}
+                    >
                       {(decision.sentimentData.sentiment * 100).toFixed(1)}%
                     </span>
                   </div>
@@ -532,10 +611,12 @@ export default function TradeHistory({
                   </div>
                   <div css={detailItemStyles}>
                     <span css={detailLabelStyles}>Sources</span>
-                    <span css={css`
-                      font-size: ${designTokens.typography.fontSize.sm};
-                      color: ${designTokens.colors.neutral[600]};
-                    `}>
+                    <span
+                      css={css`
+                        font-size: ${designTokens.typography.fontSize.sm};
+                        color: ${designTokens.colors.neutral[600]};
+                      `}
+                    >
                       {decision.sentimentData.sources.join(", ")}
                     </span>
                   </div>
