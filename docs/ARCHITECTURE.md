@@ -57,9 +57,14 @@ Cognivern separates concerns into two planes:
 
 ### Application Layer
 - **Agent Controller**: Handles incoming requests and orchestrates workflows
-- **Dashboard UI**: Real-time view of agent thoughts, actions, and metrics
+- **Agentic UI/UX**:
+    - **Intent-Driven Bridge**: Natural language interface with Generative UI responses (`StatCard`, `ForensicTimeline`, `ActionForm`)
+    - **Ecosystem Visualizer**: Spatial, interactive HUD for network state
+    - **Forensic Transparency**: High-fidelity cognitive path reconstruction
+    - **Unified Dashboard**: Real-time view of agent thoughts, actions, and metrics
 
 ### Domain Layer
+- **Governance Engine**: Centralized policy management (`governanceStore`) with visual safety scores
 - **Governance Agent**: Maintains thought history, logs actions, enforces policies
 - **Policy Service**: Validates actions against risk management rules
 - **Trading Agent**: Executes forecasting and trading strategies

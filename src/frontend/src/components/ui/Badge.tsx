@@ -2,9 +2,15 @@ import React from "react";
 import { css } from "@emotion/react";
 import { designTokens } from "../../styles/designTokens";
 
-interface BadgeProps {
+export interface BadgeProps {
   children: React.ReactNode;
-  variant?: "default" | "success" | "error" | "warning" | "secondary";
+  variant?:
+    | "default"
+    | "success"
+    | "error"
+    | "warning"
+    | "secondary"
+    | "outline";
   size?: "sm" | "md" | "lg";
   className?: string;
 }
@@ -45,6 +51,11 @@ const badgeVariantStyles = {
     background: ${designTokens.colors.primary[100]};
     color: ${designTokens.colors.primary[700]};
     border: 1px solid ${designTokens.colors.primary[200]};
+  `,
+  outline: css`
+    background: transparent;
+    color: ${designTokens.colors.neutral[600]};
+    border: 1px solid ${designTokens.colors.neutral[300]};
   `,
 };
 

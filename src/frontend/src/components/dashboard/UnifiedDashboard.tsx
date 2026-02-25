@@ -14,12 +14,17 @@
 import { useState, useEffect, useRef } from "react";
 import { css } from "@emotion/react";
 import { useNavigate } from "react-router-dom";
-import { designTokens } from "../../styles/designTokens";
+import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { agentApi, dashboardApi } from "../../services/apiService";
-import { Card, CardContent } from "../ui/Card";
-import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
+import {
+  Card,
+  CardContent,
+  StatCard,
+  AgentCard,
+  Button,
+  EcosystemVisualizer,
+} from "../ui";
 
 interface DashboardProps {
   mode?: "full" | "minimal"; // minimal for agent-to-agent
@@ -47,6 +52,9 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   const navigate = useNavigate();
   const { isMobile, isTablet } = useBreakpoint();
 
+  const [viewMode, setViewMode] = useState<"standard" | "ecosystem">(
+    (localStorage.getItem("dashboard-view-mode") as any) || "standard",
+  );
   const [stats, setStats] = useState<QuickStats | null>(null);
   const [agents, setAgents] = useState<AgentSummary[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
@@ -63,6 +71,10 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("dashboard-view-mode", viewMode);
+  }, [viewMode]);
 
   // Pull-to-refresh handlers for mobile
   useEffect(() => {
@@ -180,12 +192,44 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
       )}
 
       {/* Refreshing indicator */}
-      {isRefreshing && (
-        <div css={refreshingIndicatorStyles}>Refreshing...</div>
-      )}
+      {isRefreshing && <div css={refreshingIndicatorStyles}>Refreshing...</div>}
       {/* Quick Stats Header */}
       <section css={statsHeaderStyles}>
-        <h1 css={titleStyles}>Dashboard</h1>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: designTokens.spacing[6],
+          }}
+        >
+          <h1 css={titleStyles} style={{ marginBottom: 0 }}>
+            Dashboard
+          </h1>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <Button
+              variant={viewMode === "standard" ? "primary" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("standard")}
+            >
+              Standard
+            </Button>
+            <Button
+              variant={viewMode === "ecosystem" ? "primary" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("ecosystem")}
+            >
+              Ecosystem
+            </Button>
+          </div>
+        </div>
+
+        {viewMode === "ecosystem" && (
+          <div style={{ marginBottom: designTokens.spacing[8] }}>
+            <EcosystemVisualizer />
+          </div>
+        )}
+
         <div css={statsGridStyles(isMobile, isTablet)}>
           <StatCard
             label="Active Agents"
@@ -284,27 +328,6 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
 
 // Sub-components
 
-interface StatCardProps {
-  label: string;
-  value: string | number;
-  total?: number;
-  icon: string;
-  color: "primary" | "success" | "error" | "info";
-}
-
-const StatCard = ({ label, value, total, icon, color }: StatCardProps) => (
-  <Card css={statCardStyles}>
-    <CardContent css={statCardContentStyles}>
-      <div css={statIconStyles(color)}>{icon}</div>
-      <div css={statDetailsStyles}>
-        <div css={statValueStyles}>{value}</div>
-        {total && <div css={statTotalStyles}>/ {total}</div>}
-        <div css={statLabelStyles}>{label}</div>
-      </div>
-    </CardContent>
-  </Card>
-);
-
 interface AgentGridProps {
   agents: AgentSummary[];
   columns: number;
@@ -330,46 +353,6 @@ const AgentCarousel = ({ agents }: AgentCarouselProps) => (
   </div>
 );
 
-interface AgentCardProps {
-  agent: AgentSummary;
-  compact?: boolean;
-}
-
-const AgentCard = ({ agent, compact }: AgentCardProps) => {
-  const navigate = useNavigate();
-
-  return (
-    <Card
-      css={agentCardStyles(compact)}
-      onClick={() => navigate(`/agents/${agent.id}`)}
-    >
-      <CardContent css={agentCardContentStyles}>
-        <div css={agentHeaderStyles}>
-          <h3 css={agentNameStyles}>{agent.name}</h3>
-          <Badge variant={agent.status === "active" ? "success" : "secondary"}>
-            {agent.status}
-          </Badge>
-        </div>
-        <div css={agentMetricsStyles}>
-          <div css={metricStyles}>
-            <span css={metricLabelStyles}>Win Rate</span>
-            <span css={metricValueStyles(agent.winRate >= 0.5)}>
-              {(agent.winRate * 100).toFixed(1)}%
-            </span>
-          </div>
-          <div css={metricStyles}>
-            <span css={metricLabelStyles}>Return</span>
-            <span css={metricValueStyles(agent.totalReturn >= 0)}>
-              {agent.totalReturn >= 0 ? "+" : ""}
-              {(agent.totalReturn * 100).toFixed(2)}%
-            </span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
 interface ActivityFeedProps {
   activities: any[];
   compact?: boolean;
@@ -383,7 +366,8 @@ const ActivityFeed = ({
   showMore,
   onToggleMore,
 }: ActivityFeedProps) => {
-  const displayActivities = compact && !showMore ? activities.slice(0, 5) : activities;
+  const displayActivities =
+    compact && !showMore ? activities.slice(0, 5) : activities;
 
   return (
     <Card>
@@ -550,66 +534,6 @@ const statsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   gap: ${designTokens.spacing[4]};
 `;
 
-const statCardStyles = css`
-  cursor: default;
-  transition: transform 0.2s;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-`;
-
-const statCardContentStyles = css`
-  display: flex;
-  align-items: center;
-  gap: ${designTokens.spacing[3]};
-  padding: ${designTokens.spacing[4]};
-`;
-
-const statIconStyles = (color: string) => {
-  const colorMap: Record<string, string> = {
-    primary: designTokens.colors.primary[100],
-    success: designTokens.colors.semantic.success[100],
-    error: designTokens.colors.semantic.error[100],
-    info: designTokens.colors.primary[100], // Use primary for info
-  };
-
-  return css`
-    font-size: 2rem;
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: ${colorMap[color] || designTokens.colors.neutral[100]};
-    border-radius: ${designTokens.borderRadius.lg};
-  `;
-};
-
-const statDetailsStyles = css`
-  flex: 1;
-`;
-
-const statValueStyles = css`
-  font-size: ${designTokens.typography.fontSize["2xl"]};
-  font-weight: ${designTokens.typography.fontWeight.bold};
-  color: ${designTokens.colors.neutral[900]};
-`;
-
-const statTotalStyles = css`
-  display: inline;
-  font-size: ${designTokens.typography.fontSize.lg};
-  color: ${designTokens.colors.neutral[500]};
-  margin-left: ${designTokens.spacing[1]};
-`;
-
-const statLabelStyles = css`
-  font-size: ${designTokens.typography.fontSize.sm};
-  color: ${designTokens.colors.neutral[600]};
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
 const mainGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   display: grid;
   grid-template-columns: ${isMobile ? "1fr" : isTablet ? "1fr" : "1fr 1fr"};
@@ -655,60 +579,6 @@ const carouselStyles = css`
     background: ${designTokens.colors.neutral[300]};
     border-radius: ${designTokens.borderRadius.full};
   }
-`;
-
-const agentCardStyles = (compact?: boolean) => css`
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: ${compact ? "280px" : "auto"};
-  scroll-snap-align: start;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const agentCardContentStyles = css`
-  padding: ${designTokens.spacing[4]};
-`;
-
-const agentHeaderStyles = css`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${designTokens.spacing[3]};
-`;
-
-const agentNameStyles = css`
-  font-size: ${designTokens.typography.fontSize.lg};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
-  color: ${designTokens.colors.neutral[900]};
-`;
-
-const agentMetricsStyles = css`
-  display: flex;
-  gap: ${designTokens.spacing[4]};
-`;
-
-const metricStyles = css`
-  flex: 1;
-`;
-
-const metricLabelStyles = css`
-  display: block;
-  font-size: ${designTokens.typography.fontSize.xs};
-  color: ${designTokens.colors.neutral[600]};
-  margin-bottom: ${designTokens.spacing[1]};
-`;
-
-const metricValueStyles = (positive: boolean) => css`
-  display: block;
-  font-size: ${designTokens.typography.fontSize.lg};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
-  color: ${positive
-    ? designTokens.colors.semantic.success[600]
-    : designTokens.colors.semantic.error[600]};
 `;
 
 const activityFeedStyles = (compact?: boolean) => css`

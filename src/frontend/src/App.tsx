@@ -5,7 +5,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { useAppStore } from "./stores/appStore";
+
 import { generateKeyframes } from "./styles/animations";
 import { AppLayout } from "./components/layout";
 import SmartOnboarding from "./components/onboarding/SmartOnboarding";
@@ -42,8 +42,6 @@ const PageSkeleton: React.FC = () => (
 );
 
 function App() {
-  const { preferences, user } = useAppStore();
-
   // Inject animation keyframes into the document
   useEffect(() => {
     const styleElement = document.createElement("style");
