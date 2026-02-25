@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { css } from "@emotion/react";
-import { designTokens } from "../../styles/designTokens";
 
 export interface PolicyRule {
   id: string;
@@ -243,7 +241,7 @@ export default function PolicyCustomizer({
       rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule,
     );
 
-    const updatedPolicy = {
+    const updatedPolicy: Policy = {
       ...currentPolicy,
       rules: updatedRules,
       template: "custom",
@@ -262,7 +260,7 @@ export default function PolicyCustomizer({
       rule.id === ruleId ? { ...rule, strictness } : rule,
     );
 
-    const updatedPolicy = {
+    const updatedPolicy: Policy = {
       ...currentPolicy,
       rules: updatedRules,
       template: "custom",
@@ -347,7 +345,7 @@ export default function PolicyCustomizer({
 
         <div className="rules-list">
           {currentPolicy.rules
-            .filter((rule, index) => showAdvanced || index < 4) // Show only first 4 rules unless advanced is toggled
+            .filter((_, index) => showAdvanced || index < 4) // Show only first 4 rules unless advanced is toggled
             .map((rule) => (
               <div
                 key={rule.id}

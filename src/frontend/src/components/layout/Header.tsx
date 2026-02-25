@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { css } from "@emotion/react";
 import { useAppStore, useTheme } from "../../stores/appStore";
+import { useIntentStore } from "../../stores/intentStore";
 import {
   designTokens,
   shadowSystem,
@@ -10,15 +11,14 @@ import {
 } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
-import { Button } from "../ui/Button";
 import CommandPalette from "../ui/CommandPalette";
 import Web3Auth from "../auth/Web3Auth";
 
 export const Header: React.FC = () => {
   const { preferences, updatePreferences, user, setUser } = useAppStore();
   const { effectiveTheme } = useTheme();
-  const { isMobile, isTablet } = useBreakpoint();
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const { isMobile } = useBreakpoint();
+  const { setIsOpen } = useIntentStore();
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
@@ -178,7 +178,7 @@ export const Header: React.FC = () => {
               color: ${designTokens.colors.neutral[500]};
               font-size: ${designTokens.typography.fontSize.xs};
             `}
-            onClick={() => setShowCommandPalette(true)}
+            onClick={() => setIsOpen(true)}
             title="Open command palette (Ctrl+K)"
           >
             <span>⌘</span>
@@ -214,7 +214,7 @@ export const Header: React.FC = () => {
         {isMobile && (
           <button
             css={modernButtonStyle}
-            onClick={() => setShowCommandPalette(true)}
+            onClick={() => setIsOpen(true)}
             title="Search"
           >
             🔍
@@ -265,10 +265,7 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Command Palette */}
-      <CommandPalette
-        isOpen={showCommandPalette}
-        onClose={() => setShowCommandPalette(false)}
-      />
+      <CommandPalette />
     </header>
   );
 };

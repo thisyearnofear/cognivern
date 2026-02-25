@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppStore } from "../stores/appStore";
+import { useIntentStore } from "../stores/intentStore";
 
 interface KeyboardShortcut {
   key: string;
@@ -15,31 +16,24 @@ interface KeyboardShortcut {
 export const useKeyboardShortcuts = () => {
   const navigate = useNavigate();
   const { updatePreferences, preferences } = useAppStore();
+  const { setIsOpen } = useIntentStore();
 
   const shortcuts: KeyboardShortcut[] = [
     {
       key: "k",
       ctrlKey: true,
-      action: () => {
-        // TODO: Open command palette
-        console.log("Opening command palette...");
-      },
+      action: () => setIsOpen(true),
       description: "Open command palette",
     },
     {
       key: "k",
       metaKey: true, // For Mac
-      action: () => {
-        console.log("Opening command palette...");
-      },
+      action: () => setIsOpen(true),
       description: "Open command palette",
     },
     {
       key: "/",
-      action: () => {
-        // TODO: Focus search
-        console.log("Focus search...");
-      },
+      action: () => setIsOpen(true),
       description: "Focus search",
     },
     {
@@ -119,7 +113,13 @@ export const useKeyboardShortcuts = () => {
         matchingShortcut.action();
       }
     },
-    [shortcuts, navigate, updatePreferences, preferences.sidebarCollapsed],
+    [
+      shortcuts,
+      navigate,
+      updatePreferences,
+      preferences.sidebarCollapsed,
+      setIsOpen,
+    ],
   );
 
   useEffect(() => {

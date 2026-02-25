@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { css } from "@emotion/react";
 import { Button } from "./Button";
 import {
   formStyles,
@@ -8,7 +9,7 @@ import {
   formErrorStyles,
   formDescriptionStyles,
   formSubmitContainerStyles,
-} from "../../styles/styles";
+} from "../../styles/design-system";
 
 export interface FormFieldProps {
   label: string;
@@ -164,7 +165,8 @@ export const Form: React.FC<FormProps> = ({
           {field.required && (
             <span
               css={css`
-                color: red;
+                color: #ef4444;
+                margin-left: 2px;
               `}
             >
               *
@@ -233,7 +235,8 @@ export const FormField: React.FC<{
         {field.required && (
           <span
             css={css`
-              color: red;
+              color: #ef4444;
+              margin-left: 2px;
             `}
           >
             *

@@ -150,7 +150,7 @@ export const createAnimation = (name: keyof typeof animations) => {
 
   if ("keyframes" in anim) {
     return {
-      animation: `${name} ${anim.duration} ${anim.easing} ${anim.iterationCount || "1"}`,
+      animation: `${name} ${anim.duration} ${anim.easing} ${(anim as any).iterationCount || "1"}`,
     };
   }
 

@@ -10,7 +10,8 @@ export type ButtonVariant =
   | "secondary"
   | "ghost"
   | "danger"
-  | "success";
+  | "success"
+  | "outline";
 export type ButtonSize = "sm" | "md" | "lg";
 
 export const buttonStyles = {
@@ -148,6 +149,18 @@ export const buttonStyles = {
       &:hover {
         filter: brightness(1.1);
         box-shadow: ${shadowSystem.glow.success}, ${designTokens.shadows.lg};
+      }
+    `,
+
+    outline: css`
+      background: transparent;
+      color: ${designTokens.colors.neutral[700]};
+      border: 1px solid ${designTokens.colors.neutral[300]};
+
+      &:hover {
+        background: ${designTokens.colors.neutral[50]};
+        border-color: ${designTokens.colors.neutral[400]};
+        color: ${designTokens.colors.neutral[900]};
       }
     `,
   },
