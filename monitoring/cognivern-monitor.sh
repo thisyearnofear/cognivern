@@ -38,7 +38,7 @@ get_service_stats() {
 
 main_monitor_loop() {
     log_message "🚀 Starting Cognivern Health Monitor"
-    
+
     while true; do
         # Check systemd service status
         if check_systemd_status; then
@@ -46,7 +46,7 @@ main_monitor_loop() {
         else
             systemd_status="${RED}INACTIVE${NC}"
         fi
-        
+
         # Check API health
         if check_api_health; then
             api_status="${GREEN}RESPONDING${NC}"
@@ -55,7 +55,7 @@ main_monitor_loop() {
             api_status="${RED}NOT_RESPONDING${NC}"
             api_available=false
         fi
-        
+
         # Check agents endpoint if API is available
         agents_status="${YELLOW}N/A${NC}"
         if [ "$api_available" = true ]; then
@@ -65,19 +65,19 @@ main_monitor_loop() {
                 agents_status="${RED}FAILED${NC}"
             fi
         fi
-        
+
         # Get service statistics
         stats=$(get_service_stats)
         restarts=$(echo "$stats" | grep NRestarts | cut -d'=' -f2)
-        
+
         # Display status
         printf "\r$(date '+%H:%M:%S') | Service: $systemd_status | API: $api_status | Agents: $agents_status | Restarts: $restarts"
-        
+
         # Log significant events
         if [ "$api_available" = true ]; then
             log_message "✅ API Available - Health and Agents endpoints responding"
         fi
-        
+
         sleep $CHECK_INTERVAL
     done
 }

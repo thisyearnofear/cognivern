@@ -1,6 +1,6 @@
 /**
  * Centralized Configuration Management
- * 
+ *
  * Single source of truth for all configuration across the platform.
  * Eliminates duplication and ensures consistency.
  */
@@ -62,7 +62,7 @@ const parseConfig = () => {
       const missingFields = error.errors
         .filter(err => err.code === 'invalid_type' && err.received === 'undefined')
         .map(err => err.path.join('.'));
-      
+
       if (missingFields.length > 0) {
         console.warn(`Warning: Some environment variables are missing: ${missingFields.join(', ')}`);
       }

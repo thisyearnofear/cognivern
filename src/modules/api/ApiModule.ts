@@ -234,7 +234,7 @@ export class ApiModule extends BaseService {
 
     // Initialize all controllers
     for (const [name, controller] of this.controllers) {
-      if (controller.initialize && name !== "agents") { 
+      if (controller.initialize && name !== "agents") {
         await controller.initialize();
         this.logger.debug(`${name} controller initialized`);
       }

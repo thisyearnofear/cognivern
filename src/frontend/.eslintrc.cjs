@@ -42,14 +42,14 @@ module.exports = [
         requestAnimationFrame: 'readonly',
         cancelAnimationFrame: 'readonly',
         performance: 'readonly',
-        
+
         // Node.js globals for build tools
         process: 'readonly',
         Buffer: 'readonly',
         global: 'readonly',
         __dirname: 'readonly',
         __filename: 'readonly',
-        
+
         // Test globals
         describe: 'readonly',
         it: 'readonly',
@@ -58,17 +58,17 @@ module.exports = [
         beforeEach: 'readonly',
         afterEach: 'readonly',
         jest: 'readonly',
-        
+
         // TypeScript globals
         NodeJS: 'readonly',
         React: 'readonly',
-        
+
         // CSS-in-JS
         css: 'readonly',
-        
+
         // Design tokens
         designTokens: 'readonly',
-        
+
         // Custom globals
         Agent: 'readonly',
       },

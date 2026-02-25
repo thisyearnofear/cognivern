@@ -89,7 +89,7 @@ export class SapienceService {
     this.etherealProvider = new ethers.JsonRpcProvider(this.config.etherealRpcUrl);
     // Arbitrum Provider for forecasting
     this.arbitrumProvider = new ethers.JsonRpcProvider(this.config.arbitrumRpcUrl);
-    
+
     if (this.config.privateKey) {
         this.wallet = new ethers.Wallet(this.config.privateKey, this.etherealProvider);
     } else {
@@ -105,7 +105,7 @@ export class SapienceService {
   async submitForecast(forecast: ForecastRequest): Promise<string> {
     try {
       logger.info(`Submitting forecast for market ${forecast.marketId}: ${forecast.probability}%`);
-      
+
       if (!this.config.privateKey) {
         throw new Error("Private key required for forecasting");
       }
@@ -163,17 +163,17 @@ export class SapienceService {
 
       const result = await response.json();
       const condition = result.data?.condition;
-      
+
       if (!condition) {
         logger.warn(`No market data found for condition ${conditionId}`);
         return null;
       }
 
       // Parse outcomes to get YES/NO prices
-      const yesOutcome = condition.outcomes?.find((o: any) => 
+      const yesOutcome = condition.outcomes?.find((o: any) =>
         o.name?.toLowerCase().includes('yes') || o.name === '1'
       );
-      const noOutcome = condition.outcomes?.find((o: any) => 
+      const noOutcome = condition.outcomes?.find((o: any) =>
         o.name?.toLowerCase().includes('no') || o.name === '0'
       );
 
@@ -195,7 +195,7 @@ export class SapienceService {
   async executeTrade(trade: TradeRequest): Promise<string> {
     try {
       logger.info(`Executing trade on market ${trade.marketId}: ${trade.side} ${trade.amount}`);
-      
+
       if (!this.config.privateKey) {
         throw new Error("Private key required for trading");
       }
@@ -262,10 +262,10 @@ export class SapienceService {
 
       logger.info(`Minting prediction position...`);
       const tx = await marketContract.mint(mintRequest);
-      
+
       logger.info(`Trade submitted! Tx Hash: ${tx.hash}`);
       const receipt = await tx.wait();
-      
+
       if (receipt?.status === 1) {
         logger.info(`Trade executed successfully!`);
         return tx.hash;
@@ -285,10 +285,10 @@ export class SapienceService {
    */
   calculateEdge(forecastProbability: number, marketPrice: MarketPrice): number {
     const forecastDecimal = forecastProbability / 100;
-    
+
     // Edge for YES position
     const yesEdge = forecastDecimal - marketPrice.yesPrice;
-    // Edge for NO position  
+    // Edge for NO position
     const noEdge = (1 - forecastDecimal) - marketPrice.noPrice;
 
     // Return the better edge

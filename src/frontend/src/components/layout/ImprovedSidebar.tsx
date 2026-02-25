@@ -150,14 +150,14 @@ export const ImprovedSidebar: React.FC = () => {
       z-index: ${designTokens.zIndex.modal};
     `
       : ""}
-    
+
     /* Collapsed state */
     ${isCollapsed && !isMobile
       ? `
       width: 80px;
     `
       : ""}
-    
+
     /* Smooth width transitions for desktop */
     @media (min-width: ${designTokens.breakpoints.lg}) {
       width: ${isCollapsed ? "80px" : `${sidebarWidth}px`};

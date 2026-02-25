@@ -31,14 +31,14 @@ export const getButtonStyles = (
     font-size: ${designTokens.typography.fontSize.base};
     min-height: 40px;
   `}
-  
+
   ${size === "lg" &&
   css`
     padding: ${designTokens.spacing[4]} ${designTokens.spacing[6]};
     font-size: ${designTokens.typography.fontSize.lg};
     min-height: 48px;
   `}
-  
+
   ${variant === "primary" &&
   css`
     background-color: ${designTokens.colors.primary[500]};
@@ -55,7 +55,7 @@ export const getButtonStyles = (
       transform: translateY(0);
     }
   `}
-  
+
   ${variant === "secondary" &&
   css`
     background-color: ${designTokens.colors.secondary[100]};
@@ -67,7 +67,7 @@ export const getButtonStyles = (
       box-shadow: ${designTokens.shadows.md};
     }
   `}
-  
+
   ${variant === "outline" &&
   css`
     background-color: transparent;
@@ -79,7 +79,7 @@ export const getButtonStyles = (
       border-color: ${designTokens.colors.primary[400]};
     }
   `}
-  
+
   ${variant === "ghost" &&
   css`
     background-color: transparent;
@@ -89,7 +89,7 @@ export const getButtonStyles = (
       background-color: ${designTokens.colors.secondary[100]};
     }
   `}
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -114,7 +114,7 @@ export const getCardStyles = (
   css`
     box-shadow: ${designTokens.shadows.lg};
   `}
-  
+
   ${variant === "outlined" &&
   css`
     border: 1px solid ${designTokens.colors.neutral[200]};
@@ -384,13 +384,13 @@ export const getLoadingSpinnerStyles = (size: "sm" | "md" | "lg" = "md") => css`
     width: 24px;
     height: 24px;
   `}
-  
+
   ${size === "lg" &&
   css`
     width: 32px;
     height: 32px;
   `}
-  
+
   @keyframes spin {
     0% {
       transform: rotate(0deg);
@@ -536,13 +536,13 @@ export const getModalStyles = (size: "sm" | "md" | "lg" | "xl" = "md") => css`
     width: 100%;
     max-width: 500px;
   `}
-  
+
   ${size === "lg" &&
   css`
     width: 100%;
     max-width: 700px;
   `}
-  
+
   ${size === "xl" &&
   css`
     width: 100%;
@@ -622,13 +622,13 @@ export const getNotificationContainerStyles = (
     top: ${designTokens.spacing[4]};
     left: ${designTokens.spacing[4]};
   `}
-  
+
   ${position === "bottom-right" &&
   css`
     bottom: ${designTokens.spacing[4]};
     right: ${designTokens.spacing[4]};
   `}
-  
+
   ${position === "bottom-left" &&
   css`
     bottom: ${designTokens.spacing[4]};
@@ -658,12 +658,12 @@ export const getNotificationItemStyles = (
   css`
     border-left-color: ${designTokens.colors.semantic.error[500]};
   `}
-  
+
   ${type === "warning" &&
   css`
     border-left-color: ${designTokens.colors.semantic.warning[500]};
   `}
-  
+
   ${type === "info" &&
   css`
     border-left-color: ${designTokens.colors.semantic.info[500]};
@@ -692,13 +692,13 @@ export const getNotificationIconStyles = (
     background-color: ${designTokens.colors.semantic.error[100]};
     color: ${designTokens.colors.semantic.error[600]};
   `}
-  
+
   ${type === "warning" &&
   css`
     background-color: ${designTokens.colors.semantic.warning[100]};
     color: ${designTokens.colors.semantic.warning[600]};
   `}
-  
+
   ${type === "info" &&
   css`
     background-color: ${designTokens.colors.semantic.info[100]};
@@ -782,7 +782,7 @@ export const getPageTransitionContentStyles = (
     transform: translateX(${isEntering ? "0" : "20px"});
     opacity: ${isEntering ? 1 : 0};
   `}
-  
+
   ${type === "scale" &&
   css`
     transform: scale(${isEntering ? 1 : 0.95});
@@ -814,12 +814,12 @@ export const getToastItemStyles = (
   css`
     border-left-color: ${designTokens.colors.semantic.error[500]};
   `}
-  
+
   ${type === "warning" &&
   css`
     border-left-color: ${designTokens.colors.semantic.warning[500]};
   `}
-  
+
   ${type === "info" &&
   css`
     border-left-color: ${designTokens.colors.semantic.info[500]};
@@ -848,13 +848,13 @@ export const getToastIconStyles = (
     background-color: ${designTokens.colors.semantic.error[100]};
     color: ${designTokens.colors.semantic.error[600]};
   `}
-  
+
   ${type === "warning" &&
   css`
     background-color: ${designTokens.colors.semantic.warning[100]};
     color: ${designTokens.colors.semantic.warning[600]};
   `}
-  
+
   ${type === "info" &&
   css`
     background-color: ${designTokens.colors.semantic.info[100]};

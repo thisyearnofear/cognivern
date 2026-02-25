@@ -35,7 +35,7 @@ async function registerTradingAgents() {
       type: "recall",
       capabilities: [
         "high-frequency-trading",
-        "technical-analysis", 
+        "technical-analysis",
         "market-data-analysis",
         "risk-management",
         "competition-trading"
@@ -50,11 +50,11 @@ async function registerTradingAgents() {
     // Wait a moment between registrations
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Register Vincent Social Trading Agent  
+    // Register Vincent Social Trading Agent
     logger.info("📝 Registering Vincent Social Trading Agent...");
     const vincentResult = await contractService.registerTradingAgent({
       id: "vincent-social-agent",
-      name: "Vincent Social Trading Agent", 
+      name: "Vincent Social Trading Agent",
       type: "vincent",
       capabilities: [
         "sentiment-analysis",
@@ -79,7 +79,7 @@ async function registerTradingAgents() {
     logger.info("💾 Updated storage stats:", storageStats);
 
     logger.info("🎉 Trading agent registration complete!");
-    
+
     console.log("\n=== REGISTRATION SUMMARY ===");
     console.log("✅ Recall Trading Agent:");
     console.log(`   Governance TX: ${recallResult.governanceTx || 'Failed'}`);

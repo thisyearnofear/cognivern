@@ -25,7 +25,7 @@ export class BitteWalletService {
   constructor() {
     this.apiKey = process.env.BITTE_API_KEY || '';
     this.apiUrl = 'https://api.bitte.ai';
-    
+
     if (!this.apiKey) {
       logger.warn('Bitte API key not provided. Wallet functionality will be limited.');
     }
@@ -63,7 +63,7 @@ export class BitteWalletService {
         balance: data.balance,
         isConnected: true
       };
-      
+
       this.connected = true;
       logger.info(`Connected to Bitte wallet: ${this.walletInfo.address}`);
       return true;
@@ -103,7 +103,7 @@ export class BitteWalletService {
         balance: data.balance,
         isConnected: true
       };
-      
+
       return this.walletInfo;
     } catch (error) {
       logger.error('Error getting wallet info:', error);
@@ -133,9 +133,9 @@ export class BitteWalletService {
         agentId,
         status: 'pending'
       };
-      
+
       this.deployments.set(deploymentId, deployment);
-      
+
       // Send deployment request to Bitte API
       const response = await fetch(`${this.apiUrl}/agents/deploy`, {
         method: 'POST',
@@ -155,21 +155,21 @@ export class BitteWalletService {
       }
 
       const data = await response.json();
-      
+
       // Update deployment record
       const updatedDeployment: DeploymentTransaction = {
         ...deployment,
         status: 'confirmed',
         txHash: data.txHash
       };
-      
+
       this.deployments.set(deploymentId, updatedDeployment);
       logger.info(`Agent ${agentId} deployed successfully. Transaction: ${data.txHash}`);
-      
+
       return updatedDeployment;
     } catch (error) {
       logger.error(`Error deploying agent ${agentId}:`, error);
-      
+
       // Update deployment record with error
       const failedDeployment = this.deployments.get(agentId) || {
         id: `deploy-${Date.now()}-${agentId}`,
@@ -178,12 +178,12 @@ export class BitteWalletService {
         status: 'failed',
         error: error instanceof Error ? error.message : 'Unknown error'
       };
-      
+
       failedDeployment.status = 'failed';
       failedDeployment.error = error instanceof Error ? error.message : 'Unknown error';
-      
+
       this.deployments.set(failedDeployment.id, failedDeployment);
-      
+
       throw error;
     }
   }

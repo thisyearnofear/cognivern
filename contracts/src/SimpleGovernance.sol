@@ -26,7 +26,7 @@ contract SimpleGovernance {
 
     mapping(bytes32 => Policy) public policies;
     mapping(bytes32 => Agent) public agents;
-    
+
     uint256 public totalPolicies;
     uint256 public totalAgents;
     uint256 public totalActions;
@@ -41,7 +41,7 @@ contract SimpleGovernance {
         string memory description
     ) external {
         require(policies[policyId].creator == address(0), "Policy already exists");
-        
+
         policies[policyId] = Policy({
             id: policyId,
             name: name,
@@ -50,7 +50,7 @@ contract SimpleGovernance {
             createdAt: block.timestamp,
             active: true
         });
-        
+
         totalPolicies++;
         emit PolicyCreated(policyId, name, msg.sender);
     }
@@ -62,7 +62,7 @@ contract SimpleGovernance {
     ) external {
         require(agents[agentId].owner == address(0), "Agent already exists");
         require(policies[policyId].active, "Policy not active");
-        
+
         agents[agentId] = Agent({
             id: agentId,
             name: name,
@@ -71,7 +71,7 @@ contract SimpleGovernance {
             active: true,
             policyId: policyId
         });
-        
+
         totalAgents++;
         emit AgentRegistered(agentId, name, msg.sender);
     }
@@ -83,7 +83,7 @@ contract SimpleGovernance {
     ) external {
         require(agents[agentId].active, "Agent not active");
         require(agents[agentId].owner == msg.sender, "Not agent owner");
-        
+
         totalActions++;
         emit ActionEvaluated(actionId, agentId, approved);
     }

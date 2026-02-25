@@ -58,7 +58,7 @@ scp .env ${SERVER_USER}@${SERVER_HOST}:/tmp/cognivern.env
 print_status "Deploying on server..."
 ssh ${SERVER_USER}@${SERVER_HOST} << EOF
     set -e
-    
+
     # Install Docker and Docker Compose if not present
     if ! command -v docker &> /dev/null; then
         echo "Installing Docker..."
@@ -67,38 +67,38 @@ ssh ${SERVER_USER}@${SERVER_HOST} << EOF
         systemctl enable docker
         systemctl start docker
     fi
-    
+
     if ! command -v docker-compose &> /dev/null; then
         echo "Installing Docker Compose..."
         curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
         chmod +x /usr/local/bin/docker-compose
     fi
-    
+
     # Create deployment directory
     mkdir -p ${DEPLOY_PATH}
     cd ${DEPLOY_PATH}
-    
+
     # Stop existing services
     if [ -f docker-compose.yml ]; then
         docker-compose down || true
     fi
-    
+
     # Extract new version
     tar -xzf /tmp/cognivern-deploy.tar.gz
     cp /tmp/cognivern.env .env
-    
+
     # Create necessary directories
     mkdir -p data logs nginx/ssl
-    
+
     # Set permissions
     chown -R 1001:1001 data logs
-    
+
     # Start services
     docker-compose up -d --build
-    
+
     # Clean up
     rm /tmp/cognivern-deploy.tar.gz /tmp/cognivern.env
-    
+
     echo "✅ Deployment completed!"
     echo "🔍 Check status with: docker-compose ps"
     echo "📋 View logs with: docker-compose logs -f"

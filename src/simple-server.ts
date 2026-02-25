@@ -33,28 +33,28 @@ const logger = {
 // API Key middleware
 const apiKeyMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const apiKey = req.headers["x-api-key"] || req.query.apiKey;
-  
+
   if (!apiKey) {
     logger.warn("API request without API key");
     return res.status(401).json({
       error: "API key is required",
     });
   }
-  
+
   if (apiKey !== process.env.API_KEY) {
     logger.warn("API request with invalid API key");
     return res.status(401).json({
       error: "Invalid API key",
     });
   }
-  
+
   next();
 };
 
 // Health check endpoint
 app.get("/health", (req, res) => {
-  res.status(200).json({ 
-    status: "ok", 
+  res.status(200).json({
+    status: "ok",
     message: "Cognivern API is running",
     timestamp: new Date().toISOString(),
   });
@@ -80,7 +80,7 @@ app.get("/api/agents/status", apiKeyMiddleware, (req, res) => {
           },
         },
         {
-          id: "vincent-social-agent", 
+          id: "vincent-social-agent",
           name: "Vincent Social Trading Agent",
           type: "social_trading",
           status: "active",

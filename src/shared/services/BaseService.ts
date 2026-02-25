@@ -1,6 +1,6 @@
 /**
  * Base Service Class - DRY Foundation for All Services
- * 
+ *
  * Provides common functionality that all services need:
  * - Logging
  * - Error handling
@@ -32,9 +32,9 @@ export abstract class BaseService extends EventEmitter {
   async initialize(): Promise<void> {
     try {
       this.logger.info(`Initializing ${this.config.name} service...`);
-      
+
       await this.onInitialize();
-      
+
       this.isInitialized = true;
       this.logger.info(`${this.config.name} service initialized successfully`);
       this.emit('initialized');
@@ -50,9 +50,9 @@ export abstract class BaseService extends EventEmitter {
   async shutdown(): Promise<void> {
     try {
       this.logger.info(`Shutting down ${this.config.name} service...`);
-      
+
       await this.onShutdown();
-      
+
       this.isInitialized = false;
       this.logger.info(`${this.config.name} service shut down successfully`);
       this.emit('shutdown');
@@ -68,7 +68,7 @@ export abstract class BaseService extends EventEmitter {
   async getHealth(): Promise<HealthStatus> {
     const dependencies = await this.checkDependencies();
     const hasUnhealthyDeps = Object.values(dependencies).some(dep => dep.status === 'unhealthy');
-    
+
     return {
       status: !this.isInitialized ? 'unhealthy' : hasUnhealthyDeps ? 'degraded' : 'healthy',
       timestamp: new Date().toISOString(),
@@ -98,27 +98,27 @@ export abstract class BaseService extends EventEmitter {
     context?: Record<string, any>
   ): Promise<T> {
     const startTime = Date.now();
-    
+
     try {
       this.logger.debug(`Starting ${operation}`, context);
-      
+
       const result = await fn();
-      
+
       const duration = Date.now() - startTime;
-      this.logger.info(`${operation} completed successfully`, { 
-        duration, 
-        ...context 
+      this.logger.info(`${operation} completed successfully`, {
+        duration,
+        ...context
       });
-      
+
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
-      this.logger.error(`${operation} failed`, { 
-        error: error.message, 
-        duration, 
-        ...context 
+      this.logger.error(`${operation} failed`, {
+        error: error.message,
+        duration,
+        ...context
       });
-      
+
       throw error;
     }
   }
@@ -132,26 +132,26 @@ export abstract class BaseService extends EventEmitter {
     baseDelay = 1000
   ): Promise<T> {
     let lastError: Error;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error;
-        
+
         if (attempt === maxRetries) {
           break;
         }
-        
+
         const delay = baseDelay * Math.pow(2, attempt - 1);
         this.logger.warn(`Operation failed, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`, {
           error: error.message,
         });
-        
+
         await this.sleep(delay);
       }
     }
-    
+
     throw lastError;
   }
 

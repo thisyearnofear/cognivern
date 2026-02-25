@@ -7,7 +7,7 @@ pragma solidity ^0.8.19;
  * @notice This contract provides immutable storage for AI agent decisions, policy checks, and audit trails
  */
 contract AIGovernanceStorage {
-    
+
     // Events
     event GovernanceActionStored(
         bytes32 indexed actionId,
@@ -16,7 +16,7 @@ contract AIGovernanceStorage {
         bool approved,
         uint256 timestamp
     );
-    
+
     event PolicyViolationRecorded(
         bytes32 indexed actionId,
         address indexed agentAddress,
@@ -24,7 +24,7 @@ contract AIGovernanceStorage {
         string reason,
         uint256 timestamp
     );
-    
+
     event AgentRegistered(
         address indexed agentAddress,
         string agentName,
@@ -45,7 +45,7 @@ contract AIGovernanceStorage {
         string filecoinCID; // IPFS/Filecoin CID for detailed data
         bool isImmutable;
     }
-    
+
     struct PolicyViolation {
         bytes32 actionId;
         address agentAddress;
@@ -55,7 +55,7 @@ contract AIGovernanceStorage {
         uint256 timestamp;
         bool resolved;
     }
-    
+
     struct AgentInfo {
         address agentAddress;
         string name;
@@ -73,21 +73,21 @@ contract AIGovernanceStorage {
     mapping(address => AgentInfo) public agents;
     mapping(address => bytes32[]) public agentActions;
     mapping(address => bytes32[]) public agentViolations;
-    
+
     bytes32[] public allActionIds;
     bytes32[] public allViolationIds;
     address[] public registeredAgents;
-    
+
     address public owner;
     uint256 public totalActions;
     uint256 public totalViolations;
-    
+
     // Modifiers
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner can call this function");
         _;
     }
-    
+
     modifier validAgent(address agentAddress) {
         require(agentAddress != address(0), "Invalid agent address");
         require(agents[agentAddress].registrationTime > 0, "Agent not registered");
@@ -113,7 +113,7 @@ contract AIGovernanceStorage {
     ) external onlyOwner {
         require(agentAddress != address(0), "Invalid agent address");
         require(agents[agentAddress].registrationTime == 0, "Agent already registered");
-        
+
         agents[agentAddress] = AgentInfo({
             agentAddress: agentAddress,
             name: name,
@@ -124,9 +124,9 @@ contract AIGovernanceStorage {
             registrationTime: block.timestamp,
             active: true
         });
-        
+
         registeredAgents.push(agentAddress);
-        
+
         emit AgentRegistered(agentAddress, name, agentType, block.timestamp);
     }
 
@@ -152,7 +152,7 @@ contract AIGovernanceStorage {
         string memory filecoinCID
     ) external validAgent(agentAddress) {
         require(governanceRecords[actionId].timestamp == 0, "Action already recorded");
-        
+
         governanceRecords[actionId] = GovernanceRecord({
             actionId: actionId,
             agentAddress: agentAddress,
@@ -165,18 +165,18 @@ contract AIGovernanceStorage {
             filecoinCID: filecoinCID,
             isImmutable: true
         });
-        
+
         // Update agent statistics
         agents[agentAddress].totalActions++;
         if (approved) {
             agents[agentAddress].approvedActions++;
         }
-        
+
         // Track actions
         agentActions[agentAddress].push(actionId);
         allActionIds.push(actionId);
         totalActions++;
-        
+
         emit GovernanceActionStored(
             actionId,
             agentAddress,
@@ -205,7 +205,7 @@ contract AIGovernanceStorage {
     ) external validAgent(agentAddress) {
         require(severity >= 1 && severity <= 5, "Severity must be between 1 and 5");
         require(policyViolations[violationId].timestamp == 0, "Violation already recorded");
-        
+
         policyViolations[violationId] = PolicyViolation({
             actionId: actionId,
             agentAddress: agentAddress,
@@ -215,15 +215,15 @@ contract AIGovernanceStorage {
             timestamp: block.timestamp,
             resolved: false
         });
-        
+
         // Update agent statistics
         agents[agentAddress].violations++;
-        
+
         // Track violations
         agentViolations[agentAddress].push(violationId);
         allViolationIds.push(violationId);
         totalViolations++;
-        
+
         emit PolicyViolationRecorded(
             actionId,
             agentAddress,
@@ -236,10 +236,10 @@ contract AIGovernanceStorage {
     /**
      * @dev Get governance record by action ID
      */
-    function getGovernanceRecord(bytes32 actionId) 
-        external 
-        view 
-        returns (GovernanceRecord memory) 
+    function getGovernanceRecord(bytes32 actionId)
+        external
+        view
+        returns (GovernanceRecord memory)
     {
         return governanceRecords[actionId];
     }
@@ -247,10 +247,10 @@ contract AIGovernanceStorage {
     /**
      * @dev Get policy violation by violation ID
      */
-    function getPolicyViolation(bytes32 violationId) 
-        external 
-        view 
-        returns (PolicyViolation memory) 
+    function getPolicyViolation(bytes32 violationId)
+        external
+        view
+        returns (PolicyViolation memory)
     {
         return policyViolations[violationId];
     }
@@ -258,10 +258,10 @@ contract AIGovernanceStorage {
     /**
      * @dev Get agent information
      */
-    function getAgentInfo(address agentAddress) 
-        external 
-        view 
-        returns (AgentInfo memory) 
+    function getAgentInfo(address agentAddress)
+        external
+        view
+        returns (AgentInfo memory)
     {
         return agents[agentAddress];
     }
@@ -269,10 +269,10 @@ contract AIGovernanceStorage {
     /**
      * @dev Get all actions for an agent
      */
-    function getAgentActions(address agentAddress) 
-        external 
-        view 
-        returns (bytes32[] memory) 
+    function getAgentActions(address agentAddress)
+        external
+        view
+        returns (bytes32[] memory)
     {
         return agentActions[agentAddress];
     }
@@ -280,10 +280,10 @@ contract AIGovernanceStorage {
     /**
      * @dev Get all violations for an agent
      */
-    function getAgentViolations(address agentAddress) 
-        external 
-        view 
-        returns (bytes32[] memory) 
+    function getAgentViolations(address agentAddress)
+        external
+        view
+        returns (bytes32[] memory)
     {
         return agentViolations[agentAddress];
     }
@@ -298,26 +298,26 @@ contract AIGovernanceStorage {
     /**
      * @dev Get governance statistics
      */
-    function getGovernanceStats() 
-        external 
-        view 
+    function getGovernanceStats()
+        external
+        view
         returns (
             uint256 _totalActions,
             uint256 _totalViolations,
             uint256 _totalAgents,
             uint256 _approvalRate
-        ) 
+        )
     {
         _totalActions = totalActions;
         _totalViolations = totalViolations;
         _totalAgents = registeredAgents.length;
-        
+
         // Calculate approval rate
         uint256 totalApproved = 0;
         for (uint256 i = 0; i < registeredAgents.length; i++) {
             totalApproved += agents[registeredAgents[i]].approvedActions;
         }
-        
+
         _approvalRate = totalActions > 0 ? (totalApproved * 100) / totalActions : 100;
     }
 
@@ -327,7 +327,7 @@ contract AIGovernanceStorage {
     function resolvePolicyViolation(bytes32 violationId) external onlyOwner {
         require(policyViolations[violationId].timestamp > 0, "Violation not found");
         require(!policyViolations[violationId].resolved, "Violation already resolved");
-        
+
         policyViolations[violationId].resolved = true;
     }
 

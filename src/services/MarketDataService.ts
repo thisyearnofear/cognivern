@@ -46,13 +46,13 @@ export class MarketDataService {
   private async fetchWithCache(key: string, fetchFn: () => Promise<any>): Promise<any> {
     const cached = this.cache.get(key);
     if (cached) return cached;
-    
+
     const data = await fetchFn();
     this.cache.set(key, data);
-    
+
     // Clear cache after TTL
     setTimeout(() => this.cache.delete(key), this.cacheTTL);
-    
+
     return data;
   }
 
@@ -62,7 +62,7 @@ export class MarketDataService {
   async getMarketData(symbol: string): Promise<MarketData> {
     try {
       const cacheKey = `market_${symbol}`;
-      
+
       return await this.fetchWithCache(cacheKey, async () => {
         // Try CoinGecko first
         if (this.apiKeys.coinGecko) {
@@ -75,7 +75,7 @@ export class MarketDataService {
                 }
               }
             );
-            
+
             if (response.ok) {
               const data = await response.json();
               return this.parseCoinGeckoData(data, symbol);
@@ -90,7 +90,7 @@ export class MarketDataService {
           const response = await fetch(
             `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol.toUpperCase()}`
           );
-          
+
           if (response.ok) {
             const data = await response.json();
             return this.parseBinanceData(data, symbol);
@@ -149,7 +149,7 @@ export class MarketDataService {
   async getHistoricalData(symbol: string, days: number = 7): Promise<HistoricalDataPoint[]> {
     try {
       const cacheKey = `historical_${symbol}_${days}`;
-      
+
       return await this.fetchWithCache(cacheKey, async () => {
         // Try CoinGecko first
         if (this.apiKeys.coinGecko) {
@@ -162,7 +162,7 @@ export class MarketDataService {
                 }
               }
             );
-            
+
             if (response.ok) {
               const data = await response.json();
               return data.prices.map((point: [number, number]) => ({
@@ -189,7 +189,7 @@ export class MarketDataService {
   private generateHistoricalData(symbol: string, days: number): HistoricalDataPoint[] {
     const result: HistoricalDataPoint[] = [];
     const now = Date.now();
-    
+
     // Get current price from real data if available
     let currentPrice = 3000; // Default fallback
     try {
@@ -198,20 +198,20 @@ export class MarketDataService {
     } catch (error) {
       // Use default if we can't get current data
     }
-    
+
     // Generate reasonable historical data with some volatility
     for (let i = days - 1; i >= 0; i--) {
       const daysAgo = now - (i * 24 * 60 * 60 * 1000);
       const priceChange = (Math.random() - 0.5) * 0.1; // ±5% daily change
       currentPrice *= (1 + priceChange);
-      
+
       result.push({
         timestamp: new Date(daysAgo).toISOString(),
         price: Math.max(1, currentPrice), // Ensure positive price
         volume: Math.random() * 10000000 + 1000000, // $1M-$11M daily volume
       });
     }
-    
+
     return result.reverse(); // Return in chronological order
   }
 
@@ -231,7 +231,7 @@ export class MarketDataService {
                 }
               }
             );
-            
+
             if (response.ok) {
               const data = await response.json();
               return {
@@ -280,7 +280,7 @@ export class MarketDataService {
                 }
               }
             );
-            
+
             if (response.ok) {
               const data = await response.json();
               return data.map((coin: any) => ({
@@ -319,14 +319,14 @@ export class MarketDataService {
       { symbol: 'DOGE', weight: 0.012 },
       { symbol: 'AVAX', weight: 0.01 },
     ];
-    
+
     const totalWeight = topCoins.reduce((sum, coin) => sum + coin.weight, 0);
     const totalMarketCap = 2000000000000; // $2T
-    
+
     return topCoins.slice(0, limit).map((coin, index) => {
       const marketCap = coin.weight / totalWeight * totalMarketCap;
       const price = [60000, 3000, 1, 600, 150, 0.6, 1, 0.5, 0.15, 50][index] || 100;
-      
+
       return {
         symbol: coin.symbol,
         price: price * (1 + (Math.random() - 0.5) * 0.1), // Add some variability

@@ -14,7 +14,7 @@ export function createVincentRoutes(agentController: AgentController): express.R
     try {
       // Extract JWT from query parameters
       const { jwt } = req.query;
-      
+
       if (!jwt) {
         return res.status(400).send(`
           <html>
@@ -36,7 +36,7 @@ export function createVincentRoutes(agentController: AgentController): express.R
 
       // For demo purposes, we'll just set consent to true
       await agentController.setVincentConsent(
-        {} as express.Request, 
+        {} as express.Request,
         {
           json: (data: any) => {
             console.log("Vincent consent granted:", data);
@@ -50,9 +50,9 @@ export function createVincentRoutes(agentController: AgentController): express.R
           <head>
             <title>Vincent Consent - Success</title>
             <style>
-              body { 
-                font-family: Arial, sans-serif; 
-                text-align: center; 
+              body {
+                font-family: Arial, sans-serif;
+                text-align: center;
                 padding: 2rem;
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
@@ -90,15 +90,15 @@ export function createVincentRoutes(agentController: AgentController): express.R
               <button onclick="redirectNow()">Return to Dashboard</button>
               <button onclick="window.close()">Close Window</button>
             </div>
-            
+
             <script>
               let countdown = 5;
               const countdownElement = document.getElementById('countdown');
-              
+
               function redirectNow() {
                 window.location.href = '${process.env.FRONTEND_URL || 'http://localhost:5173'}?tab=trading&vincent=authorized';
               }
-              
+
               const timer = setInterval(() => {
                 countdown--;
                 countdownElement.textContent = countdown;

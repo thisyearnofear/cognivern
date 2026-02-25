@@ -60,7 +60,7 @@ export class RecallService {
 
       const response = await fetch(`${this.config.endpoint}/objects`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${this.config.apiKey}`,
           'Content-Type': 'application/json'
         },
@@ -68,7 +68,7 @@ export class RecallService {
           bucket: this.config.bucket,
           key: memoryId,
           data: newMemory
-        }) 
+        })
       });
 
       if (!response.ok) {
@@ -94,8 +94,8 @@ export class RecallService {
     try {
       const response = await fetch(`${this.config.endpoint}/objects/${id}`, {
         method: 'GET',
-        headers: { 
-          'Authorization': `Bearer ${this.config.apiKey}` 
+        headers: {
+          'Authorization': `Bearer ${this.config.apiKey}`
         }
       });
 

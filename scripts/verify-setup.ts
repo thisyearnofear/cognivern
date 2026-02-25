@@ -37,7 +37,7 @@ for (const key of requiredKeys) {
 if (missing.length > 0) {
   console.error("❌ Missing Required Keys:");
   missing.forEach(k => console.error(`   - ${k}`));
-  
+
   if (missing.every(k => k === 'OPENROUTER_API_KEY')) {
       console.log("⚠️ Proceeding with connectivity checks for configured services...");
   } else {
@@ -92,7 +92,7 @@ async function verifyConnectivity() {
       const msg = e instanceof Error ? e.message : String(e);
       console.error(`   ❌ Arbitrum RPC Connection Failed: ${msg}`);
   }
-  
+
   console.log("\n✨ Verification Complete.");
 }
 

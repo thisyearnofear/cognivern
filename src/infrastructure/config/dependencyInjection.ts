@@ -26,7 +26,7 @@ export class DependencyContainer {
     this.policyController = new PolicyController(this.policyApplicationService);
     // Pass null for deleted RecallService
     this.agentController = new AgentController(
-      null, 
+      null,
       this.auditLogService,
       this.metricsService
     );

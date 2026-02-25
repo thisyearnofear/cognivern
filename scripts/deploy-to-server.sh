@@ -23,10 +23,10 @@ check_server() {
 # Function to create deployment package
 create_package() {
     echo "📦 Creating deployment package..."
-    
+
     # Clean up any existing package
     rm -f cognivern-production.tar.gz
-    
+
     # Create package excluding development files
     tar -czf cognivern-production.tar.gz \
         --exclude=node_modules \
@@ -39,7 +39,7 @@ create_package() {
         --exclude=external/**/.next \
         --exclude=external/**/.cache \
         .
-    
+
     echo "✅ Package created: cognivern-production.tar.gz"
     echo "📊 Package size: $(du -h cognivern-production.tar.gz | cut -f1)"
 }
@@ -47,19 +47,19 @@ create_package() {
 # Function to deploy to server
 deploy_to_server() {
     echo "🚀 Deploying to server..."
-    
+
     # Stop existing services
     echo "⏹️  Stopping existing services..."
     ssh $SERVER_USER@$SERVER_IP "cd $SERVER_PATH && docker-compose down" || true
-    
+
     # Backup existing deployment
     echo "💾 Creating backup..."
     ssh $SERVER_USER@$SERVER_IP "cd /opt && tar -czf cognivern-backup-$(date +%Y%m%d-%H%M%S).tar.gz cognivern" || true
-    
+
     # Upload new package
     echo "📤 Uploading package..."
     scp cognivern-production.tar.gz $SERVER_USER@$SERVER_IP:/tmp/
-    
+
     # Extract and deploy
     echo "📂 Extracting on server..."
     ssh $SERVER_USER@$SERVER_IP "
@@ -74,7 +74,7 @@ deploy_to_server() {
         rm /tmp/cognivern-production.tar.gz &&
         ls -la
     "
-    
+
     echo "✅ Deployment complete"
 }
 
@@ -127,10 +127,10 @@ start_trading_agent() {
 # Function to verify deployment
 verify_deployment() {
     echo "🔍 Verifying deployment..."
-    
+
     # Wait a moment for services to start
     sleep 10
-    
+
     # Test health endpoint
     if curl -s http://$SERVER_IP/health > /dev/null; then
         echo "✅ Health check passed"
@@ -138,7 +138,7 @@ verify_deployment() {
         echo "❌ Health check failed"
         return 1
     fi
-    
+
     # Test API endpoint
     if curl -s http://$SERVER_IP/api/policies > /dev/null; then
         echo "✅ API endpoints working"
@@ -146,7 +146,7 @@ verify_deployment() {
         echo "❌ API endpoints not responding"
         return 1
     fi
-    
+
     echo "🎉 Deployment verified successfully!"
     echo "🌐 Platform available at: http://$SERVER_IP"
 }
@@ -165,7 +165,7 @@ main() {
     start_services
     start_trading_agent
     verify_deployment
-    
+
     echo ""
     echo "🎉 Deployment Complete!"
     echo "======================"
@@ -178,7 +178,7 @@ main() {
     echo "📋 Monitor with:"
     echo "Backend: ssh $SERVER_USER@$SERVER_IP 'cd $SERVER_PATH && docker-compose logs -f'"
     echo "Trading Agent: ssh $SERVER_USER@$SERVER_IP 'tail -f $SERVER_PATH/trading-agent.log'"
-    
+
     # Clean up local package
     rm -f cognivern-production.tar.gz
 }

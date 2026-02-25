@@ -29,10 +29,10 @@ export class AgentController {
   // Sapience Endpoints
   async getDecisions(req: Request, res: Response) {
     // No real agent decisions available
-    res.status(404).json({ 
+    res.status(404).json({
       success: false,
       error: "Agent decisions not available - no active agents",
-      decisions: [] 
+      decisions: []
     });
   }
 
@@ -43,7 +43,7 @@ export class AgentController {
           type: "forecasting"
       });
   }
-  
+
   // Stubs for legacy routes to prevent crashes
   async getRecallDecisions(req: Request, res: Response) { res.json({ decisions: [] }); }
   async getRecallStatus(req: Request, res: Response) { res.json({ status: "inactive" }); }

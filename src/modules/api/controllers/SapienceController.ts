@@ -1,6 +1,6 @@
 /**
  * Sapience Controller
- * 
+ *
  * API endpoints for Sapience forecasting and market data
  */
 

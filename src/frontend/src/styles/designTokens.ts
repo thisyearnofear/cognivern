@@ -329,7 +329,7 @@ export const containers = {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 ${designTokens.spacing[4]};
-    
+
     ${responsive.maxMd(`
       padding: 0 ${designTokens.spacing[3]};
     `)}
@@ -339,7 +339,7 @@ export const containers = {
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 ${designTokens.spacing[4]};
-    
+
     ${responsive.maxMd(`
       padding: 0 ${designTokens.spacing[3]};
     `)}
@@ -348,7 +348,7 @@ export const containers = {
   fluid: `
     width: 100%;
     padding: 0 ${designTokens.spacing[4]};
-    
+
     ${responsive.maxMd(`
       padding: 0 ${designTokens.spacing[3]};
     `)}
@@ -366,7 +366,7 @@ export const tradingStyles = {
     padding: ${designTokens.spacing[8]};
     margin-bottom: ${designTokens.spacing[8]};
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    
+
     ${responsive.maxMd(`
       padding: ${designTokens.spacing[6]};
       margin-bottom: ${designTokens.spacing[6]};
@@ -381,7 +381,7 @@ export const tradingStyles = {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     color: white;
-    
+
     ${responsive.maxMd(`
       padding: ${designTokens.spacing[4]};
     `)}
@@ -393,13 +393,13 @@ export const tradingStyles = {
     justify-content: space-between;
     align-items: center;
     margin-bottom: ${designTokens.spacing[8]};
-    
+
     h3 {
       font-size: ${designTokens.typography.fontSize.xl};
       color: white;
       margin: 0;
     }
-    
+
     ${responsive.maxMd(`
       flex-direction: column;
       gap: ${designTokens.spacing[4]};

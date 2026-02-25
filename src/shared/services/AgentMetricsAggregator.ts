@@ -1,6 +1,6 @@
 /**
  * Agent Metrics Aggregator - Single Source of Truth for Agent Comparisons
- * 
+ *
  * Consolidates metrics from TradingHistoryService and MetricsService
  * Provides unified comparison and filtering logic
  */
@@ -16,7 +16,7 @@ export interface AgentComparisonMetrics {
   agentType: string;
   status: AgentStatus;
   ecosystem?: string;
-  
+
   // Performance metrics
   totalTrades: number;
   winRate: number;
@@ -24,17 +24,17 @@ export interface AgentComparisonMetrics {
   sharpeRatio: number;
   maxDrawdown: number;
   avgLatency: number;
-  
+
   // Operational metrics
   uptime: number;
   successRate: number;
   errorRate: number;
   lastActive: string;
-  
+
   // Cost metrics
   avgCostPerTrade?: number;
   totalCost?: number;
-  
+
   // Time-based performance
   performance24h?: PerformanceSnapshot;
   performance7d?: PerformanceSnapshot;
@@ -71,7 +71,7 @@ export class AgentMetricsAggregator {
   private metricsCache: Map<string, AgentComparisonMetrics> = new Map();
   private cacheExpiry: Map<string, number> = new Map();
   private readonly CACHE_TTL_MS = 30000; // 30 seconds
-  
+
   private tradingHistory: TradingHistoryService;
   private metricsService: MetricsService;
   private agentsModule: any; // AgentsModule type
@@ -96,7 +96,7 @@ export class AgentMetricsAggregator {
     const metrics = await Promise.all(
       agentIds.map(id => this.getAgentMetrics(id))
     );
-    
+
     return this.applyFilters(metrics.filter(Boolean) as AgentComparisonMetrics[], filters);
   }
 
@@ -110,11 +110,11 @@ export class AgentMetricsAggregator {
 
     // Fetch fresh metrics (to be implemented with actual data sources)
     const metrics = await this.fetchAgentMetrics(agentId);
-    
+
     if (metrics) {
       this.cacheMetrics(agentId, metrics);
     }
-    
+
     return metrics;
   }
 
@@ -170,17 +170,17 @@ export class AgentMetricsAggregator {
     return [...metrics].sort((a, b) => {
       const aVal = a[sort.field];
       const bVal = b[sort.field];
-      
+
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         return sort.direction === 'asc' ? aVal - bVal : bVal - aVal;
       }
-      
+
       if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sort.direction === 'asc' 
+        return sort.direction === 'asc'
           ? aVal.localeCompare(bVal)
           : bVal.localeCompare(aVal);
       }
-      
+
       return 0;
     });
   }
@@ -205,7 +205,7 @@ export class AgentMetricsAggregator {
       if (filters.maxReturn !== undefined && m.totalReturn > filters.maxReturn) return false;
       if (filters.minSharpeRatio !== undefined && m.sharpeRatio < filters.minSharpeRatio) return false;
       if (filters.maxSharpeRatio !== undefined && m.sharpeRatio > filters.maxSharpeRatio) return false;
-      
+
       return true;
     });
   }
@@ -218,20 +218,20 @@ export class AgentMetricsAggregator {
       // Get agent info
       const agent = await this.agentsModule.getAgent(agentId);
       if (!agent) return null;
-      
+
       // Get agent status with performance data
       const status = await this.agentsModule.getAgentStatus(agentId);
-      
+
       // Get trading history for this agent
       const allHistory = this.tradingHistory.getHistory();
       // Filter by matching agent ID in the decision ID or use all history for now
       // TODO: Add agentId field to TradingDecision type
       const agentHistory = allHistory; // Use all history for now since agentId isn't in the type
       const performance = this.tradingHistory.calculatePerformance(agentHistory);
-      
+
       // Get operational metrics
       const metrics = await this.metricsService.getMetrics({ period: 'daily' } as any);
-      
+
       // Combine into comparison metrics
       return {
         agentId: agent.id,
@@ -239,25 +239,25 @@ export class AgentMetricsAggregator {
         agentType: agent.type,
         status: agent.status,
         ecosystem: (agent as any).ecosystem || 'sapience',
-        
+
         // Performance metrics from trading history
         totalTrades: performance.totalTrades,
         winRate: performance.winRate,
         totalReturn: performance.totalReturn,
         sharpeRatio: performance.sharpeRatio,
         maxDrawdown: performance.maxDrawdown,
-        
+
         // Operational metrics
         avgLatency: metrics.data.performance.averageResponseTime,
         uptime: this.calculateUptime(agent),
-        successRate: metrics.data.actions.total > 0 
-          ? metrics.data.actions.successful / metrics.data.actions.total 
+        successRate: metrics.data.actions.total > 0
+          ? metrics.data.actions.successful / metrics.data.actions.total
           : 0,
         errorRate: metrics.data.actions.total > 0
           ? metrics.data.actions.failed / metrics.data.actions.total
           : 0,
         lastActive: agent.lastActivity,
-        
+
         // Time-based performance
         performance24h: this.calculateTimeBasedPerformance(agentHistory, 24),
         performance7d: this.calculateTimeBasedPerformance(agentHistory, 168),
@@ -268,35 +268,35 @@ export class AgentMetricsAggregator {
       return null;
     }
   }
-  
+
   private calculateUptime(agent: any): number {
     // Calculate uptime percentage based on agent activity
     const now = Date.now();
     const lastActive = new Date(agent.lastActivity).getTime();
     const hoursSinceActive = (now - lastActive) / (1000 * 60 * 60);
-    
+
     // If active within last hour, consider 100% uptime
     if (hoursSinceActive < 1) return 100;
-    
+
     // Otherwise calculate based on expected activity
     return Math.max(0, 100 - (hoursSinceActive * 2));
   }
-  
+
   private calculateTimeBasedPerformance(
     history: TradingDecision[],
     hoursAgo: number
   ): PerformanceSnapshot {
     const cutoff = Date.now() - (hoursAgo * 60 * 60 * 1000);
-    const recentHistory = history.filter(d => 
+    const recentHistory = history.filter(d =>
       new Date(d.timestamp).getTime() > cutoff
     );
-    
+
     if (recentHistory.length === 0) {
       return { trades: 0, winRate: 0, return: 0, sharpeRatio: 0 };
     }
-    
+
     const performance = this.tradingHistory.calculatePerformance(recentHistory);
-    
+
     return {
       trades: performance.totalTrades,
       winRate: performance.winRate,

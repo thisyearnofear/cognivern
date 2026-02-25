@@ -50,7 +50,7 @@ contract GovernanceContract {
     mapping(bytes32 => Agent) public agents;
     mapping(bytes32 => GovernanceAction) public actions;
     mapping(address => bool) public authorizedEvaluators;
-    
+
     bytes32[] public policyIds;
     bytes32[] public agentIds;
     bytes32[] public actionIds;
@@ -179,9 +179,9 @@ contract GovernanceContract {
      * @param agentId Agent to update
      * @param status New status
      */
-    function updateAgentStatus(bytes32 agentId, AgentStatus status) 
-        external 
-        onlyAgentOwner(agentId) 
+    function updateAgentStatus(bytes32 agentId, AgentStatus status)
+        external
+        onlyAgentOwner(agentId)
     {
         require(agents[agentId].id != 0, "Agent does not exist");
 

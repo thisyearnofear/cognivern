@@ -81,11 +81,11 @@ export class AutomatedForecastingService {
       if (!provider.apiKey) continue;
       try {
         console.log(`[ForecastingService] Trying provider: ${provider.name}`);
-        
+
         // Add timeout to prevent hanging
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-        
+
         const response = await fetch(provider.endpoint, {
           method: 'POST',
           headers: {
@@ -114,7 +114,7 @@ export class AutomatedForecastingService {
         // Continue to next provider
       }
     }
-    
+
     // If all providers fail, return a fallback response
     console.warn('[ForecastingService] All LLM providers failed, using fallback');
     return `Market analysis suggests moderate uncertainty. Based on current conditions, probability appears balanced.\n50`;
@@ -127,7 +127,7 @@ export class AutomatedForecastingService {
     const query = `
       query GetConditions($nowSec: Int, $limit: Int) {
         conditions(
-          where: { 
+          where: {
             public: { equals: true }
             endTime: { gt: $nowSec }
           }
@@ -151,7 +151,7 @@ export class AutomatedForecastingService {
       const result = await response.json();
       const conditions = result.data?.conditions as MarketCondition[];
       if (!conditions || conditions.length === 0) return null;
-      
+
       const candidates = conditions.filter(c => !this.forecastedMarkets.has(c.id));
       if (candidates.length === 0) {
         this.forecastedMarkets.clear();
@@ -167,18 +167,18 @@ export class AutomatedForecastingService {
 
   async generateForecast(question: string): Promise<ForecastResult> {
     this.recordThought(`Generating forecast for: ${question.substring(0, 50)}...`);
-    
+
     // Get relevant market data for enhanced analysis
     let marketContext = '';
     try {
       // Extract potential symbols from the question for market data
       const symbols = this.extractSymbolsFromQuestion(question);
       if (symbols.length > 0) {
-        const marketDataPromises = symbols.map(symbol => 
+        const marketDataPromises = symbols.map(symbol =>
           this.marketDataService.getMarketData(symbol).catch(() => null)
         );
         const marketDataResults = await Promise.all(marketDataPromises);
-        
+
         const validMarketData = marketDataResults.filter(Boolean) as any[];
         if (validMarketData.length > 0) {
           marketContext = this.buildMarketContext(validMarketData);
@@ -187,12 +187,12 @@ export class AutomatedForecastingService {
     } catch (error) {
       logger.warn('[ForecastingService] Market data enhancement failed:', error);
     }
-    
-    const prompt = `You are a professional forecaster with access to real-time market data. 
+
+    const prompt = `You are a professional forecaster with access to real-time market data.
     Estimate the probability (0-100) that the answer to this question is YES.
-    
+
     Question: "${question}"
-    
+
     ${marketContext ? `Market Context:\n${marketContext}\n\n` : ''}
     First, provide brief reasoning (1 sentence, max 150 chars).
     Then on the final line, output ONLY the probability as a number.`;
@@ -200,19 +200,19 @@ export class AutomatedForecastingService {
     const content = await this.callLLM(prompt);
     const lines = content.split('\n').map((l: string) => l.trim()).filter(Boolean);
     const lastLine = lines[lines.length - 1];
-    
+
     // Extract probability with better parsing
     let probability = parseInt(lastLine.replace(/[^0-9]/g, ''), 10);
-    
+
     // Handle NaN case with fallback
     if (isNaN(probability)) {
       console.warn('[ForecastingService] Failed to parse probability from:', lastLine);
       probability = 50; // Default to neutral 50%
     }
-    
+
     // Extract reasoning from all lines except the last one
     let reasoning = lines.slice(0, -1).join(' ').trim();
-    
+
     // Fallback if reasoning is empty or too short
     if (!reasoning || reasoning.length < 5) {
         reasoning = `Predicted ${probability}% probability for: ${question}`;
@@ -230,10 +230,10 @@ export class AutomatedForecastingService {
     const commonSymbols = ['BTC', 'ETH', 'SOL', 'ADA', 'DOT', 'BNB', 'XRP', 'DOGE', 'AVAX', 'MATIC',
                           'LTC', 'BCH', 'LINK', 'UNI', 'ATOM', 'ALGO', 'FIL', 'Bitcoin', 'Ethereum',
                           'Solana', 'Cardano', 'Polkadot', 'Binance', 'Ripple', 'Dogecoin', 'Avalanche'];
-    
+
     const foundSymbols: string[] = [];
     const upperQuestion = question.toUpperCase();
-    
+
     for (const symbol of commonSymbols) {
       if (upperQuestion.includes(symbol.toUpperCase())) {
         // Map full names to symbols
@@ -248,14 +248,14 @@ export class AutomatedForecastingService {
           'DOGECOIN': 'DOGE',
           'AVALANCHE': 'AVAX',
         };
-        
+
         const mappedSymbol = symbolMap[symbol.toUpperCase()] || symbol;
         if (!foundSymbols.includes(mappedSymbol)) {
           foundSymbols.push(mappedSymbol);
         }
       }
     }
-    
+
     return foundSymbols.slice(0, 3); // Limit to 3 most relevant symbols
   }
 
@@ -296,20 +296,20 @@ export class AutomatedForecastingService {
         try {
           console.log('[ForecastingService] Checking for trading opportunity...');
           this.recordThought('Analyzing market price for trading edge...');
-          
+
           const marketPrice = await this.sapienceService.getMarketPrice(condition.id);
           if (marketPrice) {
             const edge = this.sapienceService.calculateEdge(forecast.probability, marketPrice);
             console.log(`[ForecastingService] Market price - YES: ${marketPrice.yesPrice}, NO: ${marketPrice.noPrice}, Edge: ${edge.toFixed(4)}`);
-            
+
             // Trade if edge > 10%
             if (Math.abs(edge) > 0.1) {
               const side = edge > 0 ? 'YES' : 'NO';
               const tradeAmount = '10.0'; // Start with 10 USDe per trade
-              
+
               console.log(`[ForecastingService] Significant edge detected (${(edge * 100).toFixed(1)}%). Executing ${side} trade...`);
               this.recordThought(`Executing ${side} trade with ${edge > 0 ? 'positive' : 'negative'} edge...`);
-              
+
               const tradeTxHash = await this.sapienceService.executeTrade({
                 marketId: condition.id,
                 conditionId: condition.id,
@@ -317,10 +317,10 @@ export class AutomatedForecastingService {
                 side: side,
                 resolver: undefined // Use default resolver
               });
-              
+
               console.log('[ForecastingService] Trade executed! Tx:', tradeTxHash);
               this.recordThought(`Trade executed successfully! Monitoring position.`);
-              
+
               this.forecastedMarkets.add(condition.id);
               return {
                   success: true,
@@ -366,7 +366,7 @@ export class AutomatedForecastingService {
 
   startContinuousForecasting(intervalMinutes: number = 60) {
     this.nextRunAt = new Date(Date.now() + intervalMinutes * 60 * 1000);
-    
+
     setInterval(() => {
         this.runForecastingCycle();
         this.nextRunAt = new Date(Date.now() + intervalMinutes * 60 * 1000);
@@ -381,7 +381,7 @@ export class AutomatedForecastingService {
     } catch (error) {
       logger.warn('[ForecastingService] Failed to get market stats for enhanced statistics:', error);
     }
-    
+
     return {
       providers: this.providers.map(p => ({ name: p.name, model: p.model })),
       forecastCount: this.forecastedMarkets.size,

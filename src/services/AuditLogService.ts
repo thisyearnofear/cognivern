@@ -67,7 +67,7 @@ export class AuditLogService {
     };
 
     this.logs.unshift(auditLog);
-    
+
     // Keep only last 1000 logs
     if (this.logs.length > 1000) {
       this.logs = this.logs.slice(0, 1000);

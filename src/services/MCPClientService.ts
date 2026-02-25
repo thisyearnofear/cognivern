@@ -31,7 +31,7 @@ export class MCPClientService {
 
   constructor(serverName?: string) {
     const server = serverName || process.env.MCP_DEFAULT_SERVER;
-    
+
     this.serverUrl = process.env.MCP_SERVER_URL || 'http://localhost:3001'; // Default development URL
     this.apiKey = process.env.MCP_API_KEY;
   }

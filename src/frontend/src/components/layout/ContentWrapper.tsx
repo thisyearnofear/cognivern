@@ -69,7 +69,7 @@ export const ContentWrapper: React.FC<ContentWrapperProps> = ({
       padding: ${isCompactMode ? designTokens.spacing[4] : designTokens.spacing[6]} 0;
     `
       : ""}
-    
+
     margin-bottom: ${isCompactMode
       ? designTokens.spacing[4]
       : designTokens.spacing[6]};

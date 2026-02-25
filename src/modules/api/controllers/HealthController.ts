@@ -51,7 +51,7 @@ export class HealthController {
   async getSystemHealth(req: Request, res: Response): Promise<void> {
     const agents = await this.agentsModule.getAgents();
     let totalForecasts = 0;
-    
+
     for (const agent of agents) {
         try {
             const decisions = await this.agentsModule.getAgentDecisions(agent.id, 100);

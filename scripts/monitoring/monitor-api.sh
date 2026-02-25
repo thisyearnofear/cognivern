@@ -16,7 +16,7 @@ echo ""
 test_endpoint() {
     local endpoint=$1
     local name=$2
-    
+
     response=$(curl -s --max-time 3 "$API_URL$endpoint" 2>/dev/null)
     if [ $? -eq 0 ] && [ ! -z "$response" ]; then
         echo "✅ $name: WORKING"
@@ -45,24 +45,24 @@ echo ""
 
 while true; do
     echo "$(date '+%H:%M:%S') - Testing API..."
-    
+
     # Check systemd service
     check_service
-    
+
     # Test endpoints
     health_ok=false
     agents_ok=false
-    
+
     if test_endpoint "/health" "Health"; then
         health_ok=true
     fi
-    
+
     if test_endpoint "/api/agents" "Agents"; then
         agents_ok=true
     fi
-    
+
     test_endpoint "/api/governance/metrics" "Governance"
-    
+
     # Summary
     if [ "$health_ok" = true ] && [ "$agents_ok" = true ]; then
         echo "🎉 API is fully operational!"
@@ -72,7 +72,7 @@ while true; do
     else
         echo "💥 API not responding"
     fi
-    
+
     echo "---"
     sleep 5
 done
