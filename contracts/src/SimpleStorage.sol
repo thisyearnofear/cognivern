@@ -28,7 +28,7 @@ contract SimpleStorage {
 
     mapping(bytes32 => StorageRequest) public storageRequests;
     mapping(address => bytes32[]) public userRequests;
-    
+
     uint256 public totalRequests;
     uint256 public activeRequests;
     uint256 public completedRequests;

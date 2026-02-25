@@ -1,6 +1,6 @@
 /**
  * Recall Controller
- * 
+ *
  * API endpoints for Recall Network memory services
  */
 
@@ -40,7 +40,7 @@ export class RecallController {
   async storeMemory(req: Request, res: Response): Promise<void> {
     try {
       const { agentId, type, content, confidence, metadata } = req.body;
-      
+
       if (!agentId || !content) {
         res.status(400).json({ error: 'Missing required fields: agentId, content' });
         return;
@@ -67,15 +67,15 @@ export class RecallController {
   async queryMemories(req: Request, res: Response): Promise<void> {
     try {
       const { agentId, q, limit } = req.query;
-      
+
       if (!agentId) {
         res.status(400).json({ error: 'Missing agentId' });
         return;
       }
 
       const results = await this.recallService.query(
-        agentId as string, 
-        (q as string) || '', 
+        agentId as string,
+        (q as string) || '',
         limit ? parseInt(limit as string) : 5
       );
 

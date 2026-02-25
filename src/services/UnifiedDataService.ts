@@ -65,7 +65,7 @@ export class UnifiedDataService {
 
       // Get real trading agent data from APIs
       const tradingStats = await this.getTradingAgentStats();
-      
+
       // Create unified statistics
       const unifiedStats = {
         governance: {
@@ -77,7 +77,7 @@ export class UnifiedDataService {
           governanceContract: {
             address: "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880",
             policies: 2,  // Match governance stats
-            agents: 2,    // Match governance stats  
+            agents: 2,    // Match governance stats
             actions: tradingStats.totalDecisions, // Match governance stats
           },
           storageContract: {
@@ -109,7 +109,7 @@ export class UnifiedDataService {
 
     } catch (error) {
       logger.error("Error generating unified stats:", error);
-      
+
       // Return fallback data if there's an error
       return this.getFallbackStats();
     }
@@ -127,7 +127,7 @@ export class UnifiedDataService {
     try {
       // This would normally call the backend APIs
       // For now, we'll use the real data we know exists
-      
+
       // We know from testing that we have:
       // - 2 active agents (Recall + Vincent)
       // - 12 total trading decisions

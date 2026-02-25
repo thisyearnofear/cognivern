@@ -72,11 +72,11 @@ export function validateRequired<T>(value: T, fieldName: string): void {
 
 export function validateString(value: string, fieldName: string, minLength?: number, maxLength?: number): void {
   validateRequired(value, fieldName);
-  
+
   if (minLength && !CommonValidators.minLength(minLength)(value)) {
     throw new ValidationError(`${fieldName} must be at least ${minLength} characters`, fieldName);
   }
-  
+
   if (maxLength && !CommonValidators.maxLength(maxLength)(value)) {
     throw new ValidationError(`${fieldName} must be at most ${maxLength} characters`, fieldName);
   }
@@ -84,11 +84,11 @@ export function validateString(value: string, fieldName: string, minLength?: num
 
 export function validateNumber(value: number, fieldName: string, min?: number, max?: number): void {
   validateRequired(value, fieldName);
-  
+
   if (min !== undefined && value < min) {
     throw new ValidationError(`${fieldName} must be at least ${min}`, fieldName);
   }
-  
+
   if (max !== undefined && value > max) {
     throw new ValidationError(`${fieldName} must be at most ${max}`, fieldName);
   }

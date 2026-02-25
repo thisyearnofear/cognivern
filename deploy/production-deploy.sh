@@ -41,14 +41,14 @@ create_backup() {
     log "Creating backup..."
     BACKUP_NAME="cognivern-backup-$(date +%Y%m%d-%H%M%S)"
     mkdir -p "$BACKUP_DIR/$BACKUP_NAME"
-    
+
     # Backup database
     docker exec cognivern-postgres pg_dump -U postgres cognivern > "$BACKUP_DIR/$BACKUP_NAME/database.sql" 2>/dev/null || warn "Database backup failed"
-    
+
     # Backup volumes
     docker run --rm -v cognivern_postgres_data:/data -v "$BACKUP_DIR/$BACKUP_NAME":/backup alpine tar czf /backup/postgres_data.tar.gz -C /data . 2>/dev/null || warn "Postgres volume backup failed"
     docker run --rm -v cognivern_redis_data:/data -v "$BACKUP_DIR/$BACKUP_NAME":/backup alpine tar czf /backup/redis_data.tar.gz -C /data . 2>/dev/null || warn "Redis volume backup failed"
-    
+
     log "Backup created: $BACKUP_NAME"
 }
 
@@ -57,88 +57,88 @@ health_check() {
     local service=$1
     local max_attempts=30
     local attempt=1
-    
+
     log "Checking health of $service..."
-    
+
     while [ $attempt -le $max_attempts ]; do
         if docker exec "$service" curl -f http://localhost:3000/health >/dev/null 2>&1; then
             log "$service is healthy"
             return 0
         fi
-        
+
         log "Attempt $attempt/$max_attempts: $service not ready yet..."
         sleep 10
         ((attempt++))
     done
-    
+
     error "$service failed health check after $max_attempts attempts"
 }
 
 # Clean up old Docker resources
 cleanup_docker() {
     log "Cleaning up Docker resources..."
-    
+
     # Remove unused images (keep last 2 versions)
     docker image prune -f
-    
+
     # Remove unused volumes
     docker volume prune -f
-    
+
     # Remove unused networks
     docker network prune -f
-    
+
     log "Docker cleanup completed"
 }
 
 # Main deployment function
 deploy() {
     log "Starting Cognivern production deployment..."
-    
+
     # Navigate to deployment directory
     cd "$DEPLOY_DIR" || error "Cannot access deployment directory: $DEPLOY_DIR"
-    
+
     # Pull latest code (if using git)
     if [ -d ".git" ]; then
         log "Pulling latest code..."
         git pull origin main || error "Failed to pull latest code"
     fi
-    
+
     # Create backup before deployment
     create_backup
-    
+
     # Build new images
     log "Building new Docker images..."
     docker-compose -f "$COMPOSE_FILE" build --no-cache || error "Failed to build Docker images"
-    
+
     # Start database and cache first
     log "Starting core services..."
     docker-compose -f "$COMPOSE_FILE" up -d postgres redis
-    
+
     # Wait for database to be ready
     log "Waiting for database to be ready..."
     sleep 30
-    
+
     # Run database migrations if needed
     # docker-compose -f "$COMPOSE_FILE" run --rm cognivern-api npm run migrate
-    
+
     # Start API service
     log "Starting API service..."
     docker-compose -f "$COMPOSE_FILE" up -d cognivern-api
-    
+
     # Health check API
     health_check "cognivern-api"
-    
+
     # Start remaining services
     log "Starting remaining services..."
     docker-compose -f "$COMPOSE_FILE" up -d
-    
+
     # Final health checks
     sleep 30
     health_check "cognivern-api"
-    
+
     # Clean up old resources
     cleanup_docker
-    
+
     log "Deployment completed successfully!"
     log "Services status:"
     docker-compose -f "$COMPOSE_FILE" ps
@@ -150,12 +150,12 @@ rollback() {
     if [ -z "$backup_name" ]; then
         error "Please specify backup name for rollback"
     fi
-    
+
     log "Rolling back to backup: $backup_name"
-    
+
     # Stop current services
     docker-compose -f "$COMPOSE_FILE" down
-    
+
     # Restore database
     if [ -f "$BACKUP_DIR/$backup_name/database.sql" ]; then
         log "Restoring database..."
@@ -163,15 +163,15 @@ rollback() {
         sleep 30
         docker exec -i cognivern-postgres psql -U postgres -d cognivern < "$BACKUP_DIR/$backup_name/database.sql"
     fi
-    
+
     # Restore volumes
     if [ -f "$BACKUP_DIR/$backup_name/postgres_data.tar.gz" ]; then
         docker run --rm -v cognivern_postgres_data:/data -v "$BACKUP_DIR/$backup_name":/backup alpine tar xzf /backup/postgres_data.tar.gz -C /data
     fi
-    
+
     # Start services
     docker-compose -f "$COMPOSE_FILE" up -d
-    
+
     log "Rollback completed"
 }
 

@@ -1,6 +1,6 @@
 /**
  * Unified Logging System
- * 
+ *
  * Centralized logging that eliminates duplication across all services.
  * Provides structured logging with consistent format and levels.
  */
@@ -46,14 +46,14 @@ export class Logger {
       transports: [
         // Console transport for all environments
         new winston.transports.Console({
-          format: config.NODE_ENV === 'development' 
+          format: config.NODE_ENV === 'development'
             ? winston.format.combine(
                 winston.format.colorize(),
                 winston.format.simple()
               )
             : winston.format.json(),
         }),
-        
+
         // File transports for production
         ...(config.NODE_ENV === 'production' ? [
           new winston.transports.File({
@@ -69,16 +69,16 @@ export class Logger {
           }),
         ] : []),
       ],
-      
+
       // Handle uncaught exceptions and rejections
       exceptionHandlers: [
-        new winston.transports.File({ 
-          filename: `logs/${this.serviceName}-exceptions.log` 
+        new winston.transports.File({
+          filename: `logs/${this.serviceName}-exceptions.log`
         }),
       ],
       rejectionHandlers: [
-        new winston.transports.File({ 
-          filename: `logs/${this.serviceName}-rejections.log` 
+        new winston.transports.File({
+          filename: `logs/${this.serviceName}-rejections.log`
         }),
       ],
     });

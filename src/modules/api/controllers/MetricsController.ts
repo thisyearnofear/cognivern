@@ -24,7 +24,7 @@ export class MetricsController {
           failedTrades: 0
         }
       };
-      
+
       res.json({
         success: true,
         data: metrics,
@@ -45,7 +45,7 @@ export class MetricsController {
   async getAgentMetrics(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      
+
       const metrics = {
         agentId: id,
         performance: {

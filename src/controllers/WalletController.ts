@@ -9,7 +9,7 @@ export class WalletController {
   public async connect(req: Request, res: Response): Promise<void> {
     try {
       const connected = await bitteWalletService.connect();
-      
+
       if (connected) {
         const walletInfo = await bitteWalletService.getWalletInfo();
         res.status(200).json({
@@ -37,7 +37,7 @@ export class WalletController {
   public async getWalletInfo(req: Request, res: Response): Promise<void> {
     try {
       const walletInfo = await bitteWalletService.getWalletInfo();
-      
+
       if (walletInfo) {
         res.status(200).json({
           success: true,
@@ -64,7 +64,7 @@ export class WalletController {
   public async deployAgent(req: Request, res: Response): Promise<void> {
     try {
       const { agentId, metadata } = req.body;
-      
+
       if (!agentId) {
         res.status(400).json({
           success: false,
@@ -72,9 +72,9 @@ export class WalletController {
         });
         return;
       }
-      
+
       const deployment = await bitteWalletService.deployAgent(agentId, metadata);
-      
+
       res.status(200).json({
         success: true,
         deployment
@@ -94,7 +94,7 @@ export class WalletController {
   public async getDeploymentStatus(req: Request, res: Response): Promise<void> {
     try {
       const { deploymentId } = req.params;
-      
+
       if (!deploymentId) {
         res.status(400).json({
           success: false,
@@ -102,9 +102,9 @@ export class WalletController {
         });
         return;
       }
-      
+
       const deployment = bitteWalletService.getDeploymentStatus(deploymentId);
-      
+
       if (deployment) {
         res.status(200).json({
           success: true,
@@ -131,7 +131,7 @@ export class WalletController {
   public async getAllDeployments(req: Request, res: Response): Promise<void> {
     try {
       const deployments = bitteWalletService.getAllDeployments();
-      
+
       res.status(200).json({
         success: true,
         deployments

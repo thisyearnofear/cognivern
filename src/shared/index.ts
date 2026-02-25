@@ -1,6 +1,6 @@
 /**
  * Shared Module - DRY Architecture Foundation
- * 
+ *
  * This module contains all shared code to eliminate duplication across:
  * - API services
  * - Trading agents

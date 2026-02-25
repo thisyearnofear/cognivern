@@ -115,7 +115,7 @@ export class TradingHistoryService {
     }
 
     // Calculate profit factor
-    const profitFactor = losingTrades > 0 
+    const profitFactor = losingTrades > 0
       ? (winningTrades * averageReturn) / Math.abs(losingTrades * averageReturn)
       : winningTrades > 0 ? Infinity : 0;
 
@@ -153,14 +153,14 @@ export class TradingHistoryService {
    */
   calculateHistoryStats(): TradingHistoryStats {
     const allPerformance = this.calculatePerformance();
-    
+
     // Calculate recent performance (last 30 trades or 30 days)
     const recentHistory = this.history.filter(trade => {
       const tradeDate = new Date(trade.timestamp);
       const daysAgo = (Date.now() - tradeDate.getTime()) / (1000 * 60 * 60 * 24);
       return daysAgo <= 30;
     }).slice(0, 30);
-    
+
     const recentPerformance = this.calculatePerformance(recentHistory);
 
     // Calculate performance by time periods
@@ -179,7 +179,7 @@ export class TradingHistoryService {
 
   private calculatePerformanceByPeriod(period: 'day' | 'week' | 'month'): Record<string, TradingPerformance> {
     const result: Record<string, TradingPerformance> = {};
-    
+
     for (const trade of this.history) {
       const tradeDate = new Date(trade.timestamp);
       let periodKey: string;
@@ -205,10 +205,10 @@ export class TradingHistoryService {
       // Update performance for this period
       const periodPerformance = result[periodKey];
       periodPerformance.totalTrades++;
-      
+
       const tradeReturn = trade.confidence || 0;
       periodPerformance.totalReturn += tradeReturn;
-      
+
       if (tradeReturn > 0) {
         periodPerformance.winningTrades++;
       } else if (tradeReturn < 0) {
@@ -216,11 +216,11 @@ export class TradingHistoryService {
       }
 
       // Recalculate derived metrics
-      periodPerformance.winRate = periodPerformance.totalTrades > 0 
-        ? periodPerformance.winningTrades / periodPerformance.totalTrades 
+      periodPerformance.winRate = periodPerformance.totalTrades > 0
+        ? periodPerformance.winningTrades / periodPerformance.totalTrades
         : 0;
-      periodPerformance.averageReturn = periodPerformance.totalTrades > 0 
-        ? periodPerformance.totalReturn / periodPerformance.totalTrades 
+      periodPerformance.averageReturn = periodPerformance.totalTrades > 0
+        ? periodPerformance.totalReturn / periodPerformance.totalTrades
         : 0;
     }
 
@@ -252,7 +252,7 @@ export class TradingHistoryService {
     let cumulativeReturn = 0;
 
     // Sort history by timestamp for proper equity curve
-    const sortedHistory = [...this.history].sort((a, b) => 
+    const sortedHistory = [...this.history].sort((a, b) =>
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
 
@@ -283,17 +283,17 @@ export class TradingHistoryService {
     // Generate return distribution
     const returnDistribution: ChartDataPoint[] = [];
     const returns = sortedHistory.map(trade => trade.confidence || 0);
-    
+
     // Create bins for return distribution
     const minReturn = Math.min(...returns);
     const maxReturn = Math.max(...returns);
     const binSize = (maxReturn - minReturn) / 10;
-    
+
     for (let i = 0; i < 10; i++) {
       const binStart = minReturn + i * binSize;
       const binEnd = binStart + binSize;
       const count = returns.filter(r => r >= binStart && r < binEnd).length;
-      
+
       returnDistribution.push({
         timestamp: `bin-${i}`,
         value: count,
@@ -354,7 +354,7 @@ export class TradingHistoryService {
   getHistorySummary(): any {
     const stats = this.calculateHistoryStats();
     const chartData = this.generateChartData();
-    
+
     return {
       summary: {
         totalTrades: stats.performance.totalTrades,

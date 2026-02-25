@@ -8,7 +8,7 @@ export class GovernanceController {
   async getPolicies(req: Request, res: Response): Promise<void> {
     try {
       const policies = [];
-      
+
       res.json({
         success: true,
         data: policies,
@@ -30,7 +30,7 @@ export class GovernanceController {
     try {
       const { id } = req.params;
       const policy = null;
-      
+
       if (!policy) {
         res.status(404).json({
           success: false,
@@ -63,7 +63,7 @@ export class GovernanceController {
   async createPolicy(req: Request, res: Response): Promise<void> {
     try {
       const policyData = req.body;
-      
+
       const policy = {
         id: `policy_${Date.now()}`,
         ...policyData,

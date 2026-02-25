@@ -55,12 +55,12 @@ async function testContracts() {
     // Test governance contract
     logger.info("📋 Testing governance contract...");
     const governanceContract = new ethers.Contract(governanceAddress, governanceABI, provider);
-    
+
     try {
       const totalAgents = await governanceContract.totalAgents();
       const totalActions = await governanceContract.totalActions();
       const totalPolicies = await governanceContract.totalPolicies();
-      
+
       logger.info("✅ Governance contract stats:", {
         totalAgents: Number(totalAgents),
         totalActions: Number(totalActions),
@@ -73,7 +73,7 @@ async function testContracts() {
     // Test storage contract
     logger.info("💾 Testing storage contract...");
     const storageContract = new ethers.Contract(storageAddress, storageABI, provider);
-    
+
     try {
       const totalActions = await storageContract.totalActions();
       logger.info("✅ Storage contract stats:", {

@@ -104,7 +104,7 @@ export class SapienceTradingAgent implements TradingAgent {
 
       try {
           const result = await this.forecastingService.runForecastingCycle();
-          
+
           if (result.success) {
               // Create a decision record for the history/frontend
               const decision: TradingDecision = {
@@ -119,7 +119,7 @@ export class SapienceTradingAgent implements TradingAgent {
                   reasoning: result.forecast.reasoning,
                   riskScore: 0.1
               };
-              
+
               this.history.unshift(decision);
               if (this.history.length > 50) this.history.pop();
           }
@@ -179,7 +179,7 @@ export class SapienceTradingAgent implements TradingAgent {
         status: "executed",
         executedPrice: decision.price,
         executedQuantity: decision.quantity,
-        fees: 0, 
+        fees: 0,
         timestamp: new Date(),
       };
 
@@ -235,8 +235,8 @@ export class SapienceTradingAgent implements TradingAgent {
 
   async getPerformance(): Promise<PerformanceMetrics> {
     const totalForecasts = this.history.length;
-    const avgConfidence = totalForecasts > 0 
-        ? this.history.reduce((sum, d) => sum + d.confidence, 0) / totalForecasts 
+    const avgConfidence = totalForecasts > 0
+        ? this.history.reduce((sum, d) => sum + d.confidence, 0) / totalForecasts
         : 0;
 
     return {
@@ -298,7 +298,7 @@ export class SapienceTradingAgent implements TradingAgent {
 
   async getStatus(): Promise<any> {
     const forecastingStats = await this.forecastingService.getStats();
-    
+
     return {
       id: this.id,
       status: this.status,

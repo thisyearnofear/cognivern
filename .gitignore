@@ -61,3 +61,6 @@ Thumbs.db
 
 # Debug
 .vite-inspect
+
+# Pre-commit
+.secrets.baseline

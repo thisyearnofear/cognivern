@@ -2,7 +2,7 @@
 
 /**
  * Sapience Forecasting Agent Entry Point
- * 
+ *
  * Runs the automated forecasting service to generate and submit predictions
  * to the Sapience protocol on Arbitrum.
  */
@@ -33,15 +33,15 @@ async function main() {
   });
 
   logger.info(`Agent Address: ${sapienceService.getAddress()}`);
-  
+
   // Start the forecasting loop
   // Interval: 30 minutes (to ensure we catch new markets relatively quickly but don't spam)
   const intervalMinutes = 30;
-  
+
   // Also run one cycle immediately
   logger.info('Executing initial forecasting cycle...');
   const initialResult = await forecastingService.runForecastingCycle();
-  
+
   if (initialResult.success) {
     logger.info(`✅ Initial forecast submitted! Tx: ${initialResult.txHash}`);
   } else {
@@ -50,7 +50,7 @@ async function main() {
 
   // Start continuous loop
   forecastingService.startContinuousForecasting(intervalMinutes);
-  
+
   // Keep process alive
   process.on('SIGINT', () => {
     logger.info('🛑 Stopping forecasting agent...');

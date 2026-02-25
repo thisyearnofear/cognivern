@@ -40,7 +40,7 @@ start_agent() {
     echo "📊 Backend API: http://localhost:10000"
     echo "🔗 Trading API: $RECALL_TRADING_BASE_URL"
     echo ""
-    
+
     # Set up File polyfill and start
     node -e "global.File = class File extends require('buffer').Blob { constructor(fileBits, fileName, options = {}) { super(fileBits, options); this.name = fileName; this.lastModified = Date.now(); } };" && pnpm auto-competition
 }
@@ -55,15 +55,15 @@ main() {
         echo "❌ .env file not found"
         exit 1
     fi
-    
+
     # Check backend
     if ! check_backend; then
         exit 1
     fi
-    
+
     # Install dependencies
     install_deps
-    
+
     # Start agent
     start_agent
 }

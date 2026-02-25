@@ -37,8 +37,8 @@ export class AuditLogController {
       const totalActions = logs.length;
       const compliantActions = logs.filter(log => log.complianceStatus === 'compliant').length;
       const complianceRate = totalActions > 0 ? (compliantActions / totalActions) * 100 : 0;
-      const avgResponseTime = logs.length > 0 
-        ? logs.reduce((sum, log) => sum + (log.responseTime || 0), 0) / logs.length 
+      const avgResponseTime = logs.length > 0
+        ? logs.reduce((sum, log) => sum + (log.responseTime || 0), 0) / logs.length
         : 0;
       const criticalIssues = logs.filter(log => log.severity === 'critical').length;
 

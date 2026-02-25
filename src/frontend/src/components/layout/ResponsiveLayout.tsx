@@ -216,19 +216,19 @@ export const Grid: React.FC<GridProps> = ({
       ? `grid-template-columns: repeat(${columns}, 1fr);`
       : `
         grid-template-columns: repeat(${columns.xs || 1}, 1fr);
-        
+
         @media (min-width: ${designTokens.breakpoints.sm}) {
           grid-template-columns: repeat(${columns.sm || columns.xs || 1}, 1fr);
         }
-        
+
         @media (min-width: ${designTokens.breakpoints.md}) {
           grid-template-columns: repeat(${columns.md || columns.sm || columns.xs || 1}, 1fr);
         }
-        
+
         @media (min-width: ${designTokens.breakpoints.lg}) {
           grid-template-columns: repeat(${columns.lg || columns.md || columns.sm || columns.xs || 1}, 1fr);
         }
-        
+
         @media (min-width: ${designTokens.breakpoints.xl}) {
           grid-template-columns: repeat(${columns.xl || columns.lg || columns.md || columns.sm || columns.xs || 1}, 1fr);
         }
@@ -264,19 +264,19 @@ export const GridItem: React.FC<GridItemProps> = ({
       ? `grid-column: span ${span};`
       : `
         grid-column: span ${span.xs || 1};
-        
+
         @media (min-width: ${designTokens.breakpoints.sm}) {
           grid-column: span ${span.sm || span.xs || 1};
         }
-        
+
         @media (min-width: ${designTokens.breakpoints.md}) {
           grid-column: span ${span.md || span.sm || span.xs || 1};
         }
-        
+
         @media (min-width: ${designTokens.breakpoints.lg}) {
           grid-column: span ${span.lg || span.md || span.sm || span.xs || 1};
         }
-        
+
         @media (min-width: ${designTokens.breakpoints.xl}) {
           grid-column: span ${span.xl || span.lg || span.md || span.sm || span.xs || 1};
         }

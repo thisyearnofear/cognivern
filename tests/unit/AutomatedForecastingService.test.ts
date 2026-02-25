@@ -17,13 +17,13 @@ test('AutomatedForecastingService - Horizon Sorting Logic', async (t) => {
 
   await t.test('it should sort markets by horizon descending', async () => {
     const now = Math.floor(Date.now() / 1000);
-    
+
     // Mocking the behavior by overriding the internal fetchOptimalCondition or similar
     // Since we are in a ESM environment, we can't easily mock the graphql-request import
     // without a loader or a heavy library.
-    // Instead, we will test the logic by injecting data if we had a data provider, 
+    // Instead, we will test the logic by injecting data if we had a data provider,
     // or we can test the sorting logic if we expose it.
-    
+
     // For this test, we'll manually verify the sort logic that was added.
     const conditions = [
       { id: 'short', endTime: now + 100 },

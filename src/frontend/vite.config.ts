@@ -16,13 +16,13 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    
+
     // Simplified build configuration
     build: {
       minify: 'esbuild',
       sourcemap: false,
     },
-    
+
     server: {
       proxy: {
         "/api": {

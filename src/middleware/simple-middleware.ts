@@ -38,10 +38,10 @@ export const errorHandler = (
   next: NextFunction
 ) => {
   simpleLogger.error(`Unhandled error: ${error.message}`);
-  
+
   // Don't expose internal errors in production
   const isDevelopment = process.env.NODE_ENV === "development";
-  
+
   res.status(500).json({
     error: "Internal server error",
     message: isDevelopment ? error.message : "Something went wrong",

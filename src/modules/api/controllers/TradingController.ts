@@ -9,7 +9,7 @@ export class TradingController {
     try {
       const { agentId, agentType } = req.params;
       const id = agentId || agentType;
-      
+
       // Return empty status - no real trading data available
       res.status(404).json({
         success: false,
@@ -29,7 +29,7 @@ export class TradingController {
     try {
       const { agentId, agentType } = req.params;
       const id = agentId || agentType;
-      
+
       // Return empty decisions - no real trading decisions available
       res.status(404).json({
         success: false,
@@ -48,7 +48,7 @@ export class TradingController {
   async getTrades(req: Request, res: Response): Promise<void> {
     try {
       const trades = [];
-      
+
       res.json({
         success: true,
         data: trades,
@@ -70,7 +70,7 @@ export class TradingController {
     try {
       const { id } = req.params;
       const trade = null;
-      
+
       if (!trade) {
         res.status(404).json({
           success: false,
@@ -103,7 +103,7 @@ export class TradingController {
   async createTrade(req: Request, res: Response): Promise<void> {
     try {
       const tradeData = req.body;
-      
+
       // In real implementation, this would create a trade
       const trade = {
         id: `trade_${Date.now()}`,

@@ -50,7 +50,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       bottom: calc(100% + 8px);
       left: 50%;
       transform: translateX(-50%) ${isVisible ? "translateY(0)" : "translateY(8px)"};
-      
+
       &::after {
         content: '';
         position: absolute;
@@ -68,7 +68,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       top: calc(100% + 8px);
       left: 50%;
       transform: translateX(-50%) ${isVisible ? "translateY(0)" : "translateY(-8px)"};
-      
+
       &::after {
         content: '';
         position: absolute;
@@ -80,13 +80,13 @@ export const Tooltip: React.FC<TooltipProps> = ({
       }
     `
       : ""}
-    
+
     ${position === "left"
       ? `
       right: calc(100% + 8px);
       top: 50%;
       transform: translateY(-50%) ${isVisible ? "translateX(0)" : "translateX(8px)"};
-      
+
       &::after {
         content: '';
         position: absolute;
@@ -98,13 +98,13 @@ export const Tooltip: React.FC<TooltipProps> = ({
       }
     `
       : ""}
-    
+
     ${position === "right"
       ? `
       left: calc(100% + 8px);
       top: 50%;
       transform: translateY(-50%) ${isVisible ? "translateX(0)" : "translateX(-8px)"};
-      
+
       &::after {
         content: '';
         position: absolute;

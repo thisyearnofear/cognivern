@@ -66,7 +66,7 @@ export class AgentsController {
     try {
       // Get agent connections for policy management
       const agents = await this.agentsModule.getAgents();
-      
+
       const connections = agents.map(agent => ({
         id: agent.id,
         name: agent.name,
@@ -298,7 +298,7 @@ export class AgentsController {
             },
             financial: {
                 totalValue: `$${(portfolio.totalValue || 0).toLocaleString()}`,
-                dailyPnL: `$${(perf.averageTradeReturn || 0).toFixed(2)}`, 
+                dailyPnL: `$${(perf.averageTradeReturn || 0).toFixed(2)}`,
                 winRate: perf.winRate ? perf.winRate * 100 : 0,
             },
         };
@@ -323,7 +323,7 @@ export class AgentsController {
   async getUnified(req: Request, res: Response): Promise<void> {
     try {
       const agents = await this.agentsModule.getAgents();
-      
+
       const allActivity: any[] = [];
       const enrichedAgents: any[] = [];
 
@@ -343,7 +343,7 @@ export class AgentsController {
                   performance: {
                       uptime: agent.status === "active" ? 100 : 0,
                       successRate: perf.winRate * 100, // Real win rate from resolution
-                      avgResponseTime: 0, 
+                      avgResponseTime: 0,
                       actionsToday: perf.totalTrades || 0,
                   },
                   riskMetrics: {
@@ -392,7 +392,7 @@ export class AgentsController {
           totalAgents: agents.length,
           complianceRate: 100,
           totalActions: allActivity.length,
-          totalPolicies: 2, 
+          totalPolicies: 2,
           totalForecasts: allActivity.filter(a => a.type === 'forecast').length || enrichedAgents.reduce((sum, a) => sum + (a.performance?.actionsToday || 0), 0)
         },
         agents: enrichedAgents,
@@ -428,7 +428,7 @@ export class AgentsController {
       }
 
       const marketData = await this.marketDataService.getMarketData(symbol);
-      
+
       res.json({
         success: true,
         data: marketData,
@@ -447,7 +447,7 @@ export class AgentsController {
     try {
       const { symbol } = req.params;
       const days = parseInt(req.query.days as string) || 7;
-      
+
       if (!symbol) {
         res.status(400).json({
           success: false,
@@ -458,7 +458,7 @@ export class AgentsController {
       }
 
       const historicalData = await this.marketDataService.getHistoricalData(symbol, days);
-      
+
       res.json({
         success: true,
         data: historicalData,
@@ -477,7 +477,7 @@ export class AgentsController {
   async getMarketStats(req: Request, res: Response): Promise<void> {
     try {
       const marketStats = await this.marketDataService.getMarketStats();
-      
+
       res.json({
         success: true,
         data: marketStats,
@@ -495,9 +495,9 @@ export class AgentsController {
   async getTopMarkets(req: Request, res: Response): Promise<void> {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
-      
+
       const topMarkets = await this.marketDataService.getTopMarkets(limit);
-      
+
       res.json({
         success: true,
         data: topMarkets,
@@ -517,30 +517,30 @@ export class AgentsController {
   async compareAgents(req: Request, res: Response): Promise<void> {
     try {
       const filters = this.parseComparisonFilters(req.query);
-      
+
       // Get agent IDs matching filters
       const agents = await this.agentsModule.getAgents();
       let filteredAgents = agents;
-      
+
       if (filters.agentTypes && filters.agentTypes.length > 0) {
         filteredAgents = filteredAgents.filter(a => filters.agentTypes!.includes(a.type));
       }
-      
+
       if (filters.status && filters.status.length > 0) {
         filteredAgents = filteredAgents.filter(a => filters.status!.includes(a.status));
       }
-      
+
       const agentIds = filteredAgents.map(a => a.id);
-      
+
       // Fetch comparison metrics
       const metrics = await this.metricsAggregator.getComparisonMetrics(agentIds, filters);
-      
+
       // Sort results
       const sorted = this.metricsAggregator.sortMetrics(metrics, {
         field: (filters.sortBy as any) || 'totalReturn',
         direction: filters.sortDirection || 'desc',
       });
-      
+
       res.json({
         success: true,
         data: sorted,
@@ -560,23 +560,23 @@ export class AgentsController {
   async getLeaderboard(req: Request, res: Response): Promise<void> {
     try {
       const { ecosystem, metric = 'totalReturn', limit = 10 } = req.query;
-      
+
       const filters: any = {};
       if (ecosystem) {
         filters.ecosystems = [ecosystem as string];
       }
-      
+
       // Get all agents
       const agents = await this.agentsModule.getAgents();
       const agentIds = agents.map(a => a.id);
       const metrics = await this.metricsAggregator.getComparisonMetrics(agentIds, filters);
-      
+
       // Sort by metric and limit
       const sorted = this.metricsAggregator.sortMetrics(metrics, {
         field: metric as any,
         direction: 'desc',
       }).slice(0, parseInt(limit as string));
-      
+
       res.json({
         success: true,
         data: sorted,
@@ -596,13 +596,13 @@ export class AgentsController {
   async getAggregateStats(req: Request, res: Response): Promise<void> {
     try {
       const filters = this.parseComparisonFilters(req.query);
-      
+
       const agents = await this.agentsModule.getAgents();
       const agentIds = agents.map(a => a.id);
       const metrics = await this.metricsAggregator.getComparisonMetrics(agentIds, filters);
-      
+
       const stats = this.metricsAggregator.calculateAggregateMetrics(metrics);
-      
+
       res.json({
         success: true,
         data: stats,

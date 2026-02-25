@@ -2,7 +2,7 @@
 
 /**
  * Test Trade Script
- * 
+ *
  * Executes a small test trade to verify the trading functionality works
  * before the automated agent tries it.
  */
@@ -42,7 +42,7 @@ async function main() {
     const query = `
       query GetConditions($nowSec: Int, $limit: Int) {
         conditions(
-          where: { 
+          where: {
             public: { equals: true }
             endTime: { gt: $nowSec }
           }

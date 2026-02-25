@@ -2,7 +2,7 @@
 
 /**
  * Sapience Trading Agent Entry Point
- * 
+ *
  * attempts to execute the Trading Strategy:
  * 1. Forecast a market
  * 2. Compare forecast with market price (Mocked for now as Price API is TBD)
@@ -49,12 +49,12 @@ async function main() {
     // TODO: Fetch real market price from Graph/Contract
     // For now, we assume a "Market Price" of 50 cents (0.50) to demonstrate the logic structure
     // This is NOT a mock of the system, but a placeholder for a missing data source
-    const marketPrice = 0.50; 
+    const marketPrice = 0.50;
     const edge = (forecast.probability / 100) - marketPrice;
 
     if (edge > 0.1) { // 10% edge required
         logger.info(`Edge detected (${(edge*100).toFixed(1)}%). Attempting to Buy YES...`);
-        
+
         await sapienceService.executeTrade({
             marketId: condition.id,
             side: 'YES',
@@ -62,7 +62,7 @@ async function main() {
         });
     } else if (edge < -0.1) {
         logger.info(`Negative edge detected (${(edge*100).toFixed(1)}%). Attempting to Buy NO...`);
-        
+
         await sapienceService.executeTrade({
             marketId: condition.id,
             side: 'NO',
