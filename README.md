@@ -1,35 +1,30 @@
-# Cognivern: Agent Governance + Coordination Layer
+# Cognivern: The Agent Governance Command Center
 
-Cognivern is an **AI Governance Command Center** for the agentic era.
+Cognivern is the mission control for your autonomous agents.
 
-It provides a high-fidelity environment for tracking, auditing, and governing autonomous agents. By combining **Filecoin's verifiable evidence storage** with **Polkadot Hub's high-performance coordination**, Cognivern ensures that agent autonomy never comes at the cost of accountability.
+It provides a high-fidelity environment for tracking, auditing, and governing agent ecosystems. By combining **decentralized evidence storage**, **high-performance coordination**, and **confidential compute**, Cognivern ensures that agent autonomy is always backed by accountability and transparency.
 
-**Wedge:** Don’t replace your agent runtime — just *send runs* to Cognivern for governance and verification.
+**Wedge:** Don’t change how your agents run — just *connect them* to Cognivern for professional-grade observability and governance.
 
-## 🌟 The Vision: Agentic Governance
+## 🌟 Vision: Trusted Agentic Systems
 
-Cognivern is designed for a multi-chain future where agents act as first-class economic citizens.
+Cognivern empowers developers to build and operate agents with confidence by leveraging a robust multi-chain foundation:
 
-- **Verifiable Evidence (Filecoin/Calibration):** Every decision, reasoning step, and forensic artifact is sealed on-chain for permanent, tamper-proof auditability.
-- **Real-Time Coordination (Polkadot Hub):** Low-latency governance guards and cross-chain intent orchestration powered by Polkadot's high-performance EVM (REVM) and native PVM.
-- **Agentic UX:** A spatial command center that visualizes agent ecosystems, cognitive paths, and policy compliance in real-time.
-
-## 🎯 Target: Polkadot Solidity Hackathon 2026
-
-Cognivern is currently being optimized for **Polkadot Hub (Runtime 2.0.5)**, leveraging the platform's native Solidity support and superior finality for real-time AI governance.
-
-### Key Pillars
-- **Governance for the Agentic Era:** Essential safety layer for multi-chain agent interactions.
-- **Verifiable Intent:** On-chain "Proof of Intent" via Forensic Timelines and attestations.
-- **Cross-Chain Orchestration:** Leveraging Polkadot XCM to enforce governance across parachains.
+- **Observability & Proof:** Every decision, reasoning step, and artifact is captured in a verifiable forensic timeline.
+- **Behavioral Governance:** Enforce real-time policies and safety guardrails across your entire agent network.
+- **Spatial Intelligence:** Visualize your agent ecosystem in a high-fidelity command center designed for the agentic era.
+- **Multi-Chain Integrity:**
+    - **Verifiable Evidence (Filecoin):** Permanent, tamper-proof storage for forensic audit trails.
+    - **High-Performance Coordination (Polkadot):** Low-latency governance and cross-chain orchestration.
+    - **Confidential Compute (Chainlink):** Secure, private reasoning in decentralized enclaves.
 
 ## What it does (today)
 
 - **Unified Dashboard**: Ecosystem-wide overview with spatial visualization and performance telemetry.
-- **Agent Behavioral Metrics**: Tracking "Policy Compliance Score," "Autonomy Level," and "Risk Profile" alongside traditional performance.
-- **Audit Logs & AI Insights**: Governance-focused audit trails with executive summaries powered by Gemini.
-- **Run Ledger & Forensic Details**: Drill into the "Thoughts" of an agent with cognitive path reconstruction.
-- **Policy Enforcement**: Modular governance guards with visual complexity and risk ratings.
+- **Behavioral Analytics**: Tracking "Policy Compliance Score," "Autonomy Level," and "Risk Profile."
+- **Audit Logs & AI Insights**: Human-readable governance summaries powered by Gemini.
+- **Forensic Detail**: Deep-dive into an agent's "Thoughts" with cognitive path reconstruction.
+- **Policy Engine**: Modular governance guards with visual risk ratings.
 
 ## Who it’s for
 
@@ -42,25 +37,12 @@ Agents are cheap. **Trust and reliability are expensive.**
 
 Cognivern is the layer that turns “agent runs” into something you can operate, audit, and bill.
 
-## 🎯 Chainlink Convergence Hackathon
+## Evidence of Reliability
 
-### Target Tracks
-- 🤖 **AI Agents: DeFi & Web3** — AI-powered prediction market agent consuming CRE workflows
-- 🔗 **AI Agents: Multi-agent & orchestration** — Multi-LLM orchestrated forecasting with decentralized consensus
-- 🏆 **Grand Prize** — Best overall project showcasing Chainlink technologies
-
-### CRE Integration
-- ✅ **Cron-Triggered Workflows** — Scheduled forecasting pipeline running on Chainlink DON
-- ✅ **HTTP Capability** — Sapience market data fetched with multi-node consensus
-- ✅ **Confidential HTTP** — Private LLM API calls with enclave execution
-- ✅ **EVM Read** — Chainlink Data Feeds for real-time price inputs
-- ✅ **EVM Write** — Consensus-verified EAS attestation submission on Arbitrum
-
-### Key Features
-- **📊 Live "Thoughts" Dashboard** — Real-time display of agent reasoning and decision-making process
-- **🏆 Horizon-Weighted Strategy** — Mathematically optimized market selection for maximum accuracy scoring
-- **🔐 Confidential AI** — LLM reasoning stays private via CRE enclaves, preventing front-running
-- **🛡️ Governance Native** — Policy enforcement layer with on-chain risk guardrails
+Cognivern is built on production-grade infrastructure with a proven track record:
+- **Verified Attestations:** [View Agent Wallet & Audit History](https://arbiscan.io/address/0xc8F0D4FF31166Daf37804C20eeFd059e041E64dC)
+- **Real-Time Reasoning:** Live "Thoughts" feed generated by multi-LLM resilience layers.
+- **On-Chain Governance:** Active policy enforcement on multi-chain testnets.
 
 ## Quick Start
 
@@ -138,7 +120,7 @@ pnpm ingest-example
 
 See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for the standard artifact-based release process (build locally, deploy to Hetzner, rollback via symlink).
 
-## 🏗️ Architecture: CRE-Powered Prediction Pipeline
+## 🏗️ Architecture: Multi-Chain Governance & Prediction
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -168,12 +150,12 @@ See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for the standard artifact-based r
 
 Both LLM calls execute within CRE's Confidential HTTP capability — API keys and reasoning remain private within enclave execution.
 
-## 🏆 Evidence of Prior Work
+## Technical Foundation
 
-Cognivern has a proven track record from the Sapience Hackathon:
-- **Arbiscan (EAS):** [View Agent Wallet & Attestations](https://arbiscan.io/address/0xc8F0D4FF31166Daf37804C20eeFd059e041E64dC)
-- **Real-Time Reasoning:** Live "Thoughts" feed generated by the Multi-LLM layer
-- **On-Chain History:** Existing EAS attestations demonstrate production-ready forecasting
+Cognivern is a multi-chain platform that leverages the strengths of the Web3 ecosystem:
+- **Chainlink CRE:** Decentralized compute and confidential LLM reasoning.
+- **Filecoin (FVM):** Verifiable evidence storage for forensic audit trails.
+- **Polkadot (REVM):** High-performance coordination and real-time governance guards.
 
 ## 📚 Documentation
 
