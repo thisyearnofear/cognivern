@@ -53,7 +53,7 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   const { isMobile, isTablet } = useBreakpoint();
 
   const [viewMode, setViewMode] = useState<"standard" | "ecosystem">(
-    (localStorage.getItem("dashboard-view-mode") as any) || "standard",
+    (localStorage.getItem("dashboard-view-mode") as any) || "ecosystem",
   );
   const [stats, setStats] = useState<QuickStats | null>(null);
   const [agents, setAgents] = useState<AgentSummary[]>([]);
@@ -287,12 +287,178 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
         {!isMobile && (
           <section css={sectionStyles}>
             <div css={sectionHeaderStyles}>
-              <h2 css={sectionTitleStyles}>Performance Overview</h2>
+              <h2 css={sectionTitleStyles}>Ecosystem Performance</h2>
             </div>
-            <Card>
+            <Card variant="outlined">
               <CardContent>
-                <div css={chartPlaceholderStyles}>
-                  Performance chart coming soon
+                <div
+                  style={{
+                    height: "300px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: `linear-gradient(135deg, ${designTokens.colors.neutral[900]} 0%, ${designTokens.colors.neutral[800]} 100%)`,
+                    borderRadius: designTokens.borderRadius.lg,
+                    border: `1px solid ${designTokens.colors.neutral[700]}`,
+                    position: "relative",
+                    overflow: "hidden",
+                    padding: designTokens.spacing[6],
+                  }}
+                >
+                  {/* Background Grid */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      opacity: 0.1,
+                      backgroundImage: `linear-gradient(${designTokens.colors.primary[500]} 1px, transparent 1px), linear-gradient(90deg, ${designTokens.colors.primary[500]} 1px, transparent 1px)`,
+                      backgroundSize: "40px 40px",
+                    }}
+                  />
+
+                  {/* High-Fidelity SVG Chart */}
+                  <svg
+                    viewBox="0 0 400 150"
+                    preserveAspectRatio="none"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      position: "absolute",
+                      bottom: 0,
+                      left: 0,
+                      overflow: "visible",
+                    }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="chartGradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor={designTokens.colors.primary[500]}
+                          stopOpacity="0.3"
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor={designTokens.colors.primary[500]}
+                          stopOpacity="0"
+                        />
+                      </linearGradient>
+                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                    </defs>
+
+                    {/* Path */}
+                    <path
+                      d="M 0 120 Q 50 110 80 80 T 150 70 T 220 100 T 300 40 T 400 30 L 400 150 L 0 150 Z"
+                      fill="url(#chartGradient)"
+                    />
+                    <path
+                      d="M 0 120 Q 50 110 80 80 T 150 70 T 220 100 T 300 40 T 400 30"
+                      fill="none"
+                      stroke={designTokens.colors.primary[500]}
+                      strokeWidth="3"
+                      filter="url(#glow)"
+                      style={{
+                        strokeDasharray: "600",
+                        strokeDashoffset: "600",
+                        animation: "drawPath 3s ease-out forwards",
+                      }}
+                    />
+
+                    {/* Data Points */}
+                    {[
+                      { x: 0, y: 120 },
+                      { x: 80, y: 80 },
+                      { x: 150, y: 70 },
+                      { x: 220, y: 100 },
+                      { x: 300, y: 40 },
+                      { x: 400, y: 30 },
+                    ].map((p, i) => (
+                      <circle
+                        key={i}
+                        cx={p.x}
+                        cy={p.y}
+                        r="4"
+                        fill={designTokens.colors.primary[400]}
+                        stroke="white"
+                        strokeWidth="1"
+                      >
+                        <animate
+                          attributeName="r"
+                          values="4;6;4"
+                          dur="2s"
+                          repeatCount="indefinite"
+                          begin={`${i * 0.5}s`}
+                        />
+                      </circle>
+                    ))}
+                  </svg>
+
+                  {/* HUD Info Labels */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "20px",
+                      left: "20px",
+                      color: designTokens.colors.primary[400],
+                      fontFamily: "monospace",
+                      fontSize: "10px",
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    System Performance // Neural Load: 42% // Uptime: 99.99%
+                  </div>
+
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "20px",
+                      right: "20px",
+                      textAlign: "right",
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: designTokens.colors.primary[400],
+                        fontSize: designTokens.typography.fontSize.lg,
+                        fontWeight: designTokens.typography.fontWeight.bold,
+                        textShadow: "0 0 10px rgba(14, 165, 233, 0.5)",
+                      }}
+                    >
+                      +24.8%
+                    </div>
+                    <div
+                      style={{
+                        color: designTokens.colors.neutral[400],
+                        fontSize: designTokens.typography.fontSize.xs,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Aggregate Yield
+                    </div>
+                  </div>
+
+                  <style>
+                    {`
+                      @keyframes drawPath {
+                        to {
+                          stroke-dashoffset: 0;
+                        }
+                      }
+                    `}
+                  </style>
                 </div>
               </CardContent>
             </Card>
