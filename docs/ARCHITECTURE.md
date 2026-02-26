@@ -42,15 +42,15 @@ Cognivern utilizes a hybrid multi-chain architecture to balance high-fidelity ev
 Cognivern separates concerns into two planes:
 
 ### Data Plane (`/ingest/*`)
-- High-volume write path for agent run ingestion
-- Ingest-key authentication (`Authorization: Bearer <ingestKey>`)
-- Project-scoped via `X-PROJECT-ID` header
-- Accepts `CreRun` objects with steps + artifacts
+- High-volume write path for agent run ingestion.
+- Ingest-key authentication (`Authorization: Bearer <ingestKey>`).
+- Project-scoped via `X-PROJECT-ID` header.
+- Multi-chain data anchoring (Polkadot Hub for coordination, Filecoin for forensics).
 
 ### Control Plane (`/api/*`)
-- UI + admin APIs
-- API key authentication (OAuth/RBAC in future)
-- Run ledger queries, usage reporting, token telemetry
+- UI + admin APIs.
+- Real-time ecosystem visualization and forensic timeline reconstruction.
+- Behavioral governance management and policy orchestration.
 
 ## Core Components
 
