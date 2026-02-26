@@ -108,9 +108,14 @@ export const agentComparisonSchema = {
     field.stringLiteral(["active", "inactive", "paused", "error"]),
   ),
 
-  // Performance filters (ranges)
+  // Performance & Governance filters (ranges)
   winRate: field.range(), // [min, max] percentage
   totalReturn: field.range(), // [min, max] return
+  complianceScore: field.range(), // [min, max] percentage
+  autonomyLevel: field.range(), // [min, max] level (1-5)
+  riskProfile: field.array(
+    field.stringLiteral(["low", "medium", "high", "critical"]),
+  ),
   sharpeRatio: field.range(), // [min, max] sharpe
   avgLatency: field.range(), // [min, max] ms
 
@@ -121,6 +126,8 @@ export const agentComparisonSchema = {
   sortBy: field.stringLiteral([
     "winRate",
     "totalReturn",
+    "complianceScore",
+    "autonomyLevel",
     "sharpeRatio",
     "totalTrades",
     "avgLatency",
@@ -195,6 +202,31 @@ export const filterFieldDefinitions: FilterFieldDefinition[] = [
       { label: "Inactive", value: "inactive" },
       { label: "Paused", value: "paused" },
       { label: "Error", value: "error" },
+    ],
+  },
+  {
+    key: "complianceScore",
+    label: "Compliance Score (%)",
+    type: "slider",
+    min: 0,
+    max: 100,
+  },
+  {
+    key: "autonomyLevel",
+    label: "Autonomy Level",
+    type: "slider",
+    min: 1,
+    max: 5,
+  },
+  {
+    key: "riskProfile",
+    label: "Risk Profile",
+    type: "checkbox",
+    options: [
+      { label: "Low", value: "low" },
+      { label: "Medium", value: "medium" },
+      { label: "High", value: "high" },
+      { label: "Critical", value: "critical" },
     ],
   },
   {

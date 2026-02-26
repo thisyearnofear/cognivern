@@ -33,7 +33,17 @@ export interface AgentMetrics {
 export interface AgentStatus {
   isActive: boolean;
   lastActivity: string;
+  lastUpdate?: string; // Compatibility
+  tradesExecuted?: number; // Compatibility
   metrics: AgentMetrics;
+  performance?: {
+    totalReturn: number;
+    winRate: number;
+    sharpeRatio: number;
+    complianceScore?: number;
+    autonomyLevel?: number;
+    riskProfile?: "low" | "medium" | "high" | "critical";
+  };
   riskMetrics?: {
     currentRiskScore: number;
     violationsToday: number;

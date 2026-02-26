@@ -148,6 +148,29 @@ export default function TradingAgentDashboard() {
     }
 
     // Apply range filters
+    if (comparisonFilters.complianceScore) {
+      const [min, max] = comparisonFilters.complianceScore;
+      filtered = filtered.filter(
+        (agent) =>
+          (agent.complianceScore ?? 100) >= min &&
+          (agent.complianceScore ?? 100) <= max,
+      );
+    }
+
+    if (comparisonFilters.autonomyLevel) {
+      const [min, max] = comparisonFilters.autonomyLevel;
+      filtered = filtered.filter(
+        (agent) =>
+          (agent.autonomyLevel ?? 1) >= min && (agent.autonomyLevel ?? 1) <= max,
+      );
+    }
+
+    if (comparisonFilters.riskProfile && (comparisonFilters.riskProfile as any[]).length > 0) {
+      filtered = filtered.filter((agent) =>
+        (comparisonFilters.riskProfile as any[]).includes(agent.riskProfile ?? "low"),
+      );
+    }
+
     if (comparisonFilters.winRate) {
       const [min, max] = comparisonFilters.winRate;
       filtered = filtered.filter(
@@ -177,7 +200,39 @@ export default function TradingAgentDashboard() {
     margin: 0 auto;
     padding: ${designTokens.spacing[6]};
     min-height: 100vh;
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    background: linear-gradient(
+      135deg,
+      ${designTokens.colors.background.secondary} 0%,
+      ${designTokens.colors.background.tertiary} 100%
+    );
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        ${designTokens.colors.primary[500]},
+        transparent
+      );
+      opacity: 0.3;
+      animation: scanline 8s linear infinite;
+    }
+
+    @keyframes scanline {
+      0% {
+        transform: translateY(-100vh);
+      }
+      100% {
+        transform: translateY(100vh);
+      }
+    }
   `;
 
   const headerStyles = css`
@@ -189,10 +244,15 @@ export default function TradingAgentDashboard() {
   const titleStyles = css`
     font-size: ${designTokens.typography.fontSize["4xl"]};
     font-weight: ${designTokens.typography.fontWeight.bold};
-    background: linear-gradient(135deg, #1e293b, #475569);
+    background: linear-gradient(
+      135deg,
+      ${designTokens.colors.neutral[900]},
+      ${designTokens.colors.neutral[600]}
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: ${designTokens.spacing[3]};
+    letter-spacing: -0.02em;
   `;
 
   const subtitleStyles = css`
@@ -353,10 +413,10 @@ export default function TradingAgentDashboard() {
     <div css={containerStyles}>
       {/* Header */}
       <div css={headerStyles}>
-        <h1 css={titleStyles}>AI Trading Dashboard</h1>
+        <h1 css={titleStyles}>Agent Behavioral & Governance</h1>
         <p css={subtitleStyles}>
-          Monitor and control your autonomous trading agents with real-time
-          performance tracking
+          Monitor autonomy levels, compliance scores, and governance risk across
+          your agent ecosystem.
         </p>
       </div>
 
@@ -552,9 +612,10 @@ export default function TradingAgentDashboard() {
               `}
             >
               <div>
-                <CardTitle>Agent Performance Comparison</CardTitle>
+                <CardTitle>Agent Behavioral Comparison</CardTitle>
                 <CardDescription>
-                  Compare metrics across all agents and ecosystems
+                  Compare compliance scores, autonomy levels, and risk across
+                  all agents
                 </CardDescription>
               </div>
               <Button variant="ghost" size="sm" onClick={resetFilters}>
@@ -814,9 +875,27 @@ export default function TradingAgentDashboard() {
                             : "↓")}
                       </th>
                       <th>Status</th>
-                      <th onClick={() => updateFilter("sortBy", "totalTrades")}>
-                        Trades{" "}
-                        {comparisonFilters.sortBy === "totalTrades" &&
+                      <th
+                        onClick={() => updateFilter("sortBy", "complianceScore")}
+                      >
+                        Compliance{" "}
+                        {comparisonFilters.sortBy === "complianceScore" &&
+                          (comparisonFilters.sortDirection === "asc"
+                            ? "↑"
+                            : "↓")}
+                      </th>
+                      <th
+                        onClick={() => updateFilter("sortBy", "autonomyLevel")}
+                      >
+                        Autonomy{" "}
+                        {comparisonFilters.sortBy === "autonomyLevel" &&
+                          (comparisonFilters.sortDirection === "asc"
+                            ? "↑"
+                            : "↓")}
+                      </th>
+                      <th onClick={() => updateFilter("sortBy", "riskProfile" as any)}>
+                        Risk{" "}
+                        {comparisonFilters.sortBy === "riskProfile" as any &&
                           (comparisonFilters.sortDirection === "asc"
                             ? "↑"
                             : "↓")}
@@ -831,13 +910,6 @@ export default function TradingAgentDashboard() {
                       <th onClick={() => updateFilter("sortBy", "totalReturn")}>
                         Return{" "}
                         {comparisonFilters.sortBy === "totalReturn" &&
-                          (comparisonFilters.sortDirection === "asc"
-                            ? "↑"
-                            : "↓")}
-                      </th>
-                      <th onClick={() => updateFilter("sortBy", "sharpeRatio")}>
-                        Sharpe{" "}
-                        {comparisonFilters.sortBy === "sharpeRatio" &&
                           (comparisonFilters.sortDirection === "asc"
                             ? "↑"
                             : "↓")}
@@ -879,14 +951,42 @@ export default function TradingAgentDashboard() {
                             {agent.status || "unknown"}
                           </Badge>
                         </td>
-                        <td>{agent.totalTrades || 0}</td>
                         <td
                           css={css`
-                            color: ${(agent.winRate || 0) >= 50
-                              ? designTokens.colors.semantic.success[600]
-                              : designTokens.colors.neutral[600]};
+                            color: ${(agent.complianceScore ?? 100) >= 90
+                              ? designTokens.colors.semantic.success
+                              : (agent.complianceScore ?? 100) >= 70
+                                ? designTokens.colors.semantic.warning
+                                : designTokens.colors.semantic.error};
                             font-weight: ${designTokens.typography.fontWeight
                               .medium};
+                          `}
+                        >
+                          {agent.complianceScore ?? 100}%
+                        </td>
+                        <td>Lvl {agent.autonomyLevel ?? 1}</td>
+                        <td>
+                          <Badge
+                            variant={
+                              (agent.riskProfile ?? "low") === "low"
+                                ? "success"
+                                : (agent.riskProfile ?? "low") === "medium"
+                                  ? "warning"
+                                  : "error"
+                            }
+                            size="sm"
+                            css={css`
+                              text-transform: capitalize;
+                            `}
+                          >
+                            {agent.riskProfile ?? "low"}
+                          </Badge>
+                        </td>
+                        <td
+                          css={css`
+                            color: ${(agent.winRate || 0) >= 0.5
+                              ? designTokens.colors.semantic.success
+                              : designTokens.colors.neutral[600]};
                           `}
                         >
                           {((agent.winRate || 0) * 100).toFixed(1)}%
@@ -894,16 +994,13 @@ export default function TradingAgentDashboard() {
                         <td
                           css={css`
                             color: ${(agent.totalReturn || 0) >= 0
-                              ? designTokens.colors.semantic.success[600]
-                              : designTokens.colors.semantic.error[600]};
-                            font-weight: ${designTokens.typography.fontWeight
-                              .medium};
+                              ? designTokens.colors.semantic.success
+                              : designTokens.colors.semantic.error};
                           `}
                         >
                           {(agent.totalReturn || 0) >= 0 ? "+" : ""}
                           {((agent.totalReturn || 0) * 100).toFixed(2)}%
                         </td>
-                        <td>{(agent.sharpeRatio || 0).toFixed(2)}</td>
                         <td>
                           {agent.avgLatency ? `${agent.avgLatency}ms` : "N/A"}
                         </td>
@@ -1142,7 +1239,7 @@ export default function TradingAgentDashboard() {
             <div
               css={css`
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
                 gap: ${designTokens.spacing[4]};
               `}
             >
@@ -1156,7 +1253,7 @@ export default function TradingAgentDashboard() {
                     font-size: ${designTokens.typography.fontSize["2xl"]};
                     font-weight: ${designTokens.typography.fontWeight.bold};
                     color: ${agentStatus.isActive
-                      ? designTokens.colors.semantic.success[600]
+                      ? designTokens.colors.semantic.success
                       : designTokens.colors.neutral[500]};
                   `}
                 >
@@ -1168,7 +1265,7 @@ export default function TradingAgentDashboard() {
                     color: ${designTokens.colors.neutral[600]};
                   `}
                 >
-                  {agentStatus.isActive ? "Active" : "Inactive"}
+                  {agentStatus.isActive ? "Operational" : "Standby"}
                 </div>
               </div>
 
@@ -1184,7 +1281,7 @@ export default function TradingAgentDashboard() {
                     color: ${designTokens.colors.primary[600]};
                   `}
                 >
-                  {agentStatus.tradesExecuted}
+                  {agentStatus.performance?.complianceScore ?? 100}%
                 </div>
                 <div
                   css={css`
@@ -1192,34 +1289,7 @@ export default function TradingAgentDashboard() {
                     color: ${designTokens.colors.neutral[600]};
                   `}
                 >
-                  Trades
-                </div>
-              </div>
-
-              <div
-                css={css`
-                  text-align: center;
-                `}
-              >
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize["2xl"]};
-                    font-weight: ${designTokens.typography.fontWeight.bold};
-                    color: ${agentStatus.performance.totalReturn >= 0
-                      ? designTokens.colors.semantic.success[600]
-                      : designTokens.colors.semantic.error[600]};
-                  `}
-                >
-                  {agentStatus.performance.totalReturn >= 0 ? "+" : ""}
-                  {(agentStatus.performance.totalReturn * 100).toFixed(1)}%
-                </div>
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize.sm};
-                    color: ${designTokens.colors.neutral[600]};
-                  `}
-                >
-                  Return
+                  Compliance
                 </div>
               </div>
 
@@ -1235,7 +1305,7 @@ export default function TradingAgentDashboard() {
                     color: ${designTokens.colors.primary[600]};
                   `}
                 >
-                  {(agentStatus.performance.winRate * 100).toFixed(0)}%
+                  Lvl {agentStatus.performance?.autonomyLevel ?? 1}
                 </div>
                 <div
                   css={css`
@@ -1243,7 +1313,36 @@ export default function TradingAgentDashboard() {
                     color: ${designTokens.colors.neutral[600]};
                   `}
                 >
-                  Win Rate
+                  Autonomy
+                </div>
+              </div>
+
+              <div
+                css={css`
+                  text-align: center;
+                `}
+              >
+                <div
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize["2xl"]};
+                    font-weight: ${designTokens.typography.fontWeight.bold};
+                    text-transform: capitalize;
+                    color: ${agentStatus.performance?.riskProfile === "low"
+                      ? designTokens.colors.semantic.success
+                      : agentStatus.performance?.riskProfile === "medium"
+                        ? designTokens.colors.semantic.warning
+                        : designTokens.colors.semantic.error};
+                  `}
+                >
+                  {agentStatus.performance?.riskProfile ?? "Low"}
+                </div>
+                <div
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    color: ${designTokens.colors.neutral[600]};
+                  `}
+                >
+                  Risk Profile
                 </div>
               </div>
             </div>
@@ -1275,12 +1374,12 @@ export default function TradingAgentDashboard() {
           </CardContent>
         </Card>
 
-        {/* Trading Chart */}
+        {/* Behavioral Metrics */}
         <Card>
           <CardHeader>
-            <CardTitle>📈 Performance Chart</CardTitle>
+            <CardTitle>📊 Behavioral Performance</CardTitle>
             <CardDescription>
-              Trading decisions and market analysis
+              Agent decision telemetry and behavioral trends
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1293,12 +1392,12 @@ export default function TradingAgentDashboard() {
         </Card>
       </div>
 
-      {/* Trade History */}
+      {/* Activity Audit */}
       <Card>
         <CardHeader>
-          <CardTitle>📋 Trading History</CardTitle>
+          <CardTitle>📋 Activity Audit Trail</CardTitle>
           <CardDescription>
-            Complete record of all trading decisions and executions
+            Complete record of all agent decisions and governance check results
           </CardDescription>
         </CardHeader>
         <CardContent>

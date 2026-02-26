@@ -12,6 +12,39 @@ const containerStyles = css`
   padding: ${designTokens.spacing[6]};
   display: grid;
   gap: ${designTokens.spacing[6]};
+  background: linear-gradient(
+    135deg,
+    ${designTokens.colors.background.secondary} 0%,
+    ${designTokens.colors.background.tertiary} 100%
+  );
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      ${designTokens.colors.primary[500]},
+      transparent
+    );
+    opacity: 0.2;
+    animation: scanline 10s linear infinite;
+  }
+
+  @keyframes scanline {
+    0% {
+      transform: translateY(-100vh);
+    }
+    100% {
+      transform: translateY(100vh);
+    }
+  }
 `;
 
 const headerRowStyles = css`
@@ -36,6 +69,7 @@ const titleStyles = css`
 const subtitleStyles = css`
   margin: 0;
   color: ${designTokens.colors.neutral[600]};
+  font-size: ${designTokens.typography.fontSize.lg};
 `;
 
 const actionsStyles = css`
@@ -156,10 +190,10 @@ export default function RunLedger() {
     <div css={containerStyles} data-dashboard="true">
       <div css={headerRowStyles}>
         <div css={titleBlockStyles}>
-          <h1 css={titleStyles}>Run Ledger</h1>
+          <h1 css={titleStyles}>Agent Run Ledger</h1>
           <p css={subtitleStyles}>
-            Verifiable agent execution traces (steps + artifacts). This is the
-            product.
+            Verifiable agent execution traces, cognitive paths, and governance
+            attestations.
           </p>
           <div
             css={css`
@@ -260,9 +294,16 @@ export default function RunLedger() {
         </Card>
       )}
 
-      <Card>
+      <Card
+        css={css`
+          background: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(226, 232, 240, 0.8);
+          box-shadow: ${designTokens.shadows.sm};
+        `}
+      >
         <CardHeader>
-          <CardTitle>Recent Runs</CardTitle>
+          <CardTitle>Recent Verifiable Traces</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -282,7 +323,32 @@ export default function RunLedger() {
               {runs.map((r) => (
                 <div key={r.runId} css={runRowStyles}>
                   <div css={runMetaStyles}>
-                    <div>
+                    <div
+                      css={css`
+                        display: flex;
+                        align-items: center;
+                        gap: ${designTokens.spacing[2]};
+                      `}
+                    >
+                      <span
+                        css={css`
+                          width: 8px;
+                          height: 8px;
+                          border-radius: 50%;
+                          background: ${r.status === "finished"
+                            ? designTokens.colors.semantic.success
+                            : r.status === "failed"
+                              ? designTokens.colors.semantic.error
+                              : designTokens.colors.primary[500]};
+                          box-shadow: 0 0 8px
+                            ${r.status === "finished"
+                              ? designTokens.colors.semantic.success
+                              : r.status === "failed"
+                                ? designTokens.colors.semantic.error
+                                : designTokens.colors.primary[500]};
+                          display: inline-block;
+                        `}
+                      />
                       <strong>{r.workflow}</strong> · <span>{r.mode}</span>
                     </div>
                     <div css={smallText}>
