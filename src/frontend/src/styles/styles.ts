@@ -938,3 +938,152 @@ export const toastOutAnimation = css`
     }
   }
 `;
+
+// Data Table Styles
+export const dataTableStyles = css`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: ${designTokens.typography.fontSize.sm};
+  color: ${designTokens.colors.neutral[900]};
+`;
+
+export const dataTableHeaderStyles = css`
+  background-color: ${designTokens.colors.neutral[50]};
+  border-bottom: 2px solid ${designTokens.colors.neutral[200]};
+`;
+
+export const getDataTableHeaderCellStyles = (
+  align: "left" | "center" | "right" = "left",
+  sortable: boolean = false,
+) => css`
+  padding: ${designTokens.spacing[4]};
+  text-align: ${align};
+  font-weight: ${designTokens.typography.fontWeight.semibold};
+  color: ${designTokens.colors.neutral[700]};
+  white-space: nowrap;
+  ${sortable &&
+  css`
+    cursor: pointer;
+    user-select: none;
+    &:hover {
+      background-color: ${designTokens.colors.neutral[100]};
+    }
+  `}
+`;
+
+export const getDataTableRowStyles = (clickable: boolean, index: number) => css`
+  border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+  background-color: ${index % 2 === 0
+    ? designTokens.colors.neutral[0]
+    : designTokens.colors.neutral[50]};
+  transition: background-color ${designTokens.animation.duration.fast};
+
+  ${clickable &&
+  css`
+    cursor: pointer;
+    &:hover {
+      background-color: ${designTokens.colors.primary[50]};
+    }
+  `}
+`;
+
+export const getDataTableCellStyles = (
+  align: "left" | "center" | "right" = "left",
+) => css`
+  padding: ${designTokens.spacing[4]};
+  text-align: ${align};
+`;
+
+export const dataTablePaginationStyles = css`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${designTokens.spacing[4]};
+  border-top: 1px solid ${designTokens.colors.neutral[200]};
+  background-color: ${designTokens.colors.neutral[0]};
+`;
+
+export const dataTableSearchStyles = css`
+  width: 100%;
+  padding: ${designTokens.spacing[2]} ${designTokens.spacing[4]};
+  border: 1px solid ${designTokens.colors.neutral[300]};
+  border-radius: ${designTokens.borderRadius.md};
+  font-size: ${designTokens.typography.fontSize.sm};
+  margin-bottom: ${designTokens.spacing[4]};
+
+  &:focus {
+    outline: none;
+    border-color: ${designTokens.colors.primary[500]};
+    box-shadow: 0 0 0 2px ${designTokens.colors.primary[100]};
+  }
+`;
+
+export const dataTableMobileCardStyles = css`
+  display: flex;
+  flex-direction: column;
+  gap: ${designTokens.spacing[2]};
+  padding: ${designTokens.spacing[4]};
+  border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+`;
+
+export const dataTableMobileCardTitleStyles = css`
+  font-weight: ${designTokens.typography.fontWeight.semibold};
+  color: ${designTokens.colors.neutral[600]};
+  font-size: ${designTokens.typography.fontSize.xs};
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+`;
+
+export const dataTableLoadingStyles = css`
+  padding: ${designTokens.spacing[8]};
+  text-align: center;
+  color: ${designTokens.colors.neutral[500]};
+`;
+
+export const dataTablePaginationInfoStyles = css`
+  font-size: ${designTokens.typography.fontSize.sm};
+  color: ${designTokens.colors.neutral[600]};
+`;
+
+export const dataTablePaginationControlsStyles = css`
+  display: flex;
+  align-items: center;
+  gap: ${designTokens.spacing[2]};
+`;
+
+export const dataTablePaginationPageInfoStyles = css`
+  font-size: ${designTokens.typography.fontSize.sm};
+  font-weight: ${designTokens.typography.fontWeight.medium};
+  margin: 0 ${designTokens.spacing[2]};
+`;
+
+// Chart Styles
+export const chartContainerStyles = css`
+  position: relative;
+  width: 100%;
+  background-color: ${designTokens.colors.neutral[0]};
+  border-radius: ${designTokens.borderRadius.lg};
+  padding: ${designTokens.spacing[4]};
+`;
+
+export const chartCanvasStyles = css`
+  display: block;
+  max-width: 100%;
+`;
+
+export const getChartTooltipStyles = (x: number, y: number) => css`
+  position: absolute;
+  top: ${y}px;
+  left: ${x}px;
+  transform: translate(-50%, -100%);
+  margin-top: -${designTokens.spacing[2]};
+  background-color: rgba(15, 23, 42, 0.9);
+  color: ${designTokens.colors.neutral[0]};
+  padding: ${designTokens.spacing[2]} ${designTokens.spacing[3]};
+  border-radius: ${designTokens.borderRadius.md};
+  font-size: ${designTokens.typography.fontSize.xs};
+  pointer-events: none;
+  z-index: ${designTokens.zIndex.tooltip};
+  white-space: nowrap;
+  box-shadow: ${designTokens.shadows.lg};
+`;
