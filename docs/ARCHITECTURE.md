@@ -4,38 +4,37 @@
 
 **Make agent systems operable: every run is observable, auditable, and (when needed) provable.**
 
-Cognivern is an **Agent Reliability + Proof Layer** — a Run Ledger + Ingestion API that turns agent runs into something you can operate, audit, and bill.
+Cognivern is an **AI Governance Command Center** — a coordination and coordination layer that turns agent runs into something you can operate, audit, and bill.
 
 ## Core Value Propositions
 
-1. **Decentralized Consensus**: Operations verified by DON nodes via Chainlink CRE
-2. **Confidential AI**: LLM predictions execute in CRE confidential enclaves
-3. **Trust & Transparency**: On-chain verifiable forecasts via EAS with Chainlink Data Feed inputs
-4. **Autonomous Forecasting**: 24/7 CRE-orchestrated market analysis
-5. **Policy Enforcement**: Automated compliance with risk management rules
+1. **Multi-Chain Governance**: Leveraging **Filecoin (FVM)** for verifiable forensic evidence and **Polkadot Hub (REVM/PVM)** for high-performance coordination.
+2. **Confidential AI**: LLM reasoning executes in confidential enclaves, ensuring private decision-making.
+3. **Agentic UX**: A high-fidelity, spatial HUD for visualizing agent networks, cognitive paths, and behavioral compliance.
+4. **Verifiable Intent**: On-chain proof of decision-making process, moving beyond simple result tracking.
+5. **Real-Time Guardrails**: Low-latency policy enforcement that scales with autonomous agent speeds.
 
 ## System Architecture
 
+Cognivern utilizes a hybrid multi-chain architecture to balance high-fidelity evidence with high-performance execution:
+
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    CRE Workflow DON                              │
-│                                                                 │
-│  [Cron Trigger]  ──→  [HTTP Fetch]  ──→  [Confidential HTTP]   │
-│   Every 10 min        Market Data         LLM Reasoning         │
-│                       (consensus)         (private enclave)     │
-│                            │                    │               │
-│                            ▼                    ▼               │
-│                     [EVM Read]           [EVM Write]            │
-│                     Price Feeds          EAS Attestation        │
-│                     (consensus)          (consensus)            │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                    ┌──────────────────┐
-                    │   Arbitrum One   │
-                    │  EAS Attestation │
-                    │  + Data Feeds    │
-                    └──────────────────┘
+┌──────────────────┐       ┌──────────────────┐       ┌──────────────────┐
+│   Agent Runtime  │ ───→  │    Cognivern     │ ───→  │  Ecosystem Visual│
+│ (User's Agents)  │       │   Control Plane  │       │      (Frontend)  │
+└──────────────────┘       └────────┬─────────┘       └──────────────────┘
+                                    │
+                                    ▼
+                 ┌──────────────────┴──────────────────┐
+                 │                                     │
+                 ▼                                     ▼
+      ┌──────────────────┐                  ┌──────────────────┐
+      │  Filecoin (FVM)  │                  │   Polkadot Hub   │
+      │                  │                  │    (REVM/PVM)    │
+      ├──────────────────┤                  ├──────────────────┤
+      │ Forensic Storage │                  │ Real-Time Gov.   │
+      │ + Evidence Proof │                  │ + Coordination   │
+      └──────────────────┘                  └──────────────────┘
 ```
 
 ## Two-Plane Design
