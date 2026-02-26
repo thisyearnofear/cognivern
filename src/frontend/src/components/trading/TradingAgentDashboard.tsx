@@ -20,7 +20,9 @@ import VincentConsentFlow from "./VincentConsentFlow";
 import PolicyConfiguration from "./PolicyConfiguration";
 import TradingChart from "./TradingChart";
 import TradeHistory from "./TradeHistory";
+import InteractiveCarousel, { CarouselItem } from "../ui/InteractiveCarousel";
 import { agentApi } from "../../services/apiService";
+import { useNavigate } from "react-router-dom";
 import {
   agentComparisonSchema,
   defaultFilters,
@@ -29,6 +31,7 @@ import {
 } from "../../lib/store/agentComparisonSchema";
 
 export default function TradingAgentDashboard() {
+  const navigate = useNavigate();
   const [selectedAgentType, setSelectedAgentType] =
     useState<AgentType>("recall");
   const [showComparison, setShowComparison] = useState(false);
@@ -409,6 +412,41 @@ export default function TradingAgentDashboard() {
     selectedAgentType === "recall" ||
     (selectedAgentType === "vincent" && vincentStatus.hasConsent);
 
+  const carouselItems: CarouselItem[] = [
+    {
+      id: "recall",
+      title: "Recall Trading Agent",
+      subtitle: "Competition-focused",
+      icon: "🏆",
+      content: (
+        <div>
+          <p css={css`font-size: 0.8rem; margin-bottom: 8px;`}>Performance: {(agentStatus.performance.totalReturn * 100).toFixed(1)}%</p>
+          <Badge variant={getAgentStatus("recall").variant}>{getAgentStatus("recall").text}</Badge>
+        </div>
+      )
+    },
+    {
+      id: "vincent",
+      title: "Vincent Social Agent",
+      subtitle: "Sentiment-driven",
+      icon: "🧠",
+      content: (
+        <div>
+          <p css={css`font-size: 0.8rem; margin-bottom: 8px;`}>Daily Limit: ${vincentStatus.policies.dailySpendingLimit}</p>
+          <Badge variant={getAgentStatus("vincent").variant}>{getAgentStatus("vincent").text}</Badge>
+        </div>
+      )
+    }
+  ];
+
+  const handleCarouselItemClick = (id: string) => {
+    if (id === selectedAgentType) {
+      navigate(`/agents/${id}`);
+    } else {
+      setSelectedAgentType(id as AgentType);
+    }
+  };
+
   return (
     <div css={containerStyles}>
       {/* Header */}
@@ -451,122 +489,24 @@ export default function TradingAgentDashboard() {
         </div>
       )}
 
-      {/* Agent Selection */}
-      <div css={agentSelectorStyles}>
-        {/* Recall Agent */}
-        <Card
-          css={agentCardStyles(selectedAgentType === "recall")}
-          onClick={() => handleAgentTypeChange("recall")}
-        >
-          <CardContent>
-            <div css={agentHeaderStyles}>
-              <div css={agentIconStyles}>🏆</div>
-              <div css={agentInfoStyles}>
-                <h3 css={agentNameStyles}>Recall Trading Agent</h3>
-                <p css={agentDescStyles}>
-                  Competition-focused algorithmic trading
-                </p>
-              </div>
-              <div css={statusBadgeStyles}>
-                <Badge variant={getAgentStatus("recall").variant}>
-                  {getAgentStatus("recall").text}
-                </Badge>
-              </div>
-            </div>
-
-            <div css={featuresGridStyles}>
-              <div css={featureStyles}>
-                <span>🎯</span>
-                <span>Competition</span>
-              </div>
-              <div css={featureStyles}>
-                <span>⚡</span>
-                <span>High-Freq</span>
-              </div>
-              <div css={featureStyles}>
-                <span>📊</span>
-                <span>Real Data</span>
-              </div>
-            </div>
-
-            <div css={statsRowStyles}>
-              <div css={statStyles}>
-                <div css={statValueStyles}>{agentStatus.tradesExecuted}</div>
-                <div css={statLabelStyles}>Trades</div>
-              </div>
-              <div css={statStyles}>
-                <div css={statValueStyles}>
-                  {(agentStatus.performance.totalReturn * 100).toFixed(1)}%
-                </div>
-                <div css={statLabelStyles}>Return</div>
-              </div>
-              <div css={statStyles}>
-                <div css={statValueStyles}>
-                  {(agentStatus.performance.winRate * 100).toFixed(1)}%
-                </div>
-                <div css={statLabelStyles}>Win Rate</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Vincent Agent */}
-        <Card
-          css={agentCardStyles(selectedAgentType === "vincent")}
-          onClick={() => handleAgentTypeChange("vincent")}
-        >
-          <CardContent>
-            <div css={agentHeaderStyles}>
-              <div css={agentIconStyles}>🧠</div>
-              <div css={agentInfoStyles}>
-                <h3 css={agentNameStyles}>Vincent Social Agent</h3>
-                <p css={agentDescStyles}>Sentiment-driven social trading</p>
-              </div>
-              <div css={statusBadgeStyles}>
-                <Badge variant={getAgentStatus("vincent").variant}>
-                  {getAgentStatus("vincent").text}
-                </Badge>
-              </div>
-            </div>
-
-            <div css={featuresGridStyles}>
-              <div css={featureStyles}>
-                <span>💭</span>
-                <span>Sentiment</span>
-              </div>
-              <div css={featureStyles}>
-                <span>🛡️</span>
-                <span>Policies</span>
-              </div>
-              <div css={featureStyles}>
-                <span>🌐</span>
-                <span>Multi-Chain</span>
-              </div>
-            </div>
-
-            <div css={statsRowStyles}>
-              <div css={statStyles}>
-                <div css={statValueStyles}>
-                  ${vincentStatus.policies.dailySpendingLimit}
-                </div>
-                <div css={statLabelStyles}>Daily Limit</div>
-              </div>
-              <div css={statStyles}>
-                <div css={statValueStyles}>
-                  {vincentStatus.policies.allowedTokens.length}
-                </div>
-                <div css={statLabelStyles}>Tokens</div>
-              </div>
-              <div css={statStyles}>
-                <div css={statValueStyles}>
-                  ${vincentStatus.policies.maxTradeSize}
-                </div>
-                <div css={statLabelStyles}>Max Trade</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Interactive Agent Carousel */}
+      <div css={css`margin-bottom: ${designTokens.spacing[10]};`}>
+        <h2 css={css`text-align: center; margin-bottom: -${designTokens.spacing[4]}; font-size: ${designTokens.typography.fontSize.xl}; color: ${designTokens.colors.neutral[700]};`}>
+          Select Active Agent
+        </h2>
+        <InteractiveCarousel
+          items={carouselItems}
+          onItemClick={handleCarouselItemClick}
+        />
+        <p css={css`text-align: center; font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[500]};`}>
+          Double click active agent to view detailed profile
+        </p>
       </div>
+
+      {/* Agent Selection (Legacy Grid hidden but logic remains if needed) */}
+      {/* <div css={agentSelectorStyles}>
+        ...
+      </div> */}
 
       {/* Agent Comparison Toggle */}
       <div

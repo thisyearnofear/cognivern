@@ -16,19 +16,7 @@ import PolicyCard from "./PolicyCard";
 import GovernanceScore from "./GovernanceScore";
 import ForensicTimeline from "./ForensicTimeline";
 import Form from "./Form";
-import {
-  commandPaletteInputStyles,
-  commandPaletteListStyles,
-  commandPaletteCategoryStyles,
-  getCommandPaletteItemStyles,
-  commandPaletteIconStyles,
-  commandPaletteTextStyles,
-  commandPaletteTitleStyles,
-  commandPaletteDescriptionStyles,
-  commandPaletteInputContainerStyles,
-  commandPaletteNoResultsStyles,
-  commandPaletteFooterStyles,
-} from "../../styles/styles";
+import { commandPaletteStyles } from "../../styles/design-system";
 
 interface Command {
   id: string;
@@ -549,19 +537,19 @@ export const CommandPalette: React.FC = () => {
                       return (
                         <div
                           key={command.id}
-                          css={getCommandPaletteItemStyles(isSelected)}
+                          css={commandPaletteStyles.item(isSelected)}
                           onClick={() => command.action()}
                           onMouseEnter={() => setSelectedIndex(currentIndex)}
                         >
-                          <span css={commandPaletteIconStyles}>
+                          <span css={commandPaletteStyles.icon}>
                             {command.icon}
                           </span>
-                          <div css={commandPaletteTextStyles}>
-                            <div css={commandPaletteTitleStyles}>
+                          <div css={commandPaletteStyles.text}>
+                            <div css={commandPaletteStyles.title}>
                               {command.title}
                             </div>
                             {command.description && (
-                              <div css={commandPaletteDescriptionStyles}>
+                              <div css={commandPaletteStyles.description}>
                                 {command.description}
                               </div>
                             )}

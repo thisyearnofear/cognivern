@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from "react";
-import {
-  toastContainerStyles,
-  getToastItemStyles,
-  getToastIconStyles,
-  toastContentStyles,
-  toastMessageStyles,
-  toastActionsStyles,
-  toastActionButtonStyles,
-  toastCloseButtonStyles,
-  toastInAnimation,
-  toastOutAnimation,
-} from "../../styles/styles";
+import { toastStyles } from "../../styles/design-system";
 import { css } from "@emotion/react";
+import { keyframes } from "@emotion/react";
+
+const slideIn = keyframes`
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+`;
+
+const slideOut = keyframes`
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+`;
 
 export interface ToastProps {
   type: "success" | "error" | "warning" | "info";
@@ -52,36 +52,27 @@ export const Toast: React.FC<ToastProps> = ({
 
   const handleClose = () => {
     setIsExiting(true);
-    if (toastRef.current) {
-      toastRef.current.style.animation = `${toastOutAnimation} 0.3s ease-out forwards`;
-      toastRef.current.addEventListener("animationend", onClose, {
-        once: true,
-      });
-    } else {
-      onClose();
-    }
+    onClose();
   };
 
   return (
     <div
       ref={toastRef}
       css={css`
-        ${getToastItemStyles(type)};
-        animation: ${isVisible && !isExiting
-            ? toastInAnimation
-            : toastOutAnimation}
-          0.3s ease-out forwards;
+        ${toastStyles.item(type)};
+        animation: ${isVisible && !isExiting ? slideIn : slideOut} 0.3s ease-out
+          forwards;
       `}
       role="alert"
     >
-      <span css={getToastIconStyles(type)}>{toastVariants[type].icon}</span>
+      <span css={toastStyles.icon(type)}>{toastVariants[type].icon}</span>
 
-      <div css={toastContentStyles}>
-        <p css={toastMessageStyles}>{message}</p>
+      <div css={toastStyles.content}>
+        <p css={toastStyles.message}>{message}</p>
 
         {action && (
-          <div css={toastActionsStyles}>
-            <button css={toastActionButtonStyles} onClick={action.onClick}>
+          <div css={toastStyles.actions}>
+            <button css={toastStyles.actionButton} onClick={action.onClick}>
               {action.label}
             </button>
           </div>
@@ -89,7 +80,7 @@ export const Toast: React.FC<ToastProps> = ({
       </div>
 
       <button
-        css={toastCloseButtonStyles}
+        css={toastStyles.closeButton}
         onClick={handleClose}
         title="Close notification"
       >
