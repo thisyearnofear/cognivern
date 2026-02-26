@@ -1,11 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { designTokens } from "../../styles/designTokens";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
-import {
-  chartContainerStyles,
-  chartCanvasStyles,
-  getChartTooltipStyles,
-} from "../../styles/styles";
+import { chartStyles } from "../../styles/design-system";
 
 export interface ChartDataPoint {
   x: number | string;
@@ -426,19 +422,17 @@ export const Chart: React.FC<ChartProps> = ({
     setHoveredPoint(null);
   };
 
-  const tooltipStyles = getChartTooltipStyles(mousePosition.x, mousePosition.y);
-
   return (
-    <div ref={containerRef} css={chartContainerStyles}>
+    <div ref={containerRef} css={chartStyles.container}>
       <canvas
         ref={canvasRef}
-        css={chartCanvasStyles}
+        css={chartStyles.canvas}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       />
 
       {hoveredPoint && showTooltip && (
-        <div css={tooltipStyles}>
+        <div css={chartStyles.tooltip(mousePosition.x, mousePosition.y)}>
           <div>
             <strong>{hoveredPoint.label || "Value"}</strong>
           </div>

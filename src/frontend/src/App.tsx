@@ -6,15 +6,11 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import { generateKeyframes } from "./styles/animations";
 import { AppLayout } from "./components/layout";
 import SmartOnboarding from "./components/onboarding/SmartOnboarding";
 import PageTransition from "./components/ui/PageTransition";
 import { LoadingSpinner } from "./components/ui/LoadingSpinner";
-import {
-  pageSkeletonContainerStyles,
-  pageSkeletonCardStyles,
-} from "./styles/styles";
+import { loadingStyles } from "./styles/design-system";
 import "./App.css";
 
 // Lazy load components for better performance
@@ -30,29 +26,19 @@ const PolicyManagement = lazy(
 const AuditLogs = lazy(() => import("./components/audit/EnhancedAuditLogs"));
 const RunLedger = lazy(() => import("./components/cre/RunLedger"));
 const RunDetails = lazy(() => import("./components/cre/RunDetails"));
+const AgentProfile = lazy(() => import("./components/agents/AgentProfile"));
 
 // Enhanced loading component with animations
 const PageSkeleton: React.FC = () => (
-  <div css={pageSkeletonContainerStyles}>
+  <div css={loadingStyles.pageSkeleton.container}>
     <LoadingSpinner size="lg" text="Loading..." />
-    <div css={pageSkeletonCardStyles}>
-      <LoadingSpinner type="skeleton" variant="card" height="200px" />
+    <div css={loadingStyles.pageSkeleton.card}>
+      <LoadingSpinner type="spinner" color="#3b82f6" text="Please wait..." />
     </div>
   </div>
 );
 
 function App() {
-  // Inject animation keyframes into the document
-  useEffect(() => {
-    const styleElement = document.createElement("style");
-    styleElement.textContent = generateKeyframes();
-    document.head.appendChild(styleElement);
-
-    return () => {
-      document.head.removeChild(styleElement);
-    };
-  }, []);
-
   return (
     <Router>
       <div className="app">
@@ -80,6 +66,17 @@ function App() {
                 <PageTransition type="slide">
                   <Suspense fallback={<PageSkeleton />}>
                     <TradingAgentDashboard />
+                  </Suspense>
+                </PageTransition>
+              }
+            />
+
+            <Route
+              path="agents/:agentId"
+              element={
+                <PageTransition type="slide">
+                  <Suspense fallback={<PageSkeleton />}>
+                    <AgentProfile />
                   </Suspense>
                 </PageTransition>
               }

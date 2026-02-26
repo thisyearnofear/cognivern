@@ -2,21 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { Button } from "./Button";
 import { Card } from "./Card";
-import {
-  dataTableStyles,
-  dataTableHeaderStyles,
-  getDataTableHeaderCellStyles,
-  getDataTableRowStyles,
-  getDataTableCellStyles,
-  dataTablePaginationStyles,
-  dataTableSearchStyles,
-  dataTableMobileCardStyles,
-  dataTableMobileCardTitleStyles,
-  dataTableLoadingStyles,
-  dataTablePaginationInfoStyles,
-  dataTablePaginationControlsStyles,
-  dataTablePaginationPageInfoStyles,
-} from "../../styles/styles";
+import { tableStyles } from "../../styles/design-system";
 
 export interface Column<T> {
   key: keyof T;
@@ -154,23 +140,23 @@ export function DataTable<T extends Record<string, any>>({
   // Mobile card view
   if (isMobile) {
     return (
-      <div>
+      <div css={tableStyles.table}>
         {searchable && (
           <input
             type="text"
             placeholder={searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            css={dataTableSearchStyles}
+            css={tableStyles.search}
           />
         )}
 
         {loading ? (
-          <div css={dataTableLoadingStyles}>
+          <div css={tableStyles.loading}>
             <div>Loading...</div>
           </div>
         ) : paginatedData.length === 0 ? (
-          <div css={dataTableLoadingStyles}>
+          <div css={tableStyles.loading}>
             <div>{emptyText}</div>
           </div>
         ) : (
@@ -187,11 +173,11 @@ export function DataTable<T extends Record<string, any>>({
                 interactive={!!onRowClick}
                 onClick={() => onRowClick?.(record, index)}
                 padding="md"
-                css={dataTableMobileCardStyles}
+                css={tableStyles.mobileCard}
               >
                 {columns.map((column) => (
-                  <div key={String(column.key)} css={dataTableMobileCardStyles}>
-                    <div css={dataTableMobileCardTitleStyles}>
+                  <div key={String(column.key)} css={tableStyles.mobileCard}>
+                    <div css={tableStyles.mobileCardTitle}>
                       {column.title}
                     </div>
                     <div>
@@ -207,46 +193,46 @@ export function DataTable<T extends Record<string, any>>({
         )}
 
         {pagination && (
-          <div css={dataTablePaginationStyles}>
-            <div css={dataTablePaginationInfoStyles}>
-              Showing {(pagination.current - 1) * pagination.pageSize + 1} to{" "}
-              {Math.min(
-                pagination.current * pagination.pageSize,
-                pagination.total,
-              )}{" "}
-              of {pagination.total}
+            <div css={tableStyles.pagination}>
+              <div css={tableStyles.paginationInfo}>
+                Showing {(pagination.current - 1) * pagination.pageSize + 1} to{" "}
+                {Math.min(
+                  pagination.current * pagination.pageSize,
+                  pagination.total,
+                )}{" "}
+                of {pagination.total}
+              </div>
+              <div css={tableStyles.paginationControls}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={pagination.current === 1}
+                  onClick={() =>
+                    pagination.onChange(
+                      pagination.current - 1,
+                      pagination.pageSize,
+                    )
+                  }
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    pagination.current * pagination.pageSize >= pagination.total
+                  }
+                  onClick={() =>
+                    pagination.onChange(
+                      pagination.current + 1,
+                      pagination.pageSize,
+                    )
+                  }
+                >
+                  Next
+                </Button>
+              </div>
             </div>
-            <div css={dataTablePaginationControlsStyles}>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={pagination.current === 1}
-                onClick={() =>
-                  pagination.onChange(
-                    pagination.current - 1,
-                    pagination.pageSize,
-                  )
-                }
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={
-                  pagination.current * pagination.pageSize >= pagination.total
-                }
-                onClick={() =>
-                  pagination.onChange(
-                    pagination.current + 1,
-                    pagination.pageSize,
-                  )
-                }
-              >
-                Next
-              </Button>
-            </div>
-          </div>
         )}
       </div>
     );
@@ -254,14 +240,14 @@ export function DataTable<T extends Record<string, any>>({
 
   // Desktop table view
   return (
-    <div>
+    <div css={tableStyles.table}>
       {searchable && (
         <input
           type="text"
           placeholder={searchPlaceholder}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          css={dataTableSearchStyles}
+          css={tableStyles.search}
         />
       )}
 
@@ -270,13 +256,13 @@ export function DataTable<T extends Record<string, any>>({
           overflow-x: auto;
         `}
       >
-        <table css={dataTableStyles}>
-          <thead css={dataTableHeaderStyles}>
+        <table css={tableStyles.table}>
+          <thead css={tableStyles.header}>
             <tr>
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
-                  css={getDataTableHeaderCellStyles(
+                  css={tableStyles.headerCell(
                     column.align || "left",
                     !!column.sortable,
                   )}
@@ -291,13 +277,13 @@ export function DataTable<T extends Record<string, any>>({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={columns.length} css={dataTableLoadingStyles}>
+                <td colSpan={columns.length} css={tableStyles.loading}>
                   Loading...
                 </td>
               </tr>
             ) : paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} css={dataTableLoadingStyles}>
+                <td colSpan={columns.length} css={tableStyles.loading}>
                   {emptyText}
                 </td>
               </tr>
@@ -305,13 +291,13 @@ export function DataTable<T extends Record<string, any>>({
               paginatedData.map((record, index) => (
                 <tr
                   key={getRowKey(record, index)}
-                  css={getDataTableRowStyles(!!onRowClick, index)}
+                  css={tableStyles.row(!!onRowClick, index)}
                   onClick={() => onRowClick?.(record, index)}
                 >
                   {columns.map((column) => (
                     <td
                       key={String(column.key)}
-                      css={getDataTableCellStyles(column.align || "left")}
+                      css={tableStyles.cell(column.align || "left")}
                     >
                       {column.render
                         ? column.render(record[column.key], record, index)
@@ -326,8 +312,8 @@ export function DataTable<T extends Record<string, any>>({
       </div>
 
       {pagination && (
-        <div css={dataTablePaginationStyles}>
-          <div css={dataTablePaginationInfoStyles}>
+        <div css={tableStyles.pagination}>
+          <div css={tableStyles.paginationInfo}>
             Showing {(pagination.current - 1) * pagination.pageSize + 1} to{" "}
             {Math.min(
               pagination.current * pagination.pageSize,
@@ -335,7 +321,7 @@ export function DataTable<T extends Record<string, any>>({
             )}{" "}
             of {pagination.total}
           </div>
-          <div css={dataTablePaginationControlsStyles}>
+          <div css={tableStyles.paginationControls}>
             <Button
               variant="outline"
               size="sm"
@@ -346,7 +332,7 @@ export function DataTable<T extends Record<string, any>>({
             >
               Previous
             </Button>
-            <span css={dataTablePaginationPageInfoStyles}>
+            <span css={tableStyles.paginationPageInfo}>
               Page {pagination.current} of{" "}
               {Math.ceil(pagination.total / pagination.pageSize)}
             </span>

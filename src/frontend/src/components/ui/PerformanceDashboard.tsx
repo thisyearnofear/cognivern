@@ -5,24 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "./Card";
 import { Button } from "./Button";
 import Chart from "./Chart";
 import Modal from "./Modal";
-import {
-  performanceDashboardGridStyles,
-  getPerformanceScoreStyles,
-  performanceScoreDescriptionStyles,
-  performanceMetricRowStyles,
-  performanceMetricLabelStyles,
-  getPerformanceMetricValueStyles,
-  performanceAlertStyles,
-  performanceAlertContentStyles,
-  performanceAlertMessageStyles,
-  performanceAlertTimestampStyles,
-  performanceAlertMoreStyles,
-  performanceControlsStyles,
-  performanceDetailSectionStyles,
-  performanceDetailItemStyles,
-  performanceDetailItemTitleStyles,
-  performanceDetailItemValueStyles,
-} from "../../styles/styles";
+import { performanceStyles } from "../../styles/design-system";
 import { css } from "@emotion/react";
 
 export const PerformanceDashboard: React.FC = () => {
@@ -94,7 +77,7 @@ export const PerformanceDashboard: React.FC = () => {
   return (
     <div>
       {/* Controls */}
-      <div css={performanceControlsStyles}>
+      <div css={performanceStyles.controls}>
         <Button
           variant={isMonitoring ? "secondary" : "primary"}
           onClick={isMonitoring ? stopMonitoring : startMonitoring}
@@ -123,66 +106,66 @@ export const PerformanceDashboard: React.FC = () => {
           <CardTitle>Performance Score</CardTitle>
         </CardHeader>
         <CardContent>
-          <div css={getPerformanceScoreStyles(getScoreColor(performanceScore))}>
+          <div css={performanceStyles.score(getScoreColor(performanceScore))}>
             {performanceScore !== null ? performanceScore : "--"}
           </div>
-          <div css={performanceScoreDescriptionStyles}>
+          <div css={performanceStyles.scoreDescription}>
             Based on Core Web Vitals
           </div>
         </CardContent>
       </Card>
 
       {/* Dashboard Grid */}
-      <div css={performanceDashboardGridStyles}>
+      <div css={performanceStyles.grid}>
         {/* Core Web Vitals */}
         <Card>
           <CardHeader>
             <CardTitle>Core Web Vitals</CardTitle>
           </CardHeader>
           <CardContent>
-            <div css={performanceMetricRowStyles}>
-              <span css={performanceMetricLabelStyles}>
+            <div css={performanceStyles.metricRow}>
+              <span css={performanceStyles.metricLabel}>
                 Largest Contentful Paint (LCP)
               </span>
               <span
-                css={getPerformanceMetricValueStyles(
-                  getMetricStatus(metrics.lcp, "lcp"),
+                css={performanceStyles.metricValue(
+                  getStatusColor(getMetricStatus(metrics.lcp, "lcp")),
                 )}
               >
                 {formatMetricValue(metrics.lcp)}
               </span>
             </div>
-            <div css={performanceMetricRowStyles}>
-              <span css={performanceMetricLabelStyles}>
+            <div css={performanceStyles.metricRow}>
+              <span css={performanceStyles.metricLabel}>
                 First Input Delay (FID)
               </span>
               <span
-                css={getPerformanceMetricValueStyles(
-                  getMetricStatus(metrics.fid, "fid"),
+                css={performanceStyles.metricValue(
+                  getStatusColor(getMetricStatus(metrics.fid, "fid")),
                 )}
               >
                 {formatMetricValue(metrics.fid)}
               </span>
             </div>
-            <div css={performanceMetricRowStyles}>
-              <span css={performanceMetricLabelStyles}>
+            <div css={performanceStyles.metricRow}>
+              <span css={performanceStyles.metricLabel}>
                 Cumulative Layout Shift (CLS)
               </span>
               <span
-                css={getPerformanceMetricValueStyles(
-                  getMetricStatus(metrics.cls, "cls"),
+                css={performanceStyles.metricValue(
+                  getStatusColor(getMetricStatus(metrics.cls, "cls")),
                 )}
               >
                 {formatMetricValue(metrics.cls, "")}
               </span>
             </div>
-            <div css={performanceMetricRowStyles}>
-              <span css={performanceMetricLabelStyles}>
+            <div css={performanceStyles.metricRow}>
+              <span css={performanceStyles.metricLabel}>
                 First Contentful Paint (FCP)
               </span>
               <span
-                css={getPerformanceMetricValueStyles(
-                  getMetricStatus(metrics.fcp, "fcp"),
+                css={performanceStyles.metricValue(
+                  getStatusColor(getMetricStatus(metrics.fcp, "fcp")),
                 )}
               >
                 {formatMetricValue(metrics.fcp)}
@@ -197,39 +180,39 @@ export const PerformanceDashboard: React.FC = () => {
             <CardTitle>Runtime Metrics</CardTitle>
           </CardHeader>
           <CardContent>
-            <div css={performanceMetricRowStyles}>
-              <span css={performanceMetricLabelStyles}>Memory Usage</span>
+            <div css={performanceStyles.metricRow}>
+              <span css={performanceStyles.metricLabel}>Memory Usage</span>
               <span
-                css={getPerformanceMetricValueStyles(
-                  getMetricStatus(metrics.memoryUsage, "memoryUsage"),
+                css={performanceStyles.metricValue(
+                  getStatusColor(getMetricStatus(metrics.memoryUsage, "memoryUsage")),
                 )}
               >
                 {formatMetricValue(metrics.memoryUsage, "MB")}
               </span>
             </div>
-            <div css={performanceMetricRowStyles}>
-              <span css={performanceMetricLabelStyles}>Render Time</span>
+            <div css={performanceStyles.metricRow}>
+              <span css={performanceStyles.metricLabel}>Render Time</span>
               <span
-                css={getPerformanceMetricValueStyles(
-                  getMetricStatus(metrics.renderTime, "renderTime"),
+                css={performanceStyles.metricValue(
+                  getStatusColor(getMetricStatus(metrics.renderTime, "renderTime")),
                 )}
               >
                 {formatMetricValue(metrics.renderTime)}
               </span>
             </div>
-            <div css={performanceMetricRowStyles}>
-              <span css={performanceMetricLabelStyles}>Bundle Size</span>
-              <span css={getPerformanceMetricValueStyles("good")}>
+            <div css={performanceStyles.metricRow}>
+              <span css={performanceStyles.metricLabel}>Bundle Size</span>
+              <span css={performanceStyles.metricValue(designTokens.colors.semantic.success[500])}>
                 {metrics.bundleSize
                   ? `${(metrics.bundleSize / 1024).toFixed(1)}KB`
                   : "N/A"}
               </span>
             </div>
-            <div css={performanceMetricRowStyles}>
-              <span css={performanceMetricLabelStyles}>TTFB</span>
+            <div css={performanceStyles.metricRow}>
+              <span css={performanceStyles.metricLabel}>TTFB</span>
               <span
-                css={getPerformanceMetricValueStyles(
-                  getMetricStatus(metrics.ttfb, "ttfb"),
+                css={performanceStyles.metricValue(
+                  getStatusColor(getMetricStatus(metrics.ttfb, "ttfb")),
                 )}
               >
                 {formatMetricValue(metrics.ttfb)}
@@ -274,19 +257,19 @@ export const PerformanceDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               {alerts.slice(0, 5).map((alert, index) => (
-                <div key={index} css={performanceAlertStyles}>
-                  <div css={performanceAlertContentStyles}>
-                    <span css={performanceAlertMessageStyles}>
+                <div key={index} css={performanceStyles.alert}>
+                  <div css={performanceStyles.alertContent}>
+                    <span css={performanceStyles.alertMessage}>
                       {alert.type === "error" ? "🔴" : "🟡"} {alert.message}
                     </span>
-                    <span css={performanceAlertTimestampStyles}>
+                    <span css={performanceStyles.alertTimestamp}>
                       {new Date(alert.timestamp).toLocaleTimeString()}
                     </span>
                   </div>
                 </div>
               ))}
               {alerts.length > 5 && (
-                <div css={performanceAlertMoreStyles}>
+                <div css={performanceStyles.alertMore}>
                   +{alerts.length - 5} more alerts
                 </div>
               )}
@@ -310,7 +293,7 @@ export const PerformanceDashboard: React.FC = () => {
                 font-size: ${designTokens.typography.fontSize.sm};
               `}
             >
-              <div css={performanceDetailItemStyles}>
+              <div css={performanceStyles.detailItem}>
                 DNS Lookup:{" "}
                 {(
                   metrics.navigationTiming.domainLookupEnd -
@@ -318,7 +301,7 @@ export const PerformanceDashboard: React.FC = () => {
                 ).toFixed(1)}
                 ms
               </div>
-              <div css={performanceDetailItemStyles}>
+              <div css={performanceStyles.detailItem}>
                 TCP Connect:{" "}
                 {(
                   metrics.navigationTiming.connectEnd -
@@ -326,7 +309,7 @@ export const PerformanceDashboard: React.FC = () => {
                 ).toFixed(1)}
                 ms
               </div>
-              <div css={performanceDetailItemStyles}>
+              <div css={performanceStyles.detailItem}>
                 Request:{" "}
                 {(
                   metrics.navigationTiming.responseStart -
@@ -334,7 +317,7 @@ export const PerformanceDashboard: React.FC = () => {
                 ).toFixed(1)}
                 ms
               </div>
-              <div css={performanceDetailItemStyles}>
+              <div css={performanceStyles.detailItem}>
                 Response:{" "}
                 {(
                   metrics.navigationTiming.responseEnd -
@@ -342,7 +325,7 @@ export const PerformanceDashboard: React.FC = () => {
                 ).toFixed(1)}
                 ms
               </div>
-              <div css={performanceDetailItemStyles}>
+              <div css={performanceStyles.detailItem}>
                 DOM Processing:{" "}
                 {(
                   metrics.navigationTiming.domContentLoadedEventEnd -

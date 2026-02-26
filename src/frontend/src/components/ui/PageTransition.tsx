@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useEntranceAnimation } from "../../hooks/useAnimation";
-import {
-  pageTransitionContainerStyles,
-  getPageTransitionContentStyles,
-} from "../../styles/styles";
+import { pageTransitionStyles } from "../../styles/design-system";
 
 export interface PageTransitionProps {
   children: React.ReactNode;
@@ -48,10 +45,10 @@ export const PageTransition: React.FC<PageTransitionProps> = ({
   }, [location, displayLocation, duration, entranceAnimation]);
 
   return (
-    <div css={pageTransitionContainerStyles}>
+    <div css={pageTransitionStyles.container}>
       <div
         ref={entranceAnimation.ref}
-        css={getPageTransitionContentStyles(transitionStage, type, duration)}
+        css={pageTransitionStyles.content(transitionStage, type, duration)}
         key={displayLocation.pathname}
       >
         {children}

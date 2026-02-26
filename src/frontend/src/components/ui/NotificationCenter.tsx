@@ -6,18 +6,7 @@ import {
 
 import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { Button } from "./Button";
-import {
-  getNotificationContainerStyles,
-  getNotificationItemStyles,
-  getNotificationIconStyles,
-  notificationContentStyles,
-  notificationTitleStyles,
-  notificationMessageStyles,
-  notificationTimestampStyles,
-  notificationCloseButtonStyles,
-  notificationActionStyles,
-  notificationClearAllButtonContainerStyles,
-} from "../../styles/styles";
+import { notificationStyles, designTokens } from "../../styles/design-system";
 
 export const NotificationCenter: React.FC = () => {
   const { notifications, removeNotification, clearAll } =
@@ -27,7 +16,7 @@ export const NotificationCenter: React.FC = () => {
   if (notifications.length === 0) return null;
 
   return (
-    <div css={getNotificationContainerStyles(isMobile)}>
+    <div css={notificationStyles.container(isMobile ? "bottom-left" : "top-right")}>
       {notifications.map((notification) => (
         <NotificationItem
           key={notification.id}
@@ -37,7 +26,7 @@ export const NotificationCenter: React.FC = () => {
       ))}
 
       {notifications.length > 1 && (
-        <div css={notificationClearAllButtonContainerStyles}>
+        <div css={notificationStyles.clearAllContainer}>
           <Button
             variant="ghost"
             size="sm"
@@ -87,20 +76,20 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   };
 
   return (
-    <div css={getNotificationItemStyles(notification.type)}>
-      <span css={getNotificationIconStyles(notification.type)}>
+    <div css={notificationStyles.item(notification.type)}>
+      <span css={notificationStyles.icon(notification.type)}>
         {getIcon(notification.type)}
       </span>
 
-      <div css={notificationContentStyles}>
-        <h4 css={notificationTitleStyles}>{notification.title}</h4>
-        <p css={notificationMessageStyles}>{notification.message}</p>
-        <div css={notificationTimestampStyles}>
+      <div css={notificationStyles.content}>
+        <h4 css={notificationStyles.title}>{notification.title}</h4>
+        <p css={notificationStyles.message}>{notification.message}</p>
+        <div css={notificationStyles.timestamp}>
           {formatTimestamp(notification.timestamp)}
         </div>
 
         {notification.action && (
-          <div css={notificationActionStyles}>
+          <div css={notificationStyles.actions}>
             <Button
               variant="outline"
               size="sm"
@@ -116,7 +105,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
       </div>
 
       <button
-        css={notificationCloseButtonStyles}
+        css={notificationStyles.closeButton}
         onClick={onClose}
         title="Close notification"
       >

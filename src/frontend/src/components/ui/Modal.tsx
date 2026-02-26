@@ -1,19 +1,11 @@
 import React, { useEffect, useRef } from "react";
-import {
-  modalOverlayStyles,
-  getModalStyles,
-  modalHeaderStyles,
-  modalTitleStyles,
-  modalContentStyles,
-  modalFooterStyles,
-  modalCloseButtonStyles,
-} from "../../styles/styles";
+import { modalStyles } from "../../styles/design-system";
 
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
-  size?: "sm" | "md" | "lg" | "xl" | "full";
+  size?: "sm" | "md" | "lg" | "xl";
   children: React.ReactNode;
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
@@ -116,11 +108,9 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
-  const modalStyles = getModalStyles(size);
-
   return (
     <div
-      css={modalOverlayStyles}
+      css={modalStyles.overlay}
       onClick={closeOnOverlayClick ? onClose : undefined}
       role="dialog"
       aria-modal="true"
@@ -128,21 +118,21 @@ export const Modal: React.FC<ModalProps> = ({
     >
       <div
         ref={modalRef}
-        css={modalStyles}
+        css={modalStyles.container(size)}
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div css={modalHeaderStyles}>
+          <div css={modalStyles.header}>
             {title && (
-              <h2 id="modal-title" css={modalTitleStyles}>
+              <h2 id="modal-title" css={modalStyles.title}>
                 {title}
               </h2>
             )}
             {showCloseButton && (
               <button
-                css={modalCloseButtonStyles}
+                css={modalStyles.closeButton}
                 onClick={onClose}
                 aria-label="Close modal"
               >
@@ -153,10 +143,10 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Content */}
-        <div css={modalContentStyles}>{children}</div>
+        <div css={modalStyles.content}>{children}</div>
 
         {/* Footer */}
-        {footer && <div css={modalFooterStyles}>{footer}</div>}
+        {footer && <div css={modalStyles.footer}>{footer}</div>}
       </div>
     </div>
   );

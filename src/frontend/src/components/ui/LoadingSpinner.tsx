@@ -1,13 +1,6 @@
 import React from "react";
 import { designTokens } from "../../styles/designTokens";
-import {
-  loadingSpinnerContainerStyles,
-  getLoadingSpinnerStyles,
-  getLoadingDotsStyles,
-  getLoadingPulseStyles,
-  getLoadingBarsStyles,
-  getLoadingSpinnerTextStyles,
-} from "../../styles/styles";
+import { loadingStyles } from "../../styles/design-system";
 
 export interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg";
@@ -30,22 +23,22 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   const renderSpinner = () => {
     switch (type) {
       case "spinner":
-        return <div css={getLoadingSpinnerStyles(size, color)} />;
+        return <div css={loadingStyles.spinner(size, color)} />;
       case "dots":
-        return <div css={getLoadingDotsStyles(size, color)} />;
+        return <div css={loadingStyles.dots(color)} />;
       case "pulse":
-        return <div css={getLoadingPulseStyles(size, color)} />;
+        return <div css={loadingStyles.pulse(color)} />;
       case "bars":
-        return <div css={getLoadingBarsStyles(size, color)} />;
+        return <div css={loadingStyles.bars(color)} />;
       default:
         return null;
     }
   };
 
   return (
-    <div css={loadingSpinnerContainerStyles}>
+    <div css={loadingStyles.container}>
       {renderSpinner()}
-      {text && <span css={getLoadingSpinnerTextStyles(size)}>{text}</span>}
+      {text && <span css={loadingStyles.text(size)}>{text}</span>}
     </div>
   );
 };
