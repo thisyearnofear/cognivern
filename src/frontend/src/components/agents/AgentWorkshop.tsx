@@ -1,8 +1,24 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { css } from "@emotion/react";
-import { designTokens, tradingStyles } from "../../styles/designTokens";
+import {
+  designTokens,
+  colorSystem,
+  keyframeAnimations,
+  easings,
+  layoutUtils,
+} from "../../styles/design-system";
 import { BaseAgent } from "../../types";
 import { useLoadingState } from "../../hooks/useAgentData";
+import { Button } from "../ui/Button";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "../ui/Card";
+import { Badge } from "../ui/Badge";
+import LoadingSpinner from "../ui/LoadingSpinner";
 
 interface AgentAction {
   id: string;
@@ -216,138 +232,141 @@ export default function AgentWorkshop() {
   const runTest = async () => {
     if (!selectedTemplate || !selectedScenario) return;
 
-    setLoading(true);
-    addLog(
-      `Starting ${selectedScenario} scenario for ${selectedTemplate} agent...`,
-      "loading",
-    );
+    withLoading(async () => {
+      addLog(
+        `Starting ${selectedScenario} scenario for ${selectedTemplate} agent...`,
+        "loading",
+      );
 
-    try {
-      // Simulate agent initialization
-      addLog("Initializing agent environment...", "info");
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      try {
+        // Simulate agent initialization
+        addLog("Initializing agent environment...", "info");
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
-      addLog(`Loading governance policies for ${selectedTemplate}...`, "info");
-      await new Promise((resolve) => setTimeout(resolve, 400));
+        addLog(`Loading governance policies for ${selectedTemplate}...`, "info");
+        await new Promise((resolve) => setTimeout(resolve, 400));
 
-      // Simulate scenario-specific actions
-      if (selectedTemplate === "ad-allocation") {
-        if (selectedScenario === "contract-based") {
-          addLog("Loading advertiser contract terms...", "info");
-          await new Promise((resolve) => setTimeout(resolve, 300));
+        // Simulate scenario-specific actions
+        if (selectedTemplate === "ad-allocation") {
+          if (selectedScenario === "contract-based") {
+            addLog("Loading advertiser contract terms...", "info");
+            await new Promise((resolve) => setTimeout(resolve, 300));
 
-          addLog("Analyzing available inventory slots...", "info");
-          await new Promise((resolve) => setTimeout(resolve, 400));
+            addLog("Analyzing available inventory slots...", "info");
+            await new Promise((resolve) => setTimeout(resolve, 400));
 
-          addLog(
-            "Calculating allocation based on contract commitments...",
-            "info",
-          );
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        } else if (selectedScenario === "relevance-based") {
-          addLog("Analyzing content semantics...", "info");
-          await new Promise((resolve) => setTimeout(resolve, 400));
-
-          addLog("Calculating relevance scores for each advertiser...", "info");
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          addLog("Optimizing placement for maximum engagement...", "info");
-          await new Promise((resolve) => setTimeout(resolve, 400));
-        } else if (selectedScenario === "conflict-resolution") {
-          addLog(
-            "Detecting placement conflicts between advertisers...",
-            "info",
-          );
-          await new Promise((resolve) => setTimeout(resolve, 300));
-
-          addLog("Applying conflict resolution rules...", "info");
-          await new Promise((resolve) => setTimeout(resolve, 400));
-
-          addLog("Generating alternative placement options...", "info");
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-      } else if (selectedTemplate === "compliance") {
-        if (selectedScenario === "content-review") {
-          addLog("Loading regulatory compliance rules...", "info");
-          await new Promise((resolve) => setTimeout(resolve, 300));
-
-          addLog("Scanning content for policy violations...", "info");
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          addLog("Generating compliance report...", "info");
-          await new Promise((resolve) => setTimeout(resolve, 400));
-        }
-      }
-
-      addLog("Verifying against governance policies...", "info");
-      await new Promise((resolve) => setTimeout(resolve, 400));
-
-      addLog("Recording action in audit log...", "info");
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Make the actual API call
-      const response = await fetch(`/api/agents/test/${selectedTemplate}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-KEY": import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
-        },
-        body: JSON.stringify({ scenario: selectedScenario }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      // Process the response
-      if (data.action) {
-        addLog(`Action completed: ${data.action.id}`, "success");
-
-        if (data.action.policyChecks) {
-          const passedChecks = data.action.policyChecks.filter(
-            (c: any) => c.result,
-          ).length;
-          const failedChecks = data.action.policyChecks.filter(
-            (c: any) => !c.result,
-          ).length;
-
-          if (failedChecks > 0) {
             addLog(
-              `Policy checks: ${passedChecks} passed, ${failedChecks} failed`,
-              "error",
+              "Calculating allocation based on contract commitments...",
+              "info",
             );
-          } else {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          } else if (selectedScenario === "relevance-based") {
+            addLog("Analyzing content semantics...", "info");
+            await new Promise((resolve) => setTimeout(resolve, 400));
+
             addLog(
-              `Policy checks: ${passedChecks} passed, ${failedChecks} failed`,
-              "success",
+              "Calculating relevance scores for each advertiser...",
+              "info",
             );
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
+            addLog("Optimizing placement for maximum engagement...", "info");
+            await new Promise((resolve) => setTimeout(resolve, 400));
+          } else if (selectedScenario === "conflict-resolution") {
+            addLog(
+              "Detecting placement conflicts between advertisers...",
+              "info",
+            );
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
+            addLog("Applying conflict resolution rules...", "info");
+            await new Promise((resolve) => setTimeout(resolve, 400));
+
+            addLog("Generating alternative placement options...", "info");
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+        } else if (selectedTemplate === "compliance") {
+          if (selectedScenario === "content-review") {
+            addLog("Loading regulatory compliance rules...", "info");
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
+            addLog("Scanning content for policy violations...", "info");
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
+            addLog("Generating compliance report...", "info");
+            await new Promise((resolve) => setTimeout(resolve, 400));
           }
         }
+
+        addLog("Verifying against governance policies...", "info");
+        await new Promise((resolve) => setTimeout(resolve, 400));
+
+        addLog("Recording action in audit log...", "info");
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        // Make the actual API call
+        const response = await fetch(`/api/agents/test/${selectedTemplate}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-KEY":
+              import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
+          },
+          body: JSON.stringify({ scenario: selectedScenario }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Process the response
+        if (data.action) {
+          addLog(`Action completed: ${data.action.id}`, "success");
+
+          if (data.action.policyChecks) {
+            const passedChecks = data.action.policyChecks.filter(
+              (c: any) => c.result,
+            ).length;
+            const failedChecks = data.action.policyChecks.filter(
+              (c: any) => !c.result,
+            ).length;
+
+            if (failedChecks > 0) {
+              addLog(
+                `Policy checks: ${passedChecks} passed, ${failedChecks} failed`,
+                "error",
+              );
+            } else {
+              addLog(
+                `Policy checks: ${passedChecks} passed, ${failedChecks} failed`,
+                "success",
+              );
+            }
+          }
+        }
+
+        addLog("Agent execution completed successfully", "success");
+        setResults((prev) => [{ success: true, ...data }, ...prev]);
+
+        // Move to the results step
+        setCurrentStep(3);
+      } catch (err) {
+        console.error("Error running agent:", err);
+        addLog(
+          `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+          "error",
+        );
+        setResults((prev) => [
+          {
+            success: false,
+            error: err instanceof Error ? err.message : "Unknown error",
+          },
+          ...prev,
+        ]);
       }
-
-      addLog("Agent execution completed successfully", "success");
-      setResults((prev) => [{ success: true, ...data }, ...prev]);
-
-      // Move to the results step
-      setCurrentStep(3);
-    } catch (err) {
-      console.error("Error running agent:", err);
-      addLog(
-        `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
-        "error",
-      );
-      setResults((prev) => [
-        {
-          success: false,
-          error: err instanceof Error ? err.message : "Unknown error",
-        },
-        ...prev,
-      ]);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const clearResults = () => {
@@ -384,89 +403,272 @@ export default function AgentWorkshop() {
   };
 
   const renderIntroduction = () => (
-    <div className="agent-introduction">
-      <h2>Agent Workshop</h2>
-      <p className="intro-text">
+    <div
+      css={css`
+        max-width: 800px;
+        margin: 0 auto;
+        padding: ${designTokens.spacing[12]} ${designTokens.spacing[6]};
+        animation: ${keyframeAnimations.revealUp} 0.8s ${easings.out};
+      `}
+    >
+      <h2
+        css={css`
+          font-size: ${designTokens.typography.fontSize["4xl"]};
+          font-weight: ${designTokens.typography.fontWeight.bold};
+          color: ${designTokens.colors.neutral[900]};
+          margin-bottom: ${designTokens.spacing[4]};
+          text-align: center;
+        `}
+      >
+        Agent Workshop
+      </h2>
+      <p
+        css={css`
+          font-size: ${designTokens.typography.fontSize.xl};
+          color: ${designTokens.colors.neutral[600]};
+          text-align: center;
+          margin-bottom: ${designTokens.spacing[12]};
+          line-height: 1.6;
+        `}
+      >
         Build, test, and deploy AI agents with built-in governance and
         accountability. Our agents help automate complex business decisions
         while maintaining complete visibility and control.
       </p>
 
-      <div className="intro-benefits">
-        <div className="benefit-item">
-          <div className="benefit-icon">🔍</div>
-          <div className="benefit-content">
-            <h4>Complete Transparency</h4>
-            <p>
-              Every agent action is logged with detailed reasoning and policy
-              checks
-            </p>
-          </div>
-        </div>
-        <div className="benefit-item">
-          <div className="benefit-icon">🛡️</div>
-          <div className="benefit-content">
-            <h4>Policy Enforcement</h4>
-            <p>
-              Ensure all agent actions comply with your business rules and
-              regulations
-            </p>
-          </div>
-        </div>
-        <div className="benefit-item">
-          <div className="benefit-icon">📊</div>
-          <div className="benefit-content">
-            <h4>Performance Metrics</h4>
-            <p>Track agent performance and compliance with real-time metrics</p>
-          </div>
-        </div>
+      <div
+        css={css`
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: ${designTokens.spacing[6]};
+          margin-bottom: ${designTokens.spacing[12]};
+        `}
+      >
+        {[
+          {
+            icon: "🔍",
+            title: "Complete Transparency",
+            desc: "Every agent action is logged with detailed reasoning and policy checks",
+          },
+          {
+            icon: "🛡️",
+            title: "Policy Enforcement",
+            desc: "Ensure all agent actions comply with your business rules and regulations",
+          },
+          {
+            icon: "📊",
+            title: "Performance Metrics",
+            desc: "Track agent performance and compliance with real-time metrics",
+          },
+        ].map((benefit, i) => (
+          <Card
+            key={i}
+            variant="glass"
+            css={css`
+              animation: ${keyframeAnimations.revealUp} 0.8s ${easings.out}
+                ${0.2 + i * 0.1}s both;
+            `}
+          >
+            <CardContent
+              css={css`
+                padding: ${designTokens.spacing[6]};
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+              `}
+            >
+              <div
+                css={css`
+                  font-size: ${designTokens.typography.fontSize["3xl"]};
+                  margin-bottom: ${designTokens.spacing[4]};
+                `}
+              >
+                {benefit.icon}
+              </div>
+              <h4
+                css={css`
+                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                  margin-bottom: ${designTokens.spacing[2]};
+                `}
+              >
+                {benefit.title}
+              </h4>
+              <p
+                css={css`
+                  color: ${designTokens.colors.neutral[500]};
+                  font-size: ${designTokens.typography.fontSize.sm};
+                `}
+              >
+                {benefit.desc}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <button className="get-started-btn" onClick={() => setShowIntro(false)}>
-        Get Started with Agent Workshop
-      </button>
+      <div
+        css={css`
+          display: flex;
+          justify-content: center;
+        `}
+      >
+        <Button size="lg" onClick={() => setShowIntro(false)}>
+          Get Started with Agent Workshop
+        </Button>
+      </div>
     </div>
   );
 
   const renderTemplateSelection = () => (
-    <div className="template-selection">
-      <h3>Step 1: Select an Agent Template</h3>
-      <p className="selection-description">
-        Choose a pre-configured agent template designed to solve specific
-        business challenges
-      </p>
+    <div
+      css={css`
+        animation: ${keyframeAnimations.reveal} 0.6s ${easings.out};
+      `}
+    >
+      <div
+        css={css`
+          margin-bottom: ${designTokens.spacing[8]};
+          text-align: center;
+        `}
+      >
+        <h3
+          css={css`
+            font-size: ${designTokens.typography.fontSize["2xl"]};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            margin-bottom: ${designTokens.spacing[2]};
+          `}
+        >
+          Step 1: Select an Agent Template
+        </h3>
+        <p
+          css={css`
+            color: ${designTokens.colors.neutral[500]};
+          `}
+        >
+          Choose a pre-configured agent template designed to solve specific
+          business challenges
+        </p>
+      </div>
 
-      <div className="templates-grid">
-        {agentTemplates.map((template) => (
-          <div
+      <div
+        css={css`
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: ${designTokens.spacing[6]};
+        `}
+      >
+        {agentTemplates.map((template, idx) => (
+          <Card
             key={template.id}
-            className={`template-card ${selectedTemplate === template.id ? "selected" : ""}`}
+            variant={selectedTemplate === template.id ? "elevated" : "default"}
             onClick={() => handleTemplateSelect(template.id)}
+            css={css`
+              cursor: pointer;
+              border-color: ${selectedTemplate === template.id
+                ? designTokens.colors.primary[500]
+                : "transparent"};
+              animation: ${keyframeAnimations.revealUp} 0.5s ${easings.out}
+                ${idx * 0.05}s both;
+              &:hover {
+                border-color: ${designTokens.colors.primary[300]};
+              }
+            `}
           >
-            <div className="template-icon">{template.icon}</div>
-            <h4>{template.name}</h4>
-            <p>{template.description}</p>
-
-            <div className="template-details">
-              <div className="template-use-cases">
-                <h5>Use Cases</h5>
-                <ul>
-                  {template.useCases.map((useCase, index) => (
-                    <li key={index}>{useCase}</li>
-                  ))}
-                </ul>
+            <CardHeader
+              css={css`
+                display: flex;
+                align-items: center;
+                gap: ${designTokens.spacing[4]};
+              `}
+            >
+              <div
+                css={css`
+                  font-size: ${designTokens.typography.fontSize["2xl"]};
+                  background: ${designTokens.colors.primary[50]};
+                  width: 48px;
+                  height: 48px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  border-radius: ${designTokens.borderRadius.lg};
+                `}
+              >
+                {template.icon}
               </div>
+              <CardTitle>{template.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  color: ${designTokens.colors.neutral[600]};
+                  margin-bottom: ${designTokens.spacing[6]};
+                `}
+              >
+                {template.description}
+              </p>
 
-              <div className="template-benefits">
-                <h5>Benefits</h5>
-                <ul>
-                  {template.benefits.map((benefit, index) => (
-                    <li key={index}>{benefit}</li>
-                  ))}
-                </ul>
+              <div
+                css={css`
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: ${designTokens.spacing[4]};
+                `}
+              >
+                <div>
+                  <h5
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.xs};
+                      text-transform: uppercase;
+                      color: ${designTokens.colors.neutral[400]};
+                      margin-bottom: ${designTokens.spacing[2]};
+                    `}
+                  >
+                    Use Cases
+                  </h5>
+                  <ul
+                    css={css`
+                      list-style: none;
+                      padding: 0;
+                      margin: 0;
+                      font-size: ${designTokens.typography.fontSize.xs};
+                      color: ${designTokens.colors.neutral[500]};
+                    `}
+                  >
+                    {template.useCases.slice(0, 2).map((uc, i) => (
+                      <li key={i}>• {uc}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h5
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.xs};
+                      text-transform: uppercase;
+                      color: ${designTokens.colors.neutral[400]};
+                      margin-bottom: ${designTokens.spacing[2]};
+                    `}
+                  >
+                    Benefits
+                  </h5>
+                  <ul
+                    css={css`
+                      list-style: none;
+                      padding: 0;
+                      margin: 0;
+                      font-size: ${designTokens.typography.fontSize.xs};
+                      color: ${designTokens.colors.neutral[500]};
+                    `}
+                  >
+                    {template.benefits.slice(0, 2).map((b, i) => (
+                      <li key={i}>• {b}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>
@@ -481,184 +683,479 @@ export default function AgentWorkshop() {
     )?.name;
 
     return (
-      <div className="scenario-selection">
-        <div className="step-header">
-          <button className="back-button" onClick={() => setCurrentStep(1)}>
+      <div
+        css={css`
+          animation: ${keyframeAnimations.reveal} 0.6s ${easings.out};
+        `}
+      >
+        <div
+          css={css`
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: ${designTokens.spacing[8]};
+          `}
+        >
+          <Button variant="outline" onClick={() => setCurrentStep(1)}>
             ← Back to Templates
-          </button>
-          <h3>Step 2: Select a Scenario for {selectedTemplateName}</h3>
+          </Button>
+          <div
+            css={css`
+              text-align: center;
+            `}
+          >
+            <h3
+              css={css`
+                font-size: ${designTokens.typography.fontSize["2xl"]};
+                font-weight: ${designTokens.typography.fontWeight.bold};
+              `}
+            >
+              Step 2: Select Scenario
+            </h3>
+            <p
+              css={css`
+                color: ${designTokens.colors.neutral[500]};
+                font-size: ${designTokens.typography.fontSize.sm};
+              `}
+            >
+              For {selectedTemplateName}
+            </p>
+          </div>
+          <div style={{ width: 100 }} /> {/* Spacer */}
         </div>
 
-        <p className="selection-description">
-          Choose a specific scenario to test how the agent handles different
-          situations
-        </p>
-
-        <div className="scenarios-grid">
+        <div
+          css={css`
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: ${designTokens.spacing[6]};
+            margin-bottom: ${designTokens.spacing[12]};
+          `}
+        >
           {scenarios.map((scenario) => (
-            <div
+            <Card
               key={scenario.id}
-              className={`scenario-card ${selectedScenario === scenario.id ? "selected" : ""}`}
+              variant={selectedScenario === scenario.id ? "elevated" : "default"}
               onClick={() => handleScenarioSelect(scenario.id)}
+              css={css`
+                cursor: pointer;
+                border-color: ${selectedScenario === scenario.id
+                  ? designTokens.colors.primary[500]
+                  : "transparent"};
+                &:hover {
+                  border-color: ${designTokens.colors.primary[300]};
+                }
+              `}
             >
-              <h4>{scenario.name}</h4>
-              <p>{scenario.description}</p>
-            </div>
+              <CardContent padding="lg">
+                <h4
+                  css={css`
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    margin-bottom: ${designTokens.spacing[2]};
+                  `}
+                >
+                  {scenario.name}
+                </h4>
+                <p
+                  css={css`
+                    color: ${designTokens.colors.neutral[600]};
+                    font-size: ${designTokens.typography.fontSize.sm};
+                  `}
+                >
+                  {scenario.description}
+                </p>
+              </CardContent>
+            </Card>
           ))}
         </div>
 
-        <div className="scenario-actions">
-          <button
-            className="run-scenario-btn"
+        <div
+          css={css`
+            display: flex;
+            justify-content: center;
+          `}
+        >
+          <Button
+            size="lg"
             onClick={runTest}
-            disabled={!selectedScenario || loading}
+            disabled={!selectedScenario || isLoading}
+            css={css`
+              min-width: 200px;
+            `}
           >
-            {loading ? "Running..." : "Run Scenario"}
-          </button>
+            {isLoading ? <LoadingSpinner size="sm" /> : "Run Scenario"}
+          </Button>
         </div>
       </div>
     );
   };
 
   const renderResults = () => (
-    <div className="results-view">
-      <div className="step-header">
-        <button className="back-button" onClick={() => setCurrentStep(2)}>
+    <div
+      css={css`
+        animation: ${keyframeAnimations.reveal} 0.6s ${easings.out};
+      `}
+    >
+      <div
+        css={css`
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: ${designTokens.spacing[8]};
+        `}
+      >
+        <Button variant="outline" onClick={() => setCurrentStep(2)}>
           ← Back to Scenarios
-        </button>
-        <h3>Step 3: Agent Results</h3>
+        </Button>
+        <h3
+          css={css`
+            font-size: ${designTokens.typography.fontSize["2xl"]};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+          `}
+        >
+          Step 3: Agent Results
+        </h3>
+        <div style={{ width: 100 }} />
       </div>
 
-      <div className="results-container">
-        <div className="execution-logs">
-          <div className="logs-header">
-            <h4>Execution Logs</h4>
-            <button className="clear-logs-btn" onClick={clearLogs}>
+      <div
+        css={css`
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: ${designTokens.spacing[8]};
+          margin-bottom: ${designTokens.spacing[12]};
+          ${layoutUtils.responsive.mobile(css`
+            grid-template-columns: 1fr;
+          `)}
+        `}
+      >
+        {/* Execution Logs */}
+        <Card variant="default">
+          <CardHeader
+            css={css`
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 1px solid ${designTokens.colors.neutral[100]};
+            `}
+          >
+            <CardTitle>Execution Logs</CardTitle>
+            <Button variant="outline" size="sm" onClick={clearLogs}>
               Clear
-            </button>
-          </div>
-          <div className="logs-content" ref={terminalRef}>
+            </Button>
+          </CardHeader>
+          <CardContent
+            css={css`
+              background: ${designTokens.colors.neutral[900]};
+              color: ${designTokens.colors.neutral[300]};
+              font-family: ${designTokens.typography.fontFamily.mono};
+              font-size: ${designTokens.typography.fontSize.xs};
+              height: 400px;
+              overflow-y: auto;
+              padding: ${designTokens.spacing[4]};
+            `}
+            ref={terminalRef}
+          >
             {logs.length === 0 ? (
-              <div className="logs-placeholder">No logs available</div>
+              <div
+                css={css`
+                  height: 100%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  opacity: 0.5;
+                `}
+              >
+                No logs available
+              </div>
             ) : (
               logs.map((log, index) => (
-                <div key={index} className={`log-entry ${log.type}`}>
-                  <span className="log-timestamp">
+                <div
+                  key={index}
+                  css={css`
+                    margin-bottom: ${designTokens.spacing[2]};
+                    line-height: 1.5;
+                    animation: ${keyframeAnimations.reveal} 0.3s ${easings.out}
+                      both;
+                    color: ${log.type === "error"
+                      ? designTokens.colors.semantic.error[400]
+                      : log.type === "success"
+                        ? designTokens.colors.semantic.success[400]
+                        : log.type === "loading"
+                          ? designTokens.colors.primary[400]
+                          : "inherit"};
+                  `}
+                >
+                  <span
+                    css={css`
+                      opacity: 0.5;
+                      margin-right: ${designTokens.spacing[2]};
+                    `}
+                  >
                     {`[${log.timestamp.toLocaleTimeString()}]`}
                   </span>
-                  <span className="log-message">{log.message}</span>
+                  <span>{log.message}</span>
                 </div>
               ))
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="action-results">
-          <div className="results-header">
-            <h4>Agent Actions</h4>
-            <button
-              className="clear-results-btn"
+        {/* Agent Actions */}
+        <div
+          css={css`
+            display: flex;
+            flex-direction: column;
+            gap: ${designTokens.spacing[6]};
+          `}
+        >
+          <div
+            css={css`
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            `}
+          >
+            <h4
+              css={css`
+                font-weight: ${designTokens.typography.fontWeight.semibold};
+              `}
+            >
+              Agent Actions
+            </h4>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={clearResults}
               disabled={results.length === 0}
             >
-              Clear
-            </button>
+              Clear Results
+            </Button>
           </div>
 
-          <div className="results-content">
+          <div
+            css={css`
+              flex: 1;
+              overflow-y: auto;
+              max-height: 500px;
+              padding-right: ${designTokens.spacing[2]};
+            `}
+          >
             {results.length === 0 ? (
-              <div className="results-placeholder">No results available</div>
+              <Card
+                variant="outlined"
+                css={css`
+                  height: 200px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  opacity: 0.5;
+                `}
+              >
+                No results available
+              </Card>
             ) : (
               results.map((result, index) => (
-                <div
+                <Card
                   key={index}
-                  className={`result-card ${result.success ? "success" : "error"}`}
+                  variant="default"
+                  css={css`
+                    margin-bottom: ${designTokens.spacing[4]};
+                    border-left: 4px solid
+                      ${result.success
+                        ? designTokens.colors.semantic.success[500]
+                        : designTokens.colors.semantic.error[500]};
+                    animation: ${keyframeAnimations.revealUp} 0.5s ${easings.out}
+                      both;
+                  `}
                 >
-                  <div className="result-header">
-                    <span className="result-status">
-                      {result.success ? "✅ Success" : "❌ Error"}
-                    </span>
-                    <span className="result-timestamp">
-                      {new Date().toLocaleString()}
-                    </span>
-                  </div>
-
-                  {result.error && (
-                    <div className="error-message">{result.error}</div>
-                  )}
-
-                  {result.action && (
-                    <div className="action-details">
-                      <h5>Agent Action</h5>
-                      <pre>{JSON.stringify(result.action, null, 2)}</pre>
-
-                      {result.action.policyChecks &&
-                        result.action.policyChecks.length > 0 && (
-                          <div className="policy-checks">
-                            <h5>Policy Checks</h5>
-                            <ul>
-                              {result.action.policyChecks.map((check, idx) => (
-                                <li
-                                  key={idx}
-                                  className={check.result ? "passed" : "failed"}
-                                >
-                                  {check.policyId}:{" "}
-                                  {check.result ? "Passed" : "Failed"} -{" "}
-                                  {check.reason}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                  <CardContent padding="md">
+                    <div
+                      css={css`
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: ${designTokens.spacing[4]};
+                      `}
+                    >
+                      <Badge variant={result.success ? "success" : "error"}>
+                        {result.success ? "Success" : "Error"}
+                      </Badge>
+                      <span
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.xs};
+                          color: ${designTokens.colors.neutral[400]};
+                        `}
+                      >
+                        {new Date().toLocaleString()}
+                      </span>
                     </div>
-                  )}
 
-                  {result.metrics && (
-                    <div className="metrics-summary">
-                      <h5>Performance Metrics</h5>
-                      <div className="metrics-grid">
-                        <div className="metric-item">
-                          <div className="metric-label">Response Time</div>
-                          <div className="metric-value">
-                            {result.metrics.data?.performance?.averageResponseTime.toFixed(
-                              2,
-                            ) || 0}{" "}
-                            ms
-                          </div>
-                        </div>
-                        <div className="metric-item">
-                          <div className="metric-label">Policy Checks</div>
-                          <div className="metric-value">
-                            {result.metrics.data?.policies?.total || 0}
-                          </div>
-                        </div>
-                        <div className="metric-item">
-                          <div className="metric-label">Success Rate</div>
-                          <div className="metric-value">
-                            {result.metrics.data?.actions?.successful || 0}/
-                            {result.metrics.data?.actions?.total || 0}
-                          </div>
-                        </div>
+                    {result.error && (
+                      <div
+                        css={css`
+                          color: ${designTokens.colors.semantic.error[600]};
+                          font-size: ${designTokens.typography.fontSize.sm};
+                          background: ${designTokens.colors.semantic.error[50]};
+                          padding: ${designTokens.spacing[3]};
+                          border-radius: ${designTokens.borderRadius.md};
+                        `}
+                      >
+                        {result.error}
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+
+                    {result.action && (
+                      <div
+                        css={css`
+                          margin-top: ${designTokens.spacing[4]};
+                        `}
+                      >
+                        <h5
+                          css={css`
+                            font-size: ${designTokens.typography.fontSize.xs};
+                            text-transform: uppercase;
+                            color: ${designTokens.colors.neutral[400]};
+                            margin-bottom: ${designTokens.spacing[2]};
+                          `}
+                        >
+                          Agent Action Details
+                        </h5>
+                        <pre
+                          css={css`
+                            background: ${designTokens.colors.neutral[50]};
+                            padding: ${designTokens.spacing[3]};
+                            border-radius: ${designTokens.borderRadius.md};
+                            font-size: 10px;
+                            overflow-x: auto;
+                          `}
+                        >
+                          {JSON.stringify(result.action, null, 2)}
+                        </pre>
+
+                        {result.action.policyChecks &&
+                          result.action.policyChecks.length > 0 && (
+                            <div
+                              css={css`
+                                margin-top: ${designTokens.spacing[4]};
+                              `}
+                            >
+                              <h5
+                                css={css`
+                                  font-size: ${designTokens.typography.fontSize
+                                    .xs};
+                                  text-transform: uppercase;
+                                  color: ${designTokens.colors.neutral[400]};
+                                  margin-bottom: ${designTokens.spacing[2]};
+                                `}
+                              >
+                                Policy Checks
+                              </h5>
+                              <div
+                                css={css`
+                                  display: flex;
+                                  flex-direction: column;
+                                  gap: ${designTokens.spacing[2]};
+                                `}
+                              >
+                                {result.action.policyChecks.map((check, idx) => (
+                                  <div
+                                    key={idx}
+                                    css={css`
+                                      display: flex;
+                                      align-items: center;
+                                      justify-content: space-between;
+                                      padding: ${designTokens.spacing[2]};
+                                      background: ${check.result
+                                        ? designTokens.colors.semantic
+                                            .success[50]
+                                        : designTokens.colors.semantic
+                                            .error[50]};
+                                      border-radius: ${designTokens.borderRadius
+                                        .sm};
+                                      font-size: ${designTokens.typography
+                                        .fontSize.xs};
+                                    `}
+                                  >
+                                    <span
+                                      css={css`
+                                        font-weight: 500;
+                                      `}
+                                    >
+                                      {check.policyId}
+                                    </span>
+                                    <Badge
+                                      variant={
+                                        check.result ? "success" : "error"
+                                      }
+                                      size="sm"
+                                    >
+                                      {check.result ? "Passed" : "Failed"}
+                                    </Badge>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               ))
             )}
           </div>
         </div>
       </div>
 
-      <div className="next-steps">
-        <h4>Next Steps</h4>
-        <div className="next-steps-options">
-          <button className="try-another-btn" onClick={resetWorkflow}>
-            Try Another Agent
-          </button>
-          <button className="deploy-btn">Deploy to Production</button>
-          <button className="customize-btn">Customize This Agent</button>
-        </div>
-      </div>
+      <Card
+        variant="glass"
+        css={css`
+          background: ${designTokens.colors.primary[50]};
+        `}
+      >
+        <CardContent
+          padding="lg"
+          css={css`
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            ${layoutUtils.responsive.mobile(css`
+              flex-direction: column;
+              gap: ${designTokens.spacing[6]};
+              text-align: center;
+            `)}
+          `}
+        >
+          <div>
+            <h4
+              css={css`
+                font-weight: ${designTokens.typography.fontWeight.bold};
+                margin-bottom: ${designTokens.spacing[1]};
+              `}
+            >
+              Ready to go live?
+            </h4>
+            <p
+              css={css`
+                font-size: ${designTokens.typography.fontSize.sm};
+                color: ${designTokens.colors.neutral[500]};
+              `}
+            >
+              Deploy this agent to your production governance system.
+            </p>
+          </div>
+          <div
+            css={css`
+              display: flex;
+              gap: ${designTokens.spacing[4]};
+            `}
+          >
+            <Button variant="outline" onClick={resetWorkflow}>
+              Try Another
+            </Button>
+            <Button>Deploy to Production</Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 
