@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import { useState, useMemo } from "react";
 import styled from "@emotion/styled";
-import { keyframes } from "@emotion/react";
+import { keyframes, css } from "@emotion/react";
 import { designTokens } from "../../styles/design-system";
 import { useIntentStore } from "../../stores/intentStore";
 
@@ -96,7 +96,8 @@ const HUDOverlay = styled.div`
 `;
 
 export const EcosystemVisualizer: React.FC = () => {
-  const { setIsOpen, submitIntent } = useIntentStore();
+  const { setIsOpen, submitIntent, setQuery } = useIntentStore();
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [nodes] = useState<Node[]>([
     {
       id: "1",
@@ -142,11 +143,17 @@ export const EcosystemVisualizer: React.FC = () => {
   ]);
 
   const handleNodeClick = (node: Node) => {
+    setSelectedNode(node.id);
     setIsOpen(true);
     const query =
       node.type === "agent"
         ? `show traces for ${node.label}`
-        : `show policy ${node.label}`;
+        : node.type === "policy"
+          ? `show policy ${node.label}`
+          : `show system status for ${node.label}`;
+
+    // Update query in the input field for transparency
+    setQuery(query);
     submitIntent(query);
   };
 
@@ -191,17 +198,44 @@ export const EcosystemVisualizer: React.FC = () => {
             ),
         )}
 
-        {/* Nodes */}
         {nodes.map((node, i) => {
           const color = getNodeColor(node.status);
+          const isSelected = selectedNode === node.id;
+
           return (
             <NodeGroup
               key={node.id}
               onClick={() => handleNodeClick(node)}
-              style={{ animationDelay: `${i * 0.5}s` }}
+              style={{
+                animationDelay: `${i * 0.5}s`,
+                filter: isSelected
+                  ? `drop-shadow(0 0 12px ${color})`
+                  : undefined,
+              }}
+              active={isSelected}
             >
               {node.pulse && (
                 <GlowCircle cx={node.x} cy={node.y} r="4" color={color} />
+              )}
+              {isSelected && (
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r="5"
+                  fill="none"
+                  stroke={color}
+                  strokeWidth="0.5"
+                  strokeDasharray="1 1"
+                >
+                  <animateTransform
+                    attributeName="transform"
+                    type="rotate"
+                    from={`0 ${node.x} ${node.y}`}
+                    to={`360 ${node.x} ${node.y}`}
+                    dur="10s"
+                    repeatCount="indefinite"
+                  />
+                </circle>
               )}
               <circle
                 cx={node.x}
@@ -210,7 +244,7 @@ export const EcosystemVisualizer: React.FC = () => {
                 fill={color}
                 stroke="white"
                 strokeWidth="0.2"
-                strokeOpacity="0.5"
+                strokeOpacity={isSelected ? 1 : 0.5}
               />
               <text
                 x={node.x}
@@ -219,7 +253,11 @@ export const EcosystemVisualizer: React.FC = () => {
                 fill="white"
                 fontSize="2"
                 fontWeight="bold"
-                style={{ pointerEvents: "none", opacity: 0.7 }}
+                style={{
+                  pointerEvents: "none",
+                  opacity: isSelected ? 1 : 0.7,
+                  textShadow: isSelected ? "0 0 5px rgba(0,0,0,0.5)" : "none",
+                }}
               >
                 {node.label}
               </text>

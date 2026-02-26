@@ -27,7 +27,7 @@ const TradingAgentDashboard = lazy(
 const PolicyManagement = lazy(
   () => import("./components/policies/PolicyManagement"),
 );
-const AuditLogs = lazy(() => import("./components/AuditLogs"));
+const AuditLogs = lazy(() => import("./components/audit/EnhancedAuditLogs"));
 const RunLedger = lazy(() => import("./components/cre/RunLedger"));
 const RunDetails = lazy(() => import("./components/cre/RunDetails"));
 

@@ -325,6 +325,7 @@ export default function EnhancedAuditLogs() {
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSimplifiedMode, setIsSimplifiedMode] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
       .toISOString()
@@ -998,12 +999,135 @@ export default function EnhancedAuditLogs() {
           Monitor your autonomous agents with comprehensive audit trails and
           AI-powered insights
         </p>
+        <div
+          style={{
+            marginTop: designTokens.spacing[6],
+            display: "flex",
+            justifyContent: "center",
+            gap: "12px",
+          }}
+        >
+          <button
+            onClick={() => setIsSimplifiedMode(false)}
+            style={{
+              padding: "8px 16px",
+              borderRadius: designTokens.borderRadius.full,
+              border: "none",
+              background: !isSimplifiedMode
+                ? designTokens.colors.primary[500]
+                : designTokens.colors.neutral[200],
+              color: !isSimplifiedMode ? "white" : designTokens.colors.neutral[700],
+              cursor: "pointer",
+              fontWeight: "600",
+              transition: "all 0.2s",
+            }}
+          >
+            Technical View
+          </button>
+          <button
+            onClick={() => setIsSimplifiedMode(true)}
+            style={{
+              padding: "8px 16px",
+              borderRadius: designTokens.borderRadius.full,
+              border: "none",
+              background: isSimplifiedMode
+                ? designTokens.colors.primary[500]
+                : designTokens.colors.neutral[200],
+              color: isSimplifiedMode ? "white" : designTokens.colors.neutral[700],
+              cursor: "pointer",
+              fontWeight: "600",
+              transition: "all 0.2s",
+            }}
+          >
+            Executive Summary
+          </button>
+        </div>
       </div>
 
-      {renderMetrics()}
-      {renderFilters()}
-      {renderAIInsights()}
-      {renderLogs()}
+      {isSimplifiedMode ? (
+        <div style={{ animation: "fadeIn 0.5s ease-out" }}>
+          {renderMetrics()}
+          {renderAIInsights()}
+          <Card variant="outlined">
+            <CardContent>
+              <CardTitle style={{ marginBottom: designTokens.spacing[4] }}>
+                Critical Activity Summary
+              </CardTitle>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {logs
+                  .filter((l) => l.impact.severity === "critical" || l.impact.severity === "high")
+                  .slice(0, 5)
+                  .map((log) => (
+                    <div
+                      key={log.id}
+                      style={{
+                        padding: "16px",
+                        background: designTokens.colors.neutral[50],
+                        borderRadius: designTokens.borderRadius.md,
+                        borderLeft: `4px solid ${
+                          log.impact.severity === "critical"
+                            ? designTokens.colors.semantic.error[500]
+                            : designTokens.colors.semantic.warning[500]
+                        }`,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
+                          {log.agentName}: {log.action.type}
+                        </div>
+                        <div style={{ fontSize: "14px", color: designTokens.colors.neutral[600] }}>
+                          {log.action.description}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: "12px", color: designTokens.colors.neutral[500] }}>
+                          {new Date(log.timestamp).toLocaleTimeString()}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                            color:
+                              log.metadata.complianceStatus === "compliant"
+                                ? designTokens.colors.semantic.success[600]
+                                : designTokens.colors.semantic.error[600],
+                          }}
+                        >
+                          {log.metadata.complianceStatus.toUpperCase()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                {logs.filter((l) => l.impact.severity === "critical" || l.impact.severity === "high")
+                  .length === 0 && (
+                  <div style={{ textAlign: "center", padding: "20px", color: designTokens.colors.neutral[500] }}>
+                    No high-severity issues detected in this period.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <>
+          {renderMetrics()}
+          {renderFilters()}
+          {renderAIInsights()}
+          {renderLogs()}
+        </>
+      )}
+
+      <style>
+        {`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}
+      </style>
     </div>
   );
 }
