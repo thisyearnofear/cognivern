@@ -14,12 +14,16 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
   const [agent, setAgent] = useState(null);
   const [status, setStatus] = useState<AgentStatus>({
     isActive: false,
+    lastActivity: "",
     lastUpdate: "",
     tradesExecuted: 0,
     performance: {
       totalReturn: 0,
       winRate: 0,
       sharpeRatio: 0,
+      complianceScore: 100,
+      autonomyLevel: 1,
+      riskProfile: "low",
     },
     metrics: {
       responseTime: 0,
