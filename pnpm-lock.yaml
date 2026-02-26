@@ -157,7 +157,7 @@ importers:
         specifier: ^6.8.1
         version: 6.26.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       recharts:
-        specifier: 3.7.0
+        specifier: ^3.7.0
         version: 3.7.0(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react-is@16.13.1)(react@18.3.1)(redux@5.0.1)
       zustand:
         specifier: ^4.4.1
