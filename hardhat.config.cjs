@@ -15,6 +15,13 @@ module.exports = {
         : [],
       chainId: 314159,
     },
+    polkadotHub: {
+      url: process.env.POLKADOT_RPC_URL || "https://polkadot-hub-rpc.url",
+      accounts: process.env.POLKADOT_PRIVATE_KEY
+        ? [process.env.POLKADOT_PRIVATE_KEY]
+        : [],
+      chainId: 100000, // Placeholder, will be updated with actual chainId for Polkadot Hub
+    },
   },
   paths: {
     sources: "./contracts/src",

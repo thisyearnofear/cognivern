@@ -72,6 +72,9 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
+      '@ensdomains/buffer':
+        specifier: 0.1.3
+        version: 0.1.3
       '@eslint/js':
         specifier: ^9.31.0
         version: 9.31.0
@@ -393,6 +396,9 @@ packages:
 
   '@ensdomains/buffer@0.1.0':
     resolution: {integrity: sha512-Zn0ZV1t6FTsdxt7yI761WRYht8kw5L0r1i3Z+MGUTh011lVBpcluaVonbp2DrOhM2chRbrtrXfVB5IBM44U3cQ==, tarball: https://registry.npmjs.org/@ensdomains/buffer/-/buffer-0.1.0.tgz}
+
+  '@ensdomains/buffer@0.1.3':
+    resolution: {integrity: sha512-L/GoCkQFePjSn4DeVnBNfkGdm2CI8UxTxwgQztcZ1L9aHaFefRD+mTUXxtikk946KwwMHRQJDn38wo1IWtEpSg==, tarball: https://registry.npmjs.org/@ensdomains/buffer/-/buffer-0.1.3.tgz}
 
   '@ensdomains/ens@0.4.5':
     resolution: {integrity: sha512-JSvpj1iNMFjK6K+uVl4unqMoa9rf5jopb8cya5UGBWz23Nw8hSNT7efgUx4BTlAPAgpNlEioUfeTyQ6J9ZvTVw==, tarball: https://registry.npmjs.org/@ensdomains/ens/-/ens-0.4.5.tgz}
@@ -3676,12 +3682,12 @@ packages:
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==, tarball: https://registry.npmjs.org/glob/-/glob-7.2.3.tgz}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@8.1.0:
     resolution: {integrity: sha512-r8hpEjiQEYlF2QU0df3dS+nxxSIreXQS1qRhMJM0Q5NDdR386C7jb7Hwwod8Fgiuex+k0GFjgft18yvxm5XoCQ==, tarball: https://registry.npmjs.org/glob/-/glob-8.1.0.tgz}
     engines: {node: '>=12'}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   global-modules@2.0.0:
     resolution: {integrity: sha512-NGbfmJBp9x8IxyJSd1P+otYK8vonoJactOogrVfFRIAEY1ukil8RSKDz2Yo7wh1oihl51l/r6W4epkeKJHqL8A==, tarball: https://registry.npmjs.org/global-modules/-/global-modules-2.0.0.tgz}
@@ -5613,12 +5619,12 @@ packages:
   tar@4.4.19:
     resolution: {integrity: sha512-a20gEsvHnWe0ygBY8JbxoM4w3SJdhc7ZAuxkLqh+nvNQN2IOt0B5lLgM490X5Hl8FF0dl0tOf2ewFYAlIFgzVA==, tarball: https://registry.npmjs.org/tar/-/tar-4.4.19.tgz}
     engines: {node: '>=4.5'}
-    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   tar@6.2.1:
     resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==, tarball: https://registry.npmjs.org/tar/-/tar-6.2.1.tgz}
     engines: {node: '>=10'}
-    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   terser@5.43.1:
     resolution: {integrity: sha512-+6erLbBm0+LROX2sPXlUYx/ux5PyE9K/a92Wrt6oA+WDAoFTdpHE5tCYCI5PNzq2y8df4rA+QgHLJuR4jNymsg==, tarball: https://registry.npmjs.org/terser/-/terser-5.43.1.tgz}
@@ -6866,6 +6872,8 @@ snapshots:
       - web3-core-promievent
       - web3-eth-abi
       - web3-utils
+
+  '@ensdomains/buffer@0.1.3': {}
 
   '@ensdomains/ens@0.4.5':
     dependencies:

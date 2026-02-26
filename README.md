@@ -1,19 +1,35 @@
-# Cognivern: Agent Reliability + Proof Layer
+# Cognivern: Agent Governance + Coordination Layer
 
-Cognivern is a **Run Ledger + Ingestion API** for teams building in the agentic era.
+Cognivern is an **AI Governance Command Center** for the agentic era.
 
-It gives you a durable, queryable record of what agents did (steps + artifacts), with optional **verifiability** via Chainlink primitives (price feeds today; CRE-style workflows as the execution target).
+It provides a high-fidelity environment for tracking, auditing, and governing autonomous agents. By combining **Filecoin's verifiable evidence storage** with **Polkadot Hub's high-performance coordination**, Cognivern ensures that agent autonomy never comes at the cost of accountability.
 
-**Wedge:** don’t replace your agent runtime — just *send runs* to Cognivern.
+**Wedge:** Don’t replace your agent runtime — just *send runs* to Cognivern for governance and verification.
+
+## 🌟 The Vision: Agentic Governance
+
+Cognivern is designed for a multi-chain future where agents act as first-class economic citizens.
+
+- **Verifiable Evidence (Filecoin/Calibration):** Every decision, reasoning step, and forensic artifact is sealed on-chain for permanent, tamper-proof auditability.
+- **Real-Time Coordination (Polkadot Hub):** Low-latency governance guards and cross-chain intent orchestration powered by Polkadot's high-performance EVM (REVM) and native PVM.
+- **Agentic UX:** A spatial command center that visualizes agent ecosystems, cognitive paths, and policy compliance in real-time.
+
+## 🎯 Target: Polkadot Solidity Hackathon 2026
+
+Cognivern is currently being optimized for **Polkadot Hub (Runtime 2.0.5)**, leveraging the platform's native Solidity support and superior finality for real-time AI governance.
+
+### Key Pillars
+- **Governance for the Agentic Era:** Essential safety layer for multi-chain agent interactions.
+- **Verifiable Intent:** On-chain "Proof of Intent" via Forensic Timelines and attestations.
+- **Cross-Chain Orchestration:** Leveraging Polkadot XCM to enforce governance across parachains.
 
 ## What it does (today)
 
-- **Run Ledger UI**: browse runs, drill into steps and artifacts, copy run links/JSON.
-- **Data-plane ingestion**: `POST /ingest/runs` (project-scoped ingest keys).
-- **Multi-project support**: `projectId` scoping across runs.
-- **Persistence**: run history and usage survive restarts (local-first JSONL/JSON).
-- **Commercial primitives**: per-project quotas, usage headers, token-level telemetry.
-- **Chainlink integration (differentiator)**: forecasting workflow reads Arbitrum Chainlink price feeds and can optionally attest forecasts.
+- **Unified Dashboard**: Ecosystem-wide overview with spatial visualization and performance telemetry.
+- **Agent Behavioral Metrics**: Tracking "Policy Compliance Score," "Autonomy Level," and "Risk Profile" alongside traditional performance.
+- **Audit Logs & AI Insights**: Governance-focused audit trails with executive summaries powered by Gemini.
+- **Run Ledger & Forensic Details**: Drill into the "Thoughts" of an agent with cognitive path reconstruction.
+- **Policy Enforcement**: Modular governance guards with visual complexity and risk ratings.
 
 ## Who it’s for
 
@@ -68,7 +84,11 @@ Cognivern enforces a strict **"No Mocks"** policy. Features only activate when v
 Create `.env` file:
 
 ```env
-# Sapience / Arbitrum (REQUIRED)
+# Sapience / Polkadot Hub (REQUIRED)
+POLKADOT_RPC_URL=https://polkadot-hub-rpc.url
+POLKADOT_PRIVATE_KEY=your_private_key_here
+
+# Sapience / Arbitrum (OPTIONAL)
 ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
 SAPIENCE_PRIVATE_KEY=your_private_key_here
 
