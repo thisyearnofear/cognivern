@@ -404,7 +404,7 @@ export const CommandPalette: React.FC = () => {
     >
       <div>
         {/* Search Input */}
-        <div css={commandPaletteInputContainerStyles}>
+        <div css={commandPaletteStyles.inputContainer}>
           <input
             ref={inputRef}
             type="text"
@@ -419,7 +419,7 @@ export const CommandPalette: React.FC = () => {
               if (activeComponent) clearActiveIntent();
             }}
             disabled={isThinking}
-            css={commandPaletteInputStyles}
+            css={commandPaletteStyles.input}
           />
           {isThinking && (
             <div
@@ -440,10 +440,10 @@ export const CommandPalette: React.FC = () => {
         </div>
 
         {/* Dynamic Content Area */}
-        <div css={commandPaletteListStyles}>
+        <div css={commandPaletteStyles.list}>
           {activeComponent ? (
             <GenerativeReveal duration={800}>
-              <div css={commandPaletteCategoryStyles}>Agent Response</div>
+              <div css={commandPaletteStyles.category}>Agent Response</div>
               {renderGenerativeUI(activeComponent)}
               <div style={{ padding: "10px", textAlign: "right" }}>
                 <button
@@ -461,7 +461,7 @@ export const CommandPalette: React.FC = () => {
               </div>
             </GenerativeReveal>
           ) : isThinking ? (
-            <div css={commandPaletteNoResultsStyles}>
+            <div css={commandPaletteStyles.noResults}>
               <div
                 style={{
                   width: "40px",
@@ -480,20 +480,20 @@ export const CommandPalette: React.FC = () => {
               {/* Proactive Suggestions */}
               {!query && suggestions.length > 0 && (
                 <div>
-                  <div css={commandPaletteCategoryStyles}>
+                  <div css={commandPaletteStyles.category}>
                     ✨ Recommended for you
                   </div>
                   {suggestions.map((suggestion) => (
                     <div
                       key={suggestion.id}
-                      css={getCommandPaletteItemStyles(false)}
+                      css={commandPaletteStyles.item(false)}
                       onClick={() => submitIntent(suggestion.intent)}
                     >
-                      <span css={commandPaletteIconStyles}>
+                      <span css={commandPaletteStyles.icon}>
                         {suggestion.icon || "💡"}
                       </span>
-                      <div css={commandPaletteTextStyles}>
-                        <div css={commandPaletteTitleStyles}>
+                      <div css={commandPaletteStyles.text}>
+                        <div css={commandPaletteStyles.title}>
                           {suggestion.label}
                         </div>
                       </div>
@@ -505,17 +505,17 @@ export const CommandPalette: React.FC = () => {
               {/* Recent Activity */}
               {!query && history.length > 0 && (
                 <div>
-                  <div css={commandPaletteCategoryStyles}>🕒 Recent</div>
+                  <div css={commandPaletteStyles.category}>🕒 Recent</div>
                   {history.slice(0, 3).map((item) => (
                     <div
                       key={item.id}
-                      css={getCommandPaletteItemStyles(false)}
+                      css={commandPaletteStyles.item(false)}
                       onClick={() => submitIntent(item.query)}
                     >
-                      <span css={commandPaletteIconStyles}>↩️</span>
-                      <div css={commandPaletteTextStyles}>
-                        <div css={commandPaletteTitleStyles}>{item.query}</div>
-                        <div css={commandPaletteDescriptionStyles}>
+                      <span css={commandPaletteStyles.icon}>↩️</span>
+                      <div css={commandPaletteStyles.text}>
+                        <div css={commandPaletteStyles.title}>{item.query}</div>
+                        <div css={commandPaletteStyles.description}>
                           {new Date(item.timestamp).toLocaleTimeString()}
                         </div>
                       </div>
@@ -527,7 +527,7 @@ export const CommandPalette: React.FC = () => {
               {Object.entries(groupedCommands).map(
                 ([category, categoryCommands]) => (
                   <div key={category}>
-                    <div css={commandPaletteCategoryStyles}>
+                    <div css={commandPaletteStyles.category}>
                       {categoryLabels[category as keyof typeof categoryLabels]}
                     </div>
                     {categoryCommands.map((command) => {
@@ -562,7 +562,7 @@ export const CommandPalette: React.FC = () => {
               )}
 
               {query && filteredCommands.length === 0 && (
-                <div css={commandPaletteNoResultsStyles}>
+                <div css={commandPaletteStyles.noResults}>
                   <div>✨</div>
                   <div>Press Enter to ask the Agent</div>
                   <div style={{ fontSize: "11px", opacity: 0.6 }}>
@@ -572,7 +572,7 @@ export const CommandPalette: React.FC = () => {
               )}
 
               {!query && filteredCommands.length === 0 && (
-                <div css={commandPaletteNoResultsStyles}>
+                <div css={commandPaletteStyles.noResults}>
                   <div>🔍</div>
                   <div>No commands found</div>
                 </div>
@@ -582,7 +582,7 @@ export const CommandPalette: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div css={commandPaletteFooterStyles}>
+        <div css={commandPaletteStyles.footer}>
           {isThinking ? (
             <span>Analyzing natural language intent...</span>
           ) : activeComponent ? (
