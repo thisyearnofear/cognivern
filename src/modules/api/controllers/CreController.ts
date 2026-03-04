@@ -1,8 +1,44 @@
 import { Request, Response } from "express";
 import crypto from "node:crypto";
+import { z } from "zod";
 import { runForecastingWorkflow } from "../../../cre/workflows/forecasting.js";
 import { creRunStore } from "../../../cre/storage/CreRunStore.js";
 import { CreRun } from "../../../cre/types.js";
+import {
+  IdempotencyRecord,
+  idempotencyStore,
+} from "../storage/IdempotencyStore.js";
+
+const triggerForecastSchema = z.object({
+  writeAttestation: z.boolean().optional(),
+  requireApproval: z.boolean().optional(),
+});
+
+const retryRunSchema = z.object({
+  writeAttestation: z.boolean().optional(),
+  fromStep: z.number().int().min(0).max(1000).optional(),
+});
+
+const submitApprovalSchema = z.object({
+  approve: z.boolean(),
+  reason: z.string().max(500).optional(),
+});
+
+const updatePlanSchema = z.object({
+  plan: z.object({
+    version: z.number().int().positive(),
+    summary: z.string().max(500).optional(),
+    steps: z.array(
+      z.object({
+        id: z.string().min(1).max(120),
+        title: z.string().min(1).max(120),
+        description: z.string().max(500).optional(),
+        enabled: z.boolean(),
+        status: z.enum(["pending", "approved", "rejected"]).optional(),
+      })
+    ),
+  }),
+});
 
 function estimateTokenAndCost(stepCount: number, artifactCount: number) {
   const estimatedTokens = stepCount * 180 + artifactCount * 60;
@@ -95,8 +131,51 @@ function pushRunEvent(
 }
 
 export class CreController {
+  private static readonly IDEMPOTENCY_TTL_MS = 5 * 60 * 1000;
+
+  private makeIdempotencyKey(req: Request, scope: string): string | null {
+    const rawHeader = req.header("Idempotency-Key") || req.header("X-Idempotency-Key");
+    if (!rawHeader) return null;
+    const header = rawHeader.trim().slice(0, 120);
+    if (!header) return null;
+    return `${scope}:${header}`;
+  }
+
+  private async cleanupIdempotencyStore() {
+    const now = Date.now();
+    const entries = await idempotencyStore.entries();
+    for (const [key, value] of entries) {
+      if (now - value.createdAtMs > CreController.IDEMPOTENCY_TTL_MS) {
+        await idempotencyStore.delete(key);
+      }
+    }
+  }
+
+  private async getCachedIdempotentResponse(
+    key: string
+  ): Promise<IdempotencyRecord | null> {
+    await this.cleanupIdempotencyStore();
+    const cached = await idempotencyStore.get(key);
+    if (!cached) return null;
+    return cached;
+  }
+
+  private async setCachedIdempotentResponse(
+    key: string,
+    statusCode: number,
+    body: Record<string, unknown>
+  ) {
+    await this.cleanupIdempotencyStore();
+    await idempotencyStore.set(key, {
+      statusCode,
+      body,
+      createdAtMs: Date.now(),
+    });
+  }
+
   async listRuns(req: Request, res: Response) {
-    const projectId = (req.query.projectId as string) || "default";
+    const projectIdRaw = (req.query.projectId as string) || "default";
+    const projectId = projectIdRaw.slice(0, 120);
     const runs = await creRunStore.list();
     res.json({
       success: true,
@@ -122,10 +201,13 @@ export class CreController {
       res.status(404).json({ success: false, error: "Run not found" });
       return;
     }
-    const since = req.query.since ? Number(req.query.since) : undefined;
+    const sinceParsed = req.query.since ? Number(req.query.since) : undefined;
+    const since = typeof sinceParsed === "number" && !Number.isNaN(sinceParsed)
+      ? sinceParsed
+      : undefined;
     const normalized = normalizeRun(run);
     const events = (normalized.events || []).filter((event) => {
-      if (!since || Number.isNaN(since)) return true;
+      if (!since) return true;
       return new Date(event.timestamp).getTime() > since;
     });
     res.json({
@@ -138,9 +220,102 @@ export class CreController {
     });
   }
 
+  async streamRunEvents(req: Request, res: Response) {
+    const runId = req.params.runId;
+    const run = await creRunStore.get(runId);
+    if (!run) {
+      res.status(404).json({ success: false, error: "Run not found" });
+      return;
+    }
+
+    const sinceParsed = req.query.since ? Number(req.query.since) : undefined;
+    const lastEventIdHeader = req.header("Last-Event-ID");
+    const lastEventIdParsed = lastEventIdHeader ? Number(lastEventIdHeader) : undefined;
+    let cursor = 0;
+    if (typeof lastEventIdParsed === "number" && !Number.isNaN(lastEventIdParsed)) {
+      cursor = lastEventIdParsed;
+    } else if (typeof sinceParsed === "number" && !Number.isNaN(sinceParsed)) {
+      cursor = sinceParsed;
+    }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    const sendEvent = (
+      eventName: string,
+      payload: Record<string, unknown>,
+      id?: string
+    ) => {
+      if (id) {
+        res.write(`id: ${id}\n`);
+      }
+      res.write(`event: ${eventName}\n`);
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    };
+
+    sendEvent("ready", { runId, cursor, timestamp: new Date().toISOString() });
+
+    const sendNewEvents = async () => {
+      const currentRun = await creRunStore.get(runId);
+      if (!currentRun) {
+        sendEvent("error", { message: "Run not found" });
+        return;
+      }
+      const normalized = normalizeRun(currentRun);
+      const newEvents = (normalized.events || []).filter(
+        (event) => new Date(event.timestamp).getTime() > cursor
+      );
+
+      for (const event of newEvents) {
+        const ts = new Date(event.timestamp).getTime();
+        const eventIdForResume = Number.isNaN(ts) ? undefined : String(ts);
+        sendEvent(
+          "run_event",
+          event as unknown as Record<string, unknown>,
+          eventIdForResume
+        );
+        if (!Number.isNaN(ts)) {
+          cursor = ts;
+        }
+      }
+
+      if (!newEvents.length) {
+        res.write(": heartbeat\n\n");
+      }
+    };
+
+    // Send initial batch immediately.
+    await sendNewEvents();
+
+    const intervalId = setInterval(() => {
+      void sendNewEvents();
+    }, 2000);
+
+    req.on("close", () => {
+      clearInterval(intervalId);
+      res.end();
+    });
+  }
+
   async triggerForecast(req: Request, res: Response) {
-    const writeAttestation = Boolean(req.body?.writeAttestation);
-    const requireApproval = Boolean(req.body?.requireApproval);
+    const parse = triggerForecastSchema.safeParse(req.body || {});
+    if (!parse.success) {
+      res.status(400).json({ success: false, error: "Invalid trigger payload" });
+      return;
+    }
+    const { writeAttestation = false, requireApproval = false } = parse.data;
+
+    const idemKey = this.makeIdempotencyKey(req, "cre:triggerForecast");
+    if (idemKey) {
+      const cached = await this.getCachedIdempotentResponse(idemKey);
+      if (cached) {
+        res.status(cached.statusCode).json(cached.body);
+        return;
+      }
+    }
 
     const run = await runForecastingWorkflow({
       mode: "local",
@@ -167,14 +342,31 @@ export class CreController {
     }
     await creRunStore.add(normalized);
 
-    res.json({
+    const responseBody = {
       success: normalized.ok,
       runId: normalized.runId,
       run: normalized,
-    });
+    };
+    if (idemKey) {
+      await this.setCachedIdempotentResponse(
+        idemKey,
+        200,
+        responseBody as Record<string, unknown>
+      );
+    }
+    res.json(responseBody);
   }
 
   async cancelRun(req: Request, res: Response) {
+    const idemKey = this.makeIdempotencyKey(req, `cre:cancelRun:${req.params.runId}`);
+    if (idemKey) {
+      const cached = await this.getCachedIdempotentResponse(idemKey);
+      if (cached) {
+        res.status(cached.statusCode).json(cached.body);
+        return;
+      }
+    }
+
     const run = await creRunStore.get(req.params.runId);
     if (!run) {
       res.status(404).json({ success: false, error: "Run not found" });
@@ -200,24 +392,46 @@ export class CreController {
     pushRunEvent(normalized, { type: "run_cancelled", payload: { source: "api" } });
 
     await creRunStore.replace(normalized);
-    res.json({ success: true, run: normalized });
+    const responseBody = { success: true, run: normalized };
+    if (idemKey) {
+      await this.setCachedIdempotentResponse(
+        idemKey,
+        200,
+        responseBody as Record<string, unknown>
+      );
+    }
+    res.json(responseBody);
   }
 
   async retryRun(req: Request, res: Response) {
+    const parse = retryRunSchema.safeParse(req.body || {});
+    if (!parse.success) {
+      res.status(400).json({ success: false, error: "Invalid retry payload" });
+      return;
+    }
+    const { writeAttestation = false, fromStep = 0 } = parse.data;
+
+    const idemKey = this.makeIdempotencyKey(req, `cre:retryRun:${req.params.runId}`);
+    if (idemKey) {
+      const cached = await this.getCachedIdempotentResponse(idemKey);
+      if (cached) {
+        res.status(cached.statusCode).json(cached.body);
+        return;
+      }
+    }
+
     const run = await creRunStore.get(req.params.runId);
     if (!run) {
       res.status(404).json({ success: false, error: "Run not found" });
       return;
     }
     const original = normalizeRun(run);
-    const fromStep =
-      typeof req.body?.fromStep === "number" && req.body.fromStep >= 0
-        ? req.body.fromStep
-        : 0;
-    pushRunEvent(original, { type: "run_retry_requested", payload: { requestedBy: "user" } });
+    pushRunEvent(original, {
+      type: "run_retry_requested",
+      payload: { requestedBy: "user" },
+    });
     await creRunStore.replace(original);
 
-    const writeAttestation = Boolean(req.body?.writeAttestation);
     const newRun = normalizeRun(
       await runForecastingWorkflow({
         mode: "local",
@@ -241,22 +455,49 @@ export class CreController {
       });
     }
     await creRunStore.add(newRun);
-    res.json({ success: true, runId: newRun.runId, run: newRun, retriedFrom: original.runId });
+    const responseBody = {
+      success: true,
+      runId: newRun.runId,
+      run: newRun,
+      retriedFrom: original.runId,
+    };
+    if (idemKey) {
+      await this.setCachedIdempotentResponse(
+        idemKey,
+        200,
+        responseBody as Record<string, unknown>
+      );
+    }
+    res.json(responseBody);
   }
 
   async submitApproval(req: Request, res: Response) {
+    const parse = submitApprovalSchema.safeParse(req.body || {});
+    if (!parse.success) {
+      res.status(400).json({ success: false, error: "Invalid approval payload" });
+      return;
+    }
+    const { approve, reason = "" } = parse.data;
+
+    const idemKey = this.makeIdempotencyKey(req, `cre:submitApproval:${req.params.runId}`);
+    if (idemKey) {
+      const cached = await this.getCachedIdempotentResponse(idemKey);
+      if (cached) {
+        res.status(cached.statusCode).json(cached.body);
+        return;
+      }
+    }
+
     const run = await creRunStore.get(req.params.runId);
     if (!run) {
       res.status(404).json({ success: false, error: "Run not found" });
       return;
     }
-    const approve = Boolean(req.body?.approve);
-    const reason =
-      typeof req.body?.reason === "string" ? req.body.reason.trim().slice(0, 500) : "";
     const normalized = normalizeRun(run);
+    const safeReason = reason.trim().slice(0, 500);
 
     normalized.approvalState = approve ? "approved" : "rejected";
-    normalized.approvalReason = reason || undefined;
+    normalized.approvalReason = safeReason || undefined;
     normalized.requiresApproval = false;
 
     if (approve && normalized.status === "paused_for_approval") {
@@ -273,7 +514,7 @@ export class CreController {
         type: "run_finished",
         payload: {
           reason: "approval_granted",
-          note: reason || null,
+          note: safeReason || null,
         },
       });
     }
@@ -289,7 +530,7 @@ export class CreController {
       }
       pushRunEvent(normalized, {
         type: "run_failed",
-        payload: { reason: "approval_rejected", note: reason || null },
+        payload: { reason: "approval_rejected", note: safeReason || null },
       });
     }
 
@@ -300,41 +541,51 @@ export class CreController {
     };
 
     await creRunStore.replace(normalized);
-    res.json({ success: true, run: normalized });
+    const responseBody = { success: true, run: normalized };
+    if (idemKey) {
+      await this.setCachedIdempotentResponse(
+        idemKey,
+        200,
+        responseBody as Record<string, unknown>
+      );
+    }
+    res.json(responseBody);
   }
 
   async updateRunPlan(req: Request, res: Response) {
+    const parse = updatePlanSchema.safeParse(req.body || {});
+    if (!parse.success) {
+      res.status(400).json({ success: false, error: "Invalid plan payload" });
+      return;
+    }
+    const { plan } = parse.data;
+
+    const idemKey = this.makeIdempotencyKey(req, `cre:updateRunPlan:${req.params.runId}`);
+    if (idemKey) {
+      const cached = await this.getCachedIdempotentResponse(idemKey);
+      if (cached) {
+        res.status(cached.statusCode).json(cached.body);
+        return;
+      }
+    }
+
     const run = await creRunStore.get(req.params.runId);
     if (!run) {
       res.status(404).json({ success: false, error: "Run not found" });
       return;
     }
     const normalized = normalizeRun(run);
-    const payload = req.body?.plan;
-    if (!payload || !Array.isArray(payload.steps)) {
-      res.status(400).json({ success: false, error: "Invalid plan payload" });
-      return;
-    }
 
     normalized.plan = {
-      version: Number(payload.version || (normalized.plan?.version || 1) + 1),
+      version: plan.version,
       updatedAt: new Date().toISOString(),
-      summary:
-        typeof payload.summary === "string"
-          ? payload.summary.slice(0, 500)
-          : normalized.plan?.summary,
-      steps: payload.steps.map((step: any, idx: number) => ({
-        id: typeof step.id === "string" ? step.id : `plan-${idx + 1}`,
-        title: String(step.title || `Step ${idx + 1}`).slice(0, 120),
-        description:
-          typeof step.description === "string"
-            ? step.description.slice(0, 500)
-            : undefined,
-        enabled: Boolean(step.enabled),
-        status:
-          step.status === "approved" || step.status === "rejected"
-            ? step.status
-            : "pending",
+      summary: plan.summary,
+      steps: plan.steps.map((step) => ({
+        id: step.id,
+        title: step.title,
+        description: step.description,
+        enabled: step.enabled,
+        status: step.status || "pending",
       })),
     };
 
@@ -350,6 +601,14 @@ export class CreController {
     }
 
     await creRunStore.replace(normalized);
-    res.json({ success: true, run: normalized });
+    const responseBody = { success: true, run: normalized };
+    if (idemKey) {
+      await this.setCachedIdempotentResponse(
+        idemKey,
+        200,
+        responseBody as Record<string, unknown>
+      );
+    }
+    res.json(responseBody);
   }
 }

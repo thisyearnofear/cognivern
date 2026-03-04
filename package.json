@@ -46,6 +46,11 @@
     "deploy-contracts": "npx hardhat run scripts/deploy-hardhat.cjs --network calibration",
     "upload-policy": "tsx scripts/upload-test-policy.ts",
     "clean:build": "rm -rf build/artifacts/* build/cache/*"
+    ,
+    "test:integration": "tsx --test tests/integration/*.test.ts",
+    "demo:reset": "tsx scripts/demo-reset.ts",
+    "demo:seed": "tsx scripts/demo-seed.ts",
+    "demo:scenario": "tsx scripts/demo-scenario.ts"
   },
   "dependencies": {
     "@glif/filecoin-address": "^2.0.8",

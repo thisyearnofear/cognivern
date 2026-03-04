@@ -6,6 +6,7 @@ export interface CreRunPersistence {
   append(run: CreRun): Promise<void>;
   loadAll(): Promise<CreRun[]>;
   writeAll(runs: CreRun[]): Promise<void>;
+  truncate(): Promise<void>;
 }
 
 /**
@@ -55,5 +56,9 @@ export class JsonlCreRunPersistence implements CreRunPersistence {
       content ? `${content}\n` : "",
       "utf8"
     );
+  }
+
+  async truncate(): Promise<void> {
+    await this.writeAll([]);
   }
 }

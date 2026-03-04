@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { Link, useParams } from "react-router-dom";
+import { getApiUrl } from "../../utils/api";
 import { creApi, CreRun, CreRunEvent } from "../../services/creApi";
 import {
   toAgentRunViewModel,
@@ -47,7 +48,7 @@ export default function RunDetails() {
   const { runId } = useParams<{ runId: string }>();
   const [run, setRun] = useState<CreRun | null>(null);
   const [liveEvents, setLiveEvents] = useState<CreRunEvent[]>([]);
-  const [eventCursor, setEventCursor] = useState<number | undefined>(undefined);
+  const [, setEventCursor] = useState<number | undefined>(undefined);
   const [approvalReason, setApprovalReason] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
@@ -58,14 +59,21 @@ export default function RunDetails() {
     Array<{ id: string; title: string; description?: string; enabled: boolean }>
   >([]);
 
-  const load = async () => {
+  const load = async (
+    resetEventState: boolean = true,
+    showLoadingIndicator: boolean = true
+  ) => {
     if (!runId) return;
-    setIsLoading(true);
+    if (showLoadingIndicator) {
+      setIsLoading(true);
+    }
     setError(null);
     const res = await creApi.getRun(runId);
     if (!res.success) {
       setError(res.error || "Failed to load run.");
-      setIsLoading(false);
+      if (showLoadingIndicator) {
+        setIsLoading(false);
+      }
       return;
     }
     const payload = (res.data as any) || {};
@@ -82,27 +90,17 @@ export default function RunDetails() {
         }))
       );
     }
-    setLiveEvents([]);
-    setEventCursor(undefined);
-    setIsLoading(false);
-  };
-
-  const pollEvents = async () => {
-    if (!runId) return;
-    const res = await creApi.listRunEvents(runId, eventCursor);
-    if (!res.success) return;
-    const data = (res.data as any) || {};
-    const events = (data.events || []) as CreRunEvent[];
-    if (events.length) {
-      setLiveEvents((prev) => [...prev, ...events]);
+    if (resetEventState) {
+      setLiveEvents([]);
+      setEventCursor(undefined);
     }
-    if (typeof data.cursor === "number") {
-      setEventCursor(data.cursor);
+    if (showLoadingIndicator) {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    load();
+    load(true, true);
   }, [runId]);
 
   useEffect(() => {
@@ -111,15 +109,48 @@ export default function RunDetails() {
   }, [runId]);
 
   useEffect(() => {
+    if (!runId) return;
+    const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
+    const streamUrl = getApiUrl(
+      `/api/cre/runs/${encodeURIComponent(runId)}/events/stream?apiKey=${encodeURIComponent(apiKey)}`
+    );
+    const source = new EventSource(streamUrl);
+
+    source.addEventListener("run_event", (event) => {
+      try {
+        const parsed = JSON.parse((event as MessageEvent).data) as CreRunEvent;
+        if (!parsed?.id) return;
+        setLiveEvents((prev) => {
+          if (prev.some((e) => e.id === parsed.id)) return prev;
+          return [...prev, parsed];
+        });
+        const ts = new Date(parsed.timestamp).getTime();
+        if (!Number.isNaN(ts)) {
+          setEventCursor((prev) => (typeof prev === "number" ? Math.max(prev, ts) : ts));
+        }
+      } catch {
+        // Ignore malformed event payloads.
+      }
+    });
+
+    source.onerror = () => {
+      // Keep UI usable on transient network issues; periodic state sync effect will recover.
+    };
+
+    return () => {
+      source.close();
+    };
+  }, [runId]);
+
+  useEffect(() => {
     if (!run) return;
     const status = run.status || (run.finishedAt ? (run.ok ? "completed" : "failed") : "running");
     if (status !== "running" && status !== "paused_for_approval") return;
     const id = window.setInterval(() => {
-      pollEvents();
-      load();
-    }, 2500);
+      void load(false, false);
+    }, 5000);
     return () => window.clearInterval(id);
-  }, [run, eventCursor, runId]);
+  }, [run, runId]);
 
   const vm = useMemo(() => (run ? toAgentRunViewModel(run) : null), [run]);
   const timelineEvents = useMemo(
