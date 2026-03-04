@@ -372,6 +372,14 @@ export class ApiModule extends BaseService {
       this.controllers.get("metrics").getDailyMetrics(req, res);
     });
 
+    apiRouter.post("/metrics/ux-events", (req, res) => {
+      this.controllers.get("metrics").postUxEvent(req, res);
+    });
+
+    apiRouter.get("/metrics/ux-summary", (req, res) => {
+      this.controllers.get("metrics").getUxSummary(req, res);
+    });
+
     // Audit routes - Updated to match frontend expectations
     apiRouter.get("/audit/logs", (req, res) => {
       this.controllers.get("audit").getLogs(req, res);
@@ -393,6 +401,26 @@ export class ApiModule extends BaseService {
 
     apiRouter.get("/cre/runs/:runId", (req, res) => {
       this.controllers.get("cre").getRun(req, res);
+    });
+
+    apiRouter.get("/cre/runs/:runId/events", (req, res) => {
+      this.controllers.get("cre").getRunEvents(req, res);
+    });
+
+    apiRouter.post("/cre/runs/:runId/cancel", (req, res) => {
+      this.controllers.get("cre").cancelRun(req, res);
+    });
+
+    apiRouter.post("/cre/runs/:runId/retry", (req, res) => {
+      this.controllers.get("cre").retryRun(req, res);
+    });
+
+    apiRouter.post("/cre/runs/:runId/approval", (req, res) => {
+      this.controllers.get("cre").submitApproval(req, res);
+    });
+
+    apiRouter.post("/cre/runs/:runId/plan", (req, res) => {
+      this.controllers.get("cre").updateRunPlan(req, res);
     });
 
     apiRouter.post("/cre/forecast", (req, res) => {

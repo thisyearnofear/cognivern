@@ -8,6 +8,7 @@ import React, {
 import { useNavigate } from "react-router-dom";
 import { useAppStore } from "../../stores/appStore";
 import { useIntentStore, GeneratedUIComponent } from "../../stores/intentStore";
+import { useSidebarState } from "../../hooks/useSidebarState";
 import Modal from "./Modal";
 import GenerativeReveal from "./GenerativeReveal";
 import StatCard from "./StatCard";
@@ -33,6 +34,7 @@ export const CommandPalette: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const navigate = useNavigate();
   const { updatePreferences, preferences, setError } = useAppStore();
+  const { sidebarState, toggleSidebar } = useSidebarState();
   const {
     isOpen,
     setIsOpen,
@@ -64,15 +66,15 @@ export const CommandPalette: React.FC = () => {
         category: "navigation",
       },
       {
-        id: "nav-trading",
-        title: "Go to Trading",
+        id: "nav-agents",
+        title: "Go to Agents",
         description: "Manage AI trading agents",
         icon: "🤖",
         action: () => {
-          navigate("/trading");
+          navigate("/agents");
           onClose();
         },
-        keywords: ["trading", "agents", "ai", "bot"],
+        keywords: ["agents", "trading", "ai", "bot"],
         category: "navigation",
       },
       {
@@ -104,11 +106,10 @@ export const CommandPalette: React.FC = () => {
       {
         id: "action-new-policy",
         title: "Create New Policy",
-        description: "Create a new governance policy",
+        description: "Open policy management",
         icon: "➕",
         action: () => {
           navigate("/policies");
-          // TODO: Trigger new policy creation
           onClose();
         },
         keywords: ["create", "new", "policy", "add"],
@@ -116,12 +117,11 @@ export const CommandPalette: React.FC = () => {
       },
       {
         id: "action-start-agent",
-        title: "Start Trading Agent",
-        description: "Start an AI trading agent",
+        title: "Open Agent Manager",
+        description: "Open AI agent management",
         icon: "▶️",
         action: () => {
-          navigate("/trading");
-          // TODO: Trigger agent start
+          navigate("/agents");
           onClose();
         },
         keywords: ["start", "agent", "trading", "run"],
@@ -146,14 +146,14 @@ export const CommandPalette: React.FC = () => {
       {
         id: "setting-toggle-sidebar",
         title: "Toggle Sidebar",
-        description: preferences.sidebarCollapsed
-          ? "Expand sidebar"
-          : "Collapse sidebar",
-        icon: preferences.sidebarCollapsed ? "→" : "←",
+        description:
+          sidebarState === "collapsed" || sidebarState === "hidden"
+            ? "Expand sidebar"
+            : "Collapse sidebar",
+        icon:
+          sidebarState === "collapsed" || sidebarState === "hidden" ? "→" : "←",
         action: () => {
-          updatePreferences({
-            sidebarCollapsed: !preferences.sidebarCollapsed,
-          });
+          toggleSidebar();
           onClose();
         },
         keywords: ["sidebar", "collapse", "expand", "toggle"],
@@ -167,8 +167,9 @@ export const CommandPalette: React.FC = () => {
         description: "View available keyboard shortcuts",
         icon: "⌨️",
         action: () => {
-          // TODO: Show shortcuts help
-          setError("Keyboard shortcuts help coming soon!");
+          setError(
+            "Shortcuts: Ctrl/Cmd+K Search, Alt+D Dashboard, Alt+T Agents, Alt+P Policies, Alt+A Audit, Ctrl/Cmd+B Sidebar.",
+          );
           onClose();
         },
         keywords: ["shortcuts", "keyboard", "help", "hotkeys"],
@@ -180,14 +181,23 @@ export const CommandPalette: React.FC = () => {
         description: "View platform documentation",
         icon: "📚",
         action: () => {
-          window.open("https://github.com/your-repo/docs", "_blank");
+          navigate("/");
+          setError("Documentation is available in this repo: README.md and /docs.");
           onClose();
         },
         keywords: ["docs", "documentation", "help", "guide"],
         category: "help",
       },
     ],
-    [navigate, onClose, updatePreferences, preferences, setError],
+    [
+      navigate,
+      onClose,
+      updatePreferences,
+      preferences,
+      setError,
+      sidebarState,
+      toggleSidebar,
+    ],
   );
 
   // Filter commands based on query

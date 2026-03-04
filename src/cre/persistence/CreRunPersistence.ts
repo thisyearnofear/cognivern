@@ -5,6 +5,7 @@ import { CreRun } from "../types.js";
 export interface CreRunPersistence {
   append(run: CreRun): Promise<void>;
   loadAll(): Promise<CreRun[]>;
+  writeAll(runs: CreRun[]): Promise<void>;
 }
 
 /**
@@ -44,5 +45,15 @@ export class JsonlCreRunPersistence implements CreRunPersistence {
       if (err?.code === "ENOENT") return [];
       throw err;
     }
+  }
+
+  async writeAll(runs: CreRun[]): Promise<void> {
+    await fs.promises.mkdir(path.dirname(this.filePath), { recursive: true });
+    const content = runs.map((run) => JSON.stringify(run)).join("\n");
+    await fs.promises.writeFile(
+      this.filePath,
+      content ? `${content}\n` : "",
+      "utf8"
+    );
   }
 }

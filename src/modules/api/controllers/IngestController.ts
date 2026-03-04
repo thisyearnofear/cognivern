@@ -72,7 +72,24 @@ export class IngestController {
         return;
       }
 
-      await creRunStore.add({ ...(parsed.data as any), projectId });
+      const run = {
+        ...(parsed.data as any),
+        projectId,
+        provenance: {
+          source: "ingested" as const,
+          workflowVersion: parsed.data?.workflow || "unknown",
+          model: (parsed.data as any)?.provenance?.model || "unknown",
+          citations: (parsed.data as any)?.provenance?.citations || [],
+        },
+        status:
+          (parsed.data as any)?.status ||
+          (parsed.data.finishedAt
+            ? parsed.data.ok
+              ? "completed"
+              : "failed"
+            : "running"),
+      };
+      await creRunStore.add(run);
       const usage = await usageMeter.recordIngest(projectId);
       const tokenTelemetry = await tokenTelemetryStore.record(
         match.projectId,

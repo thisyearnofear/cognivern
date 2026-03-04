@@ -1,5 +1,6 @@
 import React from "react";
 import { css } from "@emotion/react";
+import { useLocation } from "react-router-dom";
 import { useAppStore, useTheme } from "../../stores/appStore";
 import { useIntentStore } from "../../stores/intentStore";
 import {
@@ -11,14 +12,17 @@ import {
 } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { useSidebarState } from "../../hooks/useSidebarState";
 import CommandPalette from "../ui/CommandPalette";
 import Web3Auth from "../auth/Web3Auth";
 
 export const Header: React.FC = () => {
-  const { preferences, updatePreferences, user, setUser } = useAppStore();
+  const { user, setUser } = useAppStore();
   const { effectiveTheme } = useTheme();
   const { isMobile } = useBreakpoint();
+  const { pathname } = useLocation();
   const { setIsOpen } = useIntentStore();
+  const { toggleSidebar } = useSidebarState();
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
@@ -43,7 +47,7 @@ export const Header: React.FC = () => {
     align-items: center;
     justify-content: space-between;
     padding: 0 ${designTokens.spacing[6]};
-    height: 70px;
+    height: ${designTokens.layout.headerHeight};
     background: ${effectiveTheme === "dark"
       ? `linear-gradient(135deg, ${designTokens.colors.neutral[900]} 0%, ${designTokens.colors.neutral[800]} 100%)`
       : `linear-gradient(135deg, ${designTokens.colors.neutral[0]} 0%, ${designTokens.colors.neutral[50]} 100%)`};
@@ -69,10 +73,6 @@ export const Header: React.FC = () => {
     background-clip: text;
     margin: 0;
     transition: ${easings.smooth};
-
-    &:hover {
-      transform: scale(1.05);
-    }
   `;
 
   const actionsStyles = css`
@@ -96,11 +96,6 @@ export const Header: React.FC = () => {
     border: 1px solid ${designTokens.colors.semantic.success[200]};
     box-shadow: ${shadowSystem.sm};
     transition: ${easings.smooth};
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: ${shadowSystem.md};
-    }
   `;
 
   const modernButtonStyle = css`
@@ -122,8 +117,7 @@ export const Header: React.FC = () => {
   `;
 
   const getPageTitle = () => {
-    const path = window.location.pathname;
-    switch (path) {
+    switch (pathname) {
       case "/":
         return "Dashboard";
       case "/agents":
@@ -159,7 +153,6 @@ export const Header: React.FC = () => {
               border-radius: 50%;
               background: ${designTokens.colors.semantic.success[500]};
               box-shadow: 0 0 8px ${designTokens.colors.semantic.success[300]};
-              ${keyframeAnimations.pulse}
             `}
           />
           <span>System Online</span>
@@ -190,11 +183,7 @@ export const Header: React.FC = () => {
         {isMobile && (
           <button
             css={modernButtonStyle}
-            onClick={() =>
-              updatePreferences({
-                sidebarCollapsed: !preferences.sidebarCollapsed,
-              })
-            }
+            onClick={toggleSidebar}
             title="Toggle menu"
           >
             ☰

@@ -11,7 +11,6 @@ import SmartOnboarding from "./components/onboarding/SmartOnboarding";
 import PageTransition from "./components/ui/PageTransition";
 import { LoadingSpinner } from "./components/ui/LoadingSpinner";
 import { loadingStyles } from "./styles/design-system";
-import "./App.css";
 
 // Lazy load components for better performance
 const UnifiedDashboard = lazy(

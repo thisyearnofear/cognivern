@@ -1,8 +1,10 @@
 import { create } from "zustand";
 
+export type SidebarState = "expanded" | "collapsed" | "hidden" | "overlay";
+
 export interface UserPreferences {
   theme: "light" | "dark" | "system";
-  sidebarCollapsed: boolean;
+  sidebarState: SidebarState;
   onboardingCompleted: boolean;
   lastVisited: string;
   dashboardLayout: "simplified" | "advanced";
@@ -37,7 +39,7 @@ interface AppState {
 
 const defaultPreferences: UserPreferences = {
   theme: "system",
-  sidebarCollapsed: false,
+  sidebarState: "expanded",
   onboardingCompleted: false,
   lastVisited: "/",
   dashboardLayout: "simplified",
@@ -54,7 +56,23 @@ const persistKey = "cognivern-app-store";
 const getStoredState = () => {
   try {
     const stored = localStorage.getItem(persistKey);
-    return stored ? JSON.parse(stored) : {};
+    if (!stored) return {};
+
+    const parsed = JSON.parse(stored);
+
+    // Backward compatibility for older persisted sidebarCollapsed preference
+    if (parsed?.preferences) {
+      const prefs = parsed.preferences;
+      if (
+        typeof prefs.sidebarCollapsed === "boolean" &&
+        !prefs.sidebarState
+      ) {
+        prefs.sidebarState = prefs.sidebarCollapsed ? "collapsed" : "expanded";
+      }
+      delete prefs.sidebarCollapsed;
+    }
+
+    return parsed;
   } catch {
     return {};
   }

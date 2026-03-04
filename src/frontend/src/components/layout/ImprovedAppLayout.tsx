@@ -44,7 +44,7 @@ const AppLayoutContent: React.FC = () => {
   const layoutStyles = css`
     display: grid;
     min-height: 100vh;
-    width: 100vw;
+    width: 100%;
     background: ${effectiveTheme === "dark"
       ? "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
       : "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)"};
@@ -54,7 +54,7 @@ const AppLayoutContent: React.FC = () => {
     overflow: hidden; /* Prevent horizontal scroll */
 
     /* Improved responsive grid system */
-    grid-template-rows: 60px 1fr;
+    grid-template-rows: ${designTokens.layout.headerHeight} 1fr;
 
     /* Dynamic grid columns based on sidebar state */
     grid-template-columns: ${sidebarState === "hidden" ||
@@ -214,9 +214,7 @@ export const ImprovedAppLayout: React.FC = () => {
 
   return (
     <LayoutProvider
-      initialSidebarState={
-        preferences.sidebarCollapsed ? "collapsed" : "expanded"
-      }
+      initialSidebarState={preferences.sidebarState || "expanded"}
     >
       <AppLayoutContent />
     </LayoutProvider>

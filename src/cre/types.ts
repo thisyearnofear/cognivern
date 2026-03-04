@@ -1,4 +1,22 @@
 export type ChainId = number;
+export type CreRunStatus =
+  | "queued"
+  | "running"
+  | "paused_for_approval"
+  | "cancelled"
+  | "completed"
+  | "failed";
+export type CreRunEventType =
+  | "run_started"
+  | "message_delta"
+  | "tool_call_started"
+  | "tool_result"
+  | "run_paused_for_approval"
+  | "run_cancel_requested"
+  | "run_cancelled"
+  | "run_retry_requested"
+  | "run_finished"
+  | "run_failed";
 
 export type CreStepKind =
   | "cron"
@@ -17,6 +35,30 @@ export interface CreStepLog {
   summary?: string;
   // Intentionally keep payloads small; store larger objects in artifacts.
   details?: Record<string, unknown>;
+}
+
+export interface CreRunEvent {
+  id: string;
+  runId: string;
+  type: CreRunEventType;
+  timestamp: string;
+  stepName?: string;
+  payload?: Record<string, unknown>;
+}
+
+export interface CreRunPlanStep {
+  id: string;
+  title: string;
+  description?: string;
+  enabled: boolean;
+  status?: "pending" | "approved" | "rejected";
+}
+
+export interface CreRunPlan {
+  version: number;
+  updatedAt: string;
+  summary?: string;
+  steps: CreRunPlanStep[];
 }
 
 export interface CreArtifact {
@@ -40,6 +82,33 @@ export interface CreRun {
   startedAt: string;
   finishedAt?: string;
   ok: boolean;
+  status?: CreRunStatus;
+  parentRunId?: string;
+  retryCount?: number;
+  currentStepName?: string;
+  requiresApproval?: boolean;
+  approvalState?: "not_required" | "pending" | "approved" | "rejected";
+  approvalReason?: string;
+  plan?: CreRunPlan;
+  controls?: {
+    canCancel: boolean;
+    canRetry: boolean;
+    canApprove: boolean;
+  };
+  metrics?: {
+    latencyMs?: number;
+    stepCount?: number;
+    artifactCount?: number;
+    estimatedTokens?: number;
+    estimatedCostUsd?: number;
+  };
+  provenance?: {
+    source: "cognivern" | "ingested";
+    workflowVersion?: string;
+    model?: string;
+    citations?: Array<{ label: string; value: string }>;
+  };
+  events?: CreRunEvent[];
   steps: CreStepLog[];
   artifacts: CreArtifact[];
 }

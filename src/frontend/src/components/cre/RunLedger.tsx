@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { Link } from "react-router-dom";
 import { creApi, CreRun } from "../../services/creApi";
+import { toAgentRunViewModel } from "../../services/agentRunAdapter";
+import { uxAnalytics } from "../../services/uxAnalytics";
+import { getApiUrl } from "../../utils/api";
 import { designTokens } from "../../styles/designTokens";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -12,39 +15,7 @@ const containerStyles = css`
   padding: ${designTokens.spacing[6]};
   display: grid;
   gap: ${designTokens.spacing[6]};
-  background: linear-gradient(
-    135deg,
-    ${designTokens.colors.background.secondary} 0%,
-    ${designTokens.colors.background.tertiary} 100%
-  );
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      ${designTokens.colors.primary[500]},
-      transparent
-    );
-    opacity: 0.2;
-    animation: scanline 10s linear infinite;
-  }
-
-  @keyframes scanline {
-    0% {
-      transform: translateY(-100vh);
-    }
-    100% {
-      transform: translateY(100vh);
-    }
-  }
+  background: ${designTokens.colors.background.secondary};
 `;
 
 const headerRowStyles = css`
@@ -107,6 +78,20 @@ function formatDuration(run: CreRun) {
   return `${ms}ms`;
 }
 
+const statusDotColor = (status: string) => {
+  switch (status) {
+    case "completed":
+      return designTokens.colors.semantic.success;
+    case "failed":
+    case "cancelled":
+      return designTokens.colors.semantic.error;
+    case "paused_for_approval":
+      return designTokens.colors.semantic.warning;
+    default:
+      return designTokens.colors.primary[500];
+  }
+};
+
 export default function RunLedger() {
   const [runs, setRuns] = useState<CreRun[]>([]);
   const [projects, setProjects] = useState<
@@ -118,6 +103,12 @@ export default function RunLedger() {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshIntervalMs, setRefreshIntervalMs] = useState(5000);
+  const [activeRunAction, setActiveRunAction] = useState<string | null>(null);
+  const [uxSummary, setUxSummary] = useState<{
+    totalEvents: number;
+    completionRate: number;
+    retryRate: number;
+  } | null>(null);
 
   const loadProjects = async () => {
     try {
@@ -149,11 +140,34 @@ export default function RunLedger() {
     // our API service wraps it as data
     const payload = (res.data as any) || {};
     setRuns(payload.runs || []);
+    await loadUxSummary();
     setIsLoading(false);
+  };
+
+  const loadUxSummary = async () => {
+    try {
+      const res = await fetch(getApiUrl("/api/metrics/ux-summary"), {
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
+        },
+      });
+      const json = await res.json();
+      if (json?.success) {
+        setUxSummary({
+          totalEvents: json.data?.totalEvents || 0,
+          completionRate: json.data?.rates?.completionRate || 0,
+          retryRate: json.data?.rates?.retryRate || 0,
+        });
+      }
+    } catch {
+      // non-blocking
+    }
   };
 
   useEffect(() => {
     loadProjects();
+    loadUxSummary();
   }, []);
 
   useEffect(() => {
@@ -168,15 +182,19 @@ export default function RunLedger() {
     return () => window.clearInterval(id);
   }, [autoRefresh, refreshIntervalMs]);
 
-  const trigger = async (writeAttestation: boolean) => {
+  const trigger = async (
+    writeAttestation: boolean,
+    requireApproval: boolean = false
+  ) => {
     setIsTriggering(true);
     setError(null);
-    const res = await creApi.triggerForecast({ writeAttestation });
+    const res = await creApi.triggerForecast({ writeAttestation, requireApproval });
     if (!res.success) {
       setError(res.error || "Failed to trigger forecast");
       setIsTriggering(false);
       return;
     }
+    await uxAnalytics.track("run_console_view", { source: "ledger_trigger" });
     await refresh();
     setIsTriggering(false);
   };
@@ -185,6 +203,28 @@ export default function RunLedger() {
     if (isLoading) return <Badge variant="secondary">Loading</Badge>;
     return <Badge variant="secondary">{runs.length} runs</Badge>;
   }, [isLoading, runs.length]);
+
+  const onCancelRun = async (runId: string) => {
+    setActiveRunAction(`cancel-${runId}`);
+    const res = await creApi.cancelRun(runId);
+    if (!res.success) {
+      setError(res.error || "Failed to cancel run");
+    }
+    await uxAnalytics.track("run_cancel", { runId, source: "ledger" });
+    await refresh();
+    setActiveRunAction(null);
+  };
+
+  const onRetryRun = async (runId: string) => {
+    setActiveRunAction(`retry-${runId}`);
+    const res = await creApi.retryRun(runId);
+    if (!res.success) {
+      setError(res.error || "Failed to retry run");
+    }
+    await uxAnalytics.track("run_retry", { runId, source: "ledger" });
+    await refresh();
+    setActiveRunAction(null);
+  };
 
   return (
     <div css={containerStyles} data-dashboard="true">
@@ -280,6 +320,13 @@ export default function RunLedger() {
           >
             Run + Attest
           </Button>
+          <Button
+            onClick={() => trigger(true, true)}
+            disabled={isTriggering}
+            variant="outline"
+          >
+            Run + Approval Gate
+          </Button>
         </div>
       </div>
 
@@ -290,6 +337,26 @@ export default function RunLedger() {
           </CardHeader>
           <CardContent>
             <div css={smallText}>{error}</div>
+          </CardContent>
+        </Card>
+      )}
+
+      {uxSummary && (
+        <Card
+          css={css`
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+          `}
+        >
+          <CardHeader>
+            <CardTitle>UX Outcome Metrics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div css={smallText}>
+              Events: {uxSummary.totalEvents} · Completion rate:{" "}
+              {(uxSummary.completionRate * 100).toFixed(1)}% · Retry rate:{" "}
+              {(uxSummary.retryRate * 100).toFixed(1)}%
+            </div>
           </CardContent>
         </Card>
       )}
@@ -322,7 +389,11 @@ export default function RunLedger() {
             >
               {runs.map((r) => (
                 <div key={r.runId} css={runRowStyles}>
-                  <div css={runMetaStyles}>
+                  {(() => {
+                    const vm = toAgentRunViewModel(r);
+                    return (
+                      <>
+                        <div css={runMetaStyles}>
                     <div
                       css={css`
                         display: flex;
@@ -335,17 +406,8 @@ export default function RunLedger() {
                           width: 8px;
                           height: 8px;
                           border-radius: 50%;
-                          background: ${r.status === "finished"
-                            ? designTokens.colors.semantic.success
-                            : r.status === "failed"
-                              ? designTokens.colors.semantic.error
-                              : designTokens.colors.primary[500]};
-                          box-shadow: 0 0 8px
-                            ${r.status === "finished"
-                              ? designTokens.colors.semantic.success
-                              : r.status === "failed"
-                                ? designTokens.colors.semantic.error
-                                : designTokens.colors.primary[500]};
+                          background: ${statusDotColor(vm.status)};
+                          box-shadow: 0 0 8px ${statusDotColor(vm.status)};
                           display: inline-block;
                         `}
                       />
@@ -356,9 +418,12 @@ export default function RunLedger() {
                       {formatDuration(r)}
                     </div>
                     <div css={smallText}>
-                      Steps: {r.steps?.length || 0} · Artifacts:{" "}
-                      {r.artifacts?.length || 0}
+                      Status: {vm.status} · Steps: {vm.metrics.stepCount} ·
+                      Artifacts: {vm.metrics.artifactCount}
                     </div>
+                    {vm.currentStepName && (
+                      <div css={smallText}>Current step: {vm.currentStepName}</div>
+                    )}
                   </div>
 
                   <div
@@ -367,15 +432,47 @@ export default function RunLedger() {
                       gap: ${designTokens.spacing[2]};
                       align-items: center;
                       justify-content: flex-end;
+                      flex-wrap: wrap;
                     `}
                   >
-                    {r.ok ? (
-                      <Badge variant="success">OK</Badge>
-                    ) : (
-                      <Badge variant="danger">FAIL</Badge>
+                    <Badge
+                      variant={
+                        vm.status === "completed"
+                          ? "success"
+                          : vm.status === "failed" || vm.status === "cancelled"
+                            ? "error"
+                            : vm.status === "paused_for_approval"
+                              ? "warning"
+                              : "secondary"
+                      }
+                    >
+                      {vm.status.toUpperCase()}
+                    </Badge>
+                    {vm.controls.canCancel && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={activeRunAction === `cancel-${r.runId}`}
+                        onClick={() => onCancelRun(r.runId)}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                    {vm.controls.canRetry && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={activeRunAction === `retry-${r.runId}`}
+                        onClick={() => onRetryRun(r.runId)}
+                      >
+                        Retry
+                      </Button>
                     )}
                     <Link to={`/runs/${r.runId}`}>View</Link>
                   </div>
+                      </>
+                    );
+                  })()}
                 </div>
               ))}
             </div>

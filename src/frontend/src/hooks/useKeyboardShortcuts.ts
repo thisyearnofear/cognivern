@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppStore } from "../stores/appStore";
 import { useIntentStore } from "../stores/intentStore";
+import { useSidebarState } from "./useSidebarState";
 
 interface KeyboardShortcut {
   key: string;
@@ -15,8 +15,8 @@ interface KeyboardShortcut {
 
 export const useKeyboardShortcuts = () => {
   const navigate = useNavigate();
-  const { updatePreferences, preferences } = useAppStore();
   const { setIsOpen } = useIntentStore();
+  const { toggleSidebar } = useSidebarState();
 
   const shortcuts: KeyboardShortcut[] = [
     {
@@ -45,8 +45,8 @@ export const useKeyboardShortcuts = () => {
     {
       key: "t",
       altKey: true,
-      action: () => navigate("/trading"),
-      description: "Go to Trading",
+      action: () => navigate("/agents"),
+      description: "Go to Agents",
     },
     {
       key: "p",
@@ -63,17 +63,13 @@ export const useKeyboardShortcuts = () => {
     {
       key: "b",
       ctrlKey: true,
-      action: () => {
-        updatePreferences({ sidebarCollapsed: !preferences.sidebarCollapsed });
-      },
+      action: () => toggleSidebar(),
       description: "Toggle sidebar",
     },
     {
       key: "b",
       metaKey: true, // For Mac
-      action: () => {
-        updatePreferences({ sidebarCollapsed: !preferences.sidebarCollapsed });
-      },
+      action: () => toggleSidebar(),
       description: "Toggle sidebar",
     },
     {
@@ -116,8 +112,7 @@ export const useKeyboardShortcuts = () => {
     [
       shortcuts,
       navigate,
-      updatePreferences,
-      preferences.sidebarCollapsed,
+      toggleSidebar,
       setIsOpen,
     ],
   );
