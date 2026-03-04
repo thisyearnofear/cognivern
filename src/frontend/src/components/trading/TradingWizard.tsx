@@ -17,6 +17,10 @@ export interface TradingConfig {
   autoStart: boolean;
 }
 
+type WizardUserType = TradingConfig["userType"];
+type WizardAgentType = TradingConfig["agentType"];
+type WizardRiskLevel = TradingConfig["riskLevel"];
+
 export const TradingWizard: React.FC<TradingWizardProps> = ({
   onComplete,
   onSkip,
@@ -58,7 +62,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "beginner",
       title: "New to Trading",
       description: "I want to learn while the AI handles the complexity",
-      icon: "🌱",
+      icon: "BG",
       features: [
         "Guided tutorials",
         "Conservative defaults",
@@ -69,7 +73,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "intermediate",
       title: "Some Experience",
       description: "I understand basics but want AI assistance",
-      icon: "📈",
+      icon: "IN",
       features: [
         "Balanced approach",
         "Customizable settings",
@@ -80,7 +84,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "advanced",
       title: "Experienced Trader",
       description: "I want full control and advanced features",
-      icon: "🚀",
+      icon: "AD",
       features: [
         "Advanced strategies",
         "Full customization",
@@ -95,7 +99,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       title: "Recall Competition Agent",
       description:
         "Optimized for trading competitions with aggressive strategies",
-      icon: "🏆",
+      icon: "RC",
       features: [
         "Competition-focused",
         "High-frequency trading",
@@ -107,7 +111,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "vincent",
       title: "Vincent Social Agent",
       description: "Uses social sentiment and market analysis for decisions",
-      icon: "🧠",
+      icon: "VC",
       features: ["Sentiment analysis", "Social signals", "Risk management"],
       recommended: config.userType !== "advanced",
     },
@@ -118,7 +122,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "conservative",
       title: "Conservative",
       description: "Lower risk, steady growth approach",
-      icon: "🛡️",
+      icon: "CV",
       expectedReturn: "5-15% annually",
       maxDrawdown: "< 5%",
     },
@@ -126,7 +130,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "moderate",
       title: "Moderate",
       description: "Balanced risk and reward strategy",
-      icon: "⚖️",
+      icon: "MD",
       expectedReturn: "15-30% annually",
       maxDrawdown: "< 15%",
     },
@@ -134,7 +138,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "aggressive",
       title: "Aggressive",
       description: "Higher risk for potentially higher returns",
-      icon: "🔥",
+      icon: "AG",
       expectedReturn: "30%+ annually",
       maxDrawdown: "< 30%",
     },
@@ -202,7 +206,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
                 marginBottom: designTokens.spacing[4],
               }}
             >
-              🤖
+              AI
             </div>
             <h2
               style={{
@@ -254,7 +258,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
                         : undefined,
                   }}
                   onClick={() =>
-                    setConfig({ ...config, userType: type.id as any })
+                    setConfig({ ...config, userType: type.id as WizardUserType })
                   }
                 >
                   <CardContent>
@@ -346,7 +350,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
                     position: "relative",
                   }}
                   onClick={() =>
-                    setConfig({ ...config, agentType: agent.id as any })
+                    setConfig({ ...config, agentType: agent.id as WizardAgentType })
                   }
                 >
                   {agent.recommended && (
@@ -455,7 +459,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
                         : undefined,
                   }}
                   onClick={() =>
-                    setConfig({ ...config, riskLevel: risk.id as any })
+                    setConfig({ ...config, riskLevel: risk.id as WizardRiskLevel })
                   }
                 >
                   <CardContent>
@@ -518,7 +522,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
                 marginBottom: designTokens.spacing[4],
               }}
             >
-              🎉
+              OK
             </div>
             <h2
               style={{
@@ -638,7 +642,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
         <div>
           {step > 1 && (
             <Button variant="outline" onClick={handleBack}>
-              ← Back
+              Back
             </Button>
           )}
         </div>
@@ -653,7 +657,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
             disabled={!canProceed()}
             animationType="scale"
           >
-            {step === steps.length ? "Start Trading" : "Next"} →
+            {step === steps.length ? "Start Trading" : "Next"}
           </AnimatedButton>
         </div>
       </div>
