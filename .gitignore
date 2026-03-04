@@ -54,6 +54,7 @@ coverage
 
 # Local deploy artifacts
 .artifacts
+.junie/memory/
 
 # OS
 .DS_Store
