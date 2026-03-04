@@ -417,7 +417,7 @@ export default function TradingAgentDashboard() {
       id: "recall",
       title: "Recall Trading Agent",
       subtitle: "Competition-focused",
-      icon: "🏆",
+      icon: "RC",
       content: (
         <div>
           <p css={css`font-size: 0.8rem; margin-bottom: 8px;`}>Performance: {(agentStatus.performance.totalReturn * 100).toFixed(1)}%</p>
@@ -429,7 +429,7 @@ export default function TradingAgentDashboard() {
       id: "vincent",
       title: "Vincent Social Agent",
       subtitle: "Sentiment-driven",
-      icon: "🧠",
+      icon: "VC",
       content: (
         <div>
           <p css={css`font-size: 0.8rem; margin-bottom: 8px;`}>Daily Limit: ${vincentStatus.policies.dailySpendingLimit}</p>
@@ -466,7 +466,7 @@ export default function TradingAgentDashboard() {
               font-size: 1.5rem;
             `}
           >
-            ⚠️
+            !
           </span>
           <div>
             <h3
@@ -1089,7 +1089,7 @@ export default function TradingAgentDashboard() {
           `}
         >
           <CardHeader>
-            <CardTitle>🔐 Vincent Agent Setup</CardTitle>
+            <CardTitle>Vincent Agent Setup</CardTitle>
             <CardDescription>
               Configure consent and policies for your Vincent social trading
               agent
@@ -1112,7 +1112,7 @@ export default function TradingAgentDashboard() {
           `}
         >
           <CardHeader>
-            <CardTitle>⚙️ Policy Configuration</CardTitle>
+            <CardTitle>Policy Configuration</CardTitle>
             <CardDescription>
               Manage trading policies and risk parameters
             </CardDescription>
@@ -1133,8 +1133,8 @@ export default function TradingAgentDashboard() {
           <CardHeader>
             <CardTitle>
               {selectedAgentType === "recall"
-                ? "🏆 Recall Agent"
-                : "🧠 Vincent Agent"}{" "}
+                ? "Recall Agent"
+                : "Vincent Agent"}{" "}
               Control
             </CardTitle>
             <CardDescription>
@@ -1159,7 +1159,7 @@ export default function TradingAgentDashboard() {
                     flex: 1;
                   `}
                 >
-                  {isLoading ? "Starting..." : "▶️ Start Agent"}
+                  {isLoading ? "Starting..." : "Start Agent"}
                 </Button>
               ) : (
                 <Button
@@ -1170,7 +1170,7 @@ export default function TradingAgentDashboard() {
                     flex: 1;
                   `}
                 >
-                  {isLoading ? "Stopping..." : "⏹️ Stop Agent"}
+                  {isLoading ? "Stopping..." : "Stop Agent"}
                 </Button>
               )}
             </div>
@@ -1301,7 +1301,7 @@ export default function TradingAgentDashboard() {
                   gap: ${designTokens.spacing[2]};
                 `}
               >
-                <span>⚠️</span>
+                <span>!</span>
                 <span
                   css={css`
                     color: ${designTokens.colors.semantic.warning[700]};
@@ -1317,7 +1317,7 @@ export default function TradingAgentDashboard() {
         {/* Behavioral Metrics */}
         <Card>
           <CardHeader>
-            <CardTitle>📊 Behavioral Performance</CardTitle>
+            <CardTitle>Behavioral Performance</CardTitle>
             <CardDescription>
               Agent decision telemetry and behavioral trends
             </CardDescription>
@@ -1335,7 +1335,7 @@ export default function TradingAgentDashboard() {
       {/* Activity Audit */}
       <Card>
         <CardHeader>
-          <CardTitle>📋 Activity Audit Trail</CardTitle>
+          <CardTitle>Activity Audit Trail</CardTitle>
           <CardDescription>
             Complete record of all agent decisions and governance check results
           </CardDescription>

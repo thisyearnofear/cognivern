@@ -16,7 +16,16 @@ import {
   LoadingSpinner,
 } from "../ui";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { getApiUrl, getRequestHeaders } from "../../utils/api";
+import { agentApi } from "../../services/apiService";
+
+interface AgentConnection {
+  id: string;
+  name: string;
+  status?: string;
+  description?: string;
+  winRate?: number;
+  totalReturn?: number;
+}
 
 /**
  * PolicyManagement - Central hub for governance across the platform.
@@ -39,7 +48,7 @@ export default function PolicyManagement() {
     useGovernanceStore();
 
   // Local state for agent connections (keeping existing logic for agent domain)
-  const [agentConnections, setAgentConnections] = useState<any[]>([]);
+  const [agentConnections, setAgentConnections] = useState<AgentConnection[]>([]);
   const [isAgentsLoading, setIsAgentsLoading] = useState(false);
 
   useEffect(() => {
@@ -50,12 +59,10 @@ export default function PolicyManagement() {
   const fetchAgentConnections = async () => {
     setIsAgentsLoading(true);
     try {
-      const response = await fetch(getApiUrl("/api/agents/connections"), {
-        headers: getRequestHeaders(),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAgentConnections(data.data || []);
+      const response = await agentApi.getConnections();
+      if (response.success && response.data) {
+        const payload = response.data as { data?: AgentConnection[] };
+        setAgentConnections(Array.isArray(payload.data) ? payload.data : []);
       }
     } catch (error) {
       console.error("Error fetching agent connections:", error);
@@ -72,6 +79,14 @@ export default function PolicyManagement() {
       console.error("Failed to apply template:", error);
     }
   };
+
+  const getTemplateMonogram = (name: string) =>
+    name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
 
   // Layout Styles
   const containerStyles = css`
@@ -163,19 +178,19 @@ export default function PolicyManagement() {
         <StatCard
           label="Total Policies"
           value={policies.length}
-          icon="📋"
+          icon="PL"
           color="primary"
         />
         <StatCard
           label="Active Guards"
           value={policies.filter((p) => p.status === "active").length}
-          icon="🛡️"
+          icon="GD"
           color="success"
         />
         <StatCard
           label="Managed Agents"
           value={agentConnections.length}
-          icon="🤖"
+          icon="AG"
           color="info"
         />
       </div>
@@ -215,11 +230,22 @@ export default function PolicyManagement() {
                 <CardContent>
                   <div
                     style={{
-                      fontSize: "2rem",
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.04em",
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "9999px",
+                      border: `1px solid ${designTokens.colors.neutral[300]}`,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: designTokens.colors.neutral[700],
+                      background: designTokens.colors.neutral[100],
                       marginBottom: designTokens.spacing[4],
                     }}
                   >
-                    {template.icon}
+                    {getTemplateMonogram(template.name)}
                   </div>
                   <h3 style={{ marginBottom: designTokens.spacing[2] }}>
                     {template.name}
@@ -295,8 +321,8 @@ export default function PolicyManagement() {
                     key={agent.id}
                     agent={{
                       ...agent,
-                      totalReturn: 0, // Mock for standardized card
-                      winRate: 0, // Mock for standardized card
+                      totalReturn: agent.totalReturn ?? 0,
+                      winRate: agent.winRate ?? 0,
                     }}
                   />
                 ))}

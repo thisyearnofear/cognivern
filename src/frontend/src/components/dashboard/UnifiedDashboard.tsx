@@ -16,15 +16,8 @@ import { css } from "@emotion/react";
 import { useNavigate } from "react-router-dom";
 import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { agentApi, dashboardApi } from "../../services/apiService";
-import {
-  Card,
-  CardContent,
-  StatCard,
-  AgentCard,
-  Button,
-  EcosystemVisualizer,
-} from "../ui";
+import { agentApi } from "../../services/apiService";
+import { Card, CardContent, StatCard, AgentCard, Button } from "../ui";
 
 interface DashboardProps {
   mode?: "full" | "minimal"; // minimal for agent-to-agent
@@ -48,16 +41,19 @@ interface AgentSummary {
   lastActive: string;
 }
 
+interface ActivityItem {
+  type?: string;
+  description?: string;
+  timestamp?: string;
+}
+
 export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   const navigate = useNavigate();
   const { isMobile, isTablet } = useBreakpoint();
 
-  const [viewMode, setViewMode] = useState<"standard" | "ecosystem">(
-    (localStorage.getItem("dashboard-view-mode") as any) || "ecosystem",
-  );
   const [stats, setStats] = useState<QuickStats | null>(null);
   const [agents, setAgents] = useState<AgentSummary[]>([]);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showMoreActivity, setShowMoreActivity] = useState(false);
@@ -71,10 +67,6 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   useEffect(() => {
     fetchDashboardData();
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem("dashboard-view-mode", viewMode);
-  }, [viewMode]);
 
   // Pull-to-refresh handlers for mobile
   useEffect(() => {
@@ -127,18 +119,22 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
-      // Fetch all data in parallel
-      const [statsRes, agentsRes, activityRes] = await Promise.all([
+      // Keep dashboard resilient: one failing call should not blank the entire screen.
+      const [statsResult, agentsResult, activityResult] = await Promise.allSettled([
         agentApi.getAggregateStats({}),
         agentApi.compareAgents({
           sortBy: "totalReturn",
           sortDirection: "desc",
         }),
-        dashboardApi.getActivityFeed(),
+        agentApi.getRecentActivity(),
       ]);
 
-      if (statsRes.success && statsRes.data) {
-        const data = statsRes.data as any;
+      if (
+        statsResult.status === "fulfilled" &&
+        statsResult.value.success &&
+        statsResult.value.data
+      ) {
+        const data = statsResult.value.data as any;
         setStats({
           activeAgents: data.totalAgents || 0,
           totalAgents: data.totalAgents || 0,
@@ -148,14 +144,23 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
         });
       }
 
-      if (agentsRes.success && agentsRes.data) {
-        const data = agentsRes.data as any;
+      if (
+        agentsResult.status === "fulfilled" &&
+        agentsResult.value.success &&
+        agentsResult.value.data
+      ) {
+        const data = agentsResult.value.data as any;
         setAgents(Array.isArray(data) ? data.slice(0, 6) : []); // Top 6 agents
       }
 
-      if (activityRes.success && activityRes.data) {
-        const data = activityRes.data as any;
-        setRecentActivity(Array.isArray(data) ? data.slice(0, 10) : []);
+      if (
+        activityResult.status === "fulfilled" &&
+        activityResult.value.success &&
+        activityResult.value.data
+      ) {
+        const payload = activityResult.value.data as { logs?: ActivityItem[] };
+        const logs = Array.isArray(payload.logs) ? payload.logs : [];
+        setRecentActivity(logs.slice(0, 10));
       }
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
@@ -206,54 +211,35 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
           <h1 css={titleStyles} style={{ marginBottom: 0 }}>
             Dashboard
           </h1>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <Button
-              variant={viewMode === "standard" ? "primary" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("standard")}
-            >
-              Standard
-            </Button>
-            <Button
-              variant={viewMode === "ecosystem" ? "primary" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("ecosystem")}
-            >
-              Ecosystem
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            Refresh
+          </Button>
         </div>
-
-        {viewMode === "ecosystem" && (
-          <div style={{ marginBottom: designTokens.spacing[8] }}>
-            <EcosystemVisualizer />
-          </div>
-        )}
 
         <div css={statsGridStyles(isMobile, isTablet)}>
           <StatCard
             label="Active Agents"
             value={stats?.activeAgents || 0}
             total={stats?.totalAgents}
-            icon="🤖"
+            icon="AG"
             color="primary"
           />
           <StatCard
             label="Total Trades"
             value={stats?.totalTrades || 0}
-            icon="📊"
+            icon="TR"
             color="info"
           />
           <StatCard
             label="Avg Win Rate"
             value={`${((stats?.avgWinRate || 0) * 100).toFixed(1)}%`}
-            icon="🎯"
+            icon="WR"
             color="success"
           />
           <StatCard
             label="Total Return"
             value={`${((stats?.totalReturn || 0) * 100).toFixed(2)}%`}
-            icon="💰"
+            icon="RT"
             color={stats && stats.totalReturn >= 0 ? "success" : "error"}
           />
         </div>
@@ -282,188 +268,6 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
             <AgentGrid agents={agents} columns={isTablet ? 2 : 3} />
           )}
         </section>
-
-        {/* Performance Chart */}
-        {!isMobile && (
-          <section css={sectionStyles}>
-            <div css={sectionHeaderStyles}>
-              <h2 css={sectionTitleStyles}>Ecosystem Performance</h2>
-            </div>
-            <Card variant="outlined">
-              <CardContent>
-                <div
-                  style={{
-                    height: "300px",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: `linear-gradient(135deg, ${designTokens.colors.neutral[900]} 0%, ${designTokens.colors.neutral[800]} 100%)`,
-                    borderRadius: designTokens.borderRadius.lg,
-                    border: `1px solid ${designTokens.colors.neutral[700]}`,
-                    position: "relative",
-                    overflow: "hidden",
-                    padding: designTokens.spacing[6],
-                  }}
-                >
-                  {/* Background Grid */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      opacity: 0.1,
-                      backgroundImage: `linear-gradient(${designTokens.colors.primary[500]} 1px, transparent 1px), linear-gradient(90deg, ${designTokens.colors.primary[500]} 1px, transparent 1px)`,
-                      backgroundSize: "40px 40px",
-                    }}
-                  />
-
-                  {/* High-Fidelity SVG Chart */}
-                  <svg
-                    viewBox="0 0 400 150"
-                    preserveAspectRatio="none"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      overflow: "visible",
-                    }}
-                  >
-                    <defs>
-                      <linearGradient
-                        id="chartGradient"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor={designTokens.colors.primary[500]}
-                          stopOpacity="0.3"
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor={designTokens.colors.primary[500]}
-                          stopOpacity="0"
-                        />
-                      </linearGradient>
-                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                      </filter>
-                    </defs>
-
-                    {/* Path */}
-                    <path
-                      d="M 0 120 Q 50 110 80 80 T 150 70 T 220 100 T 300 40 T 400 30 L 400 150 L 0 150 Z"
-                      fill="url(#chartGradient)"
-                    />
-                    <path
-                      d="M 0 120 Q 50 110 80 80 T 150 70 T 220 100 T 300 40 T 400 30"
-                      fill="none"
-                      stroke={designTokens.colors.primary[500]}
-                      strokeWidth="3"
-                      filter="url(#glow)"
-                      style={{
-                        strokeDasharray: "600",
-                        strokeDashoffset: "600",
-                        animation: "drawPath 3s ease-out forwards",
-                      }}
-                    />
-
-                    {/* Data Points */}
-                    {[
-                      { x: 0, y: 120 },
-                      { x: 80, y: 80 },
-                      { x: 150, y: 70 },
-                      { x: 220, y: 100 },
-                      { x: 300, y: 40 },
-                      { x: 400, y: 30 },
-                    ].map((p, i) => (
-                      <circle
-                        key={i}
-                        cx={p.x}
-                        cy={p.y}
-                        r="4"
-                        fill={designTokens.colors.primary[400]}
-                        stroke="white"
-                        strokeWidth="1"
-                      >
-                        <animate
-                          attributeName="r"
-                          values="4;6;4"
-                          dur="2s"
-                          repeatCount="indefinite"
-                          begin={`${i * 0.5}s`}
-                        />
-                      </circle>
-                    ))}
-                  </svg>
-
-                  {/* HUD Info Labels */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "20px",
-                      left: "20px",
-                      color: designTokens.colors.primary[400],
-                      fontFamily: "monospace",
-                      fontSize: "10px",
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    System Performance // Neural Load: 42% // Uptime: 99.99%
-                  </div>
-
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: "20px",
-                      right: "20px",
-                      textAlign: "right",
-                    }}
-                  >
-                    <div
-                      style={{
-                        color: designTokens.colors.primary[400],
-                        fontSize: designTokens.typography.fontSize.lg,
-                        fontWeight: designTokens.typography.fontWeight.bold,
-                        textShadow: "0 0 10px rgba(14, 165, 233, 0.5)",
-                      }}
-                    >
-                      +24.8%
-                    </div>
-                    <div
-                      style={{
-                        color: designTokens.colors.neutral[400],
-                        fontSize: designTokens.typography.fontSize.xs,
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Aggregate Yield
-                    </div>
-                  </div>
-
-                  <style>
-                    {`
-                      @keyframes drawPath {
-                        to {
-                          stroke-dashoffset: 0;
-                        }
-                      }
-                    `}
-                  </style>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-        )}
 
         {/* Recent Activity */}
         <section css={sectionStyles}>
@@ -520,7 +324,7 @@ const AgentCarousel = ({ agents }: AgentCarouselProps) => (
 );
 
 interface ActivityFeedProps {
-  activities: any[];
+  activities: ActivityItem[];
   compact?: boolean;
   showMore?: boolean;
   onToggleMore?: () => void;
@@ -552,7 +356,9 @@ const ActivityFeed = ({
                     {activity.description || "Activity"}
                   </div>
                   <div css={activityTimeStyles}>
-                    {new Date(activity.timestamp).toLocaleTimeString()}
+                    {activity.timestamp
+                      ? new Date(activity.timestamp).toLocaleTimeString()
+                      : "Unknown time"}
                   </div>
                 </div>
               </div>
@@ -577,9 +383,9 @@ const QuickActions = ({ isMobile }: QuickActionsProps) => {
   const navigate = useNavigate();
 
   const actions = [
-    { label: "Compare Agents", icon: "📊", path: "/agents?compare=true" },
-    { label: "View Policies", icon: "📋", path: "/policies" },
-    { label: "Audit Logs", icon: "🔍", path: "/audit" },
+    { label: "Compare Agents", icon: "CP", path: "/agents?compare=true" },
+    { label: "View Policies", icon: "PL", path: "/policies" },
+    { label: "Audit Logs", icon: "AU", path: "/audit" },
   ];
 
   if (isMobile) {

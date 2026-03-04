@@ -244,6 +244,31 @@ export class AgentApiService extends ApiService {
     const query = queryParams.toString();
     return this.get(`/api/agents${query ? `?${query}` : ""}`);
   }
+
+  // Get connected agents and governance links
+  async getConnections() {
+    return this.get("/api/agents/connections");
+  }
+
+  // Get recent activity from audit logs for dashboard surfaces
+  async getRecentActivity() {
+    const response = await this.get<{
+      success?: boolean;
+      data?: { logs?: any[] };
+    }>("/api/audit/logs");
+
+    if (!response.success || !response.data) {
+      return response;
+    }
+
+    const payload = response.data;
+    return {
+      ...response,
+      data: {
+        logs: Array.isArray(payload.data?.logs) ? payload.data.logs : [],
+      },
+    };
+  }
 }
 
 // MCP-specific API service
@@ -292,32 +317,6 @@ export class PolicyApiService extends ApiService {
   }
 }
 
-// Dashboard-specific API service
-export class DashboardApiService extends ApiService {
-  // Get dashboard metrics
-  async getMetrics() {
-    return this.get("/api/metrics/daily");
-  }
-
-  // Get system health
-  async getSystemHealth() {
-    return this.get("/api/system/health");
-  }
-
-  // Get activity feed
-  async getActivityFeed() {
-    return this.get("/api/activity/feed");
-  }
-
-  // Get competitions
-  async getCompetitions(status?: string) {
-    const endpoint = status
-      ? `/api/competitions?status=${status}`
-      : "/api/competitions";
-    return this.get(endpoint);
-  }
-}
-
 // Vincent-specific API service
 export class VincentApiService extends ApiService {
   // Get Vincent status
@@ -363,7 +362,6 @@ export class SapienceApiService extends ApiService {
 export const agentApi = new AgentApiService();
 export const mcpApi = new MCPApiService();
 export const policyApi = new PolicyApiService();
-export const dashboardApi = new DashboardApiService();
 export const vincentApi = new VincentApiService();
 export const sapienceApi = new SapienceApiService();
 
