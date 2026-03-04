@@ -15,7 +15,7 @@ import ImprovedAppLayout from "../ImprovedAppLayout";
 // Mock the hooks and stores
 jest.mock("../../stores/appStore", () => ({
   useAppStore: () => ({
-    preferences: { sidebarCollapsed: false },
+    preferences: { sidebarState: "expanded" },
     updatePreferences: jest.fn(),
     user: { isConnected: false },
     error: null,

@@ -233,6 +233,12 @@ export const designTokens = {
     tooltip: 1800,
   },
 
+  // Shared layout constants
+  layout: {
+    headerHeight: "70px",
+    sidebarCollapsedWidth: "80px",
+  },
+
   // Animation durations
   animation: {
     duration: {

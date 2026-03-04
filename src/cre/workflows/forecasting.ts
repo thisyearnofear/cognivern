@@ -91,9 +91,9 @@ export async function runForecastingWorkflow(
       "generate_forecast_confidentially"
     );
     const forecastInput: ForecastInput = { condition, priceFeeds };
-    const forecast = await llm.generateForecast(forecastInput);
-    recorder.addArtifact({ type: "llm_forecast", data: forecast });
-    s4.end({ ok: true, summary: `Forecast: ${forecast.probability}%` });
+      const forecast = await llm.generateForecast(forecastInput);
+      recorder.addArtifact({ type: "llm_forecast", data: forecast });
+      s4.end({ ok: true, summary: `Forecast: ${forecast.probability}%` });
 
     // Step 5: EVM write attestation (optional)
     if (params.writeAttestation) {
@@ -123,7 +123,21 @@ export async function runForecastingWorkflow(
     }
 
     recorder.finish(true);
-    return recorder.getRun();
+    const run = recorder.getRun();
+    run.provenance = {
+      ...(run.provenance || { source: "cognivern" }),
+      workflowVersion: "forecasting-v1",
+      model: `${forecast.provider}:${forecast.model}`,
+      citations: [
+        { label: "condition_id", value: condition.id },
+        { label: "sapience_graphql", value: sapienceGraphqlEndpoint },
+        ...priceFeeds.slice(0, 3).map((feed) => ({
+          label: `feed_${feed.feedName}`,
+          value: feed.feedAddress,
+        })),
+      ],
+    };
+    return run;
   } catch (error: any) {
     recorder.addArtifact({
       type: "error",
@@ -133,6 +147,13 @@ export async function runForecastingWorkflow(
       },
     });
     recorder.finish(false);
-    return recorder.getRun();
+    const run = recorder.getRun();
+    run.provenance = {
+      ...(run.provenance || { source: "cognivern" }),
+      workflowVersion: "forecasting-v1",
+      model: "unknown",
+      citations: [{ label: "sapience_graphql", value: sapienceGraphqlEndpoint }],
+    };
+    return run;
   }
 }

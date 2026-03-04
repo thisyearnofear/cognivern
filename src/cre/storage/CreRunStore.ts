@@ -31,6 +31,20 @@ export class CreRunStore {
     await this.persistence.append(run);
   }
 
+  async replace(run: CreRun) {
+    await this.ensureLoaded();
+    const idx = this.runs.findIndex((r) => r.runId === run.runId);
+    if (idx === -1) {
+      this.runs.unshift(run);
+      if (this.runs.length > this.maxRuns) {
+        this.runs.pop();
+      }
+    } else {
+      this.runs[idx] = run;
+    }
+    await this.persistence.writeAll(this.runs);
+  }
+
   async list() {
     await this.ensureLoaded();
     return this.runs;

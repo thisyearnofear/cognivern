@@ -1,5 +1,11 @@
 import crypto from "node:crypto";
-import { CreArtifact, CreRun, CreStepKind, CreStepLog } from "./types.js";
+import {
+  CreArtifact,
+  CreRun,
+  CreRunEventType,
+  CreStepKind,
+  CreStepLog,
+} from "./types.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -15,12 +21,43 @@ export class CreRunRecorder {
       mode: params.mode,
       startedAt: nowIso(),
       ok: false,
+      status: "running",
+      retryCount: 0,
+      approvalState: "not_required",
+      controls: {
+        canCancel: true,
+        canRetry: false,
+        canApprove: false,
+      },
+      provenance: {
+        source: "cognivern",
+      },
+      events: [],
       steps: [],
       artifacts: [],
     };
+    this.pushEvent("run_started", { workflow: params.workflow, mode: params.mode });
+  }
+
+  private pushEvent(
+    type: CreRunEventType,
+    payload?: Record<string, unknown>,
+    stepName?: string
+  ) {
+    if (!this.run.events) this.run.events = [];
+    this.run.events.push({
+      id: crypto.randomUUID(),
+      runId: this.run.runId,
+      type,
+      timestamp: nowIso(),
+      stepName,
+      payload,
+    });
   }
 
   startStep(kind: CreStepKind, name: string, details?: Record<string, unknown>) {
+    this.run.currentStepName = name;
+    this.pushEvent("tool_call_started", { kind, details }, name);
     const step: CreStepLog = {
       kind,
       name,
@@ -36,6 +73,11 @@ export class CreRunRecorder {
         step.ok = params.ok;
         step.summary = params.summary;
         step.details = { ...(step.details || {}), ...(params.details || {}) };
+        this.pushEvent(
+          "tool_result",
+          { ok: params.ok, summary: params.summary, details: params.details },
+          name
+        );
       },
     };
   }
@@ -53,6 +95,25 @@ export class CreRunRecorder {
   finish(ok: boolean) {
     this.run.finishedAt = nowIso();
     this.run.ok = ok;
+    this.run.status = ok ? "completed" : "failed";
+    this.run.currentStepName = undefined;
+    this.run.controls = {
+      canCancel: false,
+      canRetry: true,
+      canApprove: false,
+    };
+    const latencyMs =
+      new Date(this.run.finishedAt).getTime() - new Date(this.run.startedAt).getTime();
+    this.run.metrics = {
+      latencyMs: Math.max(0, latencyMs),
+      stepCount: this.run.steps.length,
+      artifactCount: this.run.artifacts.length,
+    };
+    this.pushEvent(ok ? "run_finished" : "run_failed", {
+      latencyMs: this.run.metrics.latencyMs,
+      stepCount: this.run.metrics.stepCount,
+      artifactCount: this.run.metrics.artifactCount,
+    });
   }
 
   getRun(): CreRun {

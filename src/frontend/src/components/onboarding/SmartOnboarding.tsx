@@ -15,7 +15,6 @@ interface OnboardingStep {
   title: string;
   description: string;
   component: React.ReactNode;
-  canSkip?: boolean;
 }
 
 export const SmartOnboarding: React.FC = () => {
@@ -24,6 +23,7 @@ export const SmartOnboarding: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedUserType, setSelectedUserType] = useState<string>("");
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   // Check if onboarding should be shown
   useEffect(() => {
@@ -103,7 +103,6 @@ export const SmartOnboarding: React.FC = () => {
           </p>
         </div>
       ),
-      canSkip: true,
     },
     {
       id: "user-type",
@@ -240,15 +239,6 @@ export const SmartOnboarding: React.FC = () => {
               flexWrap: "wrap",
             }}
           >
-            <Button
-              variant="outline"
-              onClick={() => {
-                // Show quick tour
-                console.log("Starting quick tour...");
-              }}
-            >
-              Take a Quick Tour
-            </Button>
             <Button variant="primary" onClick={() => handleComplete()}>
               Go to Dashboard
             </Button>
@@ -273,11 +263,18 @@ export const SmartOnboarding: React.FC = () => {
   const handleSkip = () => {
     updatePreferences({ onboardingCompleted: true });
     setShowOnboarding(false);
+    setIsWizardOpen(false);
   };
 
   const handleComplete = () => {
     completeOnboarding(selectedUserType || "explorer");
     setShowOnboarding(false);
+    setIsWizardOpen(false);
+  };
+
+  const handleStartOnboarding = () => {
+    setCurrentStep(0);
+    setIsWizardOpen(true);
   };
 
   const canProceed = () => {
@@ -289,6 +286,45 @@ export const SmartOnboarding: React.FC = () => {
 
   if (!showOnboarding) {
     return null;
+  }
+
+  if (!isWizardOpen) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          right: designTokens.spacing[4],
+          bottom: designTokens.spacing[4],
+          zIndex: designTokens.zIndex.toast,
+          width: "min(420px, calc(100vw - 32px))",
+        }}
+      >
+        <Card variant="elevated">
+          <CardHeader>
+            <CardTitle>Get Started With Cognivern</CardTitle>
+            <CardDescription>
+              Take a 2-minute setup to personalize your dashboard.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: designTokens.spacing[2],
+              }}
+            >
+              <Button variant="ghost" onClick={handleSkip}>
+                Dismiss
+              </Button>
+              <Button variant="primary" onClick={handleStartOnboarding}>
+                Start Setup
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   const overlayStyle: React.CSSProperties = {
@@ -348,6 +384,21 @@ export const SmartOnboarding: React.FC = () => {
 
         {/* Content */}
         <div style={{ padding: designTokens.spacing[6] }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginBottom: designTokens.spacing[2],
+            }}
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsWizardOpen(false)}
+            >
+              Close
+            </Button>
+          </div>
           <CardHeader>
             <CardTitle>{steps[currentStep].title}</CardTitle>
             <CardDescription>{steps[currentStep].description}</CardDescription>
@@ -358,11 +409,9 @@ export const SmartOnboarding: React.FC = () => {
         {/* Footer */}
         <div style={footerStyle}>
           <div style={{ display: "flex", gap: designTokens.spacing[2] }}>
-            {steps[currentStep].canSkip && (
-              <Button variant="ghost" onClick={handleSkip}>
-                Skip for now
-              </Button>
-            )}
+            <Button variant="ghost" onClick={handleSkip}>
+              Skip for now
+            </Button>
           </div>
 
           <div style={{ display: "flex", gap: designTokens.spacing[2] }}>

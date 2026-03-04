@@ -58,7 +58,7 @@ const navigationItems: NavItem[] = [
 export const ImprovedSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { preferences, updatePreferences, user } = useAppStore();
+  const { user } = useAppStore();
   const { effectiveTheme } = useTheme();
   const { isMobile, isTablet, isDesktop } = useBreakpoint();
   const { sidebarWidth } = useLayout();
@@ -154,13 +154,15 @@ export const ImprovedSidebar: React.FC = () => {
     /* Collapsed state */
     ${isCollapsed && !isMobile
       ? `
-      width: 80px;
+      width: ${designTokens.layout.sidebarCollapsedWidth};
     `
       : ""}
 
     /* Smooth width transitions for desktop */
     @media (min-width: ${designTokens.breakpoints.lg}) {
-      width: ${isCollapsed ? "80px" : `${sidebarWidth}px`};
+      width: ${isCollapsed
+        ? designTokens.layout.sidebarCollapsedWidth
+        : `${sidebarWidth}px`};
     }
   `;
 

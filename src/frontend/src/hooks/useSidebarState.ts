@@ -2,6 +2,7 @@ import { useEffect, useCallback } from "react";
 import { useLayout } from "../components/layout/ResponsiveLayout";
 import { useBreakpoint } from "./useMediaQuery";
 import { useAppStore } from "../stores/appStore";
+import type { SidebarState } from "../stores/appStore";
 
 /**
  * Enhanced sidebar state management hook
@@ -14,15 +15,12 @@ export const useSidebarState = () => {
 
   // Save user's sidebar preference for desktop
   const saveSidebarPreference = useCallback(
-    (state: "expanded" | "collapsed") => {
+    (state: SidebarState) => {
       if (isDesktop) {
-        updatePreferences({
-          ...preferences,
-          sidebarState: state,
-        });
+        updatePreferences({ sidebarState: state });
       }
     },
-    [isDesktop, preferences, updatePreferences],
+    [isDesktop, updatePreferences],
   );
 
   // Intelligent sidebar toggle based on context
