@@ -13,6 +13,7 @@ import {
   CardTitle,
   CardDescription,
 } from "../ui/Card";
+import { Button } from "../ui/Button";
 
 interface AuditLog {
   id: string;
@@ -572,7 +573,7 @@ export default function EnhancedAuditLogs() {
           gap: ${designTokens.spacing[2]};
         `}
       >
-        🤖 AI-Powered Insights
+        AI Insights
         <span
           css={css`
             font-size: ${designTokens.typography.fontSize.sm};
@@ -580,7 +581,7 @@ export default function EnhancedAuditLogs() {
             font-weight: normal;
           `}
         >
-          Powered by Gemini
+          Generated from recent audit activity
         </span>
       </h3>
 
@@ -923,7 +924,7 @@ export default function EnhancedAuditLogs() {
                           margin-left: ${designTokens.spacing[4]};
                         `}
                       >
-                        Impact: ${log.impact.financialImpact > 0 ? "+" : ""}$
+                        Impact: {log.impact.financialImpact > 0 ? "+" : ""}
                         {log.impact.financialImpact.toLocaleString("en-US", {
                           style: "currency",
                           currency: "USD",
@@ -1007,40 +1008,20 @@ export default function EnhancedAuditLogs() {
             gap: "12px",
           }}
         >
-          <button
+          <Button
+            size="sm"
+            variant={!isSimplifiedMode ? "primary" : "secondary"}
             onClick={() => setIsSimplifiedMode(false)}
-            style={{
-              padding: "8px 16px",
-              borderRadius: designTokens.borderRadius.full,
-              border: "none",
-              background: !isSimplifiedMode
-                ? designTokens.colors.primary[500]
-                : designTokens.colors.neutral[200],
-              color: !isSimplifiedMode ? "white" : designTokens.colors.neutral[700],
-              cursor: "pointer",
-              fontWeight: "600",
-              transition: "all 0.2s",
-            }}
           >
             Technical View
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
+            variant={isSimplifiedMode ? "primary" : "secondary"}
             onClick={() => setIsSimplifiedMode(true)}
-            style={{
-              padding: "8px 16px",
-              borderRadius: designTokens.borderRadius.full,
-              border: "none",
-              background: isSimplifiedMode
-                ? designTokens.colors.primary[500]
-                : designTokens.colors.neutral[200],
-              color: isSimplifiedMode ? "white" : designTokens.colors.neutral[700],
-              cursor: "pointer",
-              fontWeight: "600",
-              transition: "all 0.2s",
-            }}
           >
             Executive Summary
-          </button>
+          </Button>
         </div>
       </div>
 

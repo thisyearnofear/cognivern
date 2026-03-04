@@ -21,35 +21,35 @@ const navigationItems: NavItem[] = [
   {
     id: "dashboard",
     label: "Dashboard",
-    icon: "📊",
+    icon: "DB",
     path: "/",
     description: "Unified overview",
   },
   {
     id: "agents",
     label: "Agents",
-    icon: "🤖",
+    icon: "AG",
     path: "/agents",
     description: "Agent management",
   },
   {
     id: "policies",
     label: "Policies",
-    icon: "📋",
+    icon: "PL",
     path: "/policies",
     description: "Governance rules",
   },
   {
     id: "audit",
     label: "Audit",
-    icon: "📝",
+    icon: "AU",
     path: "/audit",
     description: "Activity logs",
   },
   {
     id: "runs",
     label: "Runs",
-    icon: "⛓️",
+    icon: "RN",
     path: "/runs",
     description: "Verifiable traces",
   },
@@ -304,9 +304,23 @@ export const ImprovedSidebar: React.FC = () => {
   `;
 
   const navIconStyles = css`
-    font-size: ${designTokens.typography.fontSize.xl};
-    min-width: ${designTokens.typography.fontSize.xl};
+    font-size: ${designTokens.typography.fontSize.xs};
+    min-width: 28px;
+    height: 28px;
+    border-radius: ${designTokens.borderRadius.full};
+    border: 1px solid
+      ${effectiveTheme === "dark"
+        ? designTokens.colors.neutral[600]
+        : designTokens.colors.neutral[300]};
+    background: ${effectiveTheme === "dark"
+      ? designTokens.colors.neutral[800]
+      : designTokens.colors.neutral[100]};
     text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: ${designTokens.typography.fontWeight.semibold};
+    letter-spacing: 0.04em;
     flex-shrink: 0;
   `;
 
@@ -362,7 +376,7 @@ export const ImprovedSidebar: React.FC = () => {
       <aside ref={sidebarRef} css={sidebarStyles}>
         {/* Logo and Brand */}
         <div css={logoStyles}>
-          <span css={logoIconStyles}>🧠</span>
+          <span css={logoIconStyles}>CV</span>
           {!isCollapsed && (
             <div css={logoTextStyles}>
               <h2>Cognivern</h2>
