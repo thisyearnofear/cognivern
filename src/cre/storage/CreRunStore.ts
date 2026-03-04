@@ -61,6 +61,12 @@ export class CreRunStore {
     this.runs = [];
     this.loaded = true;
   }
+
+  async reset() {
+    this.runs = [];
+    this.loaded = true;
+    await this.persistence.truncate();
+  }
 }
 
 export const creRunStore = new CreRunStore();

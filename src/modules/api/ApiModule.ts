@@ -112,7 +112,13 @@ export class ApiModule extends BaseService {
           apiConfig.corsOrigin === "*" ? true : apiConfig.corsOrigin.split(","),
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "X-API-KEY", "Authorization"],
+        allowedHeaders: [
+          "Content-Type",
+          "X-API-KEY",
+          "Authorization",
+          "Idempotency-Key",
+          "X-Idempotency-Key",
+        ],
       })
     );
 
@@ -182,7 +188,13 @@ export class ApiModule extends BaseService {
       return next();
     }
 
-    const apiKey = req.headers["x-api-key"] as string;
+    const headerApiKey = req.headers["x-api-key"] as string;
+    const queryApiKey =
+      req.path.endsWith("/events/stream") && // pragma: allowlist secret
+      typeof req.query.apiKey === "string" // pragma: allowlist secret
+        ? req.query.apiKey // pragma: allowlist secret
+        : undefined;
+    const apiKey = headerApiKey || queryApiKey;
 
     // Accept multiple valid API keys for testing
     const validApiKeys = [
@@ -247,6 +259,12 @@ export class ApiModule extends BaseService {
     // Health check (no API key required)
     this.app.get("/health", (req, res) => {
       this.controllers.get("health").getHealth(req, res);
+    });
+    this.app.get("/health/ready", (req, res) => {
+      this.controllers.get("health").getReadiness(req, res);
+    });
+    this.app.get("/health/live", (req, res) => {
+      this.controllers.get("health").getLiveness(req, res);
     });
 
     // Data plane ingestion (NO API key middleware)
@@ -405,6 +423,10 @@ export class ApiModule extends BaseService {
 
     apiRouter.get("/cre/runs/:runId/events", (req, res) => {
       this.controllers.get("cre").getRunEvents(req, res);
+    });
+
+    apiRouter.get("/cre/runs/:runId/events/stream", (req, res) => {
+      this.controllers.get("cre").streamRunEvents(req, res);
     });
 
     apiRouter.post("/cre/runs/:runId/cancel", (req, res) => {

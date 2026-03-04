@@ -3,28 +3,9 @@
  */
 
 import { Request, Response } from "express";
-
-type UxEvent = {
-  id: string;
-  eventType: string;
-  timestamp: string;
-  payload: Record<string, unknown>;
-};
-
-const UX_EVENT_LIMIT = 1000;
+import { uxEventStore } from "../storage/UxEventStore.js";
 
 export class MetricsController {
-  private static uxEvents: UxEvent[] = [];
-
-  private pushUxEvent(event: UxEvent) {
-    MetricsController.uxEvents.push(event);
-    if (MetricsController.uxEvents.length > UX_EVENT_LIMIT) {
-      MetricsController.uxEvents = MetricsController.uxEvents.slice(
-        MetricsController.uxEvents.length - UX_EVENT_LIMIT
-      );
-    }
-  }
-
   async getMetrics(req: Request, res: Response): Promise<void> {
     try {
       const metrics = {
@@ -121,7 +102,7 @@ export class MetricsController {
           ? req.body.timestamp
           : new Date().toISOString();
 
-      this.pushUxEvent({
+      await uxEventStore.add({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         eventType,
         payload,
@@ -143,7 +124,7 @@ export class MetricsController {
 
   async getUxSummary(req: Request, res: Response): Promise<void> {
     try {
-      const events = MetricsController.uxEvents;
+      const events = await uxEventStore.list();
       const byType = events.reduce(
         (acc, event) => {
           acc[event.eventType] = (acc[event.eventType] || 0) + 1;
