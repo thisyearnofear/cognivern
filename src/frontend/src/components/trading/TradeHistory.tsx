@@ -27,15 +27,16 @@ interface TradeHistoryProps {
   isLoading: boolean;
 }
 
+type DecisionFilter = "all" | "buy" | "sell" | "hold";
+type DecisionSort = "timestamp" | "confidence" | "price";
+
 export default function TradeHistory({
   decisions,
   agentType,
   isLoading,
 }: TradeHistoryProps) {
-  const [filter, setFilter] = useState<"all" | "buy" | "sell" | "hold">("all");
-  const [sortBy, setSortBy] = useState<"timestamp" | "confidence" | "price">(
-    "timestamp",
-  );
+  const [filter, setFilter] = useState<DecisionFilter>("all");
+  const [sortBy, setSortBy] = useState<DecisionSort>("timestamp");
 
   const filteredDecisions = decisions
     .filter((decision) => filter === "all" || decision.action === filter)
@@ -89,6 +90,20 @@ export default function TradeHistory({
       score: Math.round((passedChecks / checks.length) * 100),
       status: passedChecks === checks.length ? "approved" : "flagged",
     };
+  };
+
+  const parseFilter = (value: string): DecisionFilter => {
+    if (value === "buy" || value === "sell" || value === "hold") {
+      return value;
+    }
+    return "all";
+  };
+
+  const parseSort = (value: string): DecisionSort => {
+    if (value === "confidence" || value === "price") {
+      return value;
+    }
+    return "timestamp";
   };
 
   const containerStyles = css`
@@ -374,12 +389,12 @@ export default function TradeHistory({
     return (
       <div css={containerStyles}>
         <div css={headerStyles}>
-          <h3>📋 Trade History</h3>
+          <h3>Trade History</h3>
           <div css={controlsStyles}>
             <select
               css={selectStyles}
               value={filter}
-              onChange={(e) => setFilter(e.target.value as any)}
+              onChange={(e) => setFilter(parseFilter(e.target.value))}
             >
               <option value="all">All Actions</option>
               <option value="buy">Buy Orders</option>
@@ -389,7 +404,7 @@ export default function TradeHistory({
             <select
               css={selectStyles}
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(parseSort(e.target.value))}
             >
               <option value="timestamp">Sort by Time</option>
               <option value="confidence">Sort by Confidence</option>
@@ -399,17 +414,10 @@ export default function TradeHistory({
         </div>
 
         <div css={emptyStateStyles}>
-          <div
-            css={css`
-              font-size: 3rem;
-              margin-bottom: ${designTokens.spacing[4]};
-            `}
-          >
-            📊
-          </div>
+          <Badge variant="secondary">No Data</Badge>
           <h4
             css={css`
-              margin: 0 0 ${designTokens.spacing[2]} 0;
+              margin: ${designTokens.spacing[3]} 0 ${designTokens.spacing[2]} 0;
               color: ${designTokens.colors.neutral[700]};
             `}
           >
@@ -440,12 +448,12 @@ export default function TradeHistory({
   return (
     <div css={containerStyles}>
       <div css={headerStyles}>
-        <h3>📋 Trade History</h3>
+        <h3>Trade History</h3>
         <div css={controlsStyles}>
           <select
             css={selectStyles}
             value={filter}
-            onChange={(e) => setFilter(e.target.value as any)}
+            onChange={(e) => setFilter(parseFilter(e.target.value))}
           >
             <option value="all">All Actions</option>
             <option value="buy">Buy Orders</option>
@@ -455,7 +463,7 @@ export default function TradeHistory({
           <select
             css={selectStyles}
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(parseSort(e.target.value))}
           >
             <option value="timestamp">Sort by Time</option>
             <option value="confidence">Sort by Confidence</option>
@@ -484,6 +492,10 @@ export default function TradeHistory({
       <div css={tradeListStyles}>
         {filteredDecisions.map((decision, index) => (
           <div key={index} css={tradeItemStyles}>
+            {(() => {
+              const governance = getGovernanceStatus(decision);
+              return (
+                <>
             {/* Trade Header */}
             <div css={tradeHeaderStyles}>
               <div css={tradeActionStyles}>
@@ -539,43 +551,34 @@ export default function TradeHistory({
 
             {/* Reasoning */}
             <div css={reasoningStyles}>
-              <div css={reasoningLabelStyles}>💭 Reasoning</div>
+              <div css={reasoningLabelStyles}>Reasoning</div>
               <p css={reasoningTextStyles}>{decision.reasoning}</p>
             </div>
 
             {/* Governance Status */}
             <div css={governanceStyles}>
               <div css={governanceHeaderStyles}>
-                <span>🛡️ Governance</span>
-                {(() => {
-                  const governance = getGovernanceStatus(decision);
-                  return (
-                    <>
-                      <Badge
-                        variant={
-                          governance.status === "approved"
-                            ? "success"
-                            : "warning"
-                        }
-                      >
-                        {governance.status === "approved"
-                          ? "✅ Approved"
-                          : "⚠️ Flagged"}
-                      </Badge>
-                      <span
-                        css={css`
-                          font-size: ${designTokens.typography.fontSize.sm};
-                          color: ${designTokens.colors.neutral[600]};
-                        `}
-                      >
-                        {governance.score}% compliance
-                      </span>
-                    </>
-                  );
-                })()}
+                <span>Governance</span>
+                <Badge
+                  variant={
+                    governance.status === "approved"
+                      ? "success"
+                      : "warning"
+                  }
+                >
+                  {governance.status === "approved" ? "Approved" : "Flagged"}
+                </Badge>
+                <span
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    color: ${designTokens.colors.neutral[600]};
+                  `}
+                >
+                  {governance.score}% compliance
+                </span>
               </div>
               <div css={governanceChecksStyles}>
-                {getGovernanceStatus(decision).checks.map((check, i) => (
+                {governance.checks.map((check, i) => (
                   <span key={i} css={checkItemStyles(check.passed)}>
                     {check.passed ? "✓" : "✗"} {check.name}
                   </span>
@@ -586,7 +589,7 @@ export default function TradeHistory({
             {/* Vincent Sentiment Data */}
             {agentType === "vincent" && decision.sentimentData && (
               <div css={sentimentStyles}>
-                <div css={sentimentHeaderStyles}>💭 Sentiment Analysis</div>
+                <div css={sentimentHeaderStyles}>Sentiment Analysis</div>
                 <div css={sentimentGridStyles}>
                   <div css={detailItemStyles}>
                     <span css={detailLabelStyles}>Score</span>
@@ -623,6 +626,9 @@ export default function TradeHistory({
                 </div>
               </div>
             )}
+                </>
+              );
+            })()}
           </div>
         ))}
       </div>

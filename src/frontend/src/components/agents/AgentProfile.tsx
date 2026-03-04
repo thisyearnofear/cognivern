@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { css } from "@emotion/react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -162,11 +162,9 @@ const techBadgeStyles = css`
 const AgentProfile: React.FC = () => {
   const { agentId } = useParams<{ agentId: string }>();
   const navigate = useNavigate();
-  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrollY(window.scrollY);
       document.documentElement.style.setProperty('--scroll-y', `${window.scrollY}`);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -197,12 +195,12 @@ const AgentProfile: React.FC = () => {
         onClick={() => navigate(-1)}
         css={css`margin-bottom: ${designTokens.spacing[10]};`}
       >
-        ← Back to Dashboard
+        Back to Dashboard
       </Button>
 
       <div css={headerCardStyles}>
         <div css={avatarContainerStyles}>
-          {agentType === "recall" ? "🏆" : "🧠"}
+          {agentType === "recall" ? "RC" : "VC"}
         </div>
         <div css={css`${keyframeAnimations.parallax(-0.05)};`}>
           <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[4]}; margin-bottom: ${designTokens.spacing[4]};`}>
