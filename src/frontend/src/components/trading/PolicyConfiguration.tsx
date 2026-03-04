@@ -8,7 +8,11 @@ interface PolicyConfigurationProps {
     allowedTokens: string[];
     maxTradeSize: number;
   };
-  onUpdate: (policies: any) => void;
+  onUpdate: (policies: {
+    dailySpendingLimit: number;
+    allowedTokens: string[];
+    maxTradeSize: number;
+  }) => void;
 }
 
 // Token list should be fetched from API or configuration
@@ -57,11 +61,11 @@ export default function PolicyConfiguration({
   return (
     <div css={configStyles}>
       <div className="policy-header">
-        <h3>🛡️ Trading Policies</h3>
+        <h3>Trading Policies</h3>
         <p>Configure your trading agent's behavior and limits</p>
         {!isEditing && (
           <button className="edit-button" onClick={() => setIsEditing(true)}>
-            <span className="edit-icon">✏️</span>
+            <span className="edit-icon">ED</span>
             Edit Policies
           </button>
         )}
@@ -70,7 +74,7 @@ export default function PolicyConfiguration({
       <div className="policy-content">
         {/* Daily Spending Limit */}
         <div className="policy-section">
-          <h4>💰 Daily Spending Limit</h4>
+          <h4>Daily Spending Limit</h4>
           <p>Maximum amount the agent can spend per day</p>
           <div className="policy-control">
             <div className="input-group">
@@ -91,7 +95,7 @@ export default function PolicyConfiguration({
               <span className="input-suffix">USD</span>
             </div>
             <div className="policy-info">
-              <span className="info-icon">ℹ️</span>
+              <span className="info-icon">IN</span>
               <span>Recommended: $100-$1000 for testing</span>
             </div>
           </div>
@@ -99,7 +103,7 @@ export default function PolicyConfiguration({
 
         {/* Maximum Trade Size */}
         <div className="policy-section">
-          <h4>📊 Maximum Trade Size</h4>
+          <h4>Maximum Trade Size</h4>
           <p>Largest single trade the agent can execute</p>
           <div className="policy-control">
             <div className="input-group">
@@ -120,7 +124,7 @@ export default function PolicyConfiguration({
               <span className="input-suffix">USD</span>
             </div>
             <div className="policy-info">
-              <span className="info-icon">ℹ️</span>
+              <span className="info-icon">IN</span>
               <span>Should be less than daily limit</span>
             </div>
           </div>
@@ -128,7 +132,7 @@ export default function PolicyConfiguration({
 
         {/* Allowed Tokens */}
         <div className="policy-section">
-          <h4>🪙 Allowed Tokens</h4>
+          <h4>Allowed Tokens</h4>
           <p>Tokens the agent is permitted to trade</p>
           <div className="token-grid">
             {AVAILABLE_TOKENS.map((token) => (
@@ -151,14 +155,14 @@ export default function PolicyConfiguration({
             ))}
           </div>
           <div className="policy-info">
-            <span className="info-icon">ℹ️</span>
+            <span className="info-icon">IN</span>
             <span>Selected: {localPolicies.allowedTokens.length} tokens</span>
           </div>
         </div>
 
         {/* Policy Summary */}
         <div className="policy-summary">
-          <h4>📋 Policy Summary</h4>
+          <h4>Policy Summary</h4>
           <div className="summary-grid">
             <div className="summary-item">
               <span className="summary-label">Daily Limit:</span>
@@ -208,7 +212,7 @@ export default function PolicyConfiguration({
                 </>
               ) : (
                 <>
-                  <span className="save-icon">💾</span>
+                  <span className="save-icon">SV</span>
                   Save Policies
                 </>
               )}
@@ -218,7 +222,7 @@ export default function PolicyConfiguration({
               onClick={handleCancel}
               disabled={isSaving}
             >
-              <span className="cancel-icon">❌</span>
+              <span className="cancel-icon">CN</span>
               Cancel
             </button>
           </div>
@@ -227,13 +231,13 @@ export default function PolicyConfiguration({
 
       {/* Policy Validation */}
       <div className="policy-validation">
-        <h4>✅ Policy Validation</h4>
+        <h4>Policy Validation</h4>
         <div className="validation-checks">
           <div
             className={`validation-item ${localPolicies.dailySpendingLimit > 0 ? "valid" : "invalid"}`}
           >
             <span className="validation-icon">
-              {localPolicies.dailySpendingLimit > 0 ? "✅" : "❌"}
+              {localPolicies.dailySpendingLimit > 0 ? "OK" : "NO"}
             </span>
             <span>Daily spending limit is set</span>
           </div>
@@ -242,8 +246,8 @@ export default function PolicyConfiguration({
           >
             <span className="validation-icon">
               {localPolicies.maxTradeSize <= localPolicies.dailySpendingLimit
-                ? "✅"
-                : "❌"}
+                ? "OK"
+                : "NO"}
             </span>
             <span>Max trade size is within daily limit</span>
           </div>
@@ -251,7 +255,7 @@ export default function PolicyConfiguration({
             className={`validation-item ${localPolicies.allowedTokens.length > 0 ? "valid" : "invalid"}`}
           >
             <span className="validation-icon">
-              {localPolicies.allowedTokens.length > 0 ? "✅" : "❌"}
+              {localPolicies.allowedTokens.length > 0 ? "OK" : "NO"}
             </span>
             <span>At least one token is allowed</span>
           </div>

@@ -77,7 +77,7 @@ export default function AgentStats({
     <div css={statsStyles}>
       <div className="stats-header">
         <h3>
-          {agentType === "recall" ? "🏆 Recall Agent" : "🧠 Vincent Agent"}{" "}
+          {agentType === "recall" ? "Recall Agent" : "Vincent Agent"}{" "}
           Status
         </h3>
         <div className="agent-controls">
@@ -94,7 +94,7 @@ export default function AgentStats({
                 </>
               ) : (
                 <>
-                  <span className="start-icon">▶️</span>
+                  <span className="start-icon">ST</span>
                   Start Agent
                 </>
               )}
@@ -112,7 +112,7 @@ export default function AgentStats({
                 </>
               ) : (
                 <>
-                  <span className="stop-icon">⏹️</span>
+                  <span className="stop-icon">SP</span>
                   Stop Agent
                 </>
               )}
@@ -125,7 +125,7 @@ export default function AgentStats({
         {/* Status Card */}
         <div className="stat-card status-card">
           <div className="stat-header">
-            <span className="stat-icon">🔄</span>
+            <span className="stat-icon">ST</span>
             <span className="stat-title">Status</span>
           </div>
           <div className="stat-content">
@@ -146,7 +146,7 @@ export default function AgentStats({
         {/* Trades Card */}
         <div className="stat-card">
           <div className="stat-header">
-            <span className="stat-icon">📊</span>
+            <span className="stat-icon">TR</span>
             <span className="stat-title">Trades Executed</span>
           </div>
           <div className="stat-content">
@@ -158,7 +158,7 @@ export default function AgentStats({
         {/* Performance Cards */}
         <div className="stat-card">
           <div className="stat-header">
-            <span className="stat-icon">💰</span>
+            <span className="stat-icon">RT</span>
             <span className="stat-title">Total Return</span>
           </div>
           <div className="stat-content">
@@ -175,7 +175,7 @@ export default function AgentStats({
             </div>
             {agentType === "recall" && (
               <div className="competition-context">
-                <span className="competition-badge">🏆 Live Competition</span>
+                <span className="competition-badge">Live Competition</span>
               </div>
             )}
           </div>
@@ -183,7 +183,7 @@ export default function AgentStats({
 
         <div className="stat-card">
           <div className="stat-header">
-            <span className="stat-icon">🎯</span>
+            <span className="stat-icon">WR</span>
             <span className="stat-title">Win Rate</span>
           </div>
           <div className="stat-content">
@@ -196,7 +196,7 @@ export default function AgentStats({
 
         <div className="stat-card">
           <div className="stat-header">
-            <span className="stat-icon">📈</span>
+            <span className="stat-icon">SR</span>
             <span className="stat-title">Sharpe Ratio</span>
           </div>
           <div className="stat-content">
@@ -210,7 +210,7 @@ export default function AgentStats({
         {/* Governance & Compliance Cards */}
         <div className="stat-card governance-card">
           <div className="stat-header">
-            <span className="stat-icon">🛡️</span>
+            <span className="stat-icon">PC</span>
             <span className="stat-title">Policy Compliance</span>
           </div>
           <div className="stat-content">
@@ -227,7 +227,7 @@ export default function AgentStats({
 
         <div className="stat-card governance-card">
           <div className="stat-header">
-            <span className="stat-icon">⚡</span>
+            <span className="stat-icon">LV</span>
             <span className="stat-title">Live Status</span>
           </div>
           <div className="stat-content">
@@ -248,7 +248,7 @@ export default function AgentStats({
           <>
             <div className="stat-card vincent-card">
               <div className="stat-header">
-                <span className="stat-icon">🔐</span>
+                <span className="stat-icon">VS</span>
                 <span className="stat-title">Vincent Status</span>
               </div>
               <div className="stat-content">
@@ -257,7 +257,7 @@ export default function AgentStats({
                     className={`consent-status ${vincentStatus.hasConsent ? "granted" : "pending"}`}
                   >
                     <span className="consent-icon">
-                      {vincentStatus.hasConsent ? "✅" : "⏳"}
+                      {vincentStatus.hasConsent ? "OK" : "PD"}
                     </span>
                     <span>
                       {vincentStatus.hasConsent
@@ -272,7 +272,7 @@ export default function AgentStats({
 
             <div className="stat-card vincent-card">
               <div className="stat-header">
-                <span className="stat-icon">🛡️</span>
+                <span className="stat-icon">PL</span>
                 <span className="stat-title">Policy Limits</span>
               </div>
               <div className="stat-content">
@@ -306,7 +306,7 @@ export default function AgentStats({
       <div className="agent-info">
         {agentType === "recall" ? (
           <div className="recall-info">
-            <h4>🏆 Recall Trading Features</h4>
+            <h4>Recall Trading Features</h4>
             <ul>
               <li>Competition-focused trading strategies</li>
               <li>Real-time market data integration</li>
@@ -316,7 +316,7 @@ export default function AgentStats({
           </div>
         ) : (
           <div className="vincent-info">
-            <h4>🧠 Vincent Social Trading Features</h4>
+            <h4>Vincent Social Trading Features</h4>
             <ul>
               <li>Sentiment analysis from social media</li>
               <li>User-controlled policy enforcement</li>
@@ -330,7 +330,7 @@ export default function AgentStats({
       {/* Warnings */}
       {agentType === "vincent" && !vincentStatus?.hasConsent && (
         <div className="warning-banner">
-          <span className="warning-icon">⚠️</span>
+          <span className="warning-icon">!</span>
           <span>Vincent consent required before starting the agent</span>
         </div>
       )}
