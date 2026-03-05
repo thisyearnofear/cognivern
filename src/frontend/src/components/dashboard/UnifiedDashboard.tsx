@@ -464,7 +464,7 @@ const QuickActions = ({ isMobile }: QuickActionsProps) => {
           size="sm"
           onClick={() => navigate(action.path)}
           style={{
-            boxShadow: shadowSystem.lg,
+            boxShadow: designTokens.shadows.lg,
             borderRadius: designTokens.borderRadius.full,
             width: "auto",
             padding: `${designTokens.spacing[2]} ${designTokens.spacing[4]}`,

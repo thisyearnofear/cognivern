@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { designTokens, shadowSystem, keyframeAnimations } from "../../styles/design-system";
+import { designTokens, keyframeAnimations } from "../../styles/design-system";
 
 export const containerStyles = css`
   max-width: 1400px;
@@ -80,12 +80,12 @@ export const agentCardStyles = (isSelected: boolean) => css`
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: ${shadowSystem.lg};
+    box-shadow: ${designTokens.shadows.lg};
   }
 
   ${isSelected &&
   css`
-    box-shadow: ${shadowSystem.lg};
+    box-shadow: ${designTokens.shadows.lg};
     background: linear-gradient(
       135deg,
       ${designTokens.colors.primary[50]} 0%,

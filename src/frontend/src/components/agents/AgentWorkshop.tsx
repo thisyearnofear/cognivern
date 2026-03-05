@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { css } from "@emotion/react";
 import {
   designTokens,
-  colorSystem,
+  designTokens,
   keyframeAnimations,
   easings,
   layoutUtils,

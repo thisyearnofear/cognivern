@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import {
   designTokens,
-  shadowSystem,
+
   keyframeAnimations,
 } from "../../styles/design-system";
 import { AgentType, VincentStatus } from "../../types";
@@ -300,12 +300,12 @@ export default function TradingAgentDashboard() {
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: ${shadowSystem.lg};
+      box-shadow: ${designTokens.shadows.lg};
     }
 
     ${isSelected &&
     css`
-      box-shadow: ${shadowSystem.lg};
+      box-shadow: ${designTokens.shadows.lg};
       background: linear-gradient(
         135deg,
         ${designTokens.colors.primary[50]} 0%,

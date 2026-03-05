@@ -17,8 +17,8 @@ import { agentApi } from "../../services/apiService";
 import { useIntentStore } from "../../stores/intentStore";
 import {
   designTokens,
-  shadowSystem,
-  colorSystem,
+
+  designTokens,
   keyframeAnimations,
   easings,
 } from "../../styles/design-system";
@@ -79,7 +79,7 @@ export const Header: React.FC = () => {
       ${effectiveTheme === "dark"
         ? designTokens.colors.neutral[700]
         : designTokens.colors.neutral[200]};
-    box-shadow: ${shadowSystem.floating};
+    box-shadow: ${designTokens.shadowSystem.floating};
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     position: sticky;
@@ -118,7 +118,7 @@ export const Header: React.FC = () => {
     font-weight: ${designTokens.typography.fontWeight.medium};
     color: ${designTokens.colors.semantic.success[700]};
     border: 1px solid ${designTokens.colors.semantic.success[200]};
-    box-shadow: ${shadowSystem.sm};
+    box-shadow: ${designTokens.shadows.sm};
     transition: ${easings.smooth};
   `;
 
@@ -135,7 +135,7 @@ export const Header: React.FC = () => {
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: ${shadowSystem.md};
+      box-shadow: ${designTokens.shadows.md};
       background: ${designTokens.colors.neutral[50]};
     }
   `;

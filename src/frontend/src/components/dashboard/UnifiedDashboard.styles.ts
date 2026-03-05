@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { designTokens, shadowSystem, easings } from "../../styles/design-system";
+import { designTokens, easings } from "../../styles/design-system";
 
 export const containerStyles = (isMobile: boolean) => css`
   padding: ${isMobile ? designTokens.spacing[4] : designTokens.spacing[8]};
@@ -222,7 +222,7 @@ export const mobileActionsStyles = css`
   border-top: 1px solid ${designTokens.colors.border.primary};
   padding: ${designTokens.spacing[2]};
   z-index: 100;
-  box-shadow: ${shadowSystem.lg};
+  box-shadow: ${designTokens.shadows.lg};
 `;
 
 export const mobileActionButtonStyles = css`

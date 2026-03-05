@@ -1,6 +1,6 @@
 import { AgentType } from "./TradingAgentDashboard";
 import { css } from "@emotion/react";
-import { designTokens, shadowSystem } from "../../styles/design-system";
+import { designTokens } from "../../styles/design-system";
 
 interface TradingDecision {
   action: "buy" | "sell" | "hold";
@@ -146,7 +146,7 @@ export default function TradingChart({
       border-radius: 50%;
       background: ${colors[action as keyof typeof colors]};
       border: 2px solid white;
-      box-shadow: ${shadowSystem.sm};
+      box-shadow: ${designTokens.shadows.sm};
       margin-bottom: ${designTokens.spacing[1]};
     `;
   };
@@ -159,7 +159,7 @@ export default function TradingChart({
     background: white;
     padding: 2px 6px;
     border-radius: ${designTokens.borderRadius.sm};
-    box-shadow: ${shadowSystem.sm};
+    box-shadow: ${designTokens.shadows.sm};
   `;
 
   const legendStyles = css`

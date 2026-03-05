@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AgentType } from "./TradingAgentDashboard";
 import { css } from "@emotion/react";
-import { designTokens, shadowSystem } from "../../styles/design-system";
+import { designTokens } from "../../styles/design-system";
 import { Badge } from "../ui/Badge";
 
 interface TradingDecision {
@@ -214,12 +214,12 @@ export default function TradeHistory({
     background: white;
     border-radius: ${designTokens.borderRadius.lg};
     padding: ${designTokens.spacing[5]};
-    box-shadow: ${shadowSystem.sm};
+    box-shadow: ${designTokens.shadows.sm};
     border: 1px solid ${designTokens.colors.neutral[200]};
     transition: all 0.2s ease;
 
     &:hover {
-      box-shadow: ${shadowSystem.md};
+      box-shadow: ${designTokens.shadows.md};
       transform: translateY(-1px);
     }
   `;

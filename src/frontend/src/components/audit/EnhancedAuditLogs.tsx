@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { css } from "@emotion/react";
 import {
   designTokens,
-  shadowSystem,
+
   keyframeAnimations,
-  colorSystem,
+  designTokens,
 } from "../../styles/design-system";
 import {
   Card,
@@ -255,7 +255,7 @@ const logItemStyles = css`
     border-radius: 50%;
     background: ${designTokens.colors.primary[500]};
     border: 2px solid white;
-    box-shadow: ${shadowSystem.sm};
+    box-shadow: ${designTokens.shadows.sm};
   }
 
   &.non-compliant::after {

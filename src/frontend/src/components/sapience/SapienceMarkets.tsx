@@ -12,7 +12,7 @@ import { Button } from "../ui/Button";
 import { MultiFieldDialog, ConfirmDialog } from "../ui/Dialog";
 import {
   designTokens,
-  shadowSystem,
+
   keyframeAnimations,
 } from "../../styles/design-system";
 import { useSapienceData } from "../../hooks/useSapienceData";
@@ -75,7 +75,7 @@ const statCardStyles = css`
   background: white;
   border-radius: ${designTokens.borderRadius.xl};
   padding: ${designTokens.spacing[6]};
-  box-shadow: ${shadowSystem.md};
+  box-shadow: ${designTokens.shadows.md};
   border: 1px solid ${designTokens.colors.neutral[200]};
   text-align: center;
   position: relative;
@@ -114,7 +114,7 @@ const filtersStyles = css`
   background: white;
   border-radius: ${designTokens.borderRadius.xl};
   padding: ${designTokens.spacing[6]};
-  box-shadow: ${shadowSystem.sm};
+  box-shadow: ${designTokens.shadows.sm};
   border: 1px solid ${designTokens.colors.neutral[200]};
   margin-bottom: ${designTokens.spacing[6]};
 `;
@@ -156,7 +156,7 @@ const marketCardStyles = css`
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: ${shadowSystem.xl};
+    box-shadow: ${designTokens.shadows.xl};
   }
 
   &.featured {

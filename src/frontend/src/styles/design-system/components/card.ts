@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { designTokens, shadowSystem } from "../tokens/designTokens";
+import { designTokens } from "../tokens/designTokens";
 import { easings } from "../animations/keyframes";
 
 // Card component variants
@@ -20,18 +20,18 @@ export const cardStyles = {
 
       &:hover {
         transform: translateY(-2px);
-        box-shadow: ${shadowSystem.floating};
+        box-shadow: ${designTokens.shadowSystem.floating};
         border-color: ${designTokens.colors.primary[300]};
       }
     `,
 
     elevated: css`
-      box-shadow: ${shadowSystem.floating};
+      box-shadow: ${designTokens.shadowSystem.floating};
       border: 1px solid ${designTokens.colors.neutral[200]};
 
       &:hover {
         transform: translateY(-4px);
-        box-shadow: ${shadowSystem.floatingHover};
+        box-shadow: ${designTokens.shadowSystem.floatingHover};
         border-color: ${designTokens.colors.primary[300]};
       }
     `,
