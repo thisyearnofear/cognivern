@@ -8,6 +8,7 @@ import {
 
 import { AppLayout } from "./components/layout";
 import SmartOnboarding from "./components/onboarding/SmartOnboarding";
+import { useTheme } from "./stores/appStore";
 import PageTransition from "./components/ui/PageTransition";
 import { LoadingSpinner } from "./components/ui/LoadingSpinner";
 import { loadingStyles } from "./styles/design-system";
@@ -38,6 +39,12 @@ const PageSkeleton: React.FC = () => (
 );
 
 function App() {
+  const { effectiveTheme } = useTheme();
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", effectiveTheme === "dark");
+  }, [effectiveTheme]);
+
   return (
     <Router>
       <div className="app">

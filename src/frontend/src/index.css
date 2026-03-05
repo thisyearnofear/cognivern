@@ -1,4 +1,47 @@
 /* Core reset and design system foundation */
+
+/* Light mode CSS custom properties */
+:root {
+  --card-bg: #ffffff;
+  --card-bg-elevated: #f8fafc;
+  --card-text: #0f172a;
+  --card-border: #e2e8f0;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-muted: #94a3b8;
+  --surface-bg: #f8fafc;
+  --surface-bg-alt: #f1f5f9;
+  --input-bg: #ffffff;
+  --input-border: #e2e8f0;
+  --scrollbar-thumb: #e2e8f0;
+  --scrollbar-thumb-hover: #cbd5e1;
+  --stat-label: #475569;
+  --stat-value: #0f172a;
+  --section-title: #1f2937;
+  --divider: #e2e8f0;
+}
+
+/* Dark mode CSS custom properties */
+.dark {
+  --card-bg: #1e293b;
+  --card-bg-elevated: #263348;
+  --card-text: #f1f5f9;
+  --card-border: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --surface-bg: #0f172a;
+  --surface-bg-alt: #1e293b;
+  --input-bg: #1e293b;
+  --input-border: #334155;
+  --scrollbar-thumb: #334155;
+  --scrollbar-thumb-hover: #475569;
+  --stat-label: #94a3b8;
+  --stat-value: #f1f5f9;
+  --section-title: #f1f5f9;
+  --divider: #334155;
+}
+
 :root {
   font-family:
     "Inter",
@@ -11,9 +54,9 @@
   line-height: 1.5;
   font-weight: 400;
 
-  /* Primary background and text colors from design tokens */
-  background-color: #f8fafc; /* Neutral 50 */
-  color: #1f2937; /* Neutral 900 */
+  /* Primary background and text colors — use CSS vars for theme support */
+  background-color: var(--surface-bg, #f8fafc);
+  color: var(--text-primary, #1f2937);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -79,12 +122,12 @@ h6 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #e2e8f0; /* Neutral 200 */
+  background: var(--scrollbar-thumb, #e2e8f0);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1; /* Neutral 300 */
+  background: var(--scrollbar-thumb-hover, #cbd5e1);
 }
 
 /* Accessibility: Hide elements but keep them for screen readers */

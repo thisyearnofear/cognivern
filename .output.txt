@@ -1,3 +1,73 @@
+Command finished with exit code 0.
+Command output:
+import { css } from "@emotion/react";
+import { designTokens } from "../tokens/designTokens";
+import { easings } from "../animations/keyframes";
+
+// Card component variants
+export type CardVariant = "default" | "elevated" | "glass" | "outlined";
+
+export const cardStyles = {
+  base: css`
+    background: ${designTokens.colors.neutral[0]};
+    border-radius: ${designTokens.borderRadius.xl};
+    transition: ${easings.smooth};
+    overflow: hidden;
+  `,
+
+  variants: {
+    default: css`
+      box-shadow: ${designTokens.shadows.lg};
+      border: 1px solid ${designTokens.colors.neutral[200]};
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: ${designTokens.shadowSystem.floating};
+        border-color: ${designTokens.colors.primary[300]};
+      }
+    `,
+
+    elevated: css`
+      box-shadow: ${designTokens.shadowSystem.floating};
+      border: 1px solid ${designTokens.colors.neutral[200]};
+
+      &:hover {
+        transform: translateY(-4px);
+        box-shadow: ${designTokens.shadowSystem.floatingHover};
+        border-color: ${designTokens.colors.primary[300]};
+      }
+    `,
+
+    glass: css`
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+
+      &:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.35);
+      }
+    `,
+
+    outlined: css`
+      background: transparent;
+      border: 2px solid ${designTokens.colors.neutral[200]};
+
+      &:hover {
+        border-color: ${designTokens.colors.primary[400]};
+        background: ${designTokens.colors.primary[50]};
+      }
+    `,
+  },
+} as const;
+
+// Card utility function
+export const getCardStyles = (variant: CardVariant = "default") => css`
+  ${cardStyles.base}
+  ${cardStyles.variants[variant]}
+`;
+---
 import React from "react";
 import { css } from "@emotion/react";
 import {
@@ -46,20 +116,20 @@ export const Card: React.FC<CardProps> = ({
 
 const cardHeaderStyles = css`
   padding-bottom: ${designTokens.spacing[4]};
-  border-bottom: 1px solid var(--divider, ${designTokens.colors.neutral[200]});
+  border-bottom: 1px solid ${designTokens.colors.neutral[200]};
   margin-bottom: ${designTokens.spacing[4]};
 `;
 
 const cardTitleStyles = css`
   font-size: ${designTokens.typography.fontSize.lg};
   font-weight: ${designTokens.typography.fontWeight.semibold};
-  color: var(--card-text, ${designTokens.colors.neutral[900]});
+  color: ${designTokens.colors.neutral[900]};
   margin: 0;
 `;
 
 const cardDescriptionStyles = css`
   font-size: ${designTokens.typography.fontSize.sm};
-  color: var(--text-secondary, ${designTokens.colors.neutral[600]});
+  color: ${designTokens.colors.neutral[600]};
   line-height: ${designTokens.typography.lineHeight.relaxed};
   margin: ${designTokens.spacing[2]} 0 0 0;
 `;
@@ -70,7 +140,7 @@ const cardContentStyles = css`
 
 const cardFooterStyles = css`
   padding-top: ${designTokens.spacing[4]};
-  border-top: 1px solid var(--divider, ${designTokens.colors.neutral[200]});
+  border-top: 1px solid ${designTokens.colors.neutral[200]};
   margin-top: ${designTokens.spacing[4]};
   display: flex;
   align-items: center;
