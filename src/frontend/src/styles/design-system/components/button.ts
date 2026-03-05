@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
+import { designTokens, colorSystem } from "../tokens/designTokens";
 import { easings } from "../animations/keyframes";
 
 // Button component variants
@@ -95,7 +95,7 @@ export const buttonStyles = {
 
   variants: {
     primary: css`
-      background: ${colorSystem.gradients.primary};
+      background: ${designTokens.colorSystem.gradients.primary};
       color: ${designTokens.colors.neutral[0]};
       box-shadow: ${designTokens.shadows.glow.primary};
 
@@ -129,7 +129,7 @@ export const buttonStyles = {
     `,
 
     danger: css`
-      background: ${colorSystem.gradients.danger};
+      background: ${designTokens.colorSystem.gradients.danger};
       color: ${designTokens.colors.neutral[0]};
       box-shadow: ${designTokens.shadows.glow.error};
 
@@ -140,7 +140,7 @@ export const buttonStyles = {
     `,
 
     success: css`
-      background: ${colorSystem.gradients.success};
+      background: ${designTokens.colorSystem.gradients.success};
       color: ${designTokens.colors.neutral[0]};
       box-shadow: ${designTokens.shadows.glow.success};
 

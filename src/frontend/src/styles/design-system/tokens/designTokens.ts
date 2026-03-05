@@ -1,5 +1,5 @@
 // Design tokens for consistent styling across the application
-export const designTokens = {
+const designTokensInternal = {
   colors: {
     // Primary brand colors
     primary: {
@@ -304,21 +304,24 @@ export const designTokens = {
 
 // Enhanced shadow system with depth and effects
 export const shadowSystem = {
-  ...designTokens.shadows,
-  ...designTokens.shadowSystem,
+  ...designTokensInternal.shadows,
+  ...designTokensInternal.shadowSystem,
 
   // Glow effects
   glow: {
-    primary: `0 0 20px ${designTokens.colors.primary[500]}40`,
-    success: `0 0 20px ${designTokens.colors.semantic.success[500]}40`,
-    warning: `0 0 20px ${designTokens.colors.semantic.warning[500]}40`,
-    error: `0 0 20px ${designTokens.colors.semantic.error[500]}40`,
+    primary: `0 0 20px ${designTokensInternal.colors.primary[500]}40`,
+    success: `0 0 20px ${designTokensInternal.colors.semantic.success[500]}40`,
+    warning: `0 0 20px ${designTokensInternal.colors.semantic.warning[500]}40`,
+    error: `0 0 20px ${designTokensInternal.colors.semantic.error[500]}40`,
   },
 } as const;
 
 export const colorSystem = {
-  ...designTokens.colors,
+  ...designTokensInternal.colors,
+  ...designTokensInternal.colorSystem,
 } as const;
+
+export const designTokens = designTokensInternal;
 
 // Type helpers
 export type ColorSystem = typeof colorSystem;
