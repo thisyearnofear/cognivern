@@ -260,6 +260,7 @@ export class ApiModule extends BaseService {
     this.app.get("/health", (req, res) => {
       this.controllers.get("health").getHealth(req, res);
     });
+
     this.app.get("/health/ready", (req, res) => {
       this.controllers.get("health").getReadiness(req, res);
     });
@@ -276,17 +277,20 @@ export class ApiModule extends BaseService {
     // API routes (require API key)
     const apiRouter = express.Router();
 
+    apiRouter.get("/health", (req, res) => {
+      this.controllers.get("health").getHealth(req, res);
+    });
+
     // System health
     apiRouter.get("/system/health", (req, res) => {
       this.controllers.get("health").getSystemHealth(req, res);
     });
 
-    // Agents routes - Showcase agents for AI governance platform
-    apiRouter.get("/agents", (req, res) => {
-      this.controllers.get("agents").getAgents(req, res);
+    // Agent comparison routes (must come before parameterized routes)
+    apiRouter.get("/agents/stats", (req, res) => {
+      this.controllers.get("agents").getAggregateStats(req, res);
     });
 
-    // Agent comparison routes (must come before parameterized routes)
     apiRouter.get("/agents/compare", (req, res) => {
       this.controllers.get("agents").compareAgents(req, res);
     });
@@ -295,8 +299,8 @@ export class ApiModule extends BaseService {
       this.controllers.get("agents").getLeaderboard(req, res);
     });
 
-    apiRouter.get("/agents/stats", (req, res) => {
-      this.controllers.get("agents").getAggregateStats(req, res);
+    apiRouter.get("/agents", (req, res) => {
+      this.controllers.get("agents").getAgents(req, res);
     });
 
     // Specific routes must come before parameterized routes

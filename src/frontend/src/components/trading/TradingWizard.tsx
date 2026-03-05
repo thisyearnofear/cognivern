@@ -1,4 +1,15 @@
 import React, { useState } from "react";
+import {
+  User,
+  Zap,
+  Shield,
+  Trophy,
+  Activity,
+  BarChart,
+  LineChart,
+  Target,
+  Rocket,
+} from "lucide-react";
 import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card";
@@ -62,7 +73,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "beginner",
       title: "New to Trading",
       description: "I want to learn while the AI handles the complexity",
-      icon: "BG",
+      icon: <User size={24} />,
       features: [
         "Guided tutorials",
         "Conservative defaults",
@@ -73,7 +84,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "intermediate",
       title: "Some Experience",
       description: "I understand basics but want AI assistance",
-      icon: "IN",
+      icon: <Activity size={24} />,
       features: [
         "Balanced approach",
         "Customizable settings",
@@ -84,7 +95,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "advanced",
       title: "Experienced Trader",
       description: "I want full control and advanced features",
-      icon: "AD",
+      icon: <Zap size={24} />,
       features: [
         "Advanced strategies",
         "Full customization",
@@ -99,7 +110,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       title: "Recall Competition Agent",
       description:
         "Optimized for trading competitions with aggressive strategies",
-      icon: "RC",
+      icon: <Trophy size={24} />,
       features: [
         "Competition-focused",
         "High-frequency trading",
@@ -111,7 +122,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "vincent",
       title: "Vincent Social Agent",
       description: "Uses social sentiment and market analysis for decisions",
-      icon: "VC",
+      icon: <Users size={24} />,
       features: ["Sentiment analysis", "Social signals", "Risk management"],
       recommended: config.userType !== "advanced",
     },
@@ -122,7 +133,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "conservative",
       title: "Conservative",
       description: "Lower risk, steady growth approach",
-      icon: "CV",
+      icon: <Shield size={24} />,
       expectedReturn: "5-15% annually",
       maxDrawdown: "< 5%",
     },
@@ -130,7 +141,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "moderate",
       title: "Moderate",
       description: "Balanced risk and reward strategy",
-      icon: "MD",
+      icon: <BarChart size={24} />,
       expectedReturn: "15-30% annually",
       maxDrawdown: "< 15%",
     },
@@ -138,7 +149,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
       id: "aggressive",
       title: "Aggressive",
       description: "Higher risk for potentially higher returns",
-      icon: "AG",
+      icon: <LineChart size={24} />,
       expectedReturn: "30%+ annually",
       maxDrawdown: "< 30%",
     },

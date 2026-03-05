@@ -1,4 +1,15 @@
-import React from "react";
+import {
+  Shield,
+  Activity,
+  FileText,
+  Users,
+  CheckCircle,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+  X,
+} from "lucide-react";
+
 import {
   useNotificationStore,
   Notification,
@@ -53,13 +64,17 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   onClose,
 }) => {
   const getIcon = (type: Notification["type"]) => {
-    const icons = {
-      success: "✅",
-      error: "❌",
-      warning: "⚠️",
-      info: "ℹ️",
-    };
-    return icons[type];
+    switch (type) {
+      case "success":
+        return <CheckCircle size={18} />;
+      case "error":
+        return <AlertCircle size={18} />;
+      case "warning":
+        return <AlertTriangle size={18} />;
+      case "info":
+      default:
+        return <Info size={18} />;
+    }
   };
 
   const formatTimestamp = (timestamp: number) => {
@@ -109,7 +124,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
         onClick={onClose}
         title="Close notification"
       >
-        ×
+        <X size={16} />
       </button>
     </div>
   );

@@ -120,6 +120,22 @@ export const designTokens = {
     },
   },
 
+  // Enhanced color system with semantic meanings
+  colorSystem: {
+    // Brand gradients
+    gradients: {
+      primary: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+      secondary: "linear-gradient(135deg, #64748b 0%, #475569 100%)",
+      success: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+      warning: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+      danger: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+      info: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+      dark: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+      glass:
+        "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)",
+    },
+  },
+
   // Spacing scale
   spacing: {
     0: "0px",
@@ -216,6 +232,26 @@ export const designTokens = {
     inner: "inset 0 2px 4px 0 rgb(0 0 0 / 0.05)",
   },
 
+  // Enhanced shadow system with depth and effects
+  shadowSystem: {
+    // Neumorphism shadows
+    neumorphism: {
+      light: {
+        raised: "8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff",
+        inset: "inset 8px 8px 16px #d1d9e6, inset -8px -8px 16px #ffffff",
+      },
+      dark: {
+        raised: "8px 8px 16px #0a0a0a, -8px -8px 16px #2a2a2a",
+        inset: "inset 8px 8px 16px #0a0a0a, inset -8px -8px 16px #2a2a2a",
+      },
+    },
+
+    // Floating elements
+    floating: "0 10px 30px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.2)",
+    floatingHover:
+      "0 20px 40px rgba(0, 0, 0, 0.15), 0 5px 15px rgba(0, 0, 0, 0.25)",
+  },
+
   // Z-index scale
   zIndex: {
     hide: -1,
@@ -266,7 +302,28 @@ export const designTokens = {
   },
 } as const;
 
+// Enhanced shadow system with depth and effects
+export const shadowSystem = {
+  ...designTokens.shadows,
+  ...designTokens.shadowSystem,
+
+  // Glow effects
+  glow: {
+    primary: `0 0 20px ${designTokens.colors.primary[500]}40`,
+    success: `0 0 20px ${designTokens.colors.semantic.success[500]}40`,
+    warning: `0 0 20px ${designTokens.colors.semantic.warning[500]}40`,
+    error: `0 0 20px ${designTokens.colors.semantic.error[500]}40`,
+  },
+} as const;
+
+export const colorSystem = {
+  ...designTokens.colors,
+  ...designTokens.colorSystem,
+} as const;
+
 // Type helpers
+export type ColorSystem = typeof colorSystem;
+export type ShadowSystem = typeof shadowSystem;
 export type ColorScale = keyof typeof designTokens.colors.primary;
 export type SemanticColor = keyof typeof designTokens.colors.semantic;
 export type SpacingValue = keyof typeof designTokens.spacing;

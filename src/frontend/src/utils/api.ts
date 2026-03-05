@@ -51,7 +51,7 @@ export function getApiUrl(endpoint: string): string {
   let cleanEndpoint = endpoint;
 
   // Ensure endpoint starts with /api/
-  if (!cleanEndpoint.startsWith("/api/")) {
+  if (cleanEndpoint !== "/health" && !cleanEndpoint.startsWith("/api/")) {
     if (cleanEndpoint.startsWith("/")) {
       cleanEndpoint = `/api${cleanEndpoint}`;
     } else {
