@@ -318,7 +318,6 @@ export const shadowSystem = {
 
 export const colorSystem = {
   ...designTokens.colors,
-  ...colorSystem,
 } as const;
 
 // Type helpers
