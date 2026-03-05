@@ -83,19 +83,19 @@ const statValueContainerStyles = css`
 const statValueStyles = css`
   font-size: ${designTokens.typography.fontSize.xl};
   font-weight: ${designTokens.typography.fontWeight.bold};
-  color: ${designTokens.colors.neutral[900]};
+  color: var(--stat-value, ${designTokens.colors.neutral[900]});
   line-height: 1.2;
 `;
 
 const statTotalStyles = css`
   font-size: ${designTokens.typography.fontSize.sm};
-  color: ${designTokens.colors.neutral[500]};
+  color: var(--text-muted, ${designTokens.colors.neutral[500]});
   font-weight: ${designTokens.typography.fontWeight.medium};
 `;
 
 const statLabelStyles = css`
   font-size: ${designTokens.typography.fontSize.xs};
-  color: ${designTokens.colors.neutral[500]};
+  color: var(--stat-label, ${designTokens.colors.neutral[600]});
   font-weight: ${designTokens.typography.fontWeight.medium};
   text-transform: uppercase;
   letter-spacing: 0.05em;

@@ -17,7 +17,7 @@ export const statsHeaderStyles = css`
 export const titleStyles = css`
   font-size: ${designTokens.typography.fontSize["3xl"]};
   font-weight: ${designTokens.typography.fontWeight.bold};
-  color: ${designTokens.colors.text.primary};
+  color: var(--section-title, ${designTokens.colors.text.primary});
   margin-bottom: ${designTokens.spacing[2]};
 `;
 
@@ -51,7 +51,7 @@ export const sectionHeaderStyles = css`
 export const sectionTitleStyles = css`
   font-size: ${designTokens.typography.fontSize.xl};
   font-weight: ${designTokens.typography.fontWeight.semibold};
-  color: ${designTokens.colors.text.primary};
+  color: var(--section-title, ${designTokens.colors.text.primary});
 `;
 
 export const agentGridStyles = (columns: number) => css`
@@ -89,7 +89,7 @@ export const activityItemStyles = css`
   display: flex;
   gap: ${designTokens.spacing[4]};
   padding-bottom: ${designTokens.spacing[4]};
-  border-bottom: 1px solid ${designTokens.colors.border.primary};
+  border-bottom: 1px solid var(--divider, ${designTokens.colors.border.primary});
 
   &:last-child {
     border-bottom: none;
@@ -101,7 +101,7 @@ export const activityIconStyles = css`
   width: 40px;
   height: 40px;
   border-radius: ${designTokens.borderRadius.md};
-  background: ${designTokens.colors.background.secondary};
+  background: var(--surface-bg-alt, ${designTokens.colors.background.secondary});
   display: flex;
   align-items: center;
   justify-content: center;
@@ -117,13 +117,13 @@ export const activityDetailsStyles = css`
 
 export const activityTextStyles = css`
   font-size: ${designTokens.typography.fontSize.sm};
-  color: ${designTokens.colors.text.primary};
+  color: var(--section-title, ${designTokens.colors.text.primary});
   font-weight: ${designTokens.typography.fontWeight.medium};
 `;
 
 export const activityTimeStyles = css`
   font-size: ${designTokens.typography.fontSize.xs};
-  color: ${designTokens.colors.text.secondary};
+  color: var(--text-secondary, ${designTokens.colors.text.secondary});
 `;
 
 export const showMoreButtonStyles = css`
@@ -148,7 +148,7 @@ export const emptyStateStyles = css`
   align-items: center;
   justify-content: center;
   padding: ${designTokens.spacing[12]};
-  color: ${designTokens.colors.text.secondary};
+  color: var(--text-secondary, ${designTokens.colors.text.secondary});
   text-align: center;
   gap: ${designTokens.spacing[2]};
 
@@ -163,7 +163,7 @@ export const loadingStyles = css`
   align-items: center;
   justify-content: center;
   padding: ${designTokens.spacing[12]};
-  color: ${designTokens.colors.text.secondary};
+  color: var(--text-secondary, ${designTokens.colors.text.secondary});
 `;
 
 export const pullToRefreshIndicatorStyles = (distance: number) => css`
@@ -176,7 +176,7 @@ export const pullToRefreshIndicatorStyles = (distance: number) => css`
   align-items: center;
   justify-content: center;
   font-size: ${designTokens.typography.fontSize.xs};
-  color: ${designTokens.colors.text.secondary};
+  color: var(--text-secondary, ${designTokens.colors.text.secondary});
   transition: top 0.1s ease-out;
   z-index: 10;
 `;
@@ -234,11 +234,11 @@ export const mobileActionButtonStyles = css`
   border: none;
   padding: ${designTokens.spacing[2]};
   font-size: 10px;
-  color: ${designTokens.colors.text.secondary};
+  color: var(--text-secondary, ${designTokens.colors.text.secondary});
   cursor: pointer;
 
   &:active {
-    background: ${designTokens.colors.background.secondary};
+    background: var(--surface-bg-alt, ${designTokens.colors.background.secondary});
   }
 `;
 
@@ -249,7 +249,7 @@ export const mobileActionIconStyles = css`
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  background: ${designTokens.colors.background.secondary};
+  background: var(--surface-bg-alt, ${designTokens.colors.background.secondary});
   border-radius: ${designTokens.borderRadius.sm};
 `;
 

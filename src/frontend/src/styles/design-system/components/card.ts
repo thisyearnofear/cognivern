@@ -7,7 +7,8 @@ export type CardVariant = "default" | "elevated" | "glass" | "outlined";
 
 export const cardStyles = {
   base: css`
-    background: ${designTokens.colors.neutral[0]};
+    background: var(--card-bg, ${designTokens.colors.neutral[0]});
+    color: var(--card-text, ${designTokens.colors.neutral[900]});
     border-radius: ${designTokens.borderRadius.xl};
     transition: ${easings.smooth};
     overflow: hidden;
@@ -16,7 +17,7 @@ export const cardStyles = {
   variants: {
     default: css`
       box-shadow: ${designTokens.shadows.lg};
-      border: 1px solid ${designTokens.colors.neutral[200]};
+      border: 1px solid var(--card-border, ${designTokens.colors.neutral[200]});
 
       &:hover {
         transform: translateY(-2px);
@@ -27,7 +28,7 @@ export const cardStyles = {
 
     elevated: css`
       box-shadow: ${designTokens.shadowSystem.floating};
-      border: 1px solid ${designTokens.colors.neutral[200]};
+      border: 1px solid var(--card-border, ${designTokens.colors.neutral[200]});
 
       &:hover {
         transform: translateY(-4px);
@@ -50,7 +51,7 @@ export const cardStyles = {
 
     outlined: css`
       background: transparent;
-      border: 2px solid ${designTokens.colors.neutral[200]};
+      border: 2px solid var(--card-border, ${designTokens.colors.neutral[200]});
 
       &:hover {
         border-color: ${designTokens.colors.primary[400]};
