@@ -291,10 +291,10 @@ const designTokensInternal = {
     "2xl": "0 25px 50px -12px rgb(0 0 0 / 0.25)",
     inner: "inset 0 2px 4px 0 rgb(0 0 0 / 0.05)",
     glow: {
-      primary: `0 0 20px ${designTokensInternal.colors.primary[500]}40`,
-      success: `0 0 20px ${designTokensInternal.colors.semantic.success[500]}40`,
-      warning: `0 0 20px ${designTokensInternal.colors.semantic.warning[500]}40`,
-      error: `0 0 20px ${designTokensInternal.colors.semantic.error[500]}40`,
+      primary: "0 0 20px #0ea5e940",
+      success: "0 0 20px #22c55e40",
+      warning: "0 0 20px #f59e0b40",
+      error: "0 0 20px #ef444440",
     },
   },
 
