@@ -90,7 +90,7 @@ export const Header: React.FC = () => {
   const titleStyles = css`
     font-size: ${designTokens.typography.fontSize.xl};
     font-weight: ${designTokens.typography.fontWeight.bold};
-    background: ${colorSystem.gradients.primary};
+    background: ${designTokens.colorSystem.gradients.primary};
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

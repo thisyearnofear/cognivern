@@ -2,9 +2,8 @@ import React, { useState, useEffect } from "react";
 import { css } from "@emotion/react";
 import {
   designTokens,
-
+  colorSystem,
   keyframeAnimations,
-  designTokens,
 } from "../../styles/design-system";
 import {
   Card,
@@ -84,7 +83,7 @@ const headerStyles = css`
 const titleStyles = css`
   font-size: ${designTokens.typography.fontSize["3xl"]};
   font-weight: ${designTokens.typography.fontWeight.bold};
-  background: ${colorSystem.gradients.primary};
+  background: ${designTokens.colorSystem.gradients.primary};
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -125,7 +124,7 @@ const metricCardStyles = css`
     left: 0;
     right: 0;
     height: 4px;
-    background: ${colorSystem.gradients.primary};
+    background: ${designTokens.colorSystem.gradients.primary};
   }
 `;
 
