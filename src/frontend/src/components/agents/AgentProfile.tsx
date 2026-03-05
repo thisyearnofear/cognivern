@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   designTokens,
-  shadowSystem,
+
   keyframeAnimations
 } from "../../styles/design-system";
 import {
@@ -64,7 +64,7 @@ const avatarContainerStyles = css`
   align-items: center;
   justify-content: center;
   font-size: 5rem;
-  box-shadow: ${shadowSystem.xl};
+  box-shadow: ${designTokens.shadows.xl};
   ${keyframeAnimations.parallax(-0.2)};
   transition: transform 0.1s linear;
 
@@ -128,12 +128,12 @@ const dataItemStyles = css`
   background: white;
   border-radius: ${designTokens.borderRadius.xl};
   border: 1px solid ${designTokens.colors.neutral[100]};
-  box-shadow: ${shadowSystem.sm};
+  box-shadow: ${designTokens.shadows.sm};
   transition: all 0.3s ease;
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: ${shadowSystem.md};
+    box-shadow: ${designTokens.shadows.md};
     border-color: ${designTokens.colors.primary[200]};
   }
 `;

@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { designTokens, colorSystem, shadowSystem } from "../tokens/designTokens";
+import { designTokens } from "../tokens/designTokens";
 import { easings } from "../animations/keyframes";
 
 // Button component variants
@@ -97,11 +97,11 @@ export const buttonStyles = {
     primary: css`
       background: ${colorSystem.gradients.primary};
       color: ${designTokens.colors.neutral[0]};
-      box-shadow: ${shadowSystem.glow.primary};
+      box-shadow: ${designTokens.shadows.glow.primary};
 
       &:hover {
         filter: brightness(1.1);
-        box-shadow: ${shadowSystem.glow.primary}, ${designTokens.shadows.lg};
+        box-shadow: ${designTokens.shadows.glow.primary}, ${designTokens.shadows.lg};
       }
     `,
 
@@ -131,22 +131,22 @@ export const buttonStyles = {
     danger: css`
       background: ${colorSystem.gradients.danger};
       color: ${designTokens.colors.neutral[0]};
-      box-shadow: ${shadowSystem.glow.error};
+      box-shadow: ${designTokens.shadows.glow.error};
 
       &:hover {
         filter: brightness(1.1);
-        box-shadow: ${shadowSystem.glow.error}, ${designTokens.shadows.lg};
+        box-shadow: ${designTokens.shadows.glow.error}, ${designTokens.shadows.lg};
       }
     `,
 
     success: css`
       background: ${colorSystem.gradients.success};
       color: ${designTokens.colors.neutral[0]};
-      box-shadow: ${shadowSystem.glow.success};
+      box-shadow: ${designTokens.shadows.glow.success};
 
       &:hover {
         filter: brightness(1.1);
-        box-shadow: ${shadowSystem.glow.success}, ${designTokens.shadows.lg};
+        box-shadow: ${designTokens.shadows.glow.success}, ${designTokens.shadows.lg};
       }
     `,
 

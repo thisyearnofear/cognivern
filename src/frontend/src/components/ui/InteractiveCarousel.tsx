@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { css } from "@emotion/react";
-import { designTokens, shadowSystem } from "../../styles/design-system";
+import { designTokens } from "../../styles/design-system";
 import { Card, CardContent } from "./Card";
 import { Button } from "./Button";
 
