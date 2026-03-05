@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { designTokens } from "../../designTokens";
+import { designTokens } from "../tokens/designTokens";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl";
 

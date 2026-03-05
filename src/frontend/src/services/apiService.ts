@@ -110,6 +110,19 @@ class ApiService {
     return this.request<T>(endpoint, { method: "GET" });
   }
 
+  // Health check
+  async checkHealth(): Promise<boolean> {
+    try {
+      const response = await fetch(getApiUrl("/health"), {
+        method: "GET",
+        headers: DEFAULT_HEADERS,
+      });
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+  }
+
   // POST request
   async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {

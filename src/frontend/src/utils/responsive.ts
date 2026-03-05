@@ -1,4 +1,4 @@
-import { designTokens } from "../styles/designTokens";
+import { designTokens } from "../styles/design-system";
 
 // Viewport utilities for consistent responsive behavior
 export const viewport = {

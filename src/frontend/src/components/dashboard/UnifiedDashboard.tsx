@@ -14,10 +14,23 @@
 import { useState, useEffect, useRef } from "react";
 import { css } from "@emotion/react";
 import { useNavigate } from "react-router-dom";
+import {
+  Users,
+  BarChart3,
+  Percent,
+  TrendingUp,
+  TrendingDown,
+  ArrowRight,
+  ShieldCheck,
+  FileSearch,
+  LayoutDashboard,
+  Search,
+} from "lucide-react";
 import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { agentApi } from "../../services/apiService";
 import { Card, CardContent, StatCard, AgentCard, Button } from "../ui";
+import * as styles from "./UnifiedDashboard.styles";
 
 interface DashboardProps {
   mode?: "full" | "minimal"; // minimal for agent-to-agent
@@ -178,8 +191,8 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   // Minimal mode for agent-to-agent (JSON-like display)
   if (mode === "minimal") {
     return (
-      <div css={minimalContainerStyles}>
-        <pre css={jsonDisplayStyles}>
+      <div css={styles.minimalContainerStyles}>
+        <pre css={styles.jsonDisplayStyles}>
           {JSON.stringify({ stats, agents, recentActivity }, null, 2)}
         </pre>
       </div>
@@ -188,18 +201,20 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
 
   // Full mode for human operators
   return (
-    <div ref={containerRef} css={containerStyles(isMobile)}>
+    <div ref={containerRef} css={styles.containerStyles(isMobile)}>
       {/* Pull-to-refresh indicator */}
       {isMobile && isPulling && (
-        <div css={pullToRefreshIndicatorStyles(pullDistance)}>
+        <div css={styles.pullToRefreshIndicatorStyles(pullDistance)}>
           {pullDistance > 80 ? "Release to refresh" : "Pull to refresh"}
         </div>
       )}
 
       {/* Refreshing indicator */}
-      {isRefreshing && <div css={refreshingIndicatorStyles}>Refreshing...</div>}
+      {isRefreshing && (
+        <div css={styles.refreshingIndicatorStyles}>Refreshing...</div>
+      )}
       {/* Quick Stats Header */}
-      <section css={statsHeaderStyles}>
+      <section css={styles.statsHeaderStyles}>
         <div
           style={{
             display: "flex",
@@ -208,7 +223,7 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
             marginBottom: designTokens.spacing[6],
           }}
         >
-          <h1 css={titleStyles} style={{ marginBottom: 0 }}>
+          <h1 css={styles.titleStyles} style={{ marginBottom: 0 }}>
             Dashboard
           </h1>
           <Button variant="outline" size="sm" onClick={handleRefresh}>
@@ -216,52 +231,58 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
           </Button>
         </div>
 
-        <div css={statsGridStyles(isMobile, isTablet)}>
+        <div css={styles.statsGridStyles(isMobile, isTablet)}>
           <StatCard
             label="Active Agents"
             value={stats?.activeAgents || 0}
             total={stats?.totalAgents}
-            icon="AG"
+            icon={<Users size={24} />}
             color="primary"
           />
           <StatCard
             label="Total Trades"
             value={stats?.totalTrades || 0}
-            icon="TR"
+            icon={<BarChart3 size={24} />}
             color="info"
           />
           <StatCard
             label="Avg Win Rate"
             value={`${((stats?.avgWinRate || 0) * 100).toFixed(1)}%`}
-            icon="WR"
+            icon={<Percent size={24} />}
             color="success"
           />
           <StatCard
             label="Total Return"
             value={`${((stats?.totalReturn || 0) * 100).toFixed(2)}%`}
-            icon="RT"
+            icon={
+              stats && stats.totalReturn >= 0 ? (
+                <TrendingUp size={24} />
+              ) : (
+                <TrendingDown size={24} />
+              )
+            }
             color={stats && stats.totalReturn >= 0 ? "success" : "error"}
           />
         </div>
       </section>
 
       {/* Main Content Grid */}
-      <div css={mainGridStyles(isMobile, isTablet)}>
+      <div css={styles.mainGridStyles(isMobile, isTablet)}>
         {/* Agent Overview */}
-        <section css={sectionStyles}>
-          <div css={sectionHeaderStyles}>
-            <h2 css={sectionTitleStyles}>Top Performing Agents</h2>
+        <section css={styles.sectionStyles}>
+          <div css={styles.sectionHeaderStyles}>
+            <h2 css={styles.sectionTitleStyles}>Top Performing Agents</h2>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate("/agents")}
             >
-              View All →
+              View All <ArrowRight size={16} />
             </Button>
           </div>
 
           {isLoading ? (
-            <div css={loadingStyles}>Loading agents...</div>
+            <div css={styles.loadingStyles}>Loading agents...</div>
           ) : isMobile ? (
             <AgentCarousel agents={agents} />
           ) : (
@@ -270,15 +291,15 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
         </section>
 
         {/* Recent Activity */}
-        <section css={sectionStyles}>
-          <div css={sectionHeaderStyles}>
-            <h2 css={sectionTitleStyles}>Recent Activity</h2>
+        <section css={styles.sectionStyles}>
+          <div css={styles.sectionHeaderStyles}>
+            <h2 css={styles.sectionTitleStyles}>Recent Activity</h2>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate("/audit")}
             >
-              View All →
+              View All <ArrowRight size={16} />
             </Button>
           </div>
           <ActivityFeed
@@ -304,7 +325,7 @@ interface AgentGridProps {
 }
 
 const AgentGrid = ({ agents, columns }: AgentGridProps) => (
-  <div css={agentGridStyles(columns)}>
+  <div css={styles.agentGridStyles(columns)}>
     {agents.map((agent) => (
       <AgentCard key={agent.id} agent={agent} />
     ))}
@@ -316,7 +337,7 @@ interface AgentCarouselProps {
 }
 
 const AgentCarousel = ({ agents }: AgentCarouselProps) => (
-  <div css={carouselStyles}>
+  <div css={styles.carouselStyles}>
     {agents.map((agent) => (
       <AgentCard key={agent.id} agent={agent} compact />
     ))}
@@ -341,21 +362,28 @@ const ActivityFeed = ({
 
   return (
     <Card>
-      <CardContent css={activityFeedStyles(compact)}>
+      <CardContent css={styles.activityFeedStyles(compact)}>
         {activities.length === 0 ? (
-          <div css={emptyStateStyles}>No recent activity</div>
+          <div css={styles.emptyStateStyles}>
+            <FileSearch size={48} />
+            <div>No recent activity</div>
+          </div>
         ) : (
           <>
             {displayActivities.map((activity, idx) => (
-              <div key={idx} css={activityItemStyles}>
-                <div css={activityIconStyles}>
-                  {activity.type === "trade" ? "📊" : "⚙️"}
+              <div key={idx} css={styles.activityItemStyles}>
+                <div css={styles.activityIconStyles}>
+                  {activity.type === "trade" ? (
+                    <BarChart3 size={20} />
+                  ) : (
+                    <ShieldCheck size={20} />
+                  )}
                 </div>
-                <div css={activityDetailsStyles}>
-                  <div css={activityTextStyles}>
+                <div css={styles.activityDetailsStyles}>
+                  <div css={styles.activityTextStyles}>
                     {activity.description || "Activity"}
                   </div>
-                  <div css={activityTimeStyles}>
+                  <div css={styles.activityTimeStyles}>
                     {activity.timestamp
                       ? new Date(activity.timestamp).toLocaleTimeString()
                       : "Unknown time"}
@@ -364,7 +392,7 @@ const ActivityFeed = ({
               </div>
             ))}
             {compact && activities.length > 5 && onToggleMore && (
-              <button css={showMoreButtonStyles} onClick={onToggleMore}>
+              <button css={styles.showMoreButtonStyles} onClick={onToggleMore}>
                 {showMore ? "Show Less" : `Show ${activities.length - 5} More`}
               </button>
             )}
@@ -383,22 +411,34 @@ const QuickActions = ({ isMobile }: QuickActionsProps) => {
   const navigate = useNavigate();
 
   const actions = [
-    { label: "Compare Agents", icon: "CP", path: "/agents?compare=true" },
-    { label: "View Policies", icon: "PL", path: "/policies" },
-    { label: "Audit Logs", icon: "AU", path: "/audit" },
+    {
+      label: "Dashboard",
+      icon: <LayoutDashboard size={20} />,
+      path: "/",
+    },
+    {
+      label: "Policies",
+      icon: <ShieldCheck size={20} />,
+      path: "/policies",
+    },
+    {
+      label: "Search",
+      icon: <Search size={20} />,
+      path: "/audit",
+    },
   ];
 
   if (isMobile) {
     return (
-      <div css={mobileActionsStyles}>
+      <div css={styles.mobileActionsStyles}>
         {actions.map((action) => (
           <button
             key={action.path}
-            css={mobileActionButtonStyles}
+            css={styles.mobileActionButtonStyles}
             onClick={() => navigate(action.path)}
           >
-            <span css={actionIconStyles}>{action.icon}</span>
-            <span css={actionLabelStyles}>{action.label}</span>
+            <div css={styles.mobileActionIconStyles}>{action.icon}</div>
+            <span>{action.label}</span>
           </button>
         ))}
       </div>
@@ -406,15 +446,34 @@ const QuickActions = ({ isMobile }: QuickActionsProps) => {
   }
 
   return (
-    <div css={desktopActionsStyles}>
+    <div
+      css={css`
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: ${designTokens.spacing[3]};
+        z-index: 100;
+      `}
+    >
       {actions.map((action) => (
         <Button
           key={action.path}
-          variant="secondary"
+          variant="primary"
           size="sm"
           onClick={() => navigate(action.path)}
+          style={{
+            boxShadow: shadowSystem.lg,
+            borderRadius: designTokens.borderRadius.full,
+            width: "auto",
+            padding: `${designTokens.spacing[2]} ${designTokens.spacing[4]}`,
+          }}
         >
-          {action.icon} {action.label}
+          {action.icon}
+          <span style={{ marginLeft: designTokens.spacing[2] }}>
+            {action.label}
+          </span>
         </Button>
       ))}
     </div>

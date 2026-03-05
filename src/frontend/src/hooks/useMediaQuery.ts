@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { designTokens } from "../styles/designTokens";
+import { designTokens } from "../styles/design-system";
 
 export const useMediaQuery = (query: string): boolean => {
   const [matches, setMatches] = useState(false);

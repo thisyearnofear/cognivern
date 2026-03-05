@@ -1,5 +1,5 @@
 import React from "react";
-import { designTokens } from "../../styles/designTokens";
+import { designTokens } from "../../styles/design-system";
 import { loadingStyles } from "../../styles/design-system";
 
 export interface LoadingSpinnerProps {

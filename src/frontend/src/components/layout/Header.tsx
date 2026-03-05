@@ -1,7 +1,19 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { css } from "@emotion/react";
 import { useLocation } from "react-router-dom";
+import {
+  Menu,
+  Sun,
+  Moon,
+  Search,
+  Bell,
+  Settings,
+  ChevronRight,
+  ShieldCheck,
+  ShieldAlert,
+} from "lucide-react";
 import { useAppStore, useTheme } from "../../stores/appStore";
+import { agentApi } from "../../services/apiService";
 import { useIntentStore } from "../../stores/intentStore";
 import {
   designTokens,
@@ -23,6 +35,18 @@ export const Header: React.FC = () => {
   const { pathname } = useLocation();
   const { setIsOpen } = useIntentStore();
   const { toggleSidebar } = useSidebarState();
+  const [isSystemOnline, setIsSystemOnline] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkSystemStatus = async () => {
+      const isOnline = await agentApi.checkHealth();
+      setIsSystemOnline(isOnline);
+    };
+
+    checkSystemStatus();
+    const interval = setInterval(checkSystemStatus, 30000); // Check every 30s
+    return () => clearInterval(interval);
+  }, []);
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts();
@@ -151,11 +175,33 @@ export const Header: React.FC = () => {
               width: 8px;
               height: 8px;
               border-radius: 50%;
-              background: ${designTokens.colors.semantic.success[500]};
-              box-shadow: 0 0 8px ${designTokens.colors.semantic.success[300]};
+              background: ${isSystemOnline === false
+                ? designTokens.colors.semantic.error[500]
+                : isSystemOnline === true
+                  ? designTokens.colors.semantic.success[500]
+                  : designTokens.colors.neutral[400]};
+              box-shadow: 0 0 8px ${isSystemOnline === false ? designTokens.colors.semantic.error[300] : isSystemOnline === true ? designTokens.colors.semantic.success[300] : "transparent"};
             `}
           />
-          <span>System Online</span>
+          <span
+            style={{
+              color:
+                isSystemOnline === false
+                  ? designTokens.colors.semantic.error[700]
+                  : "inherit",
+            }}
+          >
+            {isSystemOnline === false
+              ? "System Offline"
+              : isSystemOnline === true
+                ? "System Online"
+                : "Checking Status..."}
+          </span>
+          {isSystemOnline === false ? (
+            <ShieldAlert size={14} color={designTokens.colors.semantic.error[500]} />
+          ) : isSystemOnline === true ? (
+            <ShieldCheck size={14} color={designTokens.colors.semantic.success[500]} />
+          ) : null}
         </div>
       </div>
 
@@ -174,7 +220,7 @@ export const Header: React.FC = () => {
             onClick={() => setIsOpen(true)}
             title="Open command palette (Ctrl+K)"
           >
-            <span>⌘</span>
+            <ChevronRight size={14} />
             <span>Search</span>
           </button>
         )}
@@ -186,7 +232,7 @@ export const Header: React.FC = () => {
             onClick={toggleSidebar}
             title="Toggle menu"
           >
-            ☰
+            <Menu size={20} />
           </button>
         )}
 
@@ -196,7 +242,11 @@ export const Header: React.FC = () => {
           onClick={handleThemeToggle}
           title={`Switch to ${effectiveTheme === "dark" ? "light" : "dark"} mode`}
         >
-          {effectiveTheme === "dark" ? "☀️" : "🌙"}
+          {effectiveTheme === "dark" ? (
+            <Sun size={20} />
+          ) : (
+            <Moon size={20} />
+          )}
         </button>
 
         {/* Search on Mobile */}
@@ -206,7 +256,7 @@ export const Header: React.FC = () => {
             onClick={() => setIsOpen(true)}
             title="Search"
           >
-            🔍
+            <Search size={20} />
           </button>
         )}
 
@@ -219,23 +269,9 @@ export const Header: React.FC = () => {
             `}
             title="Notifications"
           >
-            🔔
-            {/* Notification badge */}
-            <span
-              css={css`
-                position: absolute;
-                top: 4px;
-                right: 4px;
-                width: 8px;
-                height: 8px;
-                background: ${designTokens.colors.semantic.error[500]};
-                border-radius: 50%;
-                font-size: 0;
-                ${keyframeAnimations.pulse}
-              `}
-            >
-              •
-            </span>
+            <Bell size={20} />
+            {/* Notification badge - only show if there are actual notifications */}
+            {/* For now, we follow the instruction to remove fake pulsing dots */}
           </button>
         )}
 
@@ -248,7 +284,7 @@ export const Header: React.FC = () => {
         {/* User Menu */}
         {user.isConnected && !isMobile && (
           <button css={modernButtonStyle} title="User menu">
-            ⚙️
+            <Settings size={20} />
           </button>
         )}
       </div>

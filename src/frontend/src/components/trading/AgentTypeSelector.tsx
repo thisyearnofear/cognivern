@@ -1,6 +1,17 @@
 import { AgentType } from "./TradingAgentDashboard";
 import { css } from "@emotion/react";
 import {
+  Trophy,
+  Brain,
+  Target,
+  Zap,
+  BarChart3,
+  MessageSquare,
+  ShieldCheck,
+  Globe,
+  Lock,
+} from "lucide-react";
+import {
   designTokens,
   colorSystem,
   shadowSystem,
@@ -74,7 +85,9 @@ export default function AgentTypeSelector({
           onClick={() => onTypeChange("recall")}
         >
           <div className="agent-header">
-            <div className="agent-icon">🏆</div>
+            <div className="agent-icon">
+              <Trophy size={24} color={designTokens.colors.primary[500]} />
+            </div>
             <div className="agent-info">
               <h4>Recall Trading Agent</h4>
               <p>Competition-focused trading with Recall Network</p>
@@ -89,15 +102,21 @@ export default function AgentTypeSelector({
 
           <div className="agent-features">
             <div className="feature">
-              <span className="feature-icon">🎯</span>
+              <span className="feature-icon">
+                <Target size={14} color={designTokens.colors.primary[500]} />
+              </span>
               <span>Competition Trading</span>
             </div>
             <div className="feature">
-              <span className="feature-icon">⚡</span>
+              <span className="feature-icon">
+                <Zap size={14} color={designTokens.colors.primary[500]} />
+              </span>
               <span>High-Frequency Execution</span>
             </div>
             <div className="feature">
-              <span className="feature-icon">📊</span>
+              <span className="feature-icon">
+                <BarChart3 size={14} color={designTokens.colors.primary[500]} />
+              </span>
               <span>Real Market Data</span>
             </div>
           </div>
@@ -128,7 +147,9 @@ export default function AgentTypeSelector({
           onClick={() => onTypeChange("vincent")}
         >
           <div className="agent-header">
-            <div className="agent-icon">🧠</div>
+            <div className="agent-icon">
+              <Brain size={24} color={designTokens.colors.primary[500]} />
+            </div>
             <div className="agent-info">
               <h4>Vincent Social Trading Agent</h4>
               <p>Sentiment-driven trading with community governance</p>
@@ -143,15 +164,27 @@ export default function AgentTypeSelector({
 
           <div className="agent-features">
             <div className="feature">
-              <span className="feature-icon">💭</span>
+              <span className="feature-icon">
+                <MessageSquare
+                  size={14}
+                  color={designTokens.colors.primary[500]}
+                />
+              </span>
               <span>Sentiment Analysis</span>
             </div>
             <div className="feature">
-              <span className="feature-icon">🛡️</span>
+              <span className="feature-icon">
+                <ShieldCheck
+                  size={14}
+                  color={designTokens.colors.primary[500]}
+                />
+              </span>
               <span>User-Controlled Policies</span>
             </div>
             <div className="feature">
-              <span className="feature-icon">🌐</span>
+              <span className="feature-icon">
+                <Globe size={14} color={designTokens.colors.primary[500]} />
+              </span>
               <span>Multi-Chain Support</span>
             </div>
           </div>

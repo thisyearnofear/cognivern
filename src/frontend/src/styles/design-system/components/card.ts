@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { designTokens } from "../../designTokens";
+import { designTokens } from "../tokens/designTokens";
 import { shadowSystem } from "../tokens/shadows";
 import { easings } from "../animations/keyframes";
 

@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useAppStore } from "../../stores/appStore";
-import { designTokens } from "../../styles/designTokens";
+import { designTokens } from "../../styles/design-system";
 import { Button } from "../ui/Button";
+import {
+  TrendingUp,
+  Code,
+  ShieldCheck,
+  Search,
+  Brain,
+  ChevronRight,
+  ArrowRight,
+  CheckCircle2,
+} from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -36,7 +46,7 @@ export const SmartOnboarding: React.FC = () => {
       id: "trader",
       title: "AI Trader",
       description: "I want to use AI agents for automated trading",
-      icon: "📈",
+      icon: <TrendingUp size={32} color={designTokens.colors.primary[500]} />,
       features: [
         "Automated trading strategies",
         "Risk management",
@@ -47,21 +57,21 @@ export const SmartOnboarding: React.FC = () => {
       id: "developer",
       title: "Developer",
       description: "I want to build and integrate AI governance solutions",
-      icon: "👨‍💻",
+      icon: <Code size={32} color={designTokens.colors.primary[500]} />,
       features: ["API access", "Custom policies", "Integration tools"],
     },
     {
       id: "governance",
       title: "Governance Expert",
       description: "I want to create and manage AI governance policies",
-      icon: "⚖️",
+      icon: <ShieldCheck size={32} color={designTokens.colors.primary[500]} />,
       features: ["Policy creation", "Compliance monitoring", "Audit trails"],
     },
     {
       id: "explorer",
       title: "Explorer",
       description: "I want to explore AI governance capabilities",
-      icon: "🔍",
+      icon: <Search size={32} color={designTokens.colors.primary[500]} />,
       features: ["Demo access", "Learning resources", "Guided tours"],
     },
   ];
@@ -74,9 +84,13 @@ export const SmartOnboarding: React.FC = () => {
       component: (
         <div style={{ textAlign: "center", padding: designTokens.spacing[6] }}>
           <div
-            style={{ fontSize: "64px", marginBottom: designTokens.spacing[4] }}
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: designTokens.spacing[4],
+            }}
           >
-            🧠
+            <Brain size={64} color={designTokens.colors.primary[500]} />
           </div>
           <h2
             style={{
@@ -140,7 +154,7 @@ export const SmartOnboarding: React.FC = () => {
                 >
                   <div
                     style={{
-                      fontSize: "32px",
+                      fontSize: "24px",
                       marginBottom: designTokens.spacing[2],
                     }}
                   >

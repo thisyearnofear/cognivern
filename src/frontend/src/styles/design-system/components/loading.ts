@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { designTokens } from "../../designTokens";
+import { designTokens } from "../tokens/designTokens";
 import { keyframeAnimations } from "../animations/keyframes";
 
 export const loadingStyles = {

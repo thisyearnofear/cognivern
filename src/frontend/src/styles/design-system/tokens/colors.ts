@@ -1,4 +1,4 @@
-import { designTokens } from "../../designTokens";
+import { designTokens } from "./designTokens";
 
 // Enhanced color system with semantic meanings
 export const colorSystem = {

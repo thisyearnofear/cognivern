@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { usePerformanceMonitor } from "../../hooks/usePerformanceMonitor";
-import { designTokens } from "../../styles/designTokens";
+import { designTokens } from "../../styles/design-system";
 import { Card, CardHeader, CardTitle, CardContent } from "./Card";
 import { Button } from "./Button";
 import Chart from "./Chart";

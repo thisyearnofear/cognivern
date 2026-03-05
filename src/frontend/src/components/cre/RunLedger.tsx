@@ -5,7 +5,7 @@ import { creApi, CreRun } from "../../services/creApi";
 import { toAgentRunViewModel } from "../../services/agentRunAdapter";
 import { uxAnalytics } from "../../services/uxAnalytics";
 import { getApiUrl } from "../../utils/api";
-import { designTokens } from "../../styles/designTokens";
+import { designTokens } from "../../styles/design-system";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";

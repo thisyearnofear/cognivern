@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { css } from "@emotion/react";
-import { designTokens } from "../../styles/designTokens";
+import { designTokens } from "../../styles/design-system";
 
 interface Web3AuthProps {
   onConnect: (address: string) => void;
