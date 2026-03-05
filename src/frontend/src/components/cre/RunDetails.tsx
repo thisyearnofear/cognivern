@@ -578,7 +578,7 @@ export default function RunDetails() {
         <CardHeader>AG-UI Compatible Event Stream</CardHeader>
         <CardContent>
           <div>Total Events: {agUiStream.length}</div>
-          <div>Latest Timestamp: {agUiStream.length ? agUiStream[agUiStream.length - 1].ts : "N/A"}</div>
+          <div>Latest Timestamp: {agUiStream.length ? agUiStream[agUiStream.length - 1].timestamp : "N/A"}</div>
         </CardContent>
       </Card>
 
