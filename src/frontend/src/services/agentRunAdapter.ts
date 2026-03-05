@@ -1,5 +1,5 @@
 import { CreRun, CreRunEvent } from "./creApi";
-import { ForensicEvent, EventType } from "../components/ui/ForensicTimeline";
+import { ForensicEvent, TimelineEventType } from "../components/ui/ForensicTimeline";
 
 export type AgentRunStatus =
   | "queued"
@@ -36,7 +36,7 @@ export interface AgentRunViewModel {
   };
 }
 
-const eventToTimelineType = (eventType: CreRunEvent["type"]): EventType => {
+const eventToTimelineType = (eventType: CreRunEvent["type"]): TimelineEventType => {
   switch (eventType) {
     case "tool_call_started":
     case "message_delta":

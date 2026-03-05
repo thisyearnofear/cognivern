@@ -4,6 +4,7 @@ import { z } from "zod";
 import { runForecastingWorkflow } from "../../../cre/workflows/forecasting.js";
 import { creRunStore } from "../../../cre/storage/CreRunStore.js";
 import { CreRun } from "../../../cre/types.js";
+import { translateCreEventToAgUi } from "../../../cre/agUiTranslation.js";
 import {
   IdempotencyRecord,
   idempotencyStore,
@@ -192,7 +193,9 @@ export class CreController {
       res.status(404).json({ success: false, error: "Run not found" });
       return;
     }
-    res.json({ success: true, run: normalizeRun(run) });
+    const normalized = normalizeRun(run);
+    normalized.events = (normalized.events || []).map(translateCreEventToAgUi);
+    res.json({ success: true, run: normalized });
   }
 
   async getRunEvents(req: Request, res: Response) {
@@ -206,10 +209,12 @@ export class CreController {
       ? sinceParsed
       : undefined;
     const normalized = normalizeRun(run);
-    const events = (normalized.events || []).filter((event) => {
-      if (!since) return true;
-      return new Date(event.timestamp).getTime() > since;
-    });
+    const events = (normalized.events || [])
+      .filter((event) => {
+        if (!since) return true;
+        return new Date(event.timestamp).getTime() > since;
+      })
+      .map(translateCreEventToAgUi);
     res.json({
       success: true,
       runId: run.runId,
@@ -274,7 +279,7 @@ export class CreController {
         const eventIdForResume = Number.isNaN(ts) ? undefined : String(ts);
         sendEvent(
           "run_event",
-          event as unknown as Record<string, unknown>,
+          translateCreEventToAgUi(event) as unknown as Record<string, unknown>,
           eventIdForResume
         );
         if (!Number.isNaN(ts)) {

@@ -16,7 +16,7 @@ import { GenerativeReveal } from "./GenerativeReveal";
  * - WOW FACTOR: Ambient glows and fluid reveal of "thought paths".
  */
 
-export type EventType =
+export type TimelineEventType =
   | "observation"
   | "thought"
   | "action"
@@ -27,7 +27,7 @@ export type EventType =
 export interface ForensicEvent {
   id: string;
   timestamp: number;
-  type: EventType;
+  type: TimelineEventType;
   title: string;
   description: string;
   metadata?: Record<string, any>;
@@ -85,7 +85,7 @@ const ItemWrapper = styled.div<{ delay: number }>`
   position: relative;
 `;
 
-const Node = styled.div<{ type: EventType; status?: string }>`
+const Node = styled.div<{ type: TimelineEventType; status?: string }>`
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -174,7 +174,7 @@ const MetadataCard = styled.div`
   max-height: 200px;
 `;
 
-const getIcon = (type: EventType) => {
+const getIcon = (type: TimelineEventType) => {
   switch (type) {
     case "thought":
       return "🧠";
