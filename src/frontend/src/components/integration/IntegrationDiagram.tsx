@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { css } from "@emotion/react";
-import { designTokens } from "../../styles/designTokens";
+import { designTokens } from "../../styles/design-system";
 
 export default function IntegrationDiagram() {
   const [activeFlow, setActiveFlow] = useState<string | null>(null);

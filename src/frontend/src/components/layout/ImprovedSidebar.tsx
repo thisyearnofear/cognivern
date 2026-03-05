@@ -1,9 +1,16 @@
 import React, { useEffect, useRef } from "react";
 import { css } from "@emotion/react";
 import { useNavigate, useLocation } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Users,
+  ShieldCheck,
+  FileSearch,
+  Activity,
+} from "lucide-react";
 import { useAppStore, useTheme } from "../../stores/appStore";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { designTokens } from "../../styles/designTokens";
+import { designTokens } from "../../styles/design-system";
 import { useLayout } from "./ResponsiveLayout";
 import { useSidebarState } from "../../hooks/useSidebarState";
 import { Button } from "../ui/Button";
@@ -11,7 +18,7 @@ import { Button } from "../ui/Button";
 interface NavItem {
   id: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   path: string;
   description?: string;
   badge?: string | number;
@@ -21,35 +28,35 @@ const navigationItems: NavItem[] = [
   {
     id: "dashboard",
     label: "Dashboard",
-    icon: "DB",
+    icon: <LayoutDashboard size={20} />,
     path: "/",
     description: "Unified overview",
   },
   {
     id: "agents",
     label: "Agents",
-    icon: "AG",
+    icon: <Users size={20} />,
     path: "/agents",
     description: "Agent management",
   },
   {
     id: "policies",
     label: "Policies",
-    icon: "PL",
+    icon: <ShieldCheck size={20} />,
     path: "/policies",
     description: "Governance rules",
   },
   {
     id: "audit",
     label: "Audit",
-    icon: "AU",
+    icon: <FileSearch size={20} />,
     path: "/audit",
     description: "Activity logs",
   },
   {
     id: "runs",
     label: "Runs",
-    icon: "RN",
+    icon: <Activity size={20} />,
     path: "/runs",
     description: "Verifiable traces",
   },

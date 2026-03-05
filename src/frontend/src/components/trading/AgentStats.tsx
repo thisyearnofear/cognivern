@@ -1,6 +1,6 @@
 import { AgentType } from "./TradingAgentDashboard";
 import { css } from "@emotion/react";
-import { designTokens, tradingStyles } from "../../styles/designTokens";
+import { designTokens, tradingStyles } from "../../styles/design-system";
 
 interface AgentStatus {
   isActive: boolean;

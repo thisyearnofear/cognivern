@@ -4,7 +4,7 @@ import { Outlet } from "react-router-dom";
 import { useAppStore, useTheme } from "../../stores/appStore";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { usePerformanceMonitor } from "../../hooks/usePerformanceMonitor";
-import { designTokens } from "../../styles/designTokens";
+import { designTokens } from "../../styles/design-system";
 import { LayoutProvider, useLayout } from "./ResponsiveLayout";
 import ImprovedSidebar from "./ImprovedSidebar";
 import Header from "./Header";

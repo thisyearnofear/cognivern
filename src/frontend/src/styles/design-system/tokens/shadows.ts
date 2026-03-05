@@ -1,4 +1,4 @@
-import { designTokens } from "../../designTokens";
+import { designTokens } from "./designTokens";
 
 // Enhanced shadow system with depth and effects
 export const shadowSystem = {

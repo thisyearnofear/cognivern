@@ -1,6 +1,6 @@
 import React from "react";
 import { css } from "@emotion/react";
-import { designTokens } from "../../styles/designTokens";
+import { designTokens } from "../../styles/design-system";
 import { useLayout, Container } from "./ResponsiveLayout";
 import { useTheme } from "../../stores/appStore";
 

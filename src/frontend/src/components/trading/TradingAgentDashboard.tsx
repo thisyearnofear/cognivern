@@ -1,6 +1,24 @@
 import { useState, useEffect, useMemo } from "react";
 import { css } from "@emotion/react";
 import {
+  Users,
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  ShieldCheck,
+  AlertTriangle,
+  History,
+  Settings,
+  Activity,
+  ArrowRight,
+  Filter,
+  Plus,
+  Brain,
+  MessageSquare,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
+import {
   designTokens,
   shadowSystem,
   keyframeAnimations,
@@ -29,6 +47,7 @@ import {
   filterFieldDefinitions,
   type AgentComparisonFilters,
 } from "../../lib/store/agentComparisonSchema";
+import * as styles from "./TradingAgentDashboard.styles";
 
 export default function TradingAgentDashboard() {
   const navigate = useNavigate();
@@ -408,51 +427,12 @@ export default function TradingAgentDashboard() {
       : { text: "Inactive", variant: "secondary" as const };
   };
 
-  const canStartAgent =
-    selectedAgentType === "recall" ||
-    (selectedAgentType === "vincent" && vincentStatus.hasConsent);
-
-  const carouselItems: CarouselItem[] = [
-    {
-      id: "recall",
-      title: "Recall Trading Agent",
-      subtitle: "Competition-focused",
-      icon: "RC",
-      content: (
-        <div>
-          <p css={css`font-size: 0.8rem; margin-bottom: 8px;`}>Performance: {(agentStatus.performance.totalReturn * 100).toFixed(1)}%</p>
-          <Badge variant={getAgentStatus("recall").variant}>{getAgentStatus("recall").text}</Badge>
-        </div>
-      )
-    },
-    {
-      id: "vincent",
-      title: "Vincent Social Agent",
-      subtitle: "Sentiment-driven",
-      icon: "VC",
-      content: (
-        <div>
-          <p css={css`font-size: 0.8rem; margin-bottom: 8px;`}>Daily Limit: ${vincentStatus.policies.dailySpendingLimit}</p>
-          <Badge variant={getAgentStatus("vincent").variant}>{getAgentStatus("vincent").text}</Badge>
-        </div>
-      )
-    }
-  ];
-
-  const handleCarouselItemClick = (id: string) => {
-    if (id === selectedAgentType) {
-      navigate(`/agents/${id}`);
-    } else {
-      setSelectedAgentType(id as AgentType);
-    }
-  };
-
   return (
-    <div css={containerStyles}>
+    <div css={styles.containerStyles}>
       {/* Header */}
-      <div css={headerStyles}>
-        <h1 css={titleStyles}>Agent Behavioral & Governance</h1>
-        <p css={subtitleStyles}>
+      <div css={styles.headerStyles}>
+        <h1 css={styles.titleStyles}>Agent Behavioral & Governance</h1>
+        <p css={styles.subtitleStyles}>
           Monitor autonomy levels, compliance scores, and governance risk across
           your agent ecosystem.
         </p>
@@ -460,14 +440,11 @@ export default function TradingAgentDashboard() {
 
       {/* Error Display */}
       {error && (
-        <div css={errorStyles}>
-          <span
-            css={css`
-              font-size: 1.5rem;
-            `}
-          >
-            !
-          </span>
+        <div css={styles.errorStyles}>
+          <AlertTriangle
+            size={24}
+            color={designTokens.colors.semantic.error[500]}
+          />
           <div>
             <h3
               css={css`
@@ -490,23 +467,35 @@ export default function TradingAgentDashboard() {
       )}
 
       {/* Interactive Agent Carousel */}
-      <div css={css`margin-bottom: ${designTokens.spacing[10]};`}>
-        <h2 css={css`text-align: center; margin-bottom: -${designTokens.spacing[4]}; font-size: ${designTokens.typography.fontSize.xl}; color: ${designTokens.colors.neutral[700]};`}>
+      <div
+        css={css`
+          margin-bottom: ${designTokens.spacing[10]};
+        `}
+      >
+        <h2
+          css={css`
+            text-align: center;
+            margin-bottom: -${designTokens.spacing[4]};
+            font-size: ${designTokens.typography.fontSize.xl};
+            color: ${designTokens.colors.neutral[700]};
+          `}
+        >
           Select Active Agent
         </h2>
         <InteractiveCarousel
           items={carouselItems}
           onItemClick={handleCarouselItemClick}
         />
-        <p css={css`text-align: center; font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[500]};`}>
+        <p
+          css={css`
+            text-align: center;
+            font-size: ${designTokens.typography.fontSize.sm};
+            color: ${designTokens.colors.neutral[500]};
+          `}
+        >
           Double click active agent to view detailed profile
         </p>
       </div>
-
-      {/* Agent Selection (Legacy Grid hidden but logic remains if needed) */}
-      {/* <div css={agentSelectorStyles}>
-        ...
-      </div> */}
 
       {/* Agent Comparison Toggle */}
       <div
@@ -574,17 +563,31 @@ export default function TradingAgentDashboard() {
                   margin-bottom: ${designTokens.spacing[4]};
                 `}
               >
-                <h4
+                <div
                   css={css`
+                    display: flex;
+                    align-items: center;
+                    gap: ${designTokens.spacing[2]};
                     margin: 0 0 ${designTokens.spacing[3]} 0;
-                    font-size: ${designTokens.typography.fontSize.sm};
-                    font-weight: ${designTokens.typography.fontWeight.semibold};
-                    text-transform: uppercase;
-                    color: ${designTokens.colors.neutral[600]};
                   `}
                 >
-                  Filters
-                </h4>
+                  <Filter
+                    size={16}
+                    color={designTokens.colors.neutral[600]}
+                  />
+                  <h4
+                    css={css`
+                      margin: 0;
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      font-weight: ${designTokens.typography.fontWeight
+                        .semibold};
+                      text-transform: uppercase;
+                      color: ${designTokens.colors.neutral[600]};
+                    `}
+                  >
+                    Filters
+                  </h4>
+                </div>
 
                 <div
                   css={css`
@@ -606,21 +609,39 @@ export default function TradingAgentDashboard() {
                     >
                       Search
                     </label>
-                    <input
-                      type="text"
-                      placeholder="Search agents..."
-                      value={comparisonFilters.search || ""}
-                      onChange={(e) =>
-                        updateFilter("search", e.target.value || null)
-                      }
+                    <div
                       css={css`
-                        width: 100%;
-                        padding: ${designTokens.spacing[2]};
-                        border: 1px solid ${designTokens.colors.neutral[300]};
-                        border-radius: ${designTokens.borderRadius.md};
-                        font-size: ${designTokens.typography.fontSize.sm};
+                        position: relative;
                       `}
-                    />
+                    >
+                      <Search
+                        size={14}
+                        css={css`
+                          position: absolute;
+                          left: 10px;
+                          top: 50%;
+                          transform: translateY(-50%);
+                          color: ${designTokens.colors.neutral[400]};
+                        `}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Search agents..."
+                        value={comparisonFilters.search || ""}
+                        onChange={(e) =>
+                          updateFilter("search", e.target.value || null)
+                        }
+                        css={css`
+                          width: 100%;
+                          padding: ${designTokens.spacing[2]}
+                            ${designTokens.spacing[2]}
+                            ${designTokens.spacing[2]} 32px;
+                          border: 1px solid ${designTokens.colors.neutral[300]};
+                          border-radius: ${designTokens.borderRadius.md};
+                          font-size: ${designTokens.typography.fontSize.sm};
+                        `}
+                      />
+                    </div>
                   </div>
 
                   {/* Agent Types */}
@@ -801,65 +822,149 @@ export default function TradingAgentDashboard() {
                   <thead>
                     <tr>
                       <th onClick={() => updateFilter("sortBy", "agentName")}>
-                        Agent{" "}
-                        {comparisonFilters.sortBy === "agentName" &&
-                          (comparisonFilters.sortDirection === "asc"
-                            ? "↑"
-                            : "↓")}
+                        <div
+                          css={css`
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                          `}
+                        >
+                          Agent
+                          {comparisonFilters.sortBy === "agentName" &&
+                            (comparisonFilters.sortDirection === "asc" ? (
+                              <ChevronUp size={14} />
+                            ) : (
+                              <ChevronDown size={14} />
+                            ))}
+                        </div>
                       </th>
                       <th onClick={() => updateFilter("sortBy", "agentType")}>
-                        Type{" "}
-                        {comparisonFilters.sortBy === "agentType" &&
-                          (comparisonFilters.sortDirection === "asc"
-                            ? "↑"
-                            : "↓")}
+                        <div
+                          css={css`
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                          `}
+                        >
+                          Type
+                          {comparisonFilters.sortBy === "agentType" &&
+                            (comparisonFilters.sortDirection === "asc" ? (
+                              <ChevronUp size={14} />
+                            ) : (
+                              <ChevronDown size={14} />
+                            ))}
+                        </div>
                       </th>
                       <th>Status</th>
                       <th
                         onClick={() => updateFilter("sortBy", "complianceScore")}
                       >
-                        Compliance{" "}
-                        {comparisonFilters.sortBy === "complianceScore" &&
-                          (comparisonFilters.sortDirection === "asc"
-                            ? "↑"
-                            : "↓")}
+                        <div
+                          css={css`
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                          `}
+                        >
+                          Compliance
+                          {comparisonFilters.sortBy === "complianceScore" &&
+                            (comparisonFilters.sortDirection === "asc" ? (
+                              <ChevronUp size={14} />
+                            ) : (
+                              <ChevronDown size={14} />
+                            ))}
+                        </div>
                       </th>
                       <th
                         onClick={() => updateFilter("sortBy", "autonomyLevel")}
                       >
-                        Autonomy{" "}
-                        {comparisonFilters.sortBy === "autonomyLevel" &&
-                          (comparisonFilters.sortDirection === "asc"
-                            ? "↑"
-                            : "↓")}
+                        <div
+                          css={css`
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                          `}
+                        >
+                          Autonomy
+                          {comparisonFilters.sortBy === "autonomyLevel" &&
+                            (comparisonFilters.sortDirection === "asc" ? (
+                              <ChevronUp size={14} />
+                            ) : (
+                              <ChevronDown size={14} />
+                            ))}
+                        </div>
                       </th>
-                      <th onClick={() => updateFilter("sortBy", "riskProfile" as any)}>
-                        Risk{" "}
-                        {comparisonFilters.sortBy === "riskProfile" as any &&
-                          (comparisonFilters.sortDirection === "asc"
-                            ? "↑"
-                            : "↓")}
+                      <th
+                        onClick={() =>
+                          updateFilter("sortBy", "riskProfile" as any)
+                        }
+                      >
+                        <div
+                          css={css`
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                          `}
+                        >
+                          Risk
+                          {comparisonFilters.sortBy === "riskProfile" as any &&
+                            (comparisonFilters.sortDirection === "asc" ? (
+                              <ChevronUp size={14} />
+                            ) : (
+                              <ChevronDown size={14} />
+                            ))}
+                        </div>
                       </th>
                       <th onClick={() => updateFilter("sortBy", "winRate")}>
-                        Win Rate{" "}
-                        {comparisonFilters.sortBy === "winRate" &&
-                          (comparisonFilters.sortDirection === "asc"
-                            ? "↑"
-                            : "↓")}
+                        <div
+                          css={css`
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                          `}
+                        >
+                          Win Rate
+                          {comparisonFilters.sortBy === "winRate" &&
+                            (comparisonFilters.sortDirection === "asc" ? (
+                              <ChevronUp size={14} />
+                            ) : (
+                              <ChevronDown size={14} />
+                            ))}
+                        </div>
                       </th>
                       <th onClick={() => updateFilter("sortBy", "totalReturn")}>
-                        Return{" "}
-                        {comparisonFilters.sortBy === "totalReturn" &&
-                          (comparisonFilters.sortDirection === "asc"
-                            ? "↑"
-                            : "↓")}
+                        <div
+                          css={css`
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                          `}
+                        >
+                          Return
+                          {comparisonFilters.sortBy === "totalReturn" &&
+                            (comparisonFilters.sortDirection === "asc" ? (
+                              <ChevronUp size={14} />
+                            ) : (
+                              <ChevronDown size={14} />
+                            ))}
+                        </div>
                       </th>
                       <th onClick={() => updateFilter("sortBy", "avgLatency")}>
-                        Latency{" "}
-                        {comparisonFilters.sortBy === "avgLatency" &&
-                          (comparisonFilters.sortDirection === "asc"
-                            ? "↑"
-                            : "↓")}
+                        <div
+                          css={css`
+                            display: flex;
+                            align-items: center;
+                            gap: 4px;
+                          `}
+                        >
+                          Latency
+                          {comparisonFilters.sortBy === "avgLatency" &&
+                            (comparisonFilters.sortDirection === "asc" ? (
+                              <ChevronUp size={14} />
+                            ) : (
+                              <ChevronDown size={14} />
+                            ))}
+                        </div>
                       </th>
                     </tr>
                   </thead>

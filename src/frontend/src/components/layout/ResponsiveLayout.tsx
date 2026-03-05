@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { css } from "@emotion/react";
-import { designTokens } from "../../styles/designTokens";
+import { designTokens } from "../../styles/design-system";
 import { useBreakpoint, useMediaQuery } from "../../hooks/useMediaQuery";
 
 // Layout Context for managing responsive state

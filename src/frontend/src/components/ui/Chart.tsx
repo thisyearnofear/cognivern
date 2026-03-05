@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { designTokens } from "../../styles/designTokens";
+import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { chartStyles } from "../../styles/design-system";
 

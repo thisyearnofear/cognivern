@@ -1,5 +1,5 @@
 import { css } from "@emotion/react";
-import { designTokens } from "../../designTokens";
+import { designTokens } from "../tokens/designTokens";
 
 export type StatusType = "success" | "error" | "warning" | "info";
 export type Position = "top-right" | "top-left" | "bottom-right" | "bottom-left";

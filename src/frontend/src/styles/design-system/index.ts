@@ -1,6 +1,7 @@
 // Design System - Clean, modular exports
 export { colorSystem } from "./tokens/colors";
 export { shadowSystem } from "./tokens/shadows";
+export { designTokens, tradingStyles } from "./tokens/designTokens";
 export { keyframeAnimations, easings } from "./animations/keyframes";
 export { layoutUtils, responsiveUtils } from "./utilities/layout";
 export { cardStyles, getCardStyles } from "./components/card";
@@ -22,9 +23,6 @@ export {
   formDescriptionStyles,
   formSubmitContainerStyles,
 } from "./components/form";
-
-// Re-export design tokens for convenience
-export { designTokens } from "../designTokens";
 
 // Type exports
 export type { CardVariant } from "./components/card";
