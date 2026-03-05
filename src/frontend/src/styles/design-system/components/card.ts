@@ -1,6 +1,5 @@
 import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
-import { shadowSystem } from "../tokens/shadows";
+import { designTokens, shadowSystem } from "../tokens/designTokens";
 import { easings } from "../animations/keyframes";
 
 // Card component variants

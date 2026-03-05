@@ -1,7 +1,5 @@
 // Design System - Clean, modular exports
-export { colorSystem } from "./tokens/colors";
-export { shadowSystem } from "./tokens/shadows";
-export { designTokens, tradingStyles } from "./tokens/designTokens";
+export { designTokens, tradingStyles, shadowSystem, colorSystem } from "./tokens/designTokens";
 export { keyframeAnimations, easings } from "./animations/keyframes";
 export { layoutUtils, responsiveUtils } from "./utilities/layout";
 export { cardStyles, getCardStyles } from "./components/card";
@@ -27,5 +25,4 @@ export {
 // Type exports
 export type { CardVariant } from "./components/card";
 export type { ButtonVariant, ButtonSize } from "./components/button";
-export type { ColorSystem } from "./tokens/colors";
-export type { ShadowSystem } from "./tokens/shadows";
+export type { ColorSystem, ShadowSystem } from "./tokens/designTokens";

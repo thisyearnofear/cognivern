@@ -1,7 +1,5 @@
 import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
-import { colorSystem } from "../tokens/colors";
-import { shadowSystem } from "../tokens/shadows";
+import { designTokens, colorSystem, shadowSystem } from "../tokens/designTokens";
 import { easings } from "../animations/keyframes";
 
 // Button component variants

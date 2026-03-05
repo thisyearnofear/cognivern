@@ -1,3 +1,4 @@
+import { FileText, Users, Shield, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { css } from "@emotion/react";
 import { designTokens } from "../../styles/design-system";
@@ -178,19 +179,19 @@ export default function PolicyManagement() {
         <StatCard
           label="Total Policies"
           value={policies.length}
-          icon="PL"
+          icon={<FileText size={20} />}
           color="primary"
         />
         <StatCard
           label="Active Guards"
           value={policies.filter((p) => p.status === "active").length}
-          icon="GD"
+          icon={<Shield size={20} />}
           color="success"
         />
         <StatCard
           label="Managed Agents"
           value={agentConnections.length}
-          icon="AG"
+          icon={<Users size={20} />}
           color="info"
         />
       </div>
