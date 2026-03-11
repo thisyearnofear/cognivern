@@ -10,7 +10,9 @@ export class CreRunStore {
   private persistence: CreRunPersistence;
   private loaded = false;
 
-  constructor(params: { maxRuns?: number; persistence?: CreRunPersistence } = {}) {
+  constructor(
+    params: { maxRuns?: number; persistence?: CreRunPersistence } = {},
+  ) {
     this.maxRuns = params.maxRuns ?? 100;
     this.persistence = params.persistence ?? new JsonlCreRunPersistence();
   }

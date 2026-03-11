@@ -63,13 +63,13 @@ export class ContractService {
     this.governanceContract = new ethers.Contract(
       this.governanceAddress,
       this.governanceABI,
-      this.wallet
+      this.wallet,
     );
 
     this.storageContract = new ethers.Contract(
       this.storageAddress,
       this.storageABI,
-      this.wallet
+      this.wallet,
     );
 
     logger.info("ContractService initialized", {
@@ -104,24 +104,24 @@ export class ContractService {
   async createTradingPolicy(): Promise<string> {
     try {
       const policyId = ethers.keccak256(
-        ethers.toUtf8Bytes("trading-policy-" + Date.now())
+        ethers.toUtf8Bytes("trading-policy-" + Date.now()),
       );
       const rulesHash = ethers.keccak256(
-        ethers.toUtf8Bytes("trading-rules-v1")
+        ethers.toUtf8Bytes("trading-rules-v1"),
       );
 
       const createTx = await this.governanceContract.createPolicy(
         policyId,
         "Trading Risk Management",
         "Enforces risk limits and compliance for trading agents",
-        rulesHash
+        rulesHash,
       );
       await createTx.wait();
 
       // Activate the policy
       const activateTx = await this.governanceContract.updatePolicyStatus(
         policyId,
-        1
+        1,
       );
       await activateTx.wait();
 
@@ -150,7 +150,7 @@ export class ContractService {
 
       // Generate agent ID for governance contract
       const agentId = ethers.keccak256(
-        ethers.toUtf8Bytes(`${agentData.type}-${agentData.id}`)
+        ethers.toUtf8Bytes(`${agentData.type}-${agentData.id}`),
       );
 
       // Get an existing policy or create one
@@ -162,7 +162,7 @@ export class ContractService {
           agentId,
           agentData.name,
           agentData.capabilities,
-          policyId
+          policyId,
         );
         await govTx.wait();
         results.governanceTx = govTx.hash;
@@ -177,7 +177,7 @@ export class ContractService {
         const storageTx = await this.storageContract.registerAgent(
           agentAddress,
           agentData.name,
-          agentData.type
+          agentData.type,
         );
         await storageTx.wait();
         results.storageTx = storageTx.hash;
@@ -214,7 +214,7 @@ export class ContractService {
       const results: { governanceTx?: string; storageTx?: string } = {};
       const actionId = ethers.keccak256(ethers.toUtf8Bytes(decision.id));
       const agentId = ethers.keccak256(
-        ethers.toUtf8Bytes(`${decision.agentType}-agent`)
+        ethers.toUtf8Bytes(`${decision.agentType}-agent`),
       );
       const approved = decision.approved !== false; // Default to approved
 
@@ -224,14 +224,14 @@ export class ContractService {
       // Record in governance contract
       try {
         const dataHash = ethers.keccak256(
-          ethers.toUtf8Bytes(JSON.stringify(decision))
+          ethers.toUtf8Bytes(JSON.stringify(decision)),
         );
         const govTx = await this.governanceContract.evaluateAction(
           actionId,
           agentId,
           "trading-decision",
           dataHash,
-          approved
+          approved,
         );
         await govTx.wait();
         results.governanceTx = govTx.hash;
@@ -257,7 +257,7 @@ export class ContractService {
           approved,
           1, // policyCheckCount
           policyResult,
-          `ipfs://trading-${decision.id}` // IPFS CID for trading decision
+          `ipfs://trading-${decision.id}`, // IPFS CID for trading decision
         );
         await storageTx.wait();
         results.storageTx = storageTx.hash;

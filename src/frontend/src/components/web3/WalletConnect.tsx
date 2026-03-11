@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
-import { css } from "@emotion/react";
-import { designTokens, tradingStyles } from "../../styles/design-system";
 
 interface WalletConnectProps {
-  onConnect: (address: string) => void;
+  onConnect: (address: string, network: "filecoin" | "polkadot") => void;
   onDisconnect: () => void;
 }
 
@@ -19,6 +17,7 @@ export default function WalletConnect({
 }: WalletConnectProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState<string>("");
+  const [network, setNetwork] = useState<string>(""); // "filecoin" or "polkadot"
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string>("");
 
@@ -35,7 +34,33 @@ export default function WalletConnect({
         if (accounts.length > 0) {
           setAddress(accounts[0]);
           setIsConnected(true);
-          onConnect(accounts[0]);
+
+          // Detect current network
+          try {
+            const chainIdHex = await window.ethereum.request({
+              method: "eth_chainId",
+            });
+            const chainId = parseInt(chainIdHex, 16);
+
+            if (chainId === 100000) {
+              // Polkadot Hub placeholder chainId
+              setNetwork("polkadot");
+              onConnect(accounts[0], "polkadot");
+            } else if (chainId === 314159) {
+              // Filecoin Calibration
+              setNetwork("filecoin");
+              onConnect(accounts[0], "filecoin");
+            } else {
+              // Default to filecoin for unknown networks
+              setNetwork("filecoin");
+              onConnect(accounts[0], "filecoin");
+            }
+          } catch (networkError) {
+            console.error("Error detecting network:", networkError);
+            // Default to filecoin
+            setNetwork("filecoin");
+            onConnect(accounts[0], "filecoin");
+          }
         }
       } catch (error) {
         console.error("Error checking wallet connection:", error);
@@ -64,42 +89,32 @@ export default function WalletConnect({
         const userAddress = accounts[0];
         setAddress(userAddress);
         setIsConnected(true);
-        onConnect(userAddress);
 
-        // Switch to Filecoin Calibration testnet
+        // Detect current network
         try {
-          await window.ethereum.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: "0x4cb2f" }], // 314159 in hex (Filecoin Calibration)
+          const chainIdHex = await window.ethereum.request({
+            method: "eth_chainId",
           });
-        } catch (switchError: any) {
-          // If the chain doesn't exist, add it
-          if (switchError.code === 4902) {
-            try {
-              await window.ethereum.request({
-                method: "wallet_addEthereumChain",
-                params: [
-                  {
-                    chainId: "0x4cb2f",
-                    chainName: "Filecoin Calibration",
-                    nativeCurrency: {
-                      name: "Filecoin",
-                      symbol: "FIL",
-                      decimals: 18,
-                    },
-                    rpcUrls: ["https://api.calibration.node.glif.io/rpc/v1"],
-                    blockExplorerUrls: ["https://calibration.filscan.io/"],
-                  },
-                ],
-              });
-            } catch (addError) {
-              console.error("Error adding Filecoin network:", addError);
-              setError("Failed to add Filecoin network to wallet");
-            }
+          const chainId = parseInt(chainIdHex, 16);
+
+          if (chainId === 100000) {
+            // Polkadot Hub placeholder chainId
+            setNetwork("polkadot");
+            onConnect(userAddress, "polkadot");
+          } else if (chainId === 314159) {
+            // Filecoin Calibration
+            setNetwork("filecoin");
+            onConnect(userAddress, "filecoin");
           } else {
-            console.error("Error switching to Filecoin network:", switchError);
-            setError("Failed to switch to Filecoin network");
+            // Default to filecoin for unknown networks
+            setNetwork("filecoin");
+            onConnect(userAddress, "filecoin");
           }
+        } catch (networkError) {
+          console.error("Error detecting network:", networkError);
+          // Default to filecoin
+          setNetwork("filecoin");
+          onConnect(userAddress, "filecoin");
         }
       }
     } catch (error: any) {
@@ -122,12 +137,14 @@ export default function WalletConnect({
   };
 
   if (isConnected) {
+    const networkName =
+      network === "polkadot" ? "Polkadot Hub" : "Filecoin Calibration";
     return (
       <div className="wallet-connect connected">
         <div className="wallet-info">
           <div className="wallet-status">
             <span className="status-indicator connected"></span>
-            <span className="network-name">Filecoin Calibration</span>
+            <span className="network-name">{networkName}</span>
           </div>
           <div className="wallet-address">
             <code>{formatAddress(address)}</code>

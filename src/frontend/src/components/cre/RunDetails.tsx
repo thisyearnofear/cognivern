@@ -61,7 +61,7 @@ export default function RunDetails() {
 
   const load = async (
     resetEventState: boolean = true,
-    showLoadingIndicator: boolean = true
+    showLoadingIndicator: boolean = true,
   ) => {
     if (!runId) return;
     if (showLoadingIndicator) {
@@ -87,7 +87,7 @@ export default function RunDetails() {
           title: step.title,
           description: step.description,
           enabled: Boolean(step.enabled),
-        }))
+        })),
       );
     }
     if (resetEventState) {
@@ -112,7 +112,7 @@ export default function RunDetails() {
     if (!runId) return;
     const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
     const streamUrl = getApiUrl(
-      `/api/cre/runs/${encodeURIComponent(runId)}/events/stream?apiKey=${encodeURIComponent(apiKey)}`
+      `/api/cre/runs/${encodeURIComponent(runId)}/events/stream?apiKey=${encodeURIComponent(apiKey)}`,
     );
     const source = new EventSource(streamUrl);
 
@@ -126,7 +126,9 @@ export default function RunDetails() {
         });
         const ts = new Date(parsed.timestamp).getTime();
         if (!Number.isNaN(ts)) {
-          setEventCursor((prev) => (typeof prev === "number" ? Math.max(prev, ts) : ts));
+          setEventCursor((prev) =>
+            typeof prev === "number" ? Math.max(prev, ts) : ts,
+          );
         }
       } catch {
         // Ignore malformed event payloads.
@@ -144,7 +146,9 @@ export default function RunDetails() {
 
   useEffect(() => {
     if (!run) return;
-    const status = run.status || (run.finishedAt ? (run.ok ? "completed" : "failed") : "running");
+    const status =
+      run.status ||
+      (run.finishedAt ? (run.ok ? "completed" : "failed") : "running");
     if (status !== "running" && status !== "paused_for_approval") return;
     const id = window.setInterval(() => {
       void load(false, false);
@@ -155,11 +159,11 @@ export default function RunDetails() {
   const vm = useMemo(() => (run ? toAgentRunViewModel(run) : null), [run]);
   const timelineEvents = useMemo(
     () => (run ? toForensicEvents(run, liveEvents) : []),
-    [run, liveEvents]
+    [run, liveEvents],
   );
   const agUiStream = useMemo(
     () => toAgUiStream([...(run?.events || []), ...liveEvents]),
-    [run, liveEvents]
+    [run, liveEvents],
   );
   const lastFailedStepIndex = useMemo(() => {
     if (!run) return -1;
@@ -182,7 +186,13 @@ export default function RunDetails() {
   if (isLoading) {
     return (
       <div css={containerStyles}>
-        <div style={{ display: "flex", justifyContent: "center", padding: "120px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            padding: "120px",
+          }}
+        >
           <LoadingSpinner size="lg" text="Loading run console..." />
         </div>
       </div>
@@ -294,7 +304,9 @@ export default function RunDetails() {
             <Button
               onClick={() =>
                 runAction(async () => {
-                  await creApi.retryRun(vm.runId, { fromStep: lastFailedStepIndex });
+                  await creApi.retryRun(vm.runId, {
+                    fromStep: lastFailedStepIndex,
+                  });
                   await uxAnalytics.track("run_retry_from_step", {
                     runId: vm.runId,
                     fromStep: lastFailedStepIndex,
@@ -491,7 +503,8 @@ export default function RunDetails() {
                         });
                         await uxAnalytics.track("run_plan_saved", {
                           runId: vm.runId,
-                          enabledSteps: planDraft.filter((s) => s.enabled).length,
+                          enabledSteps: planDraft.filter((s) => s.enabled)
+                            .length,
                         });
                       })
                     }
@@ -510,7 +523,10 @@ export default function RunDetails() {
                 <div>{run.plan.summary || "No plan summary."}</div>
                 {run.plan.steps.map((step) => (
                   <div key={step.id}>
-                    <Badge variant={step.enabled ? "secondary" : "outline"} size="sm">
+                    <Badge
+                      variant={step.enabled ? "secondary" : "outline"}
+                      size="sm"
+                    >
                       {step.enabled ? "enabled" : "disabled"}
                     </Badge>{" "}
                     {step.title}
@@ -554,7 +570,9 @@ export default function RunDetails() {
             `}
           >
             <div>Source: {vm.provenance.source}</div>
-            <div>Workflow Version: {vm.provenance.workflowVersion || "N/A"}</div>
+            <div>
+              Workflow Version: {vm.provenance.workflowVersion || "N/A"}
+            </div>
             <div>Model: {vm.provenance.model || "N/A"}</div>
             <div>
               Citations:
@@ -578,7 +596,12 @@ export default function RunDetails() {
         <CardHeader>AG-UI Compatible Event Stream</CardHeader>
         <CardContent>
           <div>Total Events: {agUiStream.length}</div>
-          <div>Latest Timestamp: {agUiStream.length ? agUiStream[agUiStream.length - 1].timestamp : "N/A"}</div>
+          <div>
+            Latest Timestamp:{" "}
+            {agUiStream.length
+              ? agUiStream[agUiStream.length - 1].timestamp
+              : "N/A"}
+          </div>
         </CardContent>
       </Card>
 

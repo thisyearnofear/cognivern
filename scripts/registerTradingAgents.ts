@@ -22,7 +22,9 @@ async function registerTradingAgents() {
     // Health check first
     const isHealthy = await contractService.healthCheck();
     if (!isHealthy) {
-      throw new Error("ContractService health check failed - cannot connect to contracts");
+      throw new Error(
+        "ContractService health check failed - cannot connect to contracts",
+      );
     }
 
     logger.info("✅ ContractService health check passed");
@@ -38,17 +40,17 @@ async function registerTradingAgents() {
         "technical-analysis",
         "market-data-analysis",
         "risk-management",
-        "competition-trading"
-      ]
+        "competition-trading",
+      ],
     });
 
     logger.info("✅ Recall agent registered:", {
       governanceTx: recallResult.governanceTx,
-      storageTx: recallResult.storageTx
+      storageTx: recallResult.storageTx,
     });
 
     // Wait a moment between registrations
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Register Vincent Social Trading Agent
     logger.info("📝 Registering Vincent Social Trading Agent...");
@@ -61,13 +63,13 @@ async function registerTradingAgents() {
         "social-media-monitoring",
         "community-governance",
         "policy-enforcement",
-        "multi-chain-trading"
-      ]
+        "multi-chain-trading",
+      ],
     });
 
     logger.info("✅ Vincent agent registered:", {
       governanceTx: vincentResult.governanceTx,
-      storageTx: vincentResult.storageTx
+      storageTx: vincentResult.storageTx,
     });
 
     // Verify registration by checking stats
@@ -82,11 +84,11 @@ async function registerTradingAgents() {
 
     console.log("\n=== REGISTRATION SUMMARY ===");
     console.log("✅ Recall Trading Agent:");
-    console.log(`   Governance TX: ${recallResult.governanceTx || 'Failed'}`);
-    console.log(`   Storage TX: ${recallResult.storageTx || 'Failed'}`);
+    console.log(`   Governance TX: ${recallResult.governanceTx || "Failed"}`);
+    console.log(`   Storage TX: ${recallResult.storageTx || "Failed"}`);
     console.log("✅ Vincent Social Trading Agent:");
-    console.log(`   Governance TX: ${vincentResult.governanceTx || 'Failed'}`);
-    console.log(`   Storage TX: ${vincentResult.storageTx || 'Failed'}`);
+    console.log(`   Governance TX: ${vincentResult.governanceTx || "Failed"}`);
+    console.log(`   Storage TX: ${vincentResult.storageTx || "Failed"}`);
     console.log("\n📊 Contract Statistics:");
     console.log(`   Total Policies: ${stats.totalPolicies}`);
     console.log(`   Total Agents: ${stats.totalAgents}`);
@@ -95,7 +97,6 @@ async function registerTradingAgents() {
     console.log("   1. Sync historical trading decisions");
     console.log("   2. Update dashboard to read from contracts");
     console.log("   3. Verify unified data display");
-
   } catch (error) {
     logger.error("❌ Error registering trading agents:", error);
     console.error("\n💡 Troubleshooting:");

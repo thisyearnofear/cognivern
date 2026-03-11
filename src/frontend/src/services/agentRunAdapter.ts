@@ -1,5 +1,8 @@
 import { CreRun, CreRunEvent } from "./creApi";
-import { ForensicEvent, TimelineEventType } from "../components/ui/ForensicTimeline";
+import {
+  ForensicEvent,
+  TimelineEventType,
+} from "../components/ui/ForensicTimeline";
 
 export type AgentRunStatus =
   | "queued"
@@ -36,7 +39,9 @@ export interface AgentRunViewModel {
   };
 }
 
-const eventToTimelineType = (eventType: CreRunEvent["type"]): TimelineEventType => {
+const eventToTimelineType = (
+  eventType: CreRunEvent["type"],
+): TimelineEventType => {
   switch (eventType) {
     case "tool_call_started":
     case "message_delta":
@@ -58,7 +63,9 @@ const humanTitle = (event: CreRunEvent): string => {
     case "run_started":
       return "Run Started";
     case "tool_call_started":
-      return event.stepName ? `Tool Call: ${event.stepName}` : "Tool Call Started";
+      return event.stepName
+        ? `Tool Call: ${event.stepName}`
+        : "Tool Call Started";
     case "tool_result":
       return event.stepName ? `Tool Result: ${event.stepName}` : "Tool Result";
     case "run_paused_for_approval":
@@ -98,7 +105,9 @@ const humanDescription = (event: CreRunEvent): string => {
 };
 
 export const toAgentRunViewModel = (run: CreRun): AgentRunViewModel => {
-  const status = run.status || (run.finishedAt ? (run.ok ? "completed" : "failed") : "running");
+  const status =
+    run.status ||
+    (run.finishedAt ? (run.ok ? "completed" : "failed") : "running");
   const start = new Date(run.startedAt).getTime();
   const end = run.finishedAt ? new Date(run.finishedAt).getTime() : Date.now();
   const durationMs = Math.max(0, end - start);
@@ -113,8 +122,10 @@ export const toAgentRunViewModel = (run: CreRun): AgentRunViewModel => {
     currentStepName: run.currentStepName,
     controls: run.controls || {
       canCancel: status === "running" || status === "queued",
-      canRetry: status === "failed" || status === "cancelled" || status === "completed",
-      canApprove: status === "paused_for_approval" || run.requiresApproval === true,
+      canRetry:
+        status === "failed" || status === "cancelled" || status === "completed",
+      canApprove:
+        status === "paused_for_approval" || run.requiresApproval === true,
     },
     metrics: {
       latencyMs: run.metrics?.latencyMs,
@@ -134,10 +145,10 @@ export const toAgentRunViewModel = (run: CreRun): AgentRunViewModel => {
 
 export const toForensicEvents = (
   run: CreRun,
-  liveEvents: CreRunEvent[] = []
+  liveEvents: CreRunEvent[] = [],
 ): ForensicEvent[] => {
   const sourceEvents = [...(run.events || []), ...liveEvents].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
 
   if (sourceEvents.length) {

@@ -47,7 +47,7 @@ export async function startServer(): Promise<void> {
     return new Promise((resolve, reject) => {
       // This Promise never resolves, keeping the process alive
       logger.info(
-        "🔄 Inside never-resolving Promise - process should stay alive"
+        "🔄 Inside never-resolving Promise - process should stay alive",
       );
 
       // Add a heartbeat to prove the process is alive

@@ -3,7 +3,9 @@ import { designTokens, easings } from "../../styles/design-system";
 
 export const containerStyles = (isMobile: boolean) => css`
   padding: ${isMobile ? designTokens.spacing[3] : designTokens.spacing[8]};
-  padding-bottom: ${isMobile ? "calc(72px + env(safe-area-inset-bottom))" : designTokens.spacing[8]};
+  padding-bottom: ${isMobile
+    ? "calc(72px + env(safe-area-inset-bottom))"
+    : designTokens.spacing[8]};
   max-width: 1440px;
   margin: 0 auto;
   position: relative;
@@ -103,7 +105,10 @@ export const activityIconStyles = css`
   width: 40px;
   height: 40px;
   border-radius: ${designTokens.borderRadius.md};
-  background: var(--surface-bg-alt, ${designTokens.colors.background.secondary});
+  background: var(
+    --surface-bg-alt,
+    ${designTokens.colors.background.secondary}
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -223,7 +228,9 @@ export const mobileActionsStyles = css`
   grid-template-columns: repeat(3, 1fr);
   border-top: 1px solid var(--divider, ${designTokens.colors.border.primary});
   padding: ${designTokens.spacing[2]};
-  padding-bottom: calc(${designTokens.spacing[2]} + env(safe-area-inset-bottom));
+  padding-bottom: calc(
+    ${designTokens.spacing[2]} + env(safe-area-inset-bottom)
+  );
   z-index: 100;
   box-shadow: ${designTokens.shadows.lg};
 `;
@@ -246,7 +253,10 @@ export const mobileActionButtonStyles = css`
   transition: background 0.15s;
 
   &:active {
-    background: var(--surface-bg-alt, ${designTokens.colors.background.secondary});
+    background: var(
+      --surface-bg-alt,
+      ${designTokens.colors.background.secondary}
+    );
   }
 `;
 

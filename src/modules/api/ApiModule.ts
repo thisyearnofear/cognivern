@@ -89,7 +89,7 @@ export class ApiModule extends BaseService {
     this.logger.info("Setting up middleware...");
 
     // Trust proxy for rate limiting behind reverse proxy (secure configuration)
-    this.app.set('trust proxy', 1); // Trust only first proxy
+    this.app.set("trust proxy", 1); // Trust only first proxy
 
     // Security middleware
     this.app.use(
@@ -102,7 +102,7 @@ export class ApiModule extends BaseService {
             imgSrc: ["'self'", "data:", "https:"],
           },
         },
-      })
+      }),
     );
 
     // CORS configuration
@@ -119,7 +119,7 @@ export class ApiModule extends BaseService {
           "Idempotency-Key",
           "X-Idempotency-Key",
         ],
-      })
+      }),
     );
 
     // Compression
@@ -133,7 +133,7 @@ export class ApiModule extends BaseService {
     // Data plane: tighter limits to reduce abuse risk
     this.app.use(
       "/ingest",
-      express.json({ limit: process.env.INGEST_BODY_LIMIT || "512kb" })
+      express.json({ limit: process.env.INGEST_BODY_LIMIT || "512kb" }),
     );
 
     // Rate limiting
@@ -181,7 +181,7 @@ export class ApiModule extends BaseService {
   private apiKeyMiddleware(
     req: express.Request,
     res: express.Response,
-    next: express.NextFunction
+    next: express.NextFunction,
   ): void {
     // Skip API key check for health endpoint
     if (req.path === "/health") {
@@ -221,14 +221,15 @@ export class ApiModule extends BaseService {
     this.logger.info("Setting up controllers...");
 
     const { AgentsModule } = await import("../agents/AgentsModule.js");
-    const agentsEnabled = (process.env.AGENTS_ENABLED || "false").toLowerCase() === "true";
+    const agentsEnabled =
+      (process.env.AGENTS_ENABLED || "false").toLowerCase() === "true";
 
     const agentsModule = new AgentsModule();
     if (agentsEnabled) {
       await agentsModule.initialize();
     } else {
       this.logger.warn(
-        "AgentsModule disabled (set AGENTS_ENABLED=true to enable background agent loops)"
+        "AgentsModule disabled (set AGENTS_ENABLED=true to enable background agent loops)",
       );
     }
 
@@ -466,7 +467,6 @@ export class ApiModule extends BaseService {
       this.controllers.get("ingest").listTokens(req, res);
     });
 
-
     // Sapience routes
     apiRouter.get("/sapience/status", (req, res) => {
       this.controllers.get("sapience").getStatus(req, res);
@@ -520,7 +520,7 @@ export class ApiModule extends BaseService {
         error: Error,
         req: express.Request,
         res: express.Response,
-        next: express.NextFunction
+        next: express.NextFunction,
       ) => {
         this.logger.error("Unhandled error in API:", error);
 
@@ -529,7 +529,7 @@ export class ApiModule extends BaseService {
           error: "Internal server error",
           timestamp: new Date().toISOString(),
         });
-      }
+      },
     );
   }
 

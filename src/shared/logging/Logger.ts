@@ -5,10 +5,10 @@
  * Provides structured logging with consistent format and levels.
  */
 
-import winston from 'winston';
-import { config } from '../config/index.js';
+import winston from "winston";
+import { config } from "../config/index.js";
 
-export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+export type LogLevel = "error" | "warn" | "info" | "debug";
 
 export interface LogContext {
   [key: string]: any;
@@ -18,7 +18,10 @@ export class Logger {
   private winston: winston.Logger;
   private serviceName: string;
 
-  constructor(serviceName: string, level: LogLevel = config.LOG_LEVEL as LogLevel) {
+  constructor(
+    serviceName: string,
+    level: LogLevel = config.LOG_LEVEL as LogLevel,
+  ) {
     this.serviceName = serviceName;
     this.winston = this.createWinstonLogger(level);
   }
@@ -31,7 +34,7 @@ export class Logger {
     ];
 
     // Add colorization for development
-    if (config.NODE_ENV === 'development') {
+    if (config.NODE_ENV === "development") {
       formats.unshift(winston.format.colorize());
     }
 
@@ -41,44 +44,47 @@ export class Logger {
       defaultMeta: {
         service: this.serviceName,
         environment: config.NODE_ENV,
-        version: process.env.npm_package_version || '1.0.0',
+        version: process.env.npm_package_version || "1.0.0",
       },
       transports: [
         // Console transport for all environments
         new winston.transports.Console({
-          format: config.NODE_ENV === 'development'
-            ? winston.format.combine(
-                winston.format.colorize(),
-                winston.format.simple()
-              )
-            : winston.format.json(),
+          format:
+            config.NODE_ENV === "development"
+              ? winston.format.combine(
+                  winston.format.colorize(),
+                  winston.format.simple(),
+                )
+              : winston.format.json(),
         }),
 
         // File transports for production
-        ...(config.NODE_ENV === 'production' ? [
-          new winston.transports.File({
-            filename: `logs/${this.serviceName}-error.log`,
-            level: 'error',
-            maxsize: 10 * 1024 * 1024, // 10MB
-            maxFiles: 5,
-          }),
-          new winston.transports.File({
-            filename: `logs/${this.serviceName}-combined.log`,
-            maxsize: 10 * 1024 * 1024, // 10MB
-            maxFiles: 5,
-          }),
-        ] : []),
+        ...(config.NODE_ENV === "production"
+          ? [
+              new winston.transports.File({
+                filename: `logs/${this.serviceName}-error.log`,
+                level: "error",
+                maxsize: 10 * 1024 * 1024, // 10MB
+                maxFiles: 5,
+              }),
+              new winston.transports.File({
+                filename: `logs/${this.serviceName}-combined.log`,
+                maxsize: 10 * 1024 * 1024, // 10MB
+                maxFiles: 5,
+              }),
+            ]
+          : []),
       ],
 
       // Handle uncaught exceptions and rejections
       exceptionHandlers: [
         new winston.transports.File({
-          filename: `logs/${this.serviceName}-exceptions.log`
+          filename: `logs/${this.serviceName}-exceptions.log`,
         }),
       ],
       rejectionHandlers: [
         new winston.transports.File({
-          filename: `logs/${this.serviceName}-rejections.log`
+          filename: `logs/${this.serviceName}-rejections.log`,
         }),
       ],
     });
@@ -135,12 +141,12 @@ export class Logger {
    * Log HTTP request
    */
   logRequest(req: any, res: any, duration: number): void {
-    this.info('HTTP Request', {
+    this.info("HTTP Request", {
       method: req.method,
       url: req.url,
       statusCode: res.statusCode,
       duration,
-      userAgent: req.get('User-Agent'),
+      userAgent: req.get("User-Agent"),
       ip: req.ip,
     });
   }
@@ -149,7 +155,7 @@ export class Logger {
    * Log database query
    */
   logQuery(query: string, duration: number, params?: any[]): void {
-    this.debug('Database Query', {
+    this.debug("Database Query", {
       query: query.substring(0, 200), // Truncate long queries
       duration,
       paramCount: params?.length || 0,
@@ -159,8 +165,13 @@ export class Logger {
   /**
    * Log API call
    */
-  logApiCall(service: string, endpoint: string, duration: number, success: boolean): void {
-    this.info('External API Call', {
+  logApiCall(
+    service: string,
+    endpoint: string,
+    duration: number,
+    success: boolean,
+  ): void {
+    this.info("External API Call", {
       service,
       endpoint,
       duration,
@@ -171,8 +182,13 @@ export class Logger {
   /**
    * Log trading action
    */
-  logTradingAction(action: string, symbol: string, quantity: number, price: number): void {
-    this.info('Trading Action', {
+  logTradingAction(
+    action: string,
+    symbol: string,
+    quantity: number,
+    price: number,
+  ): void {
+    this.info("Trading Action", {
       action,
       symbol,
       quantity,
@@ -184,8 +200,13 @@ export class Logger {
   /**
    * Log governance action
    */
-  logGovernanceAction(agentId: string, action: string, outcome: string, riskLevel: string): void {
-    this.info('Governance Action', {
+  logGovernanceAction(
+    agentId: string,
+    action: string,
+    outcome: string,
+    riskLevel: string,
+  ): void {
+    this.info("Governance Action", {
       agentId,
       action,
       outcome,
@@ -197,17 +218,24 @@ export class Logger {
    * Log performance metrics
    */
   logMetrics(metrics: Record<string, number>): void {
-    this.info('Performance Metrics', metrics);
+    this.info("Performance Metrics", metrics);
   }
 }
 
 // Create default logger instance
-export const defaultLogger = new Logger('cognivern', config.LOG_LEVEL as LogLevel);
+export const defaultLogger = new Logger(
+  "cognivern",
+  config.LOG_LEVEL as LogLevel,
+);
 
 // Export convenience functions for backward compatibility
 export const logger = {
-  error: (message: string, context?: LogContext | Error) => defaultLogger.error(message, context),
-  warn: (message: string, context?: LogContext) => defaultLogger.warn(message, context),
-  info: (message: string, context?: LogContext) => defaultLogger.info(message, context),
-  debug: (message: string, context?: LogContext) => defaultLogger.debug(message, context),
+  error: (message: string, context?: LogContext | Error) =>
+    defaultLogger.error(message, context),
+  warn: (message: string, context?: LogContext) =>
+    defaultLogger.warn(message, context),
+  info: (message: string, context?: LogContext) =>
+    defaultLogger.info(message, context),
+  debug: (message: string, context?: LogContext) =>
+    defaultLogger.debug(message, context),
 };

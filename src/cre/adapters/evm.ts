@@ -40,7 +40,11 @@ export class DefaultEvmAdapter implements EvmAdapter {
 
     const readings = await Promise.all(
       params.feeds.map(async (f) => {
-        const contract = new ethers.Contract(f.address, AGGREGATOR_V3_ABI, provider);
+        const contract = new ethers.Contract(
+          f.address,
+          AGGREGATOR_V3_ABI,
+          provider,
+        );
         const [roundData, decimals] = await Promise.all([
           contract.latestRoundData(),
           contract.decimals(),
@@ -54,7 +58,7 @@ export class DefaultEvmAdapter implements EvmAdapter {
           decimals: Number(decimals),
           updatedAt: new Date(updatedAtSec * 1000).toISOString(),
         } satisfies PriceFeedReading;
-      })
+      }),
     );
 
     return readings;

@@ -15,6 +15,7 @@ export interface User {
   address?: string;
   userType?: string;
   isConnected: boolean;
+  network?: "filecoin" | "polkadot";
 }
 
 interface AppState {
@@ -63,10 +64,7 @@ const getStoredState = () => {
     // Backward compatibility for older persisted sidebarCollapsed preference
     if (parsed?.preferences) {
       const prefs = parsed.preferences;
-      if (
-        typeof prefs.sidebarCollapsed === "boolean" &&
-        !prefs.sidebarState
-      ) {
+      if (typeof prefs.sidebarCollapsed === "boolean" && !prefs.sidebarState) {
         prefs.sidebarState = prefs.sidebarCollapsed ? "collapsed" : "expanded";
       }
       delete prefs.sidebarCollapsed;

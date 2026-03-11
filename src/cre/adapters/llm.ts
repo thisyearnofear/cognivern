@@ -87,7 +87,10 @@ export class DefaultLlmAdapter implements LlmAdapter {
 
   private buildPrompt(input: ForecastInput) {
     const feedLines = input.priceFeeds
-      .map((f) => `- ${f.feedName}: ${f.value} (decimals=${f.decimals}, updatedAt=${f.updatedAt})`)
+      .map(
+        (f) =>
+          `- ${f.feedName}: ${f.value} (decimals=${f.decimals}, updatedAt=${f.updatedAt})`,
+      )
       .join("\n");
 
     return [
@@ -99,7 +102,9 @@ export class DefaultLlmAdapter implements LlmAdapter {
     ].join("\n");
   }
 
-  private parseForecast(text: string): Pick<ForecastOutput, "probability" | "reasoning"> {
+  private parseForecast(
+    text: string,
+  ): Pick<ForecastOutput, "probability" | "reasoning"> {
     const lines = text
       .split("\n")
       .map((l) => l.trim())

@@ -4,13 +4,13 @@ require("dotenv").config({ path: ".env" });
 
 async function main() {
   console.log(
-    "🚀 Deploying Cognivern contracts to Filecoin Calibration testnet..."
+    "🚀 Deploying Cognivern contracts to Filecoin Calibration testnet...",
   );
 
   // Check if we have the required environment variables
   if (!process.env.FILECOIN_PRIVATE_KEY) {
     throw new Error(
-      "❌ FILECOIN_PRIVATE_KEY not found in environment variables"
+      "❌ FILECOIN_PRIVATE_KEY not found in environment variables",
     );
   }
 
@@ -24,7 +24,7 @@ async function main() {
 
   if (balance === 0n) {
     throw new Error(
-      "❌ Insufficient balance for deployment. Please fund the deployer wallet."
+      "❌ Insufficient balance for deployment. Please fund the deployer wallet.",
     );
   }
 
@@ -40,7 +40,7 @@ async function main() {
   // Deploy AIGovernanceStorage
   console.log("\n🗄️  Deploying AIGovernanceStorage...");
   const AIGovernanceStorage = await ethers.getContractFactory(
-    "AIGovernanceStorage"
+    "AIGovernanceStorage",
   );
   const storageContract = await AIGovernanceStorage.deploy();
   await storageContract.waitForDeployment();
@@ -50,13 +50,13 @@ async function main() {
   // Create a sample policy
   console.log("\n📜 Creating sample governance policy...");
   const policyId = ethers.keccak256(
-    ethers.toUtf8Bytes("sample-policy-" + Date.now())
+    ethers.toUtf8Bytes("sample-policy-" + Date.now()),
   );
   const createPolicyTx = await governanceContract.createPolicy(
     policyId,
     "Sample Governance Policy",
     "A sample policy for demonstrating governance capabilities",
-    ethers.keccak256(ethers.toUtf8Bytes("sample-rules-hash"))
+    ethers.keccak256(ethers.toUtf8Bytes("sample-rules-hash")),
   );
   await createPolicyTx.wait();
   console.log("✅ Sample policy created with ID:", policyId);
@@ -65,7 +65,7 @@ async function main() {
   console.log("\n🔄 Activating sample policy...");
   const activatePolicyTx = await governanceContract.updatePolicyStatus(
     policyId,
-    1
+    1,
   ); // Active
   await activatePolicyTx.wait();
   console.log("✅ Sample policy activated");
@@ -73,13 +73,13 @@ async function main() {
   // Register a sample agent
   console.log("\n🤖 Registering sample agent...");
   const agentId = ethers.keccak256(
-    ethers.toUtf8Bytes("sample-agent-" + Date.now())
+    ethers.toUtf8Bytes("sample-agent-" + Date.now()),
   );
   const registerAgentTx = await governanceContract.registerAgent(
     agentId,
     "Sample AI Agent",
     ["policy-enforcement", "data-analysis", "decision-making"],
-    policyId
+    policyId,
   );
   await registerAgentTx.wait();
   console.log("✅ Sample agent registered with ID:", agentId);
@@ -89,7 +89,7 @@ async function main() {
   const registerStorageTx = await storageContract.registerAgent(
     deployer.address,
     "Sample AI Trading Agent",
-    "trading"
+    "trading",
   );
   await registerStorageTx.wait();
   console.log("✅ Agent registered in storage contract");
@@ -104,7 +104,7 @@ async function main() {
   console.log(`GOVERNANCE_CONTRACT_ADDRESS=${governanceAddress}`);
   console.log(`STORAGE_CONTRACT_ADDRESS=${storageAddress}`);
   console.log(
-    `USDFC_TOKEN_ADDRESS=${process.env.USDFC_TOKEN_ADDRESS || "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9"}`
+    `USDFC_TOKEN_ADDRESS=${process.env.USDFC_TOKEN_ADDRESS || "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9"}`,
   );
 
   // Verify deployment
@@ -116,7 +116,7 @@ async function main() {
     "Agents:",
     stats[1].toString(),
     "Actions:",
-    stats[2].toString()
+    stats[2].toString(),
   );
 
   const storageStats = await storageContract.getGovernanceStats();
@@ -126,12 +126,12 @@ async function main() {
     "Violations:",
     storageStats[1].toString(),
     "Agents:",
-    storageStats[2].toString()
+    storageStats[2].toString(),
   );
 
   console.log("\n✅ Deployment verification complete!");
   console.log(
-    "🌟 Cognivern: AI Agent Governance on Filecoin's Sovereign Data Layer"
+    "🌟 Cognivern: AI Agent Governance on Filecoin's Sovereign Data Layer",
   );
   console.log("🔗 Filecoin Explorer: https://calibration.filfox.info/en");
 }

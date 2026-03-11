@@ -80,7 +80,7 @@ export class TradingScheduler extends BaseService {
     const intervalMs = this.schedulerConfig.intervalMinutes * 60 * 1000;
 
     logger.info(
-      `Starting trading scheduler - trades every ${this.schedulerConfig.intervalMinutes} minutes`
+      `Starting trading scheduler - trades every ${this.schedulerConfig.intervalMinutes} minutes`,
     );
 
     // Execute first trade immediately

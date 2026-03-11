@@ -29,7 +29,10 @@ export class RecallService {
     this.config = {
       apiKey: config.apiKey || process.env.RECALL_API_KEY,
       bucket: config.bucket || process.env.RECALL_BUCKET || "agent-memory",
-      endpoint: config.endpoint || process.env.RECALL_ENDPOINT || "https://api.recall.network/v1",
+      endpoint:
+        config.endpoint ||
+        process.env.RECALL_ENDPOINT ||
+        "https://api.recall.network/v1",
     };
 
     if (!this.config.apiKey) {
@@ -59,20 +62,22 @@ export class RecallService {
       };
 
       const response = await fetch(`${this.config.endpoint}/objects`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${this.config.apiKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           bucket: this.config.bucket,
           key: memoryId,
-          data: newMemory
-        })
+          data: newMemory,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error(`Recall API Error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Recall API Error: ${response.status} ${response.statusText}`,
+        );
       }
 
       logger.info(`Stored memory to Recall Network: ${memoryId}`);
@@ -93,10 +98,10 @@ export class RecallService {
 
     try {
       const response = await fetch(`${this.config.endpoint}/objects/${id}`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`
-        }
+          Authorization: `Bearer ${this.config.apiKey}`,
+        },
       });
 
       if (response.status === 404) return null;
@@ -115,7 +120,11 @@ export class RecallService {
   /**
    * Search useful memories
    */
-  async query(agentId: string, queryText: string, limit: number = 5): Promise<RecallMemory[]> {
+  async query(
+    agentId: string,
+    queryText: string,
+    limit: number = 5,
+  ): Promise<RecallMemory[]> {
     if (!this.isConnected || !this.config.apiKey) {
       throw new Error("RecallService: Missing API Key");
     }
@@ -123,16 +132,16 @@ export class RecallService {
     // Attempting a vector search or query endpoint
     try {
       const response = await fetch(`${this.config.endpoint}/query`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${this.config.apiKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           agentId,
           text: queryText,
-          limit
-        })
+          limit,
+        }),
       });
 
       if (!response.ok) {
@@ -151,20 +160,20 @@ export class RecallService {
    * Get total memory count
    */
   async getStats(): Promise<{ totalMemories: number; storageUsed: string }> {
-     if (!this.isConnected) {
-        throw new Error("RecallService: Missing API Key");
-     }
-     // Real implementation would hit an endpoint.
-     // Since we don't know the stats endpoint, we'll throw "Not Implemented" or try a generic one
-     try {
-       const response = await fetch(`${this.config.endpoint}/stats`, {
-           headers: { 'Authorization': `Bearer ${this.config.apiKey}` }
-       });
-        if (!response.ok) return { totalMemories: 0, storageUsed: "0 KB" }; // Or throw
-        return await response.json();
-     } catch (e) {
-         throw new Error("Failed to fetch Recall stats");
-     }
+    if (!this.isConnected) {
+      throw new Error("RecallService: Missing API Key");
+    }
+    // Real implementation would hit an endpoint.
+    // Since we don't know the stats endpoint, we'll throw "Not Implemented" or try a generic one
+    try {
+      const response = await fetch(`${this.config.endpoint}/stats`, {
+        headers: { Authorization: `Bearer ${this.config.apiKey}` },
+      });
+      if (!response.ok) return { totalMemories: 0, storageUsed: "0 KB" }; // Or throw
+      return await response.json();
+    } catch (e) {
+      throw new Error("Failed to fetch Recall stats");
+    }
   }
 
   /**

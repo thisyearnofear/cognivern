@@ -377,6 +377,21 @@ export const mcpApi = new MCPApiService();
 export const policyApi = new PolicyApiService();
 export const vincentApi = new VincentApiService();
 export const sapienceApi = new SapienceApiService();
+// Export Polkadot API service
+export {
+  getGovernanceContract,
+  getStorageContract,
+  getAIGovernanceContract,
+  fetchGovernanceStats,
+  fetchStorageStats,
+  fetchAIGovernanceStats,
+  fetchAllPolicyIds,
+  fetchAllAgentIds,
+  fetchActiveProviders,
+  checkPolkadotConnection,
+  fetchPolicyDetails,
+  fetchAgentDetails,
+} from "./polkadotApi";
 
 // Export default instance for general use
 export default new ApiService();

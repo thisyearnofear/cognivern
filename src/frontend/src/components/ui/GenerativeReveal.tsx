@@ -8,12 +8,17 @@ interface GenerativeRevealProps {
   className?: string;
 }
 
-const Container = styled.div<{ active: boolean; duration: number; filterId: string }>`
+const Container = styled.div<{
+  active: boolean;
+  duration: number;
+  filterId: string;
+}>`
   position: relative;
   will-change: filter, transform, opacity;
   transition: opacity ${({ duration }) => duration * 0.5}ms ease-out;
   opacity: ${({ active }) => (active ? 1 : 0)};
-  filter: ${({ active, filterId }) => (active ? `url(#distort-${filterId})` : "none")};
+  filter: ${({ active, filterId }) =>
+    active ? `url(#distort-${filterId})` : "none"};
 `;
 
 /**
@@ -47,7 +52,13 @@ export const GenerativeReveal: React.FC<GenerativeRevealProps> = ({
         aria-hidden="true"
       >
         <defs>
-          <filter id={`distort-${filterId}`} x="-20%" y="-20%" width="140%" height="140%">
+          <filter
+            id={`distort-${filterId}`}
+            x="-20%"
+            y="-20%"
+            width="140%"
+            height="140%"
+          >
             <feTurbulence
               type="fractalNoise"
               baseFrequency="0.015"

@@ -89,7 +89,9 @@ export class MetricsController {
           ? req.body.eventType.slice(0, 100)
           : "";
       if (!eventType) {
-        res.status(400).json({ success: false, error: "eventType is required" });
+        res
+          .status(400)
+          .json({ success: false, error: "eventType is required" });
         return;
       }
 
@@ -130,7 +132,7 @@ export class MetricsController {
           acc[event.eventType] = (acc[event.eventType] || 0) + 1;
           return acc;
         },
-        {} as Record<string, number>
+        {} as Record<string, number>,
       );
 
       const completionRate = (() => {
@@ -159,7 +161,9 @@ export class MetricsController {
             completionRate,
             retryRate,
           },
-          lastEventAt: events.length ? events[events.length - 1].timestamp : null,
+          lastEventAt: events.length
+            ? events[events.length - 1].timestamp
+            : null,
         },
         timestamp: new Date().toISOString(),
       });

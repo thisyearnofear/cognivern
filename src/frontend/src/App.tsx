@@ -42,7 +42,10 @@ function App() {
   const { effectiveTheme } = useTheme();
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", effectiveTheme === "dark");
+    document.documentElement.classList.toggle(
+      "dark",
+      effectiveTheme === "dark",
+    );
   }, [effectiveTheme]);
 
   return (

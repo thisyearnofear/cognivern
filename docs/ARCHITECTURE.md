@@ -42,12 +42,14 @@ Cognivern utilizes a hybrid multi-chain architecture to balance high-fidelity ev
 Cognivern separates concerns into two planes:
 
 ### Data Plane (`/ingest/*`)
+
 - High-volume write path for agent run ingestion.
 - Ingest-key authentication (`Authorization: Bearer <ingestKey>`).
 - Project-scoped via `X-PROJECT-ID` header.
 - Multi-chain data anchoring (Polkadot Hub for coordination, Filecoin for forensics).
 
 ### Control Plane (`/api/*`)
+
 - UI + admin APIs.
 - Real-time ecosystem visualization and forensic timeline reconstruction.
 - Behavioral governance management and policy orchestration.
@@ -55,20 +57,23 @@ Cognivern separates concerns into two planes:
 ## Core Components
 
 ### Application Layer
+
 - **Agent Controller**: Handles incoming requests and orchestrates workflows
 - **Agentic UI/UX**:
-    - **Intent-Driven Bridge**: Natural language interface with Generative UI responses (`StatCard`, `ForensicTimeline`, `ActionForm`)
-    - **Ecosystem Visualizer**: Spatial, interactive HUD for network state
-    - **Forensic Transparency**: High-fidelity cognitive path reconstruction
-    - **Unified Dashboard**: Real-time view of agent thoughts, actions, and metrics
+  - **Intent-Driven Bridge**: Natural language interface with Generative UI responses (`StatCard`, `ForensicTimeline`, `ActionForm`)
+  - **Ecosystem Visualizer**: Spatial, interactive HUD for network state
+  - **Forensic Transparency**: High-fidelity cognitive path reconstruction
+  - **Unified Dashboard**: Real-time view of agent thoughts, actions, and metrics
 
 ### Domain Layer
+
 - **Governance Engine**: Centralized policy management (`governanceStore`) with visual safety scores
 - **Governance Agent**: Maintains thought history, logs actions, enforces policies
 - **Policy Service**: Validates actions against risk management rules
 - **Trading Agent**: Executes forecasting and trading strategies
 
 ### Infrastructure Layer
+
 - **SapienceService**: EAS attestations, Ethereal contract interactions
 - **Chainlink Integration**: Data Feeds (EVM Read), CRE workflows, EVM Write
 - **Recall Network**: Persistent memory for agent reasoning
@@ -110,6 +115,7 @@ class SapienceTradingAgent {
 ## Trading Strategy
 
 ### Horizon-Weighted Market Selection
+
 Cognivern optimizes for accuracy scoring by prioritizing markets with the longest time until resolution:
 
 1. Batch fetch up to 50 active conditions from GraphQL API
@@ -118,6 +124,7 @@ Cognivern optimizes for accuracy scoring by prioritizing markets with the longes
 4. Submit forecasts to highest-value markets first
 
 ### Multi-LLM Resilience
+
 ```
 Tier 1 (Primary): Routeway.ai — Kimi K2 0905 (best reasoning)
                       ↓ (on timeout/5xx)
@@ -170,6 +177,7 @@ RECALL_BUCKET=agent-memory
 ## Monitoring & Observability
 
 ### Key Metrics
+
 - API response time (p50, p95, p99)
 - Cache hit rate
 - Filter application time
@@ -177,10 +185,11 @@ RECALL_BUCKET=agent-memory
 - Forecast accuracy (Brier Score)
 
 ### Logging Strategy
+
 ```typescript
-logger.info('Forecast submitted', { marketId, probability, txHash });
-logger.error('Policy violation', { action, reason, agentId });
-logger.warn('LLM fallback triggered', { provider, error });
+logger.info("Forecast submitted", { marketId, probability, txHash });
+logger.error("Policy violation", { action, reason, agentId });
+logger.warn("LLM fallback triggered", { provider, error });
 ```
 
 ## Live On-Chain Activity

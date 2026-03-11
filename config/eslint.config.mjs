@@ -11,7 +11,7 @@ const config = [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: ['./tsconfig.json'], // Assumes a tsconfig.json at the root
+        project: ['./src/frontend/tsconfig.app.json'], // Points to frontend app tsconfig
       },
     },
     plugins: {

@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
-import { getApiUrl, getRequestHeaders } from "../../utils/api";
 import { css } from "@emotion/react";
-import { designTokens, keyframeAnimations } from "../../styles/design-system";
+import { designTokens } from "../../styles/design-system";
 import { Card, CardContent } from "../ui/Card";
+import {
+  checkPolkadotConnection,
+  fetchGovernanceStats,
+  fetchAIGovernanceStats,
+} from "../../services/apiService";
 
 interface ContractStats {
   filecoin?: {
@@ -21,48 +25,72 @@ interface ContractStats {
     violations: number;
     approvalRate: number;
   };
+  polkadot?: {
+    connected: boolean;
+    blockNumber: number;
+    governanceContract: string;
+    storageContract: string;
+  };
+  aiGovernance?: {
+    totalActions: number;
+    totalViolations: number;
+    totalAgents: number;
+    approvalRate: number;
+  };
 }
 
 export default function BlockchainStatus() {
   const [stats, setStats] = useState<ContractStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchBlockchainStats() {
       try {
         setLoading(true);
-        const apiUrl = getApiUrl("/api/dashboard/unified");
-        const response = await fetch(apiUrl, { headers: getRequestHeaders() });
 
-        if (!response.ok) throw new Error(`Error: ${response.status}`);
-        const result = await response.json();
+        // Fetch Polkadot Hub governance stats
+        const governanceStats = await fetchGovernanceStats();
 
-        if (result.success && result.data) {
-          const d = result.data;
-          setStats({
-            governance: {
-              address: "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880",
-              policies: d.systemHealth?.totalPolicies || 2,
-              agents: d.systemHealth?.activeAgents || 1,
-              actions: d.systemHealth?.totalForecasts || 0,
-              violations: 0,
-              approvalRate: 100,
-            },
-            filecoin: {
-              network: "Calibration",
-              chainId: 314159,
-              rpcUrl: "https://api.calibration.node.glif.io/rpc/v1",
-              governanceContract: "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880",
-              storageContract: "0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada",
-              usdcToken: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
-            },
-          });
-        }
-        setError(null);
+        // Fetch AI governance stats
+        const aiGovernanceStats = await fetchAIGovernanceStats();
+
+        // Check Polkadot connection
+        const connectionInfo = await checkPolkadotConnection();
+
+        setStats({
+          governance: {
+            // Using a placeholder address - in reality this would come from env or contract
+            address: "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880",
+            policies: governanceStats.totalPolicies,
+            agents: governanceStats.totalAgents,
+            actions: governanceStats.totalActions,
+            violations: 0, // Would need to fetch from AI governance or another source
+            approvalRate: 100, // Would need to calculate from actual data
+          },
+          filecoin: {
+            network: "Calibration",
+            chainId: 314159,
+            rpcUrl: "https://api.calibration.node.glif.io/rpc/v1",
+            governanceContract: "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880",
+            storageContract: "0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada",
+            usdcToken: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+          },
+          polkadot: {
+            connected: connectionInfo.connected,
+            blockNumber: connectionInfo.blockNumber,
+            // In a real implementation, we'd get actual governance contract data
+            governanceContract: "0xYourGovernanceContractAddress",
+            storageContract: "0xYourStorageContractAddress",
+          },
+          aiGovernance: {
+            totalActions: aiGovernanceStats.totalActions,
+            totalViolations: aiGovernanceStats.totalViolations,
+            totalAgents: aiGovernanceStats.totalAgents,
+            approvalRate: aiGovernanceStats.approvalRate,
+          },
+        });
       } catch (err) {
         console.error("Error fetching blockchain stats:", err);
-        setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         setLoading(false);
       }
@@ -89,6 +117,7 @@ export default function BlockchainStatus() {
 
   const contractInfo = stats?.governance;
   const storageInfo = stats?.filecoin;
+  const polkadotInfo = stats?.polkadot;
 
   return (
     <div
@@ -294,6 +323,130 @@ export default function BlockchainStatus() {
                   `}
                 >
                   Actions
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Polkadot Hub Status */}
+        <Card
+          variant="default"
+          css={css`
+            border: 1px solid ${designTokens.colors.neutral[200]};
+            overflow: hidden;
+          `}
+        >
+          <CardContent
+            css={css`
+              padding: 24px;
+            `}
+          >
+            <div
+              css={css`
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 16px;
+              `}
+            >
+              <span
+                css={css`
+                  font-size: 1.5rem;
+                `}
+              >
+                🔗
+              </span>
+              <span
+                css={css`
+                  font-weight: 700;
+                  font-size: 1rem;
+                  color: ${designTokens.colors.neutral[800]};
+                `}
+              >
+                Polkadot Hub
+              </span>
+            </div>
+
+            <div
+              css={css`
+                background: ${designTokens.colors.neutral[50]};
+                padding: 12px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                font-family: ${designTokens.typography.fontFamily.mono};
+                font-size: 0.75rem;
+                color: ${designTokens.colors.neutral[500]};
+                border: 1px solid ${designTokens.colors.neutral[100]};
+                word-break: break-all;
+              `}
+            >
+              <strong
+                css={css`
+                  color: ${designTokens.colors.primary[600]};
+                  margin-right: 8px;
+                `}
+              >
+                ADDR:
+              </strong>
+              {polkadotInfo?.governanceContract}
+            </div>
+
+            <div
+              css={css`
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+              `}
+            >
+              <div
+                css={css`
+                  text-align: center;
+                `}
+              >
+                <div
+                  css={css`
+                    font-size: 1.5rem;
+                    font-weight: 800;
+                    color: ${designTokens.colors.primary[600]};
+                  `}
+                >
+                  {polkadotInfo?.connected ? "Connected" : "Disconnected"}
+                </div>
+                <div
+                  css={css`
+                    font-size: 0.65rem;
+                    font-weight: 700;
+                    color: ${designTokens.colors.neutral[400]};
+                    text-transform: uppercase;
+                  `}
+                >
+                  Network Status
+                </div>
+              </div>
+              <div
+                css={css`
+                  text-align: center;
+                `}
+              >
+                <div
+                  css={css`
+                    font-size: 1.5rem;
+                    font-weight: 800;
+                    color: ${designTokens.colors.primary[600]};
+                  `}
+                >
+                  Block #{polkadotInfo?.blockNumber ?? "N/A"}
+                </div>
+                <div
+                  css={css`
+                    font-size: 0.65rem;
+                    font-weight: 700;
+                    color: ${designTokens.colors.neutral[400]};
+                    text-transform: uppercase;
+                  `}
+                >
+                  Block Number
                 </div>
               </div>
             </div>

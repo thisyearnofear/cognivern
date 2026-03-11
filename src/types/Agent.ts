@@ -1,12 +1,12 @@
-import { Policy } from './Policy.js';
-import { Metrics } from './Metrics.js';
+import { Policy } from "./Policy.js";
+import { Metrics } from "./Metrics.js";
 
 export interface Agent {
   id: string;
   name: string;
   type: string;
   capabilities: string[];
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   metrics: {
     responseTime: number;
     successRate: number;
@@ -23,7 +23,7 @@ export interface AgentConfig {
   type: string;
   version: string;
   createdAt: string;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   capabilities: string[];
 }
 
@@ -59,7 +59,7 @@ export interface AgentState {
 export interface TradingDecision {
   id: string;
   timestamp: string;
-  action: 'buy' | 'sell' | 'hold';
+  action: "buy" | "sell" | "hold";
   asset: string;
   amount: number;
   price: number;

@@ -8,7 +8,9 @@ export default defineConfig(({ mode }) => {
 
   // Ensure backend URL uses HTTPS in production
   if (mode === "production" && !backendUrl.startsWith("https://")) {
-    console.warn(`Backend URL ${backendUrl} does not use HTTPS. Switching to HTTPS for production.`);
+    console.warn(
+      `Backend URL ${backendUrl} does not use HTTPS. Switching to HTTPS for production.`,
+    );
     backendUrl = backendUrl.replace("http://", "https://");
   }
 
@@ -19,7 +21,7 @@ export default defineConfig(({ mode }) => {
 
     // Simplified build configuration
     build: {
-      minify: 'esbuild',
+      minify: "esbuild",
       sourcemap: false,
     },
 
@@ -32,9 +34,11 @@ export default defineConfig(({ mode }) => {
           rewrite: (path) => path,
           // Handle CORS headers
           onProxyRes: (proxyRes) => {
-            proxyRes.headers['Access-Control-Allow-Origin'] = '*';
-            proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
-            proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-API-KEY';
+            proxyRes.headers["Access-Control-Allow-Origin"] = "*";
+            proxyRes.headers["Access-Control-Allow-Methods"] =
+              "GET, POST, PUT, DELETE, OPTIONS";
+            proxyRes.headers["Access-Control-Allow-Headers"] =
+              "Content-Type, X-API-KEY";
           },
         },
       },

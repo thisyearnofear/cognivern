@@ -54,7 +54,7 @@ export class JsonlCreRunPersistence implements CreRunPersistence {
     await fs.promises.writeFile(
       this.filePath,
       content ? `${content}\n` : "",
-      "utf8"
+      "utf8",
     );
   }
 

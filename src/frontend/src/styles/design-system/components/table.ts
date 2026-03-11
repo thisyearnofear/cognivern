@@ -12,7 +12,10 @@ export const tableStyles = {
     background-color: ${designTokens.colors.neutral[50]};
     border-bottom: 2px solid ${designTokens.colors.neutral[200]};
   `,
-  headerCell: (align: "left" | "center" | "right" = "left", sortable: boolean = false) => css`
+  headerCell: (
+    align: "left" | "center" | "right" = "left",
+    sortable: boolean = false,
+  ) => css`
     padding: ${designTokens.spacing[4]};
     text-align: ${align};
     font-weight: ${designTokens.typography.fontWeight.semibold};
@@ -29,7 +32,9 @@ export const tableStyles = {
   `,
   row: (clickable: boolean, index: number) => css`
     border-bottom: 1px solid ${designTokens.colors.neutral[200]};
-    background-color: ${index % 2 === 0 ? designTokens.colors.neutral[0] : designTokens.colors.neutral[50]};
+    background-color: ${index % 2 === 0
+      ? designTokens.colors.neutral[0]
+      : designTokens.colors.neutral[50]};
     transition: background-color ${designTokens.animation.duration.fast};
 
     ${clickable &&

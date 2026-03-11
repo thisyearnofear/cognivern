@@ -10,7 +10,7 @@ const simpleLogger = {
 export const apiKeyMiddleware = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const apiKey = req.headers["x-api-key"] || req.query.apiKey;
 
@@ -35,7 +35,7 @@ export const errorHandler = (
   error: any,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   simpleLogger.error(`Unhandled error: ${error.message}`);
 

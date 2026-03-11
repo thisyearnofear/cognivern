@@ -78,7 +78,9 @@ export const creRunSchema = z.object({
       source: z.string(),
       workflowVersion: z.string().optional(),
       model: z.string().optional(),
-      citations: z.array(z.object({ label: z.string(), value: z.string() })).optional(),
+      citations: z
+        .array(z.object({ label: z.string(), value: z.string() }))
+        .optional(),
     })
     .optional(),
   events: z.array(eventSchema).optional(),

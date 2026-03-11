@@ -1,7 +1,7 @@
-export * from './Agent.js';
-export * from './Policy.js';
-export * from './AuditLog.js';
-export * from './Metrics.js';
+export * from "./Agent.js";
+export * from "./Policy.js";
+export * from "./AuditLog.js";
+export * from "./Metrics.js";
 
 export interface AssetMatch {
   id: string;

@@ -14,7 +14,7 @@ export class APIError extends Error {
   constructor(
     public statusCode: number,
     message: string,
-    public details?: unknown
+    public details?: unknown,
   ) {
     super(message);
     this.name = "APIError";
@@ -28,11 +28,11 @@ export function errorHandler(
   error: Error,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void {
   // Log the error
   logger.error(
-    `API Error: ${error.message} - ${req.method} ${req.url} from ${req.ip}`
+    `API Error: ${error.message} - ${req.method} ${req.url} from ${req.ip}`,
   );
 
   // Handle different error types
@@ -84,7 +84,7 @@ export function errorHandler(
  * Async error wrapper for route handlers
  */
 export function asyncHandler<T extends Request, U extends Response>(
-  fn: (req: T, res: U, next: NextFunction) => Promise<any>
+  fn: (req: T, res: U, next: NextFunction) => Promise<any>,
 ) {
   return (req: T, res: U, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);

@@ -1,4 +1,4 @@
-declare module 'openai' {
+declare module "openai" {
   export default class OpenAI {
     constructor(options: { apiKey: string });
     chat: {
@@ -6,7 +6,7 @@ declare module 'openai' {
         create(params: {
           model: string;
           messages: Array<{
-            role: 'system' | 'user' | 'assistant';
+            role: "system" | "user" | "assistant";
             content: string;
           }>;
           max_tokens?: number;

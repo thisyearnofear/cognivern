@@ -5,10 +5,10 @@
  * Provides unified comparison and filtering logic
  */
 
-import { AgentStatus } from '../types/index.js';
-import { TradingDecision } from '../../types/Agent.js';
-import { TradingHistoryService } from '../../services/TradingHistoryService.js';
-import { MetricsService } from '../../services/MetricsService.js';
+import { AgentStatus } from "../types/index.js";
+import { TradingDecision } from "../../types/Agent.js";
+import { TradingHistoryService } from "../../services/TradingHistoryService.js";
+import { MetricsService } from "../../services/MetricsService.js";
 
 export interface AgentComparisonMetrics {
   agentId: string;
@@ -64,7 +64,7 @@ export interface ComparisonFilters {
 
 export interface ComparisonSort {
   field: keyof AgentComparisonMetrics;
-  direction: 'asc' | 'desc';
+  direction: "asc" | "desc";
 }
 
 export class AgentMetricsAggregator {
@@ -79,7 +79,7 @@ export class AgentMetricsAggregator {
   constructor(
     tradingHistory: TradingHistoryService,
     metricsService: MetricsService,
-    agentsModule: any
+    agentsModule: any,
   ) {
     this.tradingHistory = tradingHistory;
     this.metricsService = metricsService;
@@ -91,19 +91,24 @@ export class AgentMetricsAggregator {
    */
   async getComparisonMetrics(
     agentIds: string[],
-    filters?: ComparisonFilters
+    filters?: ComparisonFilters,
   ): Promise<AgentComparisonMetrics[]> {
     const metrics = await Promise.all(
-      agentIds.map(id => this.getAgentMetrics(id))
+      agentIds.map((id) => this.getAgentMetrics(id)),
     );
 
-    return this.applyFilters(metrics.filter(Boolean) as AgentComparisonMetrics[], filters);
+    return this.applyFilters(
+      metrics.filter(Boolean) as AgentComparisonMetrics[],
+      filters,
+    );
   }
 
   /**
    * Get metrics for a single agent (with caching)
    */
-  async getAgentMetrics(agentId: string): Promise<AgentComparisonMetrics | null> {
+  async getAgentMetrics(
+    agentId: string,
+  ): Promise<AgentComparisonMetrics | null> {
     // Check cache
     const cached = this.getCachedMetrics(agentId);
     if (cached) return cached;
@@ -143,9 +148,12 @@ export class AgentMetricsAggregator {
     }
 
     const totalTrades = metrics.reduce((sum, m) => sum + m.totalTrades, 0);
-    const avgWinRate = metrics.reduce((sum, m) => sum + m.winRate, 0) / metrics.length;
-    const avgReturn = metrics.reduce((sum, m) => sum + m.totalReturn, 0) / metrics.length;
-    const avgSharpeRatio = metrics.reduce((sum, m) => sum + m.sharpeRatio, 0) / metrics.length;
+    const avgWinRate =
+      metrics.reduce((sum, m) => sum + m.winRate, 0) / metrics.length;
+    const avgReturn =
+      metrics.reduce((sum, m) => sum + m.totalReturn, 0) / metrics.length;
+    const avgSharpeRatio =
+      metrics.reduce((sum, m) => sum + m.sharpeRatio, 0) / metrics.length;
 
     const sorted = [...metrics].sort((a, b) => b.totalReturn - a.totalReturn);
 
@@ -165,18 +173,18 @@ export class AgentMetricsAggregator {
    */
   sortMetrics(
     metrics: AgentComparisonMetrics[],
-    sort: ComparisonSort
+    sort: ComparisonSort,
   ): AgentComparisonMetrics[] {
     return [...metrics].sort((a, b) => {
       const aVal = a[sort.field];
       const bVal = b[sort.field];
 
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sort.direction === 'asc' ? aVal - bVal : bVal - aVal;
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return sort.direction === "asc" ? aVal - bVal : bVal - aVal;
       }
 
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sort.direction === 'asc'
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sort.direction === "asc"
           ? aVal.localeCompare(bVal)
           : bVal.localeCompare(aVal);
       }
@@ -190,21 +198,40 @@ export class AgentMetricsAggregator {
    */
   private applyFilters(
     metrics: AgentComparisonMetrics[],
-    filters?: ComparisonFilters
+    filters?: ComparisonFilters,
   ): AgentComparisonMetrics[] {
     if (!filters) return metrics;
 
-    return metrics.filter(m => {
-      if (filters.agentIds && !filters.agentIds.includes(m.agentId)) return false;
-      if (filters.agentTypes && !filters.agentTypes.includes(m.agentType)) return false;
-      if (filters.ecosystems && m.ecosystem && !filters.ecosystems.includes(m.ecosystem)) return false;
+    return metrics.filter((m) => {
+      if (filters.agentIds && !filters.agentIds.includes(m.agentId))
+        return false;
+      if (filters.agentTypes && !filters.agentTypes.includes(m.agentType))
+        return false;
+      if (
+        filters.ecosystems &&
+        m.ecosystem &&
+        !filters.ecosystems.includes(m.ecosystem)
+      )
+        return false;
       if (filters.status && !filters.status.includes(m.status)) return false;
-      if (filters.minWinRate !== undefined && m.winRate < filters.minWinRate) return false;
-      if (filters.maxWinRate !== undefined && m.winRate > filters.maxWinRate) return false;
-      if (filters.minReturn !== undefined && m.totalReturn < filters.minReturn) return false;
-      if (filters.maxReturn !== undefined && m.totalReturn > filters.maxReturn) return false;
-      if (filters.minSharpeRatio !== undefined && m.sharpeRatio < filters.minSharpeRatio) return false;
-      if (filters.maxSharpeRatio !== undefined && m.sharpeRatio > filters.maxSharpeRatio) return false;
+      if (filters.minWinRate !== undefined && m.winRate < filters.minWinRate)
+        return false;
+      if (filters.maxWinRate !== undefined && m.winRate > filters.maxWinRate)
+        return false;
+      if (filters.minReturn !== undefined && m.totalReturn < filters.minReturn)
+        return false;
+      if (filters.maxReturn !== undefined && m.totalReturn > filters.maxReturn)
+        return false;
+      if (
+        filters.minSharpeRatio !== undefined &&
+        m.sharpeRatio < filters.minSharpeRatio
+      )
+        return false;
+      if (
+        filters.maxSharpeRatio !== undefined &&
+        m.sharpeRatio > filters.maxSharpeRatio
+      )
+        return false;
 
       return true;
     });
@@ -213,7 +240,9 @@ export class AgentMetricsAggregator {
   /**
    * Fetch agent metrics from data sources
    */
-  private async fetchAgentMetrics(agentId: string): Promise<AgentComparisonMetrics | null> {
+  private async fetchAgentMetrics(
+    agentId: string,
+  ): Promise<AgentComparisonMetrics | null> {
     try {
       // Get agent info
       const agent = await this.agentsModule.getAgent(agentId);
@@ -227,10 +256,13 @@ export class AgentMetricsAggregator {
       // Filter by matching agent ID in the decision ID or use all history for now
       // TODO: Add agentId field to TradingDecision type
       const agentHistory = allHistory; // Use all history for now since agentId isn't in the type
-      const performance = this.tradingHistory.calculatePerformance(agentHistory);
+      const performance =
+        this.tradingHistory.calculatePerformance(agentHistory);
 
       // Get operational metrics
-      const metrics = await this.metricsService.getMetrics({ period: 'daily' } as any);
+      const metrics = await this.metricsService.getMetrics({
+        period: "daily",
+      } as any);
 
       // Combine into comparison metrics
       return {
@@ -238,7 +270,7 @@ export class AgentMetricsAggregator {
         agentName: agent.name,
         agentType: agent.type,
         status: agent.status,
-        ecosystem: (agent as any).ecosystem || 'sapience',
+        ecosystem: (agent as any).ecosystem || "sapience",
 
         // Performance metrics from trading history
         totalTrades: performance.totalTrades,
@@ -250,12 +282,14 @@ export class AgentMetricsAggregator {
         // Operational metrics
         avgLatency: metrics.data.performance.averageResponseTime,
         uptime: this.calculateUptime(agent),
-        successRate: metrics.data.actions.total > 0
-          ? metrics.data.actions.successful / metrics.data.actions.total
-          : 0,
-        errorRate: metrics.data.actions.total > 0
-          ? metrics.data.actions.failed / metrics.data.actions.total
-          : 0,
+        successRate:
+          metrics.data.actions.total > 0
+            ? metrics.data.actions.successful / metrics.data.actions.total
+            : 0,
+        errorRate:
+          metrics.data.actions.total > 0
+            ? metrics.data.actions.failed / metrics.data.actions.total
+            : 0,
         lastActive: agent.lastActivity,
 
         // Time-based performance
@@ -279,16 +313,16 @@ export class AgentMetricsAggregator {
     if (hoursSinceActive < 1) return 100;
 
     // Otherwise calculate based on expected activity
-    return Math.max(0, 100 - (hoursSinceActive * 2));
+    return Math.max(0, 100 - hoursSinceActive * 2);
   }
 
   private calculateTimeBasedPerformance(
     history: TradingDecision[],
-    hoursAgo: number
+    hoursAgo: number,
   ): PerformanceSnapshot {
-    const cutoff = Date.now() - (hoursAgo * 60 * 60 * 1000);
-    const recentHistory = history.filter(d =>
-      new Date(d.timestamp).getTime() > cutoff
+    const cutoff = Date.now() - hoursAgo * 60 * 60 * 1000;
+    const recentHistory = history.filter(
+      (d) => new Date(d.timestamp).getTime() > cutoff,
     );
 
     if (recentHistory.length === 0) {

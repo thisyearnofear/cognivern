@@ -45,8 +45,7 @@
     "migrate": "chmod +x migrate-to-production.sh && ./migrate-to-production.sh",
     "deploy-contracts": "npx hardhat run scripts/deploy-hardhat.cjs --network calibration",
     "upload-policy": "tsx scripts/upload-test-policy.ts",
-    "clean:build": "rm -rf build/artifacts/* build/cache/*"
-    ,
+    "clean:build": "rm -rf build/artifacts/* build/cache/*",
     "test:integration": "tsx --test tests/integration/*.test.ts",
     "demo:reset": "tsx scripts/demo-reset.ts",
     "demo:seed": "tsx scripts/demo-seed.ts",

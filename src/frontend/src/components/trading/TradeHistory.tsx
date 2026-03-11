@@ -496,136 +496,146 @@ export default function TradeHistory({
               const governance = getGovernanceStatus(decision);
               return (
                 <>
-            {/* Trade Header */}
-            <div css={tradeHeaderStyles}>
-              <div css={tradeActionStyles}>
-                <Badge variant={getActionVariant(decision.action)}>
-                  {decision.action.toUpperCase()}
-                </Badge>
-                <span css={tradeSymbolStyles}>{decision.symbol}</span>
-              </div>
-              <span css={tradeTimeStyles}>
-                {formatTime(decision.timestamp)}
-              </span>
-            </div>
-
-            {/* Trade Details */}
-            <div css={detailsGridStyles}>
-              <div css={detailItemStyles}>
-                <span css={detailLabelStyles}>Quantity</span>
-                <span css={detailValueStyles}>{decision.quantity}</span>
-              </div>
-              <div css={detailItemStyles}>
-                <span css={detailLabelStyles}>Price</span>
-                <span css={detailValueStyles}>
-                  ${decision.price.toFixed(2)}
-                </span>
-              </div>
-              <div css={detailItemStyles}>
-                <span css={detailLabelStyles}>Confidence</span>
-                <div css={confidenceBarStyles}>
-                  <div css={confidenceFillStyles(decision.confidence)}></div>
-                  <span css={confidenceTextStyles}>
-                    {(decision.confidence * 100).toFixed(1)}%
-                  </span>
-                </div>
-              </div>
-              <div css={detailItemStyles}>
-                <span css={detailLabelStyles}>Risk Score</span>
-                <span
-                  css={[
-                    detailValueStyles,
-                    css`
-                      color: ${decision.riskScore > 0.7
-                        ? designTokens.colors.semantic.error[600]
-                        : decision.riskScore > 0.4
-                          ? designTokens.colors.semantic.warning[600]
-                          : designTokens.colors.semantic.success[600]};
-                    `,
-                  ]}
-                >
-                  {(decision.riskScore * 100).toFixed(0)}%
-                </span>
-              </div>
-            </div>
-
-            {/* Reasoning */}
-            <div css={reasoningStyles}>
-              <div css={reasoningLabelStyles}>Reasoning</div>
-              <p css={reasoningTextStyles}>{decision.reasoning}</p>
-            </div>
-
-            {/* Governance Status */}
-            <div css={governanceStyles}>
-              <div css={governanceHeaderStyles}>
-                <span>Governance</span>
-                <Badge
-                  variant={
-                    governance.status === "approved"
-                      ? "success"
-                      : "warning"
-                  }
-                >
-                  {governance.status === "approved" ? "Approved" : "Flagged"}
-                </Badge>
-                <span
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize.sm};
-                    color: ${designTokens.colors.neutral[600]};
-                  `}
-                >
-                  {governance.score}% compliance
-                </span>
-              </div>
-              <div css={governanceChecksStyles}>
-                {governance.checks.map((check, i) => (
-                  <span key={i} css={checkItemStyles(check.passed)}>
-                    {check.passed ? "✓" : "✗"} {check.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Vincent Sentiment Data */}
-            {agentType === "vincent" && decision.sentimentData && (
-              <div css={sentimentStyles}>
-                <div css={sentimentHeaderStyles}>Sentiment Analysis</div>
-                <div css={sentimentGridStyles}>
-                  <div css={detailItemStyles}>
-                    <span css={detailLabelStyles}>Score</span>
-                    <span
-                      css={[
-                        detailValueStyles,
-                        css`
-                          color: ${decision.sentimentData.sentiment > 0
-                            ? designTokens.colors.semantic.success[600]
-                            : designTokens.colors.semantic.error[600]};
-                        `,
-                      ]}
-                    >
-                      {(decision.sentimentData.sentiment * 100).toFixed(1)}%
+                  {/* Trade Header */}
+                  <div css={tradeHeaderStyles}>
+                    <div css={tradeActionStyles}>
+                      <Badge variant={getActionVariant(decision.action)}>
+                        {decision.action.toUpperCase()}
+                      </Badge>
+                      <span css={tradeSymbolStyles}>{decision.symbol}</span>
+                    </div>
+                    <span css={tradeTimeStyles}>
+                      {formatTime(decision.timestamp)}
                     </span>
                   </div>
-                  <div css={detailItemStyles}>
-                    <span css={detailLabelStyles}>Confidence</span>
-                    <span css={detailValueStyles}>
-                      {(decision.sentimentData.confidence * 100).toFixed(1)}%
-                    </span>
+
+                  {/* Trade Details */}
+                  <div css={detailsGridStyles}>
+                    <div css={detailItemStyles}>
+                      <span css={detailLabelStyles}>Quantity</span>
+                      <span css={detailValueStyles}>{decision.quantity}</span>
+                    </div>
+                    <div css={detailItemStyles}>
+                      <span css={detailLabelStyles}>Price</span>
+                      <span css={detailValueStyles}>
+                        ${decision.price.toFixed(2)}
+                      </span>
+                    </div>
+                    <div css={detailItemStyles}>
+                      <span css={detailLabelStyles}>Confidence</span>
+                      <div css={confidenceBarStyles}>
+                        <div
+                          css={confidenceFillStyles(decision.confidence)}
+                        ></div>
+                        <span css={confidenceTextStyles}>
+                          {(decision.confidence * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                    <div css={detailItemStyles}>
+                      <span css={detailLabelStyles}>Risk Score</span>
+                      <span
+                        css={[
+                          detailValueStyles,
+                          css`
+                            color: ${decision.riskScore > 0.7
+                              ? designTokens.colors.semantic.error[600]
+                              : decision.riskScore > 0.4
+                                ? designTokens.colors.semantic.warning[600]
+                                : designTokens.colors.semantic.success[600]};
+                          `,
+                        ]}
+                      >
+                        {(decision.riskScore * 100).toFixed(0)}%
+                      </span>
+                    </div>
                   </div>
-                  <div css={detailItemStyles}>
-                    <span css={detailLabelStyles}>Sources</span>
-                    <span
-                      css={css`
-                        font-size: ${designTokens.typography.fontSize.sm};
-                        color: ${designTokens.colors.neutral[600]};
-                      `}
-                    >
-                      {decision.sentimentData.sources.join(", ")}
-                    </span>
+
+                  {/* Reasoning */}
+                  <div css={reasoningStyles}>
+                    <div css={reasoningLabelStyles}>Reasoning</div>
+                    <p css={reasoningTextStyles}>{decision.reasoning}</p>
                   </div>
-                </div>
-              </div>
-            )}
+
+                  {/* Governance Status */}
+                  <div css={governanceStyles}>
+                    <div css={governanceHeaderStyles}>
+                      <span>Governance</span>
+                      <Badge
+                        variant={
+                          governance.status === "approved"
+                            ? "success"
+                            : "warning"
+                        }
+                      >
+                        {governance.status === "approved"
+                          ? "Approved"
+                          : "Flagged"}
+                      </Badge>
+                      <span
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.sm};
+                          color: ${designTokens.colors.neutral[600]};
+                        `}
+                      >
+                        {governance.score}% compliance
+                      </span>
+                    </div>
+                    <div css={governanceChecksStyles}>
+                      {governance.checks.map((check, i) => (
+                        <span key={i} css={checkItemStyles(check.passed)}>
+                          {check.passed ? "✓" : "✗"} {check.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Vincent Sentiment Data */}
+                  {agentType === "vincent" && decision.sentimentData && (
+                    <div css={sentimentStyles}>
+                      <div css={sentimentHeaderStyles}>Sentiment Analysis</div>
+                      <div css={sentimentGridStyles}>
+                        <div css={detailItemStyles}>
+                          <span css={detailLabelStyles}>Score</span>
+                          <span
+                            css={[
+                              detailValueStyles,
+                              css`
+                                color: ${decision.sentimentData.sentiment > 0
+                                  ? designTokens.colors.semantic.success[600]
+                                  : designTokens.colors.semantic.error[600]};
+                              `,
+                            ]}
+                          >
+                            {(decision.sentimentData.sentiment * 100).toFixed(
+                              1,
+                            )}
+                            %
+                          </span>
+                        </div>
+                        <div css={detailItemStyles}>
+                          <span css={detailLabelStyles}>Confidence</span>
+                          <span css={detailValueStyles}>
+                            {(decision.sentimentData.confidence * 100).toFixed(
+                              1,
+                            )}
+                            %
+                          </span>
+                        </div>
+                        <div css={detailItemStyles}>
+                          <span css={detailLabelStyles}>Sources</span>
+                          <span
+                            css={css`
+                              font-size: ${designTokens.typography.fontSize.sm};
+                              color: ${designTokens.colors.neutral[600]};
+                            `}
+                          >
+                            {decision.sentimentData.sources.join(", ")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </>
               );
             })()}

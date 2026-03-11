@@ -77,8 +77,7 @@ export default function AgentStats({
     <div css={statsStyles}>
       <div className="stats-header">
         <h3>
-          {agentType === "recall" ? "Recall Agent" : "Vincent Agent"}{" "}
-          Status
+          {agentType === "recall" ? "Recall Agent" : "Vincent Agent"} Status
         </h3>
         <div className="agent-controls">
           {!status.isActive ? (

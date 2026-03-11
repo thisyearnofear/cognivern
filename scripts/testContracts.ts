@@ -17,10 +17,16 @@ async function testContracts() {
     logger.info("🔍 Testing contract connectivity...");
 
     // Initialize provider and wallet
-    const rpcUrl = process.env.FILECOIN_RPC_URL || "https://api.calibration.node.glif.io/rpc/v1";
+    const rpcUrl =
+      process.env.FILECOIN_RPC_URL ||
+      "https://api.calibration.node.glif.io/rpc/v1";
     const privateKey = process.env.FILECOIN_PRIVATE_KEY;
-    const governanceAddress = process.env.GOVERNANCE_CONTRACT_ADDRESS || "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880";
-    const storageAddress = process.env.STORAGE_CONTRACT_ADDRESS || "0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada";
+    const governanceAddress =
+      process.env.GOVERNANCE_CONTRACT_ADDRESS ||
+      "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880";
+    const storageAddress =
+      process.env.STORAGE_CONTRACT_ADDRESS ||
+      "0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada";
 
     if (!privateKey) {
       throw new Error("FILECOIN_PRIVATE_KEY environment variable is required");
@@ -33,7 +39,7 @@ async function testContracts() {
       rpcUrl,
       walletAddress: wallet.address,
       governanceAddress,
-      storageAddress
+      storageAddress,
     });
 
     // Check wallet balance
@@ -45,16 +51,20 @@ async function testContracts() {
       "function totalAgents() external view returns (uint256)",
       "function totalActions() external view returns (uint256)",
       "function totalPolicies() external view returns (uint256)",
-      "function getStats() external view returns (uint256, uint256, uint256)"
+      "function getStats() external view returns (uint256, uint256, uint256)",
     ];
 
     const storageABI = [
-      "function totalActions() external view returns (uint256)"
+      "function totalActions() external view returns (uint256)",
     ];
 
     // Test governance contract
     logger.info("📋 Testing governance contract...");
-    const governanceContract = new ethers.Contract(governanceAddress, governanceABI, provider);
+    const governanceContract = new ethers.Contract(
+      governanceAddress,
+      governanceABI,
+      provider,
+    );
 
     try {
       const totalAgents = await governanceContract.totalAgents();
@@ -64,7 +74,7 @@ async function testContracts() {
       logger.info("✅ Governance contract stats:", {
         totalAgents: Number(totalAgents),
         totalActions: Number(totalActions),
-        totalPolicies: Number(totalPolicies)
+        totalPolicies: Number(totalPolicies),
       });
     } catch (error) {
       logger.error("❌ Error reading governance contract:", error);
@@ -72,19 +82,22 @@ async function testContracts() {
 
     // Test storage contract
     logger.info("💾 Testing storage contract...");
-    const storageContract = new ethers.Contract(storageAddress, storageABI, provider);
+    const storageContract = new ethers.Contract(
+      storageAddress,
+      storageABI,
+      provider,
+    );
 
     try {
       const totalActions = await storageContract.totalActions();
       logger.info("✅ Storage contract stats:", {
-        totalActions: Number(totalActions)
+        totalActions: Number(totalActions),
       });
     } catch (error) {
       logger.error("❌ Error reading storage contract:", error);
     }
 
     logger.info("🎉 Contract connectivity test complete!");
-
   } catch (error) {
     logger.error("❌ Contract test failed:", error);
     process.exit(1);

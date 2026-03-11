@@ -8,15 +8,15 @@ import { EventEmitter } from "node:events";
 
 process.env.CRE_RUNS_FILE = path.join(
   os.tmpdir(),
-  `cognivern-cre-runs-${Date.now()}.jsonl`
+  `cognivern-cre-runs-${Date.now()}.jsonl`,
 );
 process.env.IDEMPOTENCY_STORE_FILE = path.join(
   os.tmpdir(),
-  `cognivern-idempotency-${Date.now()}.json`
+  `cognivern-idempotency-${Date.now()}.json`,
 );
 process.env.UX_EVENTS_FILE = path.join(
   os.tmpdir(),
-  `cognivern-ux-events-${Date.now()}.jsonl`
+  `cognivern-ux-events-${Date.now()}.jsonl`,
 );
 
 const { CreController } = await import(
@@ -72,7 +72,9 @@ function makeReq(overrides: Partial<MockReq> = {}): MockReq {
   };
 }
 
-function makeRun(status: "running" | "paused_for_approval" | "failed" = "running") {
+function makeRun(
+  status: "running" | "paused_for_approval" | "failed" = "running",
+) {
   const runId = crypto.randomUUID();
   const now = Date.now();
   const startedAt = new Date(now - 10_000).toISOString();
@@ -86,7 +88,8 @@ function makeRun(status: "running" | "paused_for_approval" | "failed" = "running
     startedAt,
     ok: status === "failed" ? false : true,
     status,
-    approvalState: status === "paused_for_approval" ? "pending" : "not_required",
+    approvalState:
+      status === "paused_for_approval" ? "pending" : "not_required",
     requiresApproval: status === "paused_for_approval",
     steps: [
       {
@@ -103,8 +106,18 @@ function makeRun(status: "running" | "paused_for_approval" | "failed" = "running
       updatedAt: startedAt,
       summary: "Test plan",
       steps: [
-        { id: "p1", title: "Step 1", enabled: true, status: "pending" as const },
-        { id: "p2", title: "Step 2", enabled: true, status: "pending" as const },
+        {
+          id: "p1",
+          title: "Step 1",
+          enabled: true,
+          status: "pending" as const,
+        },
+        {
+          id: "p2",
+          title: "Step 2",
+          enabled: true,
+          status: "pending" as const,
+        },
       ],
     },
     events: [
@@ -183,7 +196,9 @@ test("submitApproval approve marks plan steps approved/rejected and completes ru
 
   assert.equal(res.statusCode, 200);
   assert.equal(res.payload?.run?.status, "completed");
-  const statuses = (res.payload?.run?.plan?.steps || []).map((s: any) => s.status);
+  const statuses = (res.payload?.run?.plan?.steps || []).map(
+    (s: any) => s.status,
+  );
   assert.deepEqual(statuses, ["approved", "approved"]);
 });
 

@@ -13,7 +13,10 @@ import {
   AgentActivity,
   AgentInfo,
 } from "../types/TradingAgent.js";
-import { SapienceService, ForecastRequest } from "../../../services/SapienceService.js";
+import {
+  SapienceService,
+  ForecastRequest,
+} from "../../../services/SapienceService.js";
 import { RecallService } from "../../../services/RecallService.js";
 import { AutomatedForecastingService } from "../../../services/AutomatedForecastingService.js";
 import { TradingHistoryService } from "../../../services/TradingHistoryService.js";
@@ -38,7 +41,7 @@ export class SapienceTradingAgent implements TradingAgent {
     this.sapienceService = new SapienceService();
     this.recallService = new RecallService();
     this.forecastingService = new AutomatedForecastingService({
-        sapienceService: this.sapienceService
+      sapienceService: this.sapienceService,
     });
   }
 
@@ -100,32 +103,32 @@ export class SapienceTradingAgent implements TradingAgent {
    * This is called by the orchestrator instead of a mock trade.
    */
   async performForecastCycle(): Promise<void> {
-      if (this.status !== "active") return;
+    if (this.status !== "active") return;
 
-      try {
-          const result = await this.forecastingService.runForecastingCycle();
+    try {
+      const result = await this.forecastingService.runForecastingCycle();
 
-          if (result.success) {
-              // Create a decision record for the history/frontend
-              const decision: TradingDecision = {
-                  id: result.txHash || `forecast-${Date.now()}`,
-                  agentId: this.id,
-                  timestamp: new Date(),
-                  action: "buy", // Mapping forecast to 'buy' for dashboard consistency
-                  symbol: result.conditionId || "Sapience Market",
-                  quantity: 1,
-                  price: 0,
-                  confidence: result.forecast.probability / 100,
-                  reasoning: result.forecast.reasoning,
-                  riskScore: 0.1
-              };
+      if (result.success) {
+        // Create a decision record for the history/frontend
+        const decision: TradingDecision = {
+          id: result.txHash || `forecast-${Date.now()}`,
+          agentId: this.id,
+          timestamp: new Date(),
+          action: "buy", // Mapping forecast to 'buy' for dashboard consistency
+          symbol: result.conditionId || "Sapience Market",
+          quantity: 1,
+          price: 0,
+          confidence: result.forecast.probability / 100,
+          reasoning: result.forecast.reasoning,
+          riskScore: 0.1,
+        };
 
-              this.history.unshift(decision);
-              if (this.history.length > 50) this.history.pop();
-          }
-      } catch (error) {
-          console.error("Agent forecast cycle failed:", error);
+        this.history.unshift(decision);
+        if (this.history.length > 50) this.history.pop();
       }
+    } catch (error) {
+      console.error("Agent forecast cycle failed:", error);
+    }
   }
 
   async executeTrade(decision: TradingDecision): Promise<TradeResult> {
@@ -159,18 +162,18 @@ export class SapienceTradingAgent implements TradingAgent {
       // Store reasoning in Recall Memory
       try {
         await this.recallService.store({
-            agentId: this.id,
-            type: "reasoning",
-            content: `Forecast submitted for ${forecast.marketId}. Probability: ${forecast.probability}%. Reasoning: ${forecast.reasoning}`,
-            confidence: forecast.confidence,
-            metadata: {
+          agentId: this.id,
+          type: "reasoning",
+          content: `Forecast submitted for ${forecast.marketId}. Probability: ${forecast.probability}%. Reasoning: ${forecast.reasoning}`,
+          confidence: forecast.confidence,
+          metadata: {
             txHash,
             marketId: forecast.marketId,
-            action: "forecast_submission"
-            }
+            action: "forecast_submission",
+          },
         });
       } catch (recallError) {
-          console.error("Failed to store memory in Recall:", recallError);
+        console.error("Failed to store memory in Recall:", recallError);
       }
 
       const tradeResult: TradeResult = {
@@ -217,26 +220,33 @@ export class SapienceTradingAgent implements TradingAgent {
 
   async getPortfolio(): Promise<Portfolio> {
     try {
-        const balance = await this.sapienceService.getEthBalance();
-        this.portfolio = {
-            totalValue: parseFloat(balance),
-            cash: parseFloat(balance),
-            positions: [],
-            lastUpdated: new Date(),
-        };
+      const balance = await this.sapienceService.getEthBalance();
+      this.portfolio = {
+        totalValue: parseFloat(balance),
+        cash: parseFloat(balance),
+        positions: [],
+        lastUpdated: new Date(),
+      };
     } catch (e) {
-        console.warn("Failed to fetch real portfolio balance:", e);
-        if (!this.portfolio) {
-            this.portfolio = { totalValue: 0, cash: 0, positions: [], lastUpdated: new Date() };
-        }
+      console.warn("Failed to fetch real portfolio balance:", e);
+      if (!this.portfolio) {
+        this.portfolio = {
+          totalValue: 0,
+          cash: 0,
+          positions: [],
+          lastUpdated: new Date(),
+        };
+      }
     }
     return this.portfolio;
   }
 
   async getPerformance(): Promise<PerformanceMetrics> {
     const totalForecasts = this.history.length;
-    const avgConfidence = totalForecasts > 0
-        ? this.history.reduce((sum, d) => sum + d.confidence, 0) / totalForecasts
+    const avgConfidence =
+      totalForecasts > 0
+        ? this.history.reduce((sum, d) => sum + d.confidence, 0) /
+          totalForecasts
         : 0;
 
     return {
@@ -249,7 +259,10 @@ export class SapienceTradingAgent implements TradingAgent {
       profitableTrades: 0,
       averageTradeReturn: avgConfidence, // Using confidence as a session metric
       period: {
-        start: this.history.length > 0 ? this.history[this.history.length - 1].timestamp : new Date(),
+        start:
+          this.history.length > 0
+            ? this.history[this.history.length - 1].timestamp
+            : new Date(),
         end: new Date(),
       },
     };

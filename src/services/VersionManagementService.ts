@@ -67,8 +67,12 @@ export class VersionManagementService {
     };
   }
 
-  public getModelInfo(): ModelVersion { return { ...this.currentModelVersion }; }
-  public getPolicyInfo(): PolicyVersion { return { ...this.currentPolicyVersion }; }
+  public getModelInfo(): ModelVersion {
+    return { ...this.currentModelVersion };
+  }
+  public getPolicyInfo(): PolicyVersion {
+    return { ...this.currentPolicyVersion };
+  }
 
   public getMetadataForAgent(agentId: string, context?: any): any {
     return {

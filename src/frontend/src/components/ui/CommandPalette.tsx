@@ -182,7 +182,9 @@ export const CommandPalette: React.FC = () => {
         icon: "📚",
         action: () => {
           navigate("/");
-          setError("Documentation is available in this repo: README.md and /docs.");
+          setError(
+            "Documentation is available in this repo: README.md and /docs.",
+          );
           onClose();
         },
         keywords: ["docs", "documentation", "help", "guide"],

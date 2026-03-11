@@ -17,15 +17,21 @@ export const formStyles = css`
   width: 100%;
 `;
 
-export const getFormFieldGroupStyles = (layout: "vertical" | "horizontal" = "vertical") => css`
+export const getFormFieldGroupStyles = (
+  layout: "vertical" | "horizontal" = "vertical",
+) => css`
   display: flex;
   flex-direction: ${layout === "vertical" ? "column" : "row"};
-  gap: ${layout === "vertical" ? designTokens.spacing[2] : designTokens.spacing[4]};
+  gap: ${layout === "vertical"
+    ? designTokens.spacing[2]
+    : designTokens.spacing[4]};
   align-items: ${layout === "vertical" ? "flex-start" : "center"};
   width: 100%;
 `;
 
-export const getFormLabelStyles = (layout: "vertical" | "horizontal" = "vertical") => css`
+export const getFormLabelStyles = (
+  layout: "vertical" | "horizontal" = "vertical",
+) => css`
   font-size: ${designTokens.typography.fontSize.sm};
   font-weight: ${designTokens.typography.fontWeight.semibold};
   color: ${designTokens.colors.neutral[700]};
@@ -41,9 +47,13 @@ export const getFormInputStyles = (hasError: boolean = false) => css`
   font-family: ${designTokens.typography.fontFamily.sans.join(", ")};
   color: ${designTokens.colors.neutral[900]};
   background-color: ${designTokens.colors.neutral[0]};
-  border: 1px solid ${hasError ? designTokens.colors.semantic.error : designTokens.colors.neutral[300]};
+  border: 1px solid
+    ${hasError
+      ? designTokens.colors.semantic.error
+      : designTokens.colors.neutral[300]};
   border-radius: ${designTokens.borderRadius.md};
-  transition: all ${designTokens.animation.duration.normal} ${designTokens.animation.easing.easeInOut};
+  transition: all ${designTokens.animation.duration.normal}
+    ${designTokens.animation.easing.easeInOut};
   outline: none;
 
   &::placeholder {
@@ -51,8 +61,13 @@ export const getFormInputStyles = (hasError: boolean = false) => css`
   }
 
   &:focus {
-    border-color: ${hasError ? designTokens.colors.semantic.error : designTokens.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${hasError ? `${designTokens.colors.semantic.error}20` : `${designTokens.colors.primary[500]}20`};
+    border-color: ${hasError
+      ? designTokens.colors.semantic.error
+      : designTokens.colors.primary[500]};
+    box-shadow: 0 0 0 3px
+      ${hasError
+        ? `${designTokens.colors.semantic.error}20`
+        : `${designTokens.colors.primary[500]}20`};
   }
 
   &:disabled {

@@ -2,7 +2,7 @@
  * Shared Validation Functions
  */
 
-import { ValidationError } from '../errors/index.js';
+import { ValidationError } from "../errors/index.js";
 
 export interface ValidationRule<T> {
   validate: (value: T) => boolean;
@@ -29,17 +29,21 @@ export class Validator<T> {
 export const CommonValidators = {
   required: <T>(value: T): boolean => {
     if (value === null || value === undefined) return false;
-    if (typeof value === 'string') return value.trim().length > 0;
+    if (typeof value === "string") return value.trim().length > 0;
     return true;
   },
 
-  minLength: (min: number) => (value: string): boolean => {
-    return value && value.length >= min;
-  },
+  minLength:
+    (min: number) =>
+    (value: string): boolean => {
+      return value && value.length >= min;
+    },
 
-  maxLength: (max: number) => (value: string): boolean => {
-    return !value || value.length <= max;
-  },
+  maxLength:
+    (max: number) =>
+    (value: string): boolean => {
+      return !value || value.length <= max;
+    },
 
   email: (value: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -54,14 +58,16 @@ export const CommonValidators = {
     return value > 0;
   },
 
-  range: (min: number, max: number) => (value: number): boolean => {
-    return value >= min && value <= max;
-  },
+  range:
+    (min: number, max: number) =>
+    (value: number): boolean => {
+      return value >= min && value <= max;
+    },
 
   address: (value: string): boolean => {
     // Basic Ethereum address validation
     return /^0x[a-fA-F0-9]{40}$/.test(value);
-  }
+  },
 };
 
 export function validateRequired<T>(value: T, fieldName: string): void {
@@ -70,23 +76,42 @@ export function validateRequired<T>(value: T, fieldName: string): void {
   }
 }
 
-export function validateString(value: string, fieldName: string, minLength?: number, maxLength?: number): void {
+export function validateString(
+  value: string,
+  fieldName: string,
+  minLength?: number,
+  maxLength?: number,
+): void {
   validateRequired(value, fieldName);
 
   if (minLength && !CommonValidators.minLength(minLength)(value)) {
-    throw new ValidationError(`${fieldName} must be at least ${minLength} characters`, fieldName);
+    throw new ValidationError(
+      `${fieldName} must be at least ${minLength} characters`,
+      fieldName,
+    );
   }
 
   if (maxLength && !CommonValidators.maxLength(maxLength)(value)) {
-    throw new ValidationError(`${fieldName} must be at most ${maxLength} characters`, fieldName);
+    throw new ValidationError(
+      `${fieldName} must be at most ${maxLength} characters`,
+      fieldName,
+    );
   }
 }
 
-export function validateNumber(value: number, fieldName: string, min?: number, max?: number): void {
+export function validateNumber(
+  value: number,
+  fieldName: string,
+  min?: number,
+  max?: number,
+): void {
   validateRequired(value, fieldName);
 
   if (min !== undefined && value < min) {
-    throw new ValidationError(`${fieldName} must be at least ${min}`, fieldName);
+    throw new ValidationError(
+      `${fieldName} must be at least ${min}`,
+      fieldName,
+    );
   }
 
   if (max !== undefined && value > max) {

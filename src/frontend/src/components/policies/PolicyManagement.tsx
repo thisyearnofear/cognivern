@@ -49,7 +49,9 @@ export default function PolicyManagement() {
     useGovernanceStore();
 
   // Local state for agent connections (keeping existing logic for agent domain)
-  const [agentConnections, setAgentConnections] = useState<AgentConnection[]>([]);
+  const [agentConnections, setAgentConnections] = useState<AgentConnection[]>(
+    [],
+  );
   const [isAgentsLoading, setIsAgentsLoading] = useState(false);
 
   useEffect(() => {

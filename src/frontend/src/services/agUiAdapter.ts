@@ -23,18 +23,28 @@ export interface AgUiEvent {
   payload?: Record<string, unknown>;
 }
 
-const CRE_TO_AGUI_MAP: Record<string, { type: AgUiEventType; name?: string }> = {
-  run_started: { type: AgUiEventType.RUN_STARTED },
-  run_finished: { type: AgUiEventType.RUN_FINISHED },
-  run_failed: { type: AgUiEventType.RUN_ERROR },
-  message_delta: { type: AgUiEventType.TEXT_MESSAGE_CONTENT },
-  tool_call_started: { type: AgUiEventType.TOOL_CALL_START },
-  tool_result: { type: AgUiEventType.TOOL_CALL_RESULT },
-  run_paused_for_approval: { type: AgUiEventType.CUSTOM, name: "approval_required" },
-  run_cancel_requested: { type: AgUiEventType.CUSTOM, name: "cancel_requested" },
-  run_cancelled: { type: AgUiEventType.CUSTOM, name: "run_cancelled" },
-  run_retry_requested: { type: AgUiEventType.CUSTOM, name: "retry_requested" },
-};
+const CRE_TO_AGUI_MAP: Record<string, { type: AgUiEventType; name?: string }> =
+  {
+    run_started: { type: AgUiEventType.RUN_STARTED },
+    run_finished: { type: AgUiEventType.RUN_FINISHED },
+    run_failed: { type: AgUiEventType.RUN_ERROR },
+    message_delta: { type: AgUiEventType.TEXT_MESSAGE_CONTENT },
+    tool_call_started: { type: AgUiEventType.TOOL_CALL_START },
+    tool_result: { type: AgUiEventType.TOOL_CALL_RESULT },
+    run_paused_for_approval: {
+      type: AgUiEventType.CUSTOM,
+      name: "approval_required",
+    },
+    run_cancel_requested: {
+      type: AgUiEventType.CUSTOM,
+      name: "cancel_requested",
+    },
+    run_cancelled: { type: AgUiEventType.CUSTOM, name: "run_cancelled" },
+    run_retry_requested: {
+      type: AgUiEventType.CUSTOM,
+      name: "retry_requested",
+    },
+  };
 
 export const toAgUiEvent = (event: CreRunEvent): AgUiEvent => {
   const mapping = CRE_TO_AGUI_MAP[event.type] ?? { type: AgUiEventType.CUSTOM };
@@ -52,9 +62,7 @@ export const toAgUiEvent = (event: CreRunEvent): AgUiEvent => {
 };
 
 export const toAgUiStream = (events: CreRunEvent[]): AgUiEvent[] =>
-  events
-    .map(toAgUiEvent)
-    .sort((a, b) => a.timestamp - b.timestamp);
+  events.map(toAgUiEvent).sort((a, b) => a.timestamp - b.timestamp);
 
 // Re-export from agentRunAdapter so consumers can import from one place
 export { toAgentRunViewModel, toForensicEvents } from "./agentRunAdapter";

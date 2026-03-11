@@ -34,10 +34,14 @@ const carouselTrackStyles = (activeIndex: number) => css`
   align-items: center;
 `;
 
-const carouselItemStyles = (isActive: boolean, index: number, activeIndex: number) => {
+const carouselItemStyles = (
+  isActive: boolean,
+  index: number,
+  activeIndex: number,
+) => {
   const distance = Math.abs(index - activeIndex);
   const scale = isActive ? 1.2 : 0.8 / (1 + distance * 0.1);
-  const rotateY = isActive ? 0 : (index < activeIndex ? 30 : -30);
+  const rotateY = isActive ? 0 : index < activeIndex ? 30 : -30;
   const translateZ = isActive ? 100 : -100 * distance;
   const blur = isActive ? 0 : distance * 2;
 
@@ -45,14 +49,16 @@ const carouselItemStyles = (isActive: boolean, index: number, activeIndex: numbe
     min-width: 300px;
     max-width: 300px;
     transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
-    transform: perspective(1000px) rotateY(${rotateY}deg) scale(${scale}) translateZ(${translateZ}px);
+    transform: perspective(1000px) rotateY(${rotateY}deg) scale(${scale})
+      translateZ(${translateZ}px);
     opacity: ${isActive ? 1 : 0.4 / (1 + distance * 0.2)};
     cursor: pointer;
     filter: blur(${blur}px) ${isActive ? "none" : "grayscale(0.8)"};
     z-index: ${10 - distance};
 
     &:hover {
-      transform: perspective(1000px) rotateY(${rotateY * 0.5}deg) scale(${scale * 1.05}) translateZ(${translateZ + 20}px);
+      transform: perspective(1000px) rotateY(${rotateY * 0.5}deg)
+        scale(${scale * 1.05}) translateZ(${translateZ + 20}px);
       opacity: ${isActive ? 1 : 0.7};
       filter: blur(${blur * 0.5}px) ${isActive ? "none" : "grayscale(0.3)"};
     }
@@ -113,23 +119,43 @@ export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({
               }
             }}
           >
-            <Card padding="lg" variant={index === activeIndex ? "elevated" : "outline"}>
+            <Card
+              padding="lg"
+              variant={index === activeIndex ? "elevated" : "outline"}
+            >
               <CardContent>
                 <div css={cardHeaderStyles}>
                   {item.icon && <div css={iconWrapperStyles}>{item.icon}</div>}
                   <div>
-                    <h3 css={css`margin: 0; font-size: ${designTokens.typography.fontSize.lg};`}>
+                    <h3
+                      css={css`
+                        margin: 0;
+                        font-size: ${designTokens.typography.fontSize.lg};
+                      `}
+                    >
                       {item.title}
                     </h3>
                     {item.subtitle && (
-                      <p css={css`margin: 0; font-size: ${designTokens.typography.fontSize.xs}; color: ${designTokens.colors.neutral[500]};`}>
+                      <p
+                        css={css`
+                          margin: 0;
+                          font-size: ${designTokens.typography.fontSize.xs};
+                          color: ${designTokens.colors.neutral[500]};
+                        `}
+                      >
                         {item.subtitle}
                       </p>
                     )}
                   </div>
                 </div>
                 {item.content}
-                <div css={css`margin-top: ${designTokens.spacing[4]}; display: flex; justify-content: flex-end;`}>
+                <div
+                  css={css`
+                    margin-top: ${designTokens.spacing[4]};
+                    display: flex;
+                    justify-content: flex-end;
+                  `}
+                >
                   <Button variant="ghost" size="sm">
                     View Profile →
                   </Button>
@@ -144,7 +170,13 @@ export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({
         <Button variant="outline" size="sm" onClick={handlePrev}>
           Prev
         </Button>
-        <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]};`}>
+        <div
+          css={css`
+            display: flex;
+            align-items: center;
+            gap: ${designTokens.spacing[2]};
+          `}
+        >
           {items.map((_, index) => (
             <div
               key={index}
@@ -152,7 +184,9 @@ export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({
                 width: 8px;
                 height: 8px;
                 border-radius: 50%;
-                background: ${index === activeIndex ? designTokens.colors.primary[500] : designTokens.colors.neutral[300]};
+                background: ${index === activeIndex
+                  ? designTokens.colors.primary[500]
+                  : designTokens.colors.neutral[300]};
                 transition: background 0.3s ease;
               `}
             />

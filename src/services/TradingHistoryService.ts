@@ -1,5 +1,5 @@
-import logger from '../utils/logger.js';
-import { TradingDecision } from '../types/Agent.js';
+import logger from "../utils/logger.js";
+import { TradingDecision } from "../types/Agent.js";
 
 export interface TradingPerformance {
   totalTrades: number;
@@ -42,7 +42,7 @@ export class TradingHistoryService {
   constructor() {
     this.history = [];
     this.maxHistoryLength = 1000; // Keep last 1000 trades
-    logger.info('TradingHistoryService initialized');
+    logger.info("TradingHistoryService initialized");
   }
 
   /**
@@ -65,7 +65,9 @@ export class TradingHistoryService {
   /**
    * Calculate comprehensive trading performance metrics
    */
-  calculatePerformance(allHistory: TradingDecision[] = this.history): TradingPerformance {
+  calculatePerformance(
+    allHistory: TradingDecision[] = this.history,
+  ): TradingPerformance {
     if (allHistory.length === 0) {
       return this.getEmptyPerformance();
     }
@@ -96,8 +98,9 @@ export class TradingHistoryService {
 
     // Calculate volatility (standard deviation of returns)
     const meanReturn = averageReturn;
-    const squaredDiffs = returns.map(r => Math.pow(r - meanReturn, 2));
-    const variance = squaredDiffs.reduce((sum, val) => sum + val, 0) / totalTrades;
+    const squaredDiffs = returns.map((r) => Math.pow(r - meanReturn, 2));
+    const variance =
+      squaredDiffs.reduce((sum, val) => sum + val, 0) / totalTrades;
     const volatility = Math.sqrt(variance);
 
     // Calculate Sharpe ratio (assuming risk-free rate = 0)
@@ -115,9 +118,13 @@ export class TradingHistoryService {
     }
 
     // Calculate profit factor
-    const profitFactor = losingTrades > 0
-      ? (winningTrades * averageReturn) / Math.abs(losingTrades * averageReturn)
-      : winningTrades > 0 ? Infinity : 0;
+    const profitFactor =
+      losingTrades > 0
+        ? (winningTrades * averageReturn) /
+          Math.abs(losingTrades * averageReturn)
+        : winningTrades > 0
+          ? Infinity
+          : 0;
 
     return {
       totalTrades,
@@ -155,18 +162,21 @@ export class TradingHistoryService {
     const allPerformance = this.calculatePerformance();
 
     // Calculate recent performance (last 30 trades or 30 days)
-    const recentHistory = this.history.filter(trade => {
-      const tradeDate = new Date(trade.timestamp);
-      const daysAgo = (Date.now() - tradeDate.getTime()) / (1000 * 60 * 60 * 24);
-      return daysAgo <= 30;
-    }).slice(0, 30);
+    const recentHistory = this.history
+      .filter((trade) => {
+        const tradeDate = new Date(trade.timestamp);
+        const daysAgo =
+          (Date.now() - tradeDate.getTime()) / (1000 * 60 * 60 * 24);
+        return daysAgo <= 30;
+      })
+      .slice(0, 30);
 
     const recentPerformance = this.calculatePerformance(recentHistory);
 
     // Calculate performance by time periods
-    const performanceByDay = this.calculatePerformanceByPeriod('day');
-    const performanceByWeek = this.calculatePerformanceByPeriod('week');
-    const performanceByMonth = this.calculatePerformanceByPeriod('month');
+    const performanceByDay = this.calculatePerformanceByPeriod("day");
+    const performanceByWeek = this.calculatePerformanceByPeriod("week");
+    const performanceByMonth = this.calculatePerformanceByPeriod("month");
 
     return {
       performance: allPerformance,
@@ -177,7 +187,9 @@ export class TradingHistoryService {
     };
   }
 
-  private calculatePerformanceByPeriod(period: 'day' | 'week' | 'month'): Record<string, TradingPerformance> {
+  private calculatePerformanceByPeriod(
+    period: "day" | "week" | "month",
+  ): Record<string, TradingPerformance> {
     const result: Record<string, TradingPerformance> = {};
 
     for (const trade of this.history) {
@@ -185,16 +197,16 @@ export class TradingHistoryService {
       let periodKey: string;
 
       switch (period) {
-        case 'day':
-          periodKey = tradeDate.toISOString().split('T')[0]; // YYYY-MM-DD
+        case "day":
+          periodKey = tradeDate.toISOString().split("T")[0]; // YYYY-MM-DD
           break;
-        case 'week':
+        case "week":
           // Get year and week number
           const weekNumber = this.getWeekNumber(tradeDate);
-          periodKey = `${tradeDate.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
+          periodKey = `${tradeDate.getFullYear()}-W${weekNumber.toString().padStart(2, "0")}`;
           break;
-        case 'month':
-          periodKey = `${tradeDate.getFullYear()}-${(tradeDate.getMonth() + 1).toString().padStart(2, '0')}`;
+        case "month":
+          periodKey = `${tradeDate.getFullYear()}-${(tradeDate.getMonth() + 1).toString().padStart(2, "0")}`;
           break;
       }
 
@@ -216,12 +228,14 @@ export class TradingHistoryService {
       }
 
       // Recalculate derived metrics
-      periodPerformance.winRate = periodPerformance.totalTrades > 0
-        ? periodPerformance.winningTrades / periodPerformance.totalTrades
-        : 0;
-      periodPerformance.averageReturn = periodPerformance.totalTrades > 0
-        ? periodPerformance.totalReturn / periodPerformance.totalTrades
-        : 0;
+      periodPerformance.winRate =
+        periodPerformance.totalTrades > 0
+          ? periodPerformance.winningTrades / periodPerformance.totalTrades
+          : 0;
+      periodPerformance.averageReturn =
+        periodPerformance.totalTrades > 0
+          ? periodPerformance.totalReturn / periodPerformance.totalTrades
+          : 0;
     }
 
     return result;
@@ -232,11 +246,11 @@ export class TradingHistoryService {
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
     // Thursday in current week decides the year
-    d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
     // January 4 is always in week 1
     const week1 = new Date(d.getFullYear(), 0, 4);
     // Adjust to Thursday in week 1 and count weeks
-    return 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000) / 7);
+    return 1 + Math.round((d.getTime() - week1.getTime()) / 86400000 / 7);
   }
 
   /**
@@ -252,8 +266,9 @@ export class TradingHistoryService {
     let cumulativeReturn = 0;
 
     // Sort history by timestamp for proper equity curve
-    const sortedHistory = [...this.history].sort((a, b) =>
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    const sortedHistory = [...this.history].sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
 
     for (const trade of sortedHistory) {
@@ -282,7 +297,7 @@ export class TradingHistoryService {
 
     // Generate return distribution
     const returnDistribution: ChartDataPoint[] = [];
-    const returns = sortedHistory.map(trade => trade.confidence || 0);
+    const returns = sortedHistory.map((trade) => trade.confidence || 0);
 
     // Create bins for return distribution
     const minReturn = Math.min(...returns);
@@ -292,7 +307,7 @@ export class TradingHistoryService {
     for (let i = 0; i < 10; i++) {
       const binStart = minReturn + i * binSize;
       const binEnd = binStart + binSize;
-      const count = returns.filter(r => r >= binStart && r < binEnd).length;
+      const count = returns.filter((r) => r >= binStart && r < binEnd).length;
 
       returnDistribution.push({
         timestamp: `bin-${i}`,
@@ -303,31 +318,37 @@ export class TradingHistoryService {
 
     // Generate win/loss ratio data
     const winLossRatio: ChartDataPoint[] = [];
-    const wins = sortedHistory.filter(trade => (trade.confidence || 0) > 0).length;
-    const losses = sortedHistory.filter(trade => (trade.confidence || 0) < 0).length;
-    const neutral = sortedHistory.filter(trade => (trade.confidence || 0) === 0).length;
+    const wins = sortedHistory.filter(
+      (trade) => (trade.confidence || 0) > 0,
+    ).length;
+    const losses = sortedHistory.filter(
+      (trade) => (trade.confidence || 0) < 0,
+    ).length;
+    const neutral = sortedHistory.filter(
+      (trade) => (trade.confidence || 0) === 0,
+    ).length;
 
     if (wins > 0) {
       winLossRatio.push({
-        timestamp: 'wins',
+        timestamp: "wins",
         value: wins,
-        label: 'Winning Trades',
+        label: "Winning Trades",
       });
     }
 
     if (losses > 0) {
       winLossRatio.push({
-        timestamp: 'losses',
+        timestamp: "losses",
         value: losses,
-        label: 'Losing Trades',
+        label: "Losing Trades",
       });
     }
 
     if (neutral > 0) {
       winLossRatio.push({
-        timestamp: 'neutral',
+        timestamp: "neutral",
         value: neutral,
-        label: 'Neutral Trades',
+        label: "Neutral Trades",
       });
     }
 

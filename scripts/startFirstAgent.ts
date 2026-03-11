@@ -27,7 +27,7 @@ async function startFirstAgent() {
 
     const governanceService = new TradingCompetitionGovernanceService(
       recallClient,
-      bucketAddress
+      bucketAddress,
     );
 
     // Competition configuration
@@ -56,7 +56,7 @@ async function startFirstAgent() {
 
     await governanceService.startGovernedCompetition(
       competitionId,
-      governanceConfig
+      governanceConfig,
     );
     console.log("✅ Competition started with governance policies\n");
 
@@ -65,7 +65,7 @@ async function startFirstAgent() {
     await governanceService.registerAgent(
       competitionId,
       agentId,
-      governanceConfig
+      governanceConfig,
     );
     console.log("✅ Agent registered and ready to trade\n");
 
@@ -73,7 +73,7 @@ async function startFirstAgent() {
     console.log("3️⃣ Starting live trading decisions...");
     console.log("🔄 Agent will make trading decisions every 15 seconds");
     console.log(
-      "📊 Check your dashboard at http://localhost:5173 to see live stats\n"
+      "📊 Check your dashboard at http://localhost:5173 to see live stats\n",
     );
 
     let roundCount = 0;
@@ -102,7 +102,7 @@ async function startFirstAgent() {
         // Execute trading round
         const result = await governanceService.executeTradingRound(
           competitionId,
-          marketData
+          marketData,
         );
 
         // Log results
@@ -112,7 +112,7 @@ async function startFirstAgent() {
         if (result.decisions.length > 0) {
           const decision = result.decisions[0];
           console.log(
-            `💰 Latest decision: ${decision.action} ${decision.quantity} ${decision.symbol}`
+            `💰 Latest decision: ${decision.action} ${decision.quantity} ${decision.symbol}`,
           );
         }
 
@@ -144,16 +144,16 @@ async function startFirstAgent() {
       console.log(`   • Total Agents: ${status.agents.length}`);
       console.log(`   • Total Events: ${status.events.length}`);
       console.log(
-        `   • Violations: ${status.events.filter((e) => e.type === "policy_violation").length}`
+        `   • Violations: ${status.events.filter((e) => e.type === "policy_violation").length}`,
       );
       console.log(
-        `   • Avg Compliance: ${status.summary.avgComplianceScore.toFixed(1)}%`
+        `   • Avg Compliance: ${status.summary.avgComplianceScore.toFixed(1)}%`,
       );
 
       console.log(`\n🎯 Your dashboard now shows REAL data!`);
       console.log(`   Visit: http://localhost:5173`);
       console.log(
-        `   The stats are no longer fake - they reflect actual agent activity!\n`
+        `   The stats are no longer fake - they reflect actual agent activity!\n`,
       );
 
       // Cleanup

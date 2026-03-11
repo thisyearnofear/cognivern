@@ -7,16 +7,16 @@
  * to the Sapience protocol on Arbitrum.
  */
 
-import dotenv from 'dotenv';
-import { SapienceService } from '../src/services/SapienceService.js';
-import { AutomatedForecastingService } from '../src/services/AutomatedForecastingService.js';
-import logger from '../src/utils/logger.js';
+import dotenv from "dotenv";
+import { SapienceService } from "../src/services/SapienceService.js";
+import { AutomatedForecastingService } from "../src/services/AutomatedForecastingService.js";
+import logger from "../src/utils/logger.js";
 
 // Load environment variables
 dotenv.config();
 
 async function main() {
-  logger.info('🚀 Starting Sapience Forecasting Agent...');
+  logger.info("🚀 Starting Sapience Forecasting Agent...");
 
   // Initialize Sapience Service
   const sapienceService = new SapienceService({
@@ -28,7 +28,7 @@ async function main() {
   const forecastingService = new AutomatedForecastingService({
     sapienceService,
     llmApiKey: process.env.OPENROUTER_API_KEY,
-    llmModel: process.env.LLM_MODEL || 'openai/gpt-4o-mini',
+    llmModel: process.env.LLM_MODEL || "openai/gpt-4o-mini",
     minConfidence: 0.65, // Slightly higher threshold for competition
   });
 
@@ -39,7 +39,7 @@ async function main() {
   const intervalMinutes = 30;
 
   // Also run one cycle immediately
-  logger.info('Executing initial forecasting cycle...');
+  logger.info("Executing initial forecasting cycle...");
   const initialResult = await forecastingService.runForecastingCycle();
 
   if (initialResult.success) {
@@ -52,13 +52,13 @@ async function main() {
   forecastingService.startContinuousForecasting(intervalMinutes);
 
   // Keep process alive
-  process.on('SIGINT', () => {
-    logger.info('🛑 Stopping forecasting agent...');
+  process.on("SIGINT", () => {
+    logger.info("🛑 Stopping forecasting agent...");
     process.exit(0);
   });
 }
 
 main().catch((error) => {
-  logger.error('Fatal error:', error);
+  logger.error("Fatal error:", error);
   process.exit(1);
 });

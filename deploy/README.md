@@ -30,6 +30,7 @@ nano .env  # Fill in your actual values
 ### 2. Update Deployment Script
 
 Edit `deploy/deploy.sh`:
+
 ```bash
 SERVER_HOST="your-hetzner-server-ip"
 DOMAIN="your-domain.com"
@@ -101,11 +102,13 @@ docker-compose restart nginx
 ## 📊 Monitoring & Management
 
 ### Check Status
+
 ```bash
 docker-compose ps
 ```
 
 ### View Logs
+
 ```bash
 # All services
 docker-compose logs -f
@@ -116,6 +119,7 @@ docker-compose logs -f cognivern-backend
 ```
 
 ### Restart Services
+
 ```bash
 # Restart all
 docker-compose restart
@@ -125,6 +129,7 @@ docker-compose restart cognivern-agent
 ```
 
 ### Update Deployment
+
 ```bash
 # Pull latest code and rebuild
 git pull
@@ -135,18 +140,21 @@ docker-compose up -d --build
 ## 🎯 Service Architecture
 
 ### Backend Service (`cognivern-backend`)
+
 - **Port**: 10000
 - **Purpose**: API server, dashboard, governance
 - **Health Check**: `/health`
 - **Auto-restart**: Yes
 
 ### Trading Agent Service (`cognivern-agent`)
+
 - **Purpose**: 24/7 automated trading
 - **Command**: `pnpm auto-competition`
 - **Depends on**: Backend service
 - **Auto-restart**: Yes
 
 ### Nginx Service
+
 - **Ports**: 80 (HTTP), 443 (HTTPS)
 - **Purpose**: SSL termination, reverse proxy, rate limiting
 - **Features**: Gzip, security headers, WebSocket support
@@ -154,6 +162,7 @@ docker-compose up -d --build
 ## 🔍 Troubleshooting
 
 ### Agent Not Trading
+
 ```bash
 # Check agent logs
 docker-compose logs cognivern-agent
@@ -163,6 +172,7 @@ docker-compose exec cognivern-agent env | grep RECALL
 ```
 
 ### API Not Responding
+
 ```bash
 # Check backend logs
 docker-compose logs cognivern-backend
@@ -172,6 +182,7 @@ docker-compose logs nginx
 ```
 
 ### SSL Issues
+
 ```bash
 # Check certificate files
 ls -la deploy/nginx/ssl/
@@ -192,6 +203,7 @@ openssl s_client -connect your-domain.com:443
 ## 🔗 Access Points
 
 After deployment:
+
 - **Dashboard**: https://your-domain.com
 - **API**: https://your-domain.com/api
 - **Health Check**: https://your-domain.com/health

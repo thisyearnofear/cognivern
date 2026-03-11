@@ -2,4 +2,4 @@
  * Shared Services
  */
 
-export * from './BaseService.js';
+export * from "./BaseService.js";

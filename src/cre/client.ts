@@ -21,13 +21,16 @@ export class CognivernClient {
   }
 
   async ingestRun(run: CreRun): Promise<{ runId: string; projectId: string }> {
-    const payload = { ...run, projectId: (run as any).projectId || this.projectId };
+    const payload = {
+      ...run,
+      projectId: (run as any).projectId || this.projectId,
+    };
 
     const res = await fetch(`${this.baseUrl}/ingest/runs`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${this.ingestKey}`,
+        Authorization: `Bearer ${this.ingestKey}`,
         "X-PROJECT-ID": this.projectId,
       },
       body: JSON.stringify(payload),

@@ -26,7 +26,9 @@ export interface StatCardProps {
 
 const statCardStyles = css`
   height: 100%;
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
 
   &:hover {
     transform: translateY(-2px);
@@ -105,7 +107,9 @@ const statLabelStyles = css`
 const trendStyles = (isPositive: boolean) => css`
   font-size: ${designTokens.typography.fontSize.xs};
   font-weight: ${designTokens.typography.fontWeight.semibold};
-  color: ${isPositive ? designTokens.colors.semantic.success[600] : designTokens.colors.semantic.error[600]};
+  color: ${isPositive
+    ? designTokens.colors.semantic.success[600]
+    : designTokens.colors.semantic.error[600]};
   display: flex;
   align-items: center;
   gap: 2px;
@@ -127,7 +131,9 @@ export const StatCard: React.FC<StatCardProps> = ({
         <div css={statDetailsStyles}>
           <div css={statValueContainerStyles}>
             <span css={statValueStyles}>{value}</span>
-            {total !== undefined && <span css={statTotalStyles}>/ {total}</span>}
+            {total !== undefined && (
+              <span css={statTotalStyles}>/ {total}</span>
+            )}
           </div>
           <span css={statLabelStyles}>{label}</span>
           {trend && (
