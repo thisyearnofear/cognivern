@@ -56,7 +56,7 @@ export class UnifiedDataService {
   }> {
     // Check cache first
     const now = Date.now();
-    if (this.cachedData && (now - this.lastUpdate) < this.cacheTimeout) {
+    if (this.cachedData && now - this.lastUpdate < this.cacheTimeout) {
       return this.cachedData;
     }
 
@@ -70,21 +70,21 @@ export class UnifiedDataService {
       const unifiedStats = {
         governance: {
           totalPolicies: 2, // We have 2 real policies: Trading Risk Management + Resource Usage Control
-          totalAgents: 2,   // Recall + Vincent agents
+          totalAgents: 2, // Recall + Vincent agents
           totalActions: tradingStats.totalDecisions, // Real trading decisions
         },
         blockchain: {
           governanceContract: {
             address: "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880",
-            policies: 2,  // Match governance stats
-            agents: 2,    // Match governance stats
+            policies: 2, // Match governance stats
+            agents: 2, // Match governance stats
             actions: tradingStats.totalDecisions, // Match governance stats
           },
           storageContract: {
             address: "0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada",
             totalActions: tradingStats.totalDecisions, // Match governance stats
             activeAgents: 2, // Match governance stats
-            policies: 2,     // Match governance stats
+            policies: 2, // Match governance stats
           },
         },
         competition: {
@@ -106,7 +106,6 @@ export class UnifiedDataService {
 
       logger.info("✅ Unified stats generated:", unifiedStats);
       return unifiedStats;
-
     } catch (error) {
       logger.error("Error generating unified stats:", error);
 
@@ -135,12 +134,11 @@ export class UnifiedDataService {
       // - Good trust scores based on performance
 
       return {
-        totalDecisions: 12,  // Real number from our testing
-        activeAgents: 2,     // Recall + Vincent
-        approvalRate: 87,    // Based on actual trading performance
+        totalDecisions: 12, // Real number from our testing
+        activeAgents: 2, // Recall + Vincent
+        approvalRate: 87, // Based on actual trading performance
         averageTrustScore: 85, // Based on actual agent performance
       };
-
     } catch (error) {
       logger.warn("Error fetching trading stats, using fallback:", error);
       return {
@@ -232,7 +230,7 @@ export class UnifiedDataService {
         tradesExecuted: 2,
         performance: {
           totalReturn: 0.0587, // 5.87%
-          winRate: 0.879,      // 87.9%
+          winRate: 0.879, // 87.9%
           sharpeRatio: 0.51,
         },
       },
@@ -242,7 +240,7 @@ export class UnifiedDataService {
         tradesExecuted: 1,
         performance: {
           totalReturn: 0.0167, // 1.67%
-          winRate: 0.678,      // 67.8%
+          winRate: 0.678, // 67.8%
           sharpeRatio: 1.296,
         },
       },

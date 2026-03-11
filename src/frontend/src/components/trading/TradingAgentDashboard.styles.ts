@@ -32,8 +32,12 @@ export const containerStyles = css`
   }
 
   @keyframes scanline {
-    0% { transform: translateY(-100vh); }
-    100% { transform: translateY(100vh); }
+    0% {
+      transform: translateY(-100vh);
+    }
+    100% {
+      transform: translateY(100vh);
+    }
   }
 `;
 
@@ -214,7 +218,8 @@ export const comparisonTableStyles = css`
   margin-top: ${designTokens.spacing[4]};
   font-size: ${designTokens.typography.fontSize.sm};
 
-  th, td {
+  th,
+  td {
     padding: ${designTokens.spacing[3]};
     text-align: left;
     border-bottom: 1px solid ${designTokens.colors.neutral[200]};

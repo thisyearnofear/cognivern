@@ -33,14 +33,18 @@ export class UsageMeter {
   private usage: Map<string, ProjectUsage> = new Map();
   private loaded = false;
 
-  constructor(params: {
-    windowSeconds?: number;
-    maxRunsPerWindow?: number;
-    filePath?: string;
-  } = {}) {
-    this.windowSeconds = params.windowSeconds ?? Number(process.env.QUOTA_WINDOW_SECONDS || 86400); // default 24h
+  constructor(
+    params: {
+      windowSeconds?: number;
+      maxRunsPerWindow?: number;
+      filePath?: string;
+    } = {},
+  ) {
+    this.windowSeconds =
+      params.windowSeconds ?? Number(process.env.QUOTA_WINDOW_SECONDS || 86400); // default 24h
     this.defaultMaxRunsPerWindow =
-      params.maxRunsPerWindow ?? Number(process.env.QUOTA_MAX_RUNS_PER_WINDOW || 1000);
+      params.maxRunsPerWindow ??
+      Number(process.env.QUOTA_MAX_RUNS_PER_WINDOW || 1000);
 
     // Optional per-project overrides:
     //   COGNIVERN_PROJECT_QUOTAS="default=1000,acme=10000"
@@ -78,14 +82,22 @@ export class UsageMeter {
   private async persist() {
     await fs.promises.mkdir(path.dirname(this.filePath), { recursive: true });
     const arr = [...this.usage.values()];
-    await fs.promises.writeFile(this.filePath, JSON.stringify(arr, null, 2), "utf8");
+    await fs.promises.writeFile(
+      this.filePath,
+      JSON.stringify(arr, null, 2),
+      "utf8",
+    );
   }
 
   getMaxRunsForProject(projectId: string): number {
-    return this.perProjectMaxRuns.get(projectId) || this.defaultMaxRunsPerWindow;
+    return (
+      this.perProjectMaxRuns.get(projectId) || this.defaultMaxRunsPerWindow
+    );
   }
 
-  async canIngest(projectId: string): Promise<{ allowed: boolean; reason?: string; usage: ProjectUsage }> {
+  async canIngest(
+    projectId: string,
+  ): Promise<{ allowed: boolean; reason?: string; usage: ProjectUsage }> {
     await this.ensureLoaded();
 
     const now = new Date();

@@ -4,10 +4,7 @@
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "eslint.validate": [
-    "typescript",
-    "typescriptreact"
-  ],
+  "eslint.validate": ["typescript", "typescriptreact"],
   "[jsonc]": {
     "editor.defaultFormatter": "vscode.json-language-features"
   },

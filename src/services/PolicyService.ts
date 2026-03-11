@@ -7,8 +7,11 @@ export class PolicyService {
   constructor() {
     this.policies = new Map();
     // Initialize sample policies for dev/demo if needed
-    if (process.env.NODE_ENV === "development" || process.env.CREATE_SAMPLE_POLICIES === "true") {
-       this.initializeSamplePolicies();
+    if (
+      process.env.NODE_ENV === "development" ||
+      process.env.CREATE_SAMPLE_POLICIES === "true"
+    ) {
+      this.initializeSamplePolicies();
     }
     logger.info("PolicyService initialized (Local Mode)");
   }
@@ -16,7 +19,7 @@ export class PolicyService {
   async createPolicy(
     name: string,
     description: string,
-    rules: PolicyRule[]
+    rules: PolicyRule[],
   ): Promise<Policy> {
     const id = `policy-${Date.now()}`;
     const now = new Date().toISOString();
@@ -63,12 +66,19 @@ export class PolicyService {
     return updatedPolicy;
   }
 
-  async updatePolicyStatus(id: string, status: Policy["status"]): Promise<void> {
+  async updatePolicyStatus(
+    id: string,
+    status: Policy["status"],
+  ): Promise<void> {
     await this.updatePolicy(id, { status });
   }
 
   private initializeSamplePolicies() {
-     // Create a default policy
-     this.createPolicy("Default Sapience Policy", "Default policy for forecasting agents", []);
+    // Create a default policy
+    this.createPolicy(
+      "Default Sapience Policy",
+      "Default policy for forecasting agents",
+      [],
+    );
   }
 }

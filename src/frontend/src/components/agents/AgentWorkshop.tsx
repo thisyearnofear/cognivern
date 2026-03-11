@@ -243,7 +243,10 @@ export default function AgentWorkshop() {
         addLog("Initializing agent environment...", "info");
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        addLog(`Loading governance policies for ${selectedTemplate}...`, "info");
+        addLog(
+          `Loading governance policies for ${selectedTemplate}...`,
+          "info",
+        );
         await new Promise((resolve) => setTimeout(resolve, 400));
 
         // Simulate scenario-specific actions
@@ -735,7 +738,9 @@ export default function AgentWorkshop() {
           {scenarios.map((scenario) => (
             <Card
               key={scenario.id}
-              variant={selectedScenario === scenario.id ? "elevated" : "default"}
+              variant={
+                selectedScenario === scenario.id ? "elevated" : "default"
+              }
               onClick={() => handleScenarioSelect(scenario.id)}
               css={css`
                 cursor: pointer;
@@ -965,8 +970,8 @@ export default function AgentWorkshop() {
                       ${result.success
                         ? designTokens.colors.semantic.success[500]
                         : designTokens.colors.semantic.error[500]};
-                    animation: ${keyframeAnimations.revealUp} 0.5s ${easings.out}
-                      both;
+                    animation: ${keyframeAnimations.revealUp} 0.5s
+                      ${easings.out} both;
                   `}
                 >
                   <CardContent padding="md">
@@ -1057,42 +1062,44 @@ export default function AgentWorkshop() {
                                   gap: ${designTokens.spacing[2]};
                                 `}
                               >
-                                {result.action.policyChecks.map((check, idx) => (
-                                  <div
-                                    key={idx}
-                                    css={css`
-                                      display: flex;
-                                      align-items: center;
-                                      justify-content: space-between;
-                                      padding: ${designTokens.spacing[2]};
-                                      background: ${check.result
-                                        ? designTokens.colors.semantic
-                                            .success[50]
-                                        : designTokens.colors.semantic
-                                            .error[50]};
-                                      border-radius: ${designTokens.borderRadius
-                                        .sm};
-                                      font-size: ${designTokens.typography
-                                        .fontSize.xs};
-                                    `}
-                                  >
-                                    <span
+                                {result.action.policyChecks.map(
+                                  (check, idx) => (
+                                    <div
+                                      key={idx}
                                       css={css`
-                                        font-weight: 500;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: space-between;
+                                        padding: ${designTokens.spacing[2]};
+                                        background: ${check.result
+                                          ? designTokens.colors.semantic
+                                              .success[50]
+                                          : designTokens.colors.semantic
+                                              .error[50]};
+                                        border-radius: ${designTokens
+                                          .borderRadius.sm};
+                                        font-size: ${designTokens.typography
+                                          .fontSize.xs};
                                       `}
                                     >
-                                      {check.policyId}
-                                    </span>
-                                    <Badge
-                                      variant={
-                                        check.result ? "success" : "error"
-                                      }
-                                      size="sm"
-                                    >
-                                      {check.result ? "Passed" : "Failed"}
-                                    </Badge>
-                                  </div>
-                                ))}
+                                      <span
+                                        css={css`
+                                          font-weight: 500;
+                                        `}
+                                      >
+                                        {check.policyId}
+                                      </span>
+                                      <Badge
+                                        variant={
+                                          check.result ? "success" : "error"
+                                        }
+                                        size="sm"
+                                      >
+                                        {check.result ? "Passed" : "Failed"}
+                                      </Badge>
+                                    </div>
+                                  ),
+                                )}
                               </div>
                             </div>
                           )}

@@ -10,7 +10,10 @@ export const loadingStyles = {
     justify-content: center;
     gap: ${designTokens.spacing[3]};
   `,
-  spinner: (size: "sm" | "md" | "lg" = "md", color: string = designTokens.colors.primary[500]) => css`
+  spinner: (
+    size: "sm" | "md" | "lg" = "md",
+    color: string = designTokens.colors.primary[500],
+  ) => css`
     border: 2px solid ${designTokens.colors.neutral[200]};
     border-top: 2px solid ${color};
     border-radius: 50%;

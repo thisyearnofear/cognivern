@@ -18,11 +18,7 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
-import {
-  designTokens,
-
-  keyframeAnimations,
-} from "../../styles/design-system";
+import { designTokens, keyframeAnimations } from "../../styles/design-system";
 import { AgentType, VincentStatus } from "../../types";
 import { useAgentData, useTradingData } from "../../hooks/useAgentData";
 import {
@@ -183,13 +179,19 @@ export default function TradingAgentDashboard() {
       const [min, max] = comparisonFilters.autonomyLevel;
       filtered = filtered.filter(
         (agent) =>
-          (agent.autonomyLevel ?? 1) >= min && (agent.autonomyLevel ?? 1) <= max,
+          (agent.autonomyLevel ?? 1) >= min &&
+          (agent.autonomyLevel ?? 1) <= max,
       );
     }
 
-    if (comparisonFilters.riskProfile && (comparisonFilters.riskProfile as any[]).length > 0) {
+    if (
+      comparisonFilters.riskProfile &&
+      (comparisonFilters.riskProfile as any[]).length > 0
+    ) {
       filtered = filtered.filter((agent) =>
-        (comparisonFilters.riskProfile as any[]).includes(agent.riskProfile ?? "low"),
+        (comparisonFilters.riskProfile as any[]).includes(
+          agent.riskProfile ?? "low",
+        ),
       );
     }
 
@@ -571,10 +573,7 @@ export default function TradingAgentDashboard() {
                     margin: 0 0 ${designTokens.spacing[3]} 0;
                   `}
                 >
-                  <Filter
-                    size={16}
-                    color={designTokens.colors.neutral[600]}
-                  />
+                  <Filter size={16} color={designTokens.colors.neutral[600]} />
                   <h4
                     css={css`
                       margin: 0;
@@ -857,7 +856,9 @@ export default function TradingAgentDashboard() {
                       </th>
                       <th>Status</th>
                       <th
-                        onClick={() => updateFilter("sortBy", "complianceScore")}
+                        onClick={() =>
+                          updateFilter("sortBy", "complianceScore")
+                        }
                       >
                         <div
                           css={css`
@@ -907,7 +908,8 @@ export default function TradingAgentDashboard() {
                           `}
                         >
                           Risk
-                          {comparisonFilters.sortBy === "riskProfile" as any &&
+                          {comparisonFilters.sortBy ===
+                            ("riskProfile" as any) &&
                             (comparisonFilters.sortDirection === "asc" ? (
                               <ChevronUp size={14} />
                             ) : (

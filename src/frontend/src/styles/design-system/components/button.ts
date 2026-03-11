@@ -101,7 +101,8 @@ export const buttonStyles = {
 
       &:hover {
         filter: brightness(1.1);
-        box-shadow: ${designTokens.shadows.glow.primary}, ${designTokens.shadows.lg};
+        box-shadow:
+          ${designTokens.shadows.glow.primary}, ${designTokens.shadows.lg};
       }
     `,
 
@@ -135,7 +136,8 @@ export const buttonStyles = {
 
       &:hover {
         filter: brightness(1.1);
-        box-shadow: ${designTokens.shadows.glow.error}, ${designTokens.shadows.lg};
+        box-shadow:
+          ${designTokens.shadows.glow.error}, ${designTokens.shadows.lg};
       }
     `,
 
@@ -146,7 +148,8 @@ export const buttonStyles = {
 
       &:hover {
         filter: brightness(1.1);
-        box-shadow: ${designTokens.shadows.glow.success}, ${designTokens.shadows.lg};
+        box-shadow:
+          ${designTokens.shadows.glow.success}, ${designTokens.shadows.lg};
       }
     `,
 

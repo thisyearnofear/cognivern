@@ -49,7 +49,7 @@ export class TokenTelemetryStore {
     await fs.promises.writeFile(
       this.filePath,
       JSON.stringify([...this.data.values()], null, 2),
-      "utf8"
+      "utf8",
     );
   }
 

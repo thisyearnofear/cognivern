@@ -14,14 +14,14 @@ async function deployContracts() {
       !process.env.USDFC_TOKEN_ADDRESS
     ) {
       throw new Error(
-        "Missing required environment variables for deployment. Please set FILECOIN_RPC_URL, FILECOIN_PRIVATE_KEY, and USDFC_TOKEN_ADDRESS in your .env file."
+        "Missing required environment variables for deployment. Please set FILECOIN_RPC_URL, FILECOIN_PRIVATE_KEY, and USDFC_TOKEN_ADDRESS in your .env file.",
       );
     }
     // Initialize provider and wallet
     const provider = new ethers.JsonRpcProvider(process.env.FILECOIN_RPC_URL);
     const wallet = new ethers.Wallet(
       process.env.FILECOIN_PRIVATE_KEY,
-      provider
+      provider,
     );
 
     logger.info("Deploying contracts to Filecoin Calibration testnet...");
@@ -33,7 +33,7 @@ async function deployContracts() {
 
     if (balance === 0n) {
       throw new Error(
-        "Insufficient balance for deployment. Please fund the deployer wallet."
+        "Insufficient balance for deployment. Please fund the deployer wallet.",
       );
     }
 
@@ -41,7 +41,7 @@ async function deployContracts() {
     logger.info("Deploying GovernanceContract...");
     const GovernanceContract = await ethers.getContractFactory(
       "GovernanceContract",
-      wallet
+      wallet,
     );
     const governanceContract = await GovernanceContract.deploy();
     await governanceContract.waitForDeployment();
@@ -52,7 +52,7 @@ async function deployContracts() {
     logger.info("Deploying AIGovernanceStorage...");
     const AIGovernanceStorage = await ethers.getContractFactory(
       "AIGovernanceStorage",
-      wallet
+      wallet,
     );
     const storageContract = await AIGovernanceStorage.deploy();
     await storageContract.waitForDeployment();
@@ -62,13 +62,13 @@ async function deployContracts() {
     // Create a sample policy
     logger.info("Creating sample governance policy...");
     const policyId = ethers.keccak256(
-      ethers.toUtf8Bytes("sample-policy-" + Date.now())
+      ethers.toUtf8Bytes("sample-policy-" + Date.now()),
     );
     const createPolicyTx = await governanceContract.createPolicy(
       policyId,
       "Sample Governance Policy",
       "A sample policy for demonstrating governance capabilities",
-      ethers.keccak256(ethers.toUtf8Bytes("sample-rules-hash"))
+      ethers.keccak256(ethers.toUtf8Bytes("sample-rules-hash")),
     );
     await createPolicyTx.wait();
     logger.info(`Sample policy created with ID: ${policyId}`);
@@ -77,7 +77,7 @@ async function deployContracts() {
     logger.info("Activating sample policy...");
     const activatePolicyTx = await governanceContract.updatePolicyStatus(
       policyId,
-      1
+      1,
     ); // Active
     await activatePolicyTx.wait();
     logger.info("Sample policy activated");
@@ -85,13 +85,13 @@ async function deployContracts() {
     // Register a sample agent
     logger.info("Registering sample agent...");
     const agentId = ethers.keccak256(
-      ethers.toUtf8Bytes("sample-agent-" + Date.now())
+      ethers.toUtf8Bytes("sample-agent-" + Date.now()),
     );
     const registerAgentTx = await governanceContract.registerAgent(
       agentId,
       "Sample AI Agent",
       ["policy-enforcement", "data-analysis", "decision-making"],
-      policyId
+      policyId,
     );
     await registerAgentTx.wait();
     logger.info(`Sample agent registered with ID: ${agentId}`);
@@ -110,12 +110,12 @@ async function deployContracts() {
     logger.info("Verifying deployment...");
     const stats = await governanceContract.getStats();
     logger.info(
-      `Governance stats - Policies: ${stats[0]}, Agents: ${stats[1]}, Actions: ${stats[2]}`
+      `Governance stats - Policies: ${stats[0]}, Agents: ${stats[1]}, Actions: ${stats[2]}`,
     );
 
     const storageStats = await storageContract.getStats();
     logger.info(
-      `Storage stats - Storage Requests: ${storageStats[0]}, Retrieval Requests: ${storageStats[1]}, Providers: ${storageStats[2]}`
+      `Storage stats - Storage Requests: ${storageStats[0]}, Retrieval Requests: ${storageStats[1]}, Providers: ${storageStats[2]}`,
     );
 
     logger.info("Deployment verification complete!");

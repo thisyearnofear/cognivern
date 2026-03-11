@@ -9,10 +9,14 @@
  * - Configuration
  */
 
-import { EventEmitter } from 'events';
-import { Logger } from '../logging/Logger.js';
-import { ServiceConfig, HealthStatus, DependencyHealth } from '../types/index.js';
-import { ServiceError, ValidationError } from '../errors/index.js';
+import { EventEmitter } from "events";
+import { Logger } from "../logging/Logger.js";
+import {
+  ServiceConfig,
+  HealthStatus,
+  DependencyHealth,
+} from "../types/index.js";
+import { ServiceError, ValidationError } from "../errors/index.js";
 
 export abstract class BaseService extends EventEmitter {
   protected readonly logger: Logger;
@@ -37,9 +41,12 @@ export abstract class BaseService extends EventEmitter {
 
       this.isInitialized = true;
       this.logger.info(`${this.config.name} service initialized successfully`);
-      this.emit('initialized');
+      this.emit("initialized");
     } catch (error) {
-      this.logger.error(`Failed to initialize ${this.config.name} service:`, error);
+      this.logger.error(
+        `Failed to initialize ${this.config.name} service:`,
+        error,
+      );
       throw new ServiceError(`Service initialization failed: ${error.message}`);
     }
   }
@@ -55,9 +62,12 @@ export abstract class BaseService extends EventEmitter {
 
       this.isInitialized = false;
       this.logger.info(`${this.config.name} service shut down successfully`);
-      this.emit('shutdown');
+      this.emit("shutdown");
     } catch (error) {
-      this.logger.error(`Error during ${this.config.name} service shutdown:`, error);
+      this.logger.error(
+        `Error during ${this.config.name} service shutdown:`,
+        error,
+      );
       throw new ServiceError(`Service shutdown failed: ${error.message}`);
     }
   }
@@ -67,10 +77,16 @@ export abstract class BaseService extends EventEmitter {
    */
   async getHealth(): Promise<HealthStatus> {
     const dependencies = await this.checkDependencies();
-    const hasUnhealthyDeps = Object.values(dependencies).some(dep => dep.status === 'unhealthy');
+    const hasUnhealthyDeps = Object.values(dependencies).some(
+      (dep) => dep.status === "unhealthy",
+    );
 
     return {
-      status: !this.isInitialized ? 'unhealthy' : hasUnhealthyDeps ? 'degraded' : 'healthy',
+      status: !this.isInitialized
+        ? "unhealthy"
+        : hasUnhealthyDeps
+          ? "degraded"
+          : "healthy",
       timestamp: new Date().toISOString(),
       uptime: Date.now() - this.startTime,
       version: this.config.version,
@@ -95,7 +111,7 @@ export abstract class BaseService extends EventEmitter {
   protected async executeWithLogging<T>(
     operation: string,
     fn: () => Promise<T>,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): Promise<T> {
     const startTime = Date.now();
 
@@ -107,7 +123,7 @@ export abstract class BaseService extends EventEmitter {
       const duration = Date.now() - startTime;
       this.logger.info(`${operation} completed successfully`, {
         duration,
-        ...context
+        ...context,
       });
 
       return result;
@@ -116,7 +132,7 @@ export abstract class BaseService extends EventEmitter {
       this.logger.error(`${operation} failed`, {
         error: error.message,
         duration,
-        ...context
+        ...context,
       });
 
       throw error;
@@ -129,7 +145,7 @@ export abstract class BaseService extends EventEmitter {
   protected async retryWithBackoff<T>(
     operation: () => Promise<T>,
     maxRetries = 3,
-    baseDelay = 1000
+    baseDelay = 1000,
   ): Promise<T> {
     let lastError: Error;
 
@@ -144,9 +160,12 @@ export abstract class BaseService extends EventEmitter {
         }
 
         const delay = baseDelay * Math.pow(2, attempt - 1);
-        this.logger.warn(`Operation failed, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`, {
-          error: error.message,
-        });
+        this.logger.warn(
+          `Operation failed, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`,
+          {
+            error: error.message,
+          },
+        );
 
         await this.sleep(delay);
       }
@@ -159,7 +178,7 @@ export abstract class BaseService extends EventEmitter {
    * Sleep for specified milliseconds
    */
   protected sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -188,5 +207,7 @@ export abstract class BaseService extends EventEmitter {
    */
   protected abstract onInitialize(): Promise<void>;
   protected abstract onShutdown(): Promise<void>;
-  protected abstract checkDependencies(): Promise<Record<string, DependencyHealth>>;
+  protected abstract checkDependencies(): Promise<
+    Record<string, DependencyHealth>
+  >;
 }

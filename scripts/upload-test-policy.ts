@@ -46,7 +46,7 @@ async function uploadTestPolicy() {
       "..",
       "src",
       "policies",
-      "test-policy.json"
+      "test-policy.json",
     );
     const testPolicyContent = fs.readFileSync(testPolicyPath, "utf-8");
     const testPolicy = JSON.parse(testPolicyContent);
@@ -57,7 +57,7 @@ async function uploadTestPolicy() {
       "..",
       "src",
       "policies",
-      "trading-competition-policy.json"
+      "trading-competition-policy.json",
     );
     const tradingPolicyContent = fs.readFileSync(tradingPolicyPath, "utf-8");
     const tradingPolicy = JSON.parse(tradingPolicyContent);
@@ -72,7 +72,7 @@ async function uploadTestPolicy() {
     await recallService.storeObject(
       "policies",
       "trading-competition-policy",
-      tradingPolicy
+      tradingPolicy,
     );
     console.log("Trading competition policy uploaded successfully!");
 
@@ -81,7 +81,7 @@ async function uploadTestPolicy() {
     const testResult = await recallService.getObject("policies", "test-policy");
     const tradingResult = await recallService.getObject(
       "policies",
-      "trading-competition-policy"
+      "trading-competition-policy",
     );
     if (testResult) {
       console.log("Test policy verified in bucket");

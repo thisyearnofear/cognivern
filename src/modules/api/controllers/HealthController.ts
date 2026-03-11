@@ -53,12 +53,17 @@ export class HealthController {
     let totalForecasts = 0;
 
     for (const agent of agents) {
-        try {
-            const decisions = await this.agentsModule.getAgentDecisions(agent.id, 100);
-            totalForecasts += decisions.filter(d => d.agentType === 'sapience' || d.id?.startsWith('0x')).length;
-        } catch (e) {
-            // Ignore
-        }
+      try {
+        const decisions = await this.agentsModule.getAgentDecisions(
+          agent.id,
+          100,
+        );
+        totalForecasts += decisions.filter(
+          (d) => d.agentType === "sapience" || d.id?.startsWith("0x"),
+        ).length;
+      } catch (e) {
+        // Ignore
+      }
     }
 
     res.json({
@@ -71,7 +76,7 @@ export class HealthController {
       },
       metrics: {
         totalAgents: agents.length,
-        activeAgents: agents.filter(a => a.status === 'active').length,
+        activeAgents: agents.filter((a) => a.status === "active").length,
         totalForecasts: totalForecasts || 89, // Fallback to 89 if history is empty but we know it's been active
         complianceRate: 100,
         averageAttestationTime: 2400,

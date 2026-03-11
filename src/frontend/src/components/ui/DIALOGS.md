@@ -5,6 +5,7 @@ This application uses a custom dialog system that replaces native browser dialog
 ## Components
 
 ### 1. Dialog (Base Component)
+
 The foundation component for all dialogs. Provides a modal with customizable title, description, actions, and variants.
 
 ```tsx
@@ -20,18 +21,19 @@ import { Dialog } from "@/components/ui/Dialog";
     label: "Confirm",
     onClick: handleConfirm,
     variant: "primary",
-    isLoading: false
+    isLoading: false,
   }}
   secondaryAction={{
     label: "Cancel",
-    onClick: handleCancel
+    onClick: handleCancel,
   }}
 >
   {/* Optional custom content */}
-</Dialog>
+</Dialog>;
 ```
 
 ### 2. ConfirmDialog
+
 A simple confirmation dialog with Yes/No or OK/Cancel buttons.
 
 ```tsx
@@ -47,10 +49,11 @@ import { ConfirmDialog } from "@/components/ui/Dialog";
   cancelText="Cancel"
   variant="warning" // info | warning | error
   isLoading={isSubmitting}
-/>
+/>;
 ```
 
 ### 3. PromptDialog
+
 A dialog with a single input field for collecting user input.
 
 ```tsx
@@ -70,10 +73,11 @@ import { PromptDialog } from "@/components/ui/Dialog";
     return null;
   }}
   isLoading={isSubmitting}
-/>
+/>;
 ```
 
 ### 4. MultiFieldDialog
+
 A dialog with multiple input fields for collecting complex data.
 
 ```tsx
@@ -95,19 +99,19 @@ import { MultiFieldDialog } from "@/components/ui/Dialog";
       validation: (value) => {
         if (!value.includes("@")) return "Invalid email";
         return null;
-      }
+      },
     },
     {
       name: "message",
       label: "Message",
       type: "textarea",
       placeholder: "Enter your message...",
-      required: false
-    }
+      required: false,
+    },
   ]}
   submitText="Submit"
   isLoading={isSubmitting}
-/>
+/>;
 ```
 
 ## Usage Hook
@@ -124,7 +128,7 @@ function MyComponent() {
     const confirmed = await showConfirm(
       "Delete Item",
       "Are you sure you want to delete this item? This action cannot be undone.",
-      "warning"
+      "warning",
     );
 
     if (confirmed) {
@@ -139,7 +143,7 @@ function MyComponent() {
       "Rename Item",
       "Enter a new name:",
       "New name",
-      currentName
+      currentName,
     );
 
     if (newName) {
@@ -149,24 +153,20 @@ function MyComponent() {
   };
 
   const handleCreateUser = async () => {
-    const values = await showMultiField(
-      "Create User",
-      "Enter user details:",
-      [
-        {
-          name: "username",
-          label: "Username",
-          type: "text",
-          required: true
-        },
-        {
-          name: "email",
-          label: "Email",
-          type: "email",
-          required: true
-        }
-      ]
-    );
+    const values = await showMultiField("Create User", "Enter user details:", [
+      {
+        name: "username",
+        label: "Username",
+        type: "text",
+        required: true,
+      },
+      {
+        name: "email",
+        label: "Email",
+        type: "email",
+        required: true,
+      },
+    ]);
 
     if (values) {
       await createUser(values.username, values.email);
@@ -186,6 +186,7 @@ function MyComponent() {
 ## Migration from Native Dialogs
 
 ### Before (Native)
+
 ```tsx
 // Alert
 alert("Success!");
@@ -205,6 +206,7 @@ if (name) {
 ### After (Custom Dialogs)
 
 #### Using Direct Components
+
 ```tsx
 const [showSuccess, setShowSuccess] = useState(false);
 const [showConfirm, setShowConfirm] = useState(false);
@@ -242,6 +244,7 @@ const [showPrompt, setShowPrompt] = useState(false);
 ```
 
 #### Using Hook (Recommended)
+
 ```tsx
 const { showAlert, showConfirm, showPrompt } = useDialog();
 
@@ -264,6 +267,7 @@ if (name) {
 ## Styling
 
 All dialogs inherit the design system tokens and maintain consistency with:
+
 - Primary/secondary color scheme
 - Elevation and shadows
 - Border radius

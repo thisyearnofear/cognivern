@@ -18,7 +18,7 @@ export type UxEventType =
 export const uxAnalytics = {
   track: async (
     eventType: UxEventType,
-    payload: Record<string, unknown> = {}
+    payload: Record<string, unknown> = {},
   ): Promise<void> => {
     try {
       await fetch(getApiUrl("/api/metrics/ux-events"), {

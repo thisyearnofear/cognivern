@@ -22,11 +22,14 @@ export interface PolicyCardProps {
 
 const cardWrapperStyles = (interactive: boolean) => css`
   height: 100%;
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
   ${interactive && "cursor: pointer;"}
 
   &:hover {
-    ${interactive && `
+    ${interactive &&
+    `
       transform: translateY(-2px);
       box-shadow: ${designTokens.shadows.md};
     `}
@@ -89,7 +92,9 @@ export const PolicyCard: React.FC<PolicyCardProps> = ({
   interactive = true,
 }) => {
   const activeRules = policy.rules.filter((r) => r.enabled).length;
-  const highStrictnessCount = policy.rules.filter((r) => r.enabled && r.strictness === "high").length;
+  const highStrictnessCount = policy.rules.filter(
+    (r) => r.enabled && r.strictness === "high",
+  ).length;
 
   return (
     <Card
@@ -110,7 +115,9 @@ export const PolicyCard: React.FC<PolicyCardProps> = ({
         <div css={ruleSummaryStyles}>
           <div css={statStyles}>
             <span css={statLabelStyles}>Rules</span>
-            <span css={statValueStyles}>{activeRules} / {policy.rules.length}</span>
+            <span css={statValueStyles}>
+              {activeRules} / {policy.rules.length}
+            </span>
           </div>
           <div css={statStyles}>
             <span css={statLabelStyles}>Strictness</span>

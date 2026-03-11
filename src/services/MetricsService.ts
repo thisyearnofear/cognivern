@@ -10,11 +10,11 @@ export class MetricsService {
   async recordAction(
     action: AgentAction,
     checks: PolicyCheck[],
-    latencyMs: number
+    latencyMs: number,
   ): Promise<void> {
     logger.info(`[Metrics] Action: ${action.type}`, {
       latencyMs,
-      passed: checks.every(c => c.result)
+      passed: checks.every((c) => c.result),
     });
   }
 
@@ -29,7 +29,11 @@ export class MetricsService {
       data: {
         actions: { total: 0, successful: 0, failed: 0, blocked: 0 },
         policies: { total: 0, violations: 0, enforced: 0 },
-        performance: { averageResponseTime: 0, p95ResponseTime: 0, maxResponseTime: 0 },
+        performance: {
+          averageResponseTime: 0,
+          p95ResponseTime: 0,
+          maxResponseTime: 0,
+        },
         resources: { cpuUsage: 0, memoryUsage: 0, storageUsage: 0 },
       },
     };

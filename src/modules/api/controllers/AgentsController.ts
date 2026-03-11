@@ -16,7 +16,10 @@ export class AgentsController {
   private tradingHistory: TradingHistoryService;
   private metricsService: MetricsService;
 
-  constructor(agentsModule?: AgentsModule, marketDataService?: MarketDataService) {
+  constructor(
+    agentsModule?: AgentsModule,
+    marketDataService?: MarketDataService,
+  ) {
     this.agentsModule = agentsModule || new AgentsModule();
     this.marketDataService = marketDataService || new MarketDataService();
     this.tradingHistory = new TradingHistoryService();
@@ -24,7 +27,7 @@ export class AgentsController {
     this.metricsAggregator = new AgentMetricsAggregator(
       this.tradingHistory,
       this.metricsService,
-      this.agentsModule
+      this.agentsModule,
     );
   }
 
@@ -67,19 +70,19 @@ export class AgentsController {
       // Get agent connections for policy management
       const agents = await this.agentsModule.getAgents();
 
-      const connections = agents.map(agent => ({
+      const connections = agents.map((agent) => ({
         id: agent.id,
         name: agent.name,
         type: agent.type,
-        status: agent.status === 'active' ? 'connected' : 'disconnected',
+        status: agent.status === "active" ? "connected" : "disconnected",
         lastSeen: agent.lastActivity,
         capabilities: agent.capabilities || [],
         policies: [], // Agent type doesn't have policies property
         metadata: {
-          version: '1.0.0',
-          governance: 'enabled',
-          monitoring: 'active'
-        }
+          version: "1.0.0",
+          governance: "enabled",
+          monitoring: "active",
+        },
       }));
 
       res.json({
@@ -160,14 +163,14 @@ export class AgentsController {
 
       // Transform status to match frontend expectations
       const transformedStatus = {
-        isActive: status.status === 'active',
+        isActive: status.status === "active",
         lastUpdate: status.lastActivity || new Date().toISOString(),
         tradesExecuted: status.performance?.totalTrades || 0,
         performance: {
           totalReturn: status.performance?.averageTradeReturn || 0,
           winRate: status.performance?.winRate || 0,
           sharpeRatio: status.performance?.sharpeRatio || 0,
-        }
+        },
       };
 
       res.json({
@@ -242,7 +245,10 @@ export class AgentsController {
       const limit = parseInt(req.query.limit as string) || 10;
 
       // Get real agent decisions from our agents module
-      const decisions = await this.agentsModule.getAgentDecisions(agentId, limit);
+      const decisions = await this.agentsModule.getAgentDecisions(
+        agentId,
+        limit,
+      );
 
       res.json({
         success: true,
@@ -265,42 +271,45 @@ export class AgentsController {
 
       // Transform agents data for monitoring dashboard
       const monitoringDataPromises = agents.map(async (agentInfo) => {
-          let agentStatus;
-          try {
-             agentStatus = await this.agentsModule.getAgentStatus(agentInfo.id);
-          } catch(e) {
-             // If agent status fetch fails, we return a fallback error state but stick to the structure
-             agentStatus = { performance: {}, portfolio: {} };
-          }
+        let agentStatus;
+        try {
+          agentStatus = await this.agentsModule.getAgentStatus(agentInfo.id);
+        } catch (e) {
+          // If agent status fetch fails, we return a fallback error state but stick to the structure
+          agentStatus = { performance: {}, portfolio: {} };
+        }
 
-          const perf = agentStatus.performance || {};
-          const portfolio = agentStatus.portfolio || {};
+        const perf = agentStatus.performance || {};
+        const portfolio = agentStatus.portfolio || {};
 
-          return {
-            id: agentInfo.id,
-            name: agentInfo.name,
-            type: agentInfo.type,
-            status: agentInfo.status,
-            lastActivity: agentInfo.lastActivity,
-            internalThought: agentStatus.internalThought || "Monitoring markets...",
-            thoughtHistory: agentStatus.thoughtHistory || [],
-            nextActionAt: agentStatus.nextActionAt,
-            metrics: {
-                uptime: agentInfo.status === "active" ? "100%" : "0%",
-                successRate: perf.winRate ? `${(perf.winRate * 100).toFixed(1)}%` : "0%",
-                avgResponse: "N/A", // Not tracked in basic metrics yet
-                actionsToday: perf.totalTrades || 0,
-            },
-            risk: {
-                riskScore: 0, // Not calculated yet
-                violationsToday: agentStatus.policyViolations || 0,
-                complianceRate: 100, // Default until violation history is implemented
-            },
-            financial: {
-                totalValue: `$${(portfolio.totalValue || 0).toLocaleString()}`,
-                dailyPnL: `$${(perf.averageTradeReturn || 0).toFixed(2)}`,
-                winRate: perf.winRate ? perf.winRate * 100 : 0,
-            },
+        return {
+          id: agentInfo.id,
+          name: agentInfo.name,
+          type: agentInfo.type,
+          status: agentInfo.status,
+          lastActivity: agentInfo.lastActivity,
+          internalThought:
+            agentStatus.internalThought || "Monitoring markets...",
+          thoughtHistory: agentStatus.thoughtHistory || [],
+          nextActionAt: agentStatus.nextActionAt,
+          metrics: {
+            uptime: agentInfo.status === "active" ? "100%" : "0%",
+            successRate: perf.winRate
+              ? `${(perf.winRate * 100).toFixed(1)}%`
+              : "0%",
+            avgResponse: "N/A", // Not tracked in basic metrics yet
+            actionsToday: perf.totalTrades || 0,
+          },
+          risk: {
+            riskScore: 0, // Not calculated yet
+            violationsToday: agentStatus.policyViolations || 0,
+            complianceRate: 100, // Default until violation history is implemented
+          },
+          financial: {
+            totalValue: `$${(portfolio.totalValue || 0).toLocaleString()}`,
+            dailyPnL: `$${(perf.averageTradeReturn || 0).toFixed(2)}`,
+            winRate: perf.winRate ? perf.winRate * 100 : 0,
+          },
         };
       });
 
@@ -329,59 +338,67 @@ export class AgentsController {
 
       // Fetch recent decisions and status from all agents
       for (const agent of agents) {
-          try {
-              // 1. Get detailed status for enrichment
-              const agentStatus = await this.agentsModule.getAgentStatus(agent.id);
-              const perf = agentStatus.performance || {};
-              const portfolio = agentStatus.portfolio || {};
+        try {
+          // 1. Get detailed status for enrichment
+          const agentStatus = await this.agentsModule.getAgentStatus(agent.id);
+          const perf = agentStatus.performance || {};
+          const portfolio = agentStatus.portfolio || {};
 
-              enrichedAgents.push({
-                  ...agent,
-                  internalThought: agentStatus.internalThought || "Initializing autonomous strategy...",
-                  thoughtHistory: agentStatus.thoughtHistory || [],
-                  nextActionAt: agentStatus.nextActionAt,
-                  performance: {
-                      uptime: agent.status === "active" ? 100 : 0,
-                      successRate: perf.winRate * 100, // Real win rate from resolution
-                      avgResponseTime: 0,
-                      actionsToday: perf.totalTrades || 0,
-                  },
-                  riskMetrics: {
-                      currentRiskScore: 0,
-                      violationsToday: agentStatus.policyViolations || 0,
-                      complianceRate: 100,
-                  },
-                  financialMetrics: {
-                      totalValue: portfolio.totalValue || 0,
-                      dailyPnL: perf.totalTrades > 0 ? perf.averageTradeReturn : 0, // Using avgReturn (confidence) only if trades exist
-                      winRate: perf.winRate * 100,
-                  }
-              });
+          enrichedAgents.push({
+            ...agent,
+            internalThought:
+              agentStatus.internalThought ||
+              "Initializing autonomous strategy...",
+            thoughtHistory: agentStatus.thoughtHistory || [],
+            nextActionAt: agentStatus.nextActionAt,
+            performance: {
+              uptime: agent.status === "active" ? 100 : 0,
+              successRate: perf.winRate * 100, // Real win rate from resolution
+              avgResponseTime: 0,
+              actionsToday: perf.totalTrades || 0,
+            },
+            riskMetrics: {
+              currentRiskScore: 0,
+              violationsToday: agentStatus.policyViolations || 0,
+              complianceRate: 100,
+            },
+            financialMetrics: {
+              totalValue: portfolio.totalValue || 0,
+              dailyPnL: perf.totalTrades > 0 ? perf.averageTradeReturn : 0, // Using avgReturn (confidence) only if trades exist
+              winRate: perf.winRate * 100,
+            },
+          });
 
-              // 2. Get decisions for activity feed
-              const decisions = await this.agentsModule.getAgentDecisions(agent.id, 10);
-              const activityItems = decisions.map(d => ({
-                  id: d.id || `action-${Date.now()}-${Math.random()}`,
-                  type: agent.type === 'sapience' ? 'forecast' : 'governance',
-                  agent: agent.id,
-                  action: d.reasoning || `Action on ${d.symbol}`,
-                  amount: d.confidence || 0,
-                  timestamp: d.timestamp || new Date().toISOString(),
-                  status: 'completed',
-                  data: {
-                      details: d.reasoning,
-                      agent: { name: agent.name }
-                  }
-              }));
-              allActivity.push(...activityItems);
-          } catch (e) {
-              console.warn(`Failed to enrich agent ${agent.id}:`, e);
-              enrichedAgents.push(agent);
-          }
+          // 2. Get decisions for activity feed
+          const decisions = await this.agentsModule.getAgentDecisions(
+            agent.id,
+            10,
+          );
+          const activityItems = decisions.map((d) => ({
+            id: d.id || `action-${Date.now()}-${Math.random()}`,
+            type: agent.type === "sapience" ? "forecast" : "governance",
+            agent: agent.id,
+            action: d.reasoning || `Action on ${d.symbol}`,
+            amount: d.confidence || 0,
+            timestamp: d.timestamp || new Date().toISOString(),
+            status: "completed",
+            data: {
+              details: d.reasoning,
+              agent: { name: agent.name },
+            },
+          }));
+          allActivity.push(...activityItems);
+        } catch (e) {
+          console.warn(`Failed to enrich agent ${agent.id}:`, e);
+          enrichedAgents.push(agent);
+        }
       }
 
       // Sort by timestamp descending
-      allActivity.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      allActivity.sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
 
       // Unified dashboard data
       const unifiedData = {
@@ -393,7 +410,12 @@ export class AgentsController {
           complianceRate: 100,
           totalActions: allActivity.length,
           totalPolicies: 2,
-          totalForecasts: allActivity.filter(a => a.type === 'forecast').length || enrichedAgents.reduce((sum, a) => sum + (a.performance?.actionsToday || 0), 0)
+          totalForecasts:
+            allActivity.filter((a) => a.type === "forecast").length ||
+            enrichedAgents.reduce(
+              (sum, a) => sum + (a.performance?.actionsToday || 0),
+              0,
+            ),
         },
         agents: enrichedAgents,
         recentActivity: allActivity.slice(0, 20),
@@ -457,7 +479,10 @@ export class AgentsController {
         return;
       }
 
-      const historicalData = await this.marketDataService.getHistoricalData(symbol, days);
+      const historicalData = await this.marketDataService.getHistoricalData(
+        symbol,
+        days,
+      );
 
       res.json({
         success: true,
@@ -523,22 +548,29 @@ export class AgentsController {
       let filteredAgents = agents;
 
       if (filters.agentTypes && filters.agentTypes.length > 0) {
-        filteredAgents = filteredAgents.filter(a => filters.agentTypes!.includes(a.type));
+        filteredAgents = filteredAgents.filter((a) =>
+          filters.agentTypes!.includes(a.type),
+        );
       }
 
       if (filters.status && filters.status.length > 0) {
-        filteredAgents = filteredAgents.filter(a => filters.status!.includes(a.status));
+        filteredAgents = filteredAgents.filter((a) =>
+          filters.status!.includes(a.status),
+        );
       }
 
-      const agentIds = filteredAgents.map(a => a.id);
+      const agentIds = filteredAgents.map((a) => a.id);
 
       // Fetch comparison metrics
-      const metrics = await this.metricsAggregator.getComparisonMetrics(agentIds, filters);
+      const metrics = await this.metricsAggregator.getComparisonMetrics(
+        agentIds,
+        filters,
+      );
 
       // Sort results
       const sorted = this.metricsAggregator.sortMetrics(metrics, {
-        field: (filters.sortBy as any) || 'totalReturn',
-        direction: filters.sortDirection || 'desc',
+        field: (filters.sortBy as any) || "totalReturn",
+        direction: filters.sortDirection || "desc",
       });
 
       res.json({
@@ -548,7 +580,7 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      console.error('Comparison API error:', error);
+      console.error("Comparison API error:", error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -559,7 +591,7 @@ export class AgentsController {
 
   async getLeaderboard(req: Request, res: Response): Promise<void> {
     try {
-      const { ecosystem, metric = 'totalReturn', limit = 10 } = req.query;
+      const { ecosystem, metric = "totalReturn", limit = 10 } = req.query;
 
       const filters: any = {};
       if (ecosystem) {
@@ -568,14 +600,19 @@ export class AgentsController {
 
       // Get all agents
       const agents = await this.agentsModule.getAgents();
-      const agentIds = agents.map(a => a.id);
-      const metrics = await this.metricsAggregator.getComparisonMetrics(agentIds, filters);
+      const agentIds = agents.map((a) => a.id);
+      const metrics = await this.metricsAggregator.getComparisonMetrics(
+        agentIds,
+        filters,
+      );
 
       // Sort by metric and limit
-      const sorted = this.metricsAggregator.sortMetrics(metrics, {
-        field: metric as any,
-        direction: 'desc',
-      }).slice(0, parseInt(limit as string));
+      const sorted = this.metricsAggregator
+        .sortMetrics(metrics, {
+          field: metric as any,
+          direction: "desc",
+        })
+        .slice(0, parseInt(limit as string));
 
       res.json({
         success: true,
@@ -584,7 +621,7 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      console.error('Leaderboard API error:', error);
+      console.error("Leaderboard API error:", error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -598,8 +635,11 @@ export class AgentsController {
       const filters = this.parseComparisonFilters(req.query);
 
       const agents = await this.agentsModule.getAgents();
-      const agentIds = agents.map(a => a.id);
-      const metrics = await this.metricsAggregator.getComparisonMetrics(agentIds, filters);
+      const agentIds = agents.map((a) => a.id);
+      const metrics = await this.metricsAggregator.getComparisonMetrics(
+        agentIds,
+        filters,
+      );
 
       const stats = this.metricsAggregator.calculateAggregateMetrics(metrics);
 
@@ -609,7 +649,7 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      console.error('Stats API error:', error);
+      console.error("Stats API error:", error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -620,16 +660,25 @@ export class AgentsController {
 
   private parseComparisonFilters(query: any): any {
     return {
-      agentIds: query.agentIds ? (query.agentIds as string).split(',') : undefined,
-      agentTypes: query.agentTypes ? (query.agentTypes as string).split(',') : undefined,
-      ecosystems: query.ecosystems ? (query.ecosystems as string).split(',') : undefined,
-      status: query.status ? (query.status as string).split(',') : undefined,
-      timeRange: query.startDate && query.endDate ? {
-        start: new Date(query.startDate as string),
-        end: new Date(query.endDate as string),
-      } : undefined,
+      agentIds: query.agentIds
+        ? (query.agentIds as string).split(",")
+        : undefined,
+      agentTypes: query.agentTypes
+        ? (query.agentTypes as string).split(",")
+        : undefined,
+      ecosystems: query.ecosystems
+        ? (query.ecosystems as string).split(",")
+        : undefined,
+      status: query.status ? (query.status as string).split(",") : undefined,
+      timeRange:
+        query.startDate && query.endDate
+          ? {
+              start: new Date(query.startDate as string),
+              end: new Date(query.endDate as string),
+            }
+          : undefined,
       sortBy: query.sortBy as string,
-      sortDirection: query.sortDirection as 'asc' | 'desc',
+      sortDirection: query.sortDirection as "asc" | "desc",
     };
   }
 }

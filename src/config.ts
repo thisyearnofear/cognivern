@@ -98,7 +98,7 @@ const parseEnvVars = () => {
         .map((err) => err.path.join("."))
         .join(", ");
       throw new Error(
-        `Missing or invalid environment variables: ${missingVars}`
+        `Missing or invalid environment variables: ${missingVars}`,
       );
     }
     throw error;

@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader(
       "Access-Control-Allow-Methods",
-      "GET, POST, PUT, DELETE, OPTIONS"
+      "GET, POST, PUT, DELETE, OPTIONS",
     );
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     return res.status(200).end();
@@ -14,8 +14,8 @@ export default async function handler(req, res) {
   // Get API key from environment variable (server-side only)
   const apiKey = process.env.RECALL_API_KEY || "your_recall_api_key_here";
 
-    // Build the target URL - use HTTPS for production
-    const targetUrl = "https://api.thisyearnofear.com/api/blockchain/stats";
+  // Build the target URL - use HTTPS for production
+  const targetUrl = "https://api.thisyearnofear.com/api/blockchain/stats";
 
   console.log("Blockchain stats proxy request:", {
     method: req.method,
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader(
       "Access-Control-Allow-Methods",
-      "GET, POST, PUT, DELETE, OPTIONS"
+      "GET, POST, PUT, DELETE, OPTIONS",
     );
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 

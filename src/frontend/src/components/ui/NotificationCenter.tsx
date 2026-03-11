@@ -27,7 +27,9 @@ export const NotificationCenter: React.FC = () => {
   if (notifications.length === 0) return null;
 
   return (
-    <div css={notificationStyles.container(isMobile ? "bottom-left" : "top-right")}>
+    <div
+      css={notificationStyles.container(isMobile ? "bottom-left" : "top-right")}
+    >
       {notifications.map((notification) => (
         <NotificationItem
           key={notification.id}

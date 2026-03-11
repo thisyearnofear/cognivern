@@ -110,57 +110,96 @@ export const keyframeAnimations = {
 
   fadeIn: css`
     @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
     }
     animation: fadeIn 0.3s ease-out;
   `,
 
   fadeOut: css`
     @keyframes fadeOut {
-      from { opacity: 1; }
-      to { opacity: 0; }
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+      }
     }
     animation: fadeOut 0.2s ease-in;
   `,
 
   slideInDown: css`
     @keyframes slideInDown {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
     animation: slideInDown 0.3s ease-out;
   `,
 
   slideInLeft: css`
     @keyframes slideInLeft {
-      from { opacity: 0; transform: translateX(-20px); }
-      to { opacity: 1; transform: translateX(0); }
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
     animation: slideInLeft 0.3s ease-out;
   `,
 
   slideOutUp: css`
     @keyframes slideOutUp {
-      from { opacity: 1; transform: translateY(0); }
-      to { opacity: 0; transform: translateY(-20px); }
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
     }
     animation: slideOutUp 0.2s ease-in;
   `,
 
   slideOutRight: css`
     @keyframes slideOutRight {
-      from { opacity: 1; transform: translateX(0); }
-      to { opacity: 0; transform: translateX(100%); }
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(100%);
+      }
     }
     animation: slideOutRight 0.3s ease-in;
   `,
 
   shake: css`
     @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      75% { transform: translateX(5px); }
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+      25% {
+        transform: translateX(-5px);
+      }
+      75% {
+        transform: translateX(5px);
+      }
     }
     animation: shake 0.3s ease-in-out;
   `,

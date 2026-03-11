@@ -2,4 +2,4 @@
  * Shared Logging
  */
 
-export * from './Logger.js';
+export * from "./Logger.js";

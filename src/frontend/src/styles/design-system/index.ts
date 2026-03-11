@@ -1,5 +1,10 @@
 // Design System - Clean, modular exports
-export { designTokens, tradingStyles, colorSystem, shadowSystem } from "./tokens/designTokens";
+export {
+  designTokens,
+  tradingStyles,
+  colorSystem,
+  shadowSystem,
+} from "./tokens/designTokens";
 export { keyframeAnimations, easings } from "./animations/keyframes";
 export { layoutUtils, responsiveUtils } from "./utilities/layout";
 export { cardStyles, getCardStyles } from "./components/card";

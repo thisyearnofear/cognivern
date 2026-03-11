@@ -154,7 +154,7 @@ class MCPCompetitionAgent {
       auditService,
       metricsService,
       recallClient,
-      bucketAddress
+      bucketAddress,
     );
 
     // Start agent with competition policies
@@ -201,12 +201,12 @@ class MCPCompetitionAgent {
             console.log(`💭 Reasoning: ${result.decision.reasoning}`);
             console.log(`⚖️  Risk Score: ${result.decision.riskScore}`);
             console.log(
-              `🛡️  Governance: ${result.approved ? "Approved" : "Blocked"}`
+              `🛡️  Governance: ${result.approved ? "Approved" : "Blocked"}`,
             );
 
             if (result.execution?.success) {
               console.log(
-                `💰 Trade executed: ${result.execution.transaction.id}`
+                `💰 Trade executed: ${result.execution.transaction.id}`,
               );
             }
 
@@ -217,19 +217,19 @@ class MCPCompetitionAgent {
           console.error(`❌ Trading error:`, error);
         }
       },
-      90 * 60 * 1000
+      90 * 60 * 1000,
     ); // Every 90 minutes
 
     // Status updates every 30 minutes
     const statusInterval = setInterval(
       () => {
         console.log(
-          `\n📈 Status: ${totalTrades} total trades, ${tradesPerDay}/3 today`
+          `\n📈 Status: ${totalTrades} total trades, ${tradesPerDay}/3 today`,
         );
         console.log(`🏆 Competition: https://competitions.recall.network`);
         console.log(`📊 Dashboard: http://localhost:5173`);
       },
-      30 * 60 * 1000
+      30 * 60 * 1000,
     );
 
     // Graceful shutdown
@@ -251,7 +251,7 @@ class MCPCompetitionAgent {
     // Log trading result to MCP for competition tracking
     // This would use MCP tools to update leaderboards, profiles, etc.
     console.log(
-      `📝 Logging to MCP: Trade ${result.approved ? "executed" : "blocked"}`
+      `📝 Logging to MCP: Trade ${result.approved ? "executed" : "blocked"}`,
     );
   }
 

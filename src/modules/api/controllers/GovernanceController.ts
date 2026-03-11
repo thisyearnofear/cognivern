@@ -2,7 +2,7 @@
  * Governance Controller
  */
 
-import { Request, Response } from 'express';
+import { Request, Response } from "express";
 
 export class GovernanceController {
   async getPolicies(req: Request, res: Response): Promise<void> {
@@ -12,16 +12,16 @@ export class GovernanceController {
       res.json({
         success: true,
         data: policies,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       res.status(500).json({
         success: false,
         error: {
-          code: 'INTERNAL_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error'
+          code: "INTERNAL_ERROR",
+          message: error instanceof Error ? error.message : "Unknown error",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }
@@ -35,10 +35,10 @@ export class GovernanceController {
         res.status(404).json({
           success: false,
           error: {
-            code: 'NOT_FOUND',
-            message: `Policy with id ${id} not found`
+            code: "NOT_FOUND",
+            message: `Policy with id ${id} not found`,
           },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
         return;
       }
@@ -46,16 +46,16 @@ export class GovernanceController {
       res.json({
         success: true,
         data: policy,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       res.status(500).json({
         success: false,
         error: {
-          code: 'INTERNAL_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error'
+          code: "INTERNAL_ERROR",
+          message: error instanceof Error ? error.message : "Unknown error",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }
@@ -67,22 +67,22 @@ export class GovernanceController {
       const policy = {
         id: `policy_${Date.now()}`,
         ...policyData,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
 
       res.status(201).json({
         success: true,
         data: policy,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       res.status(500).json({
         success: false,
         error: {
-          code: 'INTERNAL_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error'
+          code: "INTERNAL_ERROR",
+          message: error instanceof Error ? error.message : "Unknown error",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }

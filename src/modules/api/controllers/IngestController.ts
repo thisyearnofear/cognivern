@@ -46,7 +46,8 @@ export class IngestController {
 
       const projectId =
         parsed.data.projectId ||
-        ((req.headers["x-project-id"] as string) || "default");
+        (req.headers["x-project-id"] as string) ||
+        "default";
 
       const ingestKey =
         (req.headers["x-ingest-key"] as string) ||
@@ -93,20 +94,23 @@ export class IngestController {
       const usage = await usageMeter.recordIngest(projectId);
       const tokenTelemetry = await tokenTelemetryStore.record(
         match.projectId,
-        match.ingestKeyId
+        match.ingestKeyId,
       );
 
       // Commercially useful headers
       res.setHeader("X-Cognivern-Project", projectId);
       res.setHeader("X-Cognivern-Ingest-Key-Id", match.ingestKeyId);
       res.setHeader("X-Cognivern-Usage-Window-Start", usage.windowStart);
-      res.setHeader("X-Cognivern-Usage-Window-Seconds", String(usage.windowSeconds));
+      res.setHeader(
+        "X-Cognivern-Usage-Window-Seconds",
+        String(usage.windowSeconds),
+      );
       res.setHeader("X-Cognivern-Usage-Ingested", String(usage.ingestedRuns));
       const max = usageMeter.getMaxRunsForProject(projectId);
 
       res.setHeader(
         "X-Cognivern-Usage-Remaining",
-        String(Math.max(0, max - usage.ingestedRuns))
+        String(Math.max(0, max - usage.ingestedRuns)),
       );
 
       res.json({

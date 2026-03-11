@@ -23,7 +23,5 @@
     "src/frontend/**/*",
     "src/shared/**/*"
   ],
-  "references": [
-    { "path": "./tsconfig.shared.json" }
-  ]
+  "references": [{ "path": "./tsconfig.shared.json" }]
 }

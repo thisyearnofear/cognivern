@@ -118,7 +118,7 @@ export const creApi = {
   getRun: async (runId: string) =>
     request<{ success: boolean; run: CreRun }>(`/api/cre/runs/${runId}`),
   triggerForecast: async (
-    params: { writeAttestation?: boolean; requireApproval?: boolean } = {}
+    params: { writeAttestation?: boolean; requireApproval?: boolean } = {},
   ) =>
     request<{ success: boolean; runId: string; run: CreRun }>(
       "/api/cre/forecast",
@@ -131,40 +131,49 @@ export const creApi = {
       },
     ),
   listRunEvents: async (runId: string, since?: number) =>
-    request<{ success: boolean; runId: string; events: CreRunEvent[]; cursor: number }>(
+    request<{
+      success: boolean;
+      runId: string;
+      events: CreRunEvent[];
+      cursor: number;
+    }>(
       `/api/cre/runs/${encodeURIComponent(runId)}/events${
         since ? `?since=${encodeURIComponent(String(since))}` : ""
-      }`
+      }`,
     ),
   cancelRun: async (runId: string) =>
     request<{ success: boolean; run: CreRun }>(
       `/api/cre/runs/${encodeURIComponent(runId)}/cancel`,
-      { method: "POST", body: JSON.stringify({}) }
+      { method: "POST", body: JSON.stringify({}) },
     ),
   retryRun: async (
     runId: string,
-    params: { writeAttestation?: boolean; fromStep?: number } = {}
+    params: { writeAttestation?: boolean; fromStep?: number } = {},
   ) =>
-    request<{ success: boolean; runId: string; run: CreRun; retriedFrom: string }>(
-      `/api/cre/runs/${encodeURIComponent(runId)}/retry`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          writeAttestation: Boolean(params.writeAttestation),
-          ...(typeof params.fromStep === "number" ? { fromStep: params.fromStep } : {}),
-        }),
-      }
-    ),
+    request<{
+      success: boolean;
+      runId: string;
+      run: CreRun;
+      retriedFrom: string;
+    }>(`/api/cre/runs/${encodeURIComponent(runId)}/retry`, {
+      method: "POST",
+      body: JSON.stringify({
+        writeAttestation: Boolean(params.writeAttestation),
+        ...(typeof params.fromStep === "number"
+          ? { fromStep: params.fromStep }
+          : {}),
+      }),
+    }),
   submitRunApproval: async (
     runId: string,
-    params: { approve: boolean; reason?: string }
+    params: { approve: boolean; reason?: string },
   ) =>
     request<{ success: boolean; run: CreRun }>(
       `/api/cre/runs/${encodeURIComponent(runId)}/approval`,
       {
         method: "POST",
         body: JSON.stringify(params),
-      }
+      },
     ),
   updateRunPlan: async (
     runId: string,
@@ -178,13 +187,13 @@ export const creApi = {
         enabled: boolean;
         status?: "pending" | "approved" | "rejected";
       }>;
-    }
+    },
   ) =>
     request<{ success: boolean; run: CreRun }>(
       `/api/cre/runs/${encodeURIComponent(runId)}/plan`,
       {
         method: "POST",
         body: JSON.stringify({ plan }),
-      }
+      },
     ),
 };

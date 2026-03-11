@@ -3,19 +3,19 @@
  */
 
 export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function formatBytes(bytes: number, decimals: number = 2): string {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return "0 Bytes";
 
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }
 
 export function generateId(): string {
@@ -28,7 +28,7 @@ export function isValidEmail(email: string): boolean {
 }
 
 export function sanitizeString(str: string): string {
-  return str.replace(/[<>]/g, '');
+  return str.replace(/[<>]/g, "");
 }
 
 export function deepClone<T>(obj: T): T {
@@ -38,7 +38,7 @@ export function deepClone<T>(obj: T): T {
 export function retry<T>(
   fn: () => Promise<T>,
   maxAttempts: number = 3,
-  delay: number = 1000
+  delay: number = 1000,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     let attempts = 0;

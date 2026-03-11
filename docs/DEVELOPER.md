@@ -3,11 +3,13 @@
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js v20.14+
 - pnpm
 - Arbitrum ETH for gas fees
 
 ### Installation
+
 ```bash
 git clone https://github.com/thisyearnofear/cognivern.git
 cd cognivern
@@ -21,14 +23,17 @@ pnpm start
 ### Data Plane Endpoints
 
 #### `POST /ingest/runs`
+
 Ingest a run from any agent.
 
 **Headers:**
+
 - `Authorization: Bearer <ingestKey>`
 - `X-PROJECT-ID: <projectId>`
 - `Content-Type: application/json`
 
 **Request Body:**
+
 ```typescript
 {
   runId: string;
@@ -44,6 +49,7 @@ Ingest a run from any agent.
 ```
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:3000/ingest/runs \
   -H 'Authorization: Bearer dev-ingest-key' \
@@ -54,29 +60,32 @@ curl -X POST http://localhost:3000/ingest/runs \
 
 ### Control Plane Endpoints
 
-| Endpoint | Description | Response |
-| :--- | :--- | :--- |
-| `GET /api/cre/runs` | List runs (projectId, limit, offset) | `{ runs: CreRun[], total: number }` |
-| `GET /api/cre/runs/:runId` | Get run details | `{ run: CreRun }` |
-| `GET /api/projects` | List all projects | `{ projects: [{ id, name }] }` |
-| `GET /api/projects/:projectId/usage` | Get quota usage | `{ usage: { runs, limit, resetAt } }` |
-| `GET /api/projects/:projectId/tokens` | Get token telemetry | `{ tokens: [{ ingestKeyId, lastSeen, runCount }] }` |
-| `GET /health` | Health check | `{ status: 'ok' \| 'degraded', timestamp }` |
+| Endpoint                              | Description                          | Response                                            |
+| :------------------------------------ | :----------------------------------- | :-------------------------------------------------- |
+| `GET /api/cre/runs`                   | List runs (projectId, limit, offset) | `{ runs: CreRun[], total: number }`                 |
+| `GET /api/cre/runs/:runId`            | Get run details                      | `{ run: CreRun }`                                   |
+| `GET /api/projects`                   | List all projects                    | `{ projects: [{ id, name }] }`                      |
+| `GET /api/projects/:projectId/usage`  | Get quota usage                      | `{ usage: { runs, limit, resetAt } }`               |
+| `GET /api/projects/:projectId/tokens` | Get token telemetry                  | `{ tokens: [{ ingestKeyId, lastSeen, runCount }] }` |
+| `GET /health`                         | Health check                         | `{ status: 'ok' \| 'degraded', timestamp }`         |
 
 ## Agent Comparison Feature
 
 ### Overview
+
 Compare performance metrics across multiple agents in real-time with filtering, sorting, and aggregate statistics.
 
 ### Architecture
 
 **Core Components:**
+
 - **AgentMetricsAggregator**: Unified metrics source with caching (30s TTL), filtering, sorting
 - **API Service**: Centralized endpoints for comparison, leaderboard, stats
 - **Filter Schema**: Type-safe filter definitions (inspired by OpenStatus)
 - **Trading Dashboard**: UI with progressive disclosure, client-side filtering
 
 **Key Methods:**
+
 ```typescript
 getComparisonMetrics(agentIds, filters)   // Filtered comparison data
 calculateAggregateMetrics(metrics)        // Averages, best/worst
@@ -87,11 +96,13 @@ clearCache(agentId?)                      // Cache management
 ### User Guide
 
 **Accessing Comparison View:**
+
 1. Navigate to Trading Dashboard
 2. Click "Show Agent Comparison"
 3. Click "Show Filters" for advanced options
 
 **Filtering:**
+
 - **Search**: Type agent name or type
 - **Agent Types**: Recall, Vincent, Sapience, Custom
 - **Status**: Active, Inactive, Paused, Error
@@ -100,6 +111,7 @@ clearCache(agentId?)                      // Cache management
 **Sorting:** Click any column header (click again to reverse)
 
 **Metrics:**
+
 - **Win Rate**: ≥50% (green), <50% (gray)
 - **Return**: Positive (green), Negative (red)
 - **Sharpe Ratio**: >1.0 good, <1.0 poor
@@ -112,6 +124,7 @@ clearCache(agentId?)                      // Cache management
 **`GET /api/agents/compare`** - Multi-agent comparison with filters
 
 **Query Parameters:**
+
 ```typescript
 {
   agentIds?: string;        // Comma-separated IDs
@@ -126,6 +139,7 @@ clearCache(agentId?)                      // Cache management
 ```
 
 **Response:**
+
 ```typescript
 {
   data: AgentComparisonMetrics[];
@@ -141,6 +155,7 @@ clearCache(agentId?)                      // Cache management
 **`GET /api/agents/stats`** - Aggregate statistics
 
 **Response:**
+
 ```typescript
 {
   data: {
@@ -148,7 +163,7 @@ clearCache(agentId?)                      // Cache management
     avgWinRate: number;
     avgReturn: number;
     totalTrades: number;
-  };
+  }
 }
 ```
 
@@ -157,6 +172,7 @@ clearCache(agentId?)                      // Cache management
 **Purpose:** Type-safe filter definitions with auto-inferred TypeScript types.
 
 **Filter Types:**
+
 - **Selection**: agentIds, agentTypes, ecosystems, status
 - **Ranges**: winRate, totalReturn, sharpeRatio, avgLatency
 - **Time**: timeRange (start/end timestamps)
@@ -164,20 +180,22 @@ clearCache(agentId?)                      // Cache management
 - **Search**: text search across agents
 
 **Field Builders:**
+
 ```typescript
-field.string()                    // String fields
-field.array(innerField)           // Array fields with delimiter
-field.range()                     // Numeric ranges [min, max]
-field.stringLiteral(['a', 'b'])   // Type-safe enums
-field.timestamp()                 // Date fields
+field.string(); // String fields
+field.array(innerField); // Array fields with delimiter
+field.range(); // Numeric ranges [min, max]
+field.stringLiteral(["a", "b"]); // Type-safe enums
+field.timestamp(); // Date fields
 ```
 
 ### Adding New Filters
 
 1. Update schema (`src/frontend/src/lib/store/agentComparisonSchema.ts`):
+
 ```typescript
 export const agentComparisonSchema = {
-  myNewFilter: field.array(field.stringLiteral(['option1', 'option2'])),
+  myNewFilter: field.array(field.stringLiteral(["option1", "option2"])),
 } as const;
 ```
 
@@ -186,14 +204,14 @@ export const agentComparisonSchema = {
 ### Backend Implementation
 
 ```typescript
-router.get('/agents/compare', async (req, res) => {
+router.get("/agents/compare", async (req, res) => {
   const filters = parseComparisonFilters(req.query);
   const aggregator = new AgentMetricsAggregator();
   const agentIds = await getAgentIds(filters);
   const metrics = await aggregator.getComparisonMetrics(agentIds, filters);
   const sorted = aggregator.sortMetrics(metrics, {
-    field: filters.sortBy || 'totalReturn',
-    direction: filters.sortDirection || 'desc',
+    field: filters.sortBy || "totalReturn",
+    direction: filters.sortDirection || "desc",
   });
   res.json({ data: sorted, success: true });
 });
@@ -210,12 +228,15 @@ router.get('/agents/compare', async (req, res) => {
 ## Core Services
 
 ### SapienceService
+
 Primary gateway to Sapience ecosystem. Initializes ethers providers, manages wallet, submits forecasts via `@sapience/sdk`.
 
 ### GovernanceAgent
+
 Represents autonomous entity. Maintains thought history, logs actions and metrics.
 
 ### AgentsModule
+
 Manages agent lifecycle — initialize, start, orchestrate, status endpoints.
 
 ## Testing
@@ -233,10 +254,10 @@ curl "http://localhost:3000/api/agents/stats?agentTypes=recall"
 
 ## Troubleshooting
 
-| Problem | Solutions |
-| :--- | :--- |
-| **No data showing** | Check agents registered, verify API, clear filters |
-| **Slow performance** | Check cache hit rate, verify indexes, reduce agents |
+| Problem               | Solutions                                            |
+| :-------------------- | :--------------------------------------------------- |
+| **No data showing**   | Check agents registered, verify API, clear filters   |
+| **Slow performance**  | Check cache hit rate, verify indexes, reduce agents  |
 | **Incorrect metrics** | Verify data sources, clear cache, check time filters |
 
 ## Contributing

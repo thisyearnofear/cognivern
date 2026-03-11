@@ -35,16 +35,21 @@ const DEFAULT_FEEDS_ARBITRUM = [
   },
 ] satisfies Array<{ name: string; address: `0x${string}` }>;
 
-function selectByHorizon(conditions: SapienceCondition[]): SapienceCondition | null {
+function selectByHorizon(
+  conditions: SapienceCondition[],
+): SapienceCondition | null {
   if (!conditions.length) return null;
   // pick the one with farthest endTime (horizon-weighted)
   return [...conditions].sort((a, b) => b.endTime - a.endTime)[0];
 }
 
 export async function runForecastingWorkflow(
-  params: ForecastingWorkflowParams
+  params: ForecastingWorkflowParams,
 ): Promise<CreRun> {
-  const recorder = new CreRunRecorder({ workflow: "forecasting", mode: params.mode });
+  const recorder = new CreRunRecorder({
+    workflow: "forecasting",
+    mode: params.mode,
+  });
 
   const http = new DefaultHttpAdapter();
   const evm = new DefaultEvmAdapter();
@@ -88,16 +93,19 @@ export async function runForecastingWorkflow(
     // Step 4: confidential LLM forecast (local adapter for now)
     const s4 = recorder.startStep(
       "confidential_http",
-      "generate_forecast_confidentially"
+      "generate_forecast_confidentially",
     );
     const forecastInput: ForecastInput = { condition, priceFeeds };
-      const forecast = await llm.generateForecast(forecastInput);
-      recorder.addArtifact({ type: "llm_forecast", data: forecast });
-      s4.end({ ok: true, summary: `Forecast: ${forecast.probability}%` });
+    const forecast = await llm.generateForecast(forecastInput);
+    recorder.addArtifact({ type: "llm_forecast", data: forecast });
+    s4.end({ ok: true, summary: `Forecast: ${forecast.probability}%` });
 
     // Step 5: EVM write attestation (optional)
     if (params.writeAttestation) {
-      const s5 = recorder.startStep("evm_write", "submit_attestation_via_sapience");
+      const s5 = recorder.startStep(
+        "evm_write",
+        "submit_attestation_via_sapience",
+      );
 
       const sapience = new SapienceService();
       const req: AttestationRequest = {
@@ -152,7 +160,9 @@ export async function runForecastingWorkflow(
       ...(run.provenance || { source: "cognivern" }),
       workflowVersion: "forecasting-v1",
       model: "unknown",
-      citations: [{ label: "sapience_graphql", value: sapienceGraphqlEndpoint }],
+      citations: [
+        { label: "sapience_graphql", value: sapienceGraphqlEndpoint },
+      ],
     };
     return run;
   }

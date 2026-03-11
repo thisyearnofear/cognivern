@@ -96,7 +96,7 @@ export class AgentOrchestrator extends BaseService {
 
   async registerAgent(
     agent: TradingAgent,
-    allocation: AgentAllocation
+    allocation: AgentAllocation,
   ): Promise<void> {
     if (this.agents.has(agent.id)) {
       throw new Error(`Agent ${agent.id} is already registered`);
@@ -114,10 +114,15 @@ export class AgentOrchestrator extends BaseService {
       trade: async () => {
         try {
           // If it's a Sapience agent, perform a real forecast cycle
-          if (agent.type === "sapience" && (agent as any).performForecastCycle) {
-              this.logger.info(`Starting real-time forecast cycle for ${agent.name}`);
-              await (agent as any).performForecastCycle();
-              return;
+          if (
+            agent.type === "sapience" &&
+            (agent as any).performForecastCycle
+          ) {
+            this.logger.info(
+              `Starting real-time forecast cycle for ${agent.name}`,
+            );
+            await (agent as any).performForecastCycle();
+            return;
           }
 
           // Fallback for other agent types
@@ -203,7 +208,7 @@ export class AgentOrchestrator extends BaseService {
 
   async coordinateTrade(
     agentId: string,
-    decision: TradingDecision
+    decision: TradingDecision,
   ): Promise<boolean> {
     const agent = this.agents.get(agentId);
     if (!agent) {
@@ -216,11 +221,11 @@ export class AgentOrchestrator extends BaseService {
       const resolution = await this.resolveConflicts(
         agentId,
         decision,
-        conflicts
+        conflicts,
       );
       if (!resolution.approved) {
         this.logger.warn(
-          `Trade rejected due to conflicts: ${resolution.reason}`
+          `Trade rejected due to conflicts: ${resolution.reason}`,
         );
         return false;
       }
@@ -242,7 +247,7 @@ export class AgentOrchestrator extends BaseService {
     const activeTrades = this.activeTrades.get(agentId) || [];
     if (activeTrades.length >= this.orchestrationConfig.maxConcurrentTrades) {
       this.logger.warn(
-        `Agent ${agentId} has reached maximum concurrent trades`
+        `Agent ${agentId} has reached maximum concurrent trades`,
       );
       return false;
     }
@@ -252,7 +257,7 @@ export class AgentOrchestrator extends BaseService {
     this.activeTrades.set(agentId, activeTrades);
 
     this.logger.info(
-      `Trade approved for agent ${agentId}: ${decision.action} ${decision.quantity} ${decision.symbol}`
+      `Trade approved for agent ${agentId}: ${decision.action} ${decision.quantity} ${decision.symbol}`,
     );
     return true;
   }
@@ -260,7 +265,7 @@ export class AgentOrchestrator extends BaseService {
   async reportTradeCompletion(agentId: string, tradeId: string): Promise<void> {
     const activeTrades = this.activeTrades.get(agentId) || [];
     const updatedTrades = activeTrades.filter(
-      (trade) => `${trade.symbol}_${trade.timestamp.getTime()}` !== tradeId
+      (trade) => `${trade.symbol}_${trade.timestamp.getTime()}` !== tradeId,
     );
     this.activeTrades.set(agentId, updatedTrades);
   }
@@ -297,7 +302,7 @@ export class AgentOrchestrator extends BaseService {
 
   private async checkTradeConflicts(
     agentId: string,
-    decision: TradingDecision
+    decision: TradingDecision,
   ): Promise<string[]> {
     const conflicts = [];
 
@@ -311,7 +316,7 @@ export class AgentOrchestrator extends BaseService {
           trade.action !== decision.action
         ) {
           conflicts.push(
-            `Conflicting ${trade.action} order from agent ${otherId}`
+            `Conflicting ${trade.action} order from agent ${otherId}`,
           );
         }
 
@@ -331,7 +336,7 @@ export class AgentOrchestrator extends BaseService {
   private async resolveConflicts(
     agentId: string,
     decision: TradingDecision,
-    conflicts: string[]
+    conflicts: string[],
   ): Promise<{ approved: boolean; reason?: string }> {
     switch (this.orchestrationConfig.conflictResolution) {
       case "first_wins":
@@ -376,11 +381,11 @@ export class AgentOrchestrator extends BaseService {
   async getOrchestrationMetrics(): Promise<any> {
     const totalAgents = this.agents.size;
     const activeAgents = Array.from(this.agents.values()).filter(
-      (a) => a.status === "active"
+      (a) => a.status === "active",
     ).length;
     const totalActiveTrades = Array.from(this.activeTrades.values()).reduce(
       (sum, trades) => sum + trades.length,
-      0
+      0,
     );
 
     return {
@@ -392,7 +397,7 @@ export class AgentOrchestrator extends BaseService {
         ([id, allocation]) => ({
           agentId: id,
           ...allocation,
-        })
+        }),
       ),
     };
   }

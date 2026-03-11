@@ -1033,9 +1033,19 @@ export default function EnhancedAuditLogs() {
               <CardTitle style={{ marginBottom: designTokens.spacing[4] }}>
                 Critical Activity Summary
               </CardTitle>
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
                 {logs
-                  .filter((l) => l.impact.severity === "critical" || l.impact.severity === "high")
+                  .filter(
+                    (l) =>
+                      l.impact.severity === "critical" ||
+                      l.impact.severity === "high",
+                  )
                   .slice(0, 5)
                   .map((log) => (
                     <div
@@ -1055,15 +1065,27 @@ export default function EnhancedAuditLogs() {
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
+                        <div
+                          style={{ fontWeight: "bold", marginBottom: "4px" }}
+                        >
                           {log.agentName}: {log.action.type}
                         </div>
-                        <div style={{ fontSize: "14px", color: designTokens.colors.neutral[600] }}>
+                        <div
+                          style={{
+                            fontSize: "14px",
+                            color: designTokens.colors.neutral[600],
+                          }}
+                        >
                           {log.action.description}
                         </div>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: "12px", color: designTokens.colors.neutral[500] }}>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: designTokens.colors.neutral[500],
+                          }}
+                        >
                           {new Date(log.timestamp).toLocaleTimeString()}
                         </div>
                         <div
@@ -1081,9 +1103,18 @@ export default function EnhancedAuditLogs() {
                       </div>
                     </div>
                   ))}
-                {logs.filter((l) => l.impact.severity === "critical" || l.impact.severity === "high")
-                  .length === 0 && (
-                  <div style={{ textAlign: "center", padding: "20px", color: designTokens.colors.neutral[500] }}>
+                {logs.filter(
+                  (l) =>
+                    l.impact.severity === "critical" ||
+                    l.impact.severity === "high",
+                ).length === 0 && (
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "20px",
+                      color: designTokens.colors.neutral[500],
+                    }}
+                  >
                     No high-severity issues detected in this period.
                   </div>
                 )}

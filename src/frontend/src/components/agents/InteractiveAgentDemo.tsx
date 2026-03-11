@@ -5,7 +5,13 @@ import {
   keyframeAnimations,
   easings,
 } from "../../styles/design-system";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "../ui/Card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 
@@ -33,7 +39,8 @@ export default function InteractiveAgentDemo({
     },
     {
       action: "Policy Check",
-      response: "Analyzing input against ERC-8004 standards... Compliance: 100%.",
+      response:
+        "Analyzing input against ERC-8004 standards... Compliance: 100%.",
     },
     {
       action: "Strategic Analysis",
@@ -111,7 +118,7 @@ export default function InteractiveAgentDemo({
               margin-bottom: ${designTokens.spacing[4]};
             `}
           >
-            > Initializing {agentName} interactive session...
+            Initializing {agentName} interactive session...
           </div>
           {interactions.map((msg, i) => (
             <div

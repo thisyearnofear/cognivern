@@ -43,7 +43,10 @@ function makeSeedRun(params: {
     },
     metrics: {
       latencyMs: finishedAt
-        ? Math.max(0, new Date(finishedAt).getTime() - new Date(startedAt).getTime())
+        ? Math.max(
+            0,
+            new Date(finishedAt).getTime() - new Date(startedAt).getTime(),
+          )
         : undefined,
       stepCount: 3,
       artifactCount: 2,
@@ -124,7 +127,9 @@ function makeSeedRun(params: {
         startedAt: now(-109_000),
         finishedAt: finishedAt || undefined,
         ok: params.ok,
-        summary: params.ok ? "Forecast generated" : "Forecast generation failed",
+        summary: params.ok
+          ? "Forecast generated"
+          : "Forecast generation failed",
       },
     ],
     artifacts: [

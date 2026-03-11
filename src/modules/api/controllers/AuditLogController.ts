@@ -2,8 +2,8 @@
  * Audit Log Controller
  */
 
-import { Request, Response } from 'express';
-import { AuditLogService } from '../../../services/AuditLogService.js';
+import { Request, Response } from "express";
+import { AuditLogService } from "../../../services/AuditLogService.js";
 
 export class AuditLogController {
   private auditLogService: AuditLogService;
@@ -20,7 +20,7 @@ export class AuditLogController {
         agent,
         actionType,
         complianceStatus,
-        severity
+        severity,
       } = req.query;
 
       // Get audit logs with filters
@@ -30,17 +30,24 @@ export class AuditLogController {
         agent: agent as string,
         actionType: actionType as string,
         complianceStatus: complianceStatus as string,
-        severity: severity as string
+        severity: severity as string,
       });
 
       // Calculate summary statistics
       const totalActions = logs.length;
-      const compliantActions = logs.filter(log => log.complianceStatus === 'compliant').length;
-      const complianceRate = totalActions > 0 ? (compliantActions / totalActions) * 100 : 0;
-      const avgResponseTime = logs.length > 0
-        ? logs.reduce((sum, log) => sum + (log.responseTime || 0), 0) / logs.length
-        : 0;
-      const criticalIssues = logs.filter(log => log.severity === 'critical').length;
+      const compliantActions = logs.filter(
+        (log) => log.complianceStatus === "compliant",
+      ).length;
+      const complianceRate =
+        totalActions > 0 ? (compliantActions / totalActions) * 100 : 0;
+      const avgResponseTime =
+        logs.length > 0
+          ? logs.reduce((sum, log) => sum + (log.responseTime || 0), 0) /
+            logs.length
+          : 0;
+      const criticalIssues = logs.filter(
+        (log) => log.severity === "critical",
+      ).length;
 
       res.json({
         success: true,
@@ -50,19 +57,19 @@ export class AuditLogController {
             totalActions,
             complianceRate: Math.round(complianceRate * 100) / 100,
             avgResponseTime: Math.round(avgResponseTime),
-            criticalIssues
-          }
+            criticalIssues,
+          },
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       res.status(500).json({
         success: false,
         error: {
-          code: 'INTERNAL_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error'
+          code: "INTERNAL_ERROR",
+          message: error instanceof Error ? error.message : "Unknown error",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }
@@ -75,16 +82,19 @@ export class AuditLogController {
       res.json({
         success: true,
         data: insights,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       res.status(500).json({
         success: false,
         error: {
-          code: 'INSIGHTS_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to generate insights'
+          code: "INSIGHTS_ERROR",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to generate insights",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }

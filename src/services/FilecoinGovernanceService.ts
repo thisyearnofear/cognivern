@@ -160,7 +160,7 @@ export class FilecoinGovernanceService {
     } catch (error) {
       logger.warn(
         "FilecoinGovernanceService configuration missing. Service will fail if used.",
-        error
+        error,
       );
     }
   }
@@ -207,10 +207,12 @@ export class FilecoinGovernanceService {
     action: AgentAction,
     policyChecks: PolicyCheck[],
     approved: boolean,
-    filecoinCID: string = ""
+    filecoinCID: string = "",
   ): Promise<string> {
     if (!this.isConfigured || !this.contractAddress) {
-      throw new Error("Filecoin Governance Service is not configured. Check environment variables.");
+      throw new Error(
+        "Filecoin Governance Service is not configured. Check environment variables.",
+      );
     }
 
     try {
@@ -230,7 +232,7 @@ export class FilecoinGovernanceService {
 
       // Generate agent address (deterministic for now, but real on-chain)
       const agentAddress = this.generateAgentAddress(
-        action.metadata?.agent || "unknown"
+        action.metadata?.agent || "unknown",
       );
 
       // Call contract function
@@ -252,7 +254,7 @@ export class FilecoinGovernanceService {
 
       logger.info(`📦 Governance action stored on Filecoin: ${hash}`);
       logger.info(
-        `🔗 View on Filfox: https://calibration.filfox.info/en/tx/${hash}`
+        `🔗 View on Filfox: https://calibration.filfox.info/en/tx/${hash}`,
       );
 
       return hash;
@@ -267,7 +269,9 @@ export class FilecoinGovernanceService {
    */
   async registerAgent(agentName: string, agentType: string): Promise<string> {
     if (!this.isConfigured || !this.contractAddress) {
-      throw new Error("Filecoin Governance Service is not configured. Check environment variables.");
+      throw new Error(
+        "Filecoin Governance Service is not configured. Check environment variables.",
+      );
     }
 
     try {
@@ -292,10 +296,12 @@ export class FilecoinGovernanceService {
    * Get governance record from Filecoin
    */
   async getGovernanceRecord(
-    actionId: string
+    actionId: string,
   ): Promise<GovernanceRecord | null> {
     if (!this.isConfigured || !this.contractAddress) {
-      throw new Error("Filecoin Governance Service is not configured. Check environment variables.");
+      throw new Error(
+        "Filecoin Governance Service is not configured. Check environment variables.",
+      );
     }
 
     try {
@@ -325,7 +331,9 @@ export class FilecoinGovernanceService {
     approvalRate: number;
   }> {
     if (!this.isConfigured || !this.contractAddress) {
-      throw new Error("Filecoin Governance Service is not configured. Check environment variables.");
+      throw new Error(
+        "Filecoin Governance Service is not configured. Check environment variables.",
+      );
     }
 
     try {

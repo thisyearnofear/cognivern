@@ -27,8 +27,10 @@ export class ProjectRegistry {
   private ingestKeys: Map<string, string[]> = new Map();
 
   constructor() {
-    const projectsSpec = process.env.COGNIVERN_PROJECTS || "default:Default Project";
-    const ingestSpec = process.env.COGNIVERN_INGEST_KEYS || "default=dev-ingest-key";
+    const projectsSpec =
+      process.env.COGNIVERN_PROJECTS || "default:Default Project";
+    const ingestSpec =
+      process.env.COGNIVERN_INGEST_KEYS || "default=dev-ingest-key";
 
     ingestSpec
       .split(",")
@@ -53,7 +55,8 @@ export class ProjectRegistry {
         const id = (projectId || "").trim();
         if (!id) return;
         const ingestKey =
-          this.ingestKeys.get(id)?.[0] || crypto.randomBytes(24).toString("hex");
+          this.ingestKeys.get(id)?.[0] ||
+          crypto.randomBytes(24).toString("hex");
         this.projects.set(id, {
           projectId: id,
           name: (name || id).trim(),

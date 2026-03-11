@@ -55,6 +55,7 @@ bash scripts/deploy/build-backend-artifact.sh
 ```
 
 Creates tarball under `.artifacts/` containing:
+
 - `dist/`
 - `package.json`, `pnpm-lock.yaml`
 - `config/` (runtime config)
@@ -66,6 +67,7 @@ bash scripts/deploy/deploy-backend-artifact-hetzner.sh
 ```
 
 Deploy script:
+
 1. Uploads tarball to `/opt/cognivern/releases/`
 2. Installs **prod dependencies only** inside release
 3. Links shared state (`shared/.env`, `shared/data`, `shared/logs`)
@@ -88,18 +90,22 @@ bash scripts/deploy/rollback-hetzner.sh <release-dir-name>
 ## Secrets Policy
 
 ### Do NOT Commit
+
 - `.env`, `.env.production`, private keys, API keys, ingest keys
 - PM2 ecosystem files containing secrets
 
 ### Safe to Commit
+
 - Deployment scripts (without embedded secrets)
 - Deployment documentation
 - `.env.example` with placeholders
 
 ### Where Secrets Live
+
 - `/opt/cognivern/shared/.env` on server (not in git)
 
 ### Example `.env`
+
 ```env
 # Server Configuration
 PORT=3000
@@ -127,19 +133,21 @@ AGENTS_ENABLED=false
 
 ```javascript
 module.exports = {
-  apps: [{
-    name: 'cognivern-agent',
-    script: './dist/index.js',
-    instances: 1,
-    exec_mode: 'cluster',
-    env: {
-      NODE_ENV: 'production',
+  apps: [
+    {
+      name: "cognivern-agent",
+      script: "./dist/index.js",
+      instances: 1,
+      exec_mode: "cluster",
+      env: {
+        NODE_ENV: "production",
+      },
+      error_file: "./logs/error.log",
+      out_file: "./logs/out.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+      max_memory_restart: "1G",
     },
-    error_file: './logs/error.log',
-    out_file: './logs/out.log',
-    log_date_format: 'YYYY-MM-DD HH:mm:ss',
-    max_memory_restart: '1G',
-  }],
+  ],
 };
 ```
 
@@ -210,6 +218,7 @@ pm2 start dist/services/AutomatedForecastingService.js --name forecasting-agent
 **Storage:** `data/cre-runs.jsonl`, `data/usage.json`, `data/token-telemetry.json`
 
 ### Backup
+
 ```bash
 #!/bin/bash
 BACKUP_DIR="/backups/cognivern/$(date +%Y%m%d)"
@@ -219,6 +228,7 @@ cp /opt/cognivern/shared/data/*.json $BACKUP_DIR/
 ```
 
 ### Restore
+
 ```bash
 #!/bin/bash
 BACKUP_DIR="/backups/cognivern/20260223"
@@ -229,16 +239,17 @@ pm2 restart cognivern-agent
 
 ## Troubleshooting
 
-| Issue | Solution |
-| :--- | :--- |
-| **App won't start** | `pm2 status`, `pm2 logs --err`, verify `.env`, check Node version |
-| **High memory** | `pm2 monit`, restart, check for leaks |
-| **Data corruption** | Stop app, backup data, restore from backup or start fresh |
-| **Rollback** | `bash scripts/deploy/rollback-hetzner.sh <release>`, verify health |
+| Issue               | Solution                                                           |
+| :------------------ | :----------------------------------------------------------------- |
+| **App won't start** | `pm2 status`, `pm2 logs --err`, verify `.env`, check Node version  |
+| **High memory**     | `pm2 monit`, restart, check for leaks                              |
+| **Data corruption** | Stop app, backup data, restore from backup or start fresh          |
+| **Rollback**        | `bash scripts/deploy/rollback-hetzner.sh <release>`, verify health |
 
 ## Deployment Checklist
 
 ### Pre-Deployment
+
 - [ ] All tests passing locally
 - [ ] Build completes without errors
 - [ ] `.env.example` updated with new variables
@@ -246,6 +257,7 @@ pm2 restart cognivern-agent
 - [ ] Version bumped in `package.json`
 
 ### Deployment
+
 - [ ] Artifact built successfully
 - [ ] Uploaded to server
 - [ ] Dependencies installed (prod only)
@@ -255,6 +267,7 @@ pm2 restart cognivern-agent
 - [ ] Health check passed
 
 ### Post-Deployment
+
 - [ ] Monitor logs for errors (first 5 minutes)
 - [ ] Verify API endpoints respond
 - [ ] Check metrics dashboard

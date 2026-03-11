@@ -1,5 +1,5 @@
-import logger from '../utils/logger.js';
-import { MarketCondition } from './AutomatedForecastingService.js';
+import logger from "../utils/logger.js";
+import { MarketCondition } from "./AutomatedForecastingService.js";
 
 export interface MarketData {
   symbol: string;
@@ -40,10 +40,13 @@ export class MarketDataService {
     };
     this.cache = new Map();
     this.cacheTTL = 60000; // 1 minute cache
-    logger.info('MarketDataService initialized');
+    logger.info("MarketDataService initialized");
   }
 
-  private async fetchWithCache(key: string, fetchFn: () => Promise<any>): Promise<any> {
+  private async fetchWithCache(
+    key: string,
+    fetchFn: () => Promise<any>,
+  ): Promise<any> {
     const cached = this.cache.get(key);
     if (cached) return cached;
 
@@ -71,9 +74,9 @@ export class MarketDataService {
               `https://api.coingecko.com/api/v3/coins/${symbol.toLowerCase()}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`,
               {
                 headers: {
-                  'x-cg-demo-api-key': this.apiKeys.coinGecko!
-                }
-              }
+                  "x-cg-demo-api-key": this.apiKeys.coinGecko!,
+                },
+              },
             );
 
             if (response.ok) {
@@ -88,7 +91,7 @@ export class MarketDataService {
         // Fallback to Binance API
         try {
           const response = await fetch(
-            `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol.toUpperCase()}`
+            `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol.toUpperCase()}`,
           );
 
           if (response.ok) {
@@ -100,7 +103,9 @@ export class MarketDataService {
         }
 
         // If all fail, return mock data with warning
-        logger.warn(`All market data sources failed for ${symbol}, returning fallback data`);
+        logger.warn(
+          `All market data sources failed for ${symbol}, returning fallback data`,
+        );
         return this.getFallbackMarketData(symbol);
       });
     } catch (error) {
@@ -146,7 +151,10 @@ export class MarketDataService {
   /**
    * Get historical market data for charting
    */
-  async getHistoricalData(symbol: string, days: number = 7): Promise<HistoricalDataPoint[]> {
+  async getHistoricalData(
+    symbol: string,
+    days: number = 7,
+  ): Promise<HistoricalDataPoint[]> {
     try {
       const cacheKey = `historical_${symbol}_${days}`;
 
@@ -158,9 +166,9 @@ export class MarketDataService {
               `https://api.coingecko.com/api/v3/coins/${symbol.toLowerCase()}/market_chart?vs_currency=usd&days=${days}`,
               {
                 headers: {
-                  'x-cg-demo-api-key': this.apiKeys.coinGecko!
-                }
-              }
+                  "x-cg-demo-api-key": this.apiKeys.coinGecko!,
+                },
+              },
             );
 
             if (response.ok) {
@@ -186,7 +194,10 @@ export class MarketDataService {
     }
   }
 
-  private generateHistoricalData(symbol: string, days: number): HistoricalDataPoint[] {
+  private generateHistoricalData(
+    symbol: string,
+    days: number,
+  ): HistoricalDataPoint[] {
     const result: HistoricalDataPoint[] = [];
     const now = Date.now();
 
@@ -201,9 +212,9 @@ export class MarketDataService {
 
     // Generate reasonable historical data with some volatility
     for (let i = days - 1; i >= 0; i--) {
-      const daysAgo = now - (i * 24 * 60 * 60 * 1000);
+      const daysAgo = now - i * 24 * 60 * 60 * 1000;
       const priceChange = (Math.random() - 0.5) * 0.1; // ±5% daily change
-      currentPrice *= (1 + priceChange);
+      currentPrice *= 1 + priceChange;
 
       result.push({
         timestamp: new Date(daysAgo).toISOString(),
@@ -220,16 +231,16 @@ export class MarketDataService {
    */
   async getMarketStats(): Promise<MarketStats> {
     try {
-      return await this.fetchWithCache('market_stats', async () => {
+      return await this.fetchWithCache("market_stats", async () => {
         if (this.apiKeys.coinGecko) {
           try {
             const response = await fetch(
-              'https://api.coingecko.com/api/v3/global',
+              "https://api.coingecko.com/api/v3/global",
               {
                 headers: {
-                  'x-cg-demo-api-key': this.apiKeys.coinGecko!
-                }
-              }
+                  "x-cg-demo-api-key": this.apiKeys.coinGecko!,
+                },
+              },
             );
 
             if (response.ok) {
@@ -242,7 +253,7 @@ export class MarketDataService {
               };
             }
           } catch (error) {
-            logger.warn('CoinGecko global stats failed:', error);
+            logger.warn("CoinGecko global stats failed:", error);
           }
         }
 
@@ -259,7 +270,7 @@ export class MarketDataService {
         };
       });
     } catch (error) {
-      logger.error('Failed to get market stats:', error);
+      logger.error("Failed to get market stats:", error);
       throw error;
     }
   }
@@ -276,9 +287,9 @@ export class MarketDataService {
               `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&page=1&sparkline=false`,
               {
                 headers: {
-                  'x-cg-demo-api-key': this.apiKeys.coinGecko!
-                }
-              }
+                  "x-cg-demo-api-key": this.apiKeys.coinGecko!,
+                },
+              },
             );
 
             if (response.ok) {
@@ -293,7 +304,7 @@ export class MarketDataService {
               }));
             }
           } catch (error) {
-            logger.warn('CoinGecko top markets failed:', error);
+            logger.warn("CoinGecko top markets failed:", error);
           }
         }
 
@@ -301,31 +312,32 @@ export class MarketDataService {
         return this.generateTopMarkets(limit);
       });
     } catch (error) {
-      logger.error('Failed to get top markets:', error);
+      logger.error("Failed to get top markets:", error);
       throw error;
     }
   }
 
   private generateTopMarkets(limit: number): MarketData[] {
     const topCoins = [
-      { symbol: 'BTC', weight: 0.45 },
-      { symbol: 'ETH', weight: 0.19 },
-      { symbol: 'USDT', weight: 0.06 },
-      { symbol: 'BNB', weight: 0.04 },
-      { symbol: 'SOL', weight: 0.03 },
-      { symbol: 'XRP', weight: 0.02 },
-      { symbol: 'USDC', weight: 0.02 },
-      { symbol: 'ADA', weight: 0.015 },
-      { symbol: 'DOGE', weight: 0.012 },
-      { symbol: 'AVAX', weight: 0.01 },
+      { symbol: "BTC", weight: 0.45 },
+      { symbol: "ETH", weight: 0.19 },
+      { symbol: "USDT", weight: 0.06 },
+      { symbol: "BNB", weight: 0.04 },
+      { symbol: "SOL", weight: 0.03 },
+      { symbol: "XRP", weight: 0.02 },
+      { symbol: "USDC", weight: 0.02 },
+      { symbol: "ADA", weight: 0.015 },
+      { symbol: "DOGE", weight: 0.012 },
+      { symbol: "AVAX", weight: 0.01 },
     ];
 
     const totalWeight = topCoins.reduce((sum, coin) => sum + coin.weight, 0);
     const totalMarketCap = 2000000000000; // $2T
 
     return topCoins.slice(0, limit).map((coin, index) => {
-      const marketCap = coin.weight / totalWeight * totalMarketCap;
-      const price = [60000, 3000, 1, 600, 150, 0.6, 1, 0.5, 0.15, 50][index] || 100;
+      const marketCap = (coin.weight / totalWeight) * totalMarketCap;
+      const price =
+        [60000, 3000, 1, 600, 150, 0.6, 1, 0.5, 0.15, 50][index] || 100;
 
       return {
         symbol: coin.symbol,
@@ -355,7 +367,11 @@ export class MarketDataService {
   /**
    * Get market data for all active Sapience conditions
    */
-  async getSapienceMarketData(conditions: MarketCondition[]): Promise<MarketData[]> {
-    return conditions.map(condition => this.sapienceConditionToMarketData(condition));
+  async getSapienceMarketData(
+    conditions: MarketCondition[],
+  ): Promise<MarketData[]> {
+    return conditions.map((condition) =>
+      this.sapienceConditionToMarketData(condition),
+    );
   }
 }

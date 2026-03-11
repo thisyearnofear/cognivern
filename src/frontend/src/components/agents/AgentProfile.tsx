@@ -1,15 +1,8 @@
 import React, { useEffect } from "react";
 import { css } from "@emotion/react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  designTokens,
-
-  keyframeAnimations
-} from "../../styles/design-system";
-import {
-  Card,
-  CardContent,
-} from "../ui/Card";
+import { designTokens, keyframeAnimations } from "../../styles/design-system";
+import { Card, CardContent } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { useAgentData } from "../../hooks/useAgentData";
@@ -59,7 +52,11 @@ const avatarContainerStyles = css`
   width: 200px;
   height: 200px;
   border-radius: ${designTokens.borderRadius["2xl"]};
-  background: linear-gradient(135deg, ${designTokens.colors.primary[500]}, ${designTokens.colors.primary[800]});
+  background: linear-gradient(
+    135deg,
+    ${designTokens.colors.primary[500]},
+    ${designTokens.colors.primary[800]}
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -165,7 +162,10 @@ const AgentProfile: React.FC = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      document.documentElement.style.setProperty('--scroll-y', `${window.scrollY}`);
+      document.documentElement.style.setProperty(
+        "--scroll-y",
+        `${window.scrollY}`,
+      );
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -180,7 +180,15 @@ const AgentProfile: React.FC = () => {
 
   const extendedData = {
     developer: "CogniVern Labs",
-    techStack: ["TypeScript", "PyTorch", "EVM", "IPFS", "OpenAI", "React", "Rust"],
+    techStack: [
+      "TypeScript",
+      "PyTorch",
+      "EVM",
+      "IPFS",
+      "OpenAI",
+      "React",
+      "Rust",
+    ],
     moltbook: "https://moltbook.io/agents/recall-01",
     erc8004: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
     registrationDate: "2025-12-10",
@@ -193,7 +201,9 @@ const AgentProfile: React.FC = () => {
       <Button
         variant="ghost"
         onClick={() => navigate(-1)}
-        css={css`margin-bottom: ${designTokens.spacing[10]};`}
+        css={css`
+          margin-bottom: ${designTokens.spacing[10]};
+        `}
       >
         Back to Dashboard
       </Button>
@@ -202,27 +212,70 @@ const AgentProfile: React.FC = () => {
         <div css={avatarContainerStyles}>
           {agentType === "recall" ? "RC" : "VC"}
         </div>
-        <div css={css`${keyframeAnimations.parallax(-0.05)};`}>
-          <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[4]}; margin-bottom: ${designTokens.spacing[4]};`}>
+        <div
+          css={css`
+            ${keyframeAnimations.parallax(-0.05)};
+          `}
+        >
+          <div
+            css={css`
+              display: flex;
+              align-items: center;
+              gap: ${designTokens.spacing[4]};
+              margin-bottom: ${designTokens.spacing[4]};
+            `}
+          >
             <Badge variant={status.isActive ? "success" : "secondary"}>
               {status.isActive ? "Active" : "Standby"}
             </Badge>
-            <span css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[500]}; font-family: monospace;`}>
+            <span
+              css={css`
+                font-size: ${designTokens.typography.fontSize.sm};
+                color: ${designTokens.colors.neutral[500]};
+                font-family: monospace;
+              `}
+            >
               ERC-8004: {extendedData.erc8004.substring(0, 10)}...
             </span>
           </div>
-          <h1 css={css`font-size: ${designTokens.typography.fontSize["5xl"]}; font-weight: bold; margin: 0 0 ${designTokens.spacing[4]} 0; letter-spacing: -0.04em;`}>
-            {agentType === "recall" ? "Recall Trading Agent" : "Vincent Social Agent"}
+          <h1
+            css={css`
+              font-size: ${designTokens.typography.fontSize["5xl"]};
+              font-weight: bold;
+              margin: 0 0 ${designTokens.spacing[4]} 0;
+              letter-spacing: -0.04em;
+            `}
+          >
+            {agentType === "recall"
+              ? "Recall Trading Agent"
+              : "Vincent Social Agent"}
           </h1>
-          <p css={css`color: ${designTokens.colors.neutral[600]}; font-size: ${designTokens.typography.fontSize.xl}; max-width: 800px; line-height: 1.6;`}>
+          <p
+            css={css`
+              color: ${designTokens.colors.neutral[600]};
+              font-size: ${designTokens.typography.fontSize.xl};
+              max-width: 800px;
+              line-height: 1.6;
+            `}
+          >
             {agentType === "recall"
               ? "High-performance algorithmic trading agent specializing in competition-based market making. Built on top of the Recall network for decentralized execution."
               : "Social-sentiment driven agent that executes trades based on real-time social media analysis and community trends using LLM-based sentiment extraction."}
           </p>
         </div>
-        <div css={css`display: flex; flex-direction: column; gap: ${designTokens.spacing[4]};`}>
-          <Button variant="primary" size="lg">Connect Agent</Button>
-          <Button variant="outline" size="lg">Review Governance</Button>
+        <div
+          css={css`
+            display: flex;
+            flex-direction: column;
+            gap: ${designTokens.spacing[4]};
+          `}
+        >
+          <Button variant="primary" size="lg">
+            Connect Agent
+          </Button>
+          <Button variant="outline" size="lg">
+            Review Governance
+          </Button>
         </div>
       </div>
 
@@ -230,18 +283,43 @@ const AgentProfile: React.FC = () => {
         <div css={statsColumnStyles}>
           <h2 css={sectionTitleStyles}>Performance</h2>
           <Card variant="elevated">
-            <CardContent css={css`padding: ${designTokens.spacing[8]};`}>
+            <CardContent
+              css={css`
+                padding: ${designTokens.spacing[8]};
+              `}
+            >
               <div css={dataLabelStyles}>Total Return</div>
-              <div css={css`font-size: 3rem; font-weight: 800; color: ${designTokens.colors.semantic.success}; letter-spacing: -0.05em;`}>
+              <div
+                css={css`
+                  font-size: 3rem;
+                  font-weight: 800;
+                  color: ${designTokens.colors.semantic.success};
+                  letter-spacing: -0.05em;
+                `}
+              >
                 +{(status.performance.totalReturn * 100).toFixed(2)}%
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent css={css`padding: ${designTokens.spacing[6]}; display: flex; justify-content: space-between; align-items: center;`}>
+            <CardContent
+              css={css`
+                padding: ${designTokens.spacing[6]};
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              `}
+            >
               <div>
                 <div css={dataLabelStyles}>Win Rate</div>
-                <div css={css`font-size: 1.5rem; font-weight: bold;`}>{(status.performance.winRate * 100).toFixed(1)}%</div>
+                <div
+                  css={css`
+                    font-size: 1.5rem;
+                    font-weight: bold;
+                  `}
+                >
+                  {(status.performance.winRate * 100).toFixed(1)}%
+                </div>
               </div>
               <div>
                 <div css={dataLabelStyles}>Risk Level</div>
@@ -250,11 +328,36 @@ const AgentProfile: React.FC = () => {
             </CardContent>
           </Card>
           <Card>
-            <CardContent css={css`padding: ${designTokens.spacing[6]};`}>
+            <CardContent
+              css={css`
+                padding: ${designTokens.spacing[6]};
+              `}
+            >
               <div css={dataLabelStyles}>Compliance Score</div>
-              <div css={css`font-size: 1.5rem; font-weight: bold; margin-bottom: ${designTokens.spacing[2]};`}>{status.performance.complianceScore}%</div>
-              <div css={css`height: 8px; background: ${designTokens.colors.neutral[100]}; border-radius: 4px; overflow: hidden;`}>
-                <div css={css`height: 100%; width: ${status.performance.complianceScore}%; background: ${designTokens.colors.primary[500]};`} />
+              <div
+                css={css`
+                  font-size: 1.5rem;
+                  font-weight: bold;
+                  margin-bottom: ${designTokens.spacing[2]};
+                `}
+              >
+                {status.performance.complianceScore}%
+              </div>
+              <div
+                css={css`
+                  height: 8px;
+                  background: ${designTokens.colors.neutral[100]};
+                  border-radius: 4px;
+                  overflow: hidden;
+                `}
+              >
+                <div
+                  css={css`
+                    height: 100%;
+                    width: ${status.performance.complianceScore}%;
+                    background: ${designTokens.colors.primary[500]};
+                  `}
+                />
               </div>
             </CardContent>
           </Card>
@@ -285,19 +388,44 @@ const AgentProfile: React.FC = () => {
 
           <div css={infoSectionStyles}>
             <h2 css={sectionTitleStyles}>Technical Foundation</h2>
-            <Card variant="outline" css={css`padding: ${designTokens.spacing[8]}; background: white;`}>
-              <div css={css`display: grid; grid-template-columns: 1fr auto; gap: ${designTokens.spacing[12]}; align-items: start;`}>
+            <Card
+              variant="outline"
+              css={css`
+                padding: ${designTokens.spacing[8]};
+                background: white;
+              `}
+            >
+              <div
+                css={css`
+                  display: grid;
+                  grid-template-columns: 1fr auto;
+                  gap: ${designTokens.spacing[12]};
+                  align-items: start;
+                `}
+              >
                 <div>
                   <div css={dataLabelStyles}>Proprietary Tech Stack</div>
                   <div css={techBadgeStyles}>
-                    {extendedData.techStack.map(tech => (
-                      <Badge key={tech} variant="secondary" css={css`padding: ${designTokens.spacing[2]} ${designTokens.spacing[4]}; font-size: ${designTokens.typography.fontSize.sm};`}>
+                    {extendedData.techStack.map((tech) => (
+                      <Badge
+                        key={tech}
+                        variant="secondary"
+                        css={css`
+                          padding: ${designTokens.spacing[2]}
+                            ${designTokens.spacing[4]};
+                          font-size: ${designTokens.typography.fontSize.sm};
+                        `}
+                      >
                         {tech}
                       </Badge>
                     ))}
                   </div>
                 </div>
-                <div css={css`text-align: right;`}>
+                <div
+                  css={css`
+                    text-align: right;
+                  `}
+                >
                   <div css={dataLabelStyles}>Public Registry</div>
                   <a
                     href={extendedData.moltbook}
@@ -310,7 +438,8 @@ const AgentProfile: React.FC = () => {
                       color: ${designTokens.colors.primary[600]};
                       text-decoration: none;
                       font-weight: 600;
-                      padding: ${designTokens.spacing[3]} ${designTokens.spacing[5]};
+                      padding: ${designTokens.spacing[3]}
+                        ${designTokens.spacing[5]};
                       background: ${designTokens.colors.primary[50]};
                       border-radius: ${designTokens.borderRadius.lg};
                       transition: all 0.2s ease;
@@ -330,14 +459,36 @@ const AgentProfile: React.FC = () => {
           <div css={infoSectionStyles}>
             <h2 css={sectionTitleStyles}>Security Audit</h2>
             <Card variant="outline" css={keyframeAnimations.shimmer}>
-              <CardContent css={css`display: flex; align-items: center; justify-content: space-between; padding: ${designTokens.spacing[6]};`}>
+              <CardContent
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  padding: ${designTokens.spacing[6]};
+                `}
+              >
                 <div>
-                  <div css={css`font-weight: bold; font-size: ${designTokens.typography.fontSize.lg}; color: ${designTokens.colors.neutral[900]};`}>
+                  <div
+                    css={css`
+                      font-weight: bold;
+                      font-size: ${designTokens.typography.fontSize.lg};
+                      color: ${designTokens.colors.neutral[900]};
+                    `}
+                  >
                     Security Audit v2.1 Passed
                   </div>
-                  <div css={css`${dataLabelStyles}; margin: 0;`}>Verified Hash: {extendedData.auditHash}</div>
+                  <div
+                    css={css`
+                      ${dataLabelStyles};
+                      margin: 0;
+                    `}
+                  >
+                    Verified Hash: {extendedData.auditHash}
+                  </div>
                 </div>
-                <Badge variant="success" size="lg">Verified</Badge>
+                <Badge variant="success" size="lg">
+                  Verified
+                </Badge>
               </CardContent>
             </Card>
           </div>

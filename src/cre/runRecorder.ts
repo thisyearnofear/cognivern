@@ -36,13 +36,16 @@ export class CreRunRecorder {
       steps: [],
       artifacts: [],
     };
-    this.pushEvent("run_started", { workflow: params.workflow, mode: params.mode });
+    this.pushEvent("run_started", {
+      workflow: params.workflow,
+      mode: params.mode,
+    });
   }
 
   private pushEvent(
     type: CreRunEventType,
     payload?: Record<string, unknown>,
-    stepName?: string
+    stepName?: string,
   ) {
     if (!this.run.events) this.run.events = [];
     this.run.events.push({
@@ -55,7 +58,11 @@ export class CreRunRecorder {
     });
   }
 
-  startStep(kind: CreStepKind, name: string, details?: Record<string, unknown>) {
+  startStep(
+    kind: CreStepKind,
+    name: string,
+    details?: Record<string, unknown>,
+  ) {
     this.run.currentStepName = name;
     this.pushEvent("tool_call_started", { kind, details }, name);
     const step: CreStepLog = {
@@ -68,7 +75,11 @@ export class CreRunRecorder {
     this.run.steps.push(step);
 
     return {
-      end: (params: { ok: boolean; summary?: string; details?: Record<string, unknown> }) => {
+      end: (params: {
+        ok: boolean;
+        summary?: string;
+        details?: Record<string, unknown>;
+      }) => {
         step.finishedAt = nowIso();
         step.ok = params.ok;
         step.summary = params.summary;
@@ -76,7 +87,7 @@ export class CreRunRecorder {
         this.pushEvent(
           "tool_result",
           { ok: params.ok, summary: params.summary, details: params.details },
-          name
+          name,
         );
       },
     };
@@ -103,7 +114,8 @@ export class CreRunRecorder {
       canApprove: false,
     };
     const latencyMs =
-      new Date(this.run.finishedAt).getTime() - new Date(this.run.startedAt).getTime();
+      new Date(this.run.finishedAt).getTime() -
+      new Date(this.run.startedAt).getTime();
     this.run.metrics = {
       latencyMs: Math.max(0, latencyMs),
       stepCount: this.run.steps.length,

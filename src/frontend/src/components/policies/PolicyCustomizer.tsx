@@ -287,7 +287,9 @@ export default function PolicyCustomizer({
             className={`template-option ${selectedTemplate === "minimal" ? "active" : ""}`}
             onClick={() => handleTemplateChange("minimal")}
           >
-            <div className="template-icon minimal">{templateBadge("minimal")}</div>
+            <div className="template-icon minimal">
+              {templateBadge("minimal")}
+            </div>
             <div className="template-info">
               <div className="template-name">Minimal</div>
               <div className="template-description">
@@ -300,7 +302,9 @@ export default function PolicyCustomizer({
             className={`template-option ${selectedTemplate === "standard" ? "active" : ""}`}
             onClick={() => handleTemplateChange("standard")}
           >
-            <div className="template-icon standard">{templateBadge("standard")}</div>
+            <div className="template-icon standard">
+              {templateBadge("standard")}
+            </div>
             <div className="template-info">
               <div className="template-name">Standard</div>
               <div className="template-description">
@@ -313,7 +317,9 @@ export default function PolicyCustomizer({
             className={`template-option ${selectedTemplate === "strict" ? "active" : ""}`}
             onClick={() => handleTemplateChange("strict")}
           >
-            <div className="template-icon strict">{templateBadge("strict")}</div>
+            <div className="template-icon strict">
+              {templateBadge("strict")}
+            </div>
             <div className="template-info">
               <div className="template-name">Strict</div>
               <div className="template-description">
@@ -327,7 +333,9 @@ export default function PolicyCustomizer({
               className={`template-option ${selectedTemplate === "custom" ? "active" : ""}`}
               onClick={() => handleTemplateChange("custom")}
             >
-              <div className="template-icon custom">{templateBadge("custom")}</div>
+              <div className="template-icon custom">
+                {templateBadge("custom")}
+              </div>
               <div className="template-info">
                 <div className="template-name">Custom</div>
                 <div className="template-description">

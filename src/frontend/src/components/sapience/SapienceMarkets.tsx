@@ -10,11 +10,7 @@ import { Card, CardContent, CardTitle } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { MultiFieldDialog, ConfirmDialog } from "../ui/Dialog";
-import {
-  designTokens,
-
-  keyframeAnimations,
-} from "../../styles/design-system";
+import { designTokens, keyframeAnimations } from "../../styles/design-system";
 import { useSapienceData } from "../../hooks/useSapienceData";
 import { getTimeRemaining } from "../../services/sapienceApi";
 import { textStyles } from "../dashboard/sharedStyles";

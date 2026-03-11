@@ -177,9 +177,7 @@ export function DataTable<T extends Record<string, any>>({
               >
                 {columns.map((column) => (
                   <div key={String(column.key)} css={tableStyles.mobileCard}>
-                    <div css={tableStyles.mobileCardTitle}>
-                      {column.title}
-                    </div>
+                    <div css={tableStyles.mobileCardTitle}>{column.title}</div>
                     <div>
                       {column.render
                         ? column.render(record[column.key], record, index)
@@ -193,46 +191,46 @@ export function DataTable<T extends Record<string, any>>({
         )}
 
         {pagination && (
-            <div css={tableStyles.pagination}>
-              <div css={tableStyles.paginationInfo}>
-                Showing {(pagination.current - 1) * pagination.pageSize + 1} to{" "}
-                {Math.min(
-                  pagination.current * pagination.pageSize,
-                  pagination.total,
-                )}{" "}
-                of {pagination.total}
-              </div>
-              <div css={tableStyles.paginationControls}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={pagination.current === 1}
-                  onClick={() =>
-                    pagination.onChange(
-                      pagination.current - 1,
-                      pagination.pageSize,
-                    )
-                  }
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={
-                    pagination.current * pagination.pageSize >= pagination.total
-                  }
-                  onClick={() =>
-                    pagination.onChange(
-                      pagination.current + 1,
-                      pagination.pageSize,
-                    )
-                  }
-                >
-                  Next
-                </Button>
-              </div>
+          <div css={tableStyles.pagination}>
+            <div css={tableStyles.paginationInfo}>
+              Showing {(pagination.current - 1) * pagination.pageSize + 1} to{" "}
+              {Math.min(
+                pagination.current * pagination.pageSize,
+                pagination.total,
+              )}{" "}
+              of {pagination.total}
             </div>
+            <div css={tableStyles.paginationControls}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagination.current === 1}
+                onClick={() =>
+                  pagination.onChange(
+                    pagination.current - 1,
+                    pagination.pageSize,
+                  )
+                }
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={
+                  pagination.current * pagination.pageSize >= pagination.total
+                }
+                onClick={() =>
+                  pagination.onChange(
+                    pagination.current + 1,
+                    pagination.pageSize,
+                  )
+                }
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     );

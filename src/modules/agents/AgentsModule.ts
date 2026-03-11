@@ -128,7 +128,7 @@ export class AgentsModule extends BaseService {
         tradingPairs: ["ETH/USD", "BTC/USD"], // Can be market IDs
         strategies: ["forecasting"],
         governanceRules: [],
-      }
+      },
     );
 
     // Register agents
@@ -140,7 +140,7 @@ export class AgentsModule extends BaseService {
         await agent.initialize();
         await agent.start(); // Start the agent to make it active
         this.logger.info(
-          `Agent ${agentId} initialized and started successfully`
+          `Agent ${agentId} initialized and started successfully`,
         );
       } catch (error) {
         this.logger.error(`Failed to initialize agent ${agentId}:`, error);
@@ -199,10 +199,10 @@ export class AgentsModule extends BaseService {
         } catch (error) {
           this.logger.error(
             `Error shutting down agent ${agent.getId()}:`,
-            error
+            error,
           );
         }
-      }
+      },
     );
 
     await Promise.allSettled(shutdownPromises);
@@ -260,7 +260,7 @@ export class AgentsModule extends BaseService {
    */
   async getAgentDecisions(
     agentId: string,
-    limit = 10
+    limit = 10,
   ): Promise<TradingDecision[]> {
     const agent = this.agents.get(agentId);
     if (!agent) {

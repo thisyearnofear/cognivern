@@ -269,7 +269,10 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
                         : undefined,
                   }}
                   onClick={() =>
-                    setConfig({ ...config, userType: type.id as WizardUserType })
+                    setConfig({
+                      ...config,
+                      userType: type.id as WizardUserType,
+                    })
                   }
                 >
                   <CardContent>
@@ -361,7 +364,10 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
                     position: "relative",
                   }}
                   onClick={() =>
-                    setConfig({ ...config, agentType: agent.id as WizardAgentType })
+                    setConfig({
+                      ...config,
+                      agentType: agent.id as WizardAgentType,
+                    })
                   }
                 >
                   {agent.recommended && (
@@ -470,7 +476,10 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
                         : undefined,
                   }}
                   onClick={() =>
-                    setConfig({ ...config, riskLevel: risk.id as WizardRiskLevel })
+                    setConfig({
+                      ...config,
+                      riskLevel: risk.id as WizardRiskLevel,
+                    })
                   }
                 >
                   <CardContent>

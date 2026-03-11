@@ -3,7 +3,7 @@ repos:
     rev: v1.5.0
     hooks:
       - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
+        args: ["--baseline", ".secrets.baseline"]
         exclude: pnpm-lock\.yaml|.*\.min\.(js|css)$
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -15,4 +15,4 @@ repos:
       - id: check-json
         exclude: tsconfig\..*\.json$|src/frontend/tsconfig.*\.json$
       - id: check-added-large-files
-        args: ['--maxkb=1024']
+        args: ["--maxkb=1024"]

@@ -1,5 +1,5 @@
-import { EventSourcePolyfill } from 'event-source-polyfill';
-import logger from '../utils/logger.js';
+import { EventSourcePolyfill } from "event-source-polyfill";
+import logger from "../utils/logger.js";
 
 export interface MCPMessage {
   id: string;
@@ -24,7 +24,8 @@ export class MCPClientService {
   private serverUrl: string;
   private apiKey: string | undefined;
   private connected: boolean = false;
-  private messageHandlers: Map<string, (message: MCPMessage) => void> = new Map();
+  private messageHandlers: Map<string, (message: MCPMessage) => void> =
+    new Map();
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
   private reconnectDelay: number = 2000; // Start with 2 seconds
@@ -32,7 +33,7 @@ export class MCPClientService {
   constructor(serverName?: string) {
     const server = serverName || process.env.MCP_DEFAULT_SERVER;
 
-    this.serverUrl = process.env.MCP_SERVER_URL || 'http://localhost:3001'; // Default development URL
+    this.serverUrl = process.env.MCP_SERVER_URL || "http://localhost:3001"; // Default development URL
     this.apiKey = process.env.MCP_API_KEY;
   }
 
@@ -41,19 +42,19 @@ export class MCPClientService {
    */
   public connect(): void {
     if (!process.env.MCP_ENABLED) {
-      logger.info('MCP is disabled, skipping connection');
+      logger.info("MCP is disabled, skipping connection");
       return;
     }
 
     if (this.connected) {
-      logger.info('Already connected to MCP server');
+      logger.info("Already connected to MCP server");
       return;
     }
 
     try {
       const headers: Record<string, string> = {};
       if (this.apiKey) {
-        headers['Authorization'] = `Bearer ${this.apiKey}`;
+        headers["Authorization"] = `Bearer ${this.apiKey}`;
       }
 
       this.eventSource = new EventSourcePolyfill(this.serverUrl, {
@@ -69,7 +70,7 @@ export class MCPClientService {
       };
 
       this.eventSource.onerror = (error) => {
-        logger.error('Error connecting to MCP server:', error);
+        logger.error("Error connecting to MCP server:", error);
         this.connected = false;
         this.handleReconnect();
       };
@@ -77,7 +78,7 @@ export class MCPClientService {
       this.eventSource.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data) as MCPMessage;
-          logger.debug('Received MCP message:', message);
+          logger.debug("Received MCP message:", message);
 
           // Call any registered handlers for this message type
           const handler = this.messageHandlers.get(message.type);
@@ -86,16 +87,16 @@ export class MCPClientService {
           }
 
           // Call the wildcard handler if it exists
-          const wildcardHandler = this.messageHandlers.get('*');
+          const wildcardHandler = this.messageHandlers.get("*");
           if (wildcardHandler) {
             wildcardHandler(message);
           }
         } catch (error) {
-          logger.error('Error processing MCP message:', error);
+          logger.error("Error processing MCP message:", error);
         }
       };
     } catch (error) {
-      logger.error('Failed to connect to MCP server:', error);
+      logger.error("Failed to connect to MCP server:", error);
       this.handleReconnect();
     }
   }
@@ -108,7 +109,7 @@ export class MCPClientService {
       this.eventSource.close();
       this.eventSource = null;
       this.connected = false;
-      logger.info('Disconnected from MCP server');
+      logger.info("Disconnected from MCP server");
     }
   }
 
@@ -117,7 +118,10 @@ export class MCPClientService {
    * @param messageType The message type to handle, or '*' for all messages
    * @param handler The handler function
    */
-  public onMessage(messageType: string, handler: (message: MCPMessage) => void): void {
+  public onMessage(
+    messageType: string,
+    handler: (message: MCPMessage) => void,
+  ): void {
     this.messageHandlers.set(messageType, handler);
   }
 
@@ -128,7 +132,7 @@ export class MCPClientService {
    */
   public async sendMessage(type: string, data: any): Promise<void> {
     if (!this.connected) {
-      throw new Error('Not connected to MCP server');
+      throw new Error("Not connected to MCP server");
     }
 
     try {
@@ -144,26 +148,26 @@ export class MCPClientService {
       let apiUrl = this.serverUrl;
 
       // If the URL already contains /api/messages, use it as is
-      if (apiUrl.includes('/api/messages')) {
+      if (apiUrl.includes("/api/messages")) {
         // URL is already correct
       }
       // If the URL contains /sse, replace it with /api/messages
-      else if (apiUrl.includes('/sse')) {
-        apiUrl = apiUrl.replace('/sse', '/api/messages');
+      else if (apiUrl.includes("/sse")) {
+        apiUrl = apiUrl.replace("/sse", "/api/messages");
       }
       // Otherwise, append /api/messages to the base URL
       else {
         // Remove trailing slash if present
-        if (apiUrl.endsWith('/')) {
+        if (apiUrl.endsWith("/")) {
           apiUrl = apiUrl.slice(0, -1);
         }
         apiUrl = `${apiUrl}/api/messages`;
       }
 
       const response = await fetch(apiUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...(this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {}),
         },
         body: JSON.stringify(message),
@@ -173,9 +177,9 @@ export class MCPClientService {
         throw new Error(`Failed to send message: ${response.statusText}`);
       }
 
-      logger.debug('Sent MCP message:', message);
+      logger.debug("Sent MCP message:", message);
     } catch (error) {
-      logger.error('Error sending MCP message:', error);
+      logger.error("Error sending MCP message:", error);
       throw error;
     }
   }
@@ -186,7 +190,7 @@ export class MCPClientService {
    */
   public async registerAgent(agentSpec: MCPAgentSpec): Promise<void> {
     try {
-      await this.sendMessage('register-agent', {
+      await this.sendMessage("register-agent", {
         spec: agentSpec,
       });
       logger.info(`Registered agent "${agentSpec.name}" with MCP server`);
@@ -201,12 +205,15 @@ export class MCPClientService {
    */
   private handleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      logger.error(`Failed to reconnect to MCP server after ${this.maxReconnectAttempts} attempts`);
+      logger.error(
+        `Failed to reconnect to MCP server after ${this.maxReconnectAttempts} attempts`,
+      );
       return;
     }
 
     this.reconnectAttempts++;
-    const delay = this.reconnectDelay * Math.pow(1.5, this.reconnectAttempts - 1); // Exponential backoff
+    const delay =
+      this.reconnectDelay * Math.pow(1.5, this.reconnectAttempts - 1); // Exponential backoff
 
     logger.info(
       `Attempting to reconnect to MCP server in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,

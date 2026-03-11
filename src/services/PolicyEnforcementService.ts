@@ -31,7 +31,7 @@ export class PolicyEnforcementService {
   async loadPolicy(policyId: string): Promise<void> {
     if (!this.policyService) {
       throw new Error(
-        "PolicyService not initialized. Call initialize() first."
+        "PolicyService not initialized. Call initialize() first.",
       );
     }
 
@@ -46,7 +46,7 @@ export class PolicyEnforcementService {
       // Only load active policies for enforcement
       if (policy.status !== "active") {
         throw new Error(
-          `Policy ${policyId} is not active (status: ${policy.status})`
+          `Policy ${policyId} is not active (status: ${policy.status})`,
         );
       }
 
@@ -61,7 +61,7 @@ export class PolicyEnforcementService {
         error: error instanceof Error ? error.message : "Unknown error",
       });
       throw new Error(
-        `Failed to load policy ${policyId}: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Failed to load policy ${policyId}: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
   }
@@ -103,8 +103,8 @@ export class PolicyEnforcementService {
       (check) =>
         !check.result &&
         this.currentPolicy?.rules.find(
-          (r: PolicyRule) => r.id === check.policyId
-        )?.type === "deny"
+          (r: PolicyRule) => r.id === check.policyId,
+        )?.type === "deny",
     );
 
     if (hasDenyViolation) {
@@ -115,13 +115,13 @@ export class PolicyEnforcementService {
     return this.currentPolicy.rules
       .filter((r: PolicyRule) => r.type === "require")
       .every(
-        (r: PolicyRule) => checks.find((c) => c.policyId === r.id)?.result
+        (r: PolicyRule) => checks.find((c) => c.policyId === r.id)?.result,
       );
   }
 
   private async evaluateRule(
     rule: PolicyRule,
-    action: AgentAction
+    action: AgentAction,
   ): Promise<boolean> {
     switch (rule.type) {
       case "allow":
@@ -154,7 +154,7 @@ export class PolicyEnforcementService {
 
   private evaluateRateLimitRule(
     rule: PolicyRule,
-    action: AgentAction
+    action: AgentAction,
   ): boolean {
     // Use action.id as fallback for agentId since agentId doesn't exist on AgentAction
     const agentId = action.metadata?.agentId || action.id || "unknown";

@@ -5,10 +5,10 @@ export interface Metrics {
 }
 
 export enum MetricsPeriod {
-  HOURLY = 'hourly',
-  DAILY = 'daily',
-  WEEKLY = 'weekly',
-  MONTHLY = 'monthly',
+  HOURLY = "hourly",
+  DAILY = "daily",
+  WEEKLY = "weekly",
+  MONTHLY = "monthly",
 }
 
 export interface MetricsData {

@@ -16,44 +16,44 @@ export const HTTP_STATUS = {
 } as const;
 
 export const AGENT_STATUS = {
-  ACTIVE: 'active',
-  INACTIVE: 'inactive',
-  PAUSED: 'paused',
-  ERROR: 'error',
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+  PAUSED: "paused",
+  ERROR: "error",
 } as const;
 
 export const POLICY_STATUS = {
-  ACTIVE: 'active',
-  INACTIVE: 'inactive',
-  DRAFT: 'draft',
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+  DRAFT: "draft",
 } as const;
 
 export const AUDIT_LOG_LEVEL = {
-  INFO: 'info',
-  WARN: 'warn',
-  ERROR: 'error',
-  DEBUG: 'debug',
+  INFO: "info",
+  WARN: "warn",
+  ERROR: "error",
+  DEBUG: "debug",
 } as const;
 
 export const METRICS_PERIOD = {
-  HOUR: 'hour',
-  DAY: 'day',
-  WEEK: 'week',
-  MONTH: 'month',
+  HOUR: "hour",
+  DAY: "day",
+  WEEK: "week",
+  MONTH: "month",
 } as const;
 
 export const TRADING_STATUS = {
-  PENDING: 'pending',
-  EXECUTED: 'executed',
-  FAILED: 'failed',
-  CANCELLED: 'cancelled',
+  PENDING: "pending",
+  EXECUTED: "executed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 } as const;
 
 export const GOVERNANCE_ACTION = {
-  APPROVE: 'approve',
-  REJECT: 'reject',
-  PAUSE: 'pause',
-  RESUME: 'resume',
+  APPROVE: "approve",
+  REJECT: "reject",
+  PAUSE: "pause",
+  RESUME: "resume",
 } as const;
 
 export const DEFAULT_PAGINATION = {
@@ -81,13 +81,13 @@ export const RATE_LIMITS = {
 } as const;
 
 export const BLOCKCHAIN_NETWORKS = {
-  FILECOIN_MAINNET: 'filecoin-mainnet',
-  FILECOIN_CALIBRATION: 'filecoin-calibration',
-  ETHEREUM_MAINNET: 'ethereum-mainnet',
-  ETHEREUM_SEPOLIA: 'ethereum-sepolia',
+  FILECOIN_MAINNET: "filecoin-mainnet",
+  FILECOIN_CALIBRATION: "filecoin-calibration",
+  ETHEREUM_MAINNET: "ethereum-mainnet",
+  ETHEREUM_SEPOLIA: "ethereum-sepolia",
 } as const;
 
 export const FILE_UPLOAD_LIMITS = {
   MAX_SIZE: 10 * 1024 * 1024, // 10MB
-  ALLOWED_TYPES: ['application/json', 'text/plain', 'text/csv'],
+  ALLOWED_TYPES: ["application/json", "text/plain", "text/csv"],
 } as const;

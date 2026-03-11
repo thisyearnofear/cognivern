@@ -33,7 +33,9 @@ const cardWrapperStyles = (compact: boolean) => css`
   display: flex;
   flex-direction: column;
   height: 100%;
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
 
   &:hover {
     transform: translateY(-2px);

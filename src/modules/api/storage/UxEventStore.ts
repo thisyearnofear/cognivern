@@ -49,7 +49,11 @@ export class UxEventStore {
       return;
     }
     await fs.promises.mkdir(path.dirname(this.filePath), { recursive: true });
-    await fs.promises.appendFile(this.filePath, `${JSON.stringify(event)}\n`, "utf8");
+    await fs.promises.appendFile(
+      this.filePath,
+      `${JSON.stringify(event)}\n`,
+      "utf8",
+    );
   }
 
   async list(): Promise<UxEventRecord[]> {
@@ -65,11 +69,13 @@ export class UxEventStore {
 
   private async rewrite() {
     await fs.promises.mkdir(path.dirname(this.filePath), { recursive: true });
-    const content = this.events.map((event) => JSON.stringify(event)).join("\n");
+    const content = this.events
+      .map((event) => JSON.stringify(event))
+      .join("\n");
     await fs.promises.writeFile(
       this.filePath,
       content ? `${content}\n` : "",
-      "utf8"
+      "utf8",
     );
   }
 }

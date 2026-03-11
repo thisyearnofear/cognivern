@@ -70,7 +70,8 @@
 }
 
 /* Prevent overscroll bounce on iOS for the app shell */
-html, body {
+html,
+body {
   overscroll-behavior: none;
 }
 

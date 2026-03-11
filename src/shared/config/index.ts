@@ -5,16 +5,18 @@
  * Eliminates duplication and ensures consistency.
  */
 
-import { z } from 'zod';
-import dotenv from 'dotenv';
+import { z } from "zod";
+import dotenv from "dotenv";
 
 // Load environment variables
 dotenv.config();
 
 // Base configuration schema
 const baseConfigSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
+  LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
   PORT: z.coerce.number().default(3000),
   AGENTS_ENABLED: z
     .string()
@@ -24,16 +26,18 @@ const baseConfigSchema = z.object({
 
 // Sapience configuration
 const sapienceConfigSchema = z.object({
-  ARBITRUM_RPC_URL: z.string().default('https://arb1.arbitrum.io/rpc'),
-  ETHEREAL_RPC_URL: z.string().default('https://mainnet.ethereal.xyz/rpc'),
+  ARBITRUM_RPC_URL: z.string().default("https://arb1.arbitrum.io/rpc"),
+  ETHEREAL_RPC_URL: z.string().default("https://mainnet.ethereal.xyz/rpc"),
   SAPIENCE_PRIVATE_KEY: z.string().optional(),
-  EAS_CONTRACT_ADDRESS: z.string().default('0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458'),
+  EAS_CONTRACT_ADDRESS: z
+    .string()
+    .default("0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458"),
 });
 
 // API configuration
 const apiConfigSchema = z.object({
-  API_KEY: z.string().default('development-api-key'),
-  CORS_ORIGIN: z.string().default('*'),
+  API_KEY: z.string().default("development-api-key"),
+  CORS_ORIGIN: z.string().default("*"),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000), // 15 minutes
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
   REQUEST_TIMEOUT: z.coerce.number().default(30000),
@@ -42,7 +46,7 @@ const apiConfigSchema = z.object({
 // AI configuration
 const aiConfigSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
-  MODEL_NAME: z.string().default('gpt-4'),
+  MODEL_NAME: z.string().default("gpt-4"),
   GEMINI_API_KEY: z.string().optional(),
 });
 
@@ -60,15 +64,19 @@ const parseConfig = () => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingFields = error.errors
-        .filter(err => err.code === 'invalid_type' && err.received === 'undefined')
-        .map(err => err.path.join('.'));
+        .filter(
+          (err) => err.code === "invalid_type" && err.received === "undefined",
+        )
+        .map((err) => err.path.join("."));
 
       if (missingFields.length > 0) {
-        console.warn(`Warning: Some environment variables are missing: ${missingFields.join(', ')}`);
+        console.warn(
+          `Warning: Some environment variables are missing: ${missingFields.join(", ")}`,
+        );
       }
     }
     // Return a partial object or default if it fails, to prevent crash
-    return (process.env as any);
+    return process.env as any;
   }
 };
 
@@ -78,8 +86,8 @@ export const config = parseConfig();
 // Modular access objects (keeping same structure for DRY but pointing to new variables)
 export const apiConfig = {
   port: config.PORT || 3000,
-  apiKey: config.API_KEY || 'development-api-key',
-  corsOrigin: config.CORS_ORIGIN || '*',
+  apiKey: config.API_KEY || "development-api-key",
+  corsOrigin: config.CORS_ORIGIN || "*",
   rateLimit: {
     windowMs: config.RATE_LIMIT_WINDOW_MS || 900000,
     maxRequests: config.RATE_LIMIT_MAX_REQUESTS || 100,
@@ -95,15 +103,29 @@ export const sapienceConfig = {
 };
 
 // Legacy stubs to prevent import errors in other modules
-export const databaseConfig = { url: '', maxConnections: 0, connectionTimeout: 0, queryTimeout: 0 };
-export const cacheConfig = { url: '', ttl: 0, maxSize: '' };
+export const databaseConfig = {
+  url: "",
+  maxConnections: 0,
+  connectionTimeout: 0,
+  queryTimeout: 0,
+};
+export const cacheConfig = { url: "", ttl: 0, maxSize: "" };
 export const tradingConfig = {
   enabled: Boolean((config as any).AGENTS_ENABLED),
-  recallApiKeys: { direct: '', vincent: '' },
+  recallApiKeys: { direct: "", vincent: "" },
   maxRiskPerTrade: 0.02,
 };
-export const blockchainConfig = { privateKey: '', rpcUrl: '', network: 'calibration', contracts: { governance: '', storage: '' } };
-export const monitoringConfig = { enabled: false, healthCheckInterval: 30000, retentionDays: { audit: 90, logs: 30 } };
+export const blockchainConfig = {
+  privateKey: "",
+  rpcUrl: "",
+  network: "calibration",
+  contracts: { governance: "", storage: "" },
+};
+export const monitoringConfig = {
+  enabled: false,
+  healthCheckInterval: 30000,
+  retentionDays: { audit: 90, logs: 30 },
+};
 
 export const aiConfig = {
   openaiApiKey: config.OPENAI_API_KEY,
@@ -112,6 +134,6 @@ export const aiConfig = {
 };
 
 // Environment helpers
-export const isDevelopment = config.NODE_ENV === 'development';
-export const isProduction = config.NODE_ENV === 'production';
-export const isTest = config.NODE_ENV === 'test';
+export const isDevelopment = config.NODE_ENV === "development";
+export const isProduction = config.NODE_ENV === "production";
+export const isTest = config.NODE_ENV === "test";

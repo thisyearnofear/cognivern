@@ -15,20 +15,15 @@ import {
 import { useAppStore, useTheme } from "../../stores/appStore";
 import { agentApi } from "../../services/apiService";
 import { useIntentStore } from "../../stores/intentStore";
-import {
-  designTokens,
-  keyframeAnimations,
-  easings,
-  colorSystem,
-} from "../../styles/design-system";
+import { designTokens, easings } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { useSidebarState } from "../../hooks/useSidebarState";
 import CommandPalette from "../ui/CommandPalette";
-import Web3Auth from "../auth/Web3Auth";
+import WalletConnect from "../web3/WalletConnect";
 
 export const Header: React.FC = () => {
-  const { user, setUser } = useAppStore();
+  const { user, setUser, updatePreferences } = useAppStore();
   const { effectiveTheme } = useTheme();
   const { isMobile } = useBreakpoint();
   const { pathname } = useLocation();
@@ -55,12 +50,15 @@ export const Header: React.FC = () => {
     updatePreferences({ theme: newTheme });
   };
 
-  const handleWalletConnect = (address: string) => {
-    setUser({ address, isConnected: true });
+  const handleWalletConnect = (
+    address: string,
+    network: "filecoin" | "polkadot",
+  ) => {
+    setUser({ address, isConnected: true, network });
   };
 
   const handleWalletDisconnect = () => {
-    setUser({ address: undefined, isConnected: false });
+    setUser({ address: undefined, isConnected: false, network: undefined });
   };
 
   // Modern header styles
@@ -179,7 +177,12 @@ export const Header: React.FC = () => {
                 : isSystemOnline === true
                   ? designTokens.colors.semantic.success[500]
                   : designTokens.colors.neutral[400]};
-              box-shadow: 0 0 8px ${isSystemOnline === false ? designTokens.colors.semantic.error[300] : isSystemOnline === true ? designTokens.colors.semantic.success[300] : "transparent"};
+              box-shadow: 0 0 8px
+                ${isSystemOnline === false
+                  ? designTokens.colors.semantic.error[300]
+                  : isSystemOnline === true
+                    ? designTokens.colors.semantic.success[300]
+                    : "transparent"};
             `}
           />
           <span
@@ -197,9 +200,15 @@ export const Header: React.FC = () => {
                 : "Checking Status..."}
           </span>
           {isSystemOnline === false ? (
-            <ShieldAlert size={14} color={designTokens.colors.semantic.error[500]} />
+            <ShieldAlert
+              size={14}
+              color={designTokens.colors.semantic.error[500]}
+            />
           ) : isSystemOnline === true ? (
-            <ShieldCheck size={14} color={designTokens.colors.semantic.success[500]} />
+            <ShieldCheck
+              size={14}
+              color={designTokens.colors.semantic.success[500]}
+            />
           ) : null}
         </div>
       </div>
@@ -241,11 +250,7 @@ export const Header: React.FC = () => {
           onClick={handleThemeToggle}
           title={`Switch to ${effectiveTheme === "dark" ? "light" : "dark"} mode`}
         >
-          {effectiveTheme === "dark" ? (
-            <Sun size={20} />
-          ) : (
-            <Moon size={20} />
-          )}
+          {effectiveTheme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
         {/* Search on Mobile */}
@@ -275,7 +280,7 @@ export const Header: React.FC = () => {
         )}
 
         {/* Wallet Connection */}
-        <Web3Auth
+        <WalletConnect
           onConnect={handleWalletConnect}
           onDisconnect={handleWalletDisconnect}
         />

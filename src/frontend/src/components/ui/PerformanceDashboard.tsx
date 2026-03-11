@@ -184,7 +184,9 @@ export const PerformanceDashboard: React.FC = () => {
               <span css={performanceStyles.metricLabel}>Memory Usage</span>
               <span
                 css={performanceStyles.metricValue(
-                  getStatusColor(getMetricStatus(metrics.memoryUsage, "memoryUsage")),
+                  getStatusColor(
+                    getMetricStatus(metrics.memoryUsage, "memoryUsage"),
+                  ),
                 )}
               >
                 {formatMetricValue(metrics.memoryUsage, "MB")}
@@ -194,7 +196,9 @@ export const PerformanceDashboard: React.FC = () => {
               <span css={performanceStyles.metricLabel}>Render Time</span>
               <span
                 css={performanceStyles.metricValue(
-                  getStatusColor(getMetricStatus(metrics.renderTime, "renderTime")),
+                  getStatusColor(
+                    getMetricStatus(metrics.renderTime, "renderTime"),
+                  ),
                 )}
               >
                 {formatMetricValue(metrics.renderTime)}
@@ -202,7 +206,11 @@ export const PerformanceDashboard: React.FC = () => {
             </div>
             <div css={performanceStyles.metricRow}>
               <span css={performanceStyles.metricLabel}>Bundle Size</span>
-              <span css={performanceStyles.metricValue(designTokens.colors.semantic.success[500])}>
+              <span
+                css={performanceStyles.metricValue(
+                  designTokens.colors.semantic.success[500],
+                )}
+              >
                 {metrics.bundleSize
                   ? `${(metrics.bundleSize / 1024).toFixed(1)}KB`
                   : "N/A"}

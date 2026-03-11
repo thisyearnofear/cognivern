@@ -28,7 +28,12 @@ import {
 } from "lucide-react";
 import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { agentApi } from "../../services/apiService";
+import {
+  agentApi,
+  fetchGovernanceStats,
+  fetchStorageStats,
+  checkPolkadotConnection,
+} from "../../services/apiService";
 import { Card, CardContent, StatCard, AgentCard, Button } from "../ui";
 import * as styles from "./UnifiedDashboard.styles";
 
@@ -133,14 +138,15 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
     setIsLoading(true);
     try {
       // Keep dashboard resilient: one failing call should not blank the entire screen.
-      const [statsResult, agentsResult, activityResult] = await Promise.allSettled([
-        agentApi.getAggregateStats({}),
-        agentApi.compareAgents({
-          sortBy: "totalReturn",
-          sortDirection: "desc",
-        }),
-        agentApi.getRecentActivity(),
-      ]);
+      const [statsResult, agentsResult, activityResult] =
+        await Promise.allSettled([
+          agentApi.getAggregateStats({}),
+          agentApi.compareAgents({
+            sortBy: "totalReturn",
+            sortDirection: "desc",
+          }),
+          agentApi.getRecentActivity(),
+        ]);
 
       if (
         statsResult.status === "fulfilled" &&

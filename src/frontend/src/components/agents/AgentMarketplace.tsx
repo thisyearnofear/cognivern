@@ -12,10 +12,20 @@ import InteractiveAgentDemo from "./InteractiveAgentDemo";
 import { getApiUrl, getRequestHeaders } from "../../utils/api";
 import { BaseAgent } from "../../types";
 import { Button } from "../ui/Button";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "../ui/Card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import LoadingSpinner from "../ui/LoadingSpinner";
-import { formStyles, getFormInputStyles, getFormLabelStyles } from "../../styles/design-system/components/form";
+import {
+  formStyles,
+  getFormInputStyles,
+  getFormLabelStyles,
+} from "../../styles/design-system/components/form";
 
 interface MCPAgent extends BaseAgent {
   // MCPAgent inherits id, name, type, status, capabilities, createdAt, updatedAt from BaseAgent
@@ -886,7 +896,9 @@ export default function AgentMarketplace() {
                     background: ${deploymentStep >= s.n
                       ? designTokens.colors.primary[500]
                       : designTokens.colors.neutral[200]};
-                    color: ${deploymentStep >= s.n ? "white" : designTokens.colors.neutral[500]};
+                    color: ${deploymentStep >= s.n
+                      ? "white"
+                      : designTokens.colors.neutral[500]};
                     transition: all 0.3s ease;
                     border: 4px solid
                       ${deploymentStep === s.n
@@ -1077,9 +1089,13 @@ export default function AgentMarketplace() {
                           >
                             {item.l}
                           </span>
-                          <span css={css`
-                            font-weight: 500;
-                          `}>{item.v}</span>
+                          <span
+                            css={css`
+                              font-weight: 500;
+                            `}
+                          >
+                            {item.v}
+                          </span>
                         </div>
                       ))}
                     </div>

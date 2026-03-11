@@ -46,7 +46,7 @@ const logFormat = format.combine(
   format.timestamp(),
   sanitizeFormat(),
   format.errors({ stack: true }),
-  format.json()
+  format.json(),
 );
 
 const logger = createLogger({
@@ -69,7 +69,7 @@ if (process.env.NODE_ENV === "production") {
       maxsize: 2 * 1024 * 1024, // 2MB max
       maxFiles: 2, // Keep only 2 files
       tailable: true,
-    })
+    }),
   );
   logger.add(
     new transports.File({
@@ -77,7 +77,7 @@ if (process.env.NODE_ENV === "production") {
       maxsize: 5 * 1024 * 1024, // 5MB max
       maxFiles: 2, // Keep only 2 files
       tailable: true,
-    })
+    }),
   );
 }
 

@@ -184,11 +184,14 @@ export default function RunLedger() {
 
   const trigger = async (
     writeAttestation: boolean,
-    requireApproval: boolean = false
+    requireApproval: boolean = false,
   ) => {
     setIsTriggering(true);
     setError(null);
-    const res = await creApi.triggerForecast({ writeAttestation, requireApproval });
+    const res = await creApi.triggerForecast({
+      writeAttestation,
+      requireApproval,
+    });
     if (!res.success) {
       setError(res.error || "Failed to trigger forecast");
       setIsTriggering(false);
@@ -394,82 +397,86 @@ export default function RunLedger() {
                     return (
                       <>
                         <div css={runMetaStyles}>
-                    <div
-                      css={css`
-                        display: flex;
-                        align-items: center;
-                        gap: ${designTokens.spacing[2]};
-                      `}
-                    >
-                      <span
-                        css={css`
-                          width: 8px;
-                          height: 8px;
-                          border-radius: 50%;
-                          background: ${statusDotColor(vm.status)};
-                          box-shadow: 0 0 8px ${statusDotColor(vm.status)};
-                          display: inline-block;
-                        `}
-                      />
-                      <strong>{r.workflow}</strong> · <span>{r.mode}</span>
-                    </div>
-                    <div css={smallText}>
-                      {new Date(r.startedAt).toLocaleString()} ·{" "}
-                      {formatDuration(r)}
-                    </div>
-                    <div css={smallText}>
-                      Status: {vm.status} · Steps: {vm.metrics.stepCount} ·
-                      Artifacts: {vm.metrics.artifactCount}
-                    </div>
-                    {vm.currentStepName && (
-                      <div css={smallText}>Current step: {vm.currentStepName}</div>
-                    )}
-                  </div>
+                          <div
+                            css={css`
+                              display: flex;
+                              align-items: center;
+                              gap: ${designTokens.spacing[2]};
+                            `}
+                          >
+                            <span
+                              css={css`
+                                width: 8px;
+                                height: 8px;
+                                border-radius: 50%;
+                                background: ${statusDotColor(vm.status)};
+                                box-shadow: 0 0 8px ${statusDotColor(vm.status)};
+                                display: inline-block;
+                              `}
+                            />
+                            <strong>{r.workflow}</strong> ·{" "}
+                            <span>{r.mode}</span>
+                          </div>
+                          <div css={smallText}>
+                            {new Date(r.startedAt).toLocaleString()} ·{" "}
+                            {formatDuration(r)}
+                          </div>
+                          <div css={smallText}>
+                            Status: {vm.status} · Steps: {vm.metrics.stepCount}{" "}
+                            · Artifacts: {vm.metrics.artifactCount}
+                          </div>
+                          {vm.currentStepName && (
+                            <div css={smallText}>
+                              Current step: {vm.currentStepName}
+                            </div>
+                          )}
+                        </div>
 
-                  <div
-                    css={css`
-                      display: flex;
-                      gap: ${designTokens.spacing[2]};
-                      align-items: center;
-                      justify-content: flex-end;
-                      flex-wrap: wrap;
-                    `}
-                  >
-                    <Badge
-                      variant={
-                        vm.status === "completed"
-                          ? "success"
-                          : vm.status === "failed" || vm.status === "cancelled"
-                            ? "error"
-                            : vm.status === "paused_for_approval"
-                              ? "warning"
-                              : "secondary"
-                      }
-                    >
-                      {vm.status.toUpperCase()}
-                    </Badge>
-                    {vm.controls.canCancel && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={activeRunAction === `cancel-${r.runId}`}
-                        onClick={() => onCancelRun(r.runId)}
-                      >
-                        Cancel
-                      </Button>
-                    )}
-                    {vm.controls.canRetry && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={activeRunAction === `retry-${r.runId}`}
-                        onClick={() => onRetryRun(r.runId)}
-                      >
-                        Retry
-                      </Button>
-                    )}
-                    <Link to={`/runs/${r.runId}`}>View</Link>
-                  </div>
+                        <div
+                          css={css`
+                            display: flex;
+                            gap: ${designTokens.spacing[2]};
+                            align-items: center;
+                            justify-content: flex-end;
+                            flex-wrap: wrap;
+                          `}
+                        >
+                          <Badge
+                            variant={
+                              vm.status === "completed"
+                                ? "success"
+                                : vm.status === "failed" ||
+                                    vm.status === "cancelled"
+                                  ? "error"
+                                  : vm.status === "paused_for_approval"
+                                    ? "warning"
+                                    : "secondary"
+                            }
+                          >
+                            {vm.status.toUpperCase()}
+                          </Badge>
+                          {vm.controls.canCancel && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={activeRunAction === `cancel-${r.runId}`}
+                              onClick={() => onCancelRun(r.runId)}
+                            >
+                              Cancel
+                            </Button>
+                          )}
+                          {vm.controls.canRetry && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              disabled={activeRunAction === `retry-${r.runId}`}
+                              onClick={() => onRetryRun(r.runId)}
+                            >
+                              Retry
+                            </Button>
+                          )}
+                          <Link to={`/runs/${r.runId}`}>View</Link>
+                        </div>
                       </>
                     );
                   })()}
