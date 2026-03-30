@@ -125,6 +125,10 @@ RECALL_BUCKET=agent-memory
 
 # Feature Flags
 AGENTS_ENABLED=false
+
+# Cloudflare Workers (Governance Agent)
+CLOUDFLARE_WORKER_URL=https://cognivern-governance.your-subdomain.workers.dev
+CLOUDFLARE_WORKER_ENABLED=false
 ```
 
 ## PM2 Configuration
@@ -273,6 +277,104 @@ pm2 restart cognivern-agent
 - [ ] Check metrics dashboard
 - [ ] Notify team of deployment
 - [ ] Update deployment log
+
+## Cloudflare Workers Deployment
+
+Cognivern includes a **Cloudflare Workers** governance agent that runs at the edge for global, low-latency governance decisions.
+
+### Why Cloudflare Workers?
+
+- **Edge-native**: Runs globally on Cloudflare's network
+- **Stateful**: Durable Objects provide built-in state/memory
+- **Workers AI**: Local AI inference at the edge
+- **No infra management**: Serverless deployment
+
+### Prerequisites
+
+```bash
+# Install wrangler CLI
+npm install -g wrangler
+
+# Login to Cloudflare (opens browser)
+wrangler login
+```
+
+### Environment Variables
+
+Add these to your local `.env` or Cloudflare Workers secrets:
+
+```env
+# Worker Configuration
+CLOUDFLARE_WORKER_URL=https://cognivern-governance.your-subdomain.workers.dev
+CLOUDFLARE_WORKER_ENABLED=true
+
+# API Key (for Worker authentication)
+API_KEY=your-api-key
+```
+
+### Deploy Worker
+
+```bash
+# Deploy to production
+wrangler deploy
+
+# Deploy to preview/staging
+wrangler deploy --env staging
+```
+
+### Local Development
+
+```bash
+# Run worker locally with Miniflare
+bash scripts/dev-workers.sh
+
+# Or use wrangler directly
+wrangler dev --env development
+```
+
+### D1 Database Setup
+
+The Worker uses Cloudflare D1 for persistent storage. Setup once:
+
+```bash
+# Create D1 database
+wrangler d1 create cognivern-governance
+
+# Apply schema
+wrangler d1 execute cognivern-governance --file=src/modules/cloudflare-agents/schema.sql
+```
+
+### Worker Routes
+
+| Endpoint | Method | Description |
+| :------- | :----- | :---------- |
+| `/health` | GET | Worker health check |
+| `/api/agents` | GET | List all agents |
+| `/api/agents/:id` | GET | Get agent details |
+| `/api/agents/:id/thoughts` | GET | Get agent thought history |
+| `/api/agents/:id/metrics` | GET | Get agent metrics |
+| `/api/governance/policies` | GET | List policies |
+| `/api/governance/policies` | POST | Create policy |
+| `/api/governance/evaluate` | POST | Evaluate governance action |
+
+### GitHub Integration (Optional)
+
+For automatic deployments on push:
+
+1. Go to **Cloudflare Dashboard** → **Workers** → **your worker** → **Settings** → **GitHub Integration**
+2. Connect your GitHub repository
+3. Set up branch triggers (e.g., deploy on push to `main`)
+
+### Troubleshooting
+
+| Issue | Solution |
+| :---- | :-------- |
+| `wrangler login` fails | Check browser popups, try `wrangler login --browser` |
+| Worker not responding | Check Cloudflare Dashboard → Workers → your worker → Logs |
+| D1 errors | Verify database exists: `wrangler d1 list` |
+| Environment not found | Add `--env production` flag to deploy command |
+
+---
 
 ## Related Docs
 
