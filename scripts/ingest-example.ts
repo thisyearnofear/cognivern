@@ -4,9 +4,9 @@ import { CreRun } from "../src/cre/types.js";
 
 async function main() {
   const baseUrl = process.env.COGNIVERN_URL || "http://localhost:3000";
-  const apiKey = process.env.COGNIVERN_API_KEY || "development-api-key";
+  const apiKey = process.env.COGNIVERN_API_KEY || "";
   const projectId = process.env.COGNIVERN_PROJECT_ID || "default";
-  const ingestKey = process.env.COGNIVERN_INGEST_KEY || "dev-ingest-key";
+  const ingestKey = process.env.COGNIVERN_INGEST_KEY || "";
 
   // apiKey is still accepted by the client config but ingestion now uses ingestKey only.
   const client = new CognivernClient({ baseUrl, apiKey, projectId, ingestKey });

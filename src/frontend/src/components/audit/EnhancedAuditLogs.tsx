@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { getApiKey } from "../../utils/api";
 import { css } from "@emotion/react";
 import {
   designTokens,
@@ -359,7 +360,7 @@ export default function EnhancedAuditLogs() {
 
       const response = await fetch(`/api/audit-logs?${queryParams}`, {
         headers: {
-          "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
+          "X-API-KEY": getApiKey(),
         },
       });
 

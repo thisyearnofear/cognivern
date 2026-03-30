@@ -7,7 +7,7 @@ import {
   UseAgentState,
   UseTradingData,
 } from "../types";
-import { getApiUrl } from "../utils/api";
+import { getApiUrl, getApiKey } from "../utils/api";
 
 // Generic agent data hook - replaces repeated patterns
 export const useAgentData = (agentType: AgentType): UseAgentState => {
@@ -47,7 +47,7 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
         getApiUrl(`/api/agents/${agentType}/status`),
         {
           headers: {
-            "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
+            "X-API-KEY": getApiKey(),
           },
         },
       );
@@ -75,7 +75,7 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
         {
           method: "POST",
           headers: {
-            "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
+            "X-API-KEY": getApiKey(),
           },
         },
       );
@@ -98,7 +98,7 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
       const response = await fetch(getApiUrl(`/api/agents/${agentType}/stop`), {
         method: "POST",
         headers: {
-          "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
+          "X-API-KEY": getApiKey(),
         },
       });
 
@@ -144,7 +144,7 @@ export const useTradingData = (agentType: AgentType): UseTradingData => {
         getApiUrl(`/api/agents/${agentType}/decisions`),
         {
           headers: {
-            "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
+            "X-API-KEY": getApiKey(),
           },
         },
       );

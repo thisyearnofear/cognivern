@@ -6,6 +6,7 @@ node_modules
 
 # Build outputs
 dist
+src/frontend/dist
 build
 *.tsbuildinfo
 .next
@@ -28,6 +29,8 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 !.env.example
+*.pem
+*.key
 
 # IDE / Editor
 .vscode/*
@@ -55,6 +58,16 @@ coverage
 # Local deploy artifacts
 .artifacts
 .junie/memory/
+
+# AI/IDE assistant artifacts
+.zencoder/
+.zenflow/
+.cursor/
+.aider*
+
+# Wrangler
+.wrangler/
+.dev.vars
 
 # OS
 .DS_Store
