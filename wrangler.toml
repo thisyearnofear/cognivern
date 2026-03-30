@@ -15,9 +15,14 @@ ENVIRONMENT = "production"
 LOG_LEVEL = "info"
 
 # Secrets (set via `wrangler secret put <NAME>`)
+# Primary AI Providers (recommended)
+# - FIREWORKS_API_KEY
+# - KILOCODE_API_KEY
+# Alternative AI Providers (fallback)
 # - OPENAI_API_KEY
 # - GEMINI_API_KEY
 # - ANTHROPIC_API_KEY
+# Voice Synthesis
 # - ELEVENLABS_API_KEY
 
 # AI binding for Workers AI
