@@ -9,16 +9,25 @@ import { AgentMetricsAggregator } from "../../../shared/services/AgentMetricsAgg
 import { TradingHistoryService } from "../../../services/TradingHistoryService.js";
 import { MetricsService } from "../../../services/MetricsService.js";
 
+import { AuditLogService } from "../../../services/AuditLogService.js";
+import { PolicyService } from "../../../services/PolicyService.js";
+import { getWorkerClient, type WorkerAgent, type WorkerMetrics } from "../../../services/CloudflareWorkerClient.js";
+
 export class AgentsController {
   private agentsModule: AgentsModule;
   private marketDataService: MarketDataService;
   private metricsAggregator: AgentMetricsAggregator;
   private tradingHistory: TradingHistoryService;
   private metricsService: MetricsService;
+  private auditLogService: AuditLogService;
+  private policyService: PolicyService;
+  private workerClient = getWorkerClient();
 
   constructor(
     agentsModule?: AgentsModule,
     marketDataService?: MarketDataService,
+    auditLogService?: AuditLogService,
+    policyService?: PolicyService,
   ) {
     this.agentsModule = agentsModule || new AgentsModule();
     this.marketDataService = marketDataService || new MarketDataService();
@@ -29,6 +38,8 @@ export class AgentsController {
       this.metricsService,
       this.agentsModule,
     );
+    this.auditLogService = auditLogService || new AuditLogService();
+    this.policyService = policyService || new PolicyService();
   }
 
   async initialize(): Promise<void> {
@@ -401,6 +412,24 @@ export class AgentsController {
       );
 
       // Unified dashboard data
+      // Try to enrich with Worker data if enabled
+      let workerAgents: WorkerAgent[] = [];
+      let workerMetrics: WorkerMetrics | null = null;
+      let workerThoughts: string[] = [];
+
+      if (this.workerClient.isEnabled()) {
+        try {
+          workerAgents = await this.workerClient.listAgents();
+          // Get metrics for first agent if available
+          if (workerAgents.length > 0) {
+            workerMetrics = await this.workerClient.getAgentMetrics(workerAgents[0].id);
+            workerThoughts = await this.workerClient.getThoughtHistory(workerAgents[0].id, 20);
+          }
+        } catch (e) {
+          console.warn("Failed to fetch Worker data:", e);
+        }
+      }
+
       const unifiedData = {
         systemHealth: {
           status: "healthy",
@@ -416,9 +445,20 @@ export class AgentsController {
               (sum, a) => sum + (a.performance?.actionsToday || 0),
               0,
             ),
+          // Cloudflare Worker metrics
+          worker: workerMetrics ? {
+            enabled: true,
+            totalDecisions: workerMetrics.totalDecisions,
+            approvedActions: workerMetrics.approvedActions,
+            rejectedActions: workerMetrics.rejectedActions,
+            avgDecisionTimeMs: workerMetrics.avgDecisionTimeMs,
+          } : { enabled: false },
         },
         agents: enrichedAgents,
         recentActivity: allActivity.slice(0, 20),
+        // Include Worker thoughts for cognitive transparency
+        workerThoughts: workerThoughts,
+        workerAgents: workerAgents,
         timestamp: new Date().toISOString(),
       };
 
@@ -654,6 +694,74 @@ export class AgentsController {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
         timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  async getDashboardBundle(req: Request, res: Response): Promise<void> {
+    try {
+      // Get all agents
+      const agents = await this.agentsModule.getAgents();
+      const agentIds = agents.map((a) => a.id);
+
+      // 1. Get agent comparison metrics (Consolidated via Aggregator)
+      const bundle = await this.metricsAggregator.getDashboardBundle(agentIds);
+
+      // 2. Get recent activity (Audit Logs)
+      const activityResult = await this.auditLogService.getFilteredLogs({});
+      const activity = activityResult.slice(0, 10);
+
+      // 3. Get policies
+      const policies = await this.policyService.listPolicies();
+
+      // 4. Get governance quests (Insights)
+      let insights = await this.auditLogService.generateInsights();
+
+      // Fallback quests if none exist yet (DRY)
+      if (insights.length === 0) {
+        insights = [
+          {
+            id: "q1",
+            type: "alert",
+            title: "Verify Agent Alpha",
+            description: "Review latest trades to verify compliance with new risk policy.",
+            severity: "high",
+            actionRequired: true,
+            confidence: 1,
+            relatedLogs: []
+          } as any,
+          {
+            id: "q2",
+            type: "recommendation",
+            title: "Update Market Guardrails",
+            description: "Market volatility detected. Increase slippage threshold by 0.5%.",
+            severity: "medium",
+            actionRequired: true,
+            confidence: 0.95,
+            relatedLogs: []
+          } as any
+        ];
+      }
+
+      // Add policy count to stats (cast to allow extra property)
+      (bundle.stats as any).totalPolicies = policies.length;
+
+      res.json({
+        success: true,
+        data: {
+          ...bundle,
+          activity,
+          policies,
+          quests: insights
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Dashboard bundle error:", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString()
       });
     }
   }

@@ -282,6 +282,21 @@ export class AgentApiService extends ApiService {
       },
     };
   }
+
+  // Get audit insights for governance quests
+  async getInsights() {
+    return this.get<any[]>("/api/audit/insights");
+  }
+
+  // Resolve a governance quest (Functional Layer)
+  async resolveQuest(questId: string) {
+    return this.post(`/api/audit/insights/${questId}/resolve`);
+  }
+
+  // Get unified dashboard bundle (Consolidation)
+  async getDashboardBundle() {
+    return this.get<any>("/api/dashboard/bundle");
+  }
 }
 
 // MCP-specific API service

@@ -8,8 +8,8 @@ import { AuditLogService } from "../../../services/AuditLogService.js";
 export class AuditLogController {
   private auditLogService: AuditLogService;
 
-  constructor() {
-    this.auditLogService = new AuditLogService();
+  constructor(auditLogService?: AuditLogService) {
+    this.auditLogService = auditLogService || new AuditLogService();
   }
 
   async getLogs(req: Request, res: Response): Promise<void> {
@@ -94,6 +94,26 @@ export class AuditLogController {
               ? error.message
               : "Failed to generate insights",
         },
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  async resolveInsight(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const success = await this.auditLogService.resolveInsight(id);
+
+      res.json({
+        success,
+        message: success ? "Insight resolved successfully" : "Failed to resolve insight",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
         timestamp: new Date().toISOString(),
       });
     }

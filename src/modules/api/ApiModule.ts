@@ -28,6 +28,7 @@ import { MetricsController } from "./controllers/MetricsController.js";
 import { SapienceController } from "./controllers/SapienceController.js";
 import { RecallController } from "./controllers/RecallController.js";
 import { AuditLogController } from "./controllers/AuditLogController.js";
+import { AuditLogService } from "../../services/AuditLogService.js";
 import { CreController } from "./controllers/CreController.js";
 import { IngestController } from "./controllers/IngestController.js";
 
@@ -233,15 +234,25 @@ export class ApiModule extends BaseService {
       );
     }
 
+    // Initialize shared services for controllers (CONSOLIDATION & DRY)
+    const auditLogService = new AuditLogService();
+    const { PolicyService } = await import("../../services/PolicyService.js");
+    const policyService = new PolicyService();
+
     // Initialize controllers with dependency injection
     this.controllers.set("health", new HealthController(agentsModule));
-    this.controllers.set("agents", new AgentsController(agentsModule));
+    this.controllers.set("agents", new AgentsController(
+      agentsModule,
+      undefined,
+      auditLogService,
+      policyService
+    ));
     this.controllers.set("trading", new TradingController());
-    this.controllers.set("governance", new GovernanceController());
+    this.controllers.set("governance", new GovernanceController(policyService));
     this.controllers.set("metrics", new MetricsController());
     this.controllers.set("sapience", new SapienceController());
     this.controllers.set("recall", new RecallController());
-    this.controllers.set("audit", new AuditLogController());
+    this.controllers.set("audit", new AuditLogController(auditLogService));
     this.controllers.set("cre", new CreController());
     this.controllers.set("ingest", new IngestController());
 
@@ -390,6 +401,15 @@ export class ApiModule extends BaseService {
       this.controllers.get("governance").createPolicy(req, res);
     });
 
+    // New governance routes for Cloudflare Worker integration
+    apiRouter.get("/governance/health", (req, res) => {
+      this.controllers.get("governance").getHealth(req, res);
+    });
+
+    apiRouter.post("/governance/evaluate", (req, res) => {
+      this.controllers.get("governance").evaluateAction(req, res);
+    });
+
     // Metrics routes
     apiRouter.get("/metrics/daily", (req, res) => {
       this.controllers.get("metrics").getDailyMetrics(req, res);
@@ -410,6 +430,10 @@ export class ApiModule extends BaseService {
 
     apiRouter.get("/audit/insights", (req, res) => {
       this.controllers.get("audit").getInsights(req, res);
+    });
+
+    apiRouter.post("/audit/insights/:id/resolve", (req, res) => {
+      this.controllers.get("audit").resolveInsight(req, res);
     });
 
     // Legacy audit route for backward compatibility
@@ -500,6 +524,10 @@ export class ApiModule extends BaseService {
     // Dashboard routes
     apiRouter.get("/dashboard/unified", (req, res) => {
       this.controllers.get("agents").getUnified(req, res);
+    });
+
+    apiRouter.get("/dashboard/bundle", (req, res) => {
+      this.controllers.get("agents").getDashboardBundle(req, res);
     });
 
     // Mount API router
