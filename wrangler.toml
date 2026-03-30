@@ -28,6 +28,11 @@ binding = "AI"
 name = "GOVERNANCE_AGENT"
 class_name = "GovernanceAgent"
 
+# Migrations for Durable Objects
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GovernanceAgent"]
+
 # D1 Database for agent registry and audit logs
 [[d1_databases]]
 binding = "D1"
