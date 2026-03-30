@@ -50,8 +50,8 @@ database_id = "a83d1768-d802-4333-9c0a-9b7b7dfe37be"
 # bucket_name = "cognivern-artifacts"
 
 # Cron triggers for scheduled tasks
-[[triggers.crons]]
-schedule = "0 * * * *" # Every hour
+[triggers]
+crons = ["0 * * * *"] # Every hour
 
 # Routes (if using custom domain)
 # [[routes]]
