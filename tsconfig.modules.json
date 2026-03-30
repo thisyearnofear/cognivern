@@ -2,8 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
-    "composite": true
+    "rootDir": "./src"
   },
   "include": [
     "src/modules/**/*",
@@ -21,6 +20,5 @@
     "src/frontend/**/*",
     "src/shared/**/*",
     "src/modules/cloudflare-agents/**/*"
-  ],
-  "references": [{ "path": "./tsconfig.shared.json" }]
+  ]
 }
