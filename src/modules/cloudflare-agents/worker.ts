@@ -8,6 +8,9 @@
 import { GovernanceAgent } from "./GovernanceAgent";
 import type { Ai, KVNamespace, D1Database, DurableObjectNamespace, ExecutionContext, ScheduledEvent } from "@cloudflare/workers-types";
 
+// Export for Durable Objects
+export { GovernanceAgent };
+
 export type Env = {
   // Cloudflare bindings
   AI?: Ai;
