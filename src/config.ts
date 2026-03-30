@@ -86,6 +86,10 @@ const envSchema = z.object({
   // Governance Configuration
   DEFAULT_POLICY: z.string().default("standard"),
   AUDIT_FREQUENCY: z.string().default("daily"),
+
+  // Cloudflare Workers Configuration
+  CLOUDFLARE_WORKER_URL: z.string().default("http://localhost:8787"),
+  CLOUDFLARE_WORKER_ENABLED: z.coerce.boolean().default(false),
 });
 
 // Parse and validate environment variables

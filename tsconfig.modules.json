@@ -18,10 +18,9 @@
     "src/index.ts"
   ],
   "exclude": [
-    "src/**/*.test.ts",
-    "src/**/*.spec.ts",
     "src/frontend/**/*",
-    "src/shared/**/*"
+    "src/shared/**/*",
+    "src/modules/cloudflare-agents/**/*"
   ],
   "references": [{ "path": "./tsconfig.shared.json" }]
 }

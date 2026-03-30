@@ -1,0 +1,92 @@
+# Cloudflare Workers Configuration
+# https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "cognivern-agents"
+main = "src/modules/cloudflare-agents/worker.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Account configuration (optional - can use environment variables)
+# account_id = "your-account-id"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+LOG_LEVEL = "info"
+
+# Secrets (set via `wrangler secret put <NAME>`)
+# - OPENAI_API_KEY
+# - GEMINI_API_KEY
+# - ANTHROPIC_API_KEY
+
+# AI binding for Workers AI
+[ai]
+binding = "AI"
+
+# Durable Objects for agent state persistence
+[[durable_objects.bindings]]
+name = "GOVERNANCE_AGENT"
+class_name = "GovernanceAgent"
+
+# D1 Database for agent registry and audit logs
+[[d1_databases]]
+binding = "D1"
+database_name = "cognivern-db"
+database_id = "your-database-id" # Set after creating with `wrangler d1 create`
+
+# KV Namespace for caching and session data
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "your-kv-namespace-id"
+
+# R2 Bucket for large artifact storage
+# [[r2_buckets]]
+# binding = "R2"
+# bucket_name = "cognivern-artifacts"
+
+# Cron triggers for scheduled tasks
+[[triggers.crons]]
+schedule = "0 * * * *" # Every hour
+
+# Routes (if using custom domain)
+# [[routes]]
+# pattern = "agents.cognivern.com/*"
+# zone_name = "cognivern.com"
+
+# Development configuration
+[dev]
+port = 8787
+local_protocol = "http"
+
+# Build configuration
+[build]
+command = "pnpm run build:modules"
+
+# Observability
+[observability]
+enabled = true
+head_sampling_rate = 1.0 # Sample all traces (adjust for production)
+
+# Production environment overrides
+[env.production]
+name = "cognivern-agents-prod"
+vars = { ENVIRONMENT = "production", LOG_LEVEL = "warn" }
+[[env.production.durable_objects.bindings]]
+name = "GOVERNANCE_AGENT"
+class_name = "GovernanceAgent"
+[[env.production.d1_databases]]
+binding = "D1"
+database_name = "cognivern-db-prod"
+database_id = "your-production-database-id"
+
+# Staging environment
+[env.staging]
+name = "cognivern-agents-staging"
+vars = { ENVIRONMENT = "staging", LOG_LEVEL = "debug" }
+[[env.staging.durable_objects.bindings]]
+name = "GOVERNANCE_AGENT"
+class_name = "GovernanceAgent"
+[[env.staging.d1_databases]]
+binding = "D1"
+database_name = "cognivern-db-staging"
+database_id = "your-staging-database-id"

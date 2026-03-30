@@ -36,6 +36,7 @@
   ],
   "exclude": [
     "src/frontend/**/*",
+    "src/modules/cloudflare-agents/**/*",
     "node_modules",
     "dist",
     "**/*.test.ts"

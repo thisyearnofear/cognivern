@@ -340,6 +340,40 @@ export class AgentMetricsAggregator {
   }
 
   /**
+   * Get a unified dashboard data bundle (CONSOLIDATION)
+   */
+  async getDashboardBundle(agentIds: string[], filters?: ComparisonFilters) {
+    const metrics = await this.getComparisonMetrics(agentIds, filters);
+    const stats = this.calculateAggregateMetrics(metrics);
+
+    // Sort by return for leaderboard
+    const sortedMetrics = this.sortMetrics(metrics, {
+      field: "totalReturn",
+      direction: "desc",
+    });
+
+    return {
+      stats: {
+        ...stats,
+        timestamp: new Date().toISOString(),
+      },
+      agents: sortedMetrics.map((m) => ({
+        id: m.agentId,
+        name: m.agentName,
+        type: m.agentType,
+        status: m.status,
+        winRate: m.winRate,
+        totalReturn: m.totalReturn,
+        lastActive: m.lastActive,
+        ecosystem: m.ecosystem,
+        uptime: m.uptime,
+        performance24h: m.performance24h,
+      })),
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
    * Cache management
    */
   private getCachedMetrics(agentId: string): AgentComparisonMetrics | null {

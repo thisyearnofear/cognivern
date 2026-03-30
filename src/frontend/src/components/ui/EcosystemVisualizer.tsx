@@ -14,14 +14,21 @@ import { useIntentStore } from "../../stores/intentStore";
  * - ENHANCEMENT FIRST: Provides a next-gen HUD for the platform state.
  */
 
-interface Node {
+export interface Node {
   id: string;
   x: number;
   y: number;
   type: "agent" | "policy" | "system";
   label: string;
-  status: "active" | "warning" | "idle";
+  status: "active" | "warning" | "idle" | string;
   pulse?: boolean;
+}
+
+interface EcosystemVisualizerProps {
+  nodes?: Node[];
+  loading?: boolean;
+  onNodeClick?: (node: Node) => void;
+  title?: string;
 }
 
 const pulseGlow = keyframes`
@@ -95,55 +102,46 @@ const HUDOverlay = styled.div`
   text-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
 `;
 
-export const EcosystemVisualizer: React.FC = () => {
+export const EcosystemVisualizer: React.FC<EcosystemVisualizerProps> = ({
+  nodes: propNodes,
+  loading,
+  onNodeClick,
+  title = "Cognitive Network // Live Visualization // Node Density: High"
+}) => {
   const { setIsOpen, submitIntent, setQuery } = useIntentStore();
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
-  const [nodes] = useState<Node[]>([
-    {
-      id: "1",
-      x: 50,
-      y: 50,
-      type: "system",
-      label: "Kernel",
-      status: "active",
-    },
-    {
-      id: "2",
-      x: 30,
-      y: 30,
-      type: "agent",
-      label: "Alpha Arbitrage",
-      status: "active",
-      pulse: true,
-    },
-    {
-      id: "3",
-      x: 70,
-      y: 40,
-      type: "agent",
-      label: "Risk Monitor",
-      status: "warning",
-    },
-    {
-      id: "4",
-      x: 40,
-      y: 70,
-      type: "policy",
-      label: "Standard Guardrails",
-      status: "active",
-    },
-    {
-      id: "5",
-      x: 65,
-      y: 75,
-      type: "agent",
-      label: "Yield Optimizer",
-      status: "idle",
-    },
-  ]);
+
+  // Deterministic layout for nodes without X/Y (DRY)
+  const processedNodes = useMemo(() => {
+    const rawNodes = propNodes || [
+      { id: "1", x: 50, y: 50, type: "system", label: "Kernel", status: "active" },
+      { id: "2", x: 30, y: 30, type: "agent", label: "Alpha Arbitrage", status: "active", pulse: true },
+      { id: "3", x: 70, y: 40, type: "agent", label: "Risk Monitor", status: "warning" },
+      { id: "4", x: 40, y: 70, type: "policy", label: "Standard Guardrails", status: "active" },
+      { id: "5", x: 65, y: 75, type: "agent", label: "Yield Optimizer", status: "idle" },
+    ];
+
+    return rawNodes.map((node, i) => {
+      if (node.x !== undefined && node.y !== undefined) return node;
+
+      // Basic circle layout for dynamic nodes
+      const angle = (i / rawNodes.length) * Math.PI * 2;
+      const radius = i === 0 ? 0 : 35; // Center the first node
+      return {
+        ...node,
+        x: 50 + radius * Math.cos(angle),
+        y: 50 + radius * Math.sin(angle)
+      };
+    });
+  }, [propNodes]);
 
   const handleNodeClick = (node: Node) => {
     setSelectedNode(node.id);
+    if (onNodeClick) {
+      onNodeClick(node);
+      return;
+    }
+
     setIsOpen(true);
     const query =
       node.type === "agent"
@@ -160,20 +158,33 @@ export const EcosystemVisualizer: React.FC = () => {
   const getNodeColor = (status: string) => {
     switch (status) {
       case "active":
+      case "connected":
         return designTokens.colors.primary[500];
       case "warning":
         return designTokens.colors.semantic.warning;
       case "idle":
+      case "disconnected":
         return designTokens.colors.neutral[500];
+      case "error":
+        return designTokens.colors.semantic.error;
       default:
         return designTokens.colors.primary[500];
     }
   };
 
+  if (loading) {
+    return (
+      <Container style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <HUDOverlay>SYNCING WITH KERNEL...</HUDOverlay>
+        <div style={{ color: designTokens.colors.primary[400] }}>LOADING NODES...</div>
+      </Container>
+    );
+  }
+
   return (
     <Container>
       <HUDOverlay>
-        Cognitive Network // Live Visualization // Node Density: High
+        {title}
       </HUDOverlay>
 
       <SvgCanvas viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
@@ -184,37 +195,37 @@ export const EcosystemVisualizer: React.FC = () => {
           </radialGradient>
         </defs>
 
-        {/* Dynamic Connections */}
-        {nodes.map(
+        {/* Dynamic Connections - Hub and Spoke (Consolidated Logic) */}
+        {processedNodes.length > 1 && processedNodes.map(
           (node, i) =>
             i > 0 && (
               <ConnectionLine
-                key={`line-${i}`}
-                x1={nodes[0].x}
-                y1={nodes[0].y}
+                key={`line-${node.id}-${i}`}
+                x1={processedNodes[0].x}
+                y1={processedNodes[0].y}
                 x2={node.x}
                 y2={node.y}
               />
             ),
         )}
 
-        {nodes.map((node, i) => {
+        {processedNodes.map((node, i) => {
           const color = getNodeColor(node.status);
           const isSelected = selectedNode === node.id;
 
           return (
             <NodeGroup
-              key={node.id}
+              key={`${node.id}-${i}`}
               onClick={() => handleNodeClick(node)}
               style={{
-                animationDelay: `${i * 0.5}s`,
+                animationDelay: `${i * 0.3}s`,
                 filter: isSelected
                   ? `drop-shadow(0 0 12px ${color})`
                   : undefined,
               }}
               active={isSelected}
             >
-              {node.pulse && (
+              {(node.pulse || node.status === "active") && (
                 <GlowCircle cx={node.x} cy={node.y} r="4" color={color} />
               )}
               {isSelected && (
@@ -251,12 +262,12 @@ export const EcosystemVisualizer: React.FC = () => {
                 y={node.y + 4}
                 textAnchor="middle"
                 fill="white"
-                fontSize="2"
+                fontSize="2.2"
                 fontWeight="bold"
                 style={{
                   pointerEvents: "none",
-                  opacity: isSelected ? 1 : 0.7,
-                  textShadow: isSelected ? "0 0 5px rgba(0,0,0,0.5)" : "none",
+                  opacity: isSelected ? 1 : 0.8,
+                  textShadow: isSelected ? "0 0 5px rgba(0,0,0,0.8)" : "0 0 3px rgba(0,0,0,0.5)",
                 }}
               >
                 {node.label}

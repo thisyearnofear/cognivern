@@ -11,6 +11,17 @@ export const containerStyles = (isMobile: boolean) => css`
   position: relative;
   overflow-y: auto;
   height: 100%;
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
 `;
 
 export const statsHeaderStyles = css`
@@ -39,6 +50,17 @@ export const mainGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   grid-template-columns: ${isMobile ? "1fr" : isTablet ? "1fr" : "3fr 2fr"};
   gap: ${isMobile ? designTokens.spacing[4] : designTokens.spacing[8]};
   align-items: start;
+`;
+
+export const chartsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
+  display: grid;
+  grid-template-columns: ${isMobile
+    ? "1fr"
+    : isTablet
+      ? "1fr"
+      : "repeat(2, 1fr)"};
+  gap: ${designTokens.spacing[6]};
+  margin-bottom: ${designTokens.spacing[8]};
 `;
 
 export const sectionStyles = css`
@@ -101,20 +123,36 @@ export const activityItemStyles = css`
   }
 `;
 
-export const activityIconStyles = css`
-  width: 40px;
-  height: 40px;
-  border-radius: ${designTokens.borderRadius.md};
-  background: var(
-    --surface-bg-alt,
-    ${designTokens.colors.background.secondary}
-  );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-`;
+export const activityIconStyles = (type?: string) => {
+  const colorMap = {
+    success: designTokens.colors.semantic.success[500],
+    warning: designTokens.colors.semantic.warning[500],
+    error: designTokens.colors.semantic.error[500],
+    info: designTokens.colors.primary[500],
+  };
+
+  const bgMap = {
+    success: `${designTokens.colors.semantic.success[500]}15`,
+    warning: `${designTokens.colors.semantic.warning[500]}15`,
+    error: `${designTokens.colors.semantic.error[500]}15`,
+    info: `${designTokens.colors.primary[500]}15`,
+  };
+
+  const statusType = (type || "info") as keyof typeof colorMap;
+
+  return css`
+    width: 40px;
+    height: 40px;
+    border-radius: ${designTokens.borderRadius.md};
+    background: ${bgMap[statusType] || bgMap.info};
+    color: ${colorMap[statusType] || colorMap.info};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  `;
+};
 
 export const activityDetailsStyles = css`
   display: flex;
@@ -217,6 +255,93 @@ export const refreshingIndicatorStyles = css`
     }
   }
 `;
+
+export const liveIndicatorStyles = css`
+  display: flex;
+  align-items: center;
+  gap: ${designTokens.spacing[2]};
+  font-size: ${designTokens.typography.fontSize.xs};
+  font-weight: ${designTokens.typography.fontWeight.semibold};
+  color: ${designTokens.colors.text.secondary};
+  background: var(
+    --surface-bg-alt,
+    ${designTokens.colors.background.secondary}
+  );
+  padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
+  border-radius: ${designTokens.borderRadius.full};
+  border: 1px solid var(--divider, ${designTokens.colors.border.primary});
+`;
+
+export const pulseDotStyles = css`
+  width: 8px;
+  height: 8px;
+  background-color: ${designTokens.colors.semantic.success[500]};
+  border-radius: 50%;
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: inherit;
+    border-radius: 50%;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    70% {
+      transform: scale(2.5);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0;
+    }
+  }
+`;
+
+export const badgeContainerStyles = css`
+  display: flex;
+  gap: ${designTokens.spacing[2]};
+  align-items: center;
+`;
+
+export const systemBadgeStyles = (
+  color: "success" | "warning" | "error" | "info" = "info",
+) => {
+  const colorMap = {
+    success: designTokens.colors.semantic.success[600],
+    warning: designTokens.colors.semantic.warning[600],
+    error: designTokens.colors.semantic.error[600],
+    info: designTokens.colors.primary[600],
+  };
+
+  const bgMap = {
+    success: `${designTokens.colors.semantic.success[500]}15`,
+    warning: `${designTokens.colors.semantic.warning[500]}15`,
+    error: `${designTokens.colors.semantic.error[500]}15`,
+    info: `${designTokens.colors.primary[500]}15`,
+  };
+
+  return css`
+    font-size: 10px;
+    font-weight: ${designTokens.typography.fontWeight.bold};
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: ${designTokens.borderRadius.sm};
+    background: ${bgMap[color]};
+    color: ${colorMap[color]};
+    white-space: nowrap;
+  `;
+};
 
 export const mobileActionsStyles = css`
   position: fixed;

@@ -60,6 +60,9 @@ coverage
 .DS_Store
 Thumbs.db
 
+# External repos
+remix-smart-bin-monitoring-das
+
 # Debug
 .vite-inspect
 

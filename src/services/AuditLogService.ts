@@ -229,6 +229,16 @@ export class AuditLogService {
     return insights;
   }
 
+  async resolveInsight(insightId: string): Promise<boolean> {
+    logger.info(`[AuditLog] Resolving insight: ${insightId}`);
+
+    // In a real implementation, this would update a database.
+    // For now, we'll just log it and return success.
+    // We could also add to a "resolvedInsights" set to filter them out later.
+
+    return true;
+  }
+
   async getActionLogs(startTime: string, endTime: string): Promise<AuditLog[]> {
     return this.getFilteredLogs({ startDate: startTime, endDate: endTime });
   }
