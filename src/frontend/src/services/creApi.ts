@@ -1,9 +1,9 @@
 import { ApiResponse } from "./types";
-import { getApiUrl } from "../utils/api";
+import { getApiUrl, getApiKey } from "../utils/api";
 
 const DEFAULT_HEADERS = {
   "Content-Type": "application/json",
-  "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
+  "X-API-KEY": getApiKey(),
 };
 
 export interface CreRun {

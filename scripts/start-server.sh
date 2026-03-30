@@ -13,21 +13,16 @@ if [ -f .env.production ]; then
     export $(cat .env.production | grep -v '^#' | xargs)
 else
     echo "⚠️  No .env.production file found, using defaults..."
-    # Fallback environment variables
     export NODE_ENV=production
     export PORT=3000
-    export API_KEY=showcase-api-key
-    export POSTGRES_PASSWORD=cognivern
-    export DATABASE_URL=postgresql://postgres:cognivern@localhost:5432/cognivern
-    export REDIS_URL=redis://localhost:6379
-    export RECALL_API_KEY_DIRECT=52afa13c30857147_78db8aed694cc70a
-    export RECALL_API_KEY_VINCENT=4fddb4bf32752f24_9a39cd26a7cda63e
-    export WALLET_ADDRESS=0x8502d079f93AEcdaC7B0Fe71Fa877721995f1901
-    # export ALCHEMY_API_KEY=your_alchemy_api_key
-    export GOVERNANCE_CONTRACT_ADDRESS=0x1234567890123456789012345678901234567890
-    export STORAGE_CONTRACT_ADDRESS=0x1234567890123456789012345678901234567890
-    export OPENAI_API_KEY=placeholder
+    export WALLET_ADDRESS="${WALLET_ADDRESS:-0x0000000000000000000000000000000000000000}"
+    export GOVERNANCE_CONTRACT_ADDRESS="${GOVERNANCE_CONTRACT_ADDRESS:-0x0000000000000000000000000000000000000000}"
+    export STORAGE_CONTRACT_ADDRESS="${STORAGE_CONTRACT_ADDRESS:-0x0000000000000000000000000000000000000000}"
     export HEALTH_CHECK_INTERVAL=30000
+    # Require these secrets to be set - do not hardcode
+    if [ -z "$API_KEY" ] || [ -z "$OPENAI_API_KEY" ]; then
+        echo "⚠️  WARNING: API_KEY and/or OPENAI_API_KEY not set. API auth will be disabled."
+    fi
 fi
 
 echo "✅ Environment variables configured"

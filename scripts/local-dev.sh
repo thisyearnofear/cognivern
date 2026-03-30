@@ -13,8 +13,8 @@ export PORT=3000
 export API_KEY=development-api-key
 
 # Database configuration (adjust for local setup)
-export POSTGRES_PASSWORD=cognivern
-export DATABASE_URL=postgresql://postgres:cognivern@localhost:5432/cognivern
+export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-localdev}"
+export DATABASE_URL="postgresql://postgres:${POSTGRES_PASSWORD}@localhost:5432/cognivern"
 export REDIS_URL=redis://localhost:6379
 
 # Trading agent configuration - Load from .env file

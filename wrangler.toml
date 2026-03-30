@@ -37,7 +37,7 @@ new_sqlite_classes = ["GovernanceAgent"]
 [[d1_databases]]
 binding = "D1"
 database_name = "cognivern-db"
-database_id = "your-database-id" # Set after creating with `wrangler d1 create`
+database_id = "a83d1768-d802-4333-9c0a-9b7b7dfe37be"
 
 # KV Namespace for caching and session data
 # [[kv_namespaces]]
@@ -94,4 +94,4 @@ class_name = "GovernanceAgent"
 [[env.staging.d1_databases]]
 binding = "D1"
 database_name = "cognivern-db-staging"
-database_id = "your-staging-database-id"
+database_id = "a83d1768-d802-4333-9c0a-9b7b7dfe37be"

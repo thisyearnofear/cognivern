@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { Link, useParams } from "react-router-dom";
-import { getApiUrl } from "../../utils/api";
+import { getApiUrl, getApiKey } from "../../utils/api";
 import { creApi, CreRun, CreRunEvent } from "../../services/creApi";
 import {
   toAgentRunViewModel,
@@ -110,7 +110,7 @@ export default function RunDetails() {
 
   useEffect(() => {
     if (!runId) return;
-    const apiKey = import.meta.env.VITE_API_KEY || "development-api-key";
+    const apiKey = getApiKey();
     const streamUrl = getApiUrl(
       `/api/cre/runs/${encodeURIComponent(runId)}/events/stream?apiKey=${encodeURIComponent(apiKey)}`,
     );

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { creApi, CreRun } from "../../services/creApi";
 import { toAgentRunViewModel } from "../../services/agentRunAdapter";
 import { uxAnalytics } from "../../services/uxAnalytics";
-import { getApiUrl } from "../../utils/api";
+import { getApiUrl, getApiKey } from "../../utils/api";
 import { designTokens } from "../../styles/design-system";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
 import { Button } from "../ui/Button";
@@ -115,7 +115,7 @@ export default function RunLedger() {
       const res = await fetch("/api/projects", {
         headers: {
           "Content-Type": "application/json",
-          "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
+          "X-API-KEY": getApiKey(),
         },
       });
       const json = await res.json();
@@ -149,7 +149,7 @@ export default function RunLedger() {
       const res = await fetch(getApiUrl("/api/metrics/ux-summary"), {
         headers: {
           "Content-Type": "application/json",
-          "X-API-KEY": import.meta.env.VITE_API_KEY || "development-api-key",
+          "X-API-KEY": getApiKey(),
         },
       });
       const json = await res.json();

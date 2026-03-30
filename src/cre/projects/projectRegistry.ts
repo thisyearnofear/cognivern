@@ -18,7 +18,7 @@ export type IngestKeyMatch = {
  *
  * Env format:
  *   COGNIVERN_PROJECTS="default:Default Project,acme:Acme Inc"
- *   COGNIVERN_INGEST_KEYS="default=dev-ingest-key|dev-ingest-key-next,acme=acme-secret"
+ *   COGNIVERN_INGEST_KEYS="default=<your-key>|<rotation-key>,acme=acme-secret"
  *
  * Key rotation: separate multiple valid keys per project with '|'.
  */
@@ -30,7 +30,7 @@ export class ProjectRegistry {
     const projectsSpec =
       process.env.COGNIVERN_PROJECTS || "default:Default Project";
     const ingestSpec =
-      process.env.COGNIVERN_INGEST_KEYS || "default=dev-ingest-key";
+      process.env.COGNIVERN_INGEST_KEYS || "";
 
     ingestSpec
       .split(",")
@@ -69,7 +69,7 @@ export class ProjectRegistry {
       this.projects.set("default", {
         projectId: "default",
         name: "Default Project",
-        ingestKey: this.ingestKeys.get("default")?.[0] || "dev-ingest-key",
+        ingestKey: this.ingestKeys.get("default")?.[0] || crypto.randomBytes(24).toString("hex"),
       });
     }
   }

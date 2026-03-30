@@ -26,7 +26,7 @@ const envSchema = z.object({
   BITTE_API_KEY: z.string().optional(),
 
   // API Security and Authentication
-  API_KEY: z.string().default("development-api-key"),
+  API_KEY: z.string().default(""),
 
   // Filecoin Configuration
   FILECOIN_PRIVATE_KEY: z.string().min(1),
