@@ -5,7 +5,6 @@
  * and handles HTTP API compatibility layer
  */
 
-import { routeAgentRequest } from "agents";
 import { GovernanceAgent } from "./GovernanceAgent";
 import type { Ai, KVNamespace, D1Database, DurableObjectNamespace, ExecutionContext, ScheduledEvent } from "@cloudflare/workers-types";
 
@@ -50,16 +49,7 @@ export default {
       return handleGovernanceEvaluate(request, env);
     }
 
-    // Route to agent instances
-    try {
-      const response = await routeAgentRequest(request, env);
-      if (response) {
-        return response;
-      }
-    } catch (error) {
-      console.error("Agent routing error:", error);
-    }
-
+    // Legacy route handling - now handled by our own API
     // 404 for unmatched routes
     return new Response("Not found", { status: 404 });
   },

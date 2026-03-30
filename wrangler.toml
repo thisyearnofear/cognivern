@@ -1,7 +1,7 @@
 # Cloudflare Workers Configuration
 # https://developers.cloudflare.com/workers/wrangler/configuration/
 
-name = "cognivern-agents"
+name = "cognivern"
 main = "src/modules/cloudflare-agents/worker.ts"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
