@@ -7,6 +7,7 @@ import {
   CHAIN_ID_ETHEREAL,
 } from "@sapience/sdk";
 import logger from "../utils/logger.js";
+import { circuitBreakers } from "../shared/utils/circuitBreaker.js";
 
 // Minimal Prediction Market ABI for trading
 const PREDICTION_MARKET_ABI = [
@@ -120,21 +121,19 @@ export class SapienceService {
    * Submit a forecast to the Sapience protocol via EAS using the SDK
    */
   async submitForecast(forecast: ForecastRequest): Promise<string> {
-    try {
+    if (!this.config.privateKey) {
+      throw new Error("Private key required for forecasting");
+    }
+
+    return circuitBreakers.sapience.execute(async () => {
       logger.info(
         `Submitting forecast for market ${forecast.marketId}: ${forecast.probability}%`,
       );
 
-      if (!this.config.privateKey) {
-        throw new Error("Private key required for forecasting");
-      }
-
       // Default to UMA resolver on Arbitrum if not specified
-      // Use explicit address casting to satisfy SDK types
       const resolverAddress = (forecast.resolver ||
         contracts.umaResolver[CHAIN_ID_ARBITRUM].address) as `0x${string}`;
 
-      // The SDK's submitForecast handles the EAS attestation details
       const result = await submitForecast({
         resolver: resolverAddress,
         condition: forecast.marketId as `0x${string}`,
@@ -145,10 +144,7 @@ export class SapienceService {
 
       logger.info(`Forecast submitted! Tx Hash: ${result.hash}`);
       return result.hash;
-    } catch (error) {
-      logger.error("Failed to submit forecast:", error);
-      throw error;
-    }
+    });
   }
 
   /**
@@ -156,7 +152,7 @@ export class SapienceService {
    * This is used to calculate edge for trading
    */
   async getMarketPrice(conditionId: string): Promise<MarketPrice | null> {
-    try {
+    return circuitBreakers.sapience.execute(async () => {
       const graphqlEndpoint = "https://api.sapience.xyz/graphql";
       const query = `
         query GetMarketPrice($conditionId: String!) {
@@ -189,7 +185,6 @@ export class SapienceService {
         return null;
       }
 
-      // Parse outcomes to get YES/NO prices
       const yesOutcome = condition.outcomes?.find(
         (o: any) => o.name?.toLowerCase().includes("yes") || o.name === "1",
       );
@@ -202,10 +197,7 @@ export class SapienceService {
         noPrice: noOutcome ? parseFloat(noOutcome.price) : 0.5,
         liquidity: condition.liquidity || "0",
       };
-    } catch (error) {
-      logger.error("Failed to fetch market price:", error);
-      return null;
-    }
+    });
   }
 
   /**
@@ -213,7 +205,7 @@ export class SapienceService {
    * This uses the Ethereal chain for trading with USDe collateral
    */
   async executeTrade(trade: TradeRequest): Promise<string> {
-    try {
+    return circuitBreakers.blockchain.execute(async () => {
       logger.info(
         `Executing trade on market ${trade.marketId}: ${trade.side} ${trade.amount}`,
       );
@@ -300,10 +292,7 @@ export class SapienceService {
       } else {
         throw new Error("Transaction failed");
       }
-    } catch (error) {
-      logger.error("Failed to execute trade:", error);
-      throw error;
-    }
+    });
   }
 
   /**
@@ -333,21 +322,18 @@ export class SapienceService {
    * Get real ETH balance from the network
    */
   async getEthBalance(): Promise<string> {
-    try {
+    return circuitBreakers.blockchain.execute(async () => {
       const provider = new ethers.JsonRpcProvider(this.config.arbitrumRpcUrl);
       const balance = await provider.getBalance(this.wallet.address);
       return ethers.formatEther(balance);
-    } catch (error) {
-      logger.error("Failed to fetch ETH balance:", error);
-      return "0";
-    }
+    });
   }
 
   /**
    * Get USDe balance on Ethereal chain
    */
   async getUSDeBalance(): Promise<string> {
-    try {
+    return circuitBreakers.blockchain.execute(async () => {
       // USDe token contract on Ethereal
       const usdeAddress = contracts.collateralToken[CHAIN_ID_ETHEREAL]?.address;
       if (!usdeAddress) {
@@ -362,9 +348,6 @@ export class SapienceService {
 
       const balance = await tokenContract.balanceOf(this.wallet.address);
       return ethers.formatUnits(balance, 18);
-    } catch (error) {
-      logger.error("Failed to fetch USDe balance:", error);
-      return "0";
-    }
+    });
   }
 }

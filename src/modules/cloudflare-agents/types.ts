@@ -13,6 +13,9 @@ export interface GovernanceAgentState {
   actionLog: GovernanceAction[];
   metrics: AgentMetrics;
   configuration: AgentConfiguration;
+  lastBriefingScript?: string;
+  lastBriefingAt?: number;
+  briefingCount?: number;
 }
 
 export interface AgentMetrics {
@@ -26,6 +29,7 @@ export interface AgentConfiguration {
   maxThoughtHistory: number;
   enableAuditLogging: boolean;
   modelPreference: "auto" | "workers-ai" | "openai" | "gemini";
+  enableVoiceBriefing?: boolean;
 }
 
 export interface GovernanceAction {

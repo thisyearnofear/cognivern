@@ -47,7 +47,33 @@ export class MultiModelRouter {
       ? this.config.fallbackOrder[0]
       : preference;
 
-    return this.executeWithFallback(prompt, provider);
+    return this.executeWithFallback(prompt, provider, "governance");
+  }
+
+  /**
+   * Generate a conversational briefing script based on agent history
+   */
+  async generateBriefingScript(
+    thoughts: string[],
+    actions: any[],
+    preference: "auto" | "workers-ai" | "openai" | "gemini" = "auto"
+  ): Promise<string> {
+    const provider = preference === "auto"
+      ? this.config.fallbackOrder[0]
+      : preference;
+
+    const prompt = `
+Recent Thoughts:
+${thoughts.slice(-5).join("\n")}
+
+Recent Actions:
+${JSON.stringify(actions.slice(-3), null, 2)}
+
+Synthesize these into a 1-minute, conversational, and professional "Voice of Governance" briefing script.
+Focus on key decisions, risk assessments, and policy enforcement highlights.
+`.trim();
+
+    return this.executeWithFallback(prompt, provider, "briefing");
   }
 
   /**
@@ -56,19 +82,20 @@ export class MultiModelRouter {
   private async executeWithFallback(
     prompt: string,
     initialProvider: string,
+    taskType: "governance" | "briefing",
     attempt = 0
   ): Promise<string> {
     const provider = this.config.fallbackOrder[attempt] || initialProvider;
 
     try {
-      const result = await this.executeWithProvider(prompt, provider);
+      const result = await this.executeWithProvider(prompt, provider, taskType);
       return result;
     } catch (error) {
       console.warn(`Provider ${provider} failed:`, error);
 
       // Try next provider in fallback chain
       if (attempt < this.config.fallbackOrder.length - 1) {
-        return this.executeWithFallback(prompt, initialProvider, attempt + 1);
+        return this.executeWithFallback(prompt, initialProvider, taskType, attempt + 1);
       }
 
       // All providers failed
@@ -83,7 +110,8 @@ export class MultiModelRouter {
    */
   private async executeWithProvider(
     prompt: string,
-    provider: string
+    provider: string,
+    taskType: "governance" | "briefing"
   ): Promise<string> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
@@ -91,11 +119,11 @@ export class MultiModelRouter {
     try {
       switch (provider) {
         case "workers-ai":
-          return this.executeWorkersAI(prompt, controller.signal);
+          return this.executeWorkersAI(prompt, controller.signal, taskType);
         case "openai":
-          return this.executeOpenAI(prompt, controller.signal);
+          return this.executeOpenAI(prompt, controller.signal, taskType);
         case "gemini":
-          return this.executeGemini(prompt, controller.signal);
+          return this.executeGemini(prompt, controller.signal, taskType);
         default:
           throw new Error(`Unknown provider: ${provider}`);
       }
@@ -109,7 +137,8 @@ export class MultiModelRouter {
    */
   private async executeWorkersAI(
     prompt: string,
-    signal: AbortSignal
+    signal: AbortSignal,
+    taskType: "governance" | "briefing"
   ): Promise<string> {
     // This will be called from a Worker with AI binding
     // @ts-ignore - AI binding is available in Worker environment
@@ -123,14 +152,18 @@ export class MultiModelRouter {
       this.config.providers.workersAI!.model,
       {
         messages: [
-          { role: "system", content: this.getSystemPrompt() },
+          { role: "system", content: this.getSystemPrompt(taskType) },
           { role: "user", content: prompt },
         ],
-        temperature: 0.3, // Lower temperature for consistent governance decisions
+        temperature: taskType === "briefing" ? 0.7 : 0.3,
         max_tokens: 1024,
       },
       { signal }
     );
+
+    if (taskType === "briefing") {
+      return response.response || "I have no briefing at this time.";
+    }
 
     return response.response || JSON.stringify({ score: 50, reasoning: "No response" });
   }
@@ -140,7 +173,8 @@ export class MultiModelRouter {
    */
   private async executeOpenAI(
     prompt: string,
-    signal: AbortSignal
+    signal: AbortSignal,
+    taskType: "governance" | "briefing"
   ): Promise<string> {
     const apiKey = process.env.OPENAI_API_KEY;
 
@@ -158,12 +192,12 @@ export class MultiModelRouter {
       body: JSON.stringify({
         model: this.config.providers.openai!.model,
         messages: [
-          { role: "system", content: this.getSystemPrompt() },
+          { role: "system", content: this.getSystemPrompt(taskType) },
           { role: "user", content: prompt },
         ],
-        temperature: 0.3,
+        temperature: taskType === "briefing" ? 0.7 : 0.3,
         max_tokens: 1024,
-        response_format: { type: "json_object" },
+        response_format: taskType === "governance" ? { type: "json_object" } : { type: "text" },
       }),
     });
 
@@ -172,7 +206,7 @@ export class MultiModelRouter {
     }
 
     const data = await response.json();
-    return data.choices[0].message.content || JSON.stringify({ score: 50, reasoning: "No response" });
+    return data.choices[0].message.content || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
   }
 
   /**
@@ -180,7 +214,8 @@ export class MultiModelRouter {
    */
   private async executeGemini(
     prompt: string,
-    signal: AbortSignal
+    signal: AbortSignal,
+    taskType: "governance" | "briefing"
   ): Promise<string> {
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -200,15 +235,15 @@ export class MultiModelRouter {
           contents: [
             {
               parts: [
-                { text: this.getSystemPrompt() },
+                { text: this.getSystemPrompt(taskType) },
                 { text: prompt },
               ],
             },
           ],
           generationConfig: {
-            temperature: 0.3,
+            temperature: taskType === "briefing" ? 0.7 : 0.3,
             maxOutputTokens: 1024,
-            responseMimeType: "application/json",
+            responseMimeType: taskType === "governance" ? "application/json" : "text/plain",
           },
         }),
       }
@@ -219,14 +254,28 @@ export class MultiModelRouter {
     }
 
     const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || JSON.stringify({ score: 50, reasoning: "No response" });
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
   }
 
   /**
-   * System prompt for governance analysis
+   * System prompt for governance analysis or briefing
    */
-  private getSystemPrompt(): string {
-    return `You are an AI governance evaluator for autonomous AI agents. Your role is to:
+  private getSystemPrompt(taskType: "governance" | "briefing"): string {
+    if (taskType === "briefing") {
+      return `You are the "Voice of Governance", a professional and clear AI announcer.
+Your goal is to synthesize complex governance logs into a short, conversational, and authoritative briefing script.
+
+Voice Guidelines:
+- Be clear and professional.
+- Use natural transitions between thoughts and actions.
+- Highlight risk assessments and policy decisions clearly.
+- Keep it under 200 words.
+- Start with a professional greeting like "Welcome to your Governance Briefing."
+- End with a summary of the current system status.
+- DO NOT use Markdown formatting (bold, italics, etc.) as this script will be read by TTS.`;
+    }
+
+    return \`You are an AI governance evaluator for autonomous AI agents. Your role is to:
 
 1. Evaluate agent actions against governance policies
 2. Assess risk levels objectively (0-100 scale)
@@ -248,7 +297,7 @@ Scoring guidelines:
 - 61-80: Low risk, generally safe
 - 81-100: Very safe, clearly compliant
 
-Be strict but fair. When in doubt, lean toward caution.`;
+Be strict but fair. When in doubt, lean toward caution.\`;
   }
 
   /**

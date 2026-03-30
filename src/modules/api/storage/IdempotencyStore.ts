@@ -1,5 +1,11 @@
-import fs from "node:fs";
-import path from "node:path";
+/**
+ * Idempotency Store - Refactored to extend BaseStore
+ *
+ * Consolidates common patterns with CreRunStore and UxEventStore
+ * via the shared BaseStore abstraction (DRY principle).
+ */
+
+import { BaseStore, TtlRecord } from "../../../shared/storage/BaseStore.js";
 
 export interface IdempotencyRecord {
   statusCode: number;
@@ -7,65 +13,75 @@ export interface IdempotencyRecord {
   createdAtMs: number;
 }
 
-type SerializedStore = Record<string, IdempotencyRecord>;
+type IdempotencyCacheRecord = TtlRecord<IdempotencyRecord>;
 
-export class IdempotencyStore {
-  private filePath: string;
-  private cache: Map<string, IdempotencyRecord> = new Map();
-  private loaded = false;
-
+/**
+ * Idempotency store for deduplicating API requests
+ * Extends BaseStore for shared persistence and caching logic
+ */
+export class IdempotencyStore extends BaseStore<IdempotencyRecord, IdempotencyCacheRecord> {
   constructor(params: { filePath?: string } = {}) {
-    this.filePath =
-      params.filePath ||
-      process.env.IDEMPOTENCY_STORE_FILE ||
-      path.join(process.cwd(), "data", "idempotency-store.json");
+    super({
+      filePath: params.filePath,
+      envVar: "IDEMPOTENCY_STORE_FILE",
+      defaultFilename: "idempotency-store.json",
+      maxRecords: 10000,
+      enableTtl: true,
+      defaultTtlMs: 86400000, // 24 hours
+    });
   }
 
-  private async ensureLoaded() {
-    if (this.loaded) return;
+  /**
+   * Parse JSON line into cache record
+   */
+  protected parseLine(line: string): { key: string; record: IdempotencyCacheRecord } | null {
     try {
-      const raw = await fs.promises.readFile(this.filePath, "utf8");
-      const parsed = JSON.parse(raw) as SerializedStore;
-      for (const [key, value] of Object.entries(parsed)) {
-        this.cache.set(key, value);
+      const parsed = JSON.parse(line);
+      // Handle both old format (direct record) and new format (with key)
+      if (parsed.key && parsed.record) {
+        return { key: parsed.key, record: parsed.record };
       }
-    } catch (err: any) {
-      if (err?.code !== "ENOENT") {
-        throw err;
+      // Legacy format: key is first field, rest is data
+      const keys = Object.keys(parsed);
+      if (keys.length === 1) {
+        const key = keys[0];
+        const data = parsed[key] as IdempotencyRecord;
+        return {
+          key,
+          record: { data, createdAt: data.createdAtMs, ttlMs: this.defaultTtlMs },
+        };
       }
+      return null;
+    } catch {
+      return null;
     }
-    this.loaded = true;
   }
 
-  private async flush() {
-    await fs.promises.mkdir(path.dirname(this.filePath), { recursive: true });
-    const out: SerializedStore = {};
-    for (const [key, value] of this.cache.entries()) {
-      out[key] = value;
-    }
-    await fs.promises.writeFile(this.filePath, JSON.stringify(out), "utf8");
+  /**
+   * Serialize cache record to JSON line
+   */
+  protected serializeRecord(key: string, record: IdempotencyCacheRecord): string {
+    return JSON.stringify({ key, record });
   }
 
-  async get(key: string): Promise<IdempotencyRecord | null> {
-    await this.ensureLoaded();
-    return this.cache.get(key) || null;
+  /**
+   * Get idempotency record (legacy-compatible interface)
+   */
+  async getRecord(key: string): Promise<IdempotencyRecord | null> {
+    const cached = await this.get(key);
+    return cached?.data ?? null;
   }
 
-  async set(key: string, value: IdempotencyRecord): Promise<void> {
-    await this.ensureLoaded();
-    this.cache.set(key, value);
-    await this.flush();
-  }
-
-  async delete(key: string): Promise<void> {
-    await this.ensureLoaded();
-    this.cache.delete(key);
-    await this.flush();
-  }
-
-  async entries(): Promise<Array<[string, IdempotencyRecord]>> {
-    await this.ensureLoaded();
-    return Array.from(this.cache.entries());
+  /**
+   * Set idempotency record (legacy-compatible interface)
+   */
+  async setRecord(key: string, value: IdempotencyRecord): Promise<void> {
+    const record: IdempotencyCacheRecord = {
+      data: value,
+      createdAt: value.createdAtMs,
+      ttlMs: this.defaultTtlMs,
+    };
+    await this.set(key, record);
   }
 }
 

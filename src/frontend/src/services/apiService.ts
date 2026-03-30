@@ -172,6 +172,39 @@ export class AgentApiService extends ApiService {
     return this.get(`/api/agents/${agentType}/metrics`);
   }
 
+  // Get voice briefing for an agent
+  async getAgentBriefing(agentId: string) {
+    try {
+      const response = await fetch(getApiUrl(`/api/agents/${agentId}/briefing`), {
+        headers: {
+          ...DEFAULT_HEADERS,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Briefing Error: ${response.status}`);
+      }
+
+      const script = decodeURIComponent(
+        response.headers.get("X-Briefing-Script") || "",
+      );
+      const audioBlob = await response.blob();
+
+      return {
+        success: true,
+        data: {
+          audioUrl: URL.createObjectURL(audioBlob),
+          script,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to fetch briefing",
+      };
+    }
+  }
+
   // COMPARISON ENDPOINTS - New functionality for agent comparison
 
   // Compare multiple agents

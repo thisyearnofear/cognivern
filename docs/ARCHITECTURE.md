@@ -10,9 +10,10 @@ Cognivern is an **AI Governance Command Center** — a coordination and coordina
 
 1. **Multi-Chain Governance**: Leveraging **Filecoin (FVM)** for verifiable forensic evidence and **Polkadot Hub (REVM/PVM)** for high-performance coordination.
 2. **Confidential AI**: LLM reasoning executes in confidential enclaves, ensuring private decision-making.
-3. **Agentic UX**: A high-fidelity, spatial HUD for visualizing agent networks, cognitive paths, and behavioral compliance.
-4. **Verifiable Intent**: On-chain proof of decision-making process, moving beyond simple result tracking.
-5. **Real-Time Guardrails**: Low-latency policy enforcement that scales with autonomous agent speeds.
+3. **Voice of Governance**: High-quality AI audio briefings powered by **ElevenLabs**, synthesizing agent thoughts and actions into conversational summaries.
+4. **Agentic UX**: A high-fidelity, spatial HUD for visualizing agent networks, cognitive paths, and behavioral compliance.
+5. **Verifiable Intent**: On-chain proof of decision-making process, moving beyond simple result tracking.
+6. **Real-Time Guardrails**: Low-latency policy enforcement using stateful **Cloudflare Durable Objects** for edge-native governance.
 
 ## System Architecture
 
@@ -59,6 +60,7 @@ Cognivern separates concerns into two planes:
 ### Application Layer
 
 - **Agent Controller**: Handles incoming requests and orchestrates workflows
+- **Voice of Governance**: Edge-native service integrating ElevenLabs for high-fidelity audio briefings.
 - **Agentic UI/UX**:
   - **Intent-Driven Bridge**: Natural language interface with Generative UI responses (`StatCard`, `ForensicTimeline`, `ActionForm`)
   - **Ecosystem Visualizer**: Spatial, interactive HUD for network state
@@ -68,12 +70,14 @@ Cognivern separates concerns into two planes:
 ### Domain Layer
 
 - **Governance Engine**: Centralized policy management (`governanceStore`) with visual safety scores
-- **Governance Agent**: Maintains thought history, logs actions, enforces policies
+- **Governance Agent (Cloudflare DO)**: Stateful agent running on the edge, maintaining thought history and enforcing policies.
 - **Policy Service**: Validates actions against risk management rules
 - **Trading Agent**: Executes forecasting and trading strategies
 
 ### Infrastructure Layer
 
+- **Cloudflare Workers**: High-performance compute platform for governance agents.
+- **ElevenLabs API**: AI voice synthesis for conversational briefings.
 - **SapienceService**: EAS attestations, Ethereal contract interactions
 - **Chainlink Integration**: Data Feeds (EVM Read), CRE workflows, EVM Write
 - **Recall Network**: Persistent memory for agent reasoning

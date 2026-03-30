@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { css } from "@emotion/react";
+import { ChevronRight } from "lucide-react";
 import {
   getCardStyles as getModernCardStyles,
   type CardVariant,
@@ -10,16 +11,30 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: CardVariant;
   padding?: "none" | "sm" | "md" | "lg";
   interactive?: boolean;
+  /** Enable collapsible behavior */
+  collapsible?: boolean;
+  /** Initial collapsed state */
+  defaultCollapsed?: boolean;
+  /** Title for collapsible header (required if collapsible) */
+  title?: string;
+  /** Called when collapse state changes */
+  onCollapseChange?: (collapsed: boolean) => void;
 }
 
 export const Card: React.FC<CardProps> = ({
   variant = "default",
   padding = "md",
   interactive = false,
+  collapsible = false,
+  defaultCollapsed = false,
+  title,
+  onCollapseChange,
   children,
   className = "",
   ...props
 }) => {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+
   const paddingStyles = {
     none: "0",
     sm: designTokens.spacing[3],
@@ -27,11 +42,44 @@ export const Card: React.FC<CardProps> = ({
     lg: designTokens.spacing[8],
   };
 
+  const handleToggle = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    onCollapseChange?.(newState);
+  };
+
   const cardStyles = css`
     ${getModernCardStyles(variant)}
     padding: ${paddingStyles[padding]};
-    ${interactive && "cursor: pointer;"}
+    ${interactive && !collapsible && "cursor: pointer;"}
   `;
+
+  // Collapsible card with header
+  if (collapsible) {
+    return (
+      <div
+        css={cardStyles}
+        className={`cognivern-card collapsible ${isCollapsed ? "collapsed" : ""} ${className}`}
+        {...props}
+      >
+        <button
+          onClick={handleToggle}
+          css={collapseHeaderStyles}
+          aria-expanded={!isCollapsed}
+          aria-label={`Toggle ${title || "section"}`}
+        >
+          <ChevronRight
+            size={16}
+            css={chevronStyles(isCollapsed)}
+          />
+          {title && <span css={collapseTitleStyles}>{title}</span>}
+        </button>
+        {!isCollapsed && (
+          <div css={collapseContentStyles}>{children}</div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -43,6 +91,43 @@ export const Card: React.FC<CardProps> = ({
     </div>
   );
 };
+
+// Collapsible card styles
+const collapseHeaderStyles = css`
+  display: flex;
+  align-items: center;
+  gap: ${designTokens.spacing[2]};
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: ${designTokens.colors.text.primary};
+
+  &:focus {
+    outline: 2px solid ${designTokens.colors.primary[500]};
+    outline-offset: 2px;
+    border-radius: ${designTokens.borderRadius.sm};
+  }
+`;
+
+const chevronStyles = (isCollapsed: boolean) => css`
+  transition: transform 0.2s ease;
+  transform: rotate(${isCollapsed ? "0deg" : "90deg"});
+  color: ${designTokens.colors.text.secondary};
+  flex-shrink: 0;
+`;
+
+const collapseTitleStyles = css`
+  flex: 1;
+`;
+
+const collapseContentStyles = css`
+  margin-top: ${designTokens.spacing[4]};
+`;
 
 const cardHeaderStyles = css`
   padding-bottom: ${designTokens.spacing[4]};

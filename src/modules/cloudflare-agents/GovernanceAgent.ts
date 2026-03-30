@@ -8,6 +8,7 @@
 import { Agent, callable } from "agents";
 import type { GovernanceAgentState, GovernanceAction, PolicyDecision } from "./types";
 import { MultiModelRouter } from "./MultiModelRouter";
+import { ElevenLabsService } from "./ElevenLabsService";
 import type { Env } from "./worker";
 
 export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
@@ -35,7 +36,11 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
       maxThoughtHistory: 100,
       enableAuditLogging: true,
       modelPreference: "auto", // auto | workers-ai | openai | gemini
+      enableVoiceBriefing: true,
     },
+    lastBriefingScript: "",
+    lastBriefingAt: 0,
+    briefingCount: 0,
   };
 
   constructor() {
@@ -187,6 +192,54 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
     this.state.configuration = { ...this.state.configuration, ...config };
     await this.ctx.storage.put("config", this.state.configuration);
     this.addThought("Configuration updated", config);
+  }
+
+  /**
+   * Generate a voice briefing of recent governance activity
+   */
+  @callable()
+  async generateVoiceBriefing(): Promise<{ script: string; audioResponse: Response }> {
+    if (!this.state.configuration.enableVoiceBriefing) {
+      throw new Error("Voice briefing is disabled in configuration");
+    }
+
+    // Rate limiting to prevent token overspend
+    const now = Date.now();
+    const oneHour = 60 * 60 * 1000;
+
+    if (this.state.lastBriefingAt && (now - this.state.lastBriefingAt < oneHour)) {
+      if ((this.state.briefingCount || 0) >= 10) {
+        throw new Error("Governance briefing limit reached (10 per hour). Please try again later.");
+      }
+      this.state.briefingCount = (this.state.briefingCount || 0) + 1;
+    } else {
+      this.state.lastBriefingAt = now;
+      this.state.briefingCount = 1;
+    }
+
+    this.addThought("Generating governance voice briefing");
+
+    // 1. Generate the briefing script using AI
+    const script = await this.modelRouter.generateBriefingScript(
+      this.state.thoughtHistory,
+      this.state.actionLog,
+      this.state.configuration.modelPreference
+    );
+
+    // 2. Persist the script for history/UI
+    this.state.lastBriefingScript = script;
+
+    // 3. Initialize ElevenLabs service
+    const elevenLabs = new ElevenLabsService({
+      apiKey: this.env.ELEVENLABS_API_KEY,
+    });
+
+    // 4. Generate speech
+    const audioResponse = await elevenLabs.generateSpeech(script);
+
+    this.addThought("Voice briefing generated successfully");
+
+    return { script, audioResponse };
   }
 
   /**

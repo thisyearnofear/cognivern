@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import logger from "../utils/logger.js";
+import { circuitBreakers } from "../shared/utils/circuitBreaker.js";
 
 /**
  * ContractService - Bridge between backend APIs and smart contracts
@@ -83,7 +84,7 @@ export class ContractService {
    * Get the first available policy ID from the contract
    */
   async getFirstPolicyId(): Promise<string> {
-    try {
+    return circuitBreakers.blockchain.execute(async () => {
       const totalPolicies = await this.governanceContract.totalPolicies();
       if (totalPolicies > 0) {
         const firstPolicyId = await this.governanceContract.policyIds(0);
@@ -92,17 +93,14 @@ export class ContractService {
         // Create a default trading policy if none exists
         return await this.createTradingPolicy();
       }
-    } catch (error) {
-      logger.warn("Error getting policy ID, creating default", error);
-      return await this.createTradingPolicy();
-    }
+    });
   }
 
   /**
    * Create a default trading policy
    */
   async createTradingPolicy(): Promise<string> {
-    try {
+    return circuitBreakers.blockchain.execute(async () => {
       const policyId = ethers.keccak256(
         ethers.toUtf8Bytes("trading-policy-" + Date.now()),
       );
@@ -127,10 +125,7 @@ export class ContractService {
 
       logger.info(`Created and activated trading policy: ${policyId}`);
       return policyId;
-    } catch (error) {
-      logger.error("Error creating trading policy", error);
-      throw error;
-    }
+    });
   }
 
   /**
@@ -143,7 +138,7 @@ export class ContractService {
     capabilities: string[];
     walletAddress?: string;
   }): Promise<{ governanceTx?: string; storageTx?: string }> {
-    try {
+    return circuitBreakers.blockchain.execute(async () => {
       logger.info(`Registering trading agent: ${agentData.name}`, agentData);
 
       const results: { governanceTx?: string; storageTx?: string } = {};
@@ -187,10 +182,7 @@ export class ContractService {
       }
 
       return results;
-    } catch (error) {
-      logger.error("Error registering trading agent", error);
-      throw error;
-    }
+    });
   }
 
   /**
@@ -208,7 +200,7 @@ export class ContractService {
     timestamp: string;
     approved?: boolean;
   }): Promise<{ governanceTx?: string; storageTx?: string }> {
-    try {
+    return circuitBreakers.blockchain.execute(async () => {
       logger.info(`Recording trading decision: ${decision.id}`, decision);
 
       const results: { governanceTx?: string; storageTx?: string } = {};
@@ -267,10 +259,7 @@ export class ContractService {
       }
 
       return results;
-    } catch (error) {
-      logger.error("Error recording trading decision", error);
-      throw error;
-    }
+    });
   }
 
   /**
@@ -281,7 +270,7 @@ export class ContractService {
     totalAgents: number;
     totalActions: number;
   }> {
-    try {
+    return circuitBreakers.blockchain.execute(async () => {
       const [policies, agents, actions] =
         await this.governanceContract.getStats();
 
@@ -290,15 +279,7 @@ export class ContractService {
         totalAgents: Number(agents),
         totalActions: Number(actions),
       };
-    } catch (error) {
-      logger.error("Error getting governance stats", error);
-      // Return fallback data
-      return {
-        totalPolicies: 2,
-        totalAgents: 2,
-        totalActions: 12,
-      };
-    }
+    });
   }
 
   /**
@@ -308,34 +289,25 @@ export class ContractService {
     totalActions: number;
     activeAgents: number;
   }> {
-    try {
+    return circuitBreakers.blockchain.execute(async () => {
       const totalActions = await this.storageContract.totalActions();
 
       return {
         totalActions: Number(totalActions),
         activeAgents: 2, // We'll track this separately
       };
-    } catch (error) {
-      logger.error("Error getting storage stats", error);
-      return {
-        totalActions: 12,
-        activeAgents: 2,
-      };
-    }
+    });
   }
 
   /**
    * Check if service is properly connected to contracts
    */
   async healthCheck(): Promise<boolean> {
-    try {
+    return circuitBreakers.blockchain.execute(async () => {
       // Try to read from both contracts
       await this.governanceContract.totalAgents();
       await this.storageContract.totalActions();
       return true;
-    } catch (error) {
-      logger.error("ContractService health check failed", error);
-      return false;
-    }
+    });
   }
 }

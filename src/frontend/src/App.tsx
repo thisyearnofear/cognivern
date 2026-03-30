@@ -8,9 +8,10 @@ import {
 
 import { AppLayout } from "./components/layout";
 import SmartOnboarding from "./components/onboarding/SmartOnboarding";
-import { useTheme } from "./stores/appStore";
+import { useTheme, useAppStore } from "./stores/appStore";
 import PageTransition from "./components/ui/PageTransition";
 import { LoadingSpinner } from "./components/ui/LoadingSpinner";
+import { ErrorBoundary } from "./components/ui/ErrorBoundary";
 import { loadingStyles } from "./styles/design-system";
 
 // Lazy load components for better performance
@@ -40,6 +41,7 @@ const PageSkeleton: React.FC = () => (
 
 function App() {
   const { effectiveTheme } = useTheme();
+  const setError = useAppStore((state) => state.setError);
 
   useEffect(() => {
     document.documentElement.classList.toggle(
@@ -48,25 +50,32 @@ function App() {
     );
   }, [effectiveTheme]);
 
+  const handleGlobalError = (error: Error) => {
+    setError(error.message);
+  };
+
   return (
     <Router>
-      <div className="app">
-        {/* Smart Onboarding - only shows when needed */}
-        <SmartOnboarding />
+      <ErrorBoundary componentName="Application Root" onError={handleGlobalError}>
+        <div className="app">
+          {/* Smart Onboarding - only shows when needed */}
+          <SmartOnboarding />
 
-        <Routes>
-          <Route path="/" element={<AppLayout />}>
-            {/* Unified Dashboard - Single source of truth */}
-            <Route
-              index
-              element={
-                <PageTransition type="slide">
-                  <Suspense fallback={<PageSkeleton />}>
-                    <UnifiedDashboard />
-                  </Suspense>
-                </PageTransition>
-              }
-            />
+          <Routes>
+            <Route path="/" element={<AppLayout />}>
+              {/* Unified Dashboard - Single source of truth */}
+              <Route
+                index
+                element={
+                  <ErrorBoundary componentName="Dashboard">
+                    <PageTransition type="slide">
+                      <Suspense fallback={<PageSkeleton />}>
+                        <UnifiedDashboard />
+                      </Suspense>
+                    </PageTransition>
+                  </ErrorBoundary>
+                }
+              />
 
             {/* Agents Route - Detailed agent management */}
             <Route
@@ -145,7 +154,8 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
-      </div>
+        </div>
+      </ErrorBoundary>
     </Router>
   );
 }
