@@ -148,22 +148,14 @@ export class CreController {
   }
 
   private async cleanupIdempotencyStore() {
-    const now = Date.now();
-    const entries = await idempotencyStore.entries();
-    for (const [key, value] of entries) {
-      if (now - value.createdAtMs > CreController.IDEMPOTENCY_TTL_MS) {
-        await idempotencyStore.delete(key);
-      }
-    }
+    // BaseStore now handles TTL cleanup automatically via cleanupExpired()
+    await idempotencyStore.cleanupExpired();
   }
 
   private async getCachedIdempotentResponse(
     key: string,
   ): Promise<IdempotencyRecord | null> {
-    await this.cleanupIdempotencyStore();
-    const cached = await idempotencyStore.get(key);
-    if (!cached) return null;
-    return cached;
+    return await idempotencyStore.getRecord(key);
   }
 
   private async setCachedIdempotentResponse(
@@ -171,8 +163,7 @@ export class CreController {
     statusCode: number,
     body: Record<string, unknown>,
   ) {
-    await this.cleanupIdempotencyStore();
-    await idempotencyStore.set(key, {
+    await idempotencyStore.setRecord(key, {
       statusCode,
       body,
       createdAtMs: Date.now(),

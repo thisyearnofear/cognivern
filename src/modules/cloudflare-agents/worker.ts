@@ -21,6 +21,7 @@ export type Env = {
   OPENAI_API_KEY: string;
   GEMINI_API_KEY: string;
   ANTHROPIC_API_KEY: string;
+  ELEVENLABS_API_KEY: string;
 
   // Agent bindings
   GOVERNANCE_AGENT: DurableObjectNamespace;
@@ -110,6 +111,25 @@ async function handleAgentsAPI(request: Request, env: Env): Promise<Response> {
       const agentId = pathParts[2];
       const actions = await getAgentActions(agentId, env, url.searchParams);
       return Response.json({ success: true, data: actions });
+    }
+
+    // GET /api/agents/:id/briefing - Get voice briefing
+    if (request.method === "GET" && pathParts.length === 4 && pathParts[0] === "api" && pathParts[1] === "agents" && pathParts[3] === "briefing") {
+      const agentId = pathParts[2];
+      const governanceAgent = await getGovernanceAgent(agentId, env);
+
+      const { script, audioResponse } = await governanceAgent.generateVoiceBriefing();
+
+      // Proxy the audio stream with correct headers
+      const response = new Response(audioResponse.body, {
+        headers: {
+          "Content-Type": "audio/mpeg",
+          "X-Briefing-Script": encodeURIComponent(script),
+          "Access-Control-Expose-Headers": "X-Briefing-Script",
+        },
+      });
+
+      return response;
     }
 
     // POST /api/agents - Create/register new agent

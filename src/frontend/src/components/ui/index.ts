@@ -32,6 +32,7 @@ export { PerformanceDashboard } from "./PerformanceDashboard";
 export { LoadingSpinner } from "./LoadingSpinner"; // Consolidated loading components
 export { PageTransition } from "./PageTransition";
 export { Tooltip } from "./Tooltip";
+export { ErrorBoundary, useErrorBoundary } from "./ErrorBoundary";
 
 // Re-export types
 export type { ButtonProps } from "./Button";

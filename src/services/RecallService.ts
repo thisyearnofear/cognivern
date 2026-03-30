@@ -1,5 +1,6 @@
 import logger from "../utils/logger.js";
 import { randomUUID } from "crypto";
+import { circuitBreakers } from "../shared/utils/circuitBreaker.js";
 
 export interface RecallMemory {
   id: string;
@@ -51,7 +52,7 @@ export class RecallService {
       throw new Error("RecallService: Missing API Key");
     }
 
-    try {
+    return circuitBreakers.recall.execute(async () => {
       const memoryId = randomUUID();
       const timestamp = new Date().toISOString();
 
@@ -82,10 +83,7 @@ export class RecallService {
 
       logger.info(`Stored memory to Recall Network: ${memoryId}`);
       return memoryId;
-    } catch (error) {
-      logger.error("Failed to store memory to Recall:", error);
-      throw error;
-    }
+    });
   }
 
   /**
@@ -96,7 +94,7 @@ export class RecallService {
       throw new Error("RecallService: Missing API Key");
     }
 
-    try {
+    return circuitBreakers.recall.execute(async () => {
       const response = await fetch(`${this.config.endpoint}/objects/${id}`, {
         method: "GET",
         headers: {
@@ -111,10 +109,7 @@ export class RecallService {
 
       const data = await response.json();
       return data as RecallMemory;
-    } catch (error) {
-      logger.error("Failed to retrieve memory from Recall:", error);
-      throw error;
-    }
+    });
   }
 
   /**
@@ -129,8 +124,7 @@ export class RecallService {
       throw new Error("RecallService: Missing API Key");
     }
 
-    // Attempting a vector search or query endpoint
-    try {
+    return circuitBreakers.recall.execute(async () => {
       const response = await fetch(`${this.config.endpoint}/query`, {
         method: "POST",
         headers: {
@@ -150,10 +144,7 @@ export class RecallService {
 
       const results = await response.json();
       return results as RecallMemory[];
-    } catch (error) {
-      logger.error("Failed to query Recall:", error);
-      throw error;
-    }
+    });
   }
 
   /**
@@ -163,17 +154,14 @@ export class RecallService {
     if (!this.isConnected) {
       throw new Error("RecallService: Missing API Key");
     }
-    // Real implementation would hit an endpoint.
-    // Since we don't know the stats endpoint, we'll throw "Not Implemented" or try a generic one
-    try {
+
+    return circuitBreakers.recall.execute(async () => {
       const response = await fetch(`${this.config.endpoint}/stats`, {
         headers: { Authorization: `Bearer ${this.config.apiKey}` },
       });
-      if (!response.ok) return { totalMemories: 0, storageUsed: "0 KB" }; // Or throw
+      if (!response.ok) return { totalMemories: 0, storageUsed: "0 KB" };
       return await response.json();
-    } catch (e) {
-      throw new Error("Failed to fetch Recall stats");
-    }
+    });
   }
 
   /**

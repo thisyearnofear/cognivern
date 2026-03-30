@@ -22,9 +22,11 @@ Cognivern empowers developers to build and operate agents with confidence by lev
 
 - **Unified Dashboard**: Ecosystem-wide overview with spatial visualization and performance telemetry.
 - **Behavioral Analytics**: Tracking "Policy Compliance Score," "Autonomy Level," and "Risk Profile."
+- **Voice of Governance (NEW)**: High-quality AI audio briefings of recent governance actions, powered by **ElevenLabs**.
 - **Audit Logs & AI Insights**: Human-readable governance summaries powered by Gemini.
 - **Forensic Detail**: Deep-dive into an agent's "Thoughts" with cognitive path reconstruction.
 - **Policy Engine**: Modular governance guards with visual risk ratings.
+- **Cloudflare Native**: High-performance governance agents running on **Cloudflare Workers** with stateful **Durable Objects**.
 
 ## Who it’s for
 
@@ -79,6 +81,11 @@ SAPIENCE_PRIVATE_KEY=your_private_key_here
 # Resilient LLM Layer (REQUIRED)
 ROUTEWAY_API_KEY=your_routeway_key
 GROQ_API_KEY=your_groq_key
+ELEVENLABS_API_KEY=your_elevenlabs_key
+
+# Cloudflare (REQUIRED for Governance Agents)
+CLOUDFLARE_ACCOUNT_ID=your_id
+CLOUDFLARE_API_TOKEN=your_token
 
 # Recall Network (REQUIRED for Memory)
 RECALL_API_KEY=your_recall_key

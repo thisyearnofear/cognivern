@@ -7,6 +7,7 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { useAgentData } from "../../hooks/useAgentData";
 import { AgentType } from "../../types";
+import VoiceBriefing from "./VoiceBriefing";
 
 const profileContainerStyles = css`
   max-width: 1400px;
@@ -361,6 +362,8 @@ const AgentProfile: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+
+          <VoiceBriefing agentId={agentId || "recall"} />
         </div>
 
         <div css={mainContentColumnStyles}>
