@@ -2,11 +2,14 @@
  * Multi-Model Router for AI Governance Analysis
  *
  * Routes governance analysis requests to the optimal AI provider:
- * - Workers AI (default, cost-efficient)
+ * - Fireworks (primary, cost-efficient)
+ * - Kilocode (fallback, free models)
+ * - Workers AI (Cloudflare native)
  * - OpenAI (high quality)
  * - Gemini (advanced reasoning)
+ * - Anthropic (alternative)
  *
- * Implements fallback logic and provider health checking.
+ * Implements fallback logic, provider health checking, and user-provided API keys.
  */
 
 import type { AIAnalysisResult, MultiModelConfig } from "./types";
@@ -21,6 +24,14 @@ export class MultiModelRouter {
           enabled: true,
           model: "@cf/meta/llama-3-8b-instruct",
         },
+        fireworks: {
+          enabled: true,
+          model: "accounts/fireworks/models/glm-5",
+        },
+        kilocode: {
+          enabled: true,
+          model: "minimax/minimax-m2.5:free",
+        },
         openai: {
           enabled: true,
           model: "gpt-4o-mini",
@@ -29,11 +40,38 @@ export class MultiModelRouter {
           enabled: true,
           model: "gemini-2.0-flash-exp",
         },
+        anthropic: {
+          enabled: true,
+          model: "claude-3-haiku-20240307",
+        },
       },
-      fallbackOrder: ["workers-ai", "openai", "gemini"],
+      // Default fallback order: Fireworks → Kilocode → Workers AI → OpenAI → Gemini → Anthropic
+      fallbackOrder: ["fireworks", "kilocode", "workers-ai", "openai", "gemini", "anthropic"],
       timeoutMs: 30000,
+      userApiKeys: {},
       ...config,
     };
+  }
+
+  /**
+   * Get API key for a provider (user-provided or environment variable)
+   */
+  private getApiKey(provider: string): string | undefined {
+    // Check user-provided keys first
+    const userKey = this.config.userApiKeys?.[provider as keyof typeof this.config.userApiKeys];
+    if (userKey) return userKey;
+
+    // Fall back to environment variables
+    const envKeyMap: Record<string, string> = {
+      fireworks: "FIREWORKS_API_KEY",
+      kilocode: "KILOCODE_API_KEY",
+      openai: "OPENAI_API_KEY",
+      gemini: "GEMINI_API_KEY",
+      anthropic: "ANTHROPIC_API_KEY",
+    };
+
+    const envKey = envKeyMap[provider];
+    return envKey ? process.env[envKey] : undefined;
   }
 
   /**
@@ -41,7 +79,7 @@ export class MultiModelRouter {
    */
   async analyzeGovernance(
     prompt: string,
-    preference: "auto" | "workers-ai" | "openai" | "gemini" = "auto"
+    preference: "auto" | "workers-ai" | "fireworks" | "kilocode" | "openai" | "gemini" | "anthropic" = "auto"
   ): Promise<string> {
     const provider = preference === "auto"
       ? this.config.fallbackOrder[0]
@@ -56,7 +94,7 @@ export class MultiModelRouter {
   async generateBriefingScript(
     thoughts: string[],
     actions: any[],
-    preference: "auto" | "workers-ai" | "openai" | "gemini" = "auto"
+    preference: "auto" | "workers-ai" | "fireworks" | "kilocode" | "openai" | "gemini" | "anthropic" = "auto"
   ): Promise<string> {
     const provider = preference === "auto"
       ? this.config.fallbackOrder[0]
@@ -120,16 +158,108 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
       switch (provider) {
         case "workers-ai":
           return this.executeWorkersAI(prompt, controller.signal, taskType);
+        case "fireworks":
+          return this.executeFireworks(prompt, controller.signal, taskType);
+        case "kilocode":
+          return this.executeKilocode(prompt, controller.signal, taskType);
         case "openai":
           return this.executeOpenAI(prompt, controller.signal, taskType);
         case "gemini":
           return this.executeGemini(prompt, controller.signal, taskType);
+        case "anthropic":
+          return this.executeAnthropic(prompt, controller.signal, taskType);
         default:
           throw new Error(`Unknown provider: ${provider}`);
       }
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  /**
+   * Fireworks AI execution (primary provider)
+   */
+  private async executeFireworks(
+    prompt: string,
+    signal: AbortSignal,
+    taskType: "governance" | "briefing"
+  ): Promise<string> {
+    const apiKey = this.getApiKey("fireworks");
+
+    if (!apiKey) {
+      throw new Error("Fireworks API key not configured");
+    }
+
+    const response = await fetch("https://api.fireworks.ai/inference/v1/chat/completions", {
+      method: "POST",
+      signal,
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({
+        model: this.config.providers.fireworks!.model,
+        messages: [
+          { role: "system", content: this.getSystemPrompt(taskType) },
+          { role: "user", content: prompt },
+        ],
+        temperature: taskType === "briefing" ? 0.7 : 0.3,
+        max_tokens: 4096,
+        top_p: 1,
+        top_k: 40,
+        presence_penalty: 0,
+        frequency_penalty: 0,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fireworks API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
+  }
+
+  /**
+   * Kilocode execution (free fallback)
+   */
+  private async executeKilocode(
+    prompt: string,
+    signal: AbortSignal,
+    taskType: "governance" | "briefing"
+  ): Promise<string> {
+    const apiKey = this.getApiKey("kilocode");
+
+    if (!apiKey) {
+      throw new Error("Kilocode API key not configured");
+    }
+
+    const response = await fetch("https://api.kilo.ai/api/openrouter/v1/chat/completions", {
+      method: "POST",
+      signal,
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({
+        model: this.config.providers.kilocode!.model,
+        messages: [
+          { role: "system", content: this.getSystemPrompt(taskType) },
+          { role: "user", content: prompt },
+        ],
+        temperature: taskType === "briefing" ? 0.7 : 0.3,
+        max_tokens: 1024,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Kilocode API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
   }
 
   /**
@@ -176,7 +306,7 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
     signal: AbortSignal,
     taskType: "governance" | "briefing"
   ): Promise<string> {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = this.getApiKey("openai");
 
     if (!apiKey) {
       throw new Error("OpenAI API key not configured");
@@ -217,7 +347,7 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
     signal: AbortSignal,
     taskType: "governance" | "briefing"
   ): Promise<string> {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = this.getApiKey("gemini");
 
     if (!apiKey) {
       throw new Error("Gemini API key not configured");
@@ -258,6 +388,46 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
   }
 
   /**
+   * Anthropic execution
+   */
+  private async executeAnthropic(
+    prompt: string,
+    signal: AbortSignal,
+    taskType: "governance" | "briefing"
+  ): Promise<string> {
+    const apiKey = this.getApiKey("anthropic");
+
+    if (!apiKey) {
+      throw new Error("Anthropic API key not configured");
+    }
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      signal,
+      headers: {
+        "x-api-key": apiKey,
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: this.config.providers.anthropic!.model,
+        max_tokens: 1024,
+        system: this.getSystemPrompt(taskType),
+        messages: [
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.content?.[0]?.text || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
+  }
+
+  /**
    * System prompt for governance analysis or briefing
    */
   private getSystemPrompt(taskType: "governance" | "briefing"): string {
@@ -275,7 +445,7 @@ Voice Guidelines:
 - DO NOT use Markdown formatting (bold, italics, etc.) as this script will be read by TTS.`;
     }
 
-    return \`You are an AI governance evaluator for autonomous AI agents. Your role is to:
+    return `You are an AI governance evaluator for autonomous AI agents. Your role is to:
 
 1. Evaluate agent actions against governance policies
 2. Assess risk levels objectively (0-100 scale)
@@ -297,7 +467,7 @@ Scoring guidelines:
 - 61-80: Low risk, generally safe
 - 81-100: Very safe, clearly compliant
 
-Be strict but fair. When in doubt, lean toward caution.\`;
+Be strict but fair. When in doubt, lean toward caution.`;
   }
 
   /**

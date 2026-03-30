@@ -28,8 +28,15 @@ export interface AgentMetrics {
 export interface AgentConfiguration {
   maxThoughtHistory: number;
   enableAuditLogging: boolean;
-  modelPreference: "auto" | "workers-ai" | "openai" | "gemini";
+  modelPreference: "auto" | "workers-ai" | "fireworks" | "kilocode" | "openai" | "gemini" | "anthropic";
   enableVoiceBriefing?: boolean;
+  userApiKeys?: {
+    fireworks?: string;
+    kilocode?: string;
+    openai?: string;
+    gemini?: string;
+    anthropic?: string;
+  };
 }
 
 export interface GovernanceAction {
@@ -103,6 +110,14 @@ export interface MultiModelConfig {
       enabled: boolean;
       model: string;
     };
+    fireworks?: {
+      enabled: boolean;
+      model: string;
+    };
+    kilocode?: {
+      enabled: boolean;
+      model: string;
+    };
     openai?: {
       enabled: boolean;
       model: string;
@@ -111,7 +126,31 @@ export interface MultiModelConfig {
       enabled: boolean;
       model: string;
     };
+    anthropic?: {
+      enabled: boolean;
+      model: string;
+    };
   };
   fallbackOrder: string[];
   timeoutMs: number;
+  // User-provided API keys (override environment variables)
+  userApiKeys?: {
+    fireworks?: string;
+    kilocode?: string;
+    openai?: string;
+    gemini?: string;
+    anthropic?: string;
+  };
+}
+
+export interface ProviderPreference {
+  primary: string;
+  fallbacks: string[];
+  userApiKeys?: {
+    fireworks?: string;
+    kilocode?: string;
+    openai?: string;
+    gemini?: string;
+    anthropic?: string;
+  };
 }
