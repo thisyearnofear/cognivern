@@ -190,6 +190,11 @@ export class ApiModule extends BaseService {
       "/dashboard/bundle",
       "/agents",
       "/agents/unified",
+      "/agents/connections",
+      "/audit/logs",
+      "/audit/insights",
+      "/metrics/ux-summary",
+      "/projects",
     ];
     if (publicEndpoints.some((endpoint) => req.path === endpoint)) {
       return next();
