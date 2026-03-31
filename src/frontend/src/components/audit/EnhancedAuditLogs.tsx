@@ -359,10 +359,8 @@ export default function EnhancedAuditLogs() {
         Object.entries(filters).filter(([_, value]) => value !== ""),
       ).toString();
 
-      const response = await fetch(`/api/audit/logs?${queryParams}`, {
-        headers: {
-          "X-API-KEY": getApiKey(),
-        },
+      const response = await fetch(getApiUrl(`/api/audit/logs?${queryParams}`), {
+        headers: getRequestHeaders(),
       });
 
       if (response.ok) {
