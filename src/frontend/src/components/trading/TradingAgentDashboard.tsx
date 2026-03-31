@@ -60,6 +60,8 @@ export default function TradingAgentDashboard() {
 function TradingAgentDashboardContent() {
   const navigate = useNavigate();
   const [showComparison, setShowComparison] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [comparisonFilters, setComparisonFilters] =
     useState<AgentComparisonFilters>(defaultFilters);
   const [comparisonData, setComparisonData] = useState<any[]>([]);
@@ -432,11 +434,12 @@ function TradingAgentDashboardContent() {
   ];
 
   const handleCarouselItemClick = (id: string) => {
-    navigate(`/agents/${id}`);
+    // Scroll to the agent monitor or navigate to it
+    const element = document.getElementById(`agent-monitor-${id}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
   };
-
-  const canStartAgent =
-    selectedAgentType !== "vincent" || vincentStatus.hasConsent;
 
   return (
     <div css={styles.containerStyles}>

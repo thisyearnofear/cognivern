@@ -27,12 +27,14 @@ export const AgentMonitor: React.FC<AgentMonitorProps> = ({
 }) => {
   return (
     <ErrorBoundary componentName={`Agent Monitor: ${title}`}>
-      <AgentMonitorContent
-        agentType={agentType}
-        title={title}
-        description={description}
-        isShowcase={isShowcase}
-      />
+      <div id={`agent-monitor-${agentType}`}>
+        <AgentMonitorContent
+          agentType={agentType}
+          title={title}
+          description={description}
+          isShowcase={isShowcase}
+        />
+      </div>
     </ErrorBoundary>
   );
 };
