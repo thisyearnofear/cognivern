@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAppStore } from "../../stores/appStore";
 import { designTokens } from "../../styles/design-system";
+import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { Button } from "../ui/Button";
 import {
   TrendingUp,
@@ -30,6 +31,7 @@ interface OnboardingStep {
 export const SmartOnboarding: React.FC = () => {
   const { preferences, user, completeOnboarding, updatePreferences } =
     useAppStore();
+  const { isMobile } = useBreakpoint();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedUserType, setSelectedUserType] = useState<string>("");
   const [showOnboarding, setShowOnboarding] = useState(false);
