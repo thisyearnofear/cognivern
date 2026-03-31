@@ -30,7 +30,7 @@ export interface AgentCardProps {
  */
 
 const cardWrapperStyles = (compact: boolean) => css`
-  ${compact ? "width: 280px; flex-shrink: 0;" : "width: 100%;"}
+  ${compact ? "width: 240px; flex-shrink: 0;" : "width: 100%; max-width: 320px;"}
   display: flex;
   flex-direction: column;
   height: 100%;
