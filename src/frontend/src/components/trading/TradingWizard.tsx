@@ -107,14 +107,14 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
   const agentTypes = [
     {
       id: "recall",
-      title: "Recall Competition Agent",
+      title: "Recall Intelligence Agent",
       description:
-        "Optimized for trading competitions with aggressive strategies",
+        "High-fidelity trading powered by Recall Network's decentralized memory and AgentRank™ verification.",
       icon: <Trophy size={24} />,
       features: [
-        "Competition-focused",
-        "High-frequency trading",
-        "Performance tracking",
+        "On-chain memory persistence",
+        "AgentRank™ reputation",
+        "Verifiable performance receipts",
       ],
       recommended: config.userType === "advanced",
     },
