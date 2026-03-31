@@ -365,8 +365,9 @@ export default function EnhancedAuditLogs() {
 
       if (response.ok) {
         const data = await response.json();
-        setLogs(data);
-        calculateMetrics(data);
+        const logsArray = Array.isArray(data) ? data : (data.data && Array.isArray(data.data) ? data.data : []);
+        setLogs(logsArray);
+        calculateMetrics(logsArray);
       } else {
         setError("Failed to load audit logs");
         setLogs([]);

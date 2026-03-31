@@ -20,12 +20,12 @@ import {
   ChevronDown,
   Search,
   Trophy,
-  Users,
   Zap,
 } from "lucide-react";
 import { designTokens, keyframeAnimations } from "../../styles/design-system";
 import { AgentType } from "../../types";
 import { useAgentData, useTradingData } from "../../hooks/useAgentData";
+import { useBreakpoint } from "../../hooks/useMediaQuery";
 import {
   Card,
   CardContent,
@@ -39,6 +39,7 @@ import { ErrorBoundary } from "../ui/ErrorBoundary";
 import TradingChart from "./TradingChart";
 import TradeHistory from "./TradeHistory";
 import { AgentMonitor } from "./AgentMonitor";
+import { InteractiveCarousel, CarouselItem } from "../ui/InteractiveCarousel";
 import { agentApi } from "../../services/apiService";
 import { useNavigate } from "react-router-dom";
 import {
@@ -59,6 +60,7 @@ export default function TradingAgentDashboard() {
 
 function TradingAgentDashboardContent() {
   const navigate = useNavigate();
+  const { isMobile } = useBreakpoint();
   const [showComparison, setShowComparison] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [error, setError] = useState<string | null>(null);
