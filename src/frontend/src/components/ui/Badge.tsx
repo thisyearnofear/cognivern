@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 import React from "react";
 import { css } from "@emotion/react";
 import { designTokens } from "../../styles/design-system";

@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 import React, { useEffect, useState } from "react";
 import { toastStyles } from "../../styles/design-system";
 import { css } from "@emotion/react";
