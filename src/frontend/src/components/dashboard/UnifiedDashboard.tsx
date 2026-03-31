@@ -9,6 +9,8 @@
  * - Pull-to-refresh functionality
  * - Touch-optimized interactions (44px+ targets)
  * - Progressive disclosure for mobile
+ *
+ * Version 1.0.1 - Fixes useMemo and backend connectivity
  */
 
 import { useState, useEffect, useRef, useMemo } from "react";
