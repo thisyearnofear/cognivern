@@ -541,11 +541,23 @@ export class ApiModule extends BaseService {
     // Mount API router
     this.app.use("/api", apiRouter);
 
-    // 404 handler
+    // 404 handler for unknown routes
     this.app.use("*", (req, res) => {
+      // If it's an /api request that didn't match anything, 404
+      if (req.path.startsWith("/api")) {
+        res.status(404).json({
+          success: false,
+          error: "API Endpoint not found",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      // For other top-level routes, we'll let the load balancer/proxy handle them
+      // but if we're here, we should still return a JSON 404 for consistency
       res.status(404).json({
         success: false,
-        error: "Endpoint not found",
+        error: "Resource not found",
         timestamp: new Date().toISOString(),
       });
     });
