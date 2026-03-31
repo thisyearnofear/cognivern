@@ -190,9 +190,12 @@ export class ApiModule extends BaseService {
       "/agents",
       "/agents/unified",
       "/agents/connections",
+      "/agents/recall/status",
+      "/agents/recall/decisions",
       "/audit/logs",
       "/audit/insights",
       "/recall/status",
+      "/recall/decisions",
       "/metrics/ux-summary",
       "/projects",
     ];

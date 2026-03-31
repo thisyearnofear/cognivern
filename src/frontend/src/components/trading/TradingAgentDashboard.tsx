@@ -431,10 +431,6 @@ function TradingAgentDashboardContent() {
     gap: ${designTokens.spacing[3]};
   `;
 
-  const handleCarouselItemClick = (id: string) => {
-    navigate(`/agents/${id}`);
-  };
-
   const carouselItems: CarouselItem[] = [
     {
       id: "recall",
@@ -485,6 +481,10 @@ function TradingAgentDashboardContent() {
       ),
     },
   ];
+
+  const handleCarouselItemClick = (id: string) => {
+    navigate(`/agents/${id}`);
+  };
 
   const canStartAgent =
     selectedAgentType !== "vincent" || vincentStatus.hasConsent;
