@@ -72,6 +72,7 @@ Cognivern separates concerns into two planes:
 - **Governance Engine**: Centralized policy management (`governanceStore`) with visual safety scores
 - **Governance Agent (Cloudflare DO)**: Stateful agent running on the edge, maintaining thought history and enforcing policies.
 - **Policy Service**: Validates actions against risk management rules
+- **Privacy Engine**: Implements PII redaction and ZK-attestations for confidential agent reasoning (supporting OpenClaw, Hermes).
 - **Trading Agent**: Executes forecasting and trading strategies
 
 ### Infrastructure Layer

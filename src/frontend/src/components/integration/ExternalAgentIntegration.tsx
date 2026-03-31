@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { css } from "@emotion/react";
+import { getApiHeaders, getApiUrl } from "../../utils/api";
 import { designTokens, tradingStyles } from "../../styles/design-system";
 
 interface ExternalAgent {
@@ -50,6 +51,8 @@ export default function ExternalAgentIntegration() {
     { value: "anthropic", label: "Anthropic" },
     { value: "google", label: "Google AI" },
     { value: "mistral", label: "Mistral AI" },
+    { value: "openclaw", label: "OpenClaw" },
+    { value: "hermes", label: "Hermes Agent" },
     { value: "custom", label: "Custom Provider" },
   ];
 
@@ -66,10 +69,8 @@ export default function ExternalAgentIntegration() {
   const fetchAgents = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/external-agents", {
-        headers: {
-          "X-API-KEY": import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
-        },
+      const response = await fetch(getApiUrl("/external-agents"), {
+        headers: getApiHeaders(),
       });
 
       if (!response.ok) {
@@ -112,10 +113,8 @@ export default function ExternalAgentIntegration() {
 
   const checkWalletConnection = async () => {
     try {
-      const response = await fetch("/api/wallet/info", {
-        headers: {
-          "X-API-KEY": import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
-        },
+      const response = await fetch(getApiUrl("/wallet/info"), {
+        headers: getApiHeaders(),
       });
 
       if (response.ok) {
@@ -137,12 +136,9 @@ export default function ExternalAgentIntegration() {
 
   const connectWallet = async () => {
     try {
-      const response = await fetch("/api/wallet/connect", {
+      const response = await fetch(getApiUrl("/wallet/connect"), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-KEY": import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
-        },
+        headers: getApiHeaders(),
       });
 
       if (response.ok) {
@@ -161,18 +157,30 @@ export default function ExternalAgentIntegration() {
     e.preventDefault();
 
     try {
+      // Add privacy-preserving metadata for OpenClaw/Hermes
+      const privacyConfig =
+        newAgent.provider === "openclaw" || newAgent.provider === "hermes"
+          ? {
+              redactionEnabled: true,
+              zkProofsRequired: true,
+              localOnlyForensics: false,
+            }
+          : {
+              redactionEnabled: false,
+              zkProofsRequired: false,
+              localOnlyForensics: false,
+            };
+
       // Add capabilities to the new agent
       const agentWithCapabilities = {
         ...newAgent,
         capabilities: selectedCapabilities,
+        privacyConfig,
       };
 
-      const response = await fetch("/api/external-agents", {
+      const response = await fetch(getApiUrl("/external-agents"), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-KEY": import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
-        },
+        headers: getApiHeaders(),
         body: JSON.stringify(agentWithCapabilities),
       });
 
@@ -229,10 +237,7 @@ export default function ExternalAgentIntegration() {
         `/api/external-agents/${agentId}/disconnect`,
         {
           method: "POST",
-          headers: {
-            "X-API-KEY":
-              import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
-          },
+          headers: getApiHeaders(),
         },
       );
 
@@ -256,11 +261,9 @@ export default function ExternalAgentIntegration() {
 
   const reconnectAgent = async (agentId: string) => {
     try {
-      const response = await fetch(`/api/external-agents/${agentId}/connect`, {
+      const response = await fetch(getApiUrl(`/external-agents/${agentId}/connect`), {
         method: "POST",
-        headers: {
-          "X-API-KEY": import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
-        },
+        headers: getApiHeaders(),
       });
 
       if (!response.ok) {
@@ -287,11 +290,9 @@ export default function ExternalAgentIntegration() {
     }
 
     try {
-      const response = await fetch(`/api/external-agents/${agentId}`, {
+      const response = await fetch(getApiUrl(`/external-agents/${agentId}`), {
         method: "DELETE",
-        headers: {
-          "X-API-KEY": import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
-        },
+        headers: getApiHeaders(),
       });
 
       if (!response.ok) {

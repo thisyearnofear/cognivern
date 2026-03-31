@@ -1,4 +1,4 @@
-import { FileText, Users, Shield, Plus } from "lucide-react";
+import { FileText, Users, Shield, Plus, PlayCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { css } from "@emotion/react";
 import { designTokens } from "../../styles/design-system";
@@ -15,7 +15,9 @@ import {
   Badge,
   AgentCard,
   LoadingSpinner,
+  ErrorBoundary,
 } from "../ui";
+import AgentSimulation from "../agents/AgentSimulation";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { agentApi } from "../../services/apiService";
 
@@ -39,9 +41,17 @@ interface AgentConnection {
  */
 
 export default function PolicyManagement() {
+  return (
+    <ErrorBoundary componentName="Policy Management">
+      <PolicyManagementContent />
+    </ErrorBoundary>
+  );
+}
+
+function PolicyManagementContent() {
   const { isMobile, isTablet } = useBreakpoint();
   const [activeTab, setActiveTab] = useState<
-    "templates" | "policies" | "agents"
+    "templates" | "policies" | "agents" | "simulation"
   >("templates");
 
   // Global Governance State
@@ -204,19 +214,29 @@ export default function PolicyManagement() {
           css={tabButtonStyles(activeTab === "templates")}
           onClick={() => setActiveTab("templates")}
         >
+          <FileText size={16} style={{ marginRight: "8px" }} />
           Templates
         </button>
         <button
           css={tabButtonStyles(activeTab === "policies")}
           onClick={() => setActiveTab("policies")}
         >
+          <Shield size={16} style={{ marginRight: "8px" }} />
           My Policies ({policies.length})
         </button>
         <button
           css={tabButtonStyles(activeTab === "agents")}
           onClick={() => setActiveTab("agents")}
         >
+          <Users size={16} style={{ marginRight: "8px" }} />
           Connected Agents
+        </button>
+        <button
+          css={tabButtonStyles(activeTab === "simulation")}
+          onClick={() => setActiveTab("simulation")}
+        >
+          <PlayCircle size={16} style={{ marginRight: "8px" }} />
+          Simulation Mode
         </button>
       </nav>
 
@@ -332,6 +352,18 @@ export default function PolicyManagement() {
               </div>
             )}
           </>
+        )}
+
+        {activeTab === "simulation" && (
+          <div css={css`animation: fadeIn 0.3s ease-out;`}>
+            <div css={css`margin-bottom: ${designTokens.spacing[6]};`}>
+              <h2 css={sectionTitleStyles}>Policy Simulation</h2>
+              <p css={css`color: ${designTokens.colors.neutral[400]}; font-size: ${designTokens.typography.fontSize.sm};`}>
+                Test your governance policies against historical data or edge-case scenarios before applying them to live agents.
+              </p>
+            </div>
+            <AgentSimulation />
+          </div>
         )}
       </main>
     </div>

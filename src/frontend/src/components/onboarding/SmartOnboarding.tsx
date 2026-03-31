@@ -45,34 +45,46 @@ export const SmartOnboarding: React.FC = () => {
     {
       id: "trader",
       title: "AI Trader",
-      description: "I want to use AI agents for automated trading",
+      description: "Automate high-yield strategies with risk-aware agents.",
       icon: <TrendingUp size={32} color={designTokens.colors.primary[500]} />,
       features: [
-        "Automated trading strategies",
-        "Risk management",
-        "Performance analytics",
+        "Real-time alpha detection",
+        "Risk-mitigated trade execution",
+        "Verifiable performance metrics",
       ],
     },
     {
       id: "developer",
-      title: "Developer",
-      description: "I want to build and integrate AI governance solutions",
+      title: "Builder",
+      description: "Integrate governance APIs into your agentic stack.",
       icon: <Code size={32} color={designTokens.colors.primary[500]} />,
-      features: ["API access", "Custom policies", "Integration tools"],
+      features: [
+        "Sovereign data SDK",
+        "Custom policy enforcement",
+        "Multi-chain coordination layer",
+      ],
     },
     {
       id: "governance",
-      title: "Governance Expert",
-      description: "I want to create and manage AI governance policies",
+      title: "Guardian",
+      description: "Enforce safety and compliance across agent fleets.",
       icon: <ShieldCheck size={32} color={designTokens.colors.primary[500]} />,
-      features: ["Policy creation", "Compliance monitoring", "Audit trails"],
+      features: [
+        "Real-time policy guardrails",
+        "Immutable forensic audit trails",
+        "Automated compliance scoring",
+      ],
     },
     {
       id: "explorer",
-      title: "Explorer",
-      description: "I want to explore AI governance capabilities",
+      title: "Curious",
+      description: "See the Agentic Era in action with a live demo.",
       icon: <Search size={32} color={designTokens.colors.primary[500]} />,
-      features: ["Demo access", "Learning resources", "Guided tours"],
+      features: [
+        "Interactive network map",
+        "Agent thought-stream observation",
+        "No-wallet playground mode",
+      ],
     },
   ];
 
@@ -253,8 +265,17 @@ export const SmartOnboarding: React.FC = () => {
               flexWrap: "wrap",
             }}
           >
+            <Button
+              variant="outline"
+              onClick={() => {
+                // explorer logic with demo agents
+                handleComplete();
+              }}
+            >
+              Demo Playground
+            </Button>
             <Button variant="primary" onClick={() => handleComplete()}>
-              Go to Dashboard
+              Enter Dashboard
             </Button>
           </div>
         </div>
@@ -315,24 +336,37 @@ export const SmartOnboarding: React.FC = () => {
       >
         <Card variant="elevated">
           <CardHeader>
-            <CardTitle>Get Started With Cognivern</CardTitle>
-            <CardDescription>
-              Take a 2-minute setup to personalize your dashboard.
-            </CardDescription>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ flex: 1 }}>
+                <CardTitle style={{ fontSize: "16px" }}>Experience the Agentic Era</CardTitle>
+                <CardDescription style={{ fontSize: "13px" }}>
+                  Explore the dashboard with live agents and verifiable audit trails.
+                </CardDescription>
+              </div>
+              <div style={{
+                background: designTokens.colors.primary[50],
+                padding: "8px",
+                borderRadius: "12px",
+                display: isMobile ? "none" : "flex"
+              }}>
+                <Brain size={24} color={designTokens.colors.primary[500]} />
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent style={{ paddingTop: 0 }}>
             <div
               style={{
                 display: "flex",
                 justifyContent: "flex-end",
                 gap: designTokens.spacing[2],
+                marginTop: designTokens.spacing[2]
               }}
             >
-              <Button variant="ghost" onClick={handleSkip}>
-                Dismiss
+              <Button variant="ghost" size="sm" onClick={handleSkip}>
+                Maybe Later
               </Button>
-              <Button variant="primary" onClick={handleStartOnboarding}>
-                Start Setup
+              <Button variant="primary" size="sm" onClick={handleStartOnboarding}>
+                Quick Start
               </Button>
             </div>
           </CardContent>

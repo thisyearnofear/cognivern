@@ -30,6 +30,7 @@ import {
 } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
+import { ErrorBoundary } from "../ui/ErrorBoundary";
 import VincentConsentFlow from "./VincentConsentFlow";
 import PolicyConfiguration from "./PolicyConfiguration";
 import TradingChart from "./TradingChart";
@@ -46,6 +47,14 @@ import {
 import * as styles from "./TradingAgentDashboard.styles";
 
 export default function TradingAgentDashboard() {
+  return (
+    <ErrorBoundary componentName="Trading Agent Dashboard">
+      <TradingAgentDashboardContent />
+    </ErrorBoundary>
+  );
+}
+
+function TradingAgentDashboardContent() {
   const navigate = useNavigate();
   const [selectedAgentType, setSelectedAgentType] =
     useState<AgentType>("recall");
