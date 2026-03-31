@@ -199,6 +199,9 @@ export class ApiModule extends BaseService {
       "/metrics/ux-summary",
       "/cre/runs",
       "/cre/projects",
+      "/cre/forecast",
+      "/cre/runs/:runId/retry",
+      "/cre/runs/:runId/approval",
       "/projects",
     ];
     if (publicEndpoints.some((endpoint) => req.path === endpoint)) {
