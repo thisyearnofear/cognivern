@@ -1,19 +1,10 @@
 import { getApiUrl, getApiKey } from "../utils/api";
+import { UxEventType, UxEvent } from "../types";
 
 const HEADERS = {
   "Content-Type": "application/json",
   "X-API-KEY": getApiKey(),
 };
-
-export type UxEventType =
-  | "run_console_view"
-  | "run_cancel"
-  | "run_retry"
-  | "run_retry_from_step"
-  | "run_plan_opened"
-  | "run_plan_saved"
-  | "run_approval_approve"
-  | "run_approval_reject";
 
 export const uxAnalytics = {
   track: async (
@@ -21,17 +12,21 @@ export const uxAnalytics = {
     payload: Record<string, unknown> = {},
   ): Promise<void> => {
     try {
+      const event: UxEvent = {
+        eventType,
+        payload,
+        timestamp: new Date().toISOString(),
+      };
+
       await fetch(getApiUrl("/api/metrics/ux-events"), {
         method: "POST",
         headers: HEADERS,
-        body: JSON.stringify({
-          eventType,
-          payload,
-          timestamp: new Date().toISOString(),
-        }),
+        body: JSON.stringify(event),
       });
     } catch {
       // Non-blocking analytics.
     }
   },
 };
+
+export type { UxEventType };

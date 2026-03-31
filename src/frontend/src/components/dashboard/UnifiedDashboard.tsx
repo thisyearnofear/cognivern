@@ -14,7 +14,7 @@
  */
 
 /** @jsxImportSource @emotion/react */
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { css } from "@emotion/react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -49,17 +49,20 @@ import {
   StatCard,
   AgentCard,
   Button,
-  EcosystemVisualizer,
   DataTable,
   Badge,
   Chart,
   Modal,
   GenerativeReveal,
+  LoadingSpinner,
 } from "../ui";
 import { Node } from "../ui/EcosystemVisualizer";
 import * as styles from "./UnifiedDashboard.styles";
 import { Column } from "../ui/DataTable";
 import { ChartDataPoint } from "../ui/Chart";
+
+// Lazy load heavy components for performance
+const EcosystemVisualizer = lazy(() => import("../ui/EcosystemVisualizer").then(module => ({ default: module.EcosystemVisualizer })));
 
 interface DashboardProps {
   mode?: "full" | "minimal"; // minimal for agent-to-agent
@@ -427,11 +430,13 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
           </div>
         </div>
         <Card overflow="hidden">
-           <EcosystemVisualizer
-             nodes={ecosystemNodes}
-             loading={isLoading}
-             onNodeClick={handleNodeClick}
-           />
+           <Suspense fallback={<div css={styles.loadingStyles}><LoadingSpinner size="lg" /></div>}>
+             <EcosystemVisualizer
+               nodes={ecosystemNodes}
+               loading={isLoading}
+               onNodeClick={handleNodeClick}
+             />
+           </Suspense>
         </Card>
       </section>
 

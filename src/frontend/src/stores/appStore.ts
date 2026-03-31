@@ -9,6 +9,7 @@ export interface UserPreferences {
   lastVisited: string;
   dashboardLayout: "simplified" | "advanced";
   notifications: boolean;
+  shadowedAgents: string[];
 }
 
 export interface User {
@@ -45,6 +46,7 @@ const defaultPreferences: UserPreferences = {
   lastVisited: "/",
   dashboardLayout: "simplified",
   notifications: true,
+  shadowedAgents: [],
 };
 
 const defaultUser: User = {
