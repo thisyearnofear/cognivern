@@ -192,6 +192,10 @@ export class ApiModule extends BaseService {
       "/agents/connections",
       "/agents/recall/status",
       "/agents/recall/decisions",
+      "/agents/vincent/status",
+      "/agents/vincent/decisions",
+      "/agents/sapience/status",
+      "/agents/sapience/decisions",
       "/audit/logs",
       "/audit/insights",
       "/recall/status",
@@ -340,6 +344,31 @@ export class ApiModule extends BaseService {
 
     apiRouter.get("/agents/unified", (req, res) => {
       this.controllers.get("agents").getUnified(req, res);
+    });
+
+    // Specific agent status/decisions routes for dashboard
+    apiRouter.get("/agents/recall/status", (req, res) => {
+      this.controllers.get("recall").getStatus(req, res);
+    });
+
+    apiRouter.get("/agents/recall/decisions", (req, res) => {
+      this.controllers.get("recall").getDecisions(req, res);
+    });
+
+    apiRouter.get("/agents/vincent/status", (req, res) => {
+      this.controllers.get("recall").getStatus(req, res);
+    });
+
+    apiRouter.get("/agents/vincent/decisions", (req, res) => {
+      this.controllers.get("recall").getDecisions(req, res);
+    });
+
+    apiRouter.get("/agents/sapience/status", (req, res) => {
+      this.controllers.get("sapience").getStatus(req, res);
+    });
+
+    apiRouter.get("/agents/sapience/decisions", (req, res) => {
+      this.controllers.get("sapience").getDecisions(req, res);
     });
 
     // Parameterized routes come after specific routes
@@ -517,13 +546,17 @@ export class ApiModule extends BaseService {
       this.controllers.get("recall").getDecisions(req, res);
     });
 
-    // Compatibility aliases for Agents dashboard
-    apiRouter.get("/agents/recall/status", (req, res) => {
+    // Compatibility aliases for Agents dashboard (deprecated - moved to /agents/...)
+    apiRouter.get("/recall/status", (req, res) => {
       this.controllers.get("recall").getStatus(req, res);
     });
 
-    apiRouter.get("/agents/recall/decisions", (req, res) => {
+    apiRouter.get("/recall/decisions", (req, res) => {
       this.controllers.get("recall").getDecisions(req, res);
+    });
+
+    apiRouter.get("/sapience/status", (req, res) => {
+      this.controllers.get("sapience").getStatus(req, res);
     });
 
     apiRouter.post("/recall/store", (req, res) => {

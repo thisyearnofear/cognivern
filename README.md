@@ -1,8 +1,8 @@
 # Cognivern: The Agent Governance Command Center
 
-Cognivern is the mission control for your autonomous agents.
+Cognivern is the authoritative governance layer and command center for autonomous agents.
 
-It provides a high-fidelity environment for tracking, auditing, and governing agent ecosystems. By combining **decentralized evidence storage**, **high-performance coordination**, and **confidential compute**, Cognivern ensures that agent autonomy is always backed by accountability and transparency.
+It provides a high-fidelity environment for tracking, auditing, and governing agent ecosystems. By combining **decentralized memory (Recall)**, **on-chain evidence (Filecoin)**, and **verifiable forecasting (Sapience)**, Cognivern ensures that agent autonomy is always backed by accountability, transparency, and AgentRank™ reputation.
 
 **Wedge:** Don’t change how your agents run — just _connect them_ to Cognivern for professional-grade observability and governance.
 
@@ -10,22 +10,23 @@ It provides a high-fidelity environment for tracking, auditing, and governing ag
 
 Cognivern empowers developers to build and operate agents with confidence by leveraging a robust multi-chain foundation:
 
-- **Observability & Proof:** Every decision, reasoning step, and artifact is captured in a verifiable forensic timeline.
-- **Behavioral Governance:** Enforce real-time policies and safety guardrails across your entire agent network.
-- **Spatial Intelligence:** Visualize your agent ecosystem in a high-fidelity command center designed for the agentic era.
+- **Verifiable Intent:** Every decision, reasoning step, and artifact is captured in a verifiable forensic timeline using Recall Network's on-chain memory.
+- **Behavioral Governance:** Enforce real-time policies and safety guardrails across your entire agent network with decentralized policy enforcement.
+- **Spatial Intelligence:** Visualize your agent ecosystem in a high-fidelity command center (Agentic HUD) designed for the autonomous era.
 - **Multi-Chain Integrity:**
-  - **Verifiable Evidence (Filecoin):** Permanent, tamper-proof storage for forensic audit trails.
-  - **High-Performance Coordination (Polkadot):** Low-latency governance and cross-chain orchestration.
-  - **Confidential Compute (Chainlink):** Secure, private reasoning in decentralized enclaves.
+  - **Memory & Reputation (Recall):** Decentralized agent memory and AgentRank™ for verifiable reputation.
+  - **Forensic Evidence (Filecoin):** Permanent, tamper-proof storage for forensic audit trails via FVM.
+  - **Confidential Compute (Chainlink CRE):** Secure, private reasoning in decentralized enclaves.
+  - **Forecasting & Attestation (Sapience/EAS):** Automated prediction markets with Ethereum Attestation Service (EAS).
 
 ## What it does (today)
 
-- **Unified Dashboard**: Ecosystem-wide overview with spatial visualization and performance telemetry.
-- **Behavioral Analytics**: Tracking "Policy Compliance Score," "Autonomy Level," and "Risk Profile."
-- **Voice of Governance (NEW)**: High-quality AI audio briefings of recent governance actions, powered by **ElevenLabs**.
-- **Audit Logs & AI Insights**: Human-readable governance summaries powered by Gemini.
-- **Forensic Detail**: Deep-dive into an agent's "Thoughts" with cognitive path reconstruction.
-- **Policy Engine**: Modular governance guards with visual risk ratings.
+- **Agentic HUD**: Ecosystem-wide overview with spatial visualization and performance telemetry.
+- **Resilient Monitoring**: Isolated `AgentMonitor` architecture ensures that individual agent failures don't crash your command center.
+- **Showcase Agents**: Pre-integrated access to Recall, Vincent, and Sapience agents for immediate benchmarking.
+- **Private Agent Tracking**: Connect your own **OpenClaw** or **Hermes** agents to monitor behavioral performance privately.
+- **Audit Logs & AI Insights**: Human-readable governance summaries and forensic timelines.
+- **Voice of Governance**: High-quality AI audio briefings of recent governance actions, powered by **ElevenLabs**.
 - **Cloudflare Native**: High-performance governance agents running on **Cloudflare Workers** with stateful **Durable Objects**.
 
 ## Who it’s for
@@ -165,9 +166,11 @@ Both LLM calls execute within CRE's Confidential HTTP capability — API keys an
 
 Cognivern is a multi-chain platform that leverages the strengths of the Web3 ecosystem:
 
+- **Recall Network:** Decentralized agent memory, verifiable intent, and AgentRank™ reputation.
 - **Chainlink CRE:** Decentralized compute and confidential LLM reasoning.
 - **Filecoin (FVM):** Verifiable evidence storage for forensic audit trails.
-- **Polkadot (REVM):** High-performance coordination and real-time governance guards.
+- **Sapience:** Automated forecasting and prediction market integration.
+- **Arbitrum/EAS:** Scalable attestations using Ethereum Attestation Service.
 
 ## 📚 Documentation
 

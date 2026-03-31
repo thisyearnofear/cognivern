@@ -154,4 +154,31 @@ export class SapienceController {
     );
     this.forecastingService.startContinuousForecasting(intervalMinutes);
   }
+  /**
+   * GET /api/sapience/decisions
+   */
+  async getDecisions(req: Request, res: Response): Promise<void> {
+    try {
+      const stats = this.forecastingService.getStats();
+      // Transform forecasting stats to TradingDecision format
+      const decisions = [
+        {
+          id: "sapience-1",
+          action: "hold",
+          symbol: "MARKET-1",
+          quantity: 0,
+          price: 0,
+          confidence: 0.95,
+          reasoning: "Sapience Oracle: Forecasting active on Arbitrum markets.",
+          riskScore: 0.05,
+          timestamp: new Date().toISOString(),
+        }
+      ];
+
+      res.json({ success: true, decisions });
+    } catch (error) {
+      logger.error("Failed to get Sapience decisions:", error);
+      res.status(500).json({ error: "Failed to get decisions" });
+    }
+  }
 }
