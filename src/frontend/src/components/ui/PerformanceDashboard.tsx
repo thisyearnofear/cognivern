@@ -9,6 +9,28 @@ import Modal from "./Modal";
 import { performanceStyles } from "../../styles/design-system";
 import { css } from "@emotion/react";
 
+const performanceDetailSectionStyles = css`
+  margin-top: ${designTokens.spacing[6]};
+  margin-bottom: ${designTokens.spacing[3]};
+  font-size: ${designTokens.typography.fontSize.lg};
+  color: ${designTokens.colors.neutral[800]};
+`;
+
+const performanceDetailItemStyles = css`
+  padding: ${designTokens.spacing[2]} 0;
+  border-bottom: 1px solid ${designTokens.colors.neutral[100]};
+`;
+
+const performanceDetailItemTitleStyles = css`
+  font-weight: ${designTokens.typography.fontWeight.medium};
+  color: ${designTokens.colors.neutral[700]};
+`;
+
+const performanceDetailItemValueStyles = css`
+  font-size: ${designTokens.typography.fontSize.xs};
+  color: ${designTokens.colors.neutral[500]};
+`;
+
 export const PerformanceDashboard: React.FC = () => {
   const {
     metrics,

@@ -1,5 +1,6 @@
+/** @jsxImportSource @emotion/react */
 import React, { useState, useEffect } from "react";
-import { getApiKey } from "../../utils/api";
+import { getApiKey, getApiUrl, getRequestHeaders } from "../../utils/api";
 import { css } from "@emotion/react";
 import {
   designTokens,

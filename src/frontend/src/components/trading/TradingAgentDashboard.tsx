@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 import { useState, useEffect, useMemo } from "react";
 import { css } from "@emotion/react";
 import {
@@ -17,6 +18,7 @@ import {
   MessageSquare,
   ChevronUp,
   ChevronDown,
+  Search,
 } from "lucide-react";
 import { designTokens, keyframeAnimations } from "../../styles/design-system";
 import { AgentType, VincentStatus } from "../../types";
@@ -429,14 +431,63 @@ function TradingAgentDashboardContent() {
     gap: ${designTokens.spacing[3]};
   `;
 
-  const getAgentStatus = (type: AgentType) => {
-    if (type === "vincent" && !vincentStatus.hasConsent) {
-      return { text: "Setup Required", variant: "warning" as const };
-    }
-    return agentStatus.isActive
-      ? { text: "Active", variant: "success" as const }
-      : { text: "Inactive", variant: "secondary" as const };
+  const handleCarouselItemClick = (id: string) => {
+    navigate(`/agents/${id}`);
   };
+
+  const carouselItems: CarouselItem[] = [
+    {
+      id: "recall",
+      title: "Recall Trading Agent",
+      subtitle: "Recall Ecosystem",
+      icon: "🧠",
+      content: (
+        <div
+          css={css`
+            font-size: ${designTokens.typography.fontSize.sm};
+          `}
+        >
+          High-frequency trading agent with on-chain memory and verifiable
+          intent.
+        </div>
+      ),
+    },
+    {
+      id: "vincent",
+      title: "Vincent Social Agent",
+      subtitle: "Vincent Ecosystem",
+      icon: "🎭",
+      content: (
+        <div
+          css={css`
+            font-size: ${designTokens.typography.fontSize.sm};
+          `}
+        >
+          Social trading agent leveraging sentiment analysis and community
+          insights.
+        </div>
+      ),
+    },
+    {
+      id: "sapience",
+      title: "Sapience Oracle",
+      subtitle: "Governance Layer",
+      icon: "👁️",
+      content: (
+        <div
+          css={css`
+            font-size: ${designTokens.typography.fontSize.sm};
+          `}
+        >
+          Forecasting and governance agent ensuring protocol alignment and risk
+          mitigation.
+        </div>
+      ),
+    },
+  ];
+
+  const canStartAgent =
+    selectedAgentType !== "vincent" || vincentStatus.hasConsent;
 
   return (
     <div css={styles.containerStyles}>
