@@ -13,7 +13,7 @@
   },
   "rewrites": [
     {
-      "source": "/(api|health|metrics|projects|agents/recall|audit|cre|dashboard/bundle)(.*)",
+      "source": "/(api|health|metrics|projects|agents/recall|audit|cre|dashboard/bundle|ingest|system/health|agents|market|governance|cre|recall|sapience|external-agents|mcp|simulation)(.*)",
       "destination": "https://api.thisyearnofear.com/$1$2"
     },
     {
