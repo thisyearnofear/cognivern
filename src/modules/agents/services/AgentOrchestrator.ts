@@ -264,9 +264,13 @@ export class AgentOrchestrator extends BaseService {
 
   async reportTradeCompletion(agentId: string, tradeId: string): Promise<void> {
     const activeTrades = this.activeTrades.get(agentId) || [];
-    const updatedTrades = activeTrades.filter(
-      (trade) => `${trade.symbol}_${trade.timestamp.getTime()}` !== tradeId,
-    );
+    const updatedTrades = activeTrades.filter((trade) => {
+      const timestamp =
+        typeof trade.timestamp === "string"
+          ? new Date(trade.timestamp).getTime()
+          : trade.timestamp.getTime();
+      return `${trade.symbol}_${timestamp}` !== tradeId;
+    });
     this.activeTrades.set(agentId, updatedTrades);
   }
 

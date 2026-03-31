@@ -1,16 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { css } from "@emotion/react";
-import { AlertTriangle, RefreshCw, Play, Square, Activity, ShieldCheck, Brain } from "lucide-react";
+import { AlertTriangle, RefreshCw, Play, Square, Activity, ShieldCheck, Brain, Eye, EyeOff } from "lucide-react";
 import { designTokens } from "../../styles/design-system";
 import { AgentType } from "../../types";
 import { useAgentData, useTradingData } from "../../hooks/useAgentData";
+import { useAppStore } from "../../stores/appStore";
+import { uxAnalytics } from "../../services/uxAnalytics";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/Card";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { ErrorBoundary } from "../ui/ErrorBoundary";
-import TradingChart from "./TradingChart";
-import TradeHistory from "./TradeHistory";
+const TradingChart = React.lazy(() => import("./TradingChart"));
+const TradeHistory = React.lazy(() => import("./TradeHistory"));
 
 interface AgentMonitorProps {
   agentType: AgentType;
@@ -59,6 +61,18 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
     isLoading: tradingLoading,
     error: tradingError
   } = useTradingData(agentType);
+
+  const { preferences, updatePreferences } = useAppStore();
+  const isShadowed = preferences.shadowedAgents.includes(agentType);
+
+  const toggleShadow = () => {
+    const newShadowed = isShadowed
+      ? preferences.shadowedAgents.filter(id => id !== agentType)
+      : [...preferences.shadowedAgents, agentType];
+
+    updatePreferences({ shadowedAgents: newShadowed });
+    uxAnalytics.track(isShadowed ? "agent_shadow_stop" : "agent_shadow_start", { agentType });
+  };
 
   const isLoading = agentLoading || tradingLoading;
   const error = agentError || tradingError;
@@ -142,6 +156,15 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
               <CardDescription>{description}</CardDescription>
             </div>
             <div css={controlsStyles}>
+              <Button
+                onClick={toggleShadow}
+                variant={isShadowed ? "primary" : "outline"}
+                size="sm"
+                title={isShadowed ? "Following" : "Follow Agent"}
+              >
+                {isShadowed ? <EyeOff size={14} css={css`margin-right: ${designTokens.spacing[1]};`} /> : <Eye size={14} css={css`margin-right: ${designTokens.spacing[1]};`} />}
+                {isShadowed ? "Unfollow" : "Follow"}
+              </Button>
               {!status.isActive ? (
                 <Button onClick={startAgent} disabled={isLoading} size="sm">
                   <Play size={14} css={css`margin-right: ${designTokens.spacing[1]};`} />
@@ -194,11 +217,13 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
             <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base};`}>Behavioral Performance</CardTitle>
           </CardHeader>
           <CardContent>
-            <TradingChart
-              decisions={decisions}
-              agentType={agentType}
-              isLoading={isLoading}
-            />
+            <React.Suspense fallback={<div css={css`height: 300px; display: flex; align-items: center; justify-content: center;`}>Loading chart...</div>}>
+              <TradingChart
+                decisions={decisions}
+                agentType={agentType}
+                isLoading={isLoading}
+              />
+            </React.Suspense>
           </CardContent>
         </Card>
 
@@ -207,11 +232,13 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
             <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base};`}>Activity Audit Trail</CardTitle>
           </CardHeader>
           <CardContent>
-            <TradeHistory
-              decisions={decisions}
-              agentType={agentType}
-              isLoading={isLoading}
-            />
+            <React.Suspense fallback={<div css={css`height: 300px; display: flex; align-items: center; justify-content: center;`}>Loading history...</div>}>
+              <TradeHistory
+                decisions={decisions}
+                agentType={agentType}
+                isLoading={isLoading}
+              />
+            </React.Suspense>
           </CardContent>
         </Card>
       </div>

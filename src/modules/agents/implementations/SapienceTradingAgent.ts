@@ -32,7 +32,7 @@ export class SapienceTradingAgent implements TradingAgent {
   private recallService: RecallService;
   private forecastingService: AutomatedForecastingService;
   private portfolio: Portfolio | null = null;
-  private history: TradingDecision[] = [];
+  private history: any[] = [];
 
   constructor(id: string, name: string, config: TradingAgentConfig) {
     this.id = id;
@@ -113,6 +113,7 @@ export class SapienceTradingAgent implements TradingAgent {
         const decision: TradingDecision = {
           id: result.txHash || `forecast-${Date.now()}`,
           agentId: this.id,
+          agentType: "sapience",
           timestamp: new Date(),
           action: "buy", // Mapping forecast to 'buy' for dashboard consistency
           symbol: result.conditionId || "Sapience Market",
@@ -326,6 +327,9 @@ export class SapienceTradingAgent implements TradingAgent {
   }
 
   async getRecentDecisions(limit: number = 10): Promise<TradingDecision[]> {
-    return this.history.slice(0, limit);
+    return this.history.slice(0, limit).map((d) => ({
+      ...d,
+      timestamp: d.timestamp instanceof Date ? d.timestamp : new Date(d.timestamp),
+    })) as TradingDecision[];
   }
 }

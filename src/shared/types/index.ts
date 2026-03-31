@@ -5,28 +5,19 @@
  * and eliminate duplication between API, agents, and frontend.
  */
 
-// Core Agent Types
-export interface Agent {
-  id: string;
-  name: string;
-  type: AgentType;
-  status: AgentStatus;
-  owner: string;
-  capabilities: string[];
-  registeredAt: string;
-  lastActivity: string;
-  currentPolicyId?: string;
-}
-
+// ===== AGENT TYPES =====
 export type AgentType =
+  | "recall"
+  | "vincent"
   | "trading"
+  | "analysis"
+  | "monitoring"
+  | "sapience"
+  | "filecoin"
   | "social-trading"
   | "contract"
   | "governance"
   | "external-trading"
-  | "recall"
-  | "vincent"
-  | "sapience"
   | "custom";
 
 export type AgentStatus =
@@ -37,7 +28,65 @@ export type AgentStatus =
   | "error"
   | "maintenance";
 
-// Trading Types
+export interface Agent extends BaseAgent {
+  owner: string;
+  registeredAt: string;
+  lastActivity: string;
+  currentPolicyId?: string;
+  createdAt?: string | Date; // Compatibility
+  updatedAt?: string | Date; // Compatibility
+}
+
+export interface BaseAgent {
+  id: string;
+  name: string;
+  type: AgentType;
+  status: AgentStatus;
+  capabilities: string[];
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+}
+
+export interface AgentMetrics {
+  uptime: number;
+  successRate: number;
+  errorRate: number;
+  avgResponseTime: number;
+  totalRequests: number;
+  lastActive: string;
+  actionsToday: number;
+  responseTime?: number; // Compatibility
+}
+
+export interface AgentState {
+  isActive: boolean;
+  lastActivity: string;
+  lastUpdate?: string;
+  tradesExecuted?: number;
+  metrics: AgentMetrics;
+  performance?: {
+    totalReturn: number;
+    winRate: number;
+    sharpeRatio: number;
+    complianceScore?: number;
+    autonomyLevel?: number;
+    riskProfile?: "low" | "medium" | "high" | "critical";
+  };
+  riskMetrics?: {
+    currentRiskScore: number;
+    violationsToday: number;
+    complianceRate: number;
+  };
+  financialMetrics?: {
+    totalValue: number;
+    dailyPnL: number;
+    winRate: number;
+  };
+}
+
+// ===== TRADING TYPES =====
+export type TradingAction = "buy" | "sell" | "hold";
+
 export interface TradingDecision {
   id?: string;
   action: TradingAction;
@@ -46,13 +95,16 @@ export interface TradingDecision {
   price: number;
   confidence: number;
   reasoning: string;
-  riskScore?: number;
-  timestamp: Date;
-  agentType?: string;
+  riskScore: number;
+  timestamp: string | Date;
+  agentType?: AgentType; // Optional in backend
   agentId?: string;
+  sentimentData?: {
+    sentiment: number;
+    confidence: number;
+    sources: string[];
+  };
 }
-
-export type TradingAction = "buy" | "sell" | "hold";
 
 export interface TradingPerformance {
   totalReturn: number;
@@ -64,56 +116,43 @@ export interface TradingPerformance {
   maxDrawdown?: number;
 }
 
-// Governance Types
+// ===== POLICY TYPES =====
+export type PolicyStatus = "active" | "inactive" | "draft" | "deprecated" | "archived";
+
 export interface Policy {
   id: string;
   name: string;
   description: string;
+  version: string;
   rules: PolicyRule[];
   creator: string;
+  status: PolicyStatus;
   createdAt: string;
   updatedAt: string;
-  status: PolicyStatus;
-  version: string;
+  metadata?: Record<string, any>; // Compatibility
+  appliedToAgents?: string[]; // Compatibility
+  effectivenessScore?: number; // Compatibility
+  violationsPrevented?: number; // Compatibility
 }
 
 export interface PolicyRule {
   id: string;
-  type: string;
+  type: string | "ALLOW" | "DENY" | "REQUIRE" | "RATE_LIMIT";
   condition: string;
   action: string;
-  parameters: Record<string, any>;
+  parameters?: Record<string, any>;
+  metadata?: Record<string, any>;
+  priority?: number;
+  enabled?: boolean;
 }
 
-export type PolicyStatus = "active" | "inactive" | "draft" | "deprecated";
-
-// Monitoring Types
-export interface AgentMetrics {
-  uptime: number;
-  successRate: number;
-  errorRate: number;
-  avgResponseTime: number;
-  totalRequests: number;
-  lastActive: string;
-  actionsToday: number;
+export interface PolicyCheck {
+  policyId: string;
+  result: boolean;
+  reason?: string;
 }
 
-export interface RiskMetrics {
-  currentRiskScore: number;
-  violationsToday: number;
-  complianceRate: number;
-  maxRiskThreshold: number;
-}
-
-export interface FinancialMetrics {
-  totalValue: number;
-  dailyPnL: number;
-  winRate: number;
-  totalTrades: number;
-  profitableTrades: number;
-}
-
-// API Response Types
+// ===== MONITORING & API TYPES =====
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -131,37 +170,12 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
   };
 }
 
-// Configuration Types
-export interface ServiceConfig {
-  name: string;
-  version: string;
-  environment: "development" | "production" | "test";
-  port?: number;
-  logLevel: "error" | "warn" | "info" | "debug";
-}
-
-export interface DatabaseConfig {
-  url: string;
-  maxConnections: number;
-  connectionTimeout: number;
-  queryTimeout: number;
-}
-
-export interface CacheConfig {
-  url: string;
-  ttl: number;
-  maxSize: string;
-}
-
-// Event Types (for inter-service communication)
-export interface DomainEvent {
-  id: string;
-  type: string;
-  aggregateId: string;
-  aggregateType: string;
-  data: Record<string, any>;
-  timestamp: string;
-  version: number;
+export interface DashboardMetrics {
+  totalAgents: number;
+  activeAgents: number;
+  totalForecasts: number;
+  complianceRate: number;
+  averageAttestationTime: number;
 }
 
 // Health Check Types
@@ -173,19 +187,86 @@ export interface HealthStatus {
   dependencies: Record<string, DependencyHealth>;
 }
 
+export interface SystemHealth {
+  overall: "healthy" | "warning" | "critical";
+  status?: "healthy" | "unhealthy" | "degraded"; // Compatibility
+  timestamp: string;
+  uptime: number;
+  version: string;
+  components: {
+    arbitrum: "online" | "degraded" | "offline";
+    eas: "operational" | "delayed" | "failed";
+    ethereal: "online" | "degraded" | "offline";
+    policies: "active" | "warning" | "error";
+  };
+  metrics: DashboardMetrics;
+  dependencies?: Record<string, DependencyHealth>;
+}
+
 export interface DependencyHealth {
   status: "healthy" | "unhealthy";
   responseTime?: number;
   error?: string;
 }
 
-// Audit Types
-export interface AuditLog {
-  id: string;
-  agentId: string;
-  action: string;
-  details: Record<string, any>;
+// ===== ANALYTICS & EVENT TYPES =====
+export type UxEventType =
+  | "run_console_view"
+  | "run_cancel"
+  | "run_retry"
+  | "run_retry_from_step"
+  | "run_plan_opened"
+  | "run_plan_saved"
+  | "run_approval_approve"
+  | "run_approval_reject"
+  | "agent_shadow_start"
+  | "agent_shadow_stop"
+  | "onboarding_complete"
+  | "dashboard_refresh";
+
+export interface UxEvent {
+  eventType: UxEventType;
+  payload: Record<string, unknown>;
   timestamp: string;
-  outcome: "success" | "failure" | "warning";
-  riskLevel: "low" | "medium" | "high";
+}
+
+// ===== VINCENT SPECIFIC TYPES =====
+export interface VincentStatus {
+  isConnected: boolean;
+  hasConsent: boolean;
+  appId: string;
+  delegateeAddress?: string;
+  policies: {
+    dailySpendingLimit: number;
+    allowedTokens: string[];
+    maxTradeSize: number;
+  };
+  isConfigured: boolean;
+}
+
+// ===== CONFIGURATION TYPES =====
+export interface ServiceConfig {
+  name: string;
+  version: string;
+  environment: "development" | "production" | "test";
+  port?: number;
+  logLevel: "error" | "warn" | "info" | "debug";
+}
+
+// ===== COMMON HOOK RETURN TYPES =====
+export interface UseAgentState {
+  agent: Agent | null;
+  status: AgentState;
+  isLoading: boolean;
+  error: string | null;
+  startAgent: () => Promise<void>;
+  stopAgent: () => Promise<void>;
+  refreshData: () => Promise<void>;
+}
+
+export interface UseTradingData {
+  decisions: TradingDecision[];
+  isLoading: boolean;
+  error: string | null;
+  refreshData: () => Promise<void>;
 }
