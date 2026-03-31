@@ -19,9 +19,12 @@ import {
   ChevronUp,
   ChevronDown,
   Search,
+  Trophy,
+  Users,
+  Zap,
 } from "lucide-react";
 import { designTokens, keyframeAnimations } from "../../styles/design-system";
-import { AgentType, VincentStatus } from "../../types";
+import { AgentType } from "../../types";
 import { useAgentData, useTradingData } from "../../hooks/useAgentData";
 import {
   Card,
@@ -33,11 +36,9 @@ import {
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { ErrorBoundary } from "../ui/ErrorBoundary";
-import VincentConsentFlow from "./VincentConsentFlow";
-import PolicyConfiguration from "./PolicyConfiguration";
 import TradingChart from "./TradingChart";
 import TradeHistory from "./TradeHistory";
-import InteractiveCarousel, { CarouselItem } from "../ui/InteractiveCarousel";
+import { AgentMonitor } from "./AgentMonitor";
 import { agentApi } from "../../services/apiService";
 import { useNavigate } from "react-router-dom";
 import {
@@ -58,64 +59,12 @@ export default function TradingAgentDashboard() {
 
 function TradingAgentDashboardContent() {
   const navigate = useNavigate();
-  const [selectedAgentType, setSelectedAgentType] =
-    useState<AgentType>("recall");
   const [showComparison, setShowComparison] = useState(false);
   const [comparisonFilters, setComparisonFilters] =
     useState<AgentComparisonFilters>(defaultFilters);
   const [comparisonData, setComparisonData] = useState<any[]>([]);
   const [isLoadingComparison, setIsLoadingComparison] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-
-  const {
-    status: agentStatus,
-    isLoading: agentLoading,
-    error: agentError,
-    startAgent,
-    stopAgent,
-  } = useAgentData(selectedAgentType);
-
-  const {
-    decisions: tradingDecisions,
-    isLoading: tradingLoading,
-    error: tradingError,
-  } = useTradingData(selectedAgentType);
-
-  const isLoading = agentLoading || tradingLoading;
-  const error = agentError || tradingError;
-
-  const [vincentStatus, setVincentStatus] = useState<VincentStatus>({
-    isConnected: false,
-    hasConsent: false,
-    appId: "827",
-    policies: {
-      dailySpendingLimit: 500,
-      allowedTokens: ["ETH", "USDC", "WBTC"],
-      maxTradeSize: 200,
-    },
-    isConfigured: false,
-  });
-
-  const handleAgentTypeChange = (agentType: AgentType) => {
-    setSelectedAgentType(agentType);
-  };
-
-  const handleVincentConsent = async (consent: boolean) => {
-    if (consent) {
-      setVincentStatus((prev) => ({
-        ...prev,
-        hasConsent: true,
-        isConfigured: true,
-      }));
-    }
-  };
-
-  const handlePolicyUpdate = async (newPolicies: any) => {
-    setVincentStatus((prev) => ({
-      ...prev,
-      policies: newPolicies,
-    }));
-  };
+  // AgentMonitor handles its own data fetching
 
   // Fetch comparison data when comparison view is shown
   useEffect(() => {
@@ -1248,273 +1197,104 @@ function TradingAgentDashboardContent() {
         </Card>
       )}
 
-      {/* Vincent Setup */}
-      {selectedAgentType === "vincent" && !vincentStatus.hasConsent && (
-        <Card
-          css={css`
-            margin-bottom: ${designTokens.spacing[6]};
-          `}
-        >
-          <CardHeader>
-            <CardTitle>Vincent Agent Setup</CardTitle>
-            <CardDescription>
-              Configure consent and policies for your Vincent social trading
-              agent
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <VincentConsentFlow
-              appId={vincentStatus.appId}
-              onConsent={handleVincentConsent}
-            />
-          </CardContent>
-        </Card>
-      )}
+      {/* Showcase Agents Section */}
+      <div css={css`margin-bottom: ${designTokens.spacing[12]};`}>
+        <div css={css`
+          display: flex;
+          align-items: center;
+          gap: ${designTokens.spacing[3]};
+          margin-bottom: ${designTokens.spacing[6]};
+          border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+          padding-bottom: ${designTokens.spacing[2]};
+        `}>
+          <Trophy size={20} color={designTokens.colors.primary[500]} />
+          <h2 css={css`
+            font-size: ${designTokens.typography.fontSize.xl};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            color: ${designTokens.colors.neutral[900]};
+          `}>Showcase Agents</h2>
+          <Badge variant="outline" css={css`margin-left: auto;`}>3 Verified</Badge>
+        </div>
 
-      {/* Vincent Policy Configuration */}
-      {selectedAgentType === "vincent" && vincentStatus.hasConsent && (
-        <Card
-          css={css`
-            margin-bottom: ${designTokens.spacing[6]};
-          `}
-        >
-          <CardHeader>
-            <CardTitle>Policy Configuration</CardTitle>
-            <CardDescription>
-              Manage trading policies and risk parameters
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PolicyConfiguration
-              policies={vincentStatus.policies}
-              onUpdate={handlePolicyUpdate}
-            />
-          </CardContent>
-        </Card>
-      )}
+        <div css={css`
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: ${designTokens.spacing[8]};
+        `}>
+          <AgentMonitor
+            agentType="recall"
+            title="Recall Trading Agent"
+            description="High-frequency trading agent leveraging Recall Network's decentralized on-chain memory for verifiable intent."
+            isShowcase
+          />
 
-      {/* Main Dashboard */}
-      <div css={dashboardGridStyles}>
-        {/* Agent Control & Stats */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {selectedAgentType === "recall"
-                ? "Recall Agent"
-                : "Vincent Agent"}{" "}
-              Control
-            </CardTitle>
-            <CardDescription>
-              Real-time status and performance metrics
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Control Buttons */}
-            <div
-              css={css`
-                display: flex;
-                gap: ${designTokens.spacing[3]};
-                margin-bottom: ${designTokens.spacing[6]};
-              `}
-            >
-              {!agentStatus.isActive ? (
-                <Button
-                  variant="primary"
-                  onClick={startAgent}
-                  disabled={isLoading || !canStartAgent}
-                  css={css`
-                    flex: 1;
-                  `}
-                >
-                  {isLoading ? "Starting..." : "Start Agent"}
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  onClick={stopAgent}
-                  disabled={isLoading}
-                  css={css`
-                    flex: 1;
-                  `}
-                >
-                  {isLoading ? "Stopping..." : "Stop Agent"}
-                </Button>
-              )}
-            </div>
+          <AgentMonitor
+            agentType="vincent"
+            title="Vincent Social Agent"
+            description="Sentiment-driven agent that executes trades based on social media trends and community-defined governance policies."
+            isShowcase
+          />
 
-            {/* Status Grid */}
-            <div
-              css={css`
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-                gap: ${designTokens.spacing[4]};
-              `}
-            >
-              <div
-                css={css`
-                  text-align: center;
-                `}
-              >
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize["2xl"]};
-                    font-weight: ${designTokens.typography.fontWeight.bold};
-                    color: ${agentStatus.isActive
-                      ? designTokens.colors.semantic.success
-                      : designTokens.colors.neutral[500]};
-                  `}
-                >
-                  {agentStatus.isActive ? "●" : "○"}
-                </div>
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize.sm};
-                    color: ${designTokens.colors.neutral[600]};
-                  `}
-                >
-                  {agentStatus.isActive ? "Operational" : "Standby"}
-                </div>
-              </div>
-
-              <div
-                css={css`
-                  text-align: center;
-                `}
-              >
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize["2xl"]};
-                    font-weight: ${designTokens.typography.fontWeight.bold};
-                    color: ${designTokens.colors.primary[600]};
-                  `}
-                >
-                  {agentStatus.performance?.complianceScore ?? 100}%
-                </div>
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize.sm};
-                    color: ${designTokens.colors.neutral[600]};
-                  `}
-                >
-                  Compliance
-                </div>
-              </div>
-
-              <div
-                css={css`
-                  text-align: center;
-                `}
-              >
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize["2xl"]};
-                    font-weight: ${designTokens.typography.fontWeight.bold};
-                    color: ${designTokens.colors.primary[600]};
-                  `}
-                >
-                  Lvl {agentStatus.performance?.autonomyLevel ?? 1}
-                </div>
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize.sm};
-                    color: ${designTokens.colors.neutral[600]};
-                  `}
-                >
-                  Autonomy
-                </div>
-              </div>
-
-              <div
-                css={css`
-                  text-align: center;
-                `}
-              >
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize["2xl"]};
-                    font-weight: ${designTokens.typography.fontWeight.bold};
-                    text-transform: capitalize;
-                    color: ${agentStatus.performance?.riskProfile === "low"
-                      ? designTokens.colors.semantic.success
-                      : agentStatus.performance?.riskProfile === "medium"
-                        ? designTokens.colors.semantic.warning
-                        : designTokens.colors.semantic.error};
-                  `}
-                >
-                  {agentStatus.performance?.riskProfile ?? "Low"}
-                </div>
-                <div
-                  css={css`
-                    font-size: ${designTokens.typography.fontSize.sm};
-                    color: ${designTokens.colors.neutral[600]};
-                  `}
-                >
-                  Risk Profile
-                </div>
-              </div>
-            </div>
-
-            {/* Warning for Vincent */}
-            {selectedAgentType === "vincent" && !vincentStatus.hasConsent && (
-              <div
-                css={css`
-                  margin-top: ${designTokens.spacing[4]};
-                  padding: ${designTokens.spacing[3]};
-                  background: ${designTokens.colors.semantic.warning[50]};
-                  border: 1px solid ${designTokens.colors.semantic.warning[200]};
-                  border-radius: ${designTokens.borderRadius.md};
-                  display: flex;
-                  align-items: center;
-                  gap: ${designTokens.spacing[2]};
-                `}
-              >
-                <span>!</span>
-                <span
-                  css={css`
-                    color: ${designTokens.colors.semantic.warning[700]};
-                  `}
-                >
-                  Vincent consent required before starting
-                </span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Behavioral Metrics */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Behavioral Performance</CardTitle>
-            <CardDescription>
-              Agent decision telemetry and behavioral trends
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <TradingChart
-              decisions={tradingDecisions}
-              agentType={selectedAgentType}
-              isLoading={isLoading}
-            />
-          </CardContent>
-        </Card>
+          <AgentMonitor
+            agentType="sapience"
+            title="Sapience Oracle"
+            description="Advanced forecasting and governance agent that mitigates risk by ensuring protocol alignment through ZK-proofs."
+            isShowcase
+          />
+        </div>
       </div>
 
-      {/* Activity Audit */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Activity Audit Trail</CardTitle>
-          <CardDescription>
-            Complete record of all agent decisions and governance check results
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <TradeHistory
-            decisions={tradingDecisions}
-            agentType={selectedAgentType}
-            isLoading={isLoading}
-          />
-        </CardContent>
-      </Card>
+      {/* User Tracking Section */}
+      <div>
+        <div css={css`
+          display: flex;
+          align-items: center;
+          gap: ${designTokens.spacing[3]};
+          margin-bottom: ${designTokens.spacing[6]};
+          border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+          padding-bottom: ${designTokens.spacing[2]};
+        `}>
+          <Users size={20} color={designTokens.colors.secondary[500]} />
+          <h2 css={css`
+            font-size: ${designTokens.typography.fontSize.xl};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            color: ${designTokens.colors.neutral[900]};
+          `}>User Provided Agents</h2>
+          <Badge variant="outline" css={css`margin-left: auto;`}>Private Tracking</Badge>
+        </div>
+
+        <Card css={css`
+          border-style: dashed;
+          background: ${designTokens.colors.neutral[50]};
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: ${designTokens.spacing[12]};
+          text-align: center;
+        `}>
+          <div css={css`
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: ${designTokens.spacing[4]};
+            box-shadow: ${designTokens.shadows.sm};
+          `}>
+            <Zap size={24} color={designTokens.colors.neutral[400]} />
+          </div>
+          <h3 css={css`margin-bottom: ${designTokens.spacing[2]};`}>No Custom Agents Tracked</h3>
+          <p css={css`color: ${designTokens.colors.neutral[500]}; max-width: 400px; margin-bottom: ${designTokens.spacing[6]};`}>
+            Connect your own OpenClaw or Hermes agents to monitor their behavioral performance and governance scores privately.
+          </p>
+          <Button variant="outline" onClick={() => navigate('/workshop')}>
+            Go to Workshop
+          </Button>
+        </Card>
+      </div>
     </div>
   );
 }
