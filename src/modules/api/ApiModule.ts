@@ -22,7 +22,6 @@ import {
 } from "../../shared/index.js";
 import { HealthController } from "./controllers/HealthController.js";
 import { AgentsController } from "./controllers/AgentsController.js";
-import { TradingController } from "./controllers/TradingController.js";
 import { GovernanceController } from "./controllers/GovernanceController.js";
 import { MetricsController } from "./controllers/MetricsController.js";
 import { SapienceController } from "./controllers/SapienceController.js";
@@ -193,6 +192,7 @@ export class ApiModule extends BaseService {
       "/agents/connections",
       "/audit/logs",
       "/audit/insights",
+      "/recall/status",
       "/metrics/ux-summary",
       "/projects",
     ];
@@ -254,7 +254,6 @@ export class ApiModule extends BaseService {
       auditLogService,
       policyService
     ));
-    this.controllers.set("trading", new TradingController());
     this.controllers.set("governance", new GovernanceController(policyService));
     this.controllers.set("metrics", new MetricsController());
     this.controllers.set("sapience", new SapienceController());
@@ -390,15 +389,6 @@ export class ApiModule extends BaseService {
       this.controllers.get("agents").getTopMarkets(req, res);
     });
 
-    // Legacy trading routes for backward compatibility
-    apiRouter.get("/trading/status/:agentId", (req, res) => {
-      this.controllers.get("trading").getStatus(req, res);
-    });
-
-    apiRouter.get("/trading/decisions/:agentId", (req, res) => {
-      this.controllers.get("trading").getDecisions(req, res);
-    });
-
     // Governance routes
     apiRouter.get("/governance/policies", (req, res) => {
       this.controllers.get("governance").getPolicies(req, res);
@@ -441,11 +431,6 @@ export class ApiModule extends BaseService {
 
     apiRouter.post("/audit/insights/:id/resolve", (req, res) => {
       this.controllers.get("audit").resolveInsight(req, res);
-    });
-
-    // Legacy audit route for backward compatibility
-    apiRouter.get("/audit-logs", (req, res) => {
-      this.controllers.get("audit").getLogs(req, res);
     });
 
     // CRE / Agent Run Ledger routes
