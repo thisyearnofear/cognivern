@@ -508,6 +508,19 @@ export class ApiModule extends BaseService {
       this.controllers.get("recall").getStatus(req, res);
     });
 
+    apiRouter.get("/recall/decisions", (req, res) => {
+      this.controllers.get("recall").getDecisions(req, res);
+    });
+
+    // Compatibility aliases for Agents dashboard
+    apiRouter.get("/agents/recall/status", (req, res) => {
+      this.controllers.get("recall").getStatus(req, res);
+    });
+
+    apiRouter.get("/agents/recall/decisions", (req, res) => {
+      this.controllers.get("recall").getDecisions(req, res);
+    });
+
     apiRouter.post("/recall/store", (req, res) => {
       this.controllers.get("recall").storeMemory(req, res);
     });
