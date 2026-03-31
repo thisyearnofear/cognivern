@@ -21,6 +21,7 @@ export type TimelineEventType =
   | "thought"
   | "action"
   | "validation"
+  | "privacy_redacted"
   | "error"
   | "block";
 
@@ -113,6 +114,13 @@ const Node = styled.div<{ type: TimelineEventType; status?: string }>`
           color: ${designTokens.colors.semantic.success};
           animation: ${pulseGlow} 2s infinite;
         `;
+      case "privacy_redacted":
+        return css`
+          border-color: ${designTokens.colors.neutral[400]};
+          color: ${designTokens.colors.neutral[500]};
+          background: ${designTokens.colors.neutral[100]};
+          border-style: dashed;
+        `;
       case "block":
       case "error":
         return css`
@@ -184,6 +192,8 @@ const getIcon = (type: TimelineEventType) => {
       return "👁️";
     case "validation":
       return "🛡️";
+    case "privacy_redacted":
+      return "🔒";
     case "block":
       return "🚫";
     case "error":
@@ -198,6 +208,43 @@ export const ForensicTimeline: React.FC<ForensicTimelineProps> = ({
   isLoading = false,
 }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const redactSensitiveData = (data: any): any => {
+    if (!data) return data;
+    const sensitiveKeys = [
+      "apiKey",
+      "secret",
+      "password",
+      "token",
+      "email",
+      "phone",
+      "address",
+      "privateKey",
+      "seed",
+      "mnemonic",
+    ];
+
+    const redact = (obj: any): any => {
+      if (Array.isArray(obj)) {
+        return obj.map(redact);
+      } else if (obj !== null && typeof obj === "object") {
+        const newObj: any = {};
+        for (const key in obj) {
+          if (
+            sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))
+          ) {
+            newObj[key] = "[REDACTED]";
+          } else {
+            newObj[key] = redact(obj[key]);
+          }
+        }
+        return newObj;
+      }
+      return obj;
+    };
+
+    return redact(data);
+  };
 
   if (isLoading) {
     return (
@@ -298,8 +345,31 @@ export const ForensicTimeline: React.FC<ForensicTimelineProps> = ({
                   <div style={{ marginTop: "12px" }}>
                     <GenerativeReveal duration={400}>
                       <MetadataCard>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginBottom: "8px",
+                            borderBottom: `1px solid ${designTokens.colors.neutral[200]}`,
+                            paddingBottom: "4px",
+                          }}
+                        >
+                          <span style={{ fontWeight: "bold" }}>Raw Trace</span>
+                          <span
+                            style={{
+                              color: designTokens.colors.semantic.success,
+                              fontSize: "10px",
+                            }}
+                          >
+                            🛡️ Privacy Redacted
+                          </span>
+                        </div>
                         <pre style={{ margin: 0 }}>
-                          {JSON.stringify(event.metadata, null, 2)}
+                          {JSON.stringify(
+                            redactSensitiveData(event.metadata),
+                            null,
+                            2,
+                          )}
                         </pre>
                       </MetadataCard>
                     </GenerativeReveal>

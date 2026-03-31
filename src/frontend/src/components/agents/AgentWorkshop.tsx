@@ -7,6 +7,7 @@ import {
   easings,
   layoutUtils,
 } from "../../styles/design-system";
+import { getApiHeaders, getApiUrl } from "../../utils/api";
 import { BaseAgent } from "../../types";
 import { useLoadingState } from "../../hooks/useAgentData";
 import { Button } from "../ui/Button";
@@ -308,13 +309,9 @@ export default function AgentWorkshop() {
         await new Promise((resolve) => setTimeout(resolve, 300));
 
         // Make the actual API call
-        const response = await fetch(`/api/agents/test/${selectedTemplate}`, {
+        const response = await fetch(getApiUrl(`/agents/test/${selectedTemplate}`), {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-API-KEY":
-              import.meta.env.VITE_API_KEY || "escheat-api-key-123456",
-          },
+          headers: getApiHeaders(),
           body: JSON.stringify({ scenario: selectedScenario }),
         });
 

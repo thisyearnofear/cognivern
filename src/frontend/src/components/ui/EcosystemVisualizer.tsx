@@ -1,8 +1,12 @@
 import { useState, useMemo } from "react";
 import styled from "@emotion/styled";
 import { keyframes, css } from "@emotion/react";
+import { LayoutGrid, Network } from "lucide-react";
 import { designTokens } from "../../styles/design-system";
 import { useIntentStore } from "../../stores/intentStore";
+import { useBreakpoint } from "../../hooks/useMediaQuery";
+import { DataTable, Column } from "./DataTable";
+import { Badge } from "./Badge";
 
 /**
  * EcosystemVisualizer - A high-end spatial representation of the agentic ecosystem.
@@ -43,15 +47,52 @@ const float = keyframes`
   100% { transform: translateY(0px); }
 `;
 
-const Container = styled.div`
+const Container = styled.div<{ isListMode?: boolean }>`
   position: relative;
   width: 100%;
-  height: 500px;
-  background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+  height: ${({ isListMode }) => (isListMode ? "auto" : "500px")};
+  background: ${({ isListMode }) =>
+    isListMode
+      ? designTokens.colors.neutral[900]
+      : "radial-gradient(circle at center, #0f172a 0%, #020617 100%)"};
   border-radius: ${designTokens.borderRadius["2xl"]};
   overflow: hidden;
   border: 1px solid ${designTokens.colors.neutral[800]};
-  cursor: crosshair;
+  cursor: ${({ isListMode }) => (isListMode ? "default" : "crosshair")};
+  transition: all 0.3s ease;
+`;
+
+const ViewToggle = styled.button<{ active: boolean }>`
+  background: ${({ active }) =>
+    active ? designTokens.colors.primary[500] : "transparent"};
+  border: 1px solid
+    ${({ active }) =>
+      active ? designTokens.colors.primary[500] : designTokens.colors.neutral[700]};
+  color: ${({ active }) =>
+    active ? designTokens.colors.neutral[0] : designTokens.colors.neutral[400]};
+  padding: 6px;
+  border-radius: ${designTokens.borderRadius.md};
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+  pointer-events: auto;
+
+  &:hover {
+    border-color: ${designTokens.colors.primary[400]};
+    color: ${designTokens.colors.primary[400]};
+  }
+`;
+
+const Controls = styled.div`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
 `;
 
 const SvgCanvas = styled.svg`
@@ -109,7 +150,9 @@ export const EcosystemVisualizer: React.FC<EcosystemVisualizerProps> = ({
   title = "Cognitive Network // Live Visualization // Node Density: High"
 }) => {
   const { setIsOpen, submitIntent, setQuery } = useIntentStore();
+  const { isMobile } = useBreakpoint();
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"spatial" | "list">(isMobile ? "list" : "spatial");
 
   // Deterministic layout for nodes without X/Y (DRY)
   const processedNodes = useMemo(() => {
@@ -172,6 +215,41 @@ export const EcosystemVisualizer: React.FC<EcosystemVisualizerProps> = ({
     }
   };
 
+  const listColumns: Column<Node>[] = [
+    {
+      key: "label",
+      title: "Node Name",
+      sortable: true,
+      render: (val, record) => (
+        <div style={{ fontWeight: "bold", color: getNodeColor(record.status) }}>
+          {val}
+        </div>
+      ),
+    },
+    {
+      key: "type",
+      title: "Type",
+      sortable: true,
+      render: (val) => (
+        <Badge variant="outline" style={{ textTransform: "capitalize" }}>
+          {val}
+        </Badge>
+      ),
+    },
+    {
+      key: "status",
+      title: "Status",
+      sortable: true,
+      render: (val) => (
+        <Badge
+          variant={val === "active" ? "success" : val === "warning" ? "warning" : "default"}
+        >
+          {val}
+        </Badge>
+      ),
+    },
+  ];
+
   if (loading) {
     return (
       <Container style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -182,115 +260,146 @@ export const EcosystemVisualizer: React.FC<EcosystemVisualizerProps> = ({
   }
 
   return (
-    <Container>
+    <Container isListMode={viewMode === "list"}>
       <HUDOverlay>
         {title}
       </HUDOverlay>
 
-      <SvgCanvas viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <radialGradient id="nodeGradient">
-            <stop offset="0%" stopColor="white" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="currentColor" stopOpacity="0.2" />
-          </radialGradient>
-        </defs>
+      <Controls>
+        <ViewToggle
+          active={viewMode === "spatial"}
+          onClick={() => setViewMode("spatial")}
+          title="Spatial View"
+        >
+          <Network size={16} />
+        </ViewToggle>
+        <ViewToggle
+          active={viewMode === "list"}
+          onClick={() => setViewMode("list")}
+          title="List View"
+        >
+          <LayoutGrid size={16} />
+        </ViewToggle>
+      </Controls>
 
-        {/* Dynamic Connections - Hub and Spoke (Consolidated Logic) */}
-        {processedNodes.length > 1 && processedNodes.map(
-          (node, i) =>
-            i > 0 && (
-              <ConnectionLine
-                key={`line-${node.id}-${i}`}
-                x1={processedNodes[0].x}
-                y1={processedNodes[0].y}
-                x2={node.x}
-                y2={node.y}
-              />
-            ),
-        )}
+      {viewMode === "spatial" ? (
+        <>
+          <SvgCanvas viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <radialGradient id="nodeGradient">
+                <stop offset="0%" stopColor="white" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="currentColor" stopOpacity="0.2" />
+              </radialGradient>
+            </defs>
 
-        {processedNodes.map((node, i) => {
-          const color = getNodeColor(node.status);
-          const isSelected = selectedNode === node.id;
-
-          return (
-            <NodeGroup
-              key={`${node.id}-${i}`}
-              onClick={() => handleNodeClick(node)}
-              style={{
-                animationDelay: `${i * 0.3}s`,
-                filter: isSelected
-                  ? `drop-shadow(0 0 12px ${color})`
-                  : undefined,
-              }}
-              active={isSelected}
-            >
-              {(node.pulse || node.status === "active") && (
-                <GlowCircle cx={node.x} cy={node.y} r="4" color={color} />
-              )}
-              {isSelected && (
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r="5"
-                  fill="none"
-                  stroke={color}
-                  strokeWidth="0.5"
-                  strokeDasharray="1 1"
-                >
-                  <animateTransform
-                    attributeName="transform"
-                    type="rotate"
-                    from={`0 ${node.x} ${node.y}`}
-                    to={`360 ${node.x} ${node.y}`}
-                    dur="10s"
-                    repeatCount="indefinite"
+            {/* Dynamic Connections - Hub and Spoke (Consolidated Logic) */}
+            {processedNodes.length > 1 && processedNodes.map(
+              (node, i) =>
+                i > 0 && (
+                  <ConnectionLine
+                    key={`line-${node.id}-${i}`}
+                    x1={processedNodes[0].x}
+                    y1={processedNodes[0].y}
+                    x2={node.x}
+                    y2={node.y}
                   />
-                </circle>
-              )}
-              <circle
-                cx={node.x}
-                cy={node.y}
-                r={node.type === "system" ? "2.5" : "1.8"}
-                fill={color}
-                stroke="white"
-                strokeWidth="0.2"
-                strokeOpacity={isSelected ? 1 : 0.5}
-              />
-              <text
-                x={node.x}
-                y={node.y + 4}
-                textAnchor="middle"
-                fill="white"
-                fontSize="2.2"
-                fontWeight="bold"
-                style={{
-                  pointerEvents: "none",
-                  opacity: isSelected ? 1 : 0.8,
-                  textShadow: isSelected ? "0 0 5px rgba(0,0,0,0.8)" : "0 0 3px rgba(0,0,0,0.5)",
-                }}
-              >
-                {node.label}
-              </text>
-            </NodeGroup>
-          );
-        })}
-      </SvgCanvas>
+                ),
+            )}
 
-      {/* Decorative Scanline Effect */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background:
-            "linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03))",
-          backgroundSize: "100% 4px, 3px 100%",
-          pointerEvents: "none",
-        }}
-      />
+            {processedNodes.map((node, i) => {
+              const color = getNodeColor(node.status);
+              const isSelected = selectedNode === node.id;
+
+              return (
+                <NodeGroup
+                  key={`${node.id}-${i}`}
+                  onClick={() => handleNodeClick(node)}
+                  style={{
+                    animationDelay: `${i * 0.3}s`,
+                    filter: isSelected
+                      ? `drop-shadow(0 0 12px ${color})`
+                      : undefined,
+                  }}
+                  active={isSelected}
+                >
+                  {(node.pulse || node.status === "active") && (
+                    <GlowCircle cx={node.x} cy={node.y} r="4" color={color} />
+                  )}
+                  {isSelected && (
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r="5"
+                      fill="none"
+                      stroke={color}
+                      strokeWidth="0.5"
+                      strokeDasharray="1 1"
+                    >
+                      <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from={`0 ${node.x} ${node.y}`}
+                        to={`360 ${node.x} ${node.y}`}
+                        dur="10s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  )}
+                  <circle
+                    cx={node.x}
+                    cy={node.y}
+                    r={node.type === "system" ? "2.5" : "1.8"}
+                    fill={color}
+                    stroke="white"
+                    strokeWidth="0.2"
+                    strokeOpacity={isSelected ? 1 : 0.5}
+                  />
+                  <text
+                    x={node.x}
+                    y={node.y + 4}
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="2.2"
+                    fontWeight="bold"
+                    style={{
+                      pointerEvents: "none",
+                      opacity: isSelected ? 1 : 0.8,
+                      textShadow: isSelected ? "0 0 5px rgba(0,0,0,0.8)" : "0 0 3px rgba(0,0,0,0.5)",
+                    }}
+                  >
+                    {node.label}
+                  </text>
+                </NodeGroup>
+              );
+            })}
+          </SvgCanvas>
+
+          {/* Decorative Scanline Effect */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background:
+                "linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03))",
+              backgroundSize: "100% 4px, 3px 100%",
+              pointerEvents: "none",
+            }}
+          />
+        </>
+      ) : (
+        <div style={{ padding: "60px 20px 20px" }}>
+          <DataTable
+            data={processedNodes}
+            columns={listColumns}
+            onRowClick={handleNodeClick}
+            searchable={processedNodes.length > 10}
+            pagination={processedNodes.length > 10 ? { current: 1, pageSize: 10, total: processedNodes.length, onChange: () => {} } : undefined}
+          />
+        </div>
+      )}
     </Container>
   );
 };
