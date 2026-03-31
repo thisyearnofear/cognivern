@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 import React, { useState } from "react";
 import { usePerformanceMonitor } from "../../hooks/usePerformanceMonitor";
 import { designTokens } from "../../styles/design-system";

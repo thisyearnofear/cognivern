@@ -17,6 +17,12 @@ export const apiKeyMiddleware = (
 ) => {
   const apiKey = req.headers["x-api-key"] || req.query.apiKey;
 
+  // Skip validation for public endpoints
+  const publicEndpoints = ["/health", "/api/dashboard/bundle", "/api/agents"];
+  if (publicEndpoints.some((endpoint) => req.path === endpoint)) {
+    return next();
+  }
+
   // Check if API key is required
   if (!process.env.API_KEY) {
     // API key not configured, skip validation

@@ -184,8 +184,14 @@ export class ApiModule extends BaseService {
     res: express.Response,
     next: express.NextFunction,
   ): void {
-    // Skip API key check for health endpoint
-    if (req.path === "/health") {
+    // Skip API key check for public endpoints
+    const publicEndpoints = [
+      "/health",
+      "/dashboard/bundle",
+      "/agents",
+      "/agents/unified",
+    ];
+    if (publicEndpoints.some((endpoint) => req.path === endpoint)) {
       return next();
     }
 

@@ -13,6 +13,7 @@
  * Version 1.0.1 - Fixes useMemo and backend connectivity
  */
 
+/** @jsxImportSource @emotion/react */
 import { useState, useEffect, useRef, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useNavigate } from "react-router-dom";
