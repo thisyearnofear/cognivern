@@ -446,12 +446,36 @@ function TradingAgentDashboardContent() {
   return (
     <div css={styles.containerStyles}>
       {/* Header */}
-      <div css={styles.headerStyles}>
-        <h1 css={styles.titleStyles}>Agent Behavioral & Governance</h1>
-        <p css={styles.subtitleStyles}>
-          Monitor autonomy levels, compliance scores, and governance risk across
-          your agent ecosystem.
-        </p>
+      <div css={css`
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: ${designTokens.spacing[6]};
+        @media (max-width: ${designTokens.breakpoints.md}) {
+          flex-direction: column;
+          gap: ${designTokens.spacing[4]};
+        }
+      `}>
+        <div css={styles.headerStyles}>
+          <h1 css={styles.titleStyles}>Agent Behavioral & Governance</h1>
+          <p css={styles.subtitleStyles}>
+            Monitor autonomy levels, compliance scores, and governance risk across
+            your agent ecosystem.
+          </p>
+        </div>
+        <Button
+          variant="primary"
+          onClick={() => navigate("/agents/workshop")}
+          css={css`
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: ${designTokens.shadows.md};
+            white-space: nowrap;
+          `}
+        >
+          <Plus size={20} /> Deploy New Agent
+        </Button>
       </div>
 
       {/* Error Display */}

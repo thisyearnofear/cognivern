@@ -10,7 +10,7 @@ export function getApiKey(): string {
   // In production, the backend should handle API authentication
   // The frontend should not have access to sensitive API keys
   if (import.meta.env.PROD) {
-    console.warn("API key should not be exposed in production frontend");
+    // API key exposure is handled by backend in production
     return ""; // Don't expose API key in production
   }
 

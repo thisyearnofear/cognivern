@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   FileSearch,
   Activity,
+  PlusCircle,
 } from "lucide-react";
 import { useAppStore, useTheme } from "../../stores/appStore";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
@@ -59,6 +60,13 @@ const navigationItems: NavItem[] = [
     icon: <Activity size={20} />,
     path: "/runs",
     description: "Verifiable traces",
+  },
+  {
+    id: "add-agent",
+    label: "Add Agent",
+    icon: <PlusCircle size={20} />,
+    path: "/agents/workshop",
+    badge: "NEW",
   },
 ];
 

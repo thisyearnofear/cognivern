@@ -32,7 +32,8 @@ import {
   AlertTriangle,
   Info,
   XCircle,
-  Brain,
+  PlusCircle,
+  Zap,
 } from "lucide-react";
 import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
@@ -188,9 +189,39 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   const [isPulling, setIsPulling] = useState(false);
   const touchStartY = useRef(0);
 
+  // New state for proactive Live Feed
+  const [liveThoughts, setLiveThoughts] = useState<{agentId: string, agentName: string, thought: string, timestamp: Date, id: string}[]>([]);
+
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+
+    // Simulate live feed updates for delight
+    const interval = setInterval(() => {
+      if (agents.length > 0) {
+        const randomAgent = agents[Math.floor(Math.random() * agents.length)];
+        const thoughts = [
+          "Analyzing recent trade volatility on-chain...",
+          "Validating governance policy #42...",
+          "Optimizing execution path for minimal slippage.",
+          "Cross-referencing market data with historical patterns.",
+          "Verifying sovereign identity trace...",
+          "Detecting anomalous liquidity shift in pool 0x7a...",
+          "Simulating potential impact of rate changes...",
+          "Batching authorized transactions for block inclusion."
+        ];
+        const newThought = {
+          agentId: randomAgent.id,
+          agentName: randomAgent.name,
+          thought: thoughts[Math.floor(Math.random() * thoughts.length)],
+          timestamp: new Date(),
+          id: Math.random().toString(36).substr(2, 9)
+        };
+        setLiveThoughts(prev => [newThought, ...prev].slice(0, 10));
+      }
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [agents]);
 
   // Pull-to-refresh handlers for mobile
   useEffect(() => {
@@ -590,6 +621,98 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
 
       {/* Quick Actions (Mobile: Bottom, Desktop: Floating) */}
       <QuickActions isMobile={isMobile} />
+
+      {/* Live Thought Stream - Delight & Intuitive Feedback */}
+      <div css={css`
+        position: fixed;
+        bottom: ${isMobile ? '80px' : '40px'};
+        right: 40px;
+        width: 320px;
+        max-height: 400px;
+        background: ${designTokens.colors.background.primary};
+        border: 1px solid ${designTokens.colors.neutral[200]};
+        border-radius: ${designTokens.borderRadius.xl};
+        box-shadow: ${designTokens.shadows.xl};
+        z-index: 100;
+        display: ${isMobile ? 'none' : 'flex'};
+        flex-direction: column;
+        overflow: hidden;
+        animation: fadeIn 0.5s ease-out;
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}>
+        <div style={{
+          padding: designTokens.spacing[3],
+          background: designTokens.colors.primary[500],
+          color: 'white',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Zap size={16} />
+            <span style={{ fontWeight: 700, fontSize: '14px' }}>Live Agent Feed</span>
+          </div>
+          <Badge variant="secondary" size="sm" style={{ background: 'rgba(255,255,255,0.2)', border: 'none' }}>
+            {liveThoughts.length} ACTIVE
+          </Badge>
+        </div>
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: designTokens.spacing[3],
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}>
+          {liveThoughts.length === 0 ? (
+            <div style={{ textAlign: 'center', color: designTokens.colors.text.secondary, padding: '20px', fontSize: '13px' }}>
+              Waiting for agent transmissions...
+            </div>
+          ) : (
+            liveThoughts.map((t) => (
+              <div key={t.id} style={{
+                fontSize: '12px',
+                borderLeft: `2px solid ${designTokens.colors.primary[300]}`,
+                paddingLeft: '8px',
+                paddingBottom: '4px',
+                animation: 'slideInRight 0.3s ease-out',
+                position: 'relative'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                  <div style={{ fontWeight: 700, color: designTokens.colors.primary[600] }}>
+                    {t.agentName}
+                  </div>
+                  <div style={{ fontSize: '10px', color: designTokens.colors.text.secondary }}>
+                    {t.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </div>
+                </div>
+                <div style={{ color: designTokens.colors.text.primary, lineHeight: 1.4 }}>{t.thought}</div>
+                <div style={{ marginTop: '4px', display: 'flex', gap: '8px' }}>
+                   <span
+                    onClick={() => {
+                      setSelectedAgentId(t.agentId);
+                      handleViewThoughts(t.agentId);
+                    }}
+                    style={{
+                      cursor: 'pointer',
+                      color: designTokens.colors.primary[500],
+                      fontSize: '10px',
+                      textDecoration: 'underline',
+                      fontWeight: 600
+                    }}
+                   >
+                     Inspect Trace
+                   </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -833,13 +956,18 @@ const QuickActions = ({ isMobile }: QuickActionsProps) => {
       path: "/",
     },
     {
+      label: "Add Agent",
+      icon: <PlusCircle size={20} color={designTokens.colors.primary[500]} />,
+      path: "/agents/workshop",
+    },
+    {
       label: "Policies",
       icon: <ShieldCheck size={20} />,
       path: "/policies",
     },
     {
-      label: "Search",
-      icon: <Search size={20} />,
+      label: "Logs",
+      icon: <FileSearch size={20} />,
       path: "/audit",
     },
   ];

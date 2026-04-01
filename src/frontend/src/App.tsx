@@ -28,6 +28,7 @@ const AuditLogs = lazy(() => import("./components/audit/EnhancedAuditLogs"));
 const RunLedger = lazy(() => import("./components/cre/RunLedger"));
 const RunDetails = lazy(() => import("./components/cre/RunDetails"));
 const AgentProfile = lazy(() => import("./components/agents/AgentProfile"));
+const AgentWorkshop = lazy(() => import("./components/agents/AgentWorkshop"));
 
 // Enhanced loading component with animations
 const PageSkeleton: React.FC = () => (
@@ -95,6 +96,17 @@ function App() {
                 <PageTransition type="slide">
                   <Suspense fallback={<PageSkeleton />}>
                     <AgentProfile />
+                  </Suspense>
+                </PageTransition>
+              }
+            />
+
+            <Route
+              path="agents/workshop"
+              element={
+                <PageTransition type="slide">
+                  <Suspense fallback={<PageSkeleton />}>
+                    <AgentWorkshop />
                   </Suspense>
                 </PageTransition>
               }

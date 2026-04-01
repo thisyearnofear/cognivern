@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { css } from "@emotion/react";
+import { ArrowRight } from "lucide-react";
 import {
-  designTokens,
   designTokens,
   keyframeAnimations,
   easings,
@@ -1164,7 +1164,99 @@ export default function AgentWorkshop() {
   );
 
   if (showIntro) {
-    return renderIntroduction();
+    return (
+      <div
+        css={css`
+          max-width: 800px;
+          margin: 0 auto;
+          padding: ${designTokens.spacing[12]} ${designTokens.spacing[6]};
+          text-align: center;
+        `}
+      >
+        <div
+          css={css`
+            font-size: 64px;
+            margin-bottom: ${designTokens.spacing[6]};
+          `}
+        >
+          🏗️
+        </div>
+        <h1
+          css={css`
+            font-size: ${designTokens.typography.fontSize["4xl"]};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            margin-bottom: ${designTokens.spacing[4]};
+            background: linear-gradient(
+              135deg,
+              ${designTokens.colors.primary[600]},
+              ${designTokens.colors.primary[400]}
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+          `}
+        >
+          Agent Workshop
+        </h1>
+        <p
+          css={css`
+            font-size: ${designTokens.typography.fontSize.lg};
+            color: ${designTokens.colors.neutral[600]};
+            margin-bottom: ${designTokens.spacing[10]};
+            line-height: 1.6;
+          `}
+        >
+          Welcome to the lab. Here you can prototype, simulate, and stress-test
+          your AI agents before they touch production capital or governance.
+        </p>
+        <div
+          css={css`
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: ${designTokens.spacing[6]};
+            margin-bottom: ${designTokens.spacing[12]};
+            text-align: left;
+          `}
+        >
+          {[
+            {
+              title: "Rapid Prototyping",
+              desc: "Choose from industry-standard templates.",
+              icon: "⚡",
+            },
+            {
+              title: "Scenario Stress-Testing",
+              desc: "Run agents through adversarial edge cases.",
+              icon: "🧪",
+            },
+            {
+              title: "Policy Validation",
+              desc: "Verify alignment with governance guardrails.",
+              icon: "🛡️",
+            },
+          ].map((item, i) => (
+            <Card key={i} variant="outline" padding="md">
+              <div style={{ fontSize: "24px", marginBottom: "8px" }}>
+                {item.icon}
+              </div>
+              <h3 style={{ fontWeight: 600, marginBottom: "4px" }}>
+                {item.title}
+              </h3>
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: designTokens.colors.neutral[500],
+                }}
+              >
+                {item.desc}
+              </p>
+            </Card>
+          ))}
+        </div>
+        <Button size="lg" onClick={() => setShowIntro(false)}>
+          Start Building <ArrowRight size={20} style={{ marginLeft: "8px" }} />
+        </Button>
+      </div>
+    );
   }
 
   return (

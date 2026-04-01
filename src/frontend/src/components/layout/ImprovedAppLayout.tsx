@@ -54,7 +54,7 @@ const AppLayoutContent: React.FC = () => {
     overflow: hidden; /* Prevent horizontal scroll */
 
     /* Improved responsive grid system */
-    grid-template-rows: ${designTokens.layout.headerHeight} 1fr;
+    grid-template-rows: ${isMobile ? "60px" : designTokens.layout.headerHeight} 1fr;
 
     /* Dynamic grid columns based on sidebar state */
     grid-template-columns: ${sidebarState === "hidden" ||
