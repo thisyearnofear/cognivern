@@ -18,6 +18,11 @@ export const commandPaletteStyles = {
   list: css`
     max-height: 400px;
     overflow-y: auto;
+
+    @media (max-width: ${designTokens.breakpoints.md}) {
+      max-height: none;
+      flex: 1;
+    }
   `,
   category: css`
     padding: ${designTokens.spacing[3]} ${designTokens.spacing[4]};
@@ -34,15 +39,26 @@ export const commandPaletteStyles = {
     padding: ${designTokens.spacing[3]} ${designTokens.spacing[4]};
     cursor: pointer;
     border-bottom: 1px solid ${designTokens.colors.neutral[100]};
+    transition: all ${designTokens.animation.duration.fast} ease;
+
+    @media (max-width: ${designTokens.breakpoints.md}) {
+      padding: ${designTokens.spacing[4]};
+      gap: ${designTokens.spacing[4]};
+    }
 
     ${isSelected &&
     css`
       background-color: ${designTokens.colors.primary[50]};
       border-left: 3px solid ${designTokens.colors.primary[500]};
+      padding-left: calc(${designTokens.spacing[4]} - 3px);
     `}
 
     &:hover {
       background-color: ${designTokens.colors.neutral[50]};
+    }
+
+    &:active {
+      background-color: ${designTokens.colors.primary[100]};
     }
   `,
   icon: css`
@@ -83,5 +99,13 @@ export const commandPaletteStyles = {
     color: ${designTokens.colors.neutral[600]};
     display: flex;
     justify-content: space-between;
+    align-items: center;
+
+    @media (max-width: ${designTokens.breakpoints.md}) {
+      flex-direction: column;
+      gap: ${designTokens.spacing[2]};
+      text-align: center;
+      padding: ${designTokens.spacing[4]};
+    }
   `,
 };

@@ -162,6 +162,11 @@ function PolicyManagementContent() {
     }
   `;
 
+  const sectionTitleStyles = css`
+    font-size: ${designTokens.typography.fontSize.xl};
+    font-weight: ${designTokens.typography.fontWeight.semibold};
+  `;
+
   const gridLayoutStyles = css`
     display: grid;
     grid-template-columns: repeat(${isMobile ? 1 : isTablet ? 2 : 3}, 1fr);

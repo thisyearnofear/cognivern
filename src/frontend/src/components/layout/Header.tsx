@@ -67,8 +67,8 @@ export const Header: React.FC = () => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 ${designTokens.spacing[6]};
-    height: ${designTokens.layout.headerHeight};
+    padding: 0 ${isMobile ? designTokens.spacing[3] : designTokens.spacing[6]};
+    height: ${isMobile ? "60px" : designTokens.layout.headerHeight};
     background: ${effectiveTheme === "dark"
       ? `linear-gradient(135deg, ${designTokens.colors.neutral[900]} 0%, ${designTokens.colors.neutral[800]} 100%)`
       : `linear-gradient(135deg, ${designTokens.colors.neutral[0]} 0%, ${designTokens.colors.neutral[50]} 100%)`};
@@ -86,7 +86,9 @@ export const Header: React.FC = () => {
   `;
 
   const titleStyles = css`
-    font-size: ${designTokens.typography.fontSize.xl};
+    font-size: ${isMobile
+      ? designTokens.typography.fontSize.lg
+      : designTokens.typography.fontSize.xl};
     font-weight: ${designTokens.typography.fontWeight.bold};
     background: ${designTokens.colorSystem.gradients.primary};
     -webkit-background-clip: text;
@@ -94,6 +96,10 @@ export const Header: React.FC = () => {
     background-clip: text;
     margin: 0;
     transition: ${easings.smooth};
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: ${isMobile ? "120px" : "none"};
   `;
 
   const actionsStyles = css`
@@ -106,16 +112,22 @@ export const Header: React.FC = () => {
     display: flex;
     align-items: center;
     gap: ${designTokens.spacing[2]};
-    padding: ${designTokens.spacing[2]} ${designTokens.spacing[4]};
+    padding: ${isMobile
+      ? designTokens.spacing[1]
+      : `${designTokens.spacing[2]} ${designTokens.spacing[4]}`};
     background: ${effectiveTheme === "dark"
       ? `linear-gradient(135deg, ${designTokens.colors.neutral[800]} 0%, ${designTokens.colors.neutral[700]} 100%)`
-      : `linear-gradient(135deg, ${designTokens.colors.semantic.success[50]} 0%, ${designTokens.colors.semantic.success[100]} 100%)`};
+      : isMobile
+        ? "transparent"
+        : `linear-gradient(135deg, ${designTokens.colors.semantic.success[50]} 0%, ${designTokens.colors.semantic.success[100]} 100%)`};
     border-radius: ${designTokens.borderRadius.full};
     font-size: ${designTokens.typography.fontSize.sm};
     font-weight: ${designTokens.typography.fontWeight.medium};
     color: ${designTokens.colors.semantic.success[700]};
-    border: 1px solid ${designTokens.colors.semantic.success[200]};
-    box-shadow: ${designTokens.shadows.sm};
+    border: ${isMobile
+      ? "none"
+      : `1px solid ${designTokens.colors.semantic.success[200]}`};
+    box-shadow: ${isMobile ? "none" : designTokens.shadows.sm};
     transition: ${easings.smooth};
   `;
 
@@ -142,13 +154,13 @@ export const Header: React.FC = () => {
       case "/":
         return "Dashboard";
       case "/agents":
-        return "Agent Management";
+        return isMobile ? "Agents" : "Agent Management";
       case "/policies":
-        return "Policy Management";
+        return isMobile ? "Policies" : "Policy Management";
       case "/audit":
-        return "Audit Logs";
+        return isMobile ? "Audit" : "Audit Logs";
       case "/runs":
-        return "Run Ledger";
+        return isMobile ? "Runs" : "Run Ledger";
       default:
         return "Cognivern";
     }
@@ -160,13 +172,14 @@ export const Header: React.FC = () => {
         css={css`
           display: flex;
           align-items: center;
-          gap: ${designTokens.spacing[4]};
+          gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[4]};
+          flex-shrink: 0;
         `}
       >
         <h1 css={titleStyles}>{getPageTitle()}</h1>
 
         {/* Status Indicators */}
-        <div css={statusIndicatorStyles}>
+        <div css={statusIndicatorStyles} title={isSystemOnline === false ? "System Offline" : isSystemOnline === true ? "System Online" : "Checking Status..."}>
           <span
             css={css`
               width: 8px;
@@ -185,20 +198,22 @@ export const Header: React.FC = () => {
                     : "transparent"};
             `}
           />
-          <span
-            style={{
-              color:
-                isSystemOnline === false
-                  ? designTokens.colors.semantic.error[700]
-                  : "inherit",
-            }}
-          >
-            {isSystemOnline === false
-              ? "System Offline"
-              : isSystemOnline === true
-                ? "System Online"
-                : "Checking Status..."}
-          </span>
+          {!isMobile && (
+            <span
+              style={{
+                color:
+                  isSystemOnline === false
+                    ? designTokens.colors.semantic.error[700]
+                    : "inherit",
+              }}
+            >
+              {isSystemOnline === false
+                ? "System Offline"
+                : isSystemOnline === true
+                  ? "System Online"
+                  : "Checking Status..."}
+            </span>
+          )}
           {isSystemOnline === false ? (
             <ShieldAlert
               size={14}
@@ -286,8 +301,12 @@ export const Header: React.FC = () => {
         />
 
         {/* User Menu */}
-        {user.isConnected && !isMobile && (
-          <button css={modernButtonStyle} title="User menu">
+        {user.isConnected && (
+          <button
+            css={modernButtonStyle}
+            onClick={() => setIsOpen(true)}
+            title="User Settings (Search commands)"
+          >
             <Settings size={20} />
           </button>
         )}

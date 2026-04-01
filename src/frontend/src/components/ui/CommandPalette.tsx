@@ -250,26 +250,45 @@ export const CommandPalette: React.FC = () => {
       switch (event.key) {
         case "ArrowDown":
           event.preventDefault();
+          if (activeComponent) break;
           setSelectedIndex((prev) =>
-            prev < filteredCommands.length - 1 ? prev + 1 : 0,
+            prev < filteredCommands.length + (query ? 0 : suggestions.length + Math.min(history.length, 3)) - 1 ? prev + 1 : 0,
           );
           break;
         case "ArrowUp":
           event.preventDefault();
+          if (activeComponent) break;
           setSelectedIndex((prev) =>
-            prev > 0 ? prev - 1 : filteredCommands.length - 1,
+            prev > 0 ? prev - 1 : filteredCommands.length + (query ? 0 : suggestions.length + Math.min(history.length, 3)) - 1,
           );
           break;
         case "Enter":
           event.preventDefault();
+          if (activeComponent) {
+            clearActiveIntent();
+            break;
+          }
           // If the query matches a specific static command exactly or is selected, run it
           // Otherwise, treat it as a general agentic intent
+
+          const totalStaticItems = filteredCommands.length + (query ? 0 : suggestions.length + Math.min(history.length, 3));
+
           if (
-            query &&
-            filteredCommands.length > 0 &&
-            selectedIndex < filteredCommands.length
+            totalStaticItems > 0 &&
+            selectedIndex < totalStaticItems
           ) {
-            filteredCommands[selectedIndex].action();
+            // Determine what was selected
+            if (!query) {
+              if (selectedIndex < suggestions.length) {
+                submitIntent(suggestions[selectedIndex].intent);
+              } else if (selectedIndex < suggestions.length + Math.min(history.length, 3)) {
+                submitIntent(history[selectedIndex - suggestions.length].query);
+              } else {
+                filteredCommands[selectedIndex - suggestions.length - Math.min(history.length, 3)].action();
+              }
+            } else {
+              filteredCommands[selectedIndex].action();
+            }
           } else if (query) {
             submitIntent(query);
           }
@@ -279,7 +298,7 @@ export const CommandPalette: React.FC = () => {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, selectedIndex, filteredCommands]);
+  }, [isOpen, selectedIndex, filteredCommands, suggestions, history, query, activeComponent, submitIntent, clearActiveIntent]);
 
   const categoryLabels = {
     navigation: "Navigation",
@@ -288,7 +307,7 @@ export const CommandPalette: React.FC = () => {
     help: "Help",
   };
 
-  let commandIndex = 0;
+  let globalIndex = 0;
 
   // Simple Generative UI Renderer
   const renderGenerativeUI = (component: GeneratedUIComponent) => {
@@ -495,22 +514,27 @@ export const CommandPalette: React.FC = () => {
                   <div css={commandPaletteStyles.category}>
                     ✨ Recommended for you
                   </div>
-                  {suggestions.map((suggestion) => (
-                    <div
-                      key={suggestion.id}
-                      css={commandPaletteStyles.item(false)}
-                      onClick={() => submitIntent(suggestion.intent)}
-                    >
-                      <span css={commandPaletteStyles.icon}>
-                        {suggestion.icon || "💡"}
-                      </span>
-                      <div css={commandPaletteStyles.text}>
-                        <div css={commandPaletteStyles.title}>
-                          {suggestion.label}
+                  {suggestions.map((suggestion, idx) => {
+                    const isSelected = globalIndex === selectedIndex;
+                    const currentIndex = globalIndex++;
+                    return (
+                      <div
+                        key={suggestion.id}
+                        css={commandPaletteStyles.item(isSelected)}
+                        onClick={() => submitIntent(suggestion.intent)}
+                        onMouseEnter={() => setSelectedIndex(currentIndex)}
+                      >
+                        <span css={commandPaletteStyles.icon}>
+                          {suggestion.icon || "💡"}
+                        </span>
+                        <div css={commandPaletteStyles.text}>
+                          <div css={commandPaletteStyles.title}>
+                            {suggestion.label}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -518,21 +542,26 @@ export const CommandPalette: React.FC = () => {
               {!query && history.length > 0 && (
                 <div>
                   <div css={commandPaletteStyles.category}>🕒 Recent</div>
-                  {history.slice(0, 3).map((item) => (
-                    <div
-                      key={item.id}
-                      css={commandPaletteStyles.item(false)}
-                      onClick={() => submitIntent(item.query)}
-                    >
-                      <span css={commandPaletteStyles.icon}>↩️</span>
-                      <div css={commandPaletteStyles.text}>
-                        <div css={commandPaletteStyles.title}>{item.query}</div>
-                        <div css={commandPaletteStyles.description}>
-                          {new Date(item.timestamp).toLocaleTimeString()}
+                  {history.slice(0, 3).map((item, idx) => {
+                    const isSelected = globalIndex === selectedIndex;
+                    const currentIndex = globalIndex++;
+                    return (
+                      <div
+                        key={item.id}
+                        css={commandPaletteStyles.item(isSelected)}
+                        onClick={() => submitIntent(item.query)}
+                        onMouseEnter={() => setSelectedIndex(currentIndex)}
+                      >
+                        <span css={commandPaletteStyles.icon}>↩️</span>
+                        <div css={commandPaletteStyles.text}>
+                          <div css={commandPaletteStyles.title}>{item.query}</div>
+                          <div css={commandPaletteStyles.description}>
+                            {new Date(item.timestamp).toLocaleTimeString()}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -543,8 +572,8 @@ export const CommandPalette: React.FC = () => {
                       {categoryLabels[category as keyof typeof categoryLabels]}
                     </div>
                     {categoryCommands.map((command) => {
-                      const isSelected = commandIndex === selectedIndex;
-                      const currentIndex = commandIndex++;
+                      const isSelected = globalIndex === selectedIndex;
+                      const currentIndex = globalIndex++;
 
                       return (
                         <div

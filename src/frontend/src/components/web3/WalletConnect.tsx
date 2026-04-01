@@ -1,4 +1,8 @@
 import { useState, useEffect } from "react";
+import { css } from "@emotion/react";
+import { designTokens, easings } from "../../styles/design-system";
+import { useBreakpoint } from "../../hooks/useMediaQuery";
+import { LogOut, Wallet } from "lucide-react";
 
 interface WalletConnectProps {
   onConnect: (address: string, network: "filecoin" | "polkadot") => void;
@@ -20,6 +24,8 @@ export default function WalletConnect({
   const [network, setNetwork] = useState<string>(""); // "filecoin" or "polkadot"
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string>("");
+
+  const { isMobile } = useBreakpoint();
 
   useEffect(() => {
     checkConnection();
@@ -133,66 +139,117 @@ export default function WalletConnect({
   };
 
   const formatAddress = (addr: string) => {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+    return isMobile
+      ? `${addr.slice(0, 4)}...${addr.slice(-2)}`
+      : `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
+
+  const containerStyles = css`
+    display: flex;
+    align-items: center;
+    gap: ${designTokens.spacing[2]};
+  `;
+
+  const buttonBaseStyles = css`
+    display: flex;
+    align-items: center;
+    gap: ${designTokens.spacing[2]};
+    padding: ${isMobile
+      ? `${designTokens.spacing[1]} ${designTokens.spacing[2]}`
+      : `${designTokens.spacing[2]} ${designTokens.spacing[4]}`};
+    border-radius: ${designTokens.borderRadius.md};
+    font-size: ${designTokens.typography.fontSize.sm};
+    font-weight: ${designTokens.typography.fontWeight.medium};
+    transition: ${easings.smooth};
+    cursor: pointer;
+    border: 1px solid ${designTokens.colors.neutral[300]};
+    background: ${designTokens.colors.neutral[0]};
+    color: ${designTokens.colors.neutral[700]};
+
+    &:hover {
+      background: ${designTokens.colors.neutral[50]};
+      transform: translateY(-1px);
+      box-shadow: ${designTokens.shadows.sm};
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  `;
+
+  const connectedButtonStyles = css`
+    ${buttonBaseStyles}
+    background: ${designTokens.colorSystem.gradients.primary};
+    color: white;
+    border: none;
+
+    &:hover {
+      opacity: 0.9;
+      background: ${designTokens.colorSystem.gradients.primary};
+    }
+  `;
 
   if (isConnected) {
     const networkName =
       network === "polkadot" ? "Polkadot Hub" : "Filecoin Calibration";
     return (
-      <div className="wallet-connect connected">
-        <div className="wallet-info">
-          <div className="wallet-status">
-            <span className="status-indicator connected"></span>
-            <span className="network-name">{networkName}</span>
-          </div>
-          <div className="wallet-address">
-            <code>{formatAddress(address)}</code>
-          </div>
-        </div>
-        <button className="disconnect-btn" onClick={disconnectWallet}>
-          Disconnect
+      <div css={containerStyles}>
+        <button css={connectedButtonStyles} title={networkName}>
+          <Wallet size={16} />
+          <span>{formatAddress(address)}</span>
+        </button>
+        <button
+          css={buttonBaseStyles}
+          onClick={disconnectWallet}
+          title="Disconnect Wallet"
+        >
+          <LogOut size={16} />
+          {!isMobile && <span>Disconnect</span>}
         </button>
       </div>
     );
   }
 
   return (
-    <div className="wallet-connect">
-      {error && (
-        <div className="wallet-error">
-          <span>⚠️ {error}</span>
+    <div css={containerStyles}>
+      {error && !isMobile && (
+        <div
+          css={css`
+            color: ${designTokens.colors.semantic.error[500]};
+            font-size: ${designTokens.typography.fontSize.xs};
+          `}
+        >
+          <span>⚠️ Error</span>
         </div>
       )}
 
       <button
-        className={`connect-btn ${isConnecting ? "connecting" : ""}`}
+        css={buttonBaseStyles}
         onClick={connectWallet}
         disabled={isConnecting}
       >
         {isConnecting ? (
           <>
-            <span className="spinner"></span>
-            Connecting...
+            <span
+              css={css`
+                width: 14px;
+                height: 14px;
+                border: 2px solid currentColor;
+                border-right-color: transparent;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+              `}
+            ></span>
+            {!isMobile && "Connecting..."}
           </>
         ) : (
-          <>🦊 Connect Wallet</>
+          <>
+            <Wallet size={16} />
+            <span>{!isMobile ? "Connect Wallet" : "Connect"}</span>
+          </>
         )}
       </button>
-
-      {typeof window.ethereum === "undefined" && (
-        <div className="install-metamask">
-          <p>Need MetaMask?</p>
-          <a
-            href="https://metamask.io/download/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="install-link"
-          >
-            Install MetaMask
-          </a>
-        </div>
-      )}
     </div>
   );
 }
