@@ -17,25 +17,37 @@ Cognivern is an **AI Governance Command Center** — a coordination and coordina
 
 ## System Architecture
 
-Cognivern utilizes a hybrid multi-chain architecture to balance high-fidelity evidence with high-performance execution:
+Cognivern utilizes a Cloudflare-native, hybrid multi-chain architecture:
 
 ```
-┌──────────────────┐       ┌──────────────────┐       ┌──────────────────┐
-│   Agent Runtime  │ ───→  │    Cognivern     │ ───→  │  Ecosystem Visual│
-│ (User's Agents)  │       │   Control Plane  │       │      (Frontend)  │
-└──────────────────┘       └────────┬─────────┘       └──────────────────┘
-                                    │
-                                    ▼
-                 ┌──────────────────┴──────────────────┐
-                 │                                     │
-                 ▼                                     ▼
-      ┌──────────────────┐                  ┌──────────────────┐
-      │  Filecoin (FVM)  │                  │   Polkadot Hub   │
-      │                  │                  │    (REVM/PVM)    │
-      ├──────────────────┤                  ├──────────────────┤
-      │ Forensic Storage │                  │ Real-Time Gov.   │
-      │ + Evidence Proof │                  │ + Coordination   │
-      └──────────────────┘                  └──────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    Cloudflare Workers Edge                       │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │         GovernanceAgent (Durable Object)                 │   │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │   │
+│  │  │  Persistent  │  │   Policy     │  │   Voice      │  │   │
+│  │  │  State (DO)  │  │   Engine     │  │   Briefing   │  │   │
+│  │  │  - thoughts  │  │  - evaluate  │  │  - AI script │  │   │
+│  │  │  - actions   │  │  - enforce   │  │  - ElevenLabs│  │   │
+│  │  │  - metrics   │  │  - rate limit│  │  - streaming │  │   │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                          │                                      │
+│  ┌──────────┐   ┌───────┴───────┐   ┌──────────────────┐      │
+│  │ D1 DB    │   │ Workers AI    │   │ Cron Triggers    │      │
+│  │ agents,  │   │ (on-edge      │   │ (hourly audits,  │      │
+│  │ policies,│   │  inference)   │   │  cleanup)        │      │
+│  │ audits   │   └───────────────┘   └──────────────────┘      │
+│  └──────────┘                                                  │
+└─────────────────────────────────────────────────────────────────┘
+                          │
+            ┌─────────────┼─────────────┐
+            ▼             ▼             ▼
+    ┌──────────────┐ ┌──────────┐ ┌──────────┐
+    │ Arbitrum/EAS │ │  Recall  │ │ Filecoin │
+    │ Attestations │ │  Memory  │ │ Forensic │
+    └──────────────┘ └──────────┘ └──────────┘
 ```
 
 ## Two-Plane Design
@@ -147,26 +159,50 @@ Both execute within CRE Confidential HTTP — API keys and reasoning stay privat
 
 ## Data Persistence
 
-Local-first persistence (survives restarts, no database required):
+### Cloudflare D1 (Production)
 
-- **Runs**: `data/cre-runs.jsonl` (append-only JSONL)
-- **Quota Usage**: `data/usage.json`
-- **Token Telemetry**: `data/token-telemetry.json`
+- **agents**: Registered agent metadata, capabilities, and status
+- **policies**: Governance rules and enforcement configurations
+- **action_logs**: Audit trail of all agent actions and decisions
+- **policy_decisions**: Detailed decision records with AI reasoning
+- **agent_metrics**: Aggregated performance and compliance metrics
+- **thought_history**: Cognitive transparency log
+
+### Durable Objects (Per-Agent State)
+
+- Persistent thought history and action logs via `ctx.storage`
+- Rate limiting counters and policy enforcement state
+- Voice briefing rate limits (10 per hour)
+- Metrics and configuration snapshots
+
+### Local Fallback
+
+- Runs: `data/cre-runs.jsonl` (append-only JSONL)
+- Quota Usage: `data/usage.json`
+- Token Telemetry: `data/token-telemetry.json`
 
 ## Configuration
 
 Centralized config with Zod validation (`src/shared/config/index.ts`):
 
 ```env
-# Required
+# Sapience / Arbitrum (Trading)
 ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
+ETHEREAL_RPC_URL=https://ethereal-rpc.sapience.xyz
 SAPIENCE_PRIVATE_KEY=your_private_key
 
-# LLM Layer
-ROUTEWAY_API_KEY=your_routeway_key
-GROQ_API_KEY=your_groq_key
+# Cloudflare (Governance Agents)
+CLOUDFLARE_ACCOUNT_ID=your_id
+CLOUDFLARE_API_TOKEN=your_token
 
-# Memory
+# ElevenLabs (Voice Briefings)
+ELEVENLABS_API_KEY=your_elevenlabs_key
+
+# LLM Providers (at least one required)
+FIREWORKS_API_KEY=
+OPENROUTER_API_KEY=
+
+# Recall Network (Agent Memory)
 RECALL_API_KEY=your_recall_key
 RECALL_BUCKET=agent-memory
 ```
