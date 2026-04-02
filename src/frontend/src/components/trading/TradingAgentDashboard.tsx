@@ -43,6 +43,7 @@ import { AgentMonitor } from "./AgentMonitor";
 import { InteractiveCarousel, CarouselItem } from "../ui/InteractiveCarousel";
 import { agentApi } from "../../services/apiService";
 import { useNavigate } from "react-router-dom";
+import VoiceBriefing from "../agents/VoiceBriefing";
 import {
   agentComparisonSchema,
   defaultFilters,
@@ -64,6 +65,7 @@ function TradingAgentDashboardContent() {
   const { isMobile } = useBreakpoint();
   const [showComparison, setShowComparison] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<string>("recall");
   const [error, setError] = useState<string | null>(null);
   const [comparisonFilters, setComparisonFilters] =
     useState<AgentComparisonFilters>(defaultFilters);
@@ -437,6 +439,7 @@ function TradingAgentDashboardContent() {
   ];
 
   const handleCarouselItemClick = (id: string) => {
+    setSelectedAgent(id);
     // Scroll to the agent monitor or navigate to it
     const element = document.getElementById(`agent-monitor-${id}`);
     if (element) {
@@ -459,7 +462,7 @@ function TradingAgentDashboardContent() {
       }
     >
       {/* Error Display */}
-        {error && (
+      {error && (
         <div css={styles.errorStyles}>
           <AlertTriangle
             size={24}
@@ -507,6 +510,9 @@ function TradingAgentDashboardContent() {
           Double click active agent to view detailed profile
         </p>
       </div>
+
+      {/* Voice Briefing - ElevenLabs AI */}
+      <VoiceBriefing agentId={selectedAgent} />
 
       {/* Agent Comparison Toggle */}
       <div
@@ -1198,29 +1204,48 @@ function TradingAgentDashboardContent() {
       )}
 
       {/* Showcase Agents Section */}
-      <div css={css`margin-bottom: ${designTokens.spacing[12]};`}>
-        <div css={css`
-          display: flex;
-          align-items: center;
-          gap: ${designTokens.spacing[3]};
-          margin-bottom: ${designTokens.spacing[6]};
-          border-bottom: 1px solid ${designTokens.colors.neutral[200]};
-          padding-bottom: ${designTokens.spacing[2]};
-        `}>
+      <div
+        css={css`
+          margin-bottom: ${designTokens.spacing[12]};
+        `}
+      >
+        <div
+          css={css`
+            display: flex;
+            align-items: center;
+            gap: ${designTokens.spacing[3]};
+            margin-bottom: ${designTokens.spacing[6]};
+            border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+            padding-bottom: ${designTokens.spacing[2]};
+          `}
+        >
           <Trophy size={20} color={designTokens.colors.primary[500]} />
-          <h2 css={css`
-            font-size: ${designTokens.typography.fontSize.xl};
-            font-weight: ${designTokens.typography.fontWeight.bold};
-            color: ${designTokens.colors.neutral[900]};
-          `}>Showcase Agents</h2>
-          <Badge variant="outline" css={css`margin-left: auto;`}>3 Verified</Badge>
+          <h2
+            css={css`
+              font-size: ${designTokens.typography.fontSize.xl};
+              font-weight: ${designTokens.typography.fontWeight.bold};
+              color: ${designTokens.colors.neutral[900]};
+            `}
+          >
+            Showcase Agents
+          </h2>
+          <Badge
+            variant="outline"
+            css={css`
+              margin-left: auto;
+            `}
+          >
+            3 Verified
+          </Badge>
         </div>
 
-        <div css={css`
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: ${designTokens.spacing[8]};
-        `}>
+        <div
+          css={css`
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: ${designTokens.spacing[8]};
+          `}
+        >
           <AgentMonitor
             agentType="recall"
             title="Recall Trading Agent"
@@ -1246,51 +1271,81 @@ function TradingAgentDashboardContent() {
 
       {/* User Tracking Section */}
       <div>
-        <div css={css`
-          display: flex;
-          align-items: center;
-          gap: ${designTokens.spacing[3]};
-          margin-bottom: ${designTokens.spacing[6]};
-          border-bottom: 1px solid ${designTokens.colors.neutral[200]};
-          padding-bottom: ${designTokens.spacing[2]};
-        `}>
-          <Users size={20} color={designTokens.colors.secondary[500]} />
-          <h2 css={css`
-            font-size: ${designTokens.typography.fontSize.xl};
-            font-weight: ${designTokens.typography.fontWeight.bold};
-            color: ${designTokens.colors.neutral[900]};
-          `}>User Provided Agents</h2>
-          <Badge variant="outline" css={css`margin-left: auto;`}>Private Tracking</Badge>
-        </div>
-
-        <Card css={css`
-          border-style: dashed;
-          background: ${designTokens.colors.neutral[50]};
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: ${designTokens.spacing[12]};
-          text-align: center;
-        `}>
-          <div css={css`
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: white;
+        <div
+          css={css`
             display: flex;
             align-items: center;
+            gap: ${designTokens.spacing[3]};
+            margin-bottom: ${designTokens.spacing[6]};
+            border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+            padding-bottom: ${designTokens.spacing[2]};
+          `}
+        >
+          <Users size={20} color={designTokens.colors.secondary[500]} />
+          <h2
+            css={css`
+              font-size: ${designTokens.typography.fontSize.xl};
+              font-weight: ${designTokens.typography.fontWeight.bold};
+              color: ${designTokens.colors.neutral[900]};
+            `}
+          >
+            User Provided Agents
+          </h2>
+          <Badge
+            variant="outline"
+            css={css`
+              margin-left: auto;
+            `}
+          >
+            Private Tracking
+          </Badge>
+        </div>
+
+        <Card
+          css={css`
+            border-style: dashed;
+            background: ${designTokens.colors.neutral[50]};
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
-            margin-bottom: ${designTokens.spacing[4]};
-            box-shadow: ${designTokens.shadows.sm};
-          `}>
+            padding: ${designTokens.spacing[12]};
+            text-align: center;
+          `}
+        >
+          <div
+            css={css`
+              width: 48px;
+              height: 48px;
+              border-radius: 50%;
+              background: white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin-bottom: ${designTokens.spacing[4]};
+              box-shadow: ${designTokens.shadows.sm};
+            `}
+          >
             <Zap size={24} color={designTokens.colors.neutral[400]} />
           </div>
-          <h3 css={css`margin-bottom: ${designTokens.spacing[2]};`}>No Custom Agents Tracked</h3>
-          <p css={css`color: ${designTokens.colors.neutral[500]}; max-width: 400px; margin-bottom: ${designTokens.spacing[6]};`}>
-            Connect your own OpenClaw or Hermes agents to monitor their behavioral performance and governance scores privately.
+          <h3
+            css={css`
+              margin-bottom: ${designTokens.spacing[2]};
+            `}
+          >
+            No Custom Agents Tracked
+          </h3>
+          <p
+            css={css`
+              color: ${designTokens.colors.neutral[500]};
+              max-width: 400px;
+              margin-bottom: ${designTokens.spacing[6]};
+            `}
+          >
+            Connect your own OpenClaw or Hermes agents to monitor their
+            behavioral performance and governance scores privately.
           </p>
-          <Button variant="outline" onClick={() => navigate('/workshop')}>
+          <Button variant="outline" onClick={() => navigate("/workshop")}>
             Go to Workshop
           </Button>
         </Card>

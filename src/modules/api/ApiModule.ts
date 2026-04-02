@@ -221,7 +221,10 @@ export class ApiModule extends BaseService {
     const apiKey = headerApiKey || queryApiKey;
 
     const validApiKeys = [apiConfig.apiKey];
-    if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") {
+    if (
+      process.env.NODE_ENV === "development" ||
+      process.env.NODE_ENV === "test"
+    ) {
       validApiKeys.push("development-api-key", "test-api-key");
     }
 
@@ -260,12 +263,15 @@ export class ApiModule extends BaseService {
 
     // Initialize controllers with dependency injection
     this.controllers.set("health", new HealthController(agentsModule));
-    this.controllers.set("agents", new AgentsController(
-      agentsModule,
-      undefined,
-      auditLogService,
-      policyService
-    ));
+    this.controllers.set(
+      "agents",
+      new AgentsController(
+        agentsModule,
+        undefined,
+        auditLogService,
+        policyService,
+      ),
+    );
     this.controllers.set("governance", new GovernanceController(policyService));
     this.controllers.set("metrics", new MetricsController());
     this.controllers.set("sapience", new SapienceController());
@@ -386,6 +392,10 @@ export class ApiModule extends BaseService {
 
     apiRouter.get("/agents/:id/decisions", (req, res) => {
       this.controllers.get("agents").getAgentDecisions(req, res);
+    });
+
+    apiRouter.get("/agents/:id/briefing", (req, res) => {
+      this.controllers.get("agents").getAgentBriefing(req, res);
     });
 
     apiRouter.post("/agents/:id/start", (req, res) => {
