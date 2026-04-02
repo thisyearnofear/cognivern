@@ -3,14 +3,14 @@
  * Multi-step wizard for connecting user agents.
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { css } from "@emotion/react";
 import { useNavigate } from "react-router-dom";
 import { Bot, TrendingUp, Shield, Search, CheckCircle, ArrowRight, ArrowLeft, Check, AlertTriangle } from "lucide-react";
 import { designTokens } from "../../styles/design-system";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
-import { agentApi } from "../../services/apiService";
+import { agentApi, policyApi } from "../../services/apiService";
 
 export type AgentType = "trading" | "governance" | "research" | "custom";
 
@@ -20,6 +20,7 @@ export interface AgentConnectionConfig {
   address: string;
   description: string;
   riskLevel: "low" | "medium" | "high";
+  policyId?: string;
 }
 
 export interface AgentConnectionWizardProps {
@@ -233,7 +234,28 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
     riskLevel: "medium",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [policies, setPolicies] = useState<any[]>([]);
+  const [isLoadingPolicies, setIsLoadingPolicies] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (currentStep === 3) {
+      const fetchPolicies = async () => {
+        setIsLoadingPolicies(true);
+        try {
+          const response = await policyApi.getPolicies();
+          if (response.success && response.data) {
+            setPolicies(response.data);
+          }
+        } catch (err) {
+          console.error("Failed to fetch policies:", err);
+        } finally {
+          setIsLoadingPolicies(false);
+        }
+      };
+      fetchPolicies();
+    }
+  }, [currentStep]);
 
   const updateConfig = (updates: Partial<AgentConnectionConfig>) => {
     setConfig((prev) => ({ ...prev, ...updates }));
@@ -334,19 +356,46 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
 
         {currentStep === 3 && (
           <>
-            <h2 css={titleStyles}>Risk Level</h2>
-            <p css={subtitleStyles}>Set the risk tolerance for this agent</p>
-            <div css={radioGroupStyles}>
-              {(["low", "medium", "high"] as const).map((level) => (
-                <div key={level} css={radioOptionStyles(config.riskLevel === level)} onClick={() => updateConfig({ riskLevel: level })}>
-                  <div css="font-weight: 600; text-transform: capitalize; margin-bottom: 4px;">{level}</div>
-                  <div css={`font-size: 12px; color: ${designTokens.colors.text.secondary};`}>
-                    {level === "low" && "Conservative trades, strict limits"}
-                    {level === "medium" && "Balanced approach"}
-                    {level === "high" && "Aggressive strategies, higher limits"}
+            <h2 css={titleStyles}>Governance & Risk</h2>
+            <p css={subtitleStyles}>Select a base policy and risk level for your agent</p>
+
+            <div css={formGroupStyles}>
+              <label css={labelStyles}>Risk Level</label>
+              <div css={radioGroupStyles}>
+                {(["low", "medium", "high"] as const).map((level) => (
+                  <div key={level} css={radioOptionStyles(config.riskLevel === level)} onClick={() => updateConfig({ riskLevel: level })}>
+                    <div css="font-weight: 600; text-transform: capitalize; margin-bottom: 4px;">{level}</div>
+                    <div css={`font-size: 12px; color: ${designTokens.colors.text.secondary};`}>
+                      {level === "low" && "Conservative trades"}
+                      {level === "medium" && "Balanced approach"}
+                      {level === "high" && "Aggressive strategies"}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+
+            <div css={formGroupStyles}>
+              <label css={labelStyles}>Base Policy (Optional)</label>
+              <select
+                css={inputStyles}
+                value={config.policyId || ""}
+                onChange={(e) => updateConfig({ policyId: e.target.value })}
+              >
+                <option value="">No custom policy (Use default)</option>
+                {isLoadingPolicies ? (
+                  <option disabled>Loading policies...</option>
+                ) : (
+                  policies.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              <p css={`font-size: 12px; color: ${designTokens.colors.text.secondary}; margin-top: 8px;`}>
+                Policies define the operational guardrails for your agent.
+              </p>
             </div>
           </>
         )}
