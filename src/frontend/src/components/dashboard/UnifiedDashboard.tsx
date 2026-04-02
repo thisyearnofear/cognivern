@@ -56,6 +56,7 @@ import {
   LoadingSpinner,
 } from "../ui";
 import { Node } from "../ui/EcosystemVisualizer";
+import Tooltip from "../ui/Tooltip";
 import * as styles from "./UnifiedDashboard.styles";
 import { Column } from "../ui/DataTable";
 import { ChartDataPoint } from "../ui/Chart";
@@ -376,6 +377,70 @@ const buildEvidenceFacts = (activity: ActivityItem): string[] => {
   }
 
   return facts;
+};
+
+const buildTrustSignals = (activity: ActivityItem) => {
+  const signals: Array<{
+    label: string;
+    variant: "success" | "secondary" | "warning" | "outline";
+    hint: string;
+  }> = [];
+
+  if (activity.evidenceHash) {
+    signals.push({
+      label: "hash-backed",
+      variant: "success",
+      hint: "Stable evidence hash is present for this event.",
+    });
+  }
+  if (activity.cid) {
+    signals.push({
+      label: "cid-linked",
+      variant: "secondary",
+      hint: "Event points to content-addressed evidence or artifact storage.",
+    });
+  }
+  if (activity.policyIds && activity.policyIds.length > 0) {
+    signals.push({
+      label: "policy-enforced",
+      variant: "warning",
+      hint: `Mapped to ${activity.policyIds.length} policy check${activity.policyIds.length > 1 ? "s" : ""}.`,
+    });
+  }
+  if (activity.sourceType === "run" && activity.runId) {
+    signals.push({
+      label: "run-linked",
+      variant: "outline",
+      hint: "Trace links back to a persisted run record.",
+    });
+  }
+
+  return signals.slice(0, 3);
+};
+
+const TrustSignals = ({ activity }: { activity: ActivityItem }) => {
+  const signals = buildTrustSignals(activity);
+  if (!signals.length) return null;
+
+  return (
+    <div
+      css={css`
+        display: flex;
+        flex-wrap: wrap;
+        gap: ${designTokens.spacing[1]};
+      `}
+    >
+      {signals.map((signal) => (
+        <Tooltip key={signal.label} content={signal.hint}>
+          <span>
+            <Badge variant={signal.variant} size="sm">
+              {signal.label}
+            </Badge>
+          </span>
+        </Tooltip>
+      ))}
+    </div>
+  );
 };
 
 export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
@@ -1039,6 +1104,17 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                   </div>
                 </div>
                 <div style={{ color: designTokens.colors.text.primary, lineHeight: 1.4 }}>{t.body}</div>
+                {t.evidenceHash || t.cid ? (
+                  <TrustSignals
+                    activity={{
+                      id: t.id,
+                      sourceType: t.agentId ? "run" : "audit",
+                      runId: t.agentId,
+                      evidenceHash: t.evidenceHash,
+                      cid: t.cid,
+                    }}
+                  />
+                ) : null}
                 {t.evidenceFacts && t.evidenceFacts.length > 0 && (
                   <div style={{
                     marginTop: '6px',
@@ -1333,6 +1409,7 @@ const ActivityFeed = ({
                   <div css={styles.activityTextStyles}>
                     {activity.description || "Activity"}
                   </div>
+                  <TrustSignals activity={activity} />
                   <div css={styles.activityTimeStyles}>
                     {activity.timestamp
                       ? new Date(activity.timestamp).toLocaleTimeString()
