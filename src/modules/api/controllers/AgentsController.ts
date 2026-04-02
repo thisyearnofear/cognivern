@@ -11,7 +11,11 @@ import { MetricsService } from "../../../services/MetricsService.js";
 
 import { AuditLogService } from "../../../services/AuditLogService.js";
 import { PolicyService } from "../../../services/PolicyService.js";
-import { getWorkerClient, type WorkerAgent, type WorkerMetrics } from "../../../services/CloudflareWorkerClient.js";
+import {
+  getWorkerClient,
+  type WorkerAgent,
+  type WorkerMetrics,
+} from "../../../services/CloudflareWorkerClient.js";
 
 export class AgentsController {
   private agentsModule: AgentsModule;
@@ -482,8 +486,13 @@ export class AgentsController {
           workerAgents = await this.workerClient.listAgents();
           // Get metrics for first agent if available
           if (workerAgents.length > 0) {
-            workerMetrics = await this.workerClient.getAgentMetrics(workerAgents[0].id);
-            workerThoughts = await this.workerClient.getThoughtHistory(workerAgents[0].id, 20);
+            workerMetrics = await this.workerClient.getAgentMetrics(
+              workerAgents[0].id,
+            );
+            workerThoughts = await this.workerClient.getThoughtHistory(
+              workerAgents[0].id,
+              20,
+            );
           }
         } catch (e) {
           console.warn("Failed to fetch Worker data:", e);
@@ -506,13 +515,15 @@ export class AgentsController {
               0,
             ),
           // Cloudflare Worker metrics
-          worker: workerMetrics ? {
-            enabled: true,
-            totalDecisions: workerMetrics.totalDecisions,
-            approvedActions: workerMetrics.approvedActions,
-            rejectedActions: workerMetrics.rejectedActions,
-            avgDecisionTimeMs: workerMetrics.avgDecisionTimeMs,
-          } : { enabled: false },
+          worker: workerMetrics
+            ? {
+                enabled: true,
+                totalDecisions: workerMetrics.totalDecisions,
+                approvedActions: workerMetrics.approvedActions,
+                rejectedActions: workerMetrics.rejectedActions,
+                avgDecisionTimeMs: workerMetrics.avgDecisionTimeMs,
+              }
+            : { enabled: false },
         },
         agents: enrichedAgents,
         recentActivity: allActivity.slice(0, 20),
@@ -784,22 +795,24 @@ export class AgentsController {
             id: "q1",
             type: "alert",
             title: "Verify Agent Alpha",
-            description: "Review latest trades to verify compliance with new risk policy.",
+            description:
+              "Review latest trades to verify compliance with new risk policy.",
             severity: "high",
             actionRequired: true,
             confidence: 1,
-            relatedLogs: []
+            relatedLogs: [],
           } as any,
           {
             id: "q2",
             type: "recommendation",
             title: "Update Market Guardrails",
-            description: "Market volatility detected. Increase slippage threshold by 0.5%.",
+            description:
+              "Market volatility detected. Increase slippage threshold by 0.5%.",
             severity: "medium",
             actionRequired: true,
             confidence: 0.95,
-            relatedLogs: []
-          } as any
+            relatedLogs: [],
+          } as any,
         ];
       }
 
@@ -812,16 +825,16 @@ export class AgentsController {
           ...bundle,
           activity,
           policies,
-          quests: insights
+          quests: insights,
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       console.error("Dashboard bundle error:", error);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }
@@ -848,5 +861,33 @@ export class AgentsController {
       sortBy: query.sortBy as string,
       sortDirection: query.sortDirection as "asc" | "desc",
     };
+  }
+
+  async getAgentBriefing(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const result = await this.workerClient.getVoiceBriefing(id);
+
+      if (!result) {
+        res.status(503).json({
+          success: false,
+          error: "Voice briefing unavailable (Cloudflare Worker not connected)",
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate briefing",
+      });
+    }
   }
 }

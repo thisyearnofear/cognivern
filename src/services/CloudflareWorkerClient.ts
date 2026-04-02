@@ -6,7 +6,10 @@
  */
 
 import { config } from "../config.js";
-import type { GovernanceAction, PolicyDecision } from "../modules/cloudflare-agents/types.js";
+import type {
+  GovernanceAction,
+  PolicyDecision,
+} from "../modules/cloudflare-agents/types.js";
 
 export interface WorkerAgent {
   id: string;
@@ -162,24 +165,21 @@ export class CloudflareWorkerClient {
    */
   async evaluateGovernance(
     agentId: string,
-    action: GovernanceAction
+    action: GovernanceAction,
   ): Promise<PolicyDecision | null> {
     if (!this.enabled) {
       return null;
     }
 
     try {
-      const response = await fetch(
-        `${this.baseUrl}/api/governance/evaluate`,
-        {
-          method: "POST",
-          headers: {
-            "X-API-Key": this.apiKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ agentId, action }),
-        }
-      );
+      const response = await fetch(`${this.baseUrl}/api/governance/evaluate`, {
+        method: "POST",
+        headers: {
+          "X-API-Key": this.apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ agentId, action }),
+      });
 
       if (!response.ok) {
         throw new Error(`Governance evaluation failed: ${response.status}`);
@@ -261,7 +261,7 @@ export class CloudflareWorkerClient {
         `${this.baseUrl}/api/agents/${agentId}/metrics`,
         {
           headers: { "X-API-Key": this.apiKey },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -277,6 +277,43 @@ export class CloudflareWorkerClient {
   }
 
   /**
+   * Get voice briefing audio from Worker (ElevenLabs TTS)
+   */
+  async getVoiceBriefing(
+    agentId: string,
+  ): Promise<{ audioUrl: string; script: string } | null> {
+    if (!this.enabled) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/api/agents/${agentId}/briefing`,
+        {
+          headers: { "X-API-Key": this.apiKey },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Voice briefing failed: ${response.status}`);
+      }
+
+      const script = decodeURIComponent(
+        response.headers.get("X-Briefing-Script") || "",
+      );
+      const audioBlob = await response.blob();
+
+      return {
+        audioUrl: URL.createObjectURL(audioBlob),
+        script,
+      };
+    } catch (error) {
+      console.warn("Cloudflare Worker getVoiceBriefing failed:", error);
+      return null;
+    }
+  }
+
+  /**
    * Get action log from Worker
    */
   async getActionLog(
@@ -285,7 +322,7 @@ export class CloudflareWorkerClient {
       actionType?: string;
       approved?: boolean;
       limit?: number;
-    }
+    },
   ): Promise<GovernanceAction[]> {
     if (!this.enabled) {
       return [];
