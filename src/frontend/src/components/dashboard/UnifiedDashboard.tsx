@@ -34,6 +34,7 @@ import {
   XCircle,
   PlusCircle,
   Zap,
+  Brain,
 } from "lucide-react";
 import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
