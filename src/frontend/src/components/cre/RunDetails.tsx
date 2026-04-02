@@ -20,6 +20,7 @@ import {
   LoadingSpinner,
 } from "../ui";
 import ForensicTimeline from "../ui/ForensicTimeline";
+import Tooltip from "../ui/Tooltip";
 
 const containerStyles = css`
   width: 100%;
@@ -43,6 +44,12 @@ const metricGridStyles = css`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: ${designTokens.spacing[4]};
+`;
+
+const trustBadgeRowStyles = css`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${designTokens.spacing[2]};
 `;
 
 export default function RunDetails() {
@@ -570,6 +577,23 @@ export default function RunDetails() {
               gap: ${designTokens.spacing[2]};
             `}
           >
+            <div css={trustBadgeRowStyles}>
+              {run.evidence?.hash && (
+                <Tooltip content="This run has a stable evidence hash derived from its persisted record.">
+                  <span><Badge variant="success" size="sm">hash-backed</Badge></span>
+                </Tooltip>
+              )}
+              {run.evidence?.cid && (
+                <Tooltip content="This run references content-addressed evidence via CID.">
+                  <span><Badge variant="secondary" size="sm">cid-linked</Badge></span>
+                </Tooltip>
+              )}
+              {run.evidence?.artifactIds?.length ? (
+                <Tooltip content="Artifacts are persisted and linked to this run record.">
+                  <span><Badge variant="warning" size="sm">artifact-tracked</Badge></span>
+                </Tooltip>
+              ) : null}
+            </div>
             <div>Source: {vm.provenance.source}</div>
             <div>
               Workflow Version: {vm.provenance.workflowVersion || "N/A"}
@@ -654,6 +678,18 @@ export default function RunDetails() {
                 >
                   <div>
                     <strong>{artifact.type}</strong> · {artifact.id}
+                  </div>
+                  <div css={trustBadgeRowStyles}>
+                    {artifact.evidence?.hash && (
+                      <Tooltip content="Artifact payload is hash-backed for later verification.">
+                        <span><Badge variant="success" size="sm">hash-backed</Badge></span>
+                      </Tooltip>
+                    )}
+                    {artifact.evidence?.cid && (
+                      <Tooltip content="Artifact has a content-addressed reference.">
+                        <span><Badge variant="secondary" size="sm">cid-linked</Badge></span>
+                      </Tooltip>
+                    )}
                   </div>
                   <div>
                     Hash: {artifact.evidence?.hash ? `${artifact.evidence.hash.slice(0, 16)}…` : "N/A"}

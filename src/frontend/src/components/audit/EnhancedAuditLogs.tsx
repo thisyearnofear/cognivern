@@ -17,6 +17,8 @@ import {
   CardDescription,
 } from "../ui/Card";
 import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
+import Tooltip from "../ui/Tooltip";
 
 interface AuditLog {
   id: string;
@@ -395,6 +397,12 @@ const statusBadgeStyles = css`
     background: ${designTokens.colors.semantic.warning[100]};
     color: ${designTokens.colors.semantic.warning[700]};
   }
+`;
+
+const trustBadgeRowStyles = css`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${designTokens.spacing[2]};
 `;
 
 const severityBadgeStyles = css`
@@ -865,7 +873,7 @@ export default function EnhancedAuditLogs() {
                     align-items: start;
                     margin-bottom: ${designTokens.spacing[3]};
                   `}
-                >
+                  >
                   <div>
                     <CardTitle
                       css={css`
@@ -874,6 +882,23 @@ export default function EnhancedAuditLogs() {
                     >
                       {log.agentName}
                     </CardTitle>
+                    <div css={trustBadgeRowStyles}>
+                      {log.evidence?.hash && (
+                        <Tooltip content="This audit event is backed by a stable evidence hash.">
+                          <span><Badge variant="success" size="sm">hash-backed</Badge></span>
+                        </Tooltip>
+                      )}
+                      {log.evidence?.cid && (
+                        <Tooltip content="This audit event references content-addressed evidence.">
+                          <span><Badge variant="secondary" size="sm">cid-linked</Badge></span>
+                        </Tooltip>
+                      )}
+                      {log.evidence?.policyIds?.length ? (
+                        <Tooltip content="Policy checks were recorded for this audit event.">
+                          <span><Badge variant="warning" size="sm">policy-enforced</Badge></span>
+                        </Tooltip>
+                      ) : null}
+                    </div>
                     <div
                       css={css`
                         font-size: ${designTokens.typography.fontSize.sm};
