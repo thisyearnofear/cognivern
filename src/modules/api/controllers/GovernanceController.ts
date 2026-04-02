@@ -5,13 +5,26 @@
 import { Request, Response } from "express";
 import { PolicyService } from "../../../services/PolicyService.js";
 import { getWorkerClient } from "../../../services/CloudflareWorkerClient.js";
+import { PolicyEnforcementService } from "../../../services/PolicyEnforcementService.js";
+import { AuditLogService } from "../../../services/AuditLogService.js";
+import type { AgentAction } from "../../../types/Agent.js";
 
 export class GovernanceController {
   private policyService: PolicyService;
   private workerClient = getWorkerClient();
+  private policyEnforcementService: PolicyEnforcementService;
+  private auditLogService: AuditLogService;
 
-  constructor(policyService?: PolicyService) {
+  constructor(
+    policyService?: PolicyService,
+    auditLogService?: AuditLogService,
+    policyEnforcementService?: PolicyEnforcementService,
+  ) {
     this.policyService = policyService || new PolicyService();
+    this.auditLogService = auditLogService || new AuditLogService();
+    this.policyEnforcementService =
+      policyEnforcementService ||
+      new PolicyEnforcementService(this.policyService);
   }
 
   /**
@@ -78,18 +91,49 @@ export class GovernanceController {
         }
       }
 
-      // Fallback - create simple decision based on action
-      const mockDecision = {
-        approved: action.type !== "trade" || (action.value || 0) < 10000,
-        reason: "Default governance decision (Worker not available)",
+      const policyId = await this.resolvePolicyId(req.body.policyId || action.policyId);
+      if (!policyId) {
+        res.status(503).json({
+          success: false,
+          error: {
+            code: "NO_ACTIVE_POLICY",
+            message: "No active governance policy is available for local evaluation",
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      await this.policyEnforcementService.loadPolicy(policyId);
+      const normalizedAction = this.normalizeAction(agentId, action);
+      const decision = await this.policyEnforcementService.evaluateDecision(
+        normalizedAction,
+      );
+
+      await this.auditLogService.logAction(
+        normalizedAction,
+        decision.policyChecks,
+        decision.allowed,
+      );
+
+      const failedChecks = decision.policyChecks.filter((check) => !check.result);
+      const reason = failedChecks.length
+        ? failedChecks.map((check) => check.reason || check.policyId).join("; ")
+        : `Action approved under policy ${policyId}`;
+
+      const localDecision = {
+        approved: decision.allowed,
+        reason,
         agentId,
-        actionType: action.type,
+        actionType: normalizedAction.type,
+        policyId,
+        policyChecks: decision.policyChecks,
         timestamp: new Date().toISOString(),
       };
 
       res.json({
         success: true,
-        data: mockDecision,
+        data: localDecision,
         source: "local",
         timestamp: new Date().toISOString(),
       });
@@ -211,5 +255,42 @@ export class GovernanceController {
         timestamp: new Date().toISOString(),
       });
     }
+  }
+
+  private async resolvePolicyId(explicitPolicyId?: string): Promise<string | null> {
+    if (explicitPolicyId) {
+      const policy = await this.policyService.getPolicy(explicitPolicyId);
+      return policy?.status === "active" ? policy.id : null;
+    }
+
+    const policies = await this.policyService.listPolicies();
+    const activePolicy = policies
+      .filter((policy) => policy.status === "active" && policy.rules.length > 0)
+      .sort(
+        (left, right) =>
+          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+      )[0];
+
+    return activePolicy?.id || null;
+  }
+
+  private normalizeAction(agentId: string, action: Record<string, any>): AgentAction {
+    const actionType = String(action.type || action.actionType || "unknown");
+    const metadata = {
+      ...(action.metadata || {}),
+      ...(action.data || {}),
+      agentId,
+    };
+
+    return {
+      id: String(action.id || crypto.randomUUID()),
+      timestamp: String(action.timestamp || new Date().toISOString()),
+      type: actionType,
+      description: String(
+        action.description || `Governance evaluation for ${actionType}`,
+      ),
+      metadata,
+      policyChecks: [],
+    };
   }
 }

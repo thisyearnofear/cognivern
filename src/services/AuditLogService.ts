@@ -1,5 +1,9 @@
 import { AgentAction, PolicyCheck } from "../types/Agent.js";
 import logger from "../utils/logger.js";
+import {
+  AuditLogStore,
+  auditLogStore,
+} from "../shared/storage/AuditLogStore.js";
 
 export interface AuditLog {
   id: string;
@@ -28,11 +32,11 @@ export interface AuditInsight {
 }
 
 export class AuditLogService {
-  private logs: AuditLog[] = [];
+  private store: AuditLogStore;
 
-  constructor() {
+  constructor(store: AuditLogStore = auditLogStore) {
+    this.store = store;
     logger.info("AuditLogService initialized (Local Mode)");
-    // NO MOCK DATA - start with empty logs
   }
 
   async logEvent(eventData: {
@@ -54,9 +58,11 @@ export class AuditLogService {
       agent: eventData.agentType,
       actionType: eventData.eventType,
       description: `${eventData.agentType} agent performed ${eventData.eventType}`,
-      complianceStatus: "compliant",
-      severity: "low",
-      responseTime: Math.floor(Math.random() * 500) + 50,
+      complianceStatus: this.normalizeComplianceStatus(
+        eventData.details?.complianceStatus,
+      ),
+      severity: this.normalizeSeverity(eventData.details?.severity),
+      responseTime: this.extractResponseTime(eventData.details),
       details: eventData.details,
       policyChecks: [],
       outcome: "allowed",
@@ -66,12 +72,7 @@ export class AuditLogService {
       },
     };
 
-    this.logs.unshift(auditLog);
-
-    // Keep only last 1000 logs
-    if (this.logs.length > 1000) {
-      this.logs = this.logs.slice(0, 1000);
-    }
+    await this.store.add(auditLog);
   }
 
   async logAction(
@@ -89,12 +90,12 @@ export class AuditLogService {
     const auditLog: AuditLog = {
       id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date().toISOString(),
-      agent: "unknown", // AgentAction doesn't have agentId property
+      agent: this.extractAgentId(action),
       actionType: action.type,
       description: `Agent performed ${action.type}`,
       complianceStatus: allowed ? "compliant" : "non-compliant",
       severity: allowed ? "low" : "high",
-      responseTime: Math.floor(Math.random() * 500) + 50,
+      responseTime: this.extractResponseTime(action.metadata),
       details: action.metadata || {}, // Use metadata instead of parameters
       policyChecks,
       outcome: allowed ? "allowed" : "denied",
@@ -104,7 +105,7 @@ export class AuditLogService {
       },
     };
 
-    this.logs.unshift(auditLog);
+    await this.store.add(auditLog);
   }
 
   async getFilteredLogs(filters: {
@@ -115,7 +116,7 @@ export class AuditLogService {
     complianceStatus?: string;
     severity?: string;
   }): Promise<AuditLog[]> {
-    let filteredLogs = [...this.logs];
+    let filteredLogs = await this.store.list();
 
     // Apply filters
     if (filters.startDate) {
@@ -158,15 +159,17 @@ export class AuditLogService {
   }
 
   async generateInsights(): Promise<AuditInsight[]> {
+    const logs = await this.store.list();
+
     // Only generate insights if we have actual data
-    if (this.logs.length === 0) {
+    if (logs.length === 0) {
       return [];
     }
 
     const insights: AuditInsight[] = [];
 
     // Analyze patterns in the logs
-    const recentLogs = this.logs.filter((log) => {
+    const recentLogs = logs.filter((log) => {
       const logTime = new Date(log.timestamp);
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       return logTime >= oneDayAgo;
@@ -254,5 +257,54 @@ export class AuditLogService {
   ): Promise<any> {
     const logs = await this.getFilteredLogs({ startDate, endDate });
     return { format, data: logs };
+  }
+
+  private extractAgentId(action: AgentAction): string {
+    const candidate =
+      action.metadata?.agentId || action.metadata?.agent || action.id || "unknown";
+    return String(candidate);
+  }
+
+  private extractResponseTime(details?: Record<string, any>): number | undefined {
+    const candidates = [
+      details?.responseTime,
+      details?.latencyMs,
+      details?.durationMs,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "number" && Number.isFinite(candidate)) {
+        return candidate;
+      }
+    }
+
+    return undefined;
+  }
+
+  private normalizeComplianceStatus(
+    value: unknown,
+  ): AuditLog["complianceStatus"] {
+    if (
+      value === "compliant" ||
+      value === "non-compliant" ||
+      value === "warning"
+    ) {
+      return value;
+    }
+
+    return "compliant";
+  }
+
+  private normalizeSeverity(value: unknown): AuditLog["severity"] {
+    if (
+      value === "low" ||
+      value === "medium" ||
+      value === "high" ||
+      value === "critical"
+    ) {
+      return value;
+    }
+
+    return "low";
   }
 }

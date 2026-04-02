@@ -331,6 +331,11 @@ export class AgentApiService extends ApiService {
     return this.get<any>("/api/dashboard/bundle");
   }
 
+  // Get unified dashboard/control-plane data
+  async getUnifiedDashboard() {
+    return this.get<any>("/api/dashboard/unified");
+  }
+
   // Register a new user-owned agent (New Feature)
   async registerAgent(agent: {
     type: string;
