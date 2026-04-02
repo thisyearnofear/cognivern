@@ -10,7 +10,25 @@ import { Bot, TrendingUp, Shield, Search, CheckCircle, ArrowRight, ArrowLeft, Ch
 import { designTokens } from "../../styles/design-system";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
+import { Tooltip } from "../ui/Tooltip";
+import { Confetti } from "../ui";
 import { agentApi, policyApi } from "../../services/apiService";
+import { HelpCircle } from "lucide-react";
+
+// Contextual help component
+const HelpTooltip: React.FC<{ content: string }> = ({ content }) => (
+  <Tooltip content={content}>
+    <HelpCircle
+      size={14}
+      style={{
+        marginLeft: '4px',
+        color: designTokens.colors.neutral[400],
+        cursor: 'help',
+        verticalAlign: 'middle'
+      }}
+    />
+  </Tooltip>
+);
 
 export type AgentType = "trading" | "governance" | "research" | "custom";
 
@@ -226,6 +244,7 @@ const STEPS = [
 export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ onComplete, onCancel }) => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [showConfetti, setShowConfetti] = useState(false);
   const [config, setConfig] = useState<AgentConnectionConfig>({
     type: "trading",
     name: "",
@@ -279,21 +298,27 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
         throw new Error(response.error || "Failed to register agent");
       }
 
+      // Success celebration!
+      setShowConfetti(true);
+
       if (onComplete) {
         await onComplete(config);
       }
 
-      navigate("/agents");
+      // Redirect after a short delay
+      setTimeout(() => {
+        navigate("/agents");
+      }, 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to connect agent");
       setIsLoading(false);
     }
   };
-
   const canProceed = () => {
     switch (currentStep) {
       case 1: return config.type !== undefined;
-      case 2: return config.name.trim() !== "" && config.address.trim() !== "";
+      case 2:
+        return config.name.trim() !== "" && config.address.trim().length >= 4;
       case 3: return config.riskLevel !== undefined;
       default: return true;
     }
@@ -301,6 +326,7 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
 
   return (
     <div css={containerStyles}>
+      {showConfetti && <Confetti />}
       <div css={stepperStyles}>
         {STEPS.map((step) => {
           const isCompleted = currentStep > step.id;
@@ -346,6 +372,11 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
             <div css={formGroupStyles}>
               <label css={labelStyles}>Agent Address *</label>
               <input css={inputStyles} type="text" placeholder="e.g., 0x... or agent-id" value={config.address} onChange={(e) => updateConfig({ address: e.target.value })} />
+              {config.address && config.address.trim().length < 4 && (
+                <p style={{ color: designTokens.colors.semantic.error[500], fontSize: '12px', marginTop: '4px' }}>
+                  Please enter a valid agent address (min 4 characters).
+                </p>
+              )}
             </div>
             <div css={formGroupStyles}>
               <label css={labelStyles}>Description</label>
@@ -360,7 +391,10 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
             <p css={subtitleStyles}>Select a base policy and risk level for your agent</p>
 
             <div css={formGroupStyles}>
-              <label css={labelStyles}>Risk Level</label>
+              <label css={labelStyles}>
+                Risk Level
+                <HelpTooltip content="Defines the operational boundaries. Low risk has tighter spend limits and stricter compliance checks." />
+              </label>
               <div css={radioGroupStyles}>
                 {(["low", "medium", "high"] as const).map((level) => (
                   <div key={level} css={radioOptionStyles(config.riskLevel === level)} onClick={() => updateConfig({ riskLevel: level })}>
@@ -376,7 +410,10 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
             </div>
 
             <div css={formGroupStyles}>
-              <label css={labelStyles}>Base Policy (Optional)</label>
+              <label css={labelStyles}>
+                Base Policy (Optional)
+                <HelpTooltip content="A predefined set of rules that your agent must follow. These are verified via EAS attestations on-chain." />
+              </label>
               <select
                 css={inputStyles}
                 value={config.policyId || ""}
