@@ -8,6 +8,7 @@ import { designTokens } from "../../styles/design-system";
 import { LayoutProvider, useLayout } from "./ResponsiveLayout";
 import ImprovedSidebar from "./ImprovedSidebar";
 import Header from "./Header";
+import MobileBottomTabNav from "./MobileBottomTabNav";
 import Toast from "../ui/Toast";
 import NotificationCenter from "../ui/NotificationCenter";
 
@@ -89,6 +90,7 @@ const AppLayoutContent: React.FC = () => {
     position: relative;
     width: 100%;
     height: 100%;
+    padding-bottom: ${isMobile ? "80px" : "0"};
 
     /* Smooth scrolling */
     scroll-behavior: smooth;
@@ -181,6 +183,9 @@ const AppLayoutContent: React.FC = () => {
           <Outlet />
         </div>
       </main>
+
+      {/* Mobile Navigation */}
+      {isMobile && <MobileBottomTabNav />}
 
       {/* Global Toast Notifications */}
       {error && (
