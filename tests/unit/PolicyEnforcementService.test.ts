@@ -99,6 +99,36 @@ test("PolicyEnforcementService", async (t) => {
     assert.ok(checks.every((c) => typeof c.result === "boolean"));
   });
 
+  await t.test("evaluateAction fails non-matching expressions", async () => {
+    const service = new PolicyEnforcementService();
+    (service as any).currentPolicy = makePolicy([
+      makeRule({ id: "r1", type: "allow", condition: 'action.type === "trade"' }),
+    ]);
+
+    const [check] = await service.evaluateAction(makeAction({ type: "analysis" }));
+    assert.strictEqual(check.result, false);
+  });
+
+  await t.test("evaluateAction supports arithmetic and includes expressions", async () => {
+    const service = new PolicyEnforcementService();
+    (service as any).currentPolicy = makePolicy([
+      makeRule({
+        id: "r1",
+        type: "deny",
+        condition:
+          "['ETH', 'BTC'].includes(action.metadata.symbol) && action.metadata.quantity * action.metadata.price > 1000",
+      }),
+    ]);
+
+    const checks = await service.evaluateAction(
+      makeAction({
+        type: "trade",
+        metadata: { symbol: "ETH", quantity: 2, price: 600 },
+      }),
+    );
+    assert.strictEqual(checks[0].result, false);
+  });
+
   await t.test("enforcePolicy passes for allow rules", async () => {
     const service = new PolicyEnforcementService();
     (service as any).currentPolicy = makePolicy([

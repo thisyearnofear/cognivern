@@ -272,7 +272,10 @@ export class ApiModule extends BaseService {
         policyService,
       ),
     );
-    this.controllers.set("governance", new GovernanceController(policyService));
+    this.controllers.set(
+      "governance",
+      new GovernanceController(policyService, auditLogService),
+    );
     this.controllers.set("metrics", new MetricsController());
     this.controllers.set("sapience", new SapienceController());
     this.controllers.set("recall", new RecallController());

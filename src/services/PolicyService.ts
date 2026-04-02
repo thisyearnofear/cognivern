@@ -1,18 +1,14 @@
 import { Policy, PolicyRule } from "../types/Policy.js";
 import logger from "../utils/logger.js";
+import fs from "node:fs";
+import path from "node:path";
 
 export class PolicyService {
   private policies: Map<string, Policy>;
 
   constructor() {
     this.policies = new Map();
-    // Initialize sample policies for dev/demo if needed
-    if (
-      process.env.NODE_ENV === "development" ||
-      process.env.CREATE_SAMPLE_POLICIES === "true"
-    ) {
-      this.initializeSamplePolicies();
-    }
+    this.initializeBundledPolicies();
     logger.info("PolicyService initialized (Local Mode)");
   }
 
@@ -73,12 +69,57 @@ export class PolicyService {
     await this.updatePolicy(id, { status });
   }
 
-  private initializeSamplePolicies() {
-    // Create a default policy
-    this.createPolicy(
-      "Default Sapience Policy",
-      "Default policy for forecasting agents",
-      [],
+  private initializeBundledPolicies() {
+    const bundledPolicyPath = path.join(
+      process.cwd(),
+      "src",
+      "policies",
+      "trading-competition-policy.json",
     );
+
+    try {
+      const raw = fs.readFileSync(bundledPolicyPath, "utf8");
+      const bundled = JSON.parse(raw) as Policy & {
+        rules?: Array<PolicyRule & { action?: unknown }>;
+      };
+
+      if (!bundled?.id || this.policies.has(bundled.id)) {
+        return;
+      }
+
+      const rules = (bundled.rules || []).map((rule) => ({
+        ...rule,
+        type: String(rule.type).toLowerCase() as PolicyRule["type"],
+        action:
+          rule.action && typeof rule.action === "object"
+            ? rule.action
+            : {
+                type: "log" as const,
+                parameters: {
+                  effect: rule.action || "none",
+                },
+              },
+        metadata: rule.metadata || {},
+      }));
+
+      const policy: Policy = {
+        id: bundled.id,
+        name: bundled.name,
+        description: bundled.description,
+        version: bundled.version || "1.0.0",
+        rules,
+        createdAt: bundled.createdAt || new Date().toISOString(),
+        updatedAt: bundled.updatedAt || new Date().toISOString(),
+        metadata: bundled.metadata || {},
+        status: bundled.status || "active",
+      };
+
+      this.policies.set(policy.id, policy);
+      logger.info(`Loaded bundled policy: ${policy.id}`);
+    } catch (error) {
+      logger.warn("Failed to load bundled policies", {
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   }
 }

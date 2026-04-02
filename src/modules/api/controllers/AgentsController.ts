@@ -786,35 +786,7 @@ export class AgentsController {
       const policies = await this.policyService.listPolicies();
 
       // 4. Get governance quests (Insights)
-      let insights = await this.auditLogService.generateInsights();
-
-      // Fallback quests if none exist yet (DRY)
-      if (insights.length === 0) {
-        insights = [
-          {
-            id: "q1",
-            type: "alert",
-            title: "Verify Agent Alpha",
-            description:
-              "Review latest trades to verify compliance with new risk policy.",
-            severity: "high",
-            actionRequired: true,
-            confidence: 1,
-            relatedLogs: [],
-          } as any,
-          {
-            id: "q2",
-            type: "recommendation",
-            title: "Update Market Guardrails",
-            description:
-              "Market volatility detected. Increase slippage threshold by 0.5%.",
-            severity: "medium",
-            actionRequired: true,
-            confidence: 0.95,
-            relatedLogs: [],
-          } as any,
-        ];
-      }
+      const insights = await this.auditLogService.generateInsights();
 
       // Add policy count to stats (cast to allow extra property)
       (bundle.stats as any).totalPolicies = policies.length;

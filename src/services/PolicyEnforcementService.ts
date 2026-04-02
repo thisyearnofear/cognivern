@@ -2,6 +2,7 @@ import { Policy, PolicyRule, PolicyRuleType } from "../types/Policy.js";
 import { AgentAction, PolicyCheck } from "../types/Agent.js";
 import { PolicyService } from "./PolicyService.js";
 import logger from "../utils/logger.js";
+import { Script } from "node:vm";
 
 /**
  * @deprecated This service is being migrated to the new clean architecture structure.
@@ -92,6 +93,13 @@ export class PolicyEnforcementService {
   }
 
   async enforcePolicy(action: AgentAction): Promise<boolean> {
+    const decision = await this.evaluateDecision(action);
+    return decision.allowed;
+  }
+
+  async evaluateDecision(
+    action: AgentAction,
+  ): Promise<{ allowed: boolean; policyChecks: PolicyCheck[] }> {
     if (!this.currentPolicy) {
       throw new Error("No policy loaded");
     }
@@ -108,22 +116,26 @@ export class PolicyEnforcementService {
     );
 
     if (hasDenyViolation) {
-      return false;
+      return { allowed: false, policyChecks: checks };
     }
 
     // Check if all REQUIRE rules passed
-    return this.currentPolicy.rules
-      .filter((r: PolicyRule) => r.type === "require")
+    const allRequireRulesPassed = this.currentPolicy.rules
+      .filter(
+        (r: PolicyRule) => this.normalizeRuleType(r.type) === "require",
+      )
       .every(
         (r: PolicyRule) => checks.find((c) => c.policyId === r.id)?.result,
       );
+
+    return { allowed: allRequireRulesPassed, policyChecks: checks };
   }
 
   private async evaluateRule(
     rule: PolicyRule,
     action: AgentAction,
   ): Promise<boolean> {
-    switch (rule.type) {
+    switch (this.normalizeRuleType(rule.type)) {
       case "allow":
         return this.evaluateAllowRule(rule, action);
       case "deny":
@@ -188,32 +200,47 @@ export class PolicyEnforcementService {
 
   private evaluateCondition(condition: string, action: AgentAction): boolean {
     try {
-      // Simple condition evaluation - can be enhanced with a proper expression parser
-      // For now, support basic conditions like:
-      // - action.type === 'analysis'
-      // - action.metadata.contains('sensitive')
-      // - action.timestamp > '2024-01-01'
+      const trimmed = condition.trim();
+      if (!trimmed) {
+        return false;
+      }
 
-      const agentId = action.metadata?.agentId || action.id || "unknown";
-
-      // Replace action properties in condition
-      const evaluationCode = condition
-        .replace(/action\.type/g, `"${action.type}"`)
-        .replace(/action\.agentId/g, `"${agentId}"`)
-        .replace(/action\.id/g, `"${action.id}"`)
-        .replace(/action\.metadata/g, `${JSON.stringify(action.metadata)}`)
-        .replace(/action\.description/g, `"${action.description}"`)
-        .replace(/action\.timestamp/g, `"${action.timestamp}"`);
-
-      // Basic safety check - only allow simple comparisons
-      if (!/^[a-zA-Z0-9\s"'=!<>().,:\-_{}[\]]+$/.test(evaluationCode)) {
+      if (!this.isSafeConditionExpression(trimmed)) {
         logger.warn(`Potentially unsafe condition detected: ${condition}`);
         return false;
       }
 
-      // For now, return true for any valid condition (can be enhanced with real evaluation)
-      logger.debug(`Evaluating condition: ${condition} -> ${evaluationCode}`);
-      return true;
+      const actionContext = {
+        ...action,
+        agentId: action.metadata?.agentId || action.id || "unknown",
+      };
+      const referenceDate = new Date(action.timestamp || Date.now());
+      const SafeDate = class extends Date {
+        constructor(...args: any[]) {
+          if (args.length === 0) {
+            super(referenceDate);
+            return;
+          }
+          super(args[0]);
+        }
+
+        static now() {
+          return referenceDate.getTime();
+        }
+      };
+
+      const script = new Script(`Boolean(${trimmed})`);
+      const result = script.runInNewContext(
+        {
+          action: actionContext,
+          Date: SafeDate,
+          Math,
+        },
+        { timeout: 50 },
+      );
+
+      logger.debug(`Evaluating condition: ${condition}`);
+      return Boolean(result);
     } catch (error) {
       logger.error(`Error evaluating condition: ${condition}`, {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -236,5 +263,21 @@ export class PolicyEnforcementService {
   clearRateLimitCounters(): void {
     this.rateLimitCounters.clear();
     logger.info("Rate limit counters cleared");
+  }
+
+  private normalizeRuleType(ruleType: string): PolicyRuleType {
+    return ruleType.toLowerCase() as PolicyRuleType;
+  }
+
+  private isSafeConditionExpression(condition: string): boolean {
+    const forbiddenPatterns = [
+      /(^|[^\w$])(?:process|global|globalThis|require|import|module|exports)([^\w$]|$)/,
+      /(^|[^\w$])(?:Function|eval|constructor|prototype|__proto__)([^\w$]|$)/,
+      /(^|[^\w$])(?:while|for|do|switch|try|catch|throw|class|async|await)([^\w$]|$)/,
+      /=>/,
+      /;/,
+    ];
+
+    return !forbiddenPatterns.some((pattern) => pattern.test(condition));
   }
 }

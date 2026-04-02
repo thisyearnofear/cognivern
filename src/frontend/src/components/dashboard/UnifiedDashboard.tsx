@@ -40,10 +40,6 @@ import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
 import {
   agentApi,
-  policyApi,
-  fetchGovernanceStats,
-  fetchStorageStats,
-  checkPolkadotConnection,
 } from "../../services/apiService";
 import {
   Card,
@@ -96,6 +92,9 @@ interface PolicySummary {
 }
 
 interface ActivityItem {
+  id: string;
+  agentId?: string;
+  agentName?: string;
   type?: string;
   severity?: "success" | "warning" | "error" | "info";
   description?: string;
@@ -111,31 +110,94 @@ interface QuestItem {
   actionRequired: boolean;
 }
 
-// Mock chart data for "Analytics" view inspired by smart bin dashboard
-const performanceTrends: ChartDataPoint[] = [
-  { x: 1, y: 1.2, label: "Day 1" },
-  { x: 2, y: 1.5, label: "Day 2" },
-  { x: 3, y: 1.4, label: "Day 3" },
-  { x: 4, y: 1.8, label: "Day 4" },
-  { x: 5, y: 2.1, label: "Day 5" },
-  { x: 6, y: 2.3, label: "Day 6" },
-  { x: 7, y: 2.6, label: "Day 7" },
-];
-
-const distributionData: ChartDataPoint[] = [
-  { x: "Sapience", y: 45, label: "Forecasting", color: designTokens.colors.primary[500] },
-  { x: "Governance", y: 30, label: "Compliance", color: designTokens.colors.secondary[500] },
-  { x: "Trading", y: 25, label: "DeFi", color: designTokens.colors.semantic.success[500] },
-];
-
-interface QuestItem {
-  id: string;
-  type: "pattern" | "recommendation" | "trend" | "alert";
-  title: string;
-  description: string;
-  severity: "low" | "medium" | "high" | "critical";
-  actionRequired: boolean;
+interface DashboardBundlePayload {
+  stats?: {
+    totalAgents?: number;
+    avgWinRate?: number;
+    avgReturn?: number;
+    totalTrades?: number;
+    totalPolicies?: number;
+  };
+  agents?: Array<
+    AgentSummary & {
+      ecosystem?: string;
+      uptime?: number;
+      performance24h?: {
+        trades: number;
+        winRate: number;
+        return: number;
+        sharpeRatio: number;
+      };
+    }
+  >;
+  activity?: Array<Record<string, unknown>>;
+  policies?: PolicySummary[];
+  quests?: QuestItem[];
 }
+
+interface UnifiedDashboardPayload {
+  workerThoughts?: string[];
+}
+
+interface LiveFeedItem {
+  id: string;
+  sourceLabel: string;
+  body: string;
+  timestampLabel: string;
+  agentId?: string;
+}
+
+const unwrapApiPayload = <T,>(result: { success: boolean; data?: any }): T | null => {
+  if (!result.success || !result.data?.data) {
+    return null;
+  }
+
+  return result.data.data as T;
+};
+
+const toUiSeverity = (value?: string): ActivityItem["severity"] => {
+  switch (value) {
+    case "compliant":
+    case "success":
+    case "low":
+      return "success";
+    case "warning":
+    case "medium":
+      return "warning";
+    case "non-compliant":
+    case "high":
+    case "critical":
+    case "error":
+      return "error";
+    default:
+      return "info";
+  }
+};
+
+const normalizeActivity = (entry: Record<string, any>): ActivityItem => ({
+  id: String(entry.id || crypto.randomUUID()),
+  agentId:
+    typeof entry.agent === "string"
+      ? entry.agent
+      : typeof entry.details?.agentId === "string"
+        ? entry.details.agentId
+        : undefined,
+  agentName:
+    typeof entry.agent === "string"
+      ? entry.agent
+      : typeof entry.details?.agent?.name === "string"
+        ? entry.details.agent.name
+        : undefined,
+  type: typeof entry.actionType === "string" ? entry.actionType : entry.type,
+  severity: toUiSeverity(entry.severity || entry.complianceStatus),
+  description:
+    typeof entry.description === "string"
+      ? entry.description
+      : typeof entry.action === "string"
+        ? entry.action
+        : "Activity",
+  timestamp: typeof entry.timestamp === "string" ? entry.timestamp : undefined,
+});
 
 export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   const navigate = useNavigate();
@@ -149,6 +211,7 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showMoreActivity, setShowMoreActivity] = useState(false);
+  const [workerThoughts, setWorkerThoughts] = useState<string[]>([]);
 
   // Agent Thought Observation State (Intelligent Layer)
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
@@ -190,39 +253,68 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   const [isPulling, setIsPulling] = useState(false);
   const touchStartY = useRef(0);
 
-  // New state for proactive Live Feed
-  const [liveThoughts, setLiveThoughts] = useState<{agentId: string, agentName: string, thought: string, timestamp: Date, id: string}[]>([]);
+  const performanceTrendData = useMemo<ChartDataPoint[]>(() => {
+    return agents.slice(0, 6).map((agent) => ({
+      x: agent.name,
+      y: Number((((agent as any).performance24h?.return ?? agent.totalReturn) * 100).toFixed(2)),
+      label: agent.name,
+    }));
+  }, [agents]);
+
+  const distributionData = useMemo<ChartDataPoint[]>(() => {
+    const counts = agents.reduce<Record<string, number>>((acc, agent) => {
+      acc[agent.type] = (acc[agent.type] || 0) + 1;
+      return acc;
+    }, {});
+
+    const colors = [
+      designTokens.colors.primary[500],
+      designTokens.colors.secondary[500],
+      designTokens.colors.semantic.success[500],
+      designTokens.colors.semantic.warning[500],
+    ];
+
+    return Object.entries(counts).map(([type, count], index) => ({
+      x: type,
+      y: count,
+      label: type,
+      color: colors[index % colors.length],
+    }));
+  }, [agents]);
+
+  const liveFeedItems = useMemo<LiveFeedItem[]>(() => {
+    const thoughtItems = workerThoughts.slice(0, 5).map((thought, index) => ({
+      id: `worker-thought-${index}`,
+      sourceLabel: "Governance Kernel",
+      body: thought,
+      timestampLabel: "live",
+    }));
+
+    const activityItems = recentActivity.slice(0, 5).map((activity) => ({
+      id: `activity-${activity.id}`,
+      sourceLabel: activity.agentName || activity.agentId || "Agent Event",
+      body: activity.description || "Activity observed",
+      timestampLabel: activity.timestamp
+        ? new Date(activity.timestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })
+        : "recent",
+      agentId: activity.agentId,
+    }));
+
+    return [...thoughtItems, ...activityItems].slice(0, 10);
+  }, [recentActivity, workerThoughts]);
 
   useEffect(() => {
-    fetchDashboardData();
+    void fetchDashboardData();
+    const intervalId = window.setInterval(() => {
+      void fetchDashboardData(false);
+    }, 30000);
 
-    // Simulate live feed updates for delight
-    const interval = setInterval(() => {
-      if (agents.length > 0) {
-        const randomAgent = agents[Math.floor(Math.random() * agents.length)];
-        const thoughts = [
-          "Analyzing recent trade volatility on-chain...",
-          "Validating governance policy #42...",
-          "Optimizing execution path for minimal slippage.",
-          "Cross-referencing market data with historical patterns.",
-          "Verifying sovereign identity trace...",
-          "Detecting anomalous liquidity shift in pool 0x7a...",
-          "Simulating potential impact of rate changes...",
-          "Batching authorized transactions for block inclusion."
-        ];
-        const newThought = {
-          agentId: randomAgent.id,
-          agentName: randomAgent.name,
-          thought: thoughts[Math.floor(Math.random() * thoughts.length)],
-          timestamp: new Date(),
-          id: Math.random().toString(36).substr(2, 9)
-        };
-        setLiveThoughts(prev => [newThought, ...prev].slice(0, 10));
-      }
-    }, 6000);
-
-    return () => clearInterval(interval);
-  }, [agents]);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   // Pull-to-refresh handlers for mobile
   useEffect(() => {
@@ -272,36 +364,46 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
     };
   }, [isMobile, isPulling, pullDistance]);
 
-  const fetchDashboardData = async () => {
-    setIsLoading(true);
+  const fetchDashboardData = async (showLoader: boolean = true) => {
+    if (showLoader) {
+      setIsLoading(true);
+    }
+
     try {
-      const result = await agentApi.getDashboardBundle();
+      const [bundleResult, unifiedResult] = await Promise.all([
+        agentApi.getDashboardBundle(),
+        agentApi.getUnifiedDashboard(),
+      ]);
 
-      if (result.success && result.data) {
-        const { stats, agents: agentList, activity, policies: policyList, quests: insightList } = result.data;
+      const bundle = unwrapApiPayload<DashboardBundlePayload>(bundleResult);
+      const unified = unwrapApiPayload<UnifiedDashboardPayload>(unifiedResult);
 
-        setStats(stats);
-        setAgents(agentList || []);
-        setRecentActivity(activity || []);
-        setPolicies(policyList || []);
-
-        // Handle insights with fallback missions (DRY)
-        if (!insightList || insightList.length === 0) {
-           setQuests([
-             { id: "q1", type: "alert", title: "Verify Agent Alpha", description: "Review latest trades to verify compliance with new risk policy.", severity: "high", actionRequired: true },
-             { id: "q2", type: "recommendation", title: "Update Market Guardrails", description: "Market volatility detected. Increase slippage threshold by 0.5%.", severity: "medium", actionRequired: true }
-           ]);
-        } else {
-           setQuests(insightList);
-        }
-      } else {
-        throw new Error(result.error || "Failed to fetch dashboard bundle");
+      if (!bundle) {
+        throw new Error(bundleResult.error || "Failed to fetch dashboard bundle");
       }
+
+      const agentList = bundle.agents || [];
+      const mappedStats: QuickStats = {
+        activeAgents: agentList.filter((agent) => agent.status === "active").length,
+        totalAgents: bundle.stats?.totalAgents || agentList.length,
+        totalTrades: bundle.stats?.totalTrades || 0,
+        avgWinRate: bundle.stats?.avgWinRate || 0,
+        totalReturn: bundle.stats?.avgReturn || 0,
+        totalPolicies: bundle.stats?.totalPolicies || (bundle.policies || []).length,
+      };
+
+      setStats(mappedStats);
+      setAgents(agentList);
+      setRecentActivity((bundle.activity || []).map(normalizeActivity));
+      setPolicies(bundle.policies || []);
+      setQuests(bundle.quests || []);
+      setWorkerThoughts(unified?.workerThoughts || []);
     } catch (error) {
       console.error("Failed to fetch dashboard bundle:", error);
-      // Optional: fallback to individual calls if bundle fails (not strictly necessary if bundle is stable)
     } finally {
-      setIsLoading(false);
+      if (showLoader) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -319,34 +421,48 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchDashboardData();
+    await fetchDashboardData(false);
     setIsRefreshing(false);
+  };
+
+  const handleViewThoughts = async (agentId: string) => {
+    setSelectedAgentId(agentId);
+    setIsThoughtModalOpen(true);
+    setIsThoughtsLoading(true);
+
+    try {
+      const selectedAgent = agents.find((agent) => agent.id === agentId);
+      const traceLines = recentActivity
+        .filter(
+          (activity) =>
+            activity.agentId === agentId ||
+            activity.agentName === selectedAgent?.name,
+        )
+        .map((activity) => {
+          const timestamp = activity.timestamp
+            ? new Date(activity.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })
+            : "recent";
+
+          return `[${timestamp}] ${activity.description || "Activity observed"}`;
+        });
+
+      setAgentThoughts(
+        traceLines.length > 0
+          ? traceLines
+          : ["No recorded trace events for this agent yet."],
+      );
+    } finally {
+      setIsThoughtsLoading(false);
+    }
   };
 
   const handleNodeClick = async (node: Node) => {
     if (node.type === "agent") {
-      setSelectedAgentId(node.id);
-      setIsThoughtModalOpen(true);
-      setIsThoughtsLoading(true);
-
-      try {
-        const result = await agentApi.getAgentStatus(node.id);
-        if (result.success && result.data) {
-          // Extract thought history or fallback to demo thoughts (DRY fallback)
-          const thoughts = result.data.thoughtHistory || [
-            "Analyzing market volatility metrics...",
-            "Evaluating cross-chain arbitrage opportunities...",
-            "Risk threshold validated against current on-chain policy.",
-            "Optimizing gas parameters for prioritized execution."
-          ];
-          setAgentThoughts(thoughts);
-        }
-      } catch (error) {
-        console.error("Failed to fetch agent thoughts:", error);
-        setAgentThoughts(["Initializing connection to cognitive kernel...", "Syncing historical reasoning logs..."]);
-      } finally {
-        setIsThoughtsLoading(false);
-      }
+      await handleViewThoughts(node.id);
     }
   };
 
@@ -392,8 +508,8 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
               Dashboard
             </h1>
             <div css={styles.badgeContainerStyles}>
-              <div css={styles.systemBadgeStyles("info")}>MAINNET</div>
-              <div css={styles.systemBadgeStyles("success")}>EAS: ACTIVE</div>
+              <div css={styles.systemBadgeStyles("info")}>CONTROL PLANE</div>
+              <div css={styles.systemBadgeStyles("success")}>AUDIT LIVE</div>
             </div>
           </div>
 
@@ -420,21 +536,21 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
             total={stats?.totalAgents}
             icon={<Users size={24} />}
             color="primary"
-            trend={{ value: "↑ 2 new", isPositive: true }}
+            trend={{ value: `${stats?.totalTrades || 0} tracked actions`, isPositive: true }}
           />
           <StatCard
             label="Active Policies"
             value={stats?.totalPolicies || 0}
             icon={<ShieldCheck size={24} />}
             color="info"
-            trend={{ value: "Compliant", isPositive: true }}
+            trend={{ value: `${quests.filter((quest) => quest.actionRequired).length} require attention`, isPositive: quests.filter((quest) => quest.actionRequired).length === 0 }}
           />
           <StatCard
             label="Avg Win Rate"
             value={`${((stats?.avgWinRate || 0) * 100).toFixed(1)}%`}
             icon={<Percent size={24} />}
             color="success"
-            trend={{ value: "↑ 1.4%", isPositive: true }}
+            trend={{ value: `${stats?.activeAgents || 0}/${stats?.totalAgents || 0} agents online`, isPositive: true }}
           />
           <StatCard
             label="Total Return"
@@ -447,7 +563,7 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
               )
             }
             color={stats && stats.totalReturn >= 0 ? "success" : "error"}
-            trend={{ value: stats && stats.totalReturn >= 0 ? "↑ 0.5%" : "↓ 0.2%", isPositive: stats ? stats.totalReturn >= 0 : true }}
+            trend={{ value: stats ? `${stats.totalTrades} trades analyzed` : "No trading data", isPositive: stats ? stats.totalReturn >= 0 : true }}
           />
         </div>
       </section>
@@ -477,19 +593,19 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
         <div css={styles.chartsGridStyles(isMobile, isTablet)}>
           <Card>
             <CardContent>
-              <h3 css={styles.sectionTitleStyles} style={{ fontSize: "14px", marginBottom: "20px" }}>Total Yield Trend (7D)</h3>
+              <h3 css={styles.sectionTitleStyles} style={{ fontSize: "14px", marginBottom: "20px" }}>24H Return by Agent</h3>
               <Chart
                 type="area"
-                data={performanceTrends}
+                data={performanceTrendData}
                 height={200}
-                yAxisLabel="Yield %"
+                yAxisLabel="Return %"
                 animate
               />
             </CardContent>
           </Card>
           <Card>
             <CardContent>
-              <h3 css={styles.sectionTitleStyles} style={{ fontSize: "14px", marginBottom: "20px" }}>Agent Type Distribution</h3>
+              <h3 css={styles.sectionTitleStyles} style={{ fontSize: "14px", marginBottom: "20px" }}>Active Agent Distribution</h3>
               <div style={{ height: "200px", display: "flex", justifyContent: "center" }}>
                 <Chart
                   type="pie"
@@ -587,13 +703,13 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
               <Brain size={24} />
             </div>
             <div>
-              <h3 style={{ fontSize: "18px", fontWeight: 700 }}>Internal Thought Chain</h3>
-              <p style={{ fontSize: "12px", color: designTokens.colors.text.secondary }}>Real-time cognitive reasoning stream from Filecoin Recall storage.</p>
+              <h3 style={{ fontSize: "18px", fontWeight: 700 }}>Agent Trace</h3>
+              <p style={{ fontSize: "12px", color: designTokens.colors.text.secondary }}>Recent governance and execution events captured by the control plane.</p>
             </div>
           </div>
 
           {isThoughtsLoading ? (
-            <div css={styles.loadingStyles}>Connecting to agent memory...</div>
+            <div css={styles.loadingStyles}>Loading agent trace...</div>
           ) : (
             <GenerativeReveal active={!isThoughtsLoading} duration={800}>
               <div style={{ display: "flex", flexDirection: "column", gap: designTokens.spacing[4] }}>
@@ -610,7 +726,6 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                     opacity: 0,
                     transform: "translateX(-10px)"
                   }}>
-                    <span style={{ color: designTokens.colors.primary[400], marginRight: "8px" }}>[{new Date().toLocaleTimeString()}]</span>
                     {thought}
                   </div>
                 ))}
@@ -655,10 +770,10 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Zap size={16} />
-            <span style={{ fontWeight: 700, fontSize: '14px' }}>Live Agent Feed</span>
+            <span style={{ fontWeight: 700, fontSize: '14px' }}>Live Governance Feed</span>
           </div>
           <Badge variant="secondary" size="sm" style={{ background: 'rgba(255,255,255,0.2)', border: 'none' }}>
-            {liveThoughts.length} ACTIVE
+            {liveFeedItems.length} ACTIVE
           </Badge>
         </div>
         <div style={{
@@ -669,12 +784,12 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
           flexDirection: 'column',
           gap: '12px'
         }}>
-          {liveThoughts.length === 0 ? (
+          {liveFeedItems.length === 0 ? (
             <div style={{ textAlign: 'center', color: designTokens.colors.text.secondary, padding: '20px', fontSize: '13px' }}>
-              Waiting for agent transmissions...
+              Waiting for live governance events...
             </div>
           ) : (
-            liveThoughts.map((t) => (
+            liveFeedItems.map((t) => (
               <div key={t.id} style={{
                 fontSize: '12px',
                 borderLeft: `2px solid ${designTokens.colors.primary[300]}`,
@@ -685,30 +800,31 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
                   <div style={{ fontWeight: 700, color: designTokens.colors.primary[600] }}>
-                    {t.agentName}
+                    {t.sourceLabel}
                   </div>
                   <div style={{ fontSize: '10px', color: designTokens.colors.text.secondary }}>
-                    {t.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    {t.timestampLabel}
                   </div>
                 </div>
-                <div style={{ color: designTokens.colors.text.primary, lineHeight: 1.4 }}>{t.thought}</div>
-                <div style={{ marginTop: '4px', display: 'flex', gap: '8px' }}>
-                   <span
-                    onClick={() => {
-                      setSelectedAgentId(t.agentId);
-                      handleViewThoughts(t.agentId);
-                    }}
-                    style={{
-                      cursor: 'pointer',
-                      color: designTokens.colors.primary[500],
-                      fontSize: '10px',
-                      textDecoration: 'underline',
-                      fontWeight: 600
-                    }}
-                   >
-                     Inspect Trace
-                   </span>
-                </div>
+                <div style={{ color: designTokens.colors.text.primary, lineHeight: 1.4 }}>{t.body}</div>
+                {t.agentId && (
+                  <div style={{ marginTop: '4px', display: 'flex', gap: '8px' }}>
+                    <span
+                      onClick={() => {
+                        void handleViewThoughts(t.agentId as string);
+                      }}
+                      style={{
+                        cursor: 'pointer',
+                        color: designTokens.colors.primary[500],
+                        fontSize: '10px',
+                        textDecoration: 'underline',
+                        fontWeight: 600
+                      }}
+                    >
+                      Inspect Trace
+                    </span>
+                  </div>
+                )}
               </div>
             ))
           )}
