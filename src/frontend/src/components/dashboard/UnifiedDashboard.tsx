@@ -41,6 +41,7 @@ import { useBreakpoint } from "../../hooks/useMediaQuery";
 import {
   agentApi,
 } from "../../services/apiService";
+import { getApiKey, getApiUrl } from "../../utils/api";
 import {
   Card,
   CardContent,
@@ -99,6 +100,21 @@ interface ActivityItem {
   severity?: "success" | "warning" | "error" | "info";
   description?: string;
   timestamp?: string;
+  sourceType?: "audit" | "run";
+  sourceId?: string;
+  runId?: string;
+  targetPath?: string;
+  evidenceLabel?: string;
+  policyIds?: string[];
+  projectId?: string;
+  workflow?: string;
+  artifactCount?: number;
+  citations?: string[];
+  model?: string;
+  workflowVersion?: string;
+  evidenceHash?: string;
+  cid?: string;
+  artifactIds?: string[];
 }
 
 interface QuestItem {
@@ -145,7 +161,33 @@ interface LiveFeedItem {
   body: string;
   timestampLabel: string;
   agentId?: string;
+  targetPath?: string;
+  evidenceLabel?: string;
+  evidenceFacts?: string[];
 }
+
+const buildAuditPath = (activity: {
+  agentId?: string;
+  type?: string;
+  severity?: string;
+  sourceId?: string;
+}): string => {
+  const params = new URLSearchParams();
+  if (activity.agentId) {
+    params.set("agentId", activity.agentId);
+  }
+  if (activity.type) {
+    params.set("actionType", activity.type);
+  }
+  if (activity.severity === "error") {
+    params.set("complianceStatus", "non-compliant");
+  }
+  if (activity.sourceId) {
+    params.set("eventId", activity.sourceId);
+  }
+  const query = params.toString();
+  return query ? `/audit?${query}` : "/audit";
+};
 
 const unwrapApiPayload = <T,>(result: { success: boolean; data?: any }): T | null => {
   if (!result.success || !result.data?.data) {
@@ -197,7 +239,142 @@ const normalizeActivity = (entry: Record<string, any>): ActivityItem => ({
         ? entry.action
         : "Activity",
   timestamp: typeof entry.timestamp === "string" ? entry.timestamp : undefined,
+  sourceType: "audit",
+  sourceId: typeof entry.id === "string" ? entry.id : undefined,
+  targetPath: buildAuditPath({
+    agentId:
+      typeof entry.agent === "string"
+        ? entry.agent
+        : typeof entry.details?.agentId === "string"
+          ? entry.details.agentId
+          : undefined,
+    type: typeof entry.actionType === "string" ? entry.actionType : entry.type,
+    severity: toUiSeverity(entry.severity || entry.complianceStatus),
+    sourceId: typeof entry.id === "string" ? entry.id : undefined,
+  }),
+  evidenceLabel: typeof entry.id === "string" ? `Audit ${entry.id}` : undefined,
+  policyIds: Array.isArray(entry.policyChecks)
+    ? entry.policyChecks
+        .map((check: Record<string, unknown>) =>
+          typeof check.policyId === "string" ? check.policyId : null,
+        )
+        .filter((value: string | null): value is string => Boolean(value))
+    : [],
+  artifactIds: Array.isArray(entry.evidence?.artifactIds)
+    ? entry.evidence.artifactIds.filter(
+        (value: unknown): value is string => typeof value === "string",
+      )
+    : [],
+  projectId:
+    typeof entry.details?.projectId === "string"
+      ? entry.details.projectId
+      : undefined,
+  citations: Array.isArray(entry.details?.citations)
+    ? entry.details.citations.filter(
+        (value: unknown): value is string => typeof value === "string",
+      )
+    : [],
+  evidenceHash:
+    typeof entry.evidence?.hash === "string" ? entry.evidence.hash : undefined,
+  cid: typeof entry.evidence?.cid === "string" ? entry.evidence.cid : undefined,
 });
+
+const normalizeRunStreamActivity = (entry: Record<string, any>): ActivityItem => ({
+  id: String(entry.id || crypto.randomUUID()),
+  agentId: typeof entry.runId === "string" ? entry.runId : undefined,
+  agentName: typeof entry.workflow === "string" ? entry.workflow : "CRE Run",
+  type: typeof entry.type === "string" ? entry.type : "run_event",
+  severity:
+    entry.type === "run_failed"
+      ? "error"
+      : entry.type === "run_paused_for_approval"
+        ? "warning"
+        : "info",
+  description:
+    typeof entry.summary === "string" && entry.summary.trim().length > 0
+      ? entry.summary
+      : `${entry.workflow || "workflow"} emitted ${entry.type || "run_event"}`,
+  timestamp: typeof entry.timestamp === "string" ? entry.timestamp : undefined,
+  sourceType: "run",
+  sourceId: typeof entry.id === "string" ? entry.id : undefined,
+  runId: typeof entry.runId === "string" ? entry.runId : undefined,
+  targetPath:
+    typeof entry.runId === "string" ? `/runs/${entry.runId}` : "/runs",
+  evidenceLabel:
+    typeof entry.runId === "string" ? `Run ${entry.runId}` : undefined,
+  projectId: typeof entry.projectId === "string" ? entry.projectId : undefined,
+  workflow: typeof entry.workflow === "string" ? entry.workflow : undefined,
+  artifactCount:
+    typeof entry.artifactCount === "number" ? entry.artifactCount : undefined,
+  artifactIds: Array.isArray(entry.evidence?.artifactIds)
+    ? entry.evidence.artifactIds.filter(
+        (value: unknown): value is string => typeof value === "string",
+      )
+    : Array.isArray(entry.runEvidence?.artifactIds)
+      ? entry.runEvidence.artifactIds.filter(
+          (value: unknown): value is string => typeof value === "string",
+        )
+      : [],
+  citations: Array.isArray(entry.citationLabels)
+    ? entry.citationLabels.filter(
+        (value: unknown): value is string => typeof value === "string",
+      )
+    : [],
+  model: typeof entry.model === "string" ? entry.model : undefined,
+  workflowVersion:
+    typeof entry.workflowVersion === "string"
+      ? entry.workflowVersion
+      : undefined,
+  evidenceHash:
+    typeof entry.evidence?.hash === "string"
+      ? entry.evidence.hash
+      : typeof entry.runEvidence?.hash === "string"
+        ? entry.runEvidence.hash
+        : undefined,
+  cid:
+    typeof entry.evidence?.cid === "string"
+      ? entry.evidence.cid
+      : typeof entry.runEvidence?.cid === "string"
+        ? entry.runEvidence.cid
+        : undefined,
+});
+
+const buildEvidenceFacts = (activity: ActivityItem): string[] => {
+  const facts: string[] = [];
+
+  if (activity.projectId) {
+    facts.push(`Project ${activity.projectId}`);
+  }
+  if (activity.workflow) {
+    facts.push(`Workflow ${activity.workflow}`);
+  }
+  if (activity.policyIds && activity.policyIds.length > 0) {
+    facts.push(`Policies ${activity.policyIds.slice(0, 2).join(", ")}`);
+  }
+  if (typeof activity.artifactCount === "number") {
+    facts.push(`${activity.artifactCount} artifacts`);
+  }
+  if (activity.model) {
+    facts.push(`Model ${activity.model}`);
+  }
+  if (activity.workflowVersion) {
+    facts.push(`Version ${activity.workflowVersion}`);
+  }
+  if (activity.cid) {
+    facts.push(`CID ${activity.cid.slice(0, 12)}…`);
+  }
+  if (activity.evidenceHash) {
+    facts.push(`Hash ${activity.evidenceHash.slice(0, 12)}…`);
+  }
+  if (activity.artifactIds && activity.artifactIds.length > 0) {
+    facts.push(`Artifacts ${activity.artifactIds.slice(0, 2).join(", ")}`);
+  }
+  if (activity.citations && activity.citations.length > 0) {
+    facts.push(`Citations ${activity.citations.slice(0, 2).join(", ")}`);
+  }
+
+  return facts;
+};
 
 export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   const navigate = useNavigate();
@@ -288,6 +465,9 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
       sourceLabel: "Governance Kernel",
       body: thought,
       timestampLabel: "live",
+      targetPath: "/audit",
+      evidenceLabel: "Worker thought",
+      evidenceFacts: ["Worker telemetry"],
     }));
 
     const activityItems = recentActivity.slice(0, 5).map((activity) => ({
@@ -302,6 +482,9 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
           })
         : "recent",
       agentId: activity.agentId,
+      targetPath: activity.targetPath,
+      evidenceLabel: activity.evidenceLabel,
+      evidenceFacts: buildEvidenceFacts(activity),
     }));
 
     return [...thoughtItems, ...activityItems].slice(0, 10);
@@ -314,6 +497,49 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
     }, 30000);
 
     return () => window.clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      return;
+    }
+
+    const streamUrl = `${getApiUrl("/api/dashboard/events/stream")}?apiKey=${encodeURIComponent(apiKey)}`;
+    const source = new EventSource(streamUrl);
+
+    const prependActivity = (activity: ActivityItem) => {
+      setRecentActivity((current) => {
+        const next = [activity, ...current.filter((item) => item.id !== activity.id)];
+        return next.slice(0, 25);
+      });
+    };
+
+    source.addEventListener("audit_log", (event) => {
+      try {
+        const payload = JSON.parse((event as MessageEvent).data) as Record<string, unknown>;
+        prependActivity(normalizeActivity(payload));
+      } catch (error) {
+        console.warn("Failed to parse dashboard audit stream event", error);
+      }
+    });
+
+    source.addEventListener("run_event", (event) => {
+      try {
+        const payload = JSON.parse((event as MessageEvent).data) as Record<string, unknown>;
+        prependActivity(normalizeRunStreamActivity(payload));
+      } catch (error) {
+        console.warn("Failed to parse dashboard run stream event", error);
+      }
+    });
+
+    source.onerror = () => {
+      console.warn("Dashboard event stream temporarily unavailable");
+    };
+
+    return () => {
+      source.close();
+    };
   }, []);
 
   // Pull-to-refresh handlers for mobile
@@ -807,11 +1033,40 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                   </div>
                 </div>
                 <div style={{ color: designTokens.colors.text.primary, lineHeight: 1.4 }}>{t.body}</div>
-                {t.agentId && (
+                {t.evidenceFacts && t.evidenceFacts.length > 0 && (
+                  <div style={{
+                    marginTop: '6px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px'
+                  }}>
+                    {t.evidenceFacts.slice(0, 3).map((fact) => (
+                      <span
+                        key={fact}
+                        style={{
+                          fontSize: '10px',
+                          padding: '2px 6px',
+                          borderRadius: '999px',
+                          background: designTokens.colors.neutral[100],
+                          color: designTokens.colors.text.secondary,
+                        }}
+                      >
+                        {fact}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {(t.agentId || t.targetPath) && (
                   <div style={{ marginTop: '4px', display: 'flex', gap: '8px' }}>
                     <span
                       onClick={() => {
-                        void handleViewThoughts(t.agentId as string);
+                        if (t.targetPath) {
+                          navigate(t.targetPath);
+                          return;
+                        }
+                        if (t.agentId) {
+                          void handleViewThoughts(t.agentId);
+                        }
                       }}
                       style={{
                         cursor: 'pointer',
@@ -821,7 +1076,7 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                         fontWeight: 600
                       }}
                     >
-                      Inspect Trace
+                      {t.evidenceLabel || "Inspect Trace"}
                     </span>
                   </div>
                 )}
@@ -1009,6 +1264,7 @@ const ActivityFeed = ({
   showMore,
   onToggleMore,
 }: ActivityFeedProps) => {
+  const navigate = useNavigate();
   const displayActivities =
     compact && !showMore ? activities.slice(0, 5) : activities;
 
@@ -1044,6 +1300,59 @@ const ActivityFeed = ({
                       ? new Date(activity.timestamp).toLocaleTimeString()
                       : "Unknown time"}
                   </div>
+                  {buildEvidenceFacts(activity).length > 0 && (
+                    <div
+                      css={css`
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: ${designTokens.spacing[1]};
+                      `}
+                    >
+                      {buildEvidenceFacts(activity)
+                        .slice(0, 3)
+                        .map((fact) => (
+                          <span
+                            key={fact}
+                            css={css`
+                              font-size: ${designTokens.typography.fontSize.xs};
+                              padding: 2px 6px;
+                              border-radius: ${designTokens.borderRadius.full};
+                              background: ${designTokens.colors.neutral[100]};
+                              color: ${designTokens.colors.text.secondary};
+                            `}
+                          >
+                            {fact}
+                          </span>
+                        ))}
+                    </div>
+                  )}
+                  {(activity.targetPath || activity.evidenceLabel) && (
+                    <div css={styles.activityTimeStyles}>
+                      <button
+                        css={css`
+                          background: none;
+                          border: none;
+                          padding: 0;
+                          color: ${designTokens.colors.primary[600]};
+                          cursor: pointer;
+                          font-size: ${designTokens.typography.fontSize.xs};
+                          font-weight: ${designTokens.typography.fontWeight.medium};
+
+                          &:hover {
+                            text-decoration: underline;
+                          }
+                        `}
+                        onClick={() => {
+                          if (activity.targetPath) {
+                            navigate(activity.targetPath);
+                          }
+                        }}
+                        disabled={!activity.targetPath}
+                      >
+                        {activity.evidenceLabel || "View Evidence"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

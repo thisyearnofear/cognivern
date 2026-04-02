@@ -56,6 +56,12 @@ export interface CreRun {
     model?: string;
     citations?: Array<{ label: string; value: string }>;
   };
+  evidence?: {
+    hash: string;
+    cid?: string;
+    artifactIds?: string[];
+    citations?: string[];
+  };
   events?: CreRunEvent[];
   steps: Array<{
     kind: string;
@@ -71,6 +77,10 @@ export interface CreRun {
     type: string;
     createdAt: string;
     data: unknown;
+    evidence?: {
+      hash: string;
+      cid?: string;
+    };
   }>;
 }
 
@@ -91,6 +101,12 @@ export interface CreRunEvent {
   timestamp: string;
   stepName?: string;
   payload?: Record<string, unknown>;
+  evidence?: {
+    hash: string;
+    cid?: string;
+    artifactIds?: string[];
+    citations?: string[];
+  };
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}) {

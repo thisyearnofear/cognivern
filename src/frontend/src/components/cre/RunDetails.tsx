@@ -575,6 +575,12 @@ export default function RunDetails() {
             </div>
             <div>Model: {vm.provenance.model || "N/A"}</div>
             <div>
+              Run Hash: {run.evidence?.hash ? `${run.evidence.hash.slice(0, 16)}…` : "N/A"}
+            </div>
+            <div>
+              CID: {run.evidence?.cid || "N/A"}
+            </div>
+            <div>
               Citations:
               {vm.provenance.citations.length ? (
                 <ul>
@@ -592,6 +598,41 @@ export default function RunDetails() {
         </CardContent>
       </Card>
 
+      {run.artifacts.length > 0 && (
+        <Card variant="outlined">
+          <CardHeader>Evidence Artifacts</CardHeader>
+          <CardContent>
+            <div
+              css={css`
+                display: grid;
+                gap: ${designTokens.spacing[2]};
+              `}
+            >
+              {run.artifacts.map((artifact) => (
+                <div
+                  key={artifact.id}
+                  css={css`
+                    padding: ${designTokens.spacing[3]};
+                    border: 1px solid ${designTokens.colors.neutral[200]};
+                    border-radius: ${designTokens.borderRadius.md};
+                    display: grid;
+                    gap: ${designTokens.spacing[1]};
+                  `}
+                >
+                  <div>
+                    <strong>{artifact.type}</strong> · {artifact.id}
+                  </div>
+                  <div>
+                    Hash: {artifact.evidence?.hash ? `${artifact.evidence.hash.slice(0, 16)}…` : "N/A"}
+                  </div>
+                  <div>CID: {artifact.evidence?.cid || "N/A"}</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card variant="outlined">
         <CardHeader>AG-UI Compatible Event Stream</CardHeader>
         <CardContent>
@@ -600,6 +641,12 @@ export default function RunDetails() {
             Latest Timestamp:{" "}
             {agUiStream.length
               ? agUiStream[agUiStream.length - 1].timestamp
+              : "N/A"}
+          </div>
+          <div>
+            Latest Event Hash:{" "}
+            {run.events?.length && run.events[run.events.length - 1].evidence?.hash
+              ? `${run.events[run.events.length - 1].evidence?.hash?.slice(0, 16)}…`
               : "N/A"}
           </div>
         </CardContent>

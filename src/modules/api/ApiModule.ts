@@ -593,6 +593,10 @@ export class ApiModule extends BaseService {
       this.controllers.get("agents").getDashboardBundle(req, res);
     });
 
+    apiRouter.get("/dashboard/events/stream", (req, res) => {
+      this.controllers.get("agents").streamDashboardEvents(req, res);
+    });
+
     // Mount API router
     this.app.use("/api", apiRouter);
 

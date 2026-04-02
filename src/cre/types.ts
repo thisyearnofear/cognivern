@@ -44,6 +44,12 @@ export interface CreRunEvent {
   timestamp: string;
   stepName?: string;
   payload?: Record<string, unknown>;
+  evidence?: {
+    hash: string;
+    cid?: string;
+    artifactIds?: string[];
+    citations?: string[];
+  };
 }
 
 export interface CreRunPlanStep {
@@ -72,6 +78,10 @@ export interface CreArtifact {
     | "error";
   createdAt: string;
   data: unknown;
+  evidence?: {
+    hash: string;
+    cid?: string;
+  };
 }
 
 export interface CreRun {
@@ -107,6 +117,12 @@ export interface CreRun {
     workflowVersion?: string;
     model?: string;
     citations?: Array<{ label: string; value: string }>;
+  };
+  evidence?: {
+    hash: string;
+    cid?: string;
+    artifactIds?: string[];
+    citations?: string[];
   };
   events?: CreRunEvent[];
   steps: CreStepLog[];

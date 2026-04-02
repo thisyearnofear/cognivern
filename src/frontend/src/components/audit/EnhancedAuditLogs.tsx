@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useEffect } from "react";
-import { getApiKey, getApiUrl, getRequestHeaders } from "../../utils/api";
+import { useSearchParams } from "react-router-dom";
+import { getApiUrl, getRequestHeaders } from "../../utils/api";
 import { css } from "@emotion/react";
 import {
   designTokens,
@@ -48,6 +49,13 @@ interface AuditLog {
     category: "trading" | "security" | "compliance" | "performance";
     financialImpact?: number;
   };
+  evidence?: {
+    hash: string;
+    cid?: string;
+    artifactIds?: string[];
+    policyIds?: string[];
+    citations?: string[];
+  };
 }
 
 interface AIInsight {
@@ -70,6 +78,102 @@ interface FilterState {
   severity: string;
   category: string;
 }
+
+interface RawAuditLogResponse {
+  id: string;
+  timestamp: string;
+  agent?: string;
+  actionType?: string;
+  description?: string;
+  complianceStatus?: "compliant" | "non-compliant" | "warning";
+  severity?: "low" | "medium" | "high" | "critical";
+  responseTime?: number;
+  details?: Record<string, any>;
+  policyChecks?: Array<{
+    policyId: string;
+    result: boolean;
+    reason?: string;
+  }>;
+  evidence?: {
+    hash: string;
+    cid?: string;
+    artifactIds?: string[];
+    policyIds?: string[];
+    citations?: string[];
+  };
+}
+
+const normalizeAuditLog = (log: RawAuditLogResponse): AuditLog => {
+  const details = log.details || {};
+  const confidence =
+    typeof details.confidence === "number" ? details.confidence : undefined;
+  const riskScore =
+    typeof details.riskScore === "number" ? details.riskScore : undefined;
+  const financialImpact =
+    typeof details.financialImpact === "number"
+      ? details.financialImpact
+      : undefined;
+  const category =
+    details.category === "trading" ||
+    details.category === "security" ||
+    details.category === "compliance" ||
+    details.category === "performance"
+      ? details.category
+      : "compliance";
+
+  return {
+    id: log.id,
+    timestamp: log.timestamp,
+    agentId: String(details.agentId || log.agent || "unknown"),
+    agentName: String(details.agentName || log.agent || "Unknown Agent"),
+    action: {
+      type: String(log.actionType || "unknown"),
+      description: String(log.description || "No description available"),
+      input: JSON.stringify(details.input || details, null, 2),
+      decision: log.complianceStatus === "non-compliant" ? "denied" : "allowed",
+      confidence,
+      riskScore,
+    },
+    policyChecks: (log.policyChecks || []).map((check) => ({
+      policyId: check.policyId,
+      policyName: check.policyId,
+      result: check.result,
+      reason: check.reason || "No reason provided",
+      ruleTriggered: check.result ? undefined : check.policyId,
+    })),
+    metadata: {
+      modelVersion: String(details.modelVersion || "unknown"),
+      governancePolicy: String(details.governancePolicy || "local"),
+      complianceStatus: log.complianceStatus || "warning",
+      latencyMs: typeof log.responseTime === "number" ? log.responseTime : 0,
+      executionContext: details.executionContext
+        ? String(details.executionContext)
+        : undefined,
+    },
+    impact: {
+      severity: log.severity || "low",
+      category,
+      financialImpact,
+    },
+    evidence: log.evidence,
+  };
+};
+
+const normalizeInsight = (insight: any): AIInsight => ({
+  id: String(insight.id),
+  type:
+    insight.type === "recommendation" ||
+    insight.type === "pattern" ||
+    insight.type === "trend"
+      ? insight.type
+      : "anomaly",
+  title: String(insight.title || "Insight"),
+  description: String(insight.description || ""),
+  confidence: Math.round(Number(insight.confidence || 0) * 100),
+  actionable: Boolean(insight.actionRequired),
+  relatedLogs: Array.isArray(insight.relatedLogs) ? insight.relatedLogs : [],
+  generatedAt: new Date().toISOString(),
+});
 
 const containerStyles = css`
   padding: ${designTokens.spacing[6]};
@@ -323,22 +427,27 @@ const severityBadgeStyles = css`
 `;
 
 export default function EnhancedAuditLogs() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSimplifiedMode, setIsSimplifiedMode] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
-    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0],
-    endDate: new Date().toISOString().split("T")[0],
-    agentId: "",
-    actionType: "",
-    complianceStatus: "",
-    severity: "",
-    category: "",
+    startDate:
+      searchParams.get("startDate") ||
+      new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+    endDate:
+      searchParams.get("endDate") || new Date().toISOString().split("T")[0],
+    agentId: searchParams.get("agentId") || "",
+    actionType: searchParams.get("actionType") || "",
+    complianceStatus: searchParams.get("complianceStatus") || "",
+    severity: searchParams.get("severity") || "",
+    category: searchParams.get("category") || "",
   });
+  const highlightedEventId = searchParams.get("eventId") || "";
 
   const [metrics, setMetrics] = useState({
     totalLogs: 0,
@@ -352,12 +461,30 @@ export default function EnhancedAuditLogs() {
     generateAIInsights();
   }, [filters]);
 
+  useEffect(() => {
+    const nextParams = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== "") {
+        nextParams.set(key, value);
+      }
+    });
+    if (highlightedEventId) {
+      nextParams.set("eventId", highlightedEventId);
+    }
+    setSearchParams(nextParams, { replace: true });
+  }, [filters, highlightedEventId, setSearchParams]);
+
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const queryParams = new URLSearchParams(
-        Object.entries(filters).filter(([_, value]) => value !== ""),
-      ).toString();
+      const queryEntries = Object.entries(filters).flatMap(([key, value]) => {
+        if (value === "") return [];
+        if (key === "agentId") {
+          return [["agent", value]];
+        }
+        return [[key, value]];
+      });
+      const queryParams = new URLSearchParams(queryEntries).toString();
 
       const response = await fetch(getApiUrl(`/api/audit/logs?${queryParams}`), {
         headers: getRequestHeaders(),
@@ -365,9 +492,14 @@ export default function EnhancedAuditLogs() {
 
       if (response.ok) {
         const data = await response.json();
-        const logsArray = Array.isArray(data) ? data : (data.data && Array.isArray(data.data) ? data.data : []);
-        setLogs(logsArray);
-        calculateMetrics(logsArray);
+        const logsArray = Array.isArray(data)
+          ? data
+          : Array.isArray(data.data?.logs)
+            ? data.data.logs
+            : [];
+        const normalizedLogs = logsArray.map(normalizeAuditLog);
+        setLogs(normalizedLogs);
+        calculateMetrics(normalizedLogs);
       } else {
         setError("Failed to load audit logs");
         setLogs([]);
@@ -415,7 +547,7 @@ export default function EnhancedAuditLogs() {
 
       if (response.ok) {
         const data = await response.json();
-        setAiInsights(data.data || []);
+        setAiInsights(Array.isArray(data.data) ? data.data.map(normalizeInsight) : []);
       } else {
         setAiInsights([]);
       }
@@ -712,7 +844,16 @@ export default function EnhancedAuditLogs() {
         {logs.map((log) => (
           <div
             key={log.id}
-            css={css`${logItemStyles}; &.${log.metadata.complianceStatus}`}
+            css={css`
+              ${logItemStyles};
+              &.${log.metadata.complianceStatus}
+              ${highlightedEventId === log.id
+                ? `
+                    border: 2px solid ${designTokens.colors.primary[500]};
+                    box-shadow: 0 0 0 4px ${designTokens.colors.primary[100]};
+                  `
+                : ""}
+            `}
           >
             <Card variant="default">
               <CardContent>
@@ -941,6 +1082,32 @@ export default function EnhancedAuditLogs() {
                     {log.metadata.executionContext}
                   </div>
                 </div>
+
+                {log.evidence && (
+                  <div
+                    css={css`
+                      display: flex;
+                      flex-wrap: wrap;
+                      gap: ${designTokens.spacing[2]};
+                      margin-top: ${designTokens.spacing[3]};
+                    `}
+                  >
+                    <span css={statusBadgeStyles}>Hash {log.evidence.hash.slice(0, 12)}…</span>
+                    {log.evidence.cid && (
+                      <span css={statusBadgeStyles}>CID {log.evidence.cid.slice(0, 12)}…</span>
+                    )}
+                    {log.evidence.artifactIds?.length ? (
+                      <span css={statusBadgeStyles}>
+                        Artifacts {log.evidence.artifactIds.slice(0, 2).join(", ")}
+                      </span>
+                    ) : null}
+                    {log.evidence.policyIds?.length ? (
+                      <span css={statusBadgeStyles}>
+                        Policies {log.evidence.policyIds.slice(0, 2).join(", ")}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

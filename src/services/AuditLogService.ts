@@ -4,6 +4,7 @@ import {
   AuditLogStore,
   auditLogStore,
 } from "../shared/storage/AuditLogStore.js";
+import { buildAuditEvidence } from "../shared/utils/evidence.js";
 
 export interface AuditLog {
   id: string;
@@ -18,6 +19,13 @@ export interface AuditLog {
   policyChecks: PolicyCheck[];
   outcome: "allowed" | "denied";
   metadata: Record<string, any>;
+  evidence: {
+    hash: string;
+    cid?: string;
+    artifactIds?: string[];
+    policyIds?: string[];
+    citations?: string[];
+  };
 }
 
 export interface AuditInsight {
@@ -70,7 +78,17 @@ export class AuditLogService {
         source: "live",
         version: "1.0.0",
       },
+      evidence: { hash: "pending" },
     };
+
+    auditLog.evidence = buildAuditEvidence({
+      id: auditLog.id,
+      agent: auditLog.agent,
+      actionType: auditLog.actionType,
+      timestamp: auditLog.timestamp,
+      details: auditLog.details,
+      policyChecks: auditLog.policyChecks,
+    });
 
     await this.store.add(auditLog);
   }
@@ -103,7 +121,17 @@ export class AuditLogService {
         source: "policy_engine",
         version: "1.0.0",
       },
+      evidence: { hash: "pending" },
     };
+
+    auditLog.evidence = buildAuditEvidence({
+      id: auditLog.id,
+      agent: auditLog.agent,
+      actionType: auditLog.actionType,
+      timestamp: auditLog.timestamp,
+      details: auditLog.details,
+      policyChecks: auditLog.policyChecks,
+    });
 
     await this.store.add(auditLog);
   }
