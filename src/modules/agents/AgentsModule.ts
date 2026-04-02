@@ -22,12 +22,14 @@ import { UserTradingAgent } from "./implementations/UserTradingAgent.js";
 import { AgentOrchestrator } from "./services/AgentOrchestrator.js";
 import { TradingService } from "./services/TradingService.js";
 import { GovernanceService } from "./services/GovernanceService.js";
+import { getWorkerClient } from "../../services/CloudflareWorkerClient.js";
 
 export class AgentsModule extends BaseService {
   private agents: Map<string, TradingAgent> = new Map();
   private orchestrator: AgentOrchestrator;
   private tradingService: TradingService;
   private governanceService: GovernanceService;
+  private workerClient = getWorkerClient();
   private isRunning = false;
 
   constructor() {
@@ -289,6 +291,27 @@ export class AgentsModule extends BaseService {
     riskLevel?: string;
   }): Promise<Agent> {
     const id = `user-agent-${Date.now()}`;
+
+    // Register with Cloudflare Worker if enabled
+    if (this.workerClient.isEnabled()) {
+      try {
+        await this.workerClient.registerAgent({
+          name: params.name,
+          type: params.type,
+          capabilities: ["user-agent", params.type],
+          metadata: {
+            address: params.address,
+            riskLevel: params.riskLevel,
+            description: params.description,
+          },
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Failed to register agent with Cloudflare Worker: ${error.message}`,
+        );
+      }
+    }
+
     const agent = new UserTradingAgent({
       id,
       name: params.name,

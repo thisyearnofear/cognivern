@@ -36,6 +36,7 @@ import {
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { ErrorBoundary } from "../ui/ErrorBoundary";
+import { PageWrapper } from "../layout";
 import TradingChart from "./TradingChart";
 import TradeHistory from "./TradeHistory";
 import { AgentMonitor } from "./AgentMonitor";
@@ -444,42 +445,21 @@ function TradingAgentDashboardContent() {
   };
 
   return (
-    <div css={styles.containerStyles}>
-      {/* Header */}
-      <div css={css`
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: ${designTokens.spacing[6]};
-        @media (max-width: ${designTokens.breakpoints.md}) {
-          flex-direction: column;
-          gap: ${designTokens.spacing[4]};
-        }
-      `}>
-        <div css={styles.headerStyles}>
-          <h1 css={styles.titleStyles}>Agent Behavioral & Governance</h1>
-          <p css={styles.subtitleStyles}>
-            Monitor autonomy levels, compliance scores, and governance risk across
-            your agent ecosystem.
-          </p>
-        </div>
+    <PageWrapper
+      title="Agent Behavioral & Governance"
+      subtitle="Monitor autonomy levels, compliance scores, and governance risk across your agent ecosystem."
+      actions={
         <Button
           variant="primary"
           onClick={() => navigate("/agents/workshop")}
-          css={css`
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: ${designTokens.shadows.md};
-            white-space: nowrap;
-          `}
+          icon={<Plus size={18} />}
         >
-          <Plus size={20} /> Deploy New Agent
+          Deploy New Agent
         </Button>
-      </div>
-
+      }
+    >
       {/* Error Display */}
-      {error && (
+        {error && (
         <div css={styles.errorStyles}>
           <AlertTriangle
             size={24}
@@ -512,16 +492,6 @@ function TradingAgentDashboardContent() {
           margin-bottom: ${designTokens.spacing[10]};
         `}
       >
-        <h2
-          css={css`
-            text-align: center;
-            margin-bottom: -${designTokens.spacing[4]};
-            font-size: ${designTokens.typography.fontSize.xl};
-            color: ${designTokens.colors.neutral[700]};
-          `}
-        >
-          Select Active Agent
-        </h2>
         <InteractiveCarousel
           items={carouselItems}
           onItemClick={handleCarouselItemClick}
@@ -531,6 +501,7 @@ function TradingAgentDashboardContent() {
             text-align: center;
             font-size: ${designTokens.typography.fontSize.sm};
             color: ${designTokens.colors.neutral[500]};
+            margin-top: ${designTokens.spacing[4]};
           `}
         >
           Double click active agent to view detailed profile
@@ -1324,6 +1295,6 @@ function TradingAgentDashboardContent() {
           </Button>
         </Card>
       </div>
-    </div>
+    </PageWrapper>
   );
 }

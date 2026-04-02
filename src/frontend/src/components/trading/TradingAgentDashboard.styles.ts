@@ -2,70 +2,28 @@ import { css } from "@emotion/react";
 import { designTokens, keyframeAnimations } from "../../styles/design-system";
 
 export const containerStyles = css`
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: ${designTokens.spacing[6]};
-  min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    ${designTokens.colors.background.secondary} 0%,
-    ${designTokens.colors.background.tertiary} 100%
-  );
+  width: 100%;
+  height: 100%;
   position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      ${designTokens.colors.primary[500]},
-      transparent
-    );
-    opacity: 0.3;
-    animation: scanline 8s linear infinite;
-  }
-
-  @keyframes scanline {
-    0% {
-      transform: translateY(-100vh);
-    }
-    100% {
-      transform: translateY(100vh);
-    }
-  }
 `;
 
 export const headerStyles = css`
-  text-align: center;
-  margin-bottom: ${designTokens.spacing[8]};
+  margin-bottom: ${designTokens.spacing[6]};
   ${keyframeAnimations.fadeInUp}
 `;
 
 export const titleStyles = css`
-  font-size: ${designTokens.typography.fontSize["4xl"]};
+  font-size: ${designTokens.typography.fontSize["2xl"]};
   font-weight: ${designTokens.typography.fontWeight.bold};
-  background: linear-gradient(
-    135deg,
-    ${designTokens.colors.neutral[900]},
-    ${designTokens.colors.neutral[600]}
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: ${designTokens.spacing[3]};
-  letter-spacing: -0.02em;
+  color: ${designTokens.colors.neutral[900]};
+  margin-bottom: ${designTokens.spacing[1]};
+  letter-spacing: -0.01em;
 `;
 
 export const subtitleStyles = css`
-  font-size: ${designTokens.typography.fontSize.lg};
-  color: ${designTokens.colors.neutral[600]};
-  max-width: 600px;
-  margin: 0 auto;
+  font-size: ${designTokens.typography.fontSize.base};
+  color: ${designTokens.colors.neutral[500]};
+  max-width: 800px;
 `;
 
 export const agentSelectorStyles = css`

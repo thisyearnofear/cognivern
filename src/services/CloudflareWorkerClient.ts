@@ -123,6 +123,41 @@ export class CloudflareWorkerClient {
   }
 
   /**
+   * Register a new agent in Worker
+   */
+  async registerAgent(agentData: {
+    name: string;
+    type: string;
+    capabilities?: string[];
+    metadata?: Record<string, any>;
+  }): Promise<WorkerAgent | null> {
+    if (!this.enabled) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/agents`, {
+        method: "POST",
+        headers: {
+          "X-API-Key": this.apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(agentData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Register agent failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.success ? data.data : null;
+    } catch (error) {
+      console.warn("Cloudflare Worker registerAgent failed:", error);
+      return null;
+    }
+  }
+
+  /**
    * Evaluate governance action via Worker
    */
   async evaluateGovernance(
