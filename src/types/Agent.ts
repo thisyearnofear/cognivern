@@ -65,6 +65,7 @@ export interface TradingDecision {
   price: number;
   confidence: number;
   reasoning?: string;
+  agentId?: string;
   outcome?: {
     success: boolean;
     profit?: number;

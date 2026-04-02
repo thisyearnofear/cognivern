@@ -253,9 +253,7 @@ export class AgentMetricsAggregator {
 
       // Get trading history for this agent
       const allHistory = this.tradingHistory.getHistory();
-      // Filter by matching agent ID in the decision ID or use all history for now
-      // TODO: Add agentId field to TradingDecision type
-      const agentHistory = allHistory; // Use all history for now since agentId isn't in the type
+      const agentHistory = allHistory.filter((d) => d.agentId === agentId);
       const performance =
         this.tradingHistory.calculatePerformance(agentHistory);
 
