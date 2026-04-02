@@ -71,31 +71,35 @@ Cognivern enforces a strict **"No Mocks"** policy. Features only activate when v
 Create `.env` file:
 
 ```env
-# Sapience / Polkadot Hub (REQUIRED)
-POLKADOT_RPC_URL=https://polkadot-hub-rpc.url
-POLKADOT_PRIVATE_KEY=your_private_key_here
-
-# Sapience / Arbitrum (OPTIONAL)
+# Sapience / Arbitrum (Trading - REQUIRED)
 ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
+ETHEREAL_RPC_URL=https://ethereal-rpc.sapience.xyz
 SAPIENCE_PRIVATE_KEY=your_private_key_here
 
-# Resilient LLM Layer (REQUIRED)
-ROUTEWAY_API_KEY=your_routeway_key
-GROQ_API_KEY=your_groq_key
-ELEVENLABS_API_KEY=your_elevenlabs_key
-
-# Cloudflare (REQUIRED for Governance Agents)
-CLOUDFLARE_ACCOUNT_ID=your_id
-CLOUDFLARE_API_TOKEN=your_token
-
-# Recall Network (REQUIRED for Memory)
+# Recall Network (Agent Memory - REQUIRED)
 RECALL_API_KEY=your_recall_key
 RECALL_BUCKET=agent-memory
 
-# Filecoin FVM (REQUIRED for Governance)
+# Cloudflare (Governance Agents - REQUIRED)
+CLOUDFLARE_ACCOUNT_ID=your_id
+CLOUDFLARE_API_TOKEN=your_token
+
+# ElevenLabs (Voice Briefings - REQUIRED)
+ELEVENLABS_API_KEY=your_elevenlabs_key
+
+# LLM Providers (Forecasting - at least one required)
+FIREWORKS_API_KEY=
+OPENROUTER_API_KEY=
+OPENAI_API_KEY=
+GEMINI_API_KEY=
+ANTHROPIC_API_KEY=
+
+# Filecoin FVM (Governance - REQUIRED)
 FILECOIN_RPC_URL=https://api.calibration.node.glif.io/rpc/v1
 FILECOIN_PRIVATE_KEY=your_private_key_here
-GOVERNANCE_CONTRACT_ADDRESS=0x...
+
+# API Security
+API_KEY=your_secure_api_key_here
 ```
 
 ### Run the backend
@@ -131,28 +135,33 @@ pnpm ingest-example
 
 See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for the standard artifact-based release process (build locally, deploy to Hetzner, rollback via symlink).
 
-## 🏗️ Architecture: Multi-Chain Governance & Prediction
+## Architecture: Cloudflare-Native Multi-Chain Governance
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    CRE Workflow DON                              │
+│                    Cloudflare Workers Edge                       │
 │                                                                 │
-│  [Cron Trigger]  ──→  [HTTP Fetch]  ──→  [Confidential HTTP]   │
-│   Every 10 min        Market Data         LLM Reasoning         │
-│                       (consensus)         (private enclave)     │
-│                            │                    │               │
-│                            ▼                    ▼               │
-│                     [EVM Read]           [EVM Write]            │
-│                     Price Feeds          EAS Attestation        │
-│                     (consensus)          (consensus)            │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │            GovernanceAgent (Durable Object)              │   │
+│  │  ┌──────────┐  ┌───────────┐  ┌──────────────────────┐  │   │
+│  │  │  State   │  │  Policy   │  │  Voice Briefing      │  │   │
+│  │  │  (DO)    │  │  Engine   │  │  (AI + ElevenLabs)   │  │   |
+│  │  └──────────┘  └───────────┘  └──────────────────────┘  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                          │                                      │
+│  ┌──────────┐   ┌───────┴───────┐   ┌──────────────────┐      │
+│  │ D1 DB    │   │ Workers AI    │   │ Cron Triggers    │      │
+│  │ (agents, │   │ (inference)   │   │ (hourly audits)  │      │
+│  │  audits) │   └───────────────┘   └──────────────────┘      │
+│  └──────────┘                                                  │
 └─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                    ┌──────────────────┐
-                    │   Arbitrum One   │
-                    │  EAS Attestation │
-                    │  + Data Feeds    │
-                    └──────────────────┘
+                          │
+            ┌─────────────┼─────────────┐
+            ▼             ▼             ▼
+    ┌──────────────┐ ┌──────────┐ ┌──────────┐
+    │ Arbitrum/EAS │ │  Recall  │ │ Filecoin │
+    │ Attestations │ │  Memory  │ │ Forensic │
+    └──────────────┘ └──────────┘ └──────────┘
 ```
 
 ### Multi-LLM Resilience Layer
@@ -164,13 +173,14 @@ Both LLM calls execute within CRE's Confidential HTTP capability — API keys an
 
 ## Technical Foundation
 
-Cognivern is a multi-chain platform that leverages the strengths of the Web3 ecosystem:
+Cognivern is a Cloudflare-native, multi-chain governance platform:
 
-- **Recall Network:** Decentralized agent memory, verifiable intent, and AgentRank™ reputation.
-- **Chainlink CRE:** Decentralized compute and confidential LLM reasoning.
-- **Filecoin (FVM):** Verifiable evidence storage for forensic audit trails.
-- **Sapience:** Automated forecasting and prediction market integration.
-- **Arbitrum/EAS:** Scalable attestations using Ethereum Attestation Service.
+- **Cloudflare Workers + Durable Objects**: Edge-native governance agents with persistent state, serverless inference via Workers AI, and D1 database for audit trails.
+- **ElevenLabs**: AI voice synthesis for conversational governance briefings.
+- **Recall Network**: Decentralized agent memory, verifiable intent, and AgentRank™ reputation.
+- **Sapience/EAS**: Automated forecasting and prediction market integration with Ethereum Attestation Service.
+- **Arbitrum**: Scalable L2 for on-chain attestations.
+- **Filecoin (FVM)**: Verifiable evidence storage for forensic audit trails.
 
 ## 📚 Documentation
 
