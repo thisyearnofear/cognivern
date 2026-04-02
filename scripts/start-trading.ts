@@ -50,11 +50,17 @@ async function main() {
     );
 
     // 3. Trading Logic
-    // TODO: Fetch real market price from Graph/Contract
-    // For now, we assume a "Market Price" of 50 cents (0.50) to demonstrate the logic structure
-    // This is NOT a mock of the system, but a placeholder for a missing data source
-    const marketPrice = 0.5;
-    const edge = forecast.probability / 100 - marketPrice;
+    const marketPriceData = await sapienceService.getMarketPrice(condition.id);
+    if (!marketPriceData) {
+      logger.warn("Could not fetch market price. Skipping trade.");
+      return;
+    }
+
+    const edge = sapienceService.calculateEdge(
+      forecast.probability,
+      marketPriceData,
+    );
+    const marketPrice = marketPriceData.yesPrice;
 
     if (edge > 0.1) {
       // 10% edge required
