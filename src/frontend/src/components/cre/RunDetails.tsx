@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { Link, useParams } from "react-router-dom";
 import { getApiUrl, getApiKey } from "../../utils/api";
+import { copyTextToClipboard } from "../../utils/clipboard";
 import { creApi, CreRun, CreRunEvent } from "../../services/creApi";
 import {
   toAgentRunViewModel,
@@ -321,7 +322,7 @@ export default function RunDetails() {
           )}
           <Button
             onClick={() =>
-              navigator.clipboard.writeText(JSON.stringify(run, null, 2))
+              void copyTextToClipboard(JSON.stringify(run, null, 2))
             }
             variant="primary"
             disabled={isBusy}
@@ -576,9 +577,41 @@ export default function RunDetails() {
             <div>Model: {vm.provenance.model || "N/A"}</div>
             <div>
               Run Hash: {run.evidence?.hash ? `${run.evidence.hash.slice(0, 16)}…` : "N/A"}
+              {run.evidence?.hash && (
+                <button
+                  css={css`
+                    margin-left: ${designTokens.spacing[2]};
+                    background: none;
+                    border: none;
+                    color: ${designTokens.colors.primary[600]};
+                    cursor: pointer;
+                  `}
+                  onClick={() => {
+                    void copyTextToClipboard(run.evidence?.hash || "");
+                  }}
+                >
+                  Copy
+                </button>
+              )}
             </div>
             <div>
               CID: {run.evidence?.cid || "N/A"}
+              {run.evidence?.cid && (
+                <button
+                  css={css`
+                    margin-left: ${designTokens.spacing[2]};
+                    background: none;
+                    border: none;
+                    color: ${designTokens.colors.primary[600]};
+                    cursor: pointer;
+                  `}
+                  onClick={() => {
+                    void copyTextToClipboard(run.evidence?.cid || "");
+                  }}
+                >
+                  Copy
+                </button>
+              )}
             </div>
             <div>
               Citations:
@@ -624,8 +657,42 @@ export default function RunDetails() {
                   </div>
                   <div>
                     Hash: {artifact.evidence?.hash ? `${artifact.evidence.hash.slice(0, 16)}…` : "N/A"}
+                    {artifact.evidence?.hash && (
+                      <button
+                        css={css`
+                          margin-left: ${designTokens.spacing[2]};
+                          background: none;
+                          border: none;
+                          color: ${designTokens.colors.primary[600]};
+                          cursor: pointer;
+                        `}
+                        onClick={() => {
+                          void copyTextToClipboard(artifact.evidence?.hash || "");
+                        }}
+                      >
+                        Copy
+                      </button>
+                    )}
                   </div>
-                  <div>CID: {artifact.evidence?.cid || "N/A"}</div>
+                  <div>
+                    CID: {artifact.evidence?.cid || "N/A"}
+                    {artifact.evidence?.cid && (
+                      <button
+                        css={css`
+                          margin-left: ${designTokens.spacing[2]};
+                          background: none;
+                          border: none;
+                          color: ${designTokens.colors.primary[600]};
+                          cursor: pointer;
+                        `}
+                        onClick={() => {
+                          void copyTextToClipboard(artifact.evidence?.cid || "");
+                        }}
+                      >
+                        Copy
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -648,6 +715,24 @@ export default function RunDetails() {
             {run.events?.length && run.events[run.events.length - 1].evidence?.hash
               ? `${run.events[run.events.length - 1].evidence?.hash?.slice(0, 16)}…`
               : "N/A"}
+            {run.events?.length && run.events[run.events.length - 1].evidence?.hash && (
+              <button
+                css={css`
+                  margin-left: ${designTokens.spacing[2]};
+                  background: none;
+                  border: none;
+                  color: ${designTokens.colors.primary[600]};
+                  cursor: pointer;
+                `}
+                onClick={() => {
+                  void copyTextToClipboard(
+                    run.events?.[run.events.length - 1].evidence?.hash || "",
+                  );
+                }}
+              >
+                Copy
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getApiUrl, getRequestHeaders } from "../../utils/api";
+import { copyTextToClipboard } from "../../utils/clipboard";
 import { css } from "@emotion/react";
 import {
   designTokens,
@@ -1092,9 +1093,41 @@ export default function EnhancedAuditLogs() {
                       margin-top: ${designTokens.spacing[3]};
                     `}
                   >
-                    <span css={statusBadgeStyles}>Hash {log.evidence.hash.slice(0, 12)}…</span>
+                    <button
+                      css={css`
+                        background: ${designTokens.colors.neutral[100]};
+                        color: ${designTokens.colors.neutral[700]};
+                        padding: ${designTokens.spacing[1]}
+                          ${designTokens.spacing[2]};
+                        border-radius: ${designTokens.borderRadius.full};
+                        border: none;
+                        cursor: pointer;
+                        font-size: ${designTokens.typography.fontSize.xs};
+                      `}
+                      onClick={() => {
+                        void copyTextToClipboard(log.evidence?.hash || "");
+                      }}
+                    >
+                      Hash {log.evidence.hash.slice(0, 12)}…
+                    </button>
                     {log.evidence.cid && (
-                      <span css={statusBadgeStyles}>CID {log.evidence.cid.slice(0, 12)}…</span>
+                      <button
+                        css={css`
+                          background: ${designTokens.colors.neutral[100]};
+                          color: ${designTokens.colors.neutral[700]};
+                          padding: ${designTokens.spacing[1]}
+                            ${designTokens.spacing[2]};
+                          border-radius: ${designTokens.borderRadius.full};
+                          border: none;
+                          cursor: pointer;
+                          font-size: ${designTokens.typography.fontSize.xs};
+                        `}
+                        onClick={() => {
+                          void copyTextToClipboard(log.evidence?.cid || "");
+                        }}
+                      >
+                        CID {log.evidence.cid.slice(0, 12)}…
+                      </button>
                     )}
                     {log.evidence.artifactIds?.length ? (
                       <span css={statusBadgeStyles}>
