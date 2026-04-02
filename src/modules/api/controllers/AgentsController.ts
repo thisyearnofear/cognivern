@@ -16,6 +16,7 @@ import {
   type WorkerAgent,
   type WorkerMetrics,
 } from "../../../services/CloudflareWorkerClient.js";
+import { creRunStore } from "../../../cre/storage/CreRunStore.js";
 
 export class AgentsController {
   private agentsModule: AgentsModule;
@@ -809,6 +810,147 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     }
+  }
+
+  async streamDashboardEvents(req: Request, res: Response): Promise<void> {
+    const sinceQuery = typeof req.query.since === "string" ? req.query.since : undefined;
+    const lastEventId = req.header("Last-Event-ID") || sinceQuery || "";
+    let cursorTimestamp = 0;
+    let cursorId = "";
+
+    if (lastEventId) {
+      const [rawTimestamp, ...rest] = lastEventId.split(":");
+      const parsed = Number(rawTimestamp);
+      if (!Number.isNaN(parsed)) {
+        cursorTimestamp = parsed;
+        cursorId = rest.join(":");
+      }
+    }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    const sendEvent = (
+      eventName: string,
+      payload: Record<string, unknown>,
+      id?: string,
+    ) => {
+      if (id) {
+        res.write(`id: ${id}\n`);
+      }
+      res.write(`event: ${eventName}\n`);
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    };
+
+    sendEvent("ready", {
+      cursor: lastEventId,
+      timestamp: new Date().toISOString(),
+    });
+
+    const sendNewEvents = async () => {
+      const [auditLogs, runs] = await Promise.all([
+        this.auditLogService.getFilteredLogs({}),
+        creRunStore.list(),
+      ]);
+
+      const auditEvents = auditLogs.map((log) => ({
+        eventName: "audit_log",
+        eventId: `${new Date(log.timestamp).getTime()}:audit:${log.id}`,
+        timestampMs: new Date(log.timestamp).getTime(),
+        cursorTail: `audit:${log.id}`,
+        payload: {
+          id: log.id,
+          type: log.actionType,
+          severity: log.severity,
+          complianceStatus: log.complianceStatus,
+          description: log.description,
+          timestamp: log.timestamp,
+          agentId: log.agent,
+          policyChecks: log.policyChecks,
+          metadata: log.metadata,
+          details: log.details,
+          evidence: log.evidence,
+        },
+      }));
+
+      const runEvents = runs.flatMap((run) =>
+        (run.events || []).map((event) => ({
+          eventName: "run_event",
+          eventId: `${new Date(event.timestamp).getTime()}:run:${event.id}`,
+          timestampMs: new Date(event.timestamp).getTime(),
+          cursorTail: `run:${event.id}`,
+          payload: {
+            id: event.id,
+            runId: run.runId,
+            projectId: run.projectId,
+            workflow: run.workflow,
+            type: event.type,
+            stepName: event.stepName,
+            timestamp: event.timestamp,
+            artifactCount: run.artifacts.length,
+            citationLabels: (run.provenance?.citations || []).map(
+              (citation) => citation.label,
+            ),
+            workflowVersion: run.provenance?.workflowVersion,
+            model: run.provenance?.model,
+            evidence: event.evidence,
+            runEvidence: run.evidence,
+            summary:
+              typeof event.payload?.summary === "string"
+                ? event.payload.summary
+                : typeof event.payload?.reason === "string"
+                  ? event.payload.reason
+                  : undefined,
+          },
+        })),
+      );
+
+      const streamEvents = [...auditEvents, ...runEvents]
+        .filter((entry) => {
+          if (Number.isNaN(entry.timestampMs)) {
+            return false;
+          }
+
+          if (entry.timestampMs > cursorTimestamp) {
+            return true;
+          }
+
+          return (
+            entry.timestampMs === cursorTimestamp &&
+            entry.cursorTail > cursorId
+          );
+        })
+        .sort((left, right) => {
+          if (left.timestampMs !== right.timestampMs) {
+            return left.timestampMs - right.timestampMs;
+          }
+          return left.cursorTail.localeCompare(right.cursorTail);
+        });
+
+      for (const event of streamEvents) {
+        sendEvent(event.eventName, event.payload, event.eventId);
+        cursorTimestamp = event.timestampMs;
+        cursorId = event.cursorTail;
+      }
+
+      if (!streamEvents.length) {
+        res.write(": heartbeat\n\n");
+      }
+    };
+
+    await sendNewEvents();
+
+    const intervalId = setInterval(() => {
+      void sendNewEvents();
+    }, 2000);
+
+    req.on("close", () => {
+      clearInterval(intervalId);
+      res.end();
+    });
   }
 
   private parseComparisonFilters(query: any): any {

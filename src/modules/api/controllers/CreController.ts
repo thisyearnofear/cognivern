@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import crypto from "node:crypto";
+import { enrichCreRunEvidence } from "../../../shared/utils/evidence.js";
 import { z } from "zod";
 import { runForecastingWorkflow } from "../../../cre/workflows/forecasting.js";
 import { creRunStore } from "../../../cre/storage/CreRunStore.js";
@@ -78,7 +79,7 @@ function normalizeRun(run: CreRun): CreRun {
     })),
   };
 
-  return {
+  return enrichCreRunEvidence({
     ...run,
     status,
     retryCount,
@@ -106,7 +107,7 @@ function normalizeRun(run: CreRun): CreRun {
       citations: run.provenance?.citations || [],
     },
     events: run.events || [],
-  };
+  });
 }
 
 function pushRunEvent(
@@ -132,7 +133,13 @@ function pushRunEvent(
     stepName: event.stepName,
     payload: event.payload,
   });
-  run.events = events;
+  const enriched = enrichCreRunEvidence({
+    ...run,
+    events,
+  });
+  run.events = enriched.events;
+  run.artifacts = enriched.artifacts;
+  run.evidence = enriched.evidence;
 }
 
 export class CreController {
@@ -353,12 +360,13 @@ export class CreController {
         },
       });
     }
-    await creRunStore.add(normalized);
+    const storedRun = normalizeRun(normalized);
+    await creRunStore.add(storedRun);
 
     const responseBody = {
-      success: normalized.ok,
-      runId: normalized.runId,
-      run: normalized,
+      success: storedRun.ok,
+      runId: storedRun.runId,
+      run: storedRun,
     };
     if (idemKey) {
       await this.setCachedIdempotentResponse(
@@ -414,8 +422,9 @@ export class CreController {
       payload: { source: "api" },
     });
 
-    await creRunStore.replace(normalized);
-    const responseBody = { success: true, run: normalized };
+    const storedRun = normalizeRun(normalized);
+    await creRunStore.replace(storedRun);
+    const responseBody = { success: true, run: storedRun };
     if (idemKey) {
       await this.setCachedIdempotentResponse(
         idemKey,
@@ -456,7 +465,7 @@ export class CreController {
       type: "run_retry_requested",
       payload: { requestedBy: "user" },
     });
-    await creRunStore.replace(original);
+    await creRunStore.replace(normalizeRun(original));
 
     const newRun = normalizeRun(
       await runForecastingWorkflow({
@@ -483,11 +492,12 @@ export class CreController {
         payload: { retriedFromRunId: original.runId, fromStep },
       });
     }
-    await creRunStore.add(newRun);
+    const storedRun = normalizeRun(newRun);
+    await creRunStore.add(storedRun);
     const responseBody = {
       success: true,
       runId: newRun.runId,
-      run: newRun,
+      run: storedRun,
       retriedFrom: original.runId,
     };
     if (idemKey) {
@@ -575,8 +585,9 @@ export class CreController {
       canApprove: false,
     };
 
-    await creRunStore.replace(normalized);
-    const responseBody = { success: true, run: normalized };
+    const storedRun = normalizeRun(normalized);
+    await creRunStore.replace(storedRun);
+    const responseBody = { success: true, run: storedRun };
     if (idemKey) {
       await this.setCachedIdempotentResponse(
         idemKey,
@@ -642,8 +653,9 @@ export class CreController {
       });
     }
 
-    await creRunStore.replace(normalized);
-    const responseBody = { success: true, run: normalized };
+    const storedRun = normalizeRun(normalized);
+    await creRunStore.replace(storedRun);
+    const responseBody = { success: true, run: storedRun };
     if (idemKey) {
       await this.setCachedIdempotentResponse(
         idemKey,

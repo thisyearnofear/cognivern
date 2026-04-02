@@ -15,6 +15,12 @@ const artifactSchema = z.object({
   type: z.string(),
   createdAt: z.string(),
   data: z.unknown(),
+  evidence: z
+    .object({
+      hash: z.string(),
+      cid: z.string().optional(),
+    })
+    .optional(),
 });
 
 const eventSchema = z.object({
@@ -24,6 +30,14 @@ const eventSchema = z.object({
   timestamp: z.string(),
   stepName: z.string().optional(),
   payload: z.record(z.unknown()).optional(),
+  evidence: z
+    .object({
+      hash: z.string(),
+      cid: z.string().optional(),
+      artifactIds: z.array(z.string()).optional(),
+      citations: z.array(z.string()).optional(),
+    })
+    .optional(),
 });
 
 const planStepSchema = z.object({
@@ -81,6 +95,14 @@ export const creRunSchema = z.object({
       citations: z
         .array(z.object({ label: z.string(), value: z.string() }))
         .optional(),
+    })
+    .optional(),
+  evidence: z
+    .object({
+      hash: z.string(),
+      cid: z.string().optional(),
+      artifactIds: z.array(z.string()).optional(),
+      citations: z.array(z.string()).optional(),
     })
     .optional(),
   events: z.array(eventSchema).optional(),

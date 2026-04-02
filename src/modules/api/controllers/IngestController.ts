@@ -4,6 +4,7 @@ import { creRunSchema } from "../../../cre/validation.js";
 import { projectRegistry } from "../../../cre/projects/projectRegistry.js";
 import { usageMeter } from "../../../cre/projects/usageMeter.js";
 import { tokenTelemetryStore } from "../../../cre/projects/tokenTelemetry.js";
+import { enrichCreRunEvidence } from "../../../shared/utils/evidence.js";
 
 /**
  * Ingestion endpoint for BYO agents.
@@ -73,7 +74,7 @@ export class IngestController {
         return;
       }
 
-      const run = {
+      const run = enrichCreRunEvidence({
         ...(parsed.data as any),
         projectId,
         provenance: {
@@ -89,7 +90,7 @@ export class IngestController {
               ? "completed"
               : "failed"
             : "running"),
-      };
+      });
       await creRunStore.add(run);
       const usage = await usageMeter.recordIngest(projectId);
       const tokenTelemetry = await tokenTelemetryStore.record(
