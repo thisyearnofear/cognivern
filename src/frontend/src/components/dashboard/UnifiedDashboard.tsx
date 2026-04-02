@@ -19,7 +19,6 @@ import { css } from "@emotion/react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
-  BarChart3,
   Percent,
   TrendingUp,
   TrendingDown,
@@ -42,6 +41,7 @@ import {
   agentApi,
 } from "../../services/apiService";
 import { getApiKey, getApiUrl } from "../../utils/api";
+import { copyTextToClipboard } from "../../utils/clipboard";
 import {
   Card,
   CardContent,
@@ -164,6 +164,8 @@ interface LiveFeedItem {
   targetPath?: string;
   evidenceLabel?: string;
   evidenceFacts?: string[];
+  evidenceHash?: string;
+  cid?: string;
 }
 
 const buildAuditPath = (activity: {
@@ -468,6 +470,8 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
       targetPath: "/audit",
       evidenceLabel: "Worker thought",
       evidenceFacts: ["Worker telemetry"],
+      evidenceHash: undefined,
+      cid: undefined,
     }));
 
     const activityItems = recentActivity.slice(0, 5).map((activity) => ({
@@ -485,6 +489,8 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
       targetPath: activity.targetPath,
       evidenceLabel: activity.evidenceLabel,
       evidenceFacts: buildEvidenceFacts(activity),
+      evidenceHash: activity.evidenceHash,
+      cid: activity.cid,
     }));
 
     return [...thoughtItems, ...activityItems].slice(0, 10);
@@ -1078,6 +1084,38 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                     >
                       {t.evidenceLabel || "Inspect Trace"}
                     </span>
+                    {t.evidenceHash && (
+                      <span
+                        onClick={() => {
+                          void copyTextToClipboard(t.evidenceHash as string);
+                        }}
+                        style={{
+                          cursor: 'pointer',
+                          color: designTokens.colors.text.secondary,
+                          fontSize: '10px',
+                          textDecoration: 'underline',
+                          fontWeight: 600
+                        }}
+                      >
+                        Copy Hash
+                      </span>
+                    )}
+                    {t.cid && (
+                      <span
+                        onClick={() => {
+                          void copyTextToClipboard(t.cid as string);
+                        }}
+                        style={{
+                          cursor: 'pointer',
+                          color: designTokens.colors.text.secondary,
+                          fontSize: '10px',
+                          textDecoration: 'underline',
+                          fontWeight: 600
+                        }}
+                      >
+                        Copy CID
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -1327,7 +1365,13 @@ const ActivityFeed = ({
                     </div>
                   )}
                   {(activity.targetPath || activity.evidenceLabel) && (
-                    <div css={styles.activityTimeStyles}>
+                    <div
+                      css={css`
+                        display: flex;
+                        gap: ${designTokens.spacing[2]};
+                        flex-wrap: wrap;
+                      `}
+                    >
                       <button
                         css={css`
                           background: none;
@@ -1351,6 +1395,48 @@ const ActivityFeed = ({
                       >
                         {activity.evidenceLabel || "View Evidence"}
                       </button>
+                      {activity.evidenceHash && (
+                        <button
+                          css={css`
+                            background: none;
+                            border: none;
+                            padding: 0;
+                            color: ${designTokens.colors.text.secondary};
+                            cursor: pointer;
+                            font-size: ${designTokens.typography.fontSize.xs};
+
+                            &:hover {
+                              text-decoration: underline;
+                            }
+                          `}
+                          onClick={() => {
+                            void copyTextToClipboard(activity.evidenceHash as string);
+                          }}
+                        >
+                          Copy Hash
+                        </button>
+                      )}
+                      {activity.cid && (
+                        <button
+                          css={css`
+                            background: none;
+                            border: none;
+                            padding: 0;
+                            color: ${designTokens.colors.text.secondary};
+                            cursor: pointer;
+                            font-size: ${designTokens.typography.fontSize.xs};
+
+                            &:hover {
+                              text-decoration: underline;
+                            }
+                          `}
+                          onClick={() => {
+                            void copyTextToClipboard(activity.cid as string);
+                          }}
+                        >
+                          Copy CID
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
