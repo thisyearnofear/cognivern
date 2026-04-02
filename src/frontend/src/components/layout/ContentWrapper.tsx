@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { designTokens } from "../../styles/design-system";
 import { useLayout, Container } from "./ResponsiveLayout";
 import { useTheme } from "../../stores/appStore";
+import { Breadcrumbs } from "../ui";
 
 export interface ContentWrapperProps {
   children: React.ReactNode;
@@ -199,7 +200,11 @@ export const ContentWrapper: React.FC<ContentWrapperProps> = ({
       {(title || subtitle || actions || breadcrumbs) && (
         <div css={headerStyles}>
           <Container maxWidth={maxWidth}>
-            {breadcrumbs && <div css={breadcrumbsStyles}>{breadcrumbs}</div>}
+            {(breadcrumbs || title) && (
+              <div css={breadcrumbsStyles}>
+                {breadcrumbs || <Breadcrumbs />}
+              </div>
+            )}
 
             <div css={headerContentStyles}>
               {(title || subtitle) && (
