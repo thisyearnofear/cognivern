@@ -19,26 +19,60 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   color = designTokens.colors.primary[500],
   type = "spinner",
   text,
+  width,
+  height,
+  lines = 1,
+  variant = "text",
 }) => {
-  const renderSpinner = () => {
+  const renderContent = () => {
+    if (type === "skeleton") {
+      if (variant === "text" && lines > 1) {
+        return (
+          <div style={{ width: width || "100%" }}>
+            {Array.from({ length: lines }).map((_, i) => (
+              <div
+                key={i}
+                css={loadingStyles.skeleton("text", "100%", height)}
+              />
+            ))}
+          </div>
+        );
+      }
+      return <div css={loadingStyles.skeleton(variant, width, height)} />;
+    }
+
     switch (type) {
       case "spinner":
         return <div css={loadingStyles.spinner(size, color)} />;
       case "dots":
-        return <div css={loadingStyles.dots(color)} />;
+        return (
+          <div css={loadingStyles.dots(color)}>
+            <div />
+            <div />
+            <div />
+          </div>
+        );
       case "pulse":
         return <div css={loadingStyles.pulse(color)} />;
       case "bars":
-        return <div css={loadingStyles.bars(color)} />;
+        return (
+          <div css={loadingStyles.bars(color)}>
+            <div />
+            <div />
+            <div />
+          </div>
+        );
       default:
         return null;
     }
   };
 
   return (
-    <div css={loadingStyles.container}>
-      {renderSpinner()}
-      {text && <span css={loadingStyles.text(size)}>{text}</span>}
+    <div css={type === "skeleton" ? undefined : loadingStyles.container}>
+      {renderContent()}
+      {text && type !== "skeleton" && (
+        <span css={loadingStyles.text(size)}>{text}</span>
+      )}
     </div>
   );
 };

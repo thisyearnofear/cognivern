@@ -30,6 +30,7 @@ export { CommandPalette } from "./CommandPalette";
 export { NotificationCenter } from "./NotificationCenter";
 export { PerformanceDashboard } from "./PerformanceDashboard";
 export { LoadingSpinner } from "./LoadingSpinner"; // Consolidated loading components
+export { UserFriendlyError, useErrorTranslation } from "./UserFriendlyError";
 export { PageTransition } from "./PageTransition";
 export { Tooltip } from "./Tooltip";
 export { ErrorBoundary, useErrorBoundary } from "./ErrorBoundary";
