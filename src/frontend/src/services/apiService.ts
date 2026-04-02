@@ -330,6 +330,17 @@ export class AgentApiService extends ApiService {
   async getDashboardBundle() {
     return this.get<any>("/api/dashboard/bundle");
   }
+
+  // Register a new user-owned agent (New Feature)
+  async registerAgent(agent: {
+    type: string;
+    name: string;
+    address: string;
+    description?: string;
+    riskLevel?: string;
+  }) {
+    return this.post("/api/agents/register", agent);
+  }
 }
 
 // MCP-specific API service

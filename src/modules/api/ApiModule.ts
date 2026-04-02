@@ -333,6 +333,10 @@ export class ApiModule extends BaseService {
       this.controllers.get("agents").getAgents(req, res);
     });
 
+    apiRouter.post("/agents/register", (req, res) => {
+      this.controllers.get("agents").registerAgent(req, res);
+    });
+
     // Specific routes must come before parameterized routes
     apiRouter.get("/agents/connections", (req, res) => {
       this.controllers.get("agents").getConnections(req, res);

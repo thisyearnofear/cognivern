@@ -125,6 +125,67 @@ export const loadingStyles = {
     color: ${designTokens.colors.neutral[600]};
     text-align: center;
   `,
+  skeleton: (
+    variant: "text" | "rectangular" | "circular" | "card" = "text",
+    width?: string | number,
+    height?: string | number,
+  ) => css`
+    background-color: ${designTokens.colors.neutral[200]};
+    position: relative;
+    overflow: hidden;
+    width: ${typeof width === "number" ? `${width}px` : width || "100%"};
+    height: ${typeof height === "number" ? `${height}px` : height || "1rem"};
+
+    ${variant === "text" &&
+    css`
+      border-radius: ${designTokens.borderRadius.sm};
+      margin-bottom: ${designTokens.spacing[2]};
+      &:last-child {
+        width: 80%;
+      }
+    `}
+
+    ${variant === "circular" &&
+    css`
+      border-radius: 50%;
+    `}
+
+    ${variant === "rectangular" &&
+    css`
+      border-radius: ${designTokens.borderRadius.md};
+    `}
+
+    ${variant === "card" &&
+    css`
+      border-radius: ${designTokens.borderRadius.lg};
+      height: 200px;
+    `}
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+      );
+      animation: skeleton-shimmer 1.5s infinite;
+    }
+
+    @keyframes skeleton-shimmer {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(100%);
+      }
+    }
+  `,
   pageSkeleton: {
     container: css`
       padding: 2rem;

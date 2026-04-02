@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { css } from "@emotion/react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Menu,
   Sun,
@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ShieldCheck,
   ShieldAlert,
+  Plus,
 } from "lucide-react";
 import { useAppStore, useTheme } from "../../stores/appStore";
 import { agentApi } from "../../services/apiService";
@@ -27,6 +28,7 @@ export const Header: React.FC = () => {
   const { effectiveTheme } = useTheme();
   const { isMobile } = useBreakpoint();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { setIsOpen } = useIntentStore();
   const { toggleSidebar } = useSidebarState();
   const [isSystemOnline, setIsSystemOnline] = useState<boolean | null>(null);
@@ -106,6 +108,33 @@ export const Header: React.FC = () => {
     display: flex;
     align-items: center;
     gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[4]};
+  `;
+
+  const addAgentButtonStyle = css`
+    background: ${designTokens.colorSystem.gradients.primary};
+    border: none;
+    color: white;
+    padding: ${isMobile ? "6px 12px" : "8px 16px"};
+    border-radius: ${designTokens.borderRadius.md};
+    font-size: ${designTokens.typography.fontSize.sm};
+    font-weight: ${designTokens.typography.fontWeight.bold};
+    display: flex;
+    align-items: center;
+    gap: ${designTokens.spacing[2]};
+    transition: ${easings.smooth};
+    cursor: pointer;
+    box-shadow: ${designTokens.shadows.md};
+    white-space: nowrap;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: ${designTokens.shadows.lg};
+      opacity: 0.9;
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
   `;
 
   const statusIndicatorStyles = css`
@@ -229,6 +258,16 @@ export const Header: React.FC = () => {
       </div>
 
       <div css={actionsStyles}>
+        {/* Add Agent Button */}
+        <button
+          css={addAgentButtonStyle}
+          onClick={() => navigate("/agents/connect")}
+          title="Connect a new agent"
+        >
+          <Plus size={18} />
+          {!isMobile && <span>Add Agent</span>}
+        </button>
+
         {/* Command Palette Trigger */}
         {!isMobile && (
           <button

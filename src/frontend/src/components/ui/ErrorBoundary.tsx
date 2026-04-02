@@ -8,9 +8,7 @@
  */
 
 import { Component, ErrorInfo, ReactNode } from "react";
-import { css } from "@emotion/react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
-import { designTokens } from "../../styles/design-system";
+import { UserFriendlyError } from "./UserFriendlyError";
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
@@ -66,99 +64,68 @@ export class ErrorBoundary extends Component<
         return this.props.fallback;
       }
 
-      // Default error UI
+      // Default error UI using UserFriendlyError
       return (
-        <div css={containerStyles}>
-          <div css={iconStyles}>
-            <AlertTriangle size={32} />
-          </div>
-          <h3 css={titleStyles}>Something went wrong</h3>
-          <p css={messageStyles}>
-            {this.props.componentName
+        <UserFriendlyError
+          errorType={this.getErrorType()}
+          title="Something went wrong"
+          message={
+            this.props.componentName
               ? `Error in ${this.props.componentName}`
-              : this.state.error?.message || "An unexpected error occurred"}
-          </p>
-          {this.props.showRetry !== false && (
-            <button css={retryButtonStyles} onClick={this.handleRetry}>
-              <RefreshCw size={16} />
-              Try Again
-            </button>
-          )}
-        </div>
+              : this.state.error?.message || "An unexpected error occurred"
+          }
+          showRetry={this.props.showRetry !== false}
+          onRetry={this.handleRetry}
+          onHome={() => (window.location.href = "/")}
+          onBack={() => window.history.back()}
+        />
       );
     }
 
     return this.props.children;
   }
+
+  private getErrorType() {
+    if (!this.state.error) return "unknown";
+    const errorMessage = this.state.error.message;
+
+    if (
+      errorMessage.includes("network") ||
+      errorMessage.includes("fetch") ||
+      errorMessage.includes("Failed to fetch")
+    ) {
+      return "network";
+    }
+    if (
+      errorMessage.includes("500") ||
+      errorMessage.includes("server") ||
+      errorMessage.includes("Internal Server Error")
+    ) {
+      return "server";
+    }
+    if (errorMessage.includes("timeout") || errorMessage.includes("timed out")) {
+      return "timeout";
+    }
+    if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
+      return "not_found";
+    }
+    if (
+      errorMessage.includes("403") ||
+      errorMessage.includes("Forbidden") ||
+      errorMessage.includes("unauthorized")
+    ) {
+      return "permission";
+    }
+    if (
+      errorMessage.includes("validation") ||
+      errorMessage.includes("invalid") ||
+      errorMessage.includes("400")
+    ) {
+      return "validation";
+    }
+    return "unknown";
+  }
 }
-
-// ===========================================
-// STYLES
-// ===========================================
-
-const containerStyles = css`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: ${designTokens.spacing[8]};
-  min-height: 200px;
-  text-align: center;
-  background: ${designTokens.colors.background.secondary};
-  border-radius: ${designTokens.borderRadius.lg};
-  border: 1px solid ${designTokens.colors.semantic.error[200]};
-`;
-
-const iconStyles = css`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: ${designTokens.colors.semantic.error[100]};
-  color: ${designTokens.colors.semantic.error[500]};
-  margin-bottom: ${designTokens.spacing[4]};
-`;
-
-const titleStyles = css`
-  font-size: 18px;
-  font-weight: 600;
-  color: ${designTokens.colors.text.primary};
-  margin: 0 0 ${designTokens.spacing[2]} 0;
-`;
-
-const messageStyles = css`
-  font-size: 14px;
-  color: ${designTokens.colors.text.secondary};
-  margin: 0 0 ${designTokens.spacing[4]} 0;
-  max-width: 400px;
-`;
-
-const retryButtonStyles = css`
-  display: inline-flex;
-  align-items: center;
-  gap: ${designTokens.spacing[2]};
-  padding: ${designTokens.spacing[2]} ${designTokens.spacing[4]};
-  font-size: 14px;
-  font-weight: 500;
-  color: ${designTokens.colors.primary[600]};
-  background: transparent;
-  border: 1px solid ${designTokens.colors.primary[300]};
-  border-radius: ${designTokens.borderRadius.md};
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: ${designTokens.colors.primary[50]};
-    border-color: ${designTokens.colors.primary[400]};
-  }
-
-  &:focus {
-    outline: 2px solid ${designTokens.colors.primary[500]};
-    outline-offset: 2px;
-  }
-`;
 
 // ===========================================
 // HOOK FOR FUNCTIONAL COMPONENTS

@@ -76,6 +76,66 @@ export class AgentsController {
     }
   }
 
+  async registerAgent(req: Request, res: Response): Promise<void> {
+    try {
+      const { type, name, address, description, riskLevel } = req.body;
+
+      if (!type || !name || !address) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Type, name, and address are required",
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const agent = await this.agentsModule.registerUserAgent({
+        type,
+        name,
+        address,
+        description,
+        riskLevel,
+      });
+
+      // Log registration to audit trail
+      try {
+        await this.auditLogService.logEvent({
+          eventType: "agent_registration",
+          agentType: agent.type,
+          timestamp: new Date(),
+          details: {
+            agentId: agent.id,
+            name: agent.name,
+            address,
+            riskLevel,
+          },
+        });
+      } catch (logError) {
+        console.error("Failed to log agent registration:", logError);
+      }
+
+      res.json({
+        success: true,
+        data: agent,
+        message: "Agent registered successfully",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Agent registration error:", error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: error instanceof Error ? error.message : "Unknown error",
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
   async getConnections(req: Request, res: Response): Promise<void> {
     try {
       // Get agent connections for policy management

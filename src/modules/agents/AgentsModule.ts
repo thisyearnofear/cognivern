@@ -18,6 +18,7 @@ import {
 import { tradingConfig } from "../../shared/config/index.js";
 import { TradingAgent } from "./types/TradingAgent.js";
 import { SapienceTradingAgent } from "./implementations/SapienceTradingAgent.js";
+import { UserTradingAgent } from "./implementations/UserTradingAgent.js";
 import { AgentOrchestrator } from "./services/AgentOrchestrator.js";
 import { TradingService } from "./services/TradingService.js";
 import { GovernanceService } from "./services/GovernanceService.js";
@@ -275,6 +276,35 @@ export class AgentsModule extends BaseService {
    */
   getOrchestratorMetrics(): any {
     return this.orchestrator ? this.orchestrator.getMetrics() : null;
+  }
+
+  /**
+   * Register a new user-owned agent
+   */
+  async registerUserAgent(params: {
+    type: string;
+    name: string;
+    address: string;
+    description?: string;
+    riskLevel?: string;
+  }): Promise<Agent> {
+    const id = `user-agent-${Date.now()}`;
+    const agent = new UserTradingAgent({
+      id,
+      name: params.name,
+      type: params.type,
+      address: params.address,
+      description: params.description,
+      riskLevel: params.riskLevel,
+    });
+
+    await agent.initialize();
+    await agent.start();
+
+    this.agents.set(id, agent);
+    this.logger.info(`User agent ${id} registered and started`);
+
+    return agent.getInfo();
   }
 
   /**
