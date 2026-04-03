@@ -3,6 +3,10 @@ import {
   CreRunPersistence,
   JsonlCreRunPersistence,
 } from "../persistence/CreRunPersistence.js";
+import {
+  RecallCreRunPersistence,
+  MultiCreRunPersistence,
+} from "../persistence/RecallCreRunPersistence.js";
 
 export class CreRunStore {
   private runs: CreRun[] = [];
@@ -14,7 +18,12 @@ export class CreRunStore {
     params: { maxRuns?: number; persistence?: CreRunPersistence } = {},
   ) {
     this.maxRuns = params.maxRuns ?? 100;
-    this.persistence = params.persistence ?? new JsonlCreRunPersistence();
+
+    // Default to multi-layer persistence: [Local JSONL (hot), Recall (permanent)]
+    this.persistence = params.persistence || new MultiCreRunPersistence([
+      new JsonlCreRunPersistence(),
+      new RecallCreRunPersistence()
+    ]);
   }
 
   async ensureLoaded() {
@@ -58,8 +67,6 @@ export class CreRunStore {
   }
 
   async clear() {
-    // Keep local-first simple: clearing only clears memory, not the JSONL file.
-    // We can add a destructive wipe endpoint later if needed.
     this.runs = [];
     this.loaded = true;
   }
