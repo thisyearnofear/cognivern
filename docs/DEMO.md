@@ -34,6 +34,7 @@ Minimum environment:
 ```bash
 export API_KEY=development-api-key
 export COGNIVERN_PROJECTS="default:Default Project"
+export OWS_VAULT_SECRET=development-ows-vault-secret
 ```
 
 If your local config validation requires additional variables, set the compatibility values already documented in [README.md](../README.md).
