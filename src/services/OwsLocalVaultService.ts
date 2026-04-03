@@ -142,6 +142,12 @@ export class OwsLocalVaultService {
     let privateKey = params.privateKey.startsWith(hexPrefix)
       ? params.privateKey
       : hexPrefix + params.privateKey;
+    console.log(
+      "[OWS] importWallet: key length =",
+      privateKey.length,
+      ", starts with 0x =",
+      privateKey.startsWith(hexPrefix),
+    );
     if (privateKey.length !== 66 || !privateKey.startsWith(hexPrefix)) {
       throw new Error(
         "Invalid private key format: must be 32 bytes (66 chars with 0x prefix)",
