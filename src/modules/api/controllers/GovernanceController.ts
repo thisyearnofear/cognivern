@@ -3,11 +3,12 @@
  */
 
 import { Request, Response } from "express";
-import { PolicyService } from "../../../services/PolicyService.js";
+import { PolicyService, sharedPolicyService } from "../../../services/PolicyService.js";
 import { getWorkerClient } from "../../../services/CloudflareWorkerClient.js";
 import { PolicyEnforcementService } from "../../../services/PolicyEnforcementService.js";
 import { AuditLogService } from "../../../services/AuditLogService.js";
 import type { AgentAction } from "../../../types/Agent.js";
+import crypto from "node:crypto";
 
 export class GovernanceController {
   private policyService: PolicyService;
@@ -20,7 +21,7 @@ export class GovernanceController {
     auditLogService?: AuditLogService,
     policyEnforcementService?: PolicyEnforcementService,
   ) {
-    this.policyService = policyService || new PolicyService();
+    this.policyService = policyService || sharedPolicyService;
     this.auditLogService = auditLogService || new AuditLogService();
     this.policyEnforcementService =
       policyEnforcementService ||

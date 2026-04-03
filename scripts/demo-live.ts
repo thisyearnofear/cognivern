@@ -13,7 +13,6 @@ const baseUrl = (process.env.COGNIVERN_URL || "http://localhost:3000").replace(
 );
 const apiKey = process.env.COGNIVERN_API_KEY || "development-api-key";
 const projectId = process.env.COGNIVERN_PROJECT_ID || "default";
-const ingestKey = process.env.COGNIVERN_INGEST_KEY || "dev-ingest-key";
 
 async function request<T = any>(
   path: string,
@@ -47,8 +46,26 @@ async function request<T = any>(
   return body as T;
 }
 
-function isoNow(offsetMs = 0) {
-  return new Date(Date.now() + offsetMs).toISOString();
+async function bootstrapVault() {
+  return request<ApiEnvelope<any>>("/api/ows/bootstrap", {
+    method: "POST",
+  });
+}
+
+async function listWallets() {
+  return request<ApiEnvelope<any>>("/api/ows/wallets");
+}
+
+async function createOwsApiKey(payload: {
+  name: string;
+  walletIds: string[];
+  policyIds: string[];
+  metadata?: Record<string, unknown>;
+}) {
+  return request<ApiEnvelope<any>>("/api/ows/api-keys", {
+    method: "POST",
+    json: payload,
+  });
 }
 
 async function ensureSpendPolicy() {
@@ -56,14 +73,24 @@ async function ensureSpendPolicy() {
   const payload = {
     name: policyName,
     description:
-      "Live demo policy for governed spend: low-value allow, high-value deny, vendor restriction.",
+      "Live demo policy for governed spend: low-value allow, mid-range hold, high-value deny, vendor restriction.",
     rules: [
       {
         id: `rule-amount-${crypto.randomUUID()}`,
         type: "deny",
-        condition: "action.metadata.amountUsd > 50",
-        action: { type: "block", parameters: { reason: "Amount exceeds $50" } },
+        condition: "Number(action.metadata.amountUsd || 0) > 100",
+        action: { type: "block", parameters: { reason: "Amount exceeds $100" } },
         metadata: { reason: "Amount exceeds live demo limit" },
+      },
+      {
+        id: `rule-review-${crypto.randomUUID()}`,
+        type: "require",
+        condition: "Number(action.metadata.amountUsd || 0) <= 25",
+        action: {
+          type: "escalate",
+          parameters: { reason: "Amounts above $25 require approval" },
+        },
+        metadata: { reason: "Amounts above $25 require approval" },
       },
       {
         id: `rule-vendor-${crypto.randomUUID()}`,
@@ -93,25 +120,16 @@ async function ensureSpendPolicy() {
   return response.data;
 }
 
-async function evaluateAction(policyId: string, action: Record<string, unknown>) {
-  return request<ApiEnvelope<any>>("/api/governance/evaluate", {
-    method: "POST",
-    json: {
-      agentId: "procurement-agent-1",
-      policyId,
-      action,
-    },
-  });
-}
-
-async function ingestRun(run: Record<string, unknown>) {
-  return request<ApiEnvelope<any>>("/ingest/runs", {
+async function requestSpend(
+  spend: Record<string, unknown>,
+  owsApiKey: string,
+) {
+  return request<ApiEnvelope<any>>("/api/spend", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${ingestKey}`,
-      "X-PROJECT-ID": projectId,
+      "X-OWS-API-KEY": owsApiKey,
     },
-    json: run,
+    json: spend,
   });
 }
 
@@ -119,161 +137,81 @@ async function main() {
   console.log(`Using Cognivern at ${baseUrl}`);
   console.log(`Project: ${projectId}`);
 
+  const bootstrap = await bootstrapVault();
+  console.log(`Vault bootstrap: ${bootstrap.success ? "ready" : "failed"}`);
+
+  const wallets = await listWallets();
+  const walletId = wallets.data?.[0]?.id;
+  if (!walletId) {
+    throw new Error("No OWS wallet is available after bootstrap");
+  }
+
   const policy = await ensureSpendPolicy();
   console.log(`Created live demo policy: ${policy.id}`);
 
-  const approved = await evaluateAction(policy.id, {
-    id: crypto.randomUUID(),
-    type: "spend_request",
-    description: "Send campaign email batch through approved vendor",
+  const scopedKey = await createOwsApiKey({
+    name: `Procurement Agent ${new Date().toISOString()}`,
+    walletIds: [walletId],
+    policyIds: [policy.id],
     metadata: {
+      agentId: "procurement-agent-1",
+      demo: "ows-hackathon-live",
+    },
+  });
+  const owsApiKey = scopedKey.data?.token;
+  if (!owsApiKey) {
+    throw new Error("OWS API key creation did not return a token");
+  }
+
+  const status = await request<ApiEnvelope<any>>("/api/spend/status");
+
+  const approved = await requestSpend({
+    agentId: "procurement-agent-1",
+    recipient: "0x1111111111111111111111111111111111111111",
+    amount: "12",
+    asset: "USDC",
+    reason: "Send campaign email batch through approved vendor",
+    metadata: {
+      policyId: policy.id,
+      walletId,
       amountUsd: 12,
       vendor: "stable-email",
       chain: "base",
       purpose: "newsletter_send",
     },
-  });
+  }, owsApiKey);
 
-  const denied = await evaluateAction(policy.id, {
-    id: crypto.randomUUID(),
-    type: "spend_request",
-    description: "Large supplier payment above budget threshold",
+  const held = await requestSpend({
+    agentId: "procurement-agent-1",
+    recipient: "0x2222222222222222222222222222222222222222",
+    amount: "55",
+    asset: "USDC",
+    reason: "Mid-sized supplier payment requiring operator review",
     metadata: {
+      policyId: policy.id,
+      walletId,
+      amountUsd: 55,
+      vendor: "stable-email",
+      chain: "base",
+      purpose: "supplier_review",
+    },
+  }, owsApiKey);
+
+  const denied = await requestSpend({
+    agentId: "procurement-agent-1",
+    recipient: "0x3333333333333333333333333333333333333333",
+    amount: "125",
+    asset: "USDC",
+    reason: "Large supplier payment above budget threshold",
+    metadata: {
+      policyId: policy.id,
+      walletId,
       amountUsd: 125,
       vendor: "stable-email",
       chain: "base",
       purpose: "supplier_payment",
     },
-  });
-
-  const pausedRunId = crypto.randomUUID();
-  await ingestRun({
-    runId: pausedRunId,
-    projectId,
-    workflow: "spend",
-    mode: "local",
-    startedAt: isoNow(-15_000),
-    ok: false,
-    status: "paused_for_approval",
-    requiresApproval: true,
-    approvalState: "pending",
-    currentStepName: "request_approval",
-    controls: {
-      canCancel: true,
-      canRetry: false,
-      canApprove: true,
-    },
-    provenance: {
-      source: "ingested",
-      workflowVersion: "spend-demo-v1",
-      model: "procurement-agent-1",
-      citations: [{ label: "demo", value: "live" }],
-    },
-    plan: {
-      version: 1,
-      updatedAt: isoNow(-10_000),
-      summary: "Request approval for high-value supplier payment.",
-      steps: [
-        {
-          id: "plan-1",
-          title: "Prepare spend request",
-          enabled: true,
-          status: "approved",
-        },
-        {
-          id: "plan-2",
-          title: "Pause for approval",
-          enabled: true,
-          status: "pending",
-        },
-      ],
-    },
-    steps: [
-      {
-        kind: "compute",
-        name: "assemble_spend_intent",
-        startedAt: isoNow(-14_000),
-        finishedAt: isoNow(-13_500),
-        ok: true,
-        summary: "Prepared supplier payment request",
-      },
-      {
-        kind: "http",
-        name: "request_approval",
-        startedAt: isoNow(-13_000),
-        ok: false,
-        summary: "High-value spend paused for operator approval",
-      },
-    ],
-    artifacts: [
-      {
-        id: crypto.randomUUID(),
-        type: "spend_intent",
-        createdAt: isoNow(-13_500),
-        data: {
-          amountUsd: 125,
-          vendor: "stable-email",
-          chain: "base",
-          reason: "supplier_payment",
-        },
-      },
-    ],
-  });
-
-  const completedRunId = crypto.randomUUID();
-  await ingestRun({
-    runId: completedRunId,
-    projectId,
-    workflow: "spend",
-    mode: "local",
-    startedAt: isoNow(-8_000),
-    finishedAt: isoNow(-2_000),
-    ok: true,
-    status: "completed",
-    approvalState: "not_required",
-    controls: {
-      canCancel: false,
-      canRetry: true,
-      canApprove: false,
-    },
-    provenance: {
-      source: "ingested",
-      workflowVersion: "spend-demo-v1",
-      model: "research-agent-1",
-      citations: [{ label: "demo", value: "live" }],
-    },
-    steps: [
-      {
-        kind: "compute",
-        name: "evaluate_vendor_quote",
-        startedAt: isoNow(-8_000),
-        finishedAt: isoNow(-6_500),
-        ok: true,
-        summary: "Validated low-cost vendor request",
-      },
-      {
-        kind: "http",
-        name: "complete_paid_action",
-        startedAt: isoNow(-6_000),
-        finishedAt: isoNow(-2_000),
-        ok: true,
-        summary: "Completed low-cost spend within policy",
-      },
-    ],
-    artifacts: [
-      {
-        id: crypto.randomUUID(),
-        type: "spend_intent",
-        createdAt: isoNow(-6_500),
-        data: {
-          amountUsd: 12,
-          vendor: "stable-email",
-          chain: "base",
-          reason: "newsletter_send",
-        },
-      },
-    ],
-  });
+  }, owsApiKey);
 
   const auditLogs = await request<ApiEnvelope<{ logs?: unknown[] }>>("/api/audit/logs");
   const runs = await request<ApiEnvelope<{ runs?: unknown[] }>>(
@@ -282,19 +220,17 @@ async function main() {
 
   console.log("");
   console.log("Live demo scenario complete.");
+  console.log(`OWS wallet: ${walletId}`);
+  console.log(`Scoped API key: ${scopedKey.data?.apiKey?.id ?? "unknown"}`);
   console.log(`Policy ID: ${policy.id}`);
-  console.log(
-    `Approved action: ${approved.data?.approved ? "approved" : "unexpected result"}`,
-  );
-  console.log(
-    `Denied action: ${denied.data?.approved ? "unexpected result" : "denied"}`,
-  );
-  console.log(`Paused approval run: ${pausedRunId}`);
-  console.log(`Completed run: ${completedRunId}`);
+  console.log(`Execution layer: ${status.data?.status}`);
+  console.log(`Approved spend: ${approved.data?.status} (${approved.data?.runId ?? "no run"})`);
+  console.log(`Held spend: ${held.data?.status} (${held.data?.runId ?? "no run"})`);
+  console.log(`Denied spend: ${denied.data?.status} (${denied.data?.runId ?? "no run"})`);
   console.log(
     `Audit log count: ${auditLogs.data?.logs?.length ?? "unknown"}`,
   );
-  console.log(`Run count: ${runs.runs?.length ?? "unknown"}`);
+  console.log(`Run count: ${runs.data?.runs?.length ?? runs.runs?.length ?? "unknown"}`);
   console.log("");
   console.log("Open these screens for the demo:");
   console.log(`- ${baseUrl}/audit`);

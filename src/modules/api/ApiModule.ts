@@ -31,6 +31,7 @@ import { AuditLogService } from "../../services/AuditLogService.js";
 import { CreController } from "./controllers/CreController.js";
 import { IngestController } from "./controllers/IngestController.js";
 import { SpendController } from "./controllers/SpendController.js";
+import { OwsController } from "./controllers/OwsController.js";
 
 export class ApiModule extends BaseService {
   private app: express.Application;
@@ -260,8 +261,8 @@ export class ApiModule extends BaseService {
     }
 
     // Initialize shared services for controllers (CONSOLIDATION & DRY)
-    const { PolicyService } = await import("../../services/PolicyService.js");
-    const policyService = new PolicyService();
+    const { sharedPolicyService } = await import("../../services/PolicyService.js");
+    const policyService = sharedPolicyService;
 
     // Initialize controllers with dependency injection
     this.controllers.set("health", new HealthController(agentsModule));
@@ -285,6 +286,7 @@ export class ApiModule extends BaseService {
     this.controllers.set("cre", new CreController());
     this.controllers.set("ingest", new IngestController());
     this.controllers.set("spend", new SpendController());
+    this.controllers.set("ows", new OwsController());
 
     // Initialize all controllers
     for (const [name, controller] of this.controllers) {
@@ -534,6 +536,30 @@ export class ApiModule extends BaseService {
 
     apiRouter.get("/spend/status", (req, res) => {
       this.controllers.get("spend").getStatus(req, res);
+    });
+
+    apiRouter.get("/ows/status", (req, res) => {
+      this.controllers.get("ows").getStatus(req, res);
+    });
+
+    apiRouter.post("/ows/bootstrap", (req, res) => {
+      this.controllers.get("ows").bootstrap(req, res);
+    });
+
+    apiRouter.get("/ows/wallets", (req, res) => {
+      this.controllers.get("ows").listWallets(req, res);
+    });
+
+    apiRouter.post("/ows/wallets/import", (req, res) => {
+      this.controllers.get("ows").importWallet(req, res);
+    });
+
+    apiRouter.get("/ows/api-keys", (req, res) => {
+      this.controllers.get("ows").listApiKeys(req, res);
+    });
+
+    apiRouter.post("/ows/api-keys", (req, res) => {
+      this.controllers.get("ows").createApiKey(req, res);
     });
 
     // Projects (multi-project support)

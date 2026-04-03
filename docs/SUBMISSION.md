@@ -47,9 +47,11 @@ It evaluates proposed agent actions, records audit evidence, and gives operators
 
 ## What Is Live Today
 
-- live governance evaluation via `/api/governance/evaluate`
+- live OWS wallet bootstrap into encrypted local storage via `/api/ows/bootstrap`
+- live delegated OWS API-key issuance via `/api/ows/api-keys`
 - live policy creation via `/api/governance/policies`
-- live BYO-agent ingestion via `/ingest/runs`
+- live governed spend execution via `/api/spend`
+- live execution-layer status via `/api/spend/status`
 - live audit views via `/api/audit/logs`
 - live run-ledger views via `/api/cre/runs`
 
@@ -58,10 +60,12 @@ It evaluates proposed agent actions, records audit evidence, and gives operators
 Our live demo shows:
 
 1. a custom spend policy created in real time
-2. one allowed spend request
-3. one denied spend request
-4. one paused-for-approval run
-5. one completed run
+2. a local OWS wallet bootstrapped into encrypted storage
+3. a scoped OWS API key issued to one agent
+4. one allowed spend request
+5. one held-for-approval spend request
+6. one denied spend request
+7. the resulting approved and held runs in the ledger
 
 ## Why This Matters
 
@@ -75,15 +79,3 @@ That means:
 - better oversight
 - faster incident response
 - clearer trust boundaries for autonomous systems
-
-## Current Limitation
-
-The OWS-native wallet execution path is still being wired in.
-
-Today, the strongest live proof is the control plane:
-
-- policy decisions
-- run ledger
-- audit evidence
-
-The final wallet-layer integration is the remaining Part A workstream.

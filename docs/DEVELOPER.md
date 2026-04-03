@@ -12,8 +12,10 @@ The codebase already supports:
 - local policy evaluation
 - audit-log and run-ledger persistence
 - project-scoped access and usage tracking
+- local encrypted OWS wallet storage
+- delegated OWS API-key issuance for agent-scoped access
 
-The main wallet gap is that OWS wallet integration is not yet wired in. Some legacy signer flows still rely on env vars and should be treated as temporary compatibility paths.
+The spend path now uses a local OWS-style vault and delegated API keys. Legacy env private keys remain only as an optional bootstrap source for seeding the first local wallet.
 
 ## Local Setup
 
@@ -191,7 +193,7 @@ That means the next meaningful integration surface should look like:
 
 ### Accurate current limitations
 
-- OWS wallet storage and OWS API-key issuance are not yet implemented in this repo
+- OWS wallet storage and OWS API-key issuance are implemented in the local vault service and exposed through `/api/ows/*`
 - some attestation flows still use signer keys from environment variables
 - several frontend surfaces still reference older agent ecosystems and integrations
 

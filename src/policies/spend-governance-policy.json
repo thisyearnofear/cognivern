@@ -1,0 +1,78 @@
+{
+  "id": "spend-governance-policy",
+  "name": "OWS Spend Governance Policy",
+  "description": "Default spend policy for governed agent wallet execution with automatic approvals, review holds, and explicit denials.",
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-04-03T00:00:00Z",
+  "updatedAt": "2026-04-03T00:00:00Z",
+  "metadata": {
+    "category": "spend",
+    "riskLevel": "medium",
+    "executionLayer": "ows",
+    "owner": "Cognivern"
+  },
+  "rules": [
+    {
+      "id": "deny-over-hard-limit",
+      "type": "DENY",
+      "condition": "Number(action.metadata.amountUsd || action.metadata.amountValue || 0) > 500",
+      "action": {
+        "type": "block",
+        "parameters": {
+          "reason": "Spend exceeds the hard cap"
+        }
+      },
+      "metadata": {
+        "severity": "high",
+        "category": "budget"
+      }
+    },
+    {
+      "id": "deny-unapproved-vendor",
+      "type": "DENY",
+      "condition": "action.metadata.vendor && !['stable-email', 'stable-merch', 'approved-supplier'].includes(String(action.metadata.vendor))",
+      "action": {
+        "type": "block",
+        "parameters": {
+          "reason": "Vendor is not on the allowlist"
+        }
+      },
+      "metadata": {
+        "severity": "high",
+        "category": "allowlist"
+      }
+    },
+    {
+      "id": "require-human-review-for-mid-range-spend",
+      "type": "REQUIRE",
+      "condition": "Number(action.metadata.amountUsd || action.metadata.amountValue || 0) <= 100",
+      "action": {
+        "type": "escalate",
+        "parameters": {
+          "reason": "Spends above $100 require human review"
+        }
+      },
+      "metadata": {
+        "severity": "medium",
+        "category": "oversight",
+        "reviewRequiredAboveUsd": 100
+      }
+    },
+    {
+      "id": "require-reason",
+      "type": "REQUIRE",
+      "condition": "Boolean(String(action.description || '').trim())",
+      "action": {
+        "type": "log",
+        "parameters": {
+          "reason": "Every spend needs a stated purpose"
+        }
+      },
+      "metadata": {
+        "severity": "low",
+        "category": "transparency"
+      }
+    }
+  ]
+}

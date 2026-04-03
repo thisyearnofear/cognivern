@@ -70,52 +70,54 @@ export class PolicyService {
   }
 
   private initializeBundledPolicies() {
-    const bundledPolicyPath = path.join(
-      process.cwd(),
-      "src",
-      "policies",
-      "trading-competition-policy.json",
-    );
-
+    const bundledPolicyDir = path.join(process.cwd(), "src", "policies");
     try {
-      const raw = fs.readFileSync(bundledPolicyPath, "utf8");
-      const bundled = JSON.parse(raw) as Policy & {
-        rules?: Array<PolicyRule & { action?: unknown }>;
-      };
+      const filenames = fs
+        .readdirSync(bundledPolicyDir)
+        .filter((filename) => filename.endsWith(".json"))
+        .sort();
 
-      if (!bundled?.id || this.policies.has(bundled.id)) {
-        return;
-      }
+      for (const filename of filenames) {
+        const bundledPolicyPath = path.join(bundledPolicyDir, filename);
+        const raw = fs.readFileSync(bundledPolicyPath, "utf8");
+        const bundled = JSON.parse(raw) as Policy & {
+          rules?: Array<PolicyRule & { action?: unknown }>;
+        };
 
-      const rules = (bundled.rules || []).map((rule) => ({
-        ...rule,
-        type: String(rule.type).toLowerCase() as PolicyRule["type"],
-        action:
-          rule.action && typeof rule.action === "object"
-            ? rule.action
-            : {
-                type: "log" as const,
-                parameters: {
-                  effect: rule.action || "none",
+        if (!bundled?.id || this.policies.has(bundled.id)) {
+          continue;
+        }
+
+        const rules = (bundled.rules || []).map((rule) => ({
+          ...rule,
+          type: String(rule.type).toLowerCase() as PolicyRule["type"],
+          action:
+            rule.action && typeof rule.action === "object"
+              ? rule.action
+              : {
+                  type: "log" as const,
+                  parameters: {
+                    effect: rule.action || "none",
+                  },
                 },
-              },
-        metadata: rule.metadata || {},
-      }));
+          metadata: rule.metadata || {},
+        }));
 
-      const policy: Policy = {
-        id: bundled.id,
-        name: bundled.name,
-        description: bundled.description,
-        version: bundled.version || "1.0.0",
-        rules,
-        createdAt: bundled.createdAt || new Date().toISOString(),
-        updatedAt: bundled.updatedAt || new Date().toISOString(),
-        metadata: bundled.metadata || {},
-        status: bundled.status || "active",
-      };
+        const policy: Policy = {
+          id: bundled.id,
+          name: bundled.name,
+          description: bundled.description,
+          version: bundled.version || "1.0.0",
+          rules,
+          createdAt: bundled.createdAt || new Date().toISOString(),
+          updatedAt: bundled.updatedAt || new Date().toISOString(),
+          metadata: bundled.metadata || {},
+          status: bundled.status || "active",
+        };
 
-      this.policies.set(policy.id, policy);
-      logger.info(`Loaded bundled policy: ${policy.id}`);
+        this.policies.set(policy.id, policy);
+        logger.info(`Loaded bundled policy: ${policy.id}`);
+      }
     } catch (error) {
       logger.warn("Failed to load bundled policies", {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -123,3 +125,5 @@ export class PolicyService {
     }
   }
 }
+
+export const sharedPolicyService = new PolicyService();
