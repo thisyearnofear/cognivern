@@ -136,10 +136,22 @@ export class OwsLocalVaultService {
     metadata?: Record<string, unknown>;
   }): Promise<OwsWalletDescriptor> {
     const vault = this.readVault();
-    const wallet = new ethers.Wallet(params.privateKey);
+
+    // Validate private key format before creating wallet
+    const hexPrefix = "0x";
+    let privateKey = params.privateKey.startsWith(hexPrefix)
+      ? params.privateKey
+      : hexPrefix + params.privateKey;
+    if (privateKey.length !== 66 || !privateKey.startsWith(hexPrefix)) {
+      throw new Error(
+        "Invalid private key format: must be 32 bytes (66 chars with 0x prefix)",
+      );
+    }
+
+    const wallet = new ethers.Wallet(privateKey);
     const chainId = params.chainId || "eip155:314159";
     const walletId = crypto.randomUUID();
-    const encrypted = this.encryptPrivateKey(params.privateKey);
+    const encrypted = this.encryptPrivateKey(privateKey);
 
     const storedWallet: OwsStoredWallet = {
       id: walletId,
