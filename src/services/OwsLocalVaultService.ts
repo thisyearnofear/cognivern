@@ -111,6 +111,14 @@ export class OwsLocalVaultService {
 
     const bootstrapPrivateKey =
       process.env.OWS_BOOTSTRAP_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY;
+    console.log(
+      "[OWS] ensureBootstrapWallet: OWS_BOOTSTRAP_PRIVATE_KEY =",
+      !!process.env.OWS_BOOTSTRAP_PRIVATE_KEY,
+      ", FILECOIN_PRIVATE_KEY =",
+      !!process.env.FILECOIN_PRIVATE_KEY,
+      ", value =",
+      process.env.FILECOIN_PRIVATE_KEY?.substring(0, 10) + "...",
+    );
     if (!bootstrapPrivateKey) {
       return null;
     }
