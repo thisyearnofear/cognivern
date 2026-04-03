@@ -41,21 +41,38 @@ export class OwsController {
   }
 
   async bootstrap(req: Request, res: Response) {
-    const wallet = await owsLocalVaultService.ensureBootstrapWallet();
-    if (!wallet) {
-      res.status(400).json({
-        success: false,
-        error: "No bootstrap wallet source available",
+    try {
+      console.log("[OWS] bootstrap: starting...");
+      const wallet = await owsLocalVaultService.ensureBootstrapWallet();
+      console.log(
+        "[OWS] bootstrap: ensureBootstrapWallet returned",
+        wallet ? wallet.id : null,
+      );
+
+      if (!wallet) {
+        console.log("[OWS] bootstrap: no wallet, returning 400");
+        res.status(400).json({
+          success: false,
+          error: "No bootstrap wallet source available",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      console.log("[OWS] bootstrap: returning success");
+      res.json({
+        success: true,
+        data: wallet,
         timestamp: new Date().toISOString(),
       });
-      return;
+    } catch (error) {
+      console.log("[OWS] bootstrap: error:", error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Bootstrap failed",
+        timestamp: new Date().toISOString(),
+      });
     }
-
-    res.json({
-      success: true,
-      data: wallet,
-      timestamp: new Date().toISOString(),
-    });
   }
 
   async listWallets(req: Request, res: Response) {
