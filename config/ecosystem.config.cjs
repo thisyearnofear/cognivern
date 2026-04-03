@@ -1,8 +1,8 @@
 module.exports = {
   apps: [
     {
-      name: 'cognivern-api',
-      script: 'dist/api-server.js',
+      name: 'cognivern',
+      script: 'dist/index.js',
       cwd: '/opt/cognivern',
       instances: 1,
       exec_mode: 'fork',
@@ -11,37 +11,15 @@ module.exports = {
       max_memory_restart: '512M',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000,
-        LOG_LEVEL: 'info',
-        AGENTS_ENABLED: 'false',
+        PORT: 10000,
+        LOG_LEVEL: 'info'
       },
-      log_file: './logs/api-combined.log',
-      out_file: './logs/api-out.log',
-      error_file: './logs/api-error.log',
+      log_file: './logs/combined.log',
+      out_file: './logs/out.log',
+      error_file: './logs/error.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       time: true,
-    },
-    {
-      name: 'cognivern-agents',
-      script: 'dist/agents-service.js',
-      cwd: '/opt/cognivern',
-      instances: 1,
-      exec_mode: 'fork',
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '1G',
-      env: {
-        NODE_ENV: 'production',
-        LOG_LEVEL: 'info',
-        AGENTS_ENABLED: 'true',
-      },
-      log_file: './logs/agents-combined.log',
-      out_file: './logs/agents-out.log',
-      error_file: './logs/agents-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      merge_logs: true,
-      time: true,
-    },
+    }
   ],
 };
