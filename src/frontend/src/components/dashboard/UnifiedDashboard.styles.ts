@@ -1,8 +1,8 @@
 import { css } from "@emotion/react";
-import { designTokens, easings } from "../../styles/design-system";
+import { designTokens } from "../../styles/design-system";
 
 export const containerStyles = (isMobile: boolean) => css`
-  padding: ${isMobile ? designTokens.spacing[3] : designTokens.spacing[8]};
+  padding: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[8]};
   padding-bottom: ${isMobile
     ? "calc(72px + env(safe-area-inset-bottom))"
     : designTokens.spacing[8]};
@@ -11,6 +11,7 @@ export const containerStyles = (isMobile: boolean) => css`
   position: relative;
   overflow-y: auto;
   height: 100%;
+  background: ${designTokens.colors.secondary[50]};
 
   @keyframes slideIn {
     from {
@@ -25,14 +26,15 @@ export const containerStyles = (isMobile: boolean) => css`
 `;
 
 export const statsHeaderStyles = css`
-  margin-bottom: ${designTokens.spacing[8]};
+  margin-bottom: ${designTokens.spacing[4]};
 `;
 
 export const titleStyles = css`
-  font-size: ${designTokens.typography.fontSize["3xl"]};
+  font-size: ${designTokens.typography.fontSize["2xl"]};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: var(--section-title, ${designTokens.colors.text.primary});
   margin-bottom: ${designTokens.spacing[2]};
+  letter-spacing: -0.025em;
 `;
 
 export const statsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
@@ -42,13 +44,16 @@ export const statsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
     : isTablet
       ? "repeat(2, 1fr)"
       : "repeat(4, 1fr)"};
-  gap: ${isMobile ? designTokens.spacing[3] : designTokens.spacing[6]};
+  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[6]};
+  margin-bottom: ${isMobile
+    ? designTokens.spacing[4]
+    : designTokens.spacing[8]};
 `;
 
 export const mainGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   display: grid;
   grid-template-columns: ${isMobile ? "1fr" : isTablet ? "1fr" : "3fr 2fr"};
-  gap: ${isMobile ? designTokens.spacing[4] : designTokens.spacing[8]};
+  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[8]};
   align-items: start;
 `;
 
@@ -59,12 +64,14 @@ export const chartsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
     : isTablet
       ? "1fr"
       : "repeat(2, 1fr)"};
-  gap: ${designTokens.spacing[6]};
-  margin-bottom: ${designTokens.spacing[8]};
+  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[6]};
+  margin-bottom: ${isMobile
+    ? designTokens.spacing[4]
+    : designTokens.spacing[8]};
 `;
 
 export const sectionStyles = css`
-  margin-bottom: ${designTokens.spacing[8]};
+  margin-bottom: ${designTokens.spacing[4]};
 `;
 
 export const sectionHeaderStyles = css`
@@ -75,7 +82,7 @@ export const sectionHeaderStyles = css`
 `;
 
 export const sectionTitleStyles = css`
-  font-size: ${designTokens.typography.fontSize.xl};
+  font-size: ${designTokens.typography.fontSize.lg};
   font-weight: ${designTokens.typography.fontWeight.semibold};
   color: var(--section-title, ${designTokens.colors.text.primary});
 `;
@@ -83,7 +90,7 @@ export const sectionTitleStyles = css`
 export const agentGridStyles = (columns: number) => css`
   display: grid;
   grid-template-columns: repeat(${columns}, 1fr);
-  gap: ${designTokens.spacing[6]};
+  gap: ${designTokens.spacing[3]};
 `;
 
 export const carouselStyles = css`
@@ -104,22 +111,24 @@ export const carouselStyles = css`
   }
 `;
 
-export const activityFeedStyles = (compact?: boolean) => css`
+export const activityFeedStyles = (_compact?: boolean) => css`
   display: flex;
   flex-direction: column;
-  gap: ${designTokens.spacing[4]};
-  padding: ${compact ? designTokens.spacing[2] : designTokens.spacing[4]};
+  gap: ${designTokens.spacing[2]};
+  padding: ${designTokens.spacing[2]};
+  max-height: 300px;
+  overflow-y: auto;
 `;
 
 export const activityItemStyles = css`
   display: flex;
-  gap: ${designTokens.spacing[4]};
-  padding-bottom: ${designTokens.spacing[4]};
+  align-items: flex-start;
+  gap: ${designTokens.spacing[3]};
+  padding: ${designTokens.spacing[2]} 0;
   border-bottom: 1px solid var(--divider, ${designTokens.colors.border.primary});
 
   &:last-child {
     border-bottom: none;
-    padding-bottom: 0;
   }
 `;
 
