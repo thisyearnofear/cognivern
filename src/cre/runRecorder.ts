@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { ethers } from "ethers";
 import {
   CreArtifact,
   CreRun,
@@ -13,8 +14,14 @@ function nowIso() {
 
 export class CreRunRecorder {
   private run: CreRun;
+  private signer?: ethers.Signer;
 
-  constructor(params: { workflow: CreRun["workflow"]; mode: CreRun["mode"] }) {
+  constructor(params: {
+    workflow: CreRun["workflow"];
+    mode: CreRun["mode"];
+    signer?: ethers.Signer;
+  }) {
+    this.signer = params.signer;
     this.run = {
       runId: crypto.randomUUID(),
       workflow: params.workflow,
@@ -40,6 +47,19 @@ export class CreRunRecorder {
       workflow: params.workflow,
       mode: params.mode,
     });
+  }
+
+  private computeHash(data: unknown): string {
+    const json = JSON.stringify(data);
+    return ethers.keccak256(ethers.toUtf8Bytes(json));
+  }
+
+  private async signEvidence(data: unknown) {
+    if (!this.signer) return undefined;
+    const hash = this.computeHash(data);
+    const signature = await this.signer.signMessage(hash);
+    const signerAddress = await this.signer.getAddress();
+    return { hash, signature, signer: signerAddress };
   }
 
   private pushEvent(
@@ -93,17 +113,31 @@ export class CreRunRecorder {
     };
   }
 
-  addArtifact(artifact: Omit<CreArtifact, "id" | "createdAt">): CreArtifact {
+  async addArtifact(
+    artifact: Omit<CreArtifact, "id" | "createdAt" | "evidence">,
+  ): Promise<CreArtifact> {
+    const id = crypto.randomUUID();
+    const createdAt = nowIso();
+
+    const evidence = await this.signEvidence({
+      id,
+      type: artifact.type,
+      data: artifact.data,
+      createdAt,
+    });
+
     const a: CreArtifact = {
-      id: crypto.randomUUID(),
-      createdAt: nowIso(),
+      id,
+      createdAt,
       ...artifact,
+      evidence,
     };
+
     this.run.artifacts.push(a);
     return a;
   }
 
-  finish(ok: boolean) {
+  async finish(ok: boolean) {
     this.run.finishedAt = nowIso();
     this.run.ok = ok;
     this.run.status = ok ? "completed" : "failed";
@@ -121,6 +155,18 @@ export class CreRunRecorder {
       stepCount: this.run.steps.length,
       artifactCount: this.run.artifacts.length,
     };
+
+    // Sign the summary of the run
+    const summaryToSign = {
+      runId: this.run.runId,
+      ok: this.run.ok,
+      status: this.run.status,
+      metrics: this.run.metrics,
+      artifactHashes: this.run.artifacts.map((a) => a.evidence?.hash),
+    };
+
+    this.run.evidence = await this.signEvidence(summaryToSign);
+
     this.pushEvent(ok ? "run_finished" : "run_failed", {
       latencyMs: this.run.metrics.latencyMs,
       stepCount: this.run.metrics.stepCount,

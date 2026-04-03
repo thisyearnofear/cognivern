@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import crypto from "node:crypto";
+import { ethers } from "ethers";
 import { enrichCreRunEvidence } from "../../../shared/utils/evidence.js";
 import { z } from "zod";
 import { runForecastingWorkflow } from "../../../cre/workflows/forecasting.js";
@@ -41,6 +42,24 @@ const updatePlanSchema = z.object({
     ),
   }),
 });
+
+// Helper to get a signer for CRE evidence
+function getCreSigner(): ethers.Signer | undefined {
+  const pk = process.env.FILECOIN_PRIVATE_KEY;
+  if (!pk) return undefined;
+  return new ethers.Wallet(pk);
+}
+
+// Helper to sign an event during manual transitions (cancel, approve, etc)
+async function signManualEvent(runId: string, data: any) {
+  const signer = getCreSigner();
+  if (!signer) return undefined;
+  const json = JSON.stringify(data);
+  const hash = ethers.keccak256(ethers.toUtf8Bytes(json));
+  const signature = await signer.signMessage(hash);
+  const signerAddress = await signer.getAddress();
+  return { hash, signature, signer: signerAddress };
+}
 
 function estimateTokenAndCost(stepCount: number, artifactCount: number) {
   const estimatedTokens = stepCount * 180 + artifactCount * 60;
@@ -110,7 +129,7 @@ function normalizeRun(run: CreRun): CreRun {
   });
 }
 
-function pushRunEvent(
+async function pushRunEvent(
   run: CreRun,
   event: {
     type:
@@ -125,14 +144,25 @@ function pushRunEvent(
   },
 ) {
   const events = run.events || [];
-  events.push({
-    id: crypto.randomUUID(),
+  const eventId = crypto.randomUUID();
+  const timestamp = new Date().toISOString();
+
+  const eventData = {
+    id: eventId,
     runId: run.runId,
     type: event.type,
-    timestamp: new Date().toISOString(),
-    stepName: event.stepName,
+    timestamp,
     payload: event.payload,
+  };
+
+  const evidence = await signManualEvent(run.runId, eventData);
+
+  events.push({
+    ...eventData,
+    stepName: event.stepName,
+    evidence,
   });
+
   const enriched = enrichCreRunEvidence({
     ...run,
     events,
@@ -338,6 +368,7 @@ export class CreController {
       // If approval is required, hold before any attestation side effects.
       writeAttestation: requireApproval ? false : writeAttestation,
       arbitrumRpcUrl: process.env.ARBITRUM_RPC_URL,
+      signer: getCreSigner(),
     });
 
     const normalized = normalizeRun(run);
@@ -352,7 +383,7 @@ export class CreController {
         canRetry: false,
         canApprove: true,
       };
-      pushRunEvent(normalized, {
+      await pushRunEvent(normalized, {
         type: "run_paused_for_approval",
         payload: {
           reason: "manual_approval_required",
@@ -405,7 +436,7 @@ export class CreController {
       return;
     }
 
-    pushRunEvent(normalized, {
+    await pushRunEvent(normalized, {
       type: "run_cancel_requested",
       payload: { requestedBy: "user" },
     });
@@ -417,7 +448,7 @@ export class CreController {
       canRetry: true,
       canApprove: false,
     };
-    pushRunEvent(normalized, {
+    await pushRunEvent(normalized, {
       type: "run_cancelled",
       payload: { source: "api" },
     });
@@ -461,7 +492,7 @@ export class CreController {
       return;
     }
     const original = normalizeRun(run);
-    pushRunEvent(original, {
+    await pushRunEvent(original, {
       type: "run_retry_requested",
       payload: { requestedBy: "user" },
     });
@@ -472,6 +503,7 @@ export class CreController {
         mode: "local",
         writeAttestation,
         arbitrumRpcUrl: process.env.ARBITRUM_RPC_URL,
+        signer: getCreSigner(),
       }),
     );
     newRun.parentRunId = original.runId;
@@ -487,7 +519,7 @@ export class CreController {
           { label: "retry_from_step", value: String(fromStep) },
         ],
       };
-      pushRunEvent(newRun, {
+      await pushRunEvent(newRun, {
         type: "run_retry_requested",
         payload: { retriedFromRunId: original.runId, fromStep },
       });
@@ -554,7 +586,7 @@ export class CreController {
           status: step.enabled ? "approved" : "rejected",
         }));
       }
-      pushRunEvent(normalized, {
+      await pushRunEvent(normalized, {
         type: "run_finished",
         payload: {
           reason: "approval_granted",
@@ -572,7 +604,7 @@ export class CreController {
           status: "rejected",
         }));
       }
-      pushRunEvent(normalized, {
+      await pushRunEvent(normalized, {
         type: "run_failed",
         payload: { reason: "approval_rejected", note: safeReason || null },
       });
@@ -647,7 +679,7 @@ export class CreController {
         canRetry: false,
         canApprove: true,
       };
-      pushRunEvent(normalized, {
+      await pushRunEvent(normalized, {
         type: "run_paused_for_approval",
         payload: { reason: "plan_updated_requires_approval" },
       });

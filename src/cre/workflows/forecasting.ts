@@ -1,3 +1,4 @@
+import { ethers } from "ethers";
 import { SapienceService } from "../../services/SapienceService.js";
 import { DefaultEvmAdapter } from "../adapters/evm.js";
 import { DefaultHttpAdapter } from "../adapters/http.js";
@@ -16,6 +17,7 @@ export type ForecastingWorkflowParams = {
   arbitrumRpcUrl?: string;
   chainlinkFeeds?: Array<{ name: string; address: `0x${string}` }>;
   writeAttestation?: boolean;
+  signer?: ethers.Signer;
 };
 
 // Arbitrum One Chainlink Price Feeds (Mainnet)
@@ -49,6 +51,7 @@ export async function runForecastingWorkflow(
   const recorder = new CreRunRecorder({
     workflow: "forecasting",
     mode: params.mode,
+    signer: params.signer,
   });
 
   const http = new DefaultHttpAdapter();
@@ -70,7 +73,7 @@ export async function runForecastingWorkflow(
       nowSec: Math.floor(Date.now() / 1000),
       take: 50,
     });
-    recorder.addArtifact({ type: "sapience_conditions", data: conditions });
+    await recorder.addArtifact({ type: "sapience_conditions", data: conditions });
     s1.end({ ok: true, summary: `Fetched ${conditions.length} conditions` });
 
     // Step 2: select market
@@ -87,7 +90,7 @@ export async function runForecastingWorkflow(
     const priceFeeds = feeds.length
       ? await evm.readPriceFeeds({ rpcUrl: arbitrumRpcUrl, feeds })
       : [];
-    recorder.addArtifact({ type: "chainlink_price_feeds", data: priceFeeds });
+    await recorder.addArtifact({ type: "chainlink_price_feeds", data: priceFeeds });
     s3.end({ ok: true, summary: `Read ${priceFeeds.length} feeds` });
 
     // Step 4: confidential LLM forecast (local adapter for now)
@@ -97,7 +100,7 @@ export async function runForecastingWorkflow(
     );
     const forecastInput: ForecastInput = { condition, priceFeeds };
     const forecast = await llm.generateForecast(forecastInput);
-    recorder.addArtifact({ type: "llm_forecast", data: forecast });
+    await recorder.addArtifact({ type: "llm_forecast", data: forecast });
     s4.end({ ok: true, summary: `Forecast: ${forecast.probability}%` });
 
     // Step 5: EVM write attestation (optional)
@@ -113,7 +116,7 @@ export async function runForecastingWorkflow(
         probability: forecast.probability,
         reasoning: forecast.reasoning,
       };
-      recorder.addArtifact({ type: "attestation_request", data: req });
+      await recorder.addArtifact({ type: "attestation_request", data: req });
 
       const txHash = await sapience.submitForecast({
         marketId: req.conditionId,
@@ -122,7 +125,7 @@ export async function runForecastingWorkflow(
         reasoning: req.reasoning,
       });
 
-      recorder.addArtifact({
+      await recorder.addArtifact({
         type: "attestation_result",
         data: { txHash },
       });
@@ -130,7 +133,7 @@ export async function runForecastingWorkflow(
       s5.end({ ok: true, summary: `Attested: ${txHash}` });
     }
 
-    recorder.finish(true);
+    await recorder.finish(true);
     const run = recorder.getRun();
     run.provenance = {
       ...(run.provenance || { source: "cognivern" }),
@@ -147,14 +150,14 @@ export async function runForecastingWorkflow(
     };
     return run;
   } catch (error: any) {
-    recorder.addArtifact({
+    await recorder.addArtifact({
       type: "error",
       data: {
         message: error?.message || String(error),
         stack: error?.stack,
       },
     });
-    recorder.finish(false);
+    await recorder.finish(false);
     const run = recorder.getRun();
     run.provenance = {
       ...(run.provenance || { source: "cognivern" }),
