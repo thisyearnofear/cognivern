@@ -302,14 +302,22 @@ export class OwsLocalVaultService {
     }
 
     const vault = this.readVault();
+    console.log(
+      "[OWS] signMessage: walletId =",
+      params.walletId,
+      ", access.wallet.id =",
+      access.wallet.id,
+    );
     const storedWallet = vault.wallets.find(
       (wallet) => wallet.id === access.wallet.id,
     );
     if (!storedWallet) {
-      throw new Error("Wallet not found");
+      throw new Error("Wallet not found in vault");
     }
 
-    const wallet = new ethers.Wallet(this.decryptPrivateKey(storedWallet));
+    const privateKey = this.decryptPrivateKey(storedWallet);
+    console.log("[OWS] signMessage: decrypted key length =", privateKey.length);
+    const wallet = new ethers.Wallet(privateKey);
     const signature = await wallet.signMessage(params.message);
     return { signature, signer: wallet.address };
   }
