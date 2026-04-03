@@ -317,9 +317,19 @@ export class OwsLocalVaultService {
 
     const privateKey = this.decryptPrivateKey(storedWallet);
     console.log("[OWS] signMessage: decrypted key length =", privateKey.length);
-    const wallet = new ethers.Wallet(privateKey);
-    const signature = await wallet.signMessage(params.message);
-    return { signature, signer: wallet.address };
+    try {
+      const wallet = new ethers.Wallet(privateKey);
+      console.log("[OWS] signMessage: wallet address =", wallet.address);
+      const signature = await wallet.signMessage(params.message);
+      console.log("[OWS] signMessage: signature length =", signature.length);
+      return { signature, signer: wallet.address };
+    } catch (signError) {
+      console.log(
+        "[OWS] signMessage: ERROR:",
+        signError instanceof Error ? signError.message : "unknown",
+      );
+      throw signError;
+    }
   }
 
   private readVault(): OwsVaultData {
