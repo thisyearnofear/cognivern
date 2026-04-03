@@ -261,7 +261,9 @@ export class ApiModule extends BaseService {
     }
 
     // Initialize shared services for controllers (CONSOLIDATION & DRY)
-    const { sharedPolicyService } = await import("../../services/PolicyService.js");
+    const { sharedPolicyService } = await import(
+      "../../services/PolicyService.js"
+    );
     const policyService = sharedPolicyService;
 
     // Initialize controllers with dependency injection
@@ -560,6 +562,14 @@ export class ApiModule extends BaseService {
 
     apiRouter.post("/ows/api-keys", (req, res) => {
       this.controllers.get("ows").createApiKey(req, res);
+    });
+
+    apiRouter.post("/ows/permissions", (req, res) => {
+      this.controllers.get("ows").requestPermissions(req, res);
+    });
+
+    apiRouter.get("/ows/permissions/:walletId", (req, res) => {
+      this.controllers.get("ows").getPermissions(req, res);
     });
 
     // Projects (multi-project support)
