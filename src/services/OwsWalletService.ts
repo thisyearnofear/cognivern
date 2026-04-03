@@ -231,11 +231,42 @@ export class OwsWalletService {
       apiKeyId: access.apiKey?.id,
     };
     const payload = JSON.stringify(spendEnvelope);
-    const { signature, signer } = await owsLocalVaultService.signMessage({
-      walletId: access.wallet.id,
-      message: payload,
-      apiKeyToken,
-    });
+
+    let signature: string;
+    let signer: string;
+
+    // Check if this is an external wallet and use external signing
+    if (access.wallet.metadata?.externalSource) {
+      const externalSignResult =
+        await owsLocalVaultService.signWithExternalWallet({
+          walletId: access.wallet.id,
+          message: payload,
+        });
+
+      if (!externalSignResult) {
+        s.end({ ok: false, summary: "External wallet signing failed" });
+        return await this.handleHold(
+          intent,
+          recorder,
+          "External wallet signing failed. Spend held for manual review.",
+          policyId,
+          access,
+        );
+      }
+
+      signature = externalSignResult.signature;
+      signer = externalSignResult.signer;
+    } else {
+      // Use local signing
+      const localSignResult = await owsLocalVaultService.signMessage({
+        walletId: access.wallet.id,
+        message: payload,
+        apiKeyToken,
+      });
+      signature = localSignResult.signature;
+      signer = localSignResult.signer;
+    }
+
     const txHash = ethers.keccak256(ethers.toUtf8Bytes(signature));
 
     await recorder.addArtifact({

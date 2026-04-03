@@ -24,6 +24,8 @@ const envSchema = z.object({
 
   // SpendOS / OWS Wallet Configuration
   OWS_API_KEY: z.string().optional(),
+  OWS_EXTERNAL_WALLET_URL: z.string().url().optional(),
+  OWS_EXTERNAL_WALLET_PRIVATE_KEY: z.string().optional(),
 
   // API Security and Authentication
   API_KEY: z.string().default(""),

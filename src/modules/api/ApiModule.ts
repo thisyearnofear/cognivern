@@ -552,6 +552,10 @@ export class ApiModule extends BaseService {
       this.controllers.get("ows").listWallets(req, res);
     });
 
+    apiRouter.post("/ows/wallets/connect", (req, res) => {
+      this.controllers.get("ows").connectExternalWallet(req, res);
+    });
+
     apiRouter.post("/ows/wallets/import", (req, res) => {
       this.controllers.get("ows").importWallet(req, res);
     });
