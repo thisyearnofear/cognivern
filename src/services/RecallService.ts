@@ -87,6 +87,39 @@ export class RecallService {
   }
 
   /**
+   * Store a generic object to Recall
+   */
+  async storeObject(key: string, data: any): Promise<string> {
+    if (!this.isConnected || !this.config.apiKey) {
+      throw new Error("RecallService: Missing API Key");
+    }
+
+    return circuitBreakers.recall.execute(async () => {
+      const response = await fetch(`${this.config.endpoint}/objects`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bucket: this.config.bucket,
+          key,
+          data,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Recall API Error: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      logger.info(`Stored object to Recall Network: ${key}`);
+      return key;
+    });
+  }
+
+  /**
    * Retrieve memory by ID
    */
   async retrieve(id: string): Promise<RecallMemory | null> {
