@@ -45,6 +45,10 @@ export class SpendController {
       const owsScopedAccess = req.headers["x-ows-scoped-access"] as
         | string
         | undefined;
+      console.log(
+        "[SpendController] owsScopedAccess:",
+        owsScopedAccess?.substring(0, 10) + "...",
+      );
       const walletId =
         typeof parse.data.metadata?.walletId === "string"
           ? parse.data.metadata.walletId
