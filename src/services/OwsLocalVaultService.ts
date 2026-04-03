@@ -139,6 +139,16 @@ export class OwsLocalVaultService {
   }): Promise<OwsWalletDescriptor> {
     const vault = this.readVault();
 
+    // Debug: log what's being passed to importWallet
+    console.log(
+      "[OWS] importWallet called with name:",
+      params.name,
+      ", privateKey length:",
+      params.privateKey?.length,
+      ", first 10 chars:",
+      params.privateKey?.substring(0, 10),
+    );
+
     // Validate private key format before creating wallet
     const hexPrefix = "0x";
     let privateKey = params.privateKey.startsWith(hexPrefix)
