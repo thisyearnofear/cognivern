@@ -247,6 +247,14 @@ export class OwsLocalVaultService {
     }
 
     const apiKey = await this.validateApiKey(params.apiKeyToken);
+    console.log(
+      "[OWS] resolveAccess: apiKeyToken provided =",
+      !!params.apiKeyToken,
+      ", apiKey found =",
+      !!apiKey,
+      ", vault.apiKeys.length =",
+      vault.apiKeys.length,
+    );
     let wallet: OwsStoredWallet | undefined;
 
     if (apiKey) {
