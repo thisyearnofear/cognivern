@@ -35,9 +35,7 @@ import {
 } from "lucide-react";
 import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
-import {
-  agentApi,
-} from "../../services/apiService";
+import { agentApi } from "../../services/apiService";
 import { getApiKey, getApiUrl } from "../../utils/api";
 import { copyTextToClipboard } from "../../utils/clipboard";
 import {
@@ -60,7 +58,11 @@ import { Column } from "../ui/DataTable";
 import { ChartDataPoint } from "../ui/Chart";
 
 // Lazy load heavy components for performance
-const EcosystemVisualizer = lazy(() => import("../ui/EcosystemVisualizer").then(module => ({ default: module.EcosystemVisualizer })));
+const EcosystemVisualizer = lazy(() =>
+  import("../ui/EcosystemVisualizer").then((module) => ({
+    default: module.EcosystemVisualizer,
+  })),
+);
 
 interface DashboardProps {
   mode?: "full" | "minimal"; // minimal for agent-to-agent
@@ -190,7 +192,10 @@ const buildAuditPath = (activity: {
   return query ? `/audit?${query}` : "/audit";
 };
 
-const unwrapApiPayload = <T,>(result: { success: boolean; data?: any }): T | null => {
+const unwrapApiPayload = <T,>(result: {
+  success: boolean;
+  data?: any;
+}): T | null => {
   if (!result.success || !result.data?.data) {
     return null;
   }
@@ -280,7 +285,9 @@ const normalizeActivity = (entry: Record<string, any>): ActivityItem => ({
   cid: typeof entry.evidence?.cid === "string" ? entry.evidence.cid : undefined,
 });
 
-const normalizeRunStreamActivity = (entry: Record<string, any>): ActivityItem => ({
+const normalizeRunStreamActivity = (
+  entry: Record<string, any>,
+): ActivityItem => ({
   id: String(entry.id || crypto.randomUUID()),
   agentId: typeof entry.runId === "string" ? entry.runId : undefined,
   agentName: typeof entry.workflow === "string" ? entry.workflow : "CRE Run",
@@ -464,25 +471,32 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   // Transform agents and policies into Map Nodes (DRY & PERFORMANT)
   const ecosystemNodes = useMemo<Node[]>(() => {
     const nodes: Node[] = [
-      { id: "kernel", type: "system", label: "Kernel", status: "active", x: 50, y: 50 }
+      {
+        id: "kernel",
+        type: "system",
+        label: "Kernel",
+        status: "active",
+        x: 50,
+        y: 50,
+      },
     ];
 
-    agents.forEach(agent => {
+    agents.forEach((agent) => {
       nodes.push({
         id: agent.id,
         type: "agent",
         label: agent.name,
         status: agent.status,
-        pulse: agent.status === "active"
+        pulse: agent.status === "active",
       });
     });
 
-    policies.forEach(policy => {
+    policies.forEach((policy) => {
       nodes.push({
         id: policy.id,
         type: "policy",
         label: policy.name,
-        status: policy.status === "active" ? "active" : "idle"
+        status: policy.status === "active" ? "active" : "idle",
       });
     });
 
@@ -498,7 +512,11 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   const performanceTrendData = useMemo<ChartDataPoint[]>(() => {
     return agents.slice(0, 6).map((agent) => ({
       x: agent.name,
-      y: Number((((agent as any).performance24h?.return ?? agent.totalReturn) * 100).toFixed(2)),
+      y: Number(
+        (
+          ((agent as any).performance24h?.return ?? agent.totalReturn) * 100
+        ).toFixed(2),
+      ),
       label: agent.name,
     }));
   }, [agents]);
@@ -579,14 +597,20 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
 
     const prependActivity = (activity: ActivityItem) => {
       setRecentActivity((current) => {
-        const next = [activity, ...current.filter((item) => item.id !== activity.id)];
+        const next = [
+          activity,
+          ...current.filter((item) => item.id !== activity.id),
+        ];
         return next.slice(0, 25);
       });
     };
 
     source.addEventListener("audit_log", (event) => {
       try {
-        const payload = JSON.parse((event as MessageEvent).data) as Record<string, unknown>;
+        const payload = JSON.parse((event as MessageEvent).data) as Record<
+          string,
+          unknown
+        >;
         prependActivity(normalizeActivity(payload));
       } catch (error) {
         console.warn("Failed to parse dashboard audit stream event", error);
@@ -595,7 +619,10 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
 
     source.addEventListener("run_event", (event) => {
       try {
-        const payload = JSON.parse((event as MessageEvent).data) as Record<string, unknown>;
+        const payload = JSON.parse((event as MessageEvent).data) as Record<
+          string,
+          unknown
+        >;
         prependActivity(normalizeRunStreamActivity(payload));
       } catch (error) {
         console.warn("Failed to parse dashboard run stream event", error);
@@ -674,17 +701,21 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
       const unified = unwrapApiPayload<UnifiedDashboardPayload>(unifiedResult);
 
       if (!bundle) {
-        throw new Error(bundleResult.error || "Failed to fetch dashboard bundle");
+        throw new Error(
+          bundleResult.error || "Failed to fetch dashboard bundle",
+        );
       }
 
       const agentList = bundle.agents || [];
       const mappedStats: QuickStats = {
-        activeAgents: agentList.filter((agent) => agent.status === "active").length,
+        activeAgents: agentList.filter((agent) => agent.status === "active")
+          .length,
         totalAgents: bundle.stats?.totalAgents || agentList.length,
         totalTrades: bundle.stats?.totalTrades || 0,
         avgWinRate: bundle.stats?.avgWinRate || 0,
         totalReturn: bundle.stats?.avgReturn || 0,
-        totalPolicies: bundle.stats?.totalPolicies || (bundle.policies || []).length,
+        totalPolicies:
+          bundle.stats?.totalPolicies || (bundle.policies || []).length,
       };
 
       setStats(mappedStats);
@@ -704,13 +735,13 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
 
   const handleResolveQuest = async (questId: string) => {
     try {
-       const result = await agentApi.resolveQuest(questId);
-       if (result.success) {
-         // Refresh dashboard to show updated quests
-         fetchDashboardData();
-       }
+      const result = await agentApi.resolveQuest(questId);
+      if (result.success) {
+        // Refresh dashboard to show updated quests
+        fetchDashboardData();
+      }
     } catch (error) {
-       console.error("Failed to resolve quest:", error);
+      console.error("Failed to resolve quest:", error);
     }
   };
 
@@ -798,7 +829,13 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
             gap: designTokens.spacing[4],
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: designTokens.spacing[4] }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: designTokens.spacing[4],
+            }}
+          >
             <h1 css={styles.titleStyles} style={{ marginBottom: 0 }}>
               Dashboard
             </h1>
@@ -808,7 +845,13 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: designTokens.spacing[3] }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: designTokens.spacing[3],
+            }}
+          >
             <div css={styles.liveIndicatorStyles}>
               <div css={styles.pulseDotStyles} />
               LIVE
@@ -817,7 +860,11 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
               Refresh
             </Button>
             {!isMobile && (
-              <Button variant="primary" size="sm" onClick={() => navigate("/policies")}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate("/policies")}
+              >
                 Deploy Policy
               </Button>
             )}
@@ -831,28 +878,43 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
             total={stats?.totalAgents}
             icon={<Users size={24} />}
             color="primary"
-            trend={{ value: `${stats?.totalTrades || 0} tracked actions`, isPositive: true }}
+            trend={{
+              value: `${stats?.totalTrades || 0} tracked actions`,
+              isPositive: true,
+            }}
           />
           <StatCard
             label="Active Policies"
             value={stats?.totalPolicies || 0}
             icon={<ShieldCheck size={24} />}
             color="info"
-            trend={{ value: `${quests.filter((quest) => quest.actionRequired).length} require attention`, isPositive: quests.filter((quest) => quest.actionRequired).length === 0 }}
+            trend={{
+              value: `${quests.filter((quest) => quest.actionRequired).length} require attention`,
+              isPositive:
+                quests.filter((quest) => quest.actionRequired).length === 0,
+            }}
           />
           <StatCard
             label="Approval Rate"
             value={`${((stats?.avgWinRate || 0) * 100).toFixed(1)}%`}
             icon={<Percent size={24} />}
             color="success"
-            trend={{ value: `${stats?.activeAgents || 0}/${stats?.totalAgents || 0} agents online`, isPositive: true }}
+            trend={{
+              value: `${stats?.activeAgents || 0}/${stats?.totalAgents || 0} agents online`,
+              isPositive: true,
+            }}
           />
           <StatCard
             label="Policy Decisions"
             value={stats?.totalTrades || 0}
             icon={<FileSearch size={24} />}
             color="info"
-            trend={{ value: stats ? `${((stats.avgWinRate || 0) * 100).toFixed(1)}% approval rate` : "No policy activity", isPositive: true }}
+            trend={{
+              value: stats
+                ? `${((stats.avgWinRate || 0) * 100).toFixed(1)}% approval rate`
+                : "No policy activity",
+              isPositive: true,
+            }}
           />
         </div>
       </section>
@@ -862,51 +924,75 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
         <div css={styles.sectionHeaderStyles}>
           <h2 css={styles.sectionTitleStyles}>Live Network Map</h2>
           <div css={styles.liveIndicatorStyles}>
-             <div css={styles.pulseDotStyles} />
-             Cognitive Kernel Status: Healthy
+            <div css={styles.pulseDotStyles} />
+            Cognitive Kernel Status: Healthy
           </div>
         </div>
         <Card overflow="hidden">
-           <Suspense fallback={<div css={styles.loadingStyles}><LoadingSpinner size="lg" /></div>}>
-             <EcosystemVisualizer
-               nodes={ecosystemNodes}
-               loading={isLoading}
-               onNodeClick={handleNodeClick}
-             />
-           </Suspense>
+          <Suspense
+            fallback={
+              <div css={styles.loadingStyles}>
+                <LoadingSpinner size="lg" />
+              </div>
+            }
+          >
+            <EcosystemVisualizer
+              nodes={ecosystemNodes}
+              loading={isLoading}
+              onNodeClick={handleNodeClick}
+            />
+          </Suspense>
         </Card>
       </section>
 
       {/* Performance Trends - New analytics section inspired by Smart Bin dashboard */}
-      <section css={styles.sectionStyles}>
-        <div css={styles.chartsGridStyles(isMobile, isTablet)}>
-          <Card>
-            <CardContent>
-              <h3 css={styles.sectionTitleStyles} style={{ fontSize: "14px", marginBottom: "20px" }}>24H Return by Agent</h3>
-              <Chart
-                type="area"
-                data={performanceTrendData}
-                height={200}
-                yAxisLabel="Return %"
-                animate
-              />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <h3 css={styles.sectionTitleStyles} style={{ fontSize: "14px", marginBottom: "20px" }}>Active Agent Distribution</h3>
-              <div style={{ height: "200px", display: "flex", justifyContent: "center" }}>
+      {!isMobile && (
+        <section css={styles.sectionStyles}>
+          <div css={styles.chartsGridStyles(isMobile, isTablet)}>
+            <Card>
+              <CardContent>
+                <h3
+                  css={styles.sectionTitleStyles}
+                  style={{ fontSize: "14px", marginBottom: "20px" }}
+                >
+                  24H Return by Agent
+                </h3>
                 <Chart
-                  type="pie"
-                  data={distributionData}
+                  type="area"
+                  data={performanceTrendData}
                   height={200}
+                  yAxisLabel="Return %"
                   animate
                 />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent>
+                <h3
+                  css={styles.sectionTitleStyles}
+                  style={{ fontSize: "14px", marginBottom: "20px" }}
+                >
+                  Active Agent Distribution
+                </h3>
+                <div
+                  style={{
+                    height: "200px",
+                    display: "flex",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Chart
+                    type="pie"
+                    data={distributionData}
+                    height={200}
+                    animate
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      )}
 
       {/* Main Content Grid */}
       <div css={styles.mainGridStyles(isMobile, isTablet)}>
@@ -957,7 +1043,7 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
           <div css={styles.sectionHeaderStyles}>
             <h2 css={styles.sectionTitleStyles}>Governance Quests</h2>
             <Badge variant="secondary" size="sm">
-              {quests.filter(q => q.actionRequired).length} ACTIVE
+              {quests.filter((q) => q.actionRequired).length} ACTIVE
             </Badge>
           </div>
           <QuestHUD quests={quests} onResolve={handleResolveQuest} />
@@ -968,13 +1054,15 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
       {!isMobile && (
         <section css={styles.sectionStyles}>
           <div css={styles.sectionHeaderStyles}>
-             <h2 css={styles.sectionTitleStyles}>Autonomous Leaderboard</h2>
-             <span css={styles.systemBadgeStyles("info")}>{agents.length} AGENTS TRACKED</span>
+            <h2 css={styles.sectionTitleStyles}>Autonomous Leaderboard</h2>
+            <span css={styles.systemBadgeStyles("info")}>
+              {agents.length} AGENTS TRACKED
+            </span>
           </div>
           <Card>
-             <CardContent>
-                <Leaderboard agents={agents} />
-             </CardContent>
+            <CardContent>
+              <Leaderboard agents={agents} />
+            </CardContent>
           </Card>
         </section>
       )}
@@ -983,17 +1071,36 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
       <Modal
         isOpen={isThoughtModalOpen}
         onClose={() => setIsThoughtModalOpen(false)}
-        title={selectedAgentId ? `Observing: ${agents.find(a => a.id === selectedAgentId)?.name || selectedAgentId}` : "Agent Observation"}
+        title={
+          selectedAgentId
+            ? `Observing: ${agents.find((a) => a.id === selectedAgentId)?.name || selectedAgentId}`
+            : "Agent Observation"
+        }
         size="lg"
       >
         <div style={{ minHeight: "300px", padding: designTokens.spacing[4] }}>
-          <div style={{ display: "flex", alignItems: "center", gap: designTokens.spacing[3], marginBottom: designTokens.spacing[6] }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: designTokens.spacing[3],
+              marginBottom: designTokens.spacing[6],
+            }}
+          >
             <div css={styles.activityIconStyles("info")}>
               <Brain size={24} />
             </div>
             <div>
               <h3 style={{ fontSize: "18px", fontWeight: 700 }}>Agent Trace</h3>
-              <p style={{ fontSize: "12px", color: designTokens.colors.text.secondary }}>Recent governance and execution events captured by the control plane.</p>
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: designTokens.colors.text.secondary,
+                }}
+              >
+                Recent governance and execution events captured by the control
+                plane.
+              </p>
             </div>
           </div>
 
@@ -1001,20 +1108,30 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
             <div css={styles.loadingStyles}>Loading agent trace...</div>
           ) : (
             <GenerativeReveal active={!isThoughtsLoading} duration={800}>
-              <div style={{ display: "flex", flexDirection: "column", gap: designTokens.spacing[4] }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: designTokens.spacing[4],
+                }}
+              >
                 {agentThoughts.map((thought, i) => (
-                  <div key={i} style={{
-                    padding: designTokens.spacing[4],
-                    background: designTokens.colors.background.secondary,
-                    borderRadius: designTokens.borderRadius.md,
-                    borderLeft: `4px solid ${designTokens.colors.primary[500]}`,
-                    fontSize: "14px",
-                    fontFamily: designTokens.typography.fontFamily.mono.join(", "),
-                    color: designTokens.colors.text.primary,
-                    animation: `slideIn 0.3s ease-out forwards ${i * 0.1}s`,
-                    opacity: 0,
-                    transform: "translateX(-10px)"
-                  }}>
+                  <div
+                    key={i}
+                    style={{
+                      padding: designTokens.spacing[4],
+                      background: designTokens.colors.background.secondary,
+                      borderRadius: designTokens.borderRadius.md,
+                      borderLeft: `4px solid ${designTokens.colors.primary[500]}`,
+                      fontSize: "14px",
+                      fontFamily:
+                        designTokens.typography.fontFamily.mono.join(", "),
+                      color: designTokens.colors.text.primary,
+                      animation: `slideIn 0.3s ease-out forwards ${i * 0.1}s`,
+                      opacity: 0,
+                      transform: "translateX(-10px)",
+                    }}
+                  >
                     {thought}
                   </div>
                 ))}
@@ -1028,74 +1145,126 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
       <QuickActions isMobile={isMobile} />
 
       {/* Live Thought Stream - Delight & Intuitive Feedback */}
-      <div css={css`
-        position: fixed;
-        bottom: ${isMobile ? '80px' : '40px'};
-        right: 40px;
-        width: 320px;
-        max-height: 400px;
-        background: ${designTokens.colors.background.primary};
-        border: 1px solid ${designTokens.colors.neutral[200]};
-        border-radius: ${designTokens.borderRadius.xl};
-        box-shadow: ${designTokens.shadows.xl};
-        z-index: 100;
-        display: ${isMobile ? 'none' : 'flex'};
-        flex-direction: column;
-        overflow: hidden;
-        animation: fadeIn 0.5s ease-out;
+      <div
+        css={css`
+          position: fixed;
+          bottom: ${isMobile ? "80px" : "40px"};
+          right: 40px;
+          width: 320px;
+          max-height: 400px;
+          background: ${designTokens.colors.background.primary};
+          border: 1px solid ${designTokens.colors.neutral[200]};
+          border-radius: ${designTokens.borderRadius.xl};
+          box-shadow: ${designTokens.shadows.xl};
+          z-index: 100;
+          display: ${isMobile ? "none" : "flex"};
+          flex-direction: column;
+          overflow: hidden;
+          animation: fadeIn 0.5s ease-out;
 
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}>
-        <div style={{
-          padding: designTokens.spacing[3],
-          background: designTokens.colors.primary[500],
-          color: 'white',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}
+      >
+        <div
+          style={{
+            padding: designTokens.spacing[3],
+            background: designTokens.colors.primary[500],
+            color: "white",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <Zap size={16} />
-            <span style={{ fontWeight: 700, fontSize: '14px' }}>Live Governance Feed</span>
+            <span style={{ fontWeight: 700, fontSize: "14px" }}>
+              Live Governance Feed
+            </span>
           </div>
-          <Badge variant="secondary" size="sm" style={{ background: 'rgba(255,255,255,0.2)', border: 'none' }}>
+          <Badge
+            variant="secondary"
+            size="sm"
+            style={{ background: "rgba(255,255,255,0.2)", border: "none" }}
+          >
             {liveFeedItems.length} ACTIVE
           </Badge>
         </div>
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: designTokens.spacing[3],
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px'
-        }}>
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: designTokens.spacing[3],
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+          }}
+        >
           {liveFeedItems.length === 0 ? (
-            <div style={{ textAlign: 'center', color: designTokens.colors.text.secondary, padding: '20px', fontSize: '13px' }}>
+            <div
+              style={{
+                textAlign: "center",
+                color: designTokens.colors.text.secondary,
+                padding: "20px",
+                fontSize: "13px",
+              }}
+            >
               Waiting for live governance events...
             </div>
           ) : (
             liveFeedItems.map((t) => (
-              <div key={t.id} style={{
-                fontSize: '12px',
-                borderLeft: `2px solid ${designTokens.colors.primary[300]}`,
-                paddingLeft: '8px',
-                paddingBottom: '4px',
-                animation: 'slideInRight 0.3s ease-out',
-                position: 'relative'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                  <div style={{ fontWeight: 700, color: designTokens.colors.primary[600] }}>
+              <div
+                key={t.id}
+                style={{
+                  fontSize: "12px",
+                  borderLeft: `2px solid ${designTokens.colors.primary[300]}`,
+                  paddingLeft: "8px",
+                  paddingBottom: "4px",
+                  animation: "slideInRight 0.3s ease-out",
+                  position: "relative",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "2px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      color: designTokens.colors.primary[600],
+                    }}
+                  >
                     {t.sourceLabel}
                   </div>
-                  <div style={{ fontSize: '10px', color: designTokens.colors.text.secondary }}>
+                  <div
+                    style={{
+                      fontSize: "10px",
+                      color: designTokens.colors.text.secondary,
+                    }}
+                  >
                     {t.timestampLabel}
                   </div>
                 </div>
-                <div style={{ color: designTokens.colors.text.primary, lineHeight: 1.4 }}>{t.body}</div>
+                <div
+                  style={{
+                    color: designTokens.colors.text.primary,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {t.body}
+                </div>
                 {t.evidenceHash || t.cid ? (
                   <TrustSignals
                     activity={{
@@ -1108,19 +1277,21 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                   />
                 ) : null}
                 {t.evidenceFacts && t.evidenceFacts.length > 0 && (
-                  <div style={{
-                    marginTop: '6px',
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '6px'
-                  }}>
+                  <div
+                    style={{
+                      marginTop: "6px",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "6px",
+                    }}
+                  >
                     {t.evidenceFacts.slice(0, 3).map((fact) => (
                       <span
                         key={fact}
                         style={{
-                          fontSize: '10px',
-                          padding: '2px 6px',
-                          borderRadius: '999px',
+                          fontSize: "10px",
+                          padding: "2px 6px",
+                          borderRadius: "999px",
                           background: designTokens.colors.neutral[100],
                           color: designTokens.colors.text.secondary,
                         }}
@@ -1131,7 +1302,9 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                   </div>
                 )}
                 {(t.agentId || t.targetPath) && (
-                  <div style={{ marginTop: '4px', display: 'flex', gap: '8px' }}>
+                  <div
+                    style={{ marginTop: "4px", display: "flex", gap: "8px" }}
+                  >
                     <span
                       onClick={() => {
                         if (t.targetPath) {
@@ -1143,11 +1316,11 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                         }
                       }}
                       style={{
-                        cursor: 'pointer',
+                        cursor: "pointer",
                         color: designTokens.colors.primary[500],
-                        fontSize: '10px',
-                        textDecoration: 'underline',
-                        fontWeight: 600
+                        fontSize: "10px",
+                        textDecoration: "underline",
+                        fontWeight: 600,
                       }}
                     >
                       {t.evidenceLabel || "Inspect Trace"}
@@ -1158,11 +1331,11 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                           void copyTextToClipboard(t.evidenceHash as string);
                         }}
                         style={{
-                          cursor: 'pointer',
+                          cursor: "pointer",
                           color: designTokens.colors.text.secondary,
-                          fontSize: '10px',
-                          textDecoration: 'underline',
-                          fontWeight: 600
+                          fontSize: "10px",
+                          textDecoration: "underline",
+                          fontWeight: 600,
                         }}
                       >
                         Copy Hash
@@ -1174,11 +1347,11 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                           void copyTextToClipboard(t.cid as string);
                         }}
                         style={{
-                          cursor: 'pointer',
+                          cursor: "pointer",
                           color: designTokens.colors.text.secondary,
-                          fontSize: '10px',
-                          textDecoration: 'underline',
-                          fontWeight: 600
+                          fontSize: "10px",
+                          textDecoration: "underline",
+                          fontWeight: 600,
                         }}
                       >
                         Copy CID
@@ -1197,7 +1370,13 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
 
 // Sub-components
 
-const QuestHUD = ({ quests, onResolve }: { quests: QuestItem[], onResolve: (id: string) => void }) => {
+const QuestHUD = ({
+  quests,
+  onResolve,
+}: {
+  quests: QuestItem[];
+  onResolve: (id: string) => void;
+}) => {
   if (quests.length === 0) {
     return (
       <Card>
@@ -1211,10 +1390,14 @@ const QuestHUD = ({ quests, onResolve }: { quests: QuestItem[], onResolve: (id: 
 
   const getQuestIcon = (type: string) => {
     switch (type) {
-      case "alert": return <AlertTriangle size={20} />;
-      case "pattern": return <Search size={20} />;
-      case "recommendation": return <Info size={20} />;
-      default: return <ShieldCheck size={20} />;
+      case "alert":
+        return <AlertTriangle size={20} />;
+      case "pattern":
+        return <Search size={20} />;
+      case "recommendation":
+        return <Info size={20} />;
+      default:
+        return <ShieldCheck size={20} />;
     }
   };
 
@@ -1227,22 +1410,50 @@ const QuestHUD = ({ quests, onResolve }: { quests: QuestItem[], onResolve: (id: 
               {getQuestIcon(quest.type)}
             </div>
             <div css={styles.activityDetailsStyles} style={{ flex: 1 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                }}
+              >
                 <div css={styles.activityTextStyles}>{quest.title}</div>
-                {quest.actionRequired && <div css={styles.systemBadgeStyles(quest.severity as any)}>ACTION REQUIRED</div>}
+                {quest.actionRequired && (
+                  <div css={styles.systemBadgeStyles(quest.severity as any)}>
+                    ACTION REQUIRED
+                  </div>
+                )}
               </div>
               <div css={styles.activityTimeStyles}>{quest.description}</div>
               {quest.actionRequired && (
-                <div style={{ marginTop: designTokens.spacing[2], display: "flex", gap: designTokens.spacing[2] }}>
+                <div
+                  style={{
+                    marginTop: designTokens.spacing[2],
+                    display: "flex",
+                    gap: designTokens.spacing[2],
+                  }}
+                >
                   <Button
                     variant="outline"
                     size="xs"
-                    style={{ fontSize: "10px", padding: "2px 8px", height: "auto" }}
+                    style={{
+                      fontSize: "10px",
+                      padding: "2px 8px",
+                      height: "auto",
+                    }}
                     onClick={() => onResolve(quest.id)}
                   >
                     Resolve
                   </Button>
-                  <Button variant="ghost" size="xs" style={{ fontSize: "10px", padding: "2px 8px", height: "auto" }}>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    style={{
+                      fontSize: "10px",
+                      padding: "2px 8px",
+                      height: "auto",
+                    }}
+                  >
                     Dismiss
                   </Button>
                 </div>
@@ -1267,7 +1478,10 @@ const Leaderboard = ({ agents }: LeaderboardProps) => {
       render: (val, agent) => (
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div style={{ fontWeight: 700 }}>{val}</div>
-          <Badge variant={agent.status === "active" ? "success" : "neutral"} size="sm">
+          <Badge
+            variant={agent.status === "active" ? "success" : "neutral"}
+            size="sm"
+          >
             {agent.status}
           </Badge>
         </div>
@@ -1278,7 +1492,14 @@ const Leaderboard = ({ agents }: LeaderboardProps) => {
       key: "type",
       title: "Type",
       render: (val) => (
-        <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: designTokens.colors.text.secondary }}>
+        <span
+          style={{
+            fontSize: "11px",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            color: designTokens.colors.text.secondary,
+          }}
+        >
           {val}
         </span>
       ),
@@ -1289,10 +1510,24 @@ const Leaderboard = ({ agents }: LeaderboardProps) => {
       title: "Win Rate",
       render: (val) => (
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-           <div style={{ width: "60px", height: "6px", background: "#f0f0ed", borderRadius: "3px", overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${(val * 100)}%`, background: designTokens.colors.semantic.success[500] }} />
-           </div>
-           <span style={{ fontWeight: 600 }}>{(val * 100).toFixed(1)}%</span>
+          <div
+            style={{
+              width: "60px",
+              height: "6px",
+              background: "#f0f0ed",
+              borderRadius: "3px",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                width: `${val * 100}%`,
+                background: designTokens.colors.semantic.success[500],
+              }}
+            />
+          </div>
+          <span style={{ fontWeight: 600 }}>{(val * 100).toFixed(1)}%</span>
         </div>
       ),
       sortable: true,
@@ -1302,8 +1537,17 @@ const Leaderboard = ({ agents }: LeaderboardProps) => {
       key: "totalReturn",
       title: "Return",
       render: (val) => (
-        <span style={{ fontWeight: 700, color: val >= 0 ? designTokens.colors.semantic.success[600] : designTokens.colors.semantic.error[600] }}>
-          {val >= 0 ? "+" : ""}{(val * 100).toFixed(2)}%
+        <span
+          style={{
+            fontWeight: 700,
+            color:
+              val >= 0
+                ? designTokens.colors.semantic.success[600]
+                : designTokens.colors.semantic.error[600],
+          }}
+        >
+          {val >= 0 ? "+" : ""}
+          {(val * 100).toFixed(2)}%
         </span>
       ),
       sortable: true,
@@ -1313,21 +1557,31 @@ const Leaderboard = ({ agents }: LeaderboardProps) => {
       key: "lastActive",
       title: "Last Seen",
       render: (val) => (
-        <span style={{ fontSize: "12px", color: designTokens.colors.text.secondary }}>
+        <span
+          style={{
+            fontSize: "12px",
+            color: designTokens.colors.text.secondary,
+          }}
+        >
           {new Date(val).toLocaleTimeString()}
         </span>
       ),
       sortable: true,
       align: "right",
-    }
+    },
   ];
 
   return (
     <DataTable
-       data={agents}
-       columns={columns}
-       searchable={false}
-       pagination={{ current: 1, pageSize: 6, total: agents.length, onChange: () => {} }}
+      data={agents}
+      columns={columns}
+      searchable={false}
+      pagination={{
+        current: 1,
+        pageSize: 6,
+        total: agents.length,
+        onChange: () => {},
+      }}
     />
   );
 };
@@ -1394,8 +1648,13 @@ const ActivityFeed = ({
           <>
             {displayActivities.map((activity, idx) => (
               <div key={idx} css={styles.activityItemStyles}>
-                <div css={styles.activityIconStyles(activity.severity || (activity.type === "trade" ? "success" : "info"))}>
-                   {getActivityIcon(activity.severity, activity.type)}
+                <div
+                  css={styles.activityIconStyles(
+                    activity.severity ||
+                      (activity.type === "trade" ? "success" : "info"),
+                  )}
+                >
+                  {getActivityIcon(activity.severity, activity.type)}
                 </div>
                 <div css={styles.activityDetailsStyles}>
                   <div css={styles.activityTextStyles}>
@@ -1449,7 +1708,8 @@ const ActivityFeed = ({
                           color: ${designTokens.colors.primary[600]};
                           cursor: pointer;
                           font-size: ${designTokens.typography.fontSize.xs};
-                          font-weight: ${designTokens.typography.fontWeight.medium};
+                          font-weight: ${designTokens.typography.fontWeight
+                            .medium};
 
                           &:hover {
                             text-decoration: underline;
@@ -1479,7 +1739,9 @@ const ActivityFeed = ({
                             }
                           `}
                           onClick={() => {
-                            void copyTextToClipboard(activity.evidenceHash as string);
+                            void copyTextToClipboard(
+                              activity.evidenceHash as string,
+                            );
                           }}
                         >
                           Copy Hash
