@@ -64,6 +64,11 @@ export class SpendController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      console.log(
+        "[SpendController] CATCH:",
+        error instanceof Error ? error.message : "unknown",
+        error instanceof Error ? error.stack : "",
+      );
       res.status(500).json({
         success: false,
         error:
