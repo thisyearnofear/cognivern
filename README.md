@@ -28,6 +28,8 @@ The current repo already has meaningful pieces of that system:
 
 - project-scoped run ingestion at `/ingest/runs`
 - a local governance evaluation API at `/api/governance/evaluate`
+- local OWS wallet bootstrap and API-key issuance at `/api/ows/*`
+- a governed spend execution API at `/api/spend`
 - bundled policy loading and local policy execution
 - CRE-backed run ledger and audit-log views
 - dashboards for monitoring agent activity and compliance state
@@ -46,6 +48,8 @@ These capabilities are already present in code:
 
 - **Policy evaluation**: `PolicyService` and `PolicyEnforcementService` load rules, evaluate actions, and return structured policy checks.
 - **Governance API**: `GovernanceController` exposes `/api/governance/evaluate` and `/api/governance/policies`.
+- **OWS vault layer**: `OwsLocalVaultService` stores encrypted local wallets, issues delegated API keys, and resolves wallet access for spend execution.
+- **Spend execution layer**: `OwsWalletService` exposes `/api/spend`, enforces spend policies, produces approve/hold/deny outcomes, signs approved spend envelopes, and persists runs to the CRE ledger.
 - **Audit trail**: `AuditLogService` converts policy decisions and runs into CRE-backed evidence records.
 - **Run ingestion**: `IngestController` accepts project-scoped agent run payloads and records quota usage.
 - **Run ledger**: `CreController` exposes run details, retries, approvals, and event streams.
@@ -73,6 +77,7 @@ In practical terms, Cognivern should demo:
 - vendor or destination allowlists
 - chain restrictions
 - high-value approval holds
+- low-value auto-approval with signed spend authorizations
 - policy denials with human-readable reasons
 - audit-log and run-ledger views for every attempted spend
 
@@ -83,8 +88,8 @@ Recommended demo narrative:
 1. Create an OWS wallet for a team treasury.
 2. Issue separate scoped credentials to multiple agents.
 3. Have an agent attempt a paid action.
-4. Evaluate the action against Cognivern policy.
-5. Auto-approve low-risk spend and block or hold risky spend.
+4. Route the spend through `/api/spend` and evaluate it against Cognivern policy.
+5. Auto-approve low-risk spend, hold mid-risk spend for approval, and block high-risk spend.
 6. Show the resulting run, audit evidence, and operator dashboard in Cognivern.
 
 This aligns directly with the hackathon's `SpendOS for teams` and `Audit log forensics` opportunities.
@@ -112,8 +117,8 @@ Create `.env` with the values required by the current codebase.
 
 Important:
 
-- some signer-based settings still exist because the OWS migration is not complete
-- those legacy signer env vars should be treated as temporary compatibility settings, not the final wallet model
+- local signing still uses a compatibility signer env var for development
+- that compatibility signer is used to produce signed spend authorizations while the broader OWS wallet integration continues
 
 Example:
 
@@ -158,6 +163,14 @@ curl -X POST http://localhost:3000/ingest/runs \
 - `GET /api/governance/policies`
 - `POST /api/governance/policies`
 - `POST /api/governance/evaluate`
+- `POST /api/ows/bootstrap`
+- `GET /api/ows/status`
+- `GET /api/ows/wallets`
+- `POST /api/ows/wallets/import`
+- `GET /api/ows/api-keys`
+- `POST /api/ows/api-keys`
+- `POST /api/spend`
+- `GET /api/spend/status`
 - `GET /api/audit/logs`
 - `GET /api/audit/insights`
 - `GET /api/projects`
@@ -176,8 +189,8 @@ curl -X POST http://localhost:3000/ingest/runs \
 
 This repository is being aggressively retargeted for the OWS Hackathon.
 
-The policy, audit, ingestion, and control-plane pieces are real today.
-The wallet layer is the main migration in flight.
+The spend control plane is live today: policy evaluation, signed approvals, held actions, denials, and persisted run evidence.
+The remaining work is widening the OWS wallet integration beyond the current local signer-backed execution path.
 
 ## License
 

@@ -322,15 +322,15 @@ export default function ExternalAgentIntegration() {
           <div className="banner-content">
             <div className="banner-icon">🔒</div>
             <div className="banner-text">
-              <h3>OWS Wallet Layer In Progress</h3>
+              <h3>No OWS Wallet Configured</h3>
               <p>
-                This demo shell is ready for scoped agents, policies, and audit
-                review. The OWS execution path is the parallel workstream now
-                being wired in.
+                Cognivern now expects an OWS local vault and delegated API keys
+                for spend execution. Bootstrap a wallet to enable live governed
+                spend from this workspace.
               </p>
             </div>
             <button className="connect-wallet-button" disabled>
-              Wallet Path Pending
+              Bootstrap Required
             </button>
           </div>
         </div>

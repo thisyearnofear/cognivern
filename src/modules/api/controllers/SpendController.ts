@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { owsWalletService, SpendIntent } from "../../../services/OwsWalletService.js";
+import {
+  owsWalletService,
+  SpendIntent,
+} from "../../../services/OwsWalletService.js";
 import crypto from "node:crypto";
 
 const spendIntentSchema = z.object({
@@ -23,7 +26,7 @@ export class SpendController {
         res.status(400).json({
           success: false,
           error: "Invalid spend intent payload",
-          details: parse.error.format()
+          details: parse.error.format(),
         });
         return;
       }
@@ -36,22 +39,34 @@ export class SpendController {
         amount: parse.data.amount,
         asset: parse.data.asset,
         reason: parse.data.reason,
-        metadata: parse.data.metadata
+        metadata: parse.data.metadata,
       };
 
-      const result = await owsWalletService.executeSpend(intent);
+      const owsScopedAccess = req.headers["x-ows-scoped-access"] as
+        | string
+        | undefined;
+      const walletId =
+        typeof parse.data.metadata?.walletId === "string"
+          ? parse.data.metadata.walletId
+          : undefined;
 
+      const result = await owsWalletService.executeSpend(intent, {
+        apiKeyToken: owsScopedAccess,
+        walletId,
+      });
       res.json({
         success: true,
         data: result,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-
     } catch (error) {
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown spend execution error",
-        timestamp: new Date().toISOString()
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unknown spend execution error",
+        timestamp: new Date().toISOString(),
       });
     }
   }
@@ -60,15 +75,11 @@ export class SpendController {
    * Get current execution layer status
    */
   async getStatus(req: Request, res: Response) {
+    const status = await owsWalletService.getStatus();
     res.json({
       success: true,
-      data: {
-        layer: "SpendOS",
-        status: "active",
-        provider: "OWS Wallet Abstraction",
-        features: ["pre-sign-policies", "held-action-review", "scoped-access"]
-      },
-      timestamp: new Date().toISOString()
+      data: status,
+      timestamp: new Date().toISOString(),
     });
   }
 }

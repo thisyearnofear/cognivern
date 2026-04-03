@@ -174,6 +174,51 @@ export class CreRunRecorder {
     });
   }
 
+  async pauseForApproval(
+    reason: string,
+    pendingAction?: string,
+    details?: Record<string, unknown>,
+  ) {
+    this.run.finishedAt = undefined;
+    this.run.ok = false;
+    this.run.status = "paused_for_approval";
+    this.run.requiresApproval = true;
+    this.run.approvalState = "pending";
+    this.run.approvalReason = reason;
+    this.run.currentStepName = undefined;
+    this.run.controls = {
+      canCancel: true,
+      canRetry: false,
+      canApprove: true,
+    };
+    this.run.metrics = {
+      latencyMs: Math.max(
+        0,
+        Date.now() - new Date(this.run.startedAt).getTime(),
+      ),
+      stepCount: this.run.steps.length,
+      artifactCount: this.run.artifacts.length,
+    };
+
+    const summaryToSign = {
+      runId: this.run.runId,
+      ok: this.run.ok,
+      status: this.run.status,
+      approvalState: this.run.approvalState,
+      approvalReason: reason,
+      metrics: this.run.metrics,
+      artifactHashes: this.run.artifacts.map((artifact) => artifact.evidence?.hash),
+    };
+
+    this.run.evidence = await this.signEvidence(summaryToSign);
+
+    this.pushEvent("run_paused_for_approval", {
+      reason,
+      pendingAction,
+      ...details,
+    });
+  }
+
   getRun(): CreRun {
     return this.run;
   }

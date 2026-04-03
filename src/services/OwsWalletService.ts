@@ -1,10 +1,16 @@
 import logger from "../utils/logger.js";
 import { PolicyEnforcementService } from "./PolicyEnforcementService.js";
-import { PolicyService } from "./PolicyService.js";
+import { Policy, PolicyRule } from "../types/Policy.js";
+import { PolicyService, sharedPolicyService } from "./PolicyService.js";
 import { CreRunRecorder } from "../cre/runRecorder.js";
+import { creRunStore } from "../cre/storage/CreRunStore.js";
+import { enrichCreRunEvidence } from "../shared/utils/evidence.js";
 import { AgentAction } from "../types/Agent.js";
 import { ethers } from "ethers";
-import crypto from "node:crypto";
+import {
+  owsLocalVaultService,
+  OwsResolvedAccess,
+} from "./OwsLocalVaultService.js";
 
 export interface SpendIntent {
   id: string;
@@ -19,161 +25,496 @@ export interface SpendIntent {
 
 export interface ExecutionResult {
   intentId: string;
+  runId?: string;
   status: "approved" | "held" | "denied";
+  policyId?: string;
+  walletId?: string;
+  walletAddress?: string;
+  apiKeyId?: string;
   txHash?: string;
+  signature?: string;
   error?: string;
   reason?: string;
 }
 
+export interface SpendExecutionContext {
+  apiKeyToken?: string | null;
+  walletId?: string;
+}
+
 export class OwsWalletService {
+  private policyService: PolicyService;
   private policyEnforcement: PolicyEnforcementService;
-  private signer?: ethers.Signer;
-  private connected: boolean = false;
-  private walletAddress?: string;
 
   constructor(policyService?: PolicyService) {
-    this.policyEnforcement = new PolicyEnforcementService(policyService);
+    this.policyService = policyService || sharedPolicyService;
+    this.policyEnforcement = new PolicyEnforcementService(this.policyService);
+  }
 
-    const pk = process.env.FILECOIN_PRIVATE_KEY;
-    if (pk) {
-      this.signer = new ethers.Wallet(pk);
-      this.signer.getAddress().then(addr => {
-        this.walletAddress = addr;
-        this.connected = true;
-        logger.info(`SpendOS Execution Layer active for wallet: ${addr}`);
-      });
-    }
+  /**
+   * Initialize the wallet service by ensuring a bootstrap wallet exists
+   */
+  public async initialize(): Promise<void> {
+    await owsLocalVaultService.ensureBootstrapWallet();
   }
 
   /**
    * Request scoped access for an agent
    */
-  public async getScopedAccess(agentId: string, scope: string[]): Promise<boolean> {
-    logger.info(`Requesting scoped access for agent ${agentId}: ${scope.join(", ")}`);
-    // In a real OWS implementation, this would negotiate permissions with the wallet
-    return true;
+  public async getScopedAccess(
+    agentId: string,
+    scope: string[],
+  ): Promise<boolean> {
+    logger.info(
+      `Requesting scoped access for agent ${agentId}: ${scope.join(", ")}`,
+    );
+    const wallets = await owsLocalVaultService.listWallets();
+    if (wallets.length === 0) {
+      await owsLocalVaultService.ensureBootstrapWallet();
+    }
+    return (await owsLocalVaultService.listWallets()).length > 0;
   }
 
   /**
    * Execute a spend intent with pre-sign policy checks
    */
-  public async executeSpend(intent: SpendIntent): Promise<ExecutionResult> {
+  public async executeSpend(
+    intent: SpendIntent,
+    context: SpendExecutionContext = {},
+  ): Promise<ExecutionResult> {
+    const access = await this.resolveAccess(intent, context);
     const recorder = new CreRunRecorder({
-      workflow: "governance",
-      mode: "cre",
-      signer: this.signer,
+      workflow: "spend",
+      mode: access ? "cre" : "local",
     });
 
     try {
-      logger.info(`SpendOS: Evaluating intent ${intent.id} from agent ${intent.agentId}`);
+      logger.info(
+        `SpendOS: Evaluating intent ${intent.id} from agent ${intent.agentId}`,
+      );
 
-      const step = recorder.startStep("compute", "policy_evaluation", { intent });
+      await recorder.addArtifact({
+        type: "spend_intent",
+        data: intent,
+      });
 
-      // 1. Map intent to AgentAction for policy engine
-      const action: AgentAction = {
-        id: intent.id,
-        timestamp: intent.timestamp,
-        type: "spend",
-        description: intent.reason,
-        metadata: {
-          agentId: intent.agentId,
-          amount: intent.amount,
-          asset: intent.asset,
-          recipient: intent.recipient,
-          ...intent.metadata
-        },
-        policyChecks: []
-      };
+      const step = recorder.startStep("compute", "policy_evaluation", {
+        intent,
+      });
 
-      // 2. Load and evaluate policy
-      // For the hackathon, we assume a default "spend-limit" policy is active
-      const activePolicyId = process.env.ACTIVE_SPEND_POLICY || "default-spend-policy";
+      const action = this.toAgentAction(intent);
+      const activePolicy = await this.resolveActiveSpendPolicy(
+        access?.apiKey?.policyIds?.[0] ||
+          (typeof intent.metadata?.policyId === "string"
+            ? intent.metadata.policyId
+            : undefined),
+      );
+      if (!activePolicy) {
+        step.end({ ok: false, summary: "No active spend policy available" });
+        return await this.handleHold(
+          intent,
+          recorder,
+          "No active spend policy is available. Held for manual review.",
+          undefined,
+          access,
+        );
+      }
 
-      let allowed = false;
-      let policyChecks: any[] = [];
-
+      let policyChecks: AgentAction["policyChecks"] = [];
       try {
-        await this.policyEnforcement.loadPolicy(activePolicyId);
+        await this.policyEnforcement.loadPolicy(activePolicy.id);
         const decision = await this.policyEnforcement.evaluateDecision(action);
-        allowed = decision.allowed;
         policyChecks = decision.policyChecks;
       } catch (e) {
-        logger.warn(`Policy evaluation skipped or failed: ${e instanceof Error ? e.message : "unknown"}. Defaulting to HOLD.`);
-        // If no policy is found, we don't auto-deny, we HOLD for human review
-        return await this.handleHold(intent, recorder, "No active policy found. Held for manual review.");
+        step.end({ ok: false, summary: "Policy evaluation failed" });
+        logger.warn(
+          `Policy evaluation failed: ${e instanceof Error ? e.message : "unknown"}`,
+        );
+        return await this.handleHold(
+          intent,
+          recorder,
+          `Policy evaluation failed for ${activePolicy.id}. Held for manual review.`,
+          activePolicy.id,
+          access,
+        );
       }
 
-      step.end({ ok: allowed, summary: allowed ? "Policy approved" : "Policy denied" });
+      const decision = this.classifyDecision(activePolicy, policyChecks);
+      const failedChecks = policyChecks.filter((check) => !check.result);
+      step.end({
+        ok: decision.status === "approved",
+        summary:
+          decision.status === "approved"
+            ? `Policy ${activePolicy.id} approved spend`
+            : decision.reason || `Policy ${activePolicy.id} blocked spend`,
+        details: {
+          policyId: activePolicy.id,
+          failedChecks: failedChecks.map((check) => ({
+            policyId: check.policyId,
+            reason: check.reason,
+          })),
+        },
+      });
 
-      if (!allowed) {
-        return await this.handleDeny(intent, recorder, policyChecks);
+      if (decision.status === "denied") {
+        return await this.handleDeny(
+          intent,
+          recorder,
+          decision.reason || "Policy violation",
+          policyChecks,
+          activePolicy.id,
+          access,
+        );
       }
 
-      // 3. Execute Transaction
-      return await this.handleApprove(intent, recorder);
+      if (decision.status === "held") {
+        return await this.handleHold(
+          intent,
+          recorder,
+          decision.reason || "Spend requires manual review.",
+          activePolicy.id,
+          access,
+        );
+      }
 
+      return await this.handleApprove(
+        intent,
+        recorder,
+        activePolicy.id,
+        access,
+        context.apiKeyToken,
+      );
     } catch (error) {
-      const errMsg = error instanceof Error ? error.message : "Unknown execution error";
+      const errMsg =
+        error instanceof Error ? error.message : "Unknown execution error";
       logger.error(`SpendOS execution failed: ${errMsg}`);
       await recorder.finish(false);
+      await this.persistRun(recorder);
       return {
         intentId: intent.id,
         status: "denied",
-        error: errMsg
+        error: errMsg,
       };
     }
   }
 
-  private async handleApprove(intent: SpendIntent, recorder: CreRunRecorder): Promise<ExecutionResult> {
+  private async handleApprove(
+    intent: SpendIntent,
+    recorder: CreRunRecorder,
+    policyId: string,
+    access?: OwsResolvedAccess | null,
+    apiKeyToken?: string | null,
+  ): Promise<ExecutionResult> {
     const s = recorder.startStep("evm_write", "wallet_sign_and_broadcast");
 
-    // Simulate real signing
-    const txHash = `0x${crypto.randomBytes(32).toString("hex")}`;
+    if (!access) {
+      s.end({ ok: false, summary: "Wallet unavailable for signing" });
+      return await this.handleHold(
+        intent,
+        recorder,
+        "Wallet access is not authorized. Spend held until a valid OWS API key is provided.",
+        policyId,
+        access,
+      );
+    }
+
+    const spendEnvelope = {
+      intentId: intent.id,
+      agentId: intent.agentId,
+      recipient: intent.recipient,
+      amount: intent.amount,
+      asset: intent.asset,
+      reason: intent.reason,
+      metadata: intent.metadata || {},
+      walletId: access.wallet.id,
+      walletAddress: access.wallet.accounts[0]?.address,
+      apiKeyId: access.apiKey?.id,
+    };
+    const payload = JSON.stringify(spendEnvelope);
+    const { signature, signer } = await owsLocalVaultService.signMessage({
+      walletId: access.wallet.id,
+      message: payload,
+      apiKeyToken,
+    });
+    const txHash = ethers.keccak256(ethers.toUtf8Bytes(signature));
 
     await recorder.addArtifact({
       type: "attestation_result",
-      data: { txHash, intentId: intent.id, status: "approved" }
+      data: {
+        txHash,
+        signature,
+        intentId: intent.id,
+        policyId,
+        walletId: access.wallet.id,
+        walletAddress: signer,
+        apiKeyId: access.apiKey?.id,
+        status: "approved",
+      },
     });
 
-    s.end({ ok: true, summary: `Transaction broadcast: ${txHash}` });
+    s.end({ ok: true, summary: `Signed spend authorization: ${txHash}` });
     await recorder.finish(true);
+    const run = await this.persistRun(recorder);
 
     return {
       intentId: intent.id,
+      runId: run.runId,
       status: "approved",
-      txHash
+      policyId,
+      walletId: access.wallet.id,
+      walletAddress: signer,
+      apiKeyId: access.apiKey?.id,
+      txHash,
+      signature,
     };
   }
 
-  private async handleHold(intent: SpendIntent, recorder: CreRunRecorder, reason: string): Promise<ExecutionResult> {
+  private async handleHold(
+    intent: SpendIntent,
+    recorder: CreRunRecorder,
+    reason: string,
+    policyId?: string,
+    access?: OwsResolvedAccess | null,
+  ): Promise<ExecutionResult> {
     await recorder.addArtifact({
       type: "error",
-      data: { intentId: intent.id, status: "held", reason }
+      data: {
+        intentId: intent.id,
+        status: "held",
+        reason,
+        policyId,
+        walletId: access?.wallet.id,
+        walletAddress: access?.wallet.accounts[0]?.address,
+        apiKeyId: access?.apiKey?.id,
+      },
     });
 
-    // We finish the run as "ok" because the governance process itself succeeded in catching the intent
-    await recorder.finish(true);
+    await recorder.pauseForApproval(reason, "wallet_sign_and_broadcast", {
+      intentId: intent.id,
+      policyId,
+    });
+    const run = await this.persistRun(recorder);
 
     return {
       intentId: intent.id,
+      runId: run.runId,
       status: "held",
-      reason
+      policyId,
+      walletId: access?.wallet.id,
+      walletAddress: access?.wallet.accounts[0]?.address,
+      apiKeyId: access?.apiKey?.id,
+      reason,
     };
   }
 
-  private async handleDeny(intent: SpendIntent, recorder: CreRunRecorder, checks: any[]): Promise<ExecutionResult> {
+  private async handleDeny(
+    intent: SpendIntent,
+    recorder: CreRunRecorder,
+    reason: string,
+    checks: AgentAction["policyChecks"],
+    policyId?: string,
+    access?: OwsResolvedAccess | null,
+  ): Promise<ExecutionResult> {
     await recorder.addArtifact({
       type: "error",
-      data: { intentId: intent.id, status: "denied", policyChecks: checks }
+      data: {
+        intentId: intent.id,
+        status: "denied",
+        reason,
+        policyId,
+        walletId: access?.wallet.id,
+        walletAddress: access?.wallet.accounts[0]?.address,
+        apiKeyId: access?.apiKey?.id,
+        policyChecks: checks,
+      },
     });
 
     await recorder.finish(false);
+    const run = await this.persistRun(recorder);
 
     return {
       intentId: intent.id,
+      runId: run.runId,
       status: "denied",
-      reason: "Policy violation"
+      policyId,
+      walletId: access?.wallet.id,
+      walletAddress: access?.wallet.accounts[0]?.address,
+      apiKeyId: access?.apiKey?.id,
+      reason,
     };
+  }
+
+  public async getStatus() {
+    await owsLocalVaultService.ensureBootstrapWallet();
+    const vaultStatus = await owsLocalVaultService.getStatus();
+    const activePolicy = await this.resolveActiveSpendPolicy();
+    return {
+      layer: "SpendOS",
+      status: vaultStatus.walletCount > 0 ? "active" : "unconfigured",
+      provider: vaultStatus.provider,
+      walletConnected: vaultStatus.walletCount > 0,
+      walletAddress: vaultStatus.wallets[0]?.accounts[0]?.address || null,
+      walletId: vaultStatus.wallets[0]?.id || null,
+      apiKeyCount: vaultStatus.apiKeyCount,
+      activePolicyId: activePolicy?.id || null,
+      activePolicyName: activePolicy?.name || null,
+      features: [
+        "encrypted-local-wallet-storage",
+        "delegated-api-keys",
+        "pre-sign-policies",
+        "held-action-review",
+        "scoped-access",
+        "run-ledger-persistence",
+      ],
+    };
+  }
+
+  private toAgentAction(intent: SpendIntent): AgentAction {
+    const amountValue = Number(intent.amount);
+    const metadata = {
+      ...(intent.metadata || {}),
+      agentId: intent.agentId,
+      amount: intent.amount,
+      amountValue: Number.isFinite(amountValue) ? amountValue : 0,
+      amountUsd: this.resolveAmountUsd(intent, amountValue),
+      asset: intent.asset,
+      recipient: intent.recipient,
+    };
+
+    return {
+      id: intent.id,
+      timestamp: intent.timestamp,
+      type: "spend",
+      description: intent.reason,
+      metadata,
+      policyChecks: [],
+    };
+  }
+
+  private resolveAmountUsd(intent: SpendIntent, amountValue: number): number {
+    const metadataAmountUsd = Number(intent.metadata?.amountUsd);
+    if (Number.isFinite(metadataAmountUsd)) {
+      return metadataAmountUsd;
+    }
+
+    if (["USD", "USDC", "USDT"].includes(intent.asset.toUpperCase())) {
+      return Number.isFinite(amountValue) ? amountValue : 0;
+    }
+
+    return Number.isFinite(amountValue) ? amountValue : 0;
+  }
+
+  private async resolveActiveSpendPolicy(
+    explicitPolicyId?: string,
+  ): Promise<Policy | null> {
+    const requestedPolicyId =
+      explicitPolicyId || process.env.ACTIVE_SPEND_POLICY;
+    if (requestedPolicyId) {
+      const explicitPolicy =
+        await this.policyService.getPolicy(requestedPolicyId);
+      if (explicitPolicy?.status === "active") {
+        return explicitPolicy;
+      }
+    }
+
+    const policies = await this.policyService.listPolicies();
+    const activePolicies = policies.filter(
+      (policy) => policy.status === "active" && policy.rules.length > 0,
+    );
+    const spendPolicy =
+      activePolicies.find(
+        (policy) =>
+          String(policy.metadata?.category || "").toLowerCase() === "spend",
+      ) ||
+      activePolicies.find((policy) => policy.id === "spend-governance-policy");
+
+    if (spendPolicy) {
+      return spendPolicy;
+    }
+
+    return (
+      activePolicies.sort(
+        (left, right) =>
+          new Date(right.updatedAt).getTime() -
+          new Date(left.updatedAt).getTime(),
+      )[0] || null
+    );
+  }
+
+  private classifyDecision(
+    policy: Policy,
+    checks: AgentAction["policyChecks"],
+  ): { status: ExecutionResult["status"]; reason?: string } {
+    const failedChecks = checks.filter((check) => !check.result);
+    if (failedChecks.length === 0) {
+      return { status: "approved" };
+    }
+
+    const failedRules = failedChecks
+      .map((check) => ({
+        check,
+        rule: policy.rules.find((rule) => rule.id === check.policyId),
+      }))
+      .filter(
+        (
+          value,
+        ): value is {
+          check: AgentAction["policyChecks"][number];
+          rule: PolicyRule;
+        } => Boolean(value.rule),
+      );
+
+    const denyRules = failedRules.filter(
+      ({ rule }) => String(rule.type).toLowerCase() === "deny",
+    );
+    if (denyRules.length > 0) {
+      return {
+        status: "denied",
+        reason: denyRules
+          .map(
+            ({ check, rule }) =>
+              check.reason ||
+              String(
+                rule.action?.parameters?.reason ||
+                  `${rule.id} denied the spend`,
+              ),
+          )
+          .join("; "),
+      };
+    }
+
+    return {
+      status: "held",
+      reason: failedRules
+        .map(
+          ({ check, rule }) =>
+            check.reason ||
+            String(
+              rule.action?.parameters?.reason || `${rule.id} requires review`,
+            ),
+        )
+        .join("; "),
+    };
+  }
+
+  private async persistRun(recorder: CreRunRecorder) {
+    const run = enrichCreRunEvidence(recorder.getRun());
+    await creRunStore.replace(run);
+    return run;
+  }
+
+  private async resolveAccess(
+    intent: SpendIntent,
+    context: SpendExecutionContext,
+  ) {
+    return owsLocalVaultService.resolveAccess({
+      walletId:
+        context.walletId ||
+        (typeof intent.metadata?.walletId === "string"
+          ? intent.metadata.walletId
+          : undefined),
+      apiKeyToken: context.apiKeyToken,
+    });
   }
 }
 
