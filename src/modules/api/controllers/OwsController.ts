@@ -40,6 +40,37 @@ export class OwsController {
     });
   }
 
+  async connectExternalWallet(req: Request, res: Response) {
+    const externalUrl = req.body?.url || process.env.OWS_EXTERNAL_WALLET_URL;
+
+    if (!externalUrl) {
+      res.status(400).json({
+        success: false,
+        error: "External wallet URL required",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const wallet =
+      await owsLocalVaultService.connectToExternalWallet(externalUrl);
+
+    if (!wallet) {
+      res.status(500).json({
+        success: false,
+        error: "Failed to connect to external wallet",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: wallet,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   async bootstrap(req: Request, res: Response) {
     const wallet = await owsLocalVaultService.ensureBootstrapWallet();
     if (!wallet) {

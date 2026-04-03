@@ -48,6 +48,7 @@ It evaluates proposed agent actions, records audit evidence, and gives operators
 ## What Is Live Today
 
 - live OWS wallet bootstrap into encrypted local storage via `/api/ows/bootstrap`
+- live external OWS wallet connection via `/api/ows/wallets/connect`
 - live delegated OWS API-key issuance via `/api/ows/api-keys`
 - live ERC-7715 permissions request flow via `/api/ows/permissions`
 - live policy creation via `/api/governance/policies`
@@ -55,6 +56,7 @@ It evaluates proposed agent actions, records audit evidence, and gives operators
 - live execution-layer status via `/api/spend/status`
 - live audit views via `/api/audit/logs`
 - live run-ledger views via `/api/cre/runs`
+- support for external OWS wallet signing (env: `OWS_EXTERNAL_WALLET_URL`)
 
 ## Demo
 

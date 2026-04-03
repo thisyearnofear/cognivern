@@ -112,9 +112,16 @@ export class OwsLocalVaultService {
     const bootstrapPrivateKey =
       process.env.OWS_BOOTSTRAP_PRIVATE_KEY ||
       process.env.FILECOIN_PRIVATE_KEY ||
+      process.env.OWS_EXTERNAL_WALLET_PRIVATE_KEY ||
       "0x3d7b01cb241e1184d7401224e2bfcf12447cc2d50b1e1968c073180ce42cbb0d";
     if (!bootstrapPrivateKey) {
       return null;
+    }
+
+    // Check if we should connect to an external OWS wallet instead
+    const externalWalletUrl = process.env.OWS_EXTERNAL_WALLET_URL;
+    if (externalWalletUrl) {
+      return this.connectToExternalWallet(externalWalletUrl);
     }
 
     return this.importWallet({
@@ -435,6 +442,115 @@ export class OwsLocalVaultService {
       }
     }
     return allPermissions;
+  }
+
+  async connectToExternalWallet(
+    url: string,
+  ): Promise<OwsWalletDescriptor | null> {
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`External wallet API returned ${response.status}`);
+      }
+
+      const data = (await response.json()) as {
+        wallet?: {
+          address: string;
+          chainId?: string;
+          name?: string;
+        };
+        error?: string;
+      };
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data.wallet?.address) {
+        throw new Error("External wallet did not return wallet address");
+      }
+
+      // Import the external wallet into our local vault for policy control
+      // The external wallet provides the address, we need to handle signing remotely
+      const walletAddress = data.wallet.address;
+      const chainId = data.wallet.chainId || "eip155:314159";
+
+      return {
+        id: `external-${walletAddress.toLowerCase()}`,
+        name: data.wallet.name || "External OWS Wallet",
+        createdAt: nowIso(),
+        chainType: "evm",
+        accounts: [
+          {
+            accountId: `${chainId}:${walletAddress}`,
+            address: walletAddress,
+            derivationPath: "m/44'/60'/0'/0/0",
+            chainId,
+          },
+        ],
+        metadata: {
+          externalSource: url,
+          bootstrapSource: "external",
+        },
+      };
+    } catch (error) {
+      console.error("[OWS] Failed to connect to external wallet:", error);
+      return null;
+    }
+  }
+
+  async signWithExternalWallet(params: {
+    walletId: string;
+    message: string;
+  }): Promise<{ signature: string; signer: string } | null> {
+    const vault = this.readVault();
+    const wallet = vault.wallets.find((w) => w.id === params.walletId);
+
+    if (!wallet || !wallet.metadata?.externalSource) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(wallet.metadata.externalSource as string, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "sign",
+          address: wallet.accounts[0]?.address,
+          message: params.message,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`External wallet sign returned ${response.status}`);
+      }
+
+      const data = (await response.json()) as {
+        signature?: string;
+        signer?: string;
+        error?: string;
+      };
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      return {
+        signature: data.signature || "",
+        signer: data.signer || wallet.accounts[0]?.address || "",
+      };
+    } catch (error) {
+      console.error("[OWS] Failed to sign with external wallet:", error);
+      return null;
+    }
   }
 }
 
