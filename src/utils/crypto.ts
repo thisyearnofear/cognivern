@@ -131,4 +131,17 @@ export class CryptoUtils {
   static generateEncryptionKey(): string {
     return ethers.hexlify(ethers.randomBytes(32));
   }
+
+  /**
+   * Signs a message with an ethers Signer
+   */
+  static async sign(message: string, signer: ethers.Signer): Promise<string> {
+    try {
+      return await signer.signMessage(message);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Unknown error during signing";
+      throw new Error(`Signing failed: ${message}`);
+    }
+  }
 }

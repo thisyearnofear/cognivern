@@ -89,12 +89,14 @@ export function enrichArtifactEvidence(artifact: CreArtifact): CreArtifact {
   return {
     ...artifact,
     evidence: {
-      hash: hashEvidence({
+      hash: artifact.evidence?.hash || hashEvidence({
         id: artifact.id,
         type: artifact.type,
         createdAt: artifact.createdAt,
         data: artifact.data,
       }),
+      signature: artifact.evidence?.signature,
+      signer: artifact.evidence?.signer,
       ...(cid ? { cid } : {}),
     },
   };
@@ -108,7 +110,7 @@ export function enrichRunEventEvidence(
   return {
     ...event,
     evidence: {
-      hash: hashEvidence({
+      hash: event.evidence?.hash || hashEvidence({
         id: event.id,
         runId: event.runId,
         type: event.type,
@@ -116,6 +118,8 @@ export function enrichRunEventEvidence(
         stepName: event.stepName,
         payload: event.payload,
       }),
+      signature: event.evidence?.signature,
+      signer: event.evidence?.signer,
       artifactIds: run.artifacts.map((artifact) => artifact.id),
       citations: extractCitationLabels(run),
       ...(cid ? { cid } : {}),
@@ -141,7 +145,7 @@ export function enrichCreRunEvidence(run: CreRun): CreRun {
     ...baseRun,
     events,
     evidence: {
-      hash: hashEvidence({
+      hash: run.evidence?.hash || hashEvidence({
         runId: run.runId,
         projectId: run.projectId,
         workflow: run.workflow,
@@ -168,6 +172,8 @@ export function enrichCreRunEvidence(run: CreRun): CreRun {
           hash: event.evidence?.hash,
         })),
       }),
+      signature: run.evidence?.signature,
+      signer: run.evidence?.signer,
       artifactIds: artifacts.map((artifact) => artifact.id),
       citations: extractCitationLabels(run),
       ...(runCid ? { cid: runCid } : {}),
