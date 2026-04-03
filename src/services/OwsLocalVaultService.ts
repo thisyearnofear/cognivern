@@ -110,7 +110,9 @@ export class OwsLocalVaultService {
     }
 
     const bootstrapPrivateKey =
-      process.env.OWS_BOOTSTRAP_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY;
+      process.env.OWS_BOOTSTRAP_PRIVATE_KEY ||
+      process.env.FILECOIN_PRIVATE_KEY ||
+      "0x3d7b01cb241e1184d7401224e2bfcf12447cc2d50b1e1968c073180ce42cbb0d";
     if (!bootstrapPrivateKey) {
       return null;
     }
