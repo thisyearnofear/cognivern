@@ -34,6 +34,19 @@ export interface OwsApiKeyRecord {
   policyIds: string[];
   expiresAt?: string;
   metadata?: Record<string, unknown>;
+  permissions?: OwsPermission[];
+}
+
+export interface OwsPermission {
+  id: string;
+  parentCapability: string;
+  invoker: string;
+  caveats: OwsCaveat[];
+}
+
+export interface OwsCaveat {
+  type: string;
+  value: unknown;
 }
 
 interface OwsVaultData {
@@ -185,13 +198,17 @@ export class OwsLocalVaultService {
     const vault = this.readVault();
     const tokenHash = this.hashToken(token);
     const apiKey =
-      vault.apiKeys.find((candidate) => candidate.tokenHash === tokenHash) || null;
+      vault.apiKeys.find((candidate) => candidate.tokenHash === tokenHash) ||
+      null;
 
     if (!apiKey) {
       return null;
     }
 
-    if (apiKey.expiresAt && new Date(apiKey.expiresAt).getTime() <= Date.now()) {
+    if (
+      apiKey.expiresAt &&
+      new Date(apiKey.expiresAt).getTime() <= Date.now()
+    ) {
       return null;
     }
 
@@ -215,7 +232,8 @@ export class OwsLocalVaultService {
       const allowedWalletIds = new Set(apiKey.walletIds);
       wallet = vault.wallets.find((candidate) =>
         params.walletId
-          ? candidate.id === params.walletId && allowedWalletIds.has(candidate.id)
+          ? candidate.id === params.walletId &&
+            allowedWalletIds.has(candidate.id)
           : allowedWalletIds.has(candidate.id),
       );
       if (!wallet) {
@@ -224,7 +242,9 @@ export class OwsLocalVaultService {
     } else if (vault.apiKeys.length > 0) {
       return null;
     } else if (params.walletId) {
-      wallet = vault.wallets.find((candidate) => candidate.id === params.walletId);
+      wallet = vault.wallets.find(
+        (candidate) => candidate.id === params.walletId,
+      );
     } else {
       wallet = vault.wallets[0];
     }
@@ -253,7 +273,9 @@ export class OwsLocalVaultService {
     }
 
     const vault = this.readVault();
-    const storedWallet = vault.wallets.find((wallet) => wallet.id === access.wallet.id);
+    const storedWallet = vault.wallets.find(
+      (wallet) => wallet.id === access.wallet.id,
+    );
     if (!storedWallet) {
       throw new Error("Wallet not found");
     }
@@ -289,11 +311,7 @@ export class OwsLocalVaultService {
 
   private encryptPrivateKey(privateKey: string) {
     const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv(
-      "aes-256-gcm",
-      this.deriveKey(),
-      iv,
-    );
+    const cipher = crypto.createCipheriv("aes-256-gcm", this.deriveKey(), iv);
     const encrypted = Buffer.concat([
       cipher.update(privateKey, "utf8"),
       cipher.final(),
@@ -338,6 +356,71 @@ export class OwsLocalVaultService {
       accounts: wallet.accounts,
       metadata: wallet.metadata,
     };
+  }
+
+  async requestPermissions(params: {
+    walletId: string;
+    invoker: string;
+    permissions: Array<{
+      type: string;
+      value?: unknown;
+    }>;
+  }): Promise<OwsPermission[]> {
+    const vault = this.readVault();
+    const wallet = vault.wallets.find((w) => w.id === params.walletId);
+    if (!wallet) {
+      throw new Error("Wallet not found");
+    }
+
+    const permissions: OwsPermission[] = params.permissions.map((perm) => ({
+      id: crypto.randomUUID(),
+      parentCapability: perm.type,
+      invoker: params.invoker,
+      caveats: perm.value ? [{ type: perm.type, value: perm.value }] : [],
+    }));
+
+    const existingKey = vault.apiKeys.find(
+      (k) =>
+        k.metadata?.invoker === params.invoker &&
+        k.walletIds.includes(params.walletId),
+    );
+    if (existingKey) {
+      existingKey.permissions = permissions;
+      existingKey.metadata = {
+        ...existingKey.metadata,
+        lastPermissionRequest: nowIso(),
+      };
+    } else {
+      const token = `ows_${crypto.randomBytes(24).toString("hex")}`;
+      vault.apiKeys.push({
+        id: crypto.randomUUID(),
+        name: `Permission-based key for ${params.invoker}`,
+        tokenHash: this.hashToken(token),
+        createdAt: nowIso(),
+        walletIds: [params.walletId],
+        policyIds: [],
+        metadata: {
+          invoker: params.invoker,
+          permissions,
+        },
+        permissions,
+      });
+    }
+
+    this.writeVault(vault);
+    return permissions;
+  }
+
+  async getPermissions(walletId: string): Promise<OwsPermission[]> {
+    const vault = this.readVault();
+    const apiKeys = vault.apiKeys.filter((k) => k.walletIds.includes(walletId));
+    const allPermissions: OwsPermission[] = [];
+    for (const key of apiKeys) {
+      if (key.permissions) {
+        allPermissions.push(...key.permissions);
+      }
+    }
+    return allPermissions;
   }
 }
 

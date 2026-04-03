@@ -19,6 +19,17 @@ const createApiKeySchema = z.object({
   metadata: z.record(z.any()).optional(),
 });
 
+const requestPermissionsSchema = z.object({
+  walletId: z.string().min(1),
+  invoker: z.string().min(1),
+  permissions: z.array(
+    z.object({
+      type: z.string().min(1),
+      value: z.unknown().optional(),
+    }),
+  ),
+});
+
 export class OwsController {
   async getStatus(req: Request, res: Response) {
     const status = await owsLocalVaultService.getStatus();
@@ -114,6 +125,53 @@ export class OwsController {
     res.status(201).json({
       success: true,
       data: apiKey,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  async requestPermissions(req: Request, res: Response) {
+    const parse = requestPermissionsSchema.safeParse(req.body || {});
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid permissions request payload",
+        details: parse.error.format(),
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const permissions = await owsLocalVaultService.requestPermissions({
+      walletId: parse.data.walletId,
+      invoker: parse.data.invoker,
+      permissions: parse.data.permissions.map((p) => ({
+        type: p.type,
+        value: p.value,
+      })),
+    });
+
+    res.json({
+      success: true,
+      data: { permissions },
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  async getPermissions(req: Request, res: Response) {
+    const walletId = req.params.walletId;
+    if (!walletId) {
+      res.status(400).json({
+        success: false,
+        error: "walletId parameter required",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const permissions = await owsLocalVaultService.getPermissions(walletId);
+    res.json({
+      success: true,
+      data: { permissions },
       timestamp: new Date().toISOString(),
     });
   }
