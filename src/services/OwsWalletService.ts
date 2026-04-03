@@ -187,6 +187,11 @@ export class OwsWalletService {
     } catch (error) {
       const errMsg =
         error instanceof Error ? error.message : "Unknown execution error";
+      console.log(
+        "[OWS] executeSpend CATCH:",
+        errMsg,
+        error instanceof Error ? error.stack : "",
+      );
       logger.error(`SpendOS execution failed: ${errMsg}`);
       await recorder.finish(false);
       await this.persistRun(recorder);
@@ -263,10 +268,17 @@ export class OwsWalletService {
         message: payload,
         apiKeyToken,
       });
+      console.log("[OWS] handleApprove: localSignResult received");
       signature = localSignResult.signature;
       signer = localSignResult.signer;
+      console.log(
+        "[OWS] handleApprove: signature =",
+        signature?.substring(0, 20),
+        "...",
+      );
     }
 
+    console.log("[OWS] handleApprove: about to compute txHash");
     const txHash = ethers.keccak256(ethers.toUtf8Bytes(signature));
 
     await recorder.addArtifact({
