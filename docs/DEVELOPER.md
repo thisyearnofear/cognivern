@@ -1,14 +1,28 @@
-# Developer Guide & API Reference
+# Developer Guide
 
-## Quick Start
+## Purpose
 
-### Prerequisites
+This repo is being narrowed around a single hackathon story:
+
+**Cognivern is a SpendOS and audit layer for OWS-powered agents.**
+
+The codebase already supports:
+
+- run ingestion for external agents
+- local policy evaluation
+- audit-log and run-ledger persistence
+- project-scoped access and usage tracking
+
+The main wallet gap is that OWS wallet integration is not yet wired in. Some legacy signer flows still rely on env vars and should be treated as temporary compatibility paths.
+
+## Local Setup
+
+### Requirements
 
 - Node.js v20.14+
 - pnpm
-- Arbitrum ETH for gas fees
 
-### Installation
+### Install
 
 ```bash
 git clone https://github.com/thisyearnofear/cognivern.git
@@ -18,258 +32,175 @@ pnpm build
 pnpm start
 ```
 
-## API Reference
+## Primary APIs
 
-### Data Plane Endpoints
+### Data plane
 
 #### `POST /ingest/runs`
 
-Ingest a run from any agent.
+Accepts runs from external agents and stores them in the CRE ledger.
 
-**Headers:**
+Headers:
 
 - `Authorization: Bearer <ingestKey>`
 - `X-PROJECT-ID: <projectId>`
 - `Content-Type: application/json`
 
-**Request Body:**
+Request shape:
 
-```typescript
+```ts
 {
   runId: string;
-  projectId: string;
+  projectId?: string;
   workflow: string;
-  mode: 'local' | 'cre';
-  startedAt: string;  // ISO timestamp
-  finishedAt: string;
-  ok: boolean;
+  mode: "local" | "cre";
+  startedAt: string;
+  finishedAt?: string;
+  ok?: boolean;
   steps: CreStep[];
   artifacts: CreArtifact[];
 }
 ```
 
-**Example:**
+Example:
 
 ```bash
 curl -X POST http://localhost:3000/ingest/runs \
   -H 'Authorization: Bearer dev-ingest-key' \
   -H 'X-PROJECT-ID: default' \
   -H 'Content-Type: application/json' \
-  -d '{"runId":"123","projectId":"default","workflow":"forecasting","mode":"local","startedAt":"2026-01-01T00:00:00.000Z","finishedAt":"2026-01-01T00:00:01.000Z","ok":true,"steps":[],"artifacts":[]}'
+  -d '{"runId":"123","projectId":"default","workflow":"governance","mode":"local","startedAt":"2026-01-01T00:00:00.000Z","finishedAt":"2026-01-01T00:00:01.000Z","ok":true,"steps":[],"artifacts":[]}'
 ```
 
-### Control Plane Endpoints
+Related endpoints:
 
-| Endpoint                              | Description                          | Response                                            |
-| :------------------------------------ | :----------------------------------- | :-------------------------------------------------- |
-| `GET /api/cre/runs`                   | List runs (projectId, limit, offset) | `{ runs: CreRun[], total: number }`                 |
-| `GET /api/cre/runs/:runId`            | Get run details                      | `{ run: CreRun }`                                   |
-| `GET /api/projects`                   | List all projects                    | `{ projects: [{ id, name }] }`                      |
-| `GET /api/projects/:projectId/usage`  | Get quota usage                      | `{ usage: { runs, limit, resetAt } }`               |
-| `GET /api/projects/:projectId/tokens` | Get token telemetry                  | `{ tokens: [{ ingestKeyId, lastSeen, runCount }] }` |
-| `GET /health`                         | Health check                         | `{ status: 'ok' \| 'degraded', timestamp }`         |
+- `GET /api/projects`
+- `GET /api/projects/:projectId/usage`
+- `GET /api/projects/:projectId/tokens`
 
-## Agent Comparison Feature
+### Governance control plane
 
-### Overview
+#### `POST /api/governance/evaluate`
 
-Compare performance metrics across multiple agents in real-time with filtering, sorting, and aggregate statistics.
+Evaluates an action against the active local policy set and returns structured policy checks.
 
-### Architecture
+Request shape:
 
-**Core Components:**
-
-- **AgentMetricsAggregator**: Unified metrics source with caching (30s TTL), filtering, sorting
-- **API Service**: Centralized endpoints for comparison, leaderboard, stats
-- **Filter Schema**: Type-safe filter definitions (inspired by OpenStatus)
-- **Trading Dashboard**: UI with progressive disclosure, client-side filtering
-
-**Key Methods:**
-
-```typescript
-getComparisonMetrics(agentIds, filters)   // Filtered comparison data
-calculateAggregateMetrics(metrics)        // Averages, best/worst
-sortMetrics(metrics, sort)                // Sort by any field
-clearCache(agentId?)                      // Cache management
-```
-
-### User Guide
-
-**Accessing Comparison View:**
-
-1. Navigate to Trading Dashboard
-2. Click "Show Agent Comparison"
-3. Click "Show Filters" for advanced options
-
-**Filtering:**
-
-- **Search**: Type agent name or type
-- **Agent Types**: Recall, Vincent, Sapience, Custom
-- **Status**: Active, Inactive, Paused, Error
-- **Ranges**: Win rate, return, Sharpe ratio, latency
-
-**Sorting:** Click any column header (click again to reverse)
-
-**Metrics:**
-
-- **Win Rate**: ≥50% (green), <50% (gray)
-- **Return**: Positive (green), Negative (red)
-- **Sharpe Ratio**: >1.0 good, <1.0 poor
-- **Latency**: Lower is better (ms)
-
-**Aggregate Statistics:** Total agents, avg win rate, avg return, total trades
-
-### API Endpoints
-
-**`GET /api/agents/compare`** - Multi-agent comparison with filters
-
-**Query Parameters:**
-
-```typescript
+```ts
 {
-  agentIds?: string;        // Comma-separated IDs
-  agentTypes?: string;      // Comma-separated types
-  ecosystems?: string;      // Comma-separated ecosystems
-  status?: string;          // Comma-separated statuses
-  startDate?: string;       // ISO timestamp
-  endDate?: string;         // ISO timestamp
-  sortBy?: string;          // Field name
-  sortDirection?: 'asc'|'desc';
+  agentId: string;
+  policyId?: string;
+  action: {
+    id?: string;
+    type: string;
+    description?: string;
+    timestamp?: string;
+    metadata?: Record<string, unknown>;
+  };
 }
 ```
 
-**Response:**
+Response shape:
 
-```typescript
+```ts
 {
-  data: AgentComparisonMetrics[];
-  success: boolean;
-  error?: string;
-}
-```
-
-**`GET /api/agents/leaderboard`** - Ecosystem-wide rankings
-
-**Query Parameters:** `ecosystem`, `metric` (default: totalReturn), `limit` (default: 10)
-
-**`GET /api/agents/stats`** - Aggregate statistics
-
-**Response:**
-
-```typescript
-{
+  success: true;
   data: {
-    totalAgents: number;
-    avgWinRate: number;
-    avgReturn: number;
-    totalTrades: number;
-  }
+    approved: boolean;
+    reason: string;
+    agentId: string;
+    actionType: string;
+    policyId: string;
+    policyChecks: Array<{
+      policyId: string;
+      result: boolean;
+      reason: string;
+    }>;
+    timestamp: string;
+  };
 }
 ```
 
-### Filter Schema
+Related endpoints:
 
-**Purpose:** Type-safe filter definitions with auto-inferred TypeScript types.
+- `GET /api/governance/policies`
+- `POST /api/governance/policies`
+- `GET /api/governance/health`
 
-**Filter Types:**
+### Audit and run-ledger APIs
 
-- **Selection**: agentIds, agentTypes, ecosystems, status
-- **Ranges**: winRate, totalReturn, sharpeRatio, avgLatency
-- **Time**: timeRange (start/end timestamps)
-- **Sorting**: sortBy, sortDirection
-- **Search**: text search across agents
+- `GET /api/audit/logs`
+- `GET /api/audit/insights`
+- `POST /api/audit/insights/:id/resolve`
+- `GET /api/cre/runs`
+- `GET /api/cre/runs/:runId`
+- `GET /api/cre/runs/:runId/events`
+- `GET /api/cre/runs/:runId/events/stream`
+- `POST /api/cre/runs/:runId/retry`
+- `POST /api/cre/runs/:runId/approval`
+- `POST /api/cre/runs/:runId/plan`
 
-**Field Builders:**
+## Current Core Services
 
-```typescript
-field.string(); // String fields
-field.array(innerField); // Array fields with delimiter
-field.range(); // Numeric ranges [min, max]
-field.stringLiteral(["a", "b"]); // Type-safe enums
-field.timestamp(); // Date fields
-```
+### `PolicyService`
 
-### Adding New Filters
+Loads and stores local policies. On startup it loads the bundled trading competition policy from `src/policies/trading-competition-policy.json`.
 
-1. Update schema (`src/frontend/src/lib/store/agentComparisonSchema.ts`):
+### `PolicyEnforcementService`
 
-```typescript
-export const agentComparisonSchema = {
-  myNewFilter: field.array(field.stringLiteral(["option1", "option2"])),
-} as const;
-```
+Evaluates an `AgentAction` against policy rules and returns allow or deny decisions plus per-rule checks. This is the local decision engine behind `/api/governance/evaluate`.
 
-2. Update filter definitions with key, label, type, and options.
+### `AuditLogService`
 
-### Backend Implementation
+Maps governance actions and other system events into CRE-backed evidence records so the UI can render them as audit logs.
 
-```typescript
-router.get("/agents/compare", async (req, res) => {
-  const filters = parseComparisonFilters(req.query);
-  const aggregator = new AgentMetricsAggregator();
-  const agentIds = await getAgentIds(filters);
-  const metrics = await aggregator.getComparisonMetrics(agentIds, filters);
-  const sorted = aggregator.sortMetrics(metrics, {
-    field: filters.sortBy || "totalReturn",
-    direction: filters.sortDirection || "desc",
-  });
-  res.json({ data: sorted, success: true });
-});
-```
+### `IngestController`
 
-### Performance Optimizations
+Validates and stores BYO-agent runs, enforces project ingest keys, and exposes quota and token telemetry for operator views.
 
-- **Caching**: 30s TTL in AgentMetricsAggregator
-- **Client-side filtering**: useMemo for instant feedback
-- **Lazy loading**: Only fetch when comparison view shown
+### `CreController`
 
-**Target Metrics:** Initial load < 500ms, filter < 50ms, API < 1s, cache hit > 80%
+Exposes the run ledger, event streams, retries, approvals, and plan updates.
 
-## Core Services
+## Hackathon-Focused Product Direction
 
-### SapienceService
+The best near-term product is not a wallet itself.
 
-Primary gateway to Sapience ecosystem. Initializes ethers providers, manages wallet, submits forecasts via `@sapience/sdk`.
+It is the operator layer around an OWS wallet:
 
-### GovernanceAgent
+- issue scoped agent access
+- evaluate intended spend before signing
+- hold or deny risky actions
+- track approvals and denials in one ledger
+- visualize per-agent and per-project wallet activity
 
-Represents autonomous entity. Maintains thought history, logs actions and metrics.
+That means the next meaningful integration surface should look like:
 
-### AgentsModule
+1. OWS wallet and API-key issuance
+2. Cognivern governance evaluation before signing
+3. Cognivern audit-log capture after every attempted or completed operation
+4. dashboard and forensics UI for operators
 
-Manages agent lifecycle — initialize, start, orchestrate, status endpoints.
+## Migration Notes
 
-## Testing
+### Legacy pieces to phase out
 
-```bash
-# Test comparison endpoint
-curl "http://localhost:3000/api/agents/compare?agentTypes=recall,vincent&sortBy=winRate"
+- Bitte wallet integration
+- docs that frame env private keys as the preferred wallet model
+- old trading-first project narrative
 
-# Test leaderboard
-curl "http://localhost:3000/api/agents/leaderboard?ecosystem=sapience&limit=5"
+### Accurate current limitations
 
-# Test stats
-curl "http://localhost:3000/api/agents/stats?agentTypes=recall"
-```
+- OWS wallet storage and OWS API-key issuance are not yet implemented in this repo
+- some attestation flows still use signer keys from environment variables
+- several frontend surfaces still reference older agent ecosystems and integrations
 
-## Troubleshooting
+## Suggested Demo Path
 
-| Problem               | Solutions                                            |
-| :-------------------- | :--------------------------------------------------- |
-| **No data showing**   | Check agents registered, verify API, clear filters   |
-| **Slow performance**  | Check cache hit rate, verify indexes, reduce agents  |
-| **Incorrect metrics** | Verify data sources, clear cache, check time filters |
+For the hackathon, optimize the story around:
 
-## Contributing
-
-1. Read [Architecture](./ARCHITECTURE.md) for system overview
-2. Follow enhancement-first, DRY, clean code principles
-3. Add tests for new functionality
-4. Update documentation
-5. Submit PR with clear description
-
-## Related Docs
-
-- **[Architecture](./ARCHITECTURE.md)** — System overview and design
-- **[CRE Integration](./CRE.md)** — Chainlink workflow implementation
-- **[Deployment](./DEPLOYMENT.md)** — Release process and operations
+1. a treasury wallet
+2. multiple agents with different budgets
+3. policy-enforced evaluation of proposed spend
+4. a blocked, held, and approved example
+5. audit-log and run-ledger evidence shown in the Cognivern UI

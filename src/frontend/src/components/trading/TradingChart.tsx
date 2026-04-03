@@ -223,7 +223,7 @@ export default function TradingChart({
       <div css={containerStyles}>
         <div css={loadingStyles}>
           <div css={spinnerStyles}></div>
-          <p>Loading trading data...</p>
+          <p>Loading activity data...</p>
         </div>
       </div>
     );
@@ -240,7 +240,7 @@ export default function TradingChart({
               color: ${designTokens.colors.neutral[700]};
             `}
           >
-            No trading data yet
+            No activity data yet
           </h4>
           <p
             css={css`
@@ -248,7 +248,7 @@ export default function TradingChart({
               color: ${designTokens.colors.neutral[600]};
             `}
           >
-            Start the {agentType} agent to see trading performance
+            Start the {agentType} agent to see decision activity
           </p>
         </div>
       </div>

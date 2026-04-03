@@ -394,21 +394,40 @@ export class PolicyApiService extends ApiService {
   }
 }
 
-// Vincent-specific API service
-export class VincentApiService extends ApiService {
-  // Get Vincent status
+// SpendOS-specific API service
+export class SpendOsApiService extends ApiService {
+  // Get SpendOS status
   async getStatus() {
-    return this.get("/api/vincent/status");
+    return this.get("/api/spendos/status");
   }
 
-  // Update Vincent consent
-  async updateConsent(appId: string, consent: boolean) {
-    return this.post("/api/vincent/consent", { appId, consent });
+  // Get SpendOS decisions
+  async getDecisions() {
+    return this.get("/api/spendos/decisions");
+  }
+}
+
+// Spend Execution Layer API service
+export class SpendApiService extends ApiService {
+  /**
+   * Request a spend execution
+   */
+  async requestSpend(data: {
+    agentId: string;
+    recipient: string;
+    amount: string;
+    asset: string;
+    reason: string;
+    metadata?: Record<string, any>;
+  }) {
+    return this.post("/api/spend", data);
   }
 
-  // Update Vincent policies
-  async updatePolicies(policies: any) {
-    return this.put("/api/vincent/policies", policies);
+  /**
+   * Get execution layer status
+   */
+  async getStatus() {
+    return this.get("/api/spend/status");
   }
 }
 
@@ -439,7 +458,8 @@ export class SapienceApiService extends ApiService {
 export const agentApi = new AgentApiService();
 export const mcpApi = new MCPApiService();
 export const policyApi = new PolicyApiService();
-export const vincentApi = new VincentApiService();
+export const spendOsApi = new SpendOsApiService();
+export const spendApi = new SpendApiService();
 export const sapienceApi = new SapienceApiService();
 // Export Polkadot API service
 export {

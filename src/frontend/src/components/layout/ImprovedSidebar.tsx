@@ -38,14 +38,14 @@ const navigationItems: NavItem[] = [
     label: "Agents",
     icon: <Users size={20} />,
     path: "/agents",
-    description: "Agent management",
+    description: "Governed operations",
   },
   {
     id: "policies",
     label: "Policies",
     icon: <ShieldCheck size={20} />,
     path: "/policies",
-    description: "Governance rules",
+    description: "Spend rules",
   },
   {
     id: "audit",

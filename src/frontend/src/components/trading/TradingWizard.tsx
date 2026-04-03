@@ -7,8 +7,8 @@ import {
   Activity,
   BarChart,
   LineChart,
-  Target,
-  Rocket,
+  Search,
+  Bot,
 } from "lucide-react";
 import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
@@ -43,8 +43,8 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
   const steps = [
     {
       id: 1,
-      title: "Welcome to AI Trading",
-      subtitle: "Let's get you started with automated trading",
+      title: "Welcome to Governed Agent Setup",
+      subtitle: "Let's configure a safe operating model for your agent",
     },
     {
       id: 2,
@@ -53,53 +53,53 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
     },
     {
       id: 3,
-      title: "Choose your trading style",
-      subtitle: "Select the AI agent that fits your needs",
+      title: "Choose your agent role",
+      subtitle: "Select the type of governed agent you want to operate",
     },
     {
       id: 4,
-      title: "Set your risk level",
-      subtitle: "How aggressive should your trading be?",
+      title: "Set your operating limits",
+      subtitle: "How tightly should this agent be constrained?",
     },
     {
       id: 5,
       title: "Ready to start!",
-      subtitle: "Your AI trading agent is configured",
+      subtitle: "Your governed agent profile is configured",
     },
   ];
 
   const userTypes = [
     {
       id: "beginner",
-      title: "New to Trading",
-      description: "I want to learn while the AI handles the complexity",
+      title: "First-Time Operator",
+      description: "I want safe defaults and clear approval checkpoints",
       icon: <User size={24} />,
       features: [
-        "Guided tutorials",
-        "Conservative defaults",
-        "Educational insights",
+        "Guided setup",
+        "Tighter spending limits",
+        "Approval-first defaults",
       ],
     },
     {
       id: "intermediate",
-      title: "Some Experience",
-      description: "I understand basics but want AI assistance",
+      title: "Hands-On Builder",
+      description: "I want flexible controls with strong auditability",
       icon: <Activity size={24} />,
       features: [
-        "Balanced approach",
-        "Customizable settings",
-        "Performance analytics",
+        "Balanced policy presets",
+        "Customizable guardrails",
+        "Detailed audit views",
       ],
     },
     {
       id: "advanced",
-      title: "Experienced Trader",
-      description: "I want full control and advanced features",
+      title: "Advanced Operator",
+      description: "I want maximum flexibility over governed execution",
       icon: <Zap size={24} />,
       features: [
-        "Advanced strategies",
-        "Full customization",
-        "Real-time monitoring",
+        "Advanced policy tuning",
+        "Custom approval flows",
+        "Deep forensic visibility",
       ],
     },
   ];
@@ -107,23 +107,23 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
   const agentTypes = [
     {
       id: "recall",
-      title: "Recall Intelligence Agent",
+      title: "Research Agent",
       description:
-        "High-fidelity trading powered by Recall Network's decentralized memory and AgentRank™ verification.",
-      icon: <Trophy size={24} />,
+        "Investigation-first agent that gathers context and proposes bounded actions for review.",
+      icon: <Search size={24} />,
       features: [
-        "On-chain memory persistence",
-        "AgentRank™ reputation",
-        "Verifiable performance receipts",
+        "Context gathering",
+        "Spend requests with evidence",
+        "Low-risk recommendation flow",
       ],
       recommended: config.userType === "advanced",
     },
     {
       id: "vincent",
-      title: "Vincent Social Agent",
-      description: "Uses social sentiment and market analysis for decisions",
-      icon: <Users size={24} />,
-      features: ["Sentiment analysis", "Social signals", "Risk management"],
+      title: "Procurement Agent",
+      description: "Execution-first agent for vendor actions, supplier calls, and budget-scoped wallet requests",
+      icon: <Bot size={24} />,
+      features: ["Vendor workflows", "Budget enforcement", "Approval escalation"],
       recommended: config.userType !== "advanced",
     },
   ];
@@ -131,27 +131,27 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
   const riskLevels = [
     {
       id: "conservative",
-      title: "Conservative",
-      description: "Lower risk, steady growth approach",
+      title: "Tight",
+      description: "Minimal spend authority with more approval holds",
       icon: <Shield size={24} />,
-      expectedReturn: "5-15% annually",
-      maxDrawdown: "< 5%",
+      expectedReturn: "Low automated spend",
+      maxDrawdown: "Frequent review",
     },
     {
       id: "moderate",
-      title: "Moderate",
-      description: "Balanced risk and reward strategy",
+      title: "Balanced",
+      description: "Reasonable autonomy with clear guardrails",
       icon: <BarChart size={24} />,
-      expectedReturn: "15-30% annually",
-      maxDrawdown: "< 15%",
+      expectedReturn: "Moderate automation",
+      maxDrawdown: "Threshold approvals",
     },
     {
       id: "aggressive",
-      title: "Aggressive",
-      description: "Higher risk for potentially higher returns",
+      title: "Expanded",
+      description: "Higher autonomy with stronger need for trust in policies",
       icon: <LineChart size={24} />,
-      expectedReturn: "30%+ annually",
-      maxDrawdown: "< 30%",
+      expectedReturn: "Broader execution scope",
+      maxDrawdown: "More operator risk",
     },
   ];
 
@@ -225,7 +225,7 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
                 marginBottom: designTokens.spacing[4],
               }}
             >
-              AI Trading Made Simple
+              Governed Agent Operations
             </h2>
             <p
               style={{
@@ -235,8 +235,8 @@ export const TradingWizard: React.FC<TradingWizardProps> = ({
                 margin: "0 auto",
               }}
             >
-              Let our AI agents handle the complexity while you focus on your
-              goals. We'll set up everything based on your preferences.
+              Configure the right level of autonomy, guardrails, and approval
+              controls before your agent can touch real execution paths.
             </p>
           </div>
         );

@@ -89,21 +89,21 @@ export default function ExternalAgentIntegration() {
       setAgents([
         {
           id: "ext-1",
-          name: "GPT-4 Assistant",
+          name: "Research Agent",
           type: "llm",
           provider: "openai",
           status: "connected",
           connectionUrl: "https://api.openai.com/v1",
-          capabilities: ["text-generation", "chat", "code-completion"],
+          capabilities: ["text-generation", "chat", "data-analysis"],
         },
         {
           id: "ext-2",
-          name: "Claude Document Processor",
+          name: "Procurement Agent",
           type: "llm",
           provider: "anthropic",
           status: "connected",
           connectionUrl: "https://api.anthropic.com/v1",
-          capabilities: ["document-processing", "text-generation"],
+          capabilities: ["document-processing", "text-generation", "chat"],
         },
       ]);
     } finally {
@@ -310,8 +310,11 @@ export default function ExternalAgentIntegration() {
   return (
     <div className="external-agent-integration">
       <div className="integration-header">
-        <h2>External Agent Integration</h2>
-        <p>Connect your existing AI agents to our governance platform</p>
+        <h2>Agent Spend Control</h2>
+        <p>
+          Connect external agents, assign governance boundaries, and review how
+          every spend attempt is handled
+        </p>
       </div>
 
       {!walletConnected && (
@@ -319,14 +322,15 @@ export default function ExternalAgentIntegration() {
           <div className="banner-content">
             <div className="banner-icon">🔒</div>
             <div className="banner-text">
-              <h3>Connect Your Bitte Wallet</h3>
+              <h3>OWS Wallet Layer In Progress</h3>
               <p>
-                Connect your wallet to enable secure agent deployments and
-                onchain tracking
+                This demo shell is ready for scoped agents, policies, and audit
+                review. The OWS execution path is the parallel workstream now
+                being wired in.
               </p>
             </div>
-            <button className="connect-wallet-button" onClick={connectWallet}>
-              Connect Wallet
+            <button className="connect-wallet-button" disabled>
+              Wallet Path Pending
             </button>
           </div>
         </div>
@@ -336,7 +340,7 @@ export default function ExternalAgentIntegration() {
         <div className="wallet-info">
           <div className="wallet-status">
             <div className="status-dot connected"></div>
-            <span>Wallet Connected</span>
+            <span>Execution Wallet Connected</span>
           </div>
           <div className="wallet-address">
             Address: {walletInfo.address.substring(0, 6)}...
@@ -351,7 +355,7 @@ export default function ExternalAgentIntegration() {
           className="add-agent-button"
           onClick={() => setShowAddForm(!showAddForm)}
         >
-          {showAddForm ? "Cancel" : "+ Add External Agent"}
+          {showAddForm ? "Cancel" : "+ Add Agent"}
         </button>
         <button
           className="refresh-button"
@@ -366,7 +370,7 @@ export default function ExternalAgentIntegration() {
 
       {showAddForm && (
         <div className="add-agent-form">
-          <h3>Add New External Agent</h3>
+          <h3>Add Managed Agent</h3>
           <form onSubmit={handleAddAgent}>
             <div className="form-group">
               <label>Agent Name</label>
@@ -412,14 +416,14 @@ export default function ExternalAgentIntegration() {
             </div>
 
             <div className="form-group">
-              <label>API Key</label>
+              <label>Agent Credential</label>
               <input
                 type="password"
                 value={newAgent.apiKey}
                 onChange={(e) =>
                   setNewAgent({ ...newAgent, apiKey: e.target.value })
                 }
-                placeholder="Enter API key"
+                placeholder="Enter API key or integration secret"
                 required
               />
             </div>
@@ -453,7 +457,7 @@ export default function ExternalAgentIntegration() {
                 Cancel
               </button>
               <button type="submit" className="submit-button">
-                Add Agent
+                Save Agent
               </button>
             </div>
           </form>
@@ -465,8 +469,8 @@ export default function ExternalAgentIntegration() {
           <div className="loading">Loading agents...</div>
         ) : agents.length === 0 ? (
           <div className="no-agents">
-            <p>No external agents connected yet.</p>
-            <p>Click "Add External Agent" to connect your first agent.</p>
+            <p>No managed agents connected yet.</p>
+            <p>Click "Add Agent" to create your first governed agent entry.</p>
           </div>
         ) : (
           agents.map((agent) => (
@@ -535,32 +539,35 @@ export default function ExternalAgentIntegration() {
       </div>
 
       <div className="integration-info">
-        <h3>How External Agent Integration Works</h3>
+        <h3>How Agent Spend Control Works</h3>
         <div className="integration-steps">
           <div className="step">
             <div className="step-number">1</div>
             <div className="step-content">
-              <h4>Connect Your Agent</h4>
+              <h4>Register The Agent</h4>
               <p>
-                Provide your agent's API endpoint and authentication details
+                Store the endpoint and credential used to identify the agent
+                inside your control plane
               </p>
             </div>
           </div>
           <div className="step">
             <div className="step-number">2</div>
             <div className="step-content">
-              <h4>Apply Governance Policies</h4>
+              <h4>Apply Spend Guardrails</h4>
               <p>
-                Select which governance policies to apply to your external agent
+                Assign policies, budgets, restrictions, and approval thresholds
+                before the agent can act
               </p>
             </div>
           </div>
           <div className="step">
             <div className="step-number">3</div>
             <div className="step-content">
-              <h4>Monitor & Audit</h4>
+              <h4>Review Evidence</h4>
               <p>
-                Track all agent actions through our comprehensive audit system
+                Track approvals, denials, and held actions through the audit log
+                and run ledger
               </p>
             </div>
           </div>

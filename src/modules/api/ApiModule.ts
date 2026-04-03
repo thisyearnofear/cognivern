@@ -191,16 +191,16 @@ export class ApiModule extends BaseService {
       "/agents",
       "/agents/unified",
       "/agents/connections",
-      "/agents/recall/status",
-      "/agents/recall/decisions",
-      "/agents/vincent/status",
-      "/agents/vincent/decisions",
+      "/agents/governance/status",
+      "/agents/governance/decisions",
+      "/agents/portfolio/status",
+      "/agents/portfolio/decisions",
       "/agents/sapience/status",
       "/agents/sapience/decisions",
       "/audit/logs",
       "/audit/insights",
-      "/recall/status",
-      "/recall/decisions",
+      "/spendos/status",
+      "/spendos/decisions",
       "/metrics/ux-summary",
       "/cre/runs",
       "/cre/projects",
@@ -363,19 +363,19 @@ export class ApiModule extends BaseService {
     });
 
     // Specific agent status/decisions routes for dashboard
-    apiRouter.get("/agents/recall/status", (req, res) => {
+    apiRouter.get("/agents/governance/status", (req, res) => {
       this.controllers.get("recall").getStatus(req, res);
     });
 
-    apiRouter.get("/agents/recall/decisions", (req, res) => {
+    apiRouter.get("/agents/governance/decisions", (req, res) => {
       this.controllers.get("recall").getDecisions(req, res);
     });
 
-    apiRouter.get("/agents/vincent/status", (req, res) => {
+    apiRouter.get("/agents/portfolio/status", (req, res) => {
       this.controllers.get("recall").getStatus(req, res);
     });
 
-    apiRouter.get("/agents/vincent/decisions", (req, res) => {
+    apiRouter.get("/agents/portfolio/decisions", (req, res) => {
       this.controllers.get("recall").getDecisions(req, res);
     });
 
@@ -566,21 +566,21 @@ export class ApiModule extends BaseService {
       this.controllers.get("sapience").getWallet(req, res);
     });
 
-    // Recall routes
-    apiRouter.get("/recall/status", (req, res) => {
+    // SpendOS routes
+    apiRouter.get("/spendos/status", (req, res) => {
       this.controllers.get("recall").getStatus(req, res);
     });
 
-    apiRouter.get("/recall/decisions", (req, res) => {
+    apiRouter.get("/spendos/decisions", (req, res) => {
       this.controllers.get("recall").getDecisions(req, res);
     });
 
     // Compatibility aliases for Agents dashboard (deprecated - moved to /agents/...)
-    apiRouter.get("/recall/status", (req, res) => {
+    apiRouter.get("/spendos/status", (req, res) => {
       this.controllers.get("recall").getStatus(req, res);
     });
 
-    apiRouter.get("/recall/decisions", (req, res) => {
+    apiRouter.get("/spendos/decisions", (req, res) => {
       this.controllers.get("recall").getDecisions(req, res);
     });
 

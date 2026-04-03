@@ -19,11 +19,11 @@ export const mcpConfig = JSON.parse(fs.readFileSync(mcpConfigPath, "utf8"));
 const envSchema = z.object({
   // MCP Configuration - Check this first to conditionally require other variables
   MCP_ENABLED: z.coerce.boolean().default(true),
-  MCP_DEFAULT_SERVER: z.string().default("bitte-ai"),
+  MCP_DEFAULT_SERVER: z.string().default("ows-governance"),
   MCP_API_KEY: z.string().optional(),
 
-  // Bitte Wallet Configuration
-  BITTE_API_KEY: z.string().optional(),
+  // SpendOS / OWS Wallet Configuration
+  OWS_API_KEY: z.string().optional(),
 
   // API Security and Authentication
   API_KEY: z.string().default(""),

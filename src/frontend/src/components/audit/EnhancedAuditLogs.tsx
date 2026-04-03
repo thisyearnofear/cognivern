@@ -647,10 +647,8 @@ export default function EnhancedAuditLogs() {
               css={inputStyles}
             >
               <option value="">All Agents</option>
-              <option value="recall-agent-1">Recall Trading Agent</option>
-              <option value="vincent-agent-1">
-                Vincent Social Trading Agent
-              </option>
+              <option value="research-agent-1">Research Agent</option>
+              <option value="procurement-agent-1">Procurement Agent</option>
             </select>
           </div>
 
@@ -662,9 +660,9 @@ export default function EnhancedAuditLogs() {
               css={inputStyles}
             >
               <option value="">All Actions</option>
-              <option value="trade_execution">Trade Execution</option>
-              <option value="sentiment_analysis">Sentiment Analysis</option>
-              <option value="risk_assessment">Risk Assessment</option>
+              <option value="spend_request">Spend Request</option>
+              <option value="approval_review">Approval Review</option>
+              <option value="policy_evaluation">Policy Evaluation</option>
             </select>
           </div>
 

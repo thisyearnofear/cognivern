@@ -379,7 +379,7 @@ export default function TradeHistory({
       <div css={containerStyles}>
         <div css={loadingStyles}>
           <div css={spinnerStyles}></div>
-          <p>Loading trade history...</p>
+          <p>Loading audit history...</p>
         </div>
       </div>
     );
@@ -389,7 +389,7 @@ export default function TradeHistory({
     return (
       <div css={containerStyles}>
         <div css={headerStyles}>
-          <h3>Trade History</h3>
+          <h3>Action History</h3>
           <div css={controlsStyles}>
             <select
               css={selectStyles}
@@ -421,7 +421,7 @@ export default function TradeHistory({
               color: ${designTokens.colors.neutral[700]};
             `}
           >
-            No trades found
+            No actions found
           </h4>
           <p
             css={css`
@@ -430,8 +430,8 @@ export default function TradeHistory({
             `}
           >
             {decisions.length === 0
-              ? `Start the ${agentType} agent to see trade history`
-              : `No trades match the current filter`}
+              ? `Start the ${agentType} agent to see action history`
+              : `No actions match the current filter`}
           </p>
         </div>
       </div>
@@ -448,7 +448,7 @@ export default function TradeHistory({
   return (
     <div css={containerStyles}>
       <div css={headerStyles}>
-        <h3>Trade History</h3>
+        <h3>Action History</h3>
         <div css={controlsStyles}>
           <select
             css={selectStyles}
@@ -590,8 +590,8 @@ export default function TradeHistory({
                     </div>
                   </div>
 
-                  {/* Vincent Sentiment Data */}
-                  {agentType === "vincent" && decision.sentimentData && (
+                  {/* Portfolio Agent Sentiment Data */}
+                  {agentType === "portfolio" && decision.sentimentData && (
                     <div css={sentimentStyles}>
                       <div css={sentimentHeaderStyles}>Sentiment Analysis</div>
                       <div css={sentimentGridStyles}>

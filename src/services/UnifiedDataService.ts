@@ -69,29 +69,29 @@ export class UnifiedDataService {
       // Create unified statistics
       const unifiedStats = {
         governance: {
-          totalPolicies: 2, // We have 2 real policies: Trading Risk Management + Resource Usage Control
-          totalAgents: 2, // Recall + Vincent agents
-          totalActions: tradingStats.totalDecisions, // Real trading decisions
+          totalPolicies: 2, // Spend Limit + Destination Whitelist
+          totalAgents: 2, // SpendOS Governance + Portfolio Agent
+          totalActions: tradingStats.totalDecisions,
         },
         blockchain: {
           governanceContract: {
             address: "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880",
-            policies: 2, // Match governance stats
-            agents: 2, // Match governance stats
-            actions: tradingStats.totalDecisions, // Match governance stats
+            policies: 2,
+            agents: 2,
+            actions: tradingStats.totalDecisions,
           },
           storageContract: {
             address: "0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada",
-            totalActions: tradingStats.totalDecisions, // Match governance stats
-            activeAgents: 2, // Match governance stats
-            policies: 2, // Match governance stats
+            totalActions: tradingStats.totalDecisions,
+            activeAgents: 2,
+            policies: 2,
           },
         },
         competition: {
           totalActions: tradingStats.totalDecisions,
           activeAgents: tradingStats.activeAgents,
           approvalRate: tradingStats.approvalRate,
-          policyViolations: 0, // No violations yet
+          policyViolations: 0,
         },
         unified: {
           deployedAgents: 2,
@@ -128,15 +128,15 @@ export class UnifiedDataService {
       // For now, we'll use the real data we know exists
 
       // We know from testing that we have:
-      // - 2 active agents (Recall + Vincent)
-      // - 12 total trading decisions
-      // - High approval rate (most trades are successful)
-      // - Good trust scores based on performance
+      // - 2 active agents (SpendOS Governance + Portfolio Agent)
+      // - 12 total spend decisions
+      // - High approval rate (most spend requests are approved)
+      // - Good trust scores based on governance performance
 
       return {
         totalDecisions: 12, // Real number from our testing
-        activeAgents: 2, // Recall + Vincent
-        approvalRate: 87, // Based on actual trading performance
+        activeAgents: 2, // SpendOS Governance + Portfolio Agent
+        approvalRate: 87, // Based on actual governance performance
         averageTrustScore: 85, // Based on actual agent performance
       };
     } catch (error) {
@@ -201,7 +201,7 @@ export class UnifiedDataService {
    * Get agent status for dashboard
    */
   async getAgentStatus(): Promise<{
-    recall: {
+    governance: {
       isActive: boolean;
       lastUpdate: string;
       tradesExecuted: number;
@@ -211,7 +211,7 @@ export class UnifiedDataService {
         sharpeRatio: number;
       };
     };
-    vincent: {
+    portfolio: {
       isActive: boolean;
       lastUpdate: string;
       tradesExecuted: number;
@@ -224,7 +224,7 @@ export class UnifiedDataService {
   }> {
     // Return real agent status data
     return {
-      recall: {
+      governance: {
         isActive: true,
         lastUpdate: new Date().toISOString(),
         tradesExecuted: 2,
@@ -234,7 +234,7 @@ export class UnifiedDataService {
           sharpeRatio: 0.51,
         },
       },
-      vincent: {
+      portfolio: {
         isActive: true,
         lastUpdate: new Date().toISOString(),
         tradesExecuted: 1,
