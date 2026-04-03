@@ -30,6 +30,7 @@ import { AuditLogController } from "./controllers/AuditLogController.js";
 import { AuditLogService } from "../../services/AuditLogService.js";
 import { CreController } from "./controllers/CreController.js";
 import { IngestController } from "./controllers/IngestController.js";
+import { SpendController } from "./controllers/SpendController.js";
 
 export class ApiModule extends BaseService {
   private app: express.Application;
@@ -206,6 +207,8 @@ export class ApiModule extends BaseService {
       "/cre/forecast",
       "/cre/runs/:runId/retry",
       "/cre/runs/:runId/approval",
+      "/spend",
+      "/spend/status",
       "/projects",
     ];
     if (publicEndpoints.some((endpoint) => req.path === endpoint)) {
@@ -281,6 +284,7 @@ export class ApiModule extends BaseService {
     this.controllers.set("audit", new AuditLogController());
     this.controllers.set("cre", new CreController());
     this.controllers.set("ingest", new IngestController());
+    this.controllers.set("spend", new SpendController());
 
     // Initialize all controllers
     for (const [name, controller] of this.controllers) {
@@ -521,6 +525,15 @@ export class ApiModule extends BaseService {
 
     apiRouter.post("/cre/forecast", (req, res) => {
       this.controllers.get("cre").triggerForecast(req, res);
+    });
+
+    // SpendOS / OWS Wallet Execution Layer routes
+    apiRouter.post("/spend", (req, res) => {
+      this.controllers.get("spend").requestSpend(req, res);
+    });
+
+    apiRouter.get("/spend/status", (req, res) => {
+      this.controllers.get("spend").getStatus(req, res);
     });
 
     // Projects (multi-project support)

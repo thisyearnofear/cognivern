@@ -77,6 +77,7 @@ export interface CreArtifact {
     | "llm_forecast"
     | "attestation_request"
     | "attestation_result"
+    | "spend_intent"
     | "error";
   createdAt: string;
   data: unknown;
@@ -91,7 +92,7 @@ export interface CreArtifact {
 export interface CreRun {
   runId: string;
   projectId?: string;
-  workflow: "forecasting" | "governance" | "registration" | "generic";
+  workflow: "forecasting" | "governance" | "registration" | "spend" | "generic";
   mode: "local" | "cre";
   startedAt: string;
   finishedAt?: string;
