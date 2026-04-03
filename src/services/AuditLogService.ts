@@ -1,10 +1,9 @@
 import { AgentAction, PolicyCheck } from "../types/Agent.js";
 import logger from "../utils/logger.js";
-import {
-  AuditLogStore,
-  auditLogStore,
-} from "../shared/storage/AuditLogStore.js";
-import { buildAuditEvidence } from "../shared/utils/evidence.js";
+import { creRunStore, CreRunStore } from "../cre/storage/CreRunStore.js";
+import { CreRun, CreArtifact } from "../cre/types.js";
+import { ethers } from "ethers";
+import crypto from "node:crypto";
 
 export interface AuditLog {
   id: string;
@@ -22,6 +21,8 @@ export interface AuditLog {
   evidence: {
     hash: string;
     cid?: string;
+    signature?: string;
+    signer?: string;
     artifactIds?: string[];
     policyIds?: string[];
     citations?: string[];
@@ -39,12 +40,77 @@ export interface AuditInsight {
   relatedLogs: string[];
 }
 
+/**
+ * Unified AuditLogService - Now a bridge to the Core Run Engine (CRE)
+ *
+ * Instead of separate audit logs, everything is a verifiable CRE run.
+ */
 export class AuditLogService {
-  private store: AuditLogStore;
+  private creStore: CreRunStore;
 
-  constructor(store: AuditLogStore = auditLogStore) {
-    this.store = store;
-    logger.info("AuditLogService initialized (Local Mode)");
+  constructor(creStore: CreRunStore = creRunStore) {
+    this.creStore = creStore;
+    logger.info("AuditLogService initialized (CRE-Unified Mode)");
+  }
+
+  /**
+   * Helper to get a signer for CRE evidence
+   */
+  private getSigner(): ethers.Signer | undefined {
+    const pk = process.env.FILECOIN_PRIVATE_KEY;
+    if (!pk) return undefined;
+    return new ethers.Wallet(pk);
+  }
+
+  /**
+   * Helper to sign evidence for an audit run
+   */
+  private async signEvidence(data: any) {
+    const signer = this.getSigner();
+    if (!signer) return { hash: "unsigned" };
+    const json = JSON.stringify(data);
+    const hash = ethers.keccak256(ethers.toUtf8Bytes(json));
+    const signature = await signer.signMessage(hash);
+    const signerAddress = await signer.getAddress();
+    return { hash, signature, signer: signerAddress };
+  }
+
+  /**
+   * Maps a Core Run (CRE) to a legacy AuditLog for UI compatibility.
+   */
+  public mapCreRunToAuditLog(run: CreRun): AuditLog {
+    const lastStep = run.steps[run.steps.length - 1];
+
+    return {
+      id: run.runId,
+      timestamp: run.finishedAt || run.startedAt,
+      agent: run.provenance?.model || "governance-agent",
+      actionType: run.workflow,
+      description: lastStep?.summary || `${run.workflow} execution`,
+      complianceStatus: run.ok ? "compliant" : "non-compliant",
+      severity: run.ok ? "low" : "medium",
+      responseTime: run.metrics?.latencyMs,
+      details: {
+        ...run.metrics,
+        stepCount: run.steps.length,
+        artifactCount: run.artifacts.length,
+        workflowVersion: run.provenance?.workflowVersion,
+      },
+      policyChecks: [],
+      outcome: run.ok ? "allowed" : "denied",
+      metadata: {
+        mode: run.mode,
+        source: run.provenance?.source,
+        parentRunId: run.parentRunId,
+      },
+      evidence: {
+        hash: run.evidence?.hash || "pending",
+        cid: run.evidence?.cid,
+        signature: run.evidence?.signature,
+        signer: run.evidence?.signer,
+        artifactIds: run.artifacts.map(a => a.id),
+      },
+    };
   }
 
   async logEvent(eventData: {
@@ -53,44 +119,63 @@ export class AuditLogService {
     timestamp: Date;
     details: Record<string, any>;
   }): Promise<void> {
-    logger.info(`[AuditLog] Event: ${eventData.eventType}`, {
-      timestamp: eventData.timestamp,
-      agentType: eventData.agentType,
-      details: eventData.details,
-    });
+    const runId = crypto.randomUUID();
+    const startedAt = eventData.timestamp.toISOString();
+    const finishedAt = new Date().toISOString();
 
-    // Add to logs
-    const auditLog: AuditLog = {
-      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: eventData.timestamp.toISOString(),
-      agent: eventData.agentType,
-      actionType: eventData.eventType,
-      description: `${eventData.agentType} agent performed ${eventData.eventType}`,
-      complianceStatus: this.normalizeComplianceStatus(
-        eventData.details?.complianceStatus,
-      ),
-      severity: this.normalizeSeverity(eventData.details?.severity),
-      responseTime: this.extractResponseTime(eventData.details),
-      details: eventData.details,
-      policyChecks: [],
-      outcome: "allowed",
-      metadata: {
-        source: "live",
-        version: "1.0.0",
-      },
-      evidence: { hash: "pending" },
+    const artifact: CreArtifact = {
+      id: crypto.randomUUID(),
+      type: "attestation_request", // Map generic event to artifact
+      createdAt: finishedAt,
+      data: eventData.details,
     };
 
-    auditLog.evidence = buildAuditEvidence({
-      id: auditLog.id,
-      agent: auditLog.agent,
-      actionType: auditLog.actionType,
-      timestamp: auditLog.timestamp,
-      details: auditLog.details,
-      policyChecks: auditLog.policyChecks,
+    const metrics = {
+      latencyMs: 0,
+      stepCount: 1,
+      artifactCount: 1,
+    };
+
+    const evidence = await this.signEvidence({
+      runId,
+      ok: true,
+      status: "completed",
+      metrics,
+      artifactHashes: [ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(artifact.data)))],
     });
 
-    await this.store.add(auditLog);
+    const workflowType =
+      eventData.eventType === "agent_registration"
+        ? "registration"
+        : "generic";
+
+    const run: CreRun = {
+      runId,
+      workflow: workflowType,
+      mode: "cre",
+      startedAt,
+      finishedAt,
+      ok: true,
+      status: "completed",
+      metrics,
+      provenance: {
+        source: "cognivern",
+        model: eventData.agentType,
+      },
+      evidence,
+      artifacts: [artifact],
+      steps: [{
+        kind: "compute",
+        name: "audit_log_event",
+        startedAt,
+        finishedAt,
+        ok: true,
+        summary: `${eventData.agentType} agent performed ${eventData.eventType}`,
+        details: eventData.details,
+      }],
+    };
+
+    await this.creStore.add(run);
   }
 
   async logAction(
@@ -98,42 +183,57 @@ export class AuditLogService {
     policyChecks: PolicyCheck[],
     allowed: boolean,
   ): Promise<void> {
-    logger.info(`[AuditLog] Action: ${action.type}`, {
-      actionId: action.id,
-      allowed,
-      policyChecks: policyChecks.length,
-    });
+    const runId = crypto.randomUUID();
+    const now = new Date().toISOString();
 
-    // Add to logs
-    const auditLog: AuditLog = {
-      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toISOString(),
-      agent: this.extractAgentId(action),
-      actionType: action.type,
-      description: `Agent performed ${action.type}`,
-      complianceStatus: allowed ? "compliant" : "non-compliant",
-      severity: allowed ? "low" : "high",
-      responseTime: this.extractResponseTime(action.metadata),
-      details: action.metadata || {}, // Use metadata instead of parameters
-      policyChecks,
-      outcome: allowed ? "allowed" : "denied",
-      metadata: {
-        source: "policy_engine",
-        version: "1.0.0",
-      },
-      evidence: { hash: "pending" },
+    const artifact: CreArtifact = {
+      id: crypto.randomUUID(),
+      type: "attestation_request",
+      createdAt: now,
+      data: { action, policyChecks },
     };
 
-    auditLog.evidence = buildAuditEvidence({
-      id: auditLog.id,
-      agent: auditLog.agent,
-      actionType: auditLog.actionType,
-      timestamp: auditLog.timestamp,
-      details: auditLog.details,
-      policyChecks: auditLog.policyChecks,
+    const metrics = {
+      latencyMs: action.metadata?.durationMs || 0,
+      stepCount: 1,
+      artifactCount: 1,
+    };
+
+    const evidence = await this.signEvidence({
+      runId,
+      ok: allowed,
+      status: "completed",
+      metrics,
+      artifactHashes: [ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(artifact.data)))],
     });
 
-    await this.store.add(auditLog);
+    const run: CreRun = {
+      runId,
+      workflow: "governance",
+      mode: "cre",
+      startedAt: action.timestamp || now,
+      finishedAt: now,
+      ok: allowed,
+      status: "completed",
+      metrics,
+      provenance: {
+        source: "cognivern",
+        model: String(action.metadata?.agentId || "governance-agent"),
+      },
+      evidence,
+      artifacts: [artifact],
+      steps: [{
+        kind: "evm_write",
+        name: action.type,
+        startedAt: action.timestamp || now,
+        finishedAt: now,
+        ok: allowed,
+        summary: action.description,
+        details: action.metadata,
+      }],
+    };
+
+    await this.creStore.add(run);
   }
 
   async getFilteredLogs(filters: {
@@ -144,129 +244,39 @@ export class AuditLogService {
     complianceStatus?: string;
     severity?: string;
   }): Promise<AuditLog[]> {
-    let filteredLogs = await this.store.list();
+    const runs = await this.creStore.list();
+    let logs = runs.map(r => this.mapCreRunToAuditLog(r));
 
-    // Apply filters
     if (filters.startDate) {
-      const startDate = new Date(filters.startDate);
-      filteredLogs = filteredLogs.filter(
-        (log) => new Date(log.timestamp) >= startDate,
-      );
+      const start = new Date(filters.startDate);
+      logs = logs.filter((log) => new Date(log.timestamp) >= start);
     }
-
     if (filters.endDate) {
-      const endDate = new Date(filters.endDate);
-      filteredLogs = filteredLogs.filter(
-        (log) => new Date(log.timestamp) <= endDate,
-      );
+      const end = new Date(filters.endDate);
+      logs = logs.filter((log) => new Date(log.timestamp) <= end);
     }
-
     if (filters.agent && filters.agent !== "all") {
-      filteredLogs = filteredLogs.filter((log) => log.agent === filters.agent);
+      logs = logs.filter((log) => log.agent === filters.agent);
     }
-
     if (filters.actionType && filters.actionType !== "all") {
-      filteredLogs = filteredLogs.filter(
-        (log) => log.actionType === filters.actionType,
-      );
+      logs = logs.filter((log) => log.actionType === filters.actionType);
     }
-
     if (filters.complianceStatus && filters.complianceStatus !== "all") {
-      filteredLogs = filteredLogs.filter(
-        (log) => log.complianceStatus === filters.complianceStatus,
-      );
+      logs = logs.filter((log) => log.complianceStatus === filters.complianceStatus);
     }
-
     if (filters.severity && filters.severity !== "all") {
-      filteredLogs = filteredLogs.filter(
-        (log) => log.severity === filters.severity,
-      );
+      logs = logs.filter((log) => log.severity === filters.severity);
     }
 
-    return filteredLogs;
+    return logs;
   }
 
   async generateInsights(): Promise<AuditInsight[]> {
-    const logs = await this.store.list();
-
-    // Only generate insights if we have actual data
-    if (logs.length === 0) {
-      return [];
-    }
-
-    const insights: AuditInsight[] = [];
-
-    // Analyze patterns in the logs
-    const recentLogs = logs.filter((log) => {
-      const logTime = new Date(log.timestamp);
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      return logTime >= oneDayAgo;
-    });
-
-    if (recentLogs.length === 0) {
-      return [];
-    }
-
-    // Pattern: Recurring violations
-    const violationsByAgent = recentLogs
-      .filter((log) => log.complianceStatus === "non-compliant")
-      .reduce(
-        (acc, log) => {
-          acc[log.agent] = (acc[log.agent] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>,
-      );
-
-    for (const [agent, count] of Object.entries(violationsByAgent)) {
-      if (count >= 3) {
-        insights.push({
-          id: `pattern_${agent}_violations`,
-          type: "pattern",
-          title: "Recurring Policy Violations",
-          description: `${agent} agent has violated policies ${count} times in the last 24 hours.`,
-          confidence: 0.87,
-          severity: "high",
-          actionRequired: true,
-          relatedLogs: recentLogs
-            .filter(
-              (log) =>
-                log.agent === agent && log.complianceStatus === "non-compliant",
-            )
-            .map((log) => log.id),
-        });
-      }
-    }
-
-    // Recommendation: Performance optimization
-    const avgResponseTime =
-      recentLogs.reduce((sum, log) => sum + (log.responseTime || 0), 0) /
-      recentLogs.length;
-    if (avgResponseTime > 500) {
-      insights.push({
-        id: "recommendation_performance",
-        type: "recommendation",
-        title: "Optimize Response Times",
-        description: `Average response time is ${Math.round(avgResponseTime)}ms, which is higher than optimal. Consider implementing caching.`,
-        confidence: 0.92,
-        severity: "medium",
-        actionRequired: false,
-        relatedLogs: recentLogs
-          .filter((log) => (log.responseTime || 0) > 500)
-          .map((log) => log.id),
-      });
-    }
-
-    return insights;
+    // Insights should be derived from CRE runs in the future
+    return [];
   }
 
   async resolveInsight(insightId: string): Promise<boolean> {
-    logger.info(`[AuditLog] Resolving insight: ${insightId}`);
-
-    // In a real implementation, this would update a database.
-    // For now, we'll just log it and return success.
-    // We could also add to a "resolvedInsights" set to filter them out later.
-
     return true;
   }
 
@@ -285,54 +295,5 @@ export class AuditLogService {
   ): Promise<any> {
     const logs = await this.getFilteredLogs({ startDate, endDate });
     return { format, data: logs };
-  }
-
-  private extractAgentId(action: AgentAction): string {
-    const candidate =
-      action.metadata?.agentId || action.metadata?.agent || action.id || "unknown";
-    return String(candidate);
-  }
-
-  private extractResponseTime(details?: Record<string, any>): number | undefined {
-    const candidates = [
-      details?.responseTime,
-      details?.latencyMs,
-      details?.durationMs,
-    ];
-
-    for (const candidate of candidates) {
-      if (typeof candidate === "number" && Number.isFinite(candidate)) {
-        return candidate;
-      }
-    }
-
-    return undefined;
-  }
-
-  private normalizeComplianceStatus(
-    value: unknown,
-  ): AuditLog["complianceStatus"] {
-    if (
-      value === "compliant" ||
-      value === "non-compliant" ||
-      value === "warning"
-    ) {
-      return value;
-    }
-
-    return "compliant";
-  }
-
-  private normalizeSeverity(value: unknown): AuditLog["severity"] {
-    if (
-      value === "low" ||
-      value === "medium" ||
-      value === "high" ||
-      value === "critical"
-    ) {
-      return value;
-    }
-
-    return "low";
   }
 }

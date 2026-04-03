@@ -91,7 +91,7 @@ export interface CreArtifact {
 export interface CreRun {
   runId: string;
   projectId?: string;
-  workflow: "forecasting";
+  workflow: "forecasting" | "governance" | "registration" | "generic";
   mode: "local" | "cre";
   startedAt: string;
   finishedAt?: string;
