@@ -257,7 +257,6 @@ export class ApiModule extends BaseService {
     }
 
     // Initialize shared services for controllers (CONSOLIDATION & DRY)
-    const auditLogService = new AuditLogService();
     const { PolicyService } = await import("../../services/PolicyService.js");
     const policyService = new PolicyService();
 
@@ -268,18 +267,18 @@ export class ApiModule extends BaseService {
       new AgentsController(
         agentsModule,
         undefined,
-        auditLogService,
+        undefined, // Will initialize its own unified AuditLogService
         policyService,
       ),
     );
     this.controllers.set(
       "governance",
-      new GovernanceController(policyService, auditLogService),
+      new GovernanceController(policyService, undefined),
     );
     this.controllers.set("metrics", new MetricsController());
     this.controllers.set("sapience", new SapienceController());
     this.controllers.set("recall", new RecallController());
-    this.controllers.set("audit", new AuditLogController(auditLogService));
+    this.controllers.set("audit", new AuditLogController());
     this.controllers.set("cre", new CreController());
     this.controllers.set("ingest", new IngestController());
 

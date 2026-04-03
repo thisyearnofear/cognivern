@@ -4,16 +4,19 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { AuditLogService } from "../../src/services/AuditLogService.js";
-import { AuditLogStore } from "../../src/shared/storage/AuditLogStore.js";
+import { CreRunStore } from "../../src/cre/storage/CreRunStore.js";
+import { JsonlCreRunPersistence } from "../../src/cre/persistence/CreRunPersistence.js";
 
-test("AuditLogService persists logs deterministically", async (t) => {
+test("AuditLogService persists logs deterministically via CRE store", async (t) => {
   const tempDir = await fs.promises.mkdtemp(
     path.join(os.tmpdir(), "cognivern-audit-"),
   );
   const filePath = path.join(tempDir, "audit-logs.jsonl");
 
   await t.test("persisted logs survive a new service instance", async () => {
-    const store = new AuditLogStore({ filePath });
+    // Setup a store with local persistence only for testing
+    const persistence = new JsonlCreRunPersistence({ filePath });
+    const store = new CreRunStore({ persistence });
     const service = new AuditLogService(store);
 
     await service.logEvent({
@@ -27,7 +30,10 @@ test("AuditLogService persists logs deterministically", async (t) => {
       },
     });
 
-    const reloadedService = new AuditLogService(new AuditLogStore({ filePath }));
+    // Create a new store/service pointing to the same file
+    const reloadedPersistence = new JsonlCreRunPersistence({ filePath });
+    const reloadedStore = new CreRunStore({ persistence: reloadedPersistence });
+    const reloadedService = new AuditLogService(reloadedStore);
     const logs = await reloadedService.getFilteredLogs({});
 
     assert.strictEqual(logs.length, 1);

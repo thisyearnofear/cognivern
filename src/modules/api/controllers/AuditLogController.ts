@@ -1,7 +1,3 @@
-/**
- * Audit Log Controller
- */
-
 import { Request, Response } from "express";
 import { AuditLogService } from "../../../services/AuditLogService.js";
 
@@ -23,7 +19,7 @@ export class AuditLogController {
         severity,
       } = req.query;
 
-      // Get audit logs with filters
+      // Get audit logs with filters (now backed by CRE storage)
       const logs = await this.auditLogService.getFilteredLogs({
         startDate: startDate as string,
         endDate: endDate as string,
@@ -76,7 +72,6 @@ export class AuditLogController {
 
   async getInsights(req: Request, res: Response): Promise<void> {
     try {
-      // Generate AI-powered insights based on audit data
       const insights = await this.auditLogService.generateInsights();
 
       res.json({
@@ -89,10 +84,7 @@ export class AuditLogController {
         success: false,
         error: {
           code: "INSIGHTS_ERROR",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to generate insights",
+          message: "Failed to generate unified insights",
         },
         timestamp: new Date().toISOString(),
       });
@@ -100,22 +92,12 @@ export class AuditLogController {
   }
 
   async resolveInsight(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-
-      const success = await this.auditLogService.resolveInsight(id);
-
-      res.json({
-        success,
-        message: success ? "Insight resolved successfully" : "Failed to resolve insight",
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-        timestamp: new Date().toISOString(),
-      });
-    }
+    const { id } = req.params;
+    const success = await this.auditLogService.resolveInsight(id);
+    res.json({
+      success,
+      message: success ? "Insight resolved successfully" : "Failed to resolve insight",
+      timestamp: new Date().toISOString(),
+    });
   }
 }
