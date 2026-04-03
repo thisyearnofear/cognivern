@@ -126,14 +126,18 @@ Example:
 API_KEY=development-api-key
 OPENAI_API_KEY=dummy-for-local-dev
 
-# Legacy compatibility until OWS wallet integration lands
+# OWS Wallet Configuration
+OWS_VAULT_SECRET=development-ows-vault-secret
 FILECOIN_PRIVATE_KEY=0xyour_private_key_here
-FILECOIN_RPC_URL=https://api.calibration.node.glif.io/rpc/v1
+FILECOIN_RPC_URL=https://api.calibration.node.glif.io/r1
+
+# Optional: Connect to external OWS wallet
+# OWS_EXTERNAL_WALLET_URL=https://your-ows-wallet-api.example.com
+
+# Legacy (used for specific forecasting flows only)
 GOVERNANCE_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
 STORAGE_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
 USDFC_TOKEN_ADDRESS=0x0000000000000000000000000000000000000000
-
-RECALL_API_KEY=dummy
 ```
 
 ### Run the backend
