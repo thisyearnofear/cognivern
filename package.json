@@ -54,7 +54,8 @@
     "test:integration": "tsx --test tests/integration/*.test.ts",
     "demo:reset": "tsx scripts/demo-reset.ts",
     "demo:seed": "tsx scripts/demo-seed.ts",
-    "demo:scenario": "tsx scripts/demo-scenario.ts"
+    "demo:scenario": "tsx scripts/demo-scenario.ts",
+    "demo:live": "tsx scripts/demo-live.ts"
   },
   "dependencies": {
     "@glif/filecoin-address": "^2.0.8",

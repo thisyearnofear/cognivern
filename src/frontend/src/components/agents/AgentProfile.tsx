@@ -248,8 +248,8 @@ const AgentProfile: React.FC = () => {
             `}
           >
             {agentType === "recall"
-              ? "Recall Trading Agent"
-              : "Vincent Social Agent"}
+              ? "Research Agent"
+              : "Procurement Agent"}
           </h1>
           <p
             css={css`
@@ -260,8 +260,8 @@ const AgentProfile: React.FC = () => {
             `}
           >
             {agentType === "recall"
-              ? "High-performance algorithmic trading agent specializing in competition-based market making. Built on top of the Recall network for decentralized execution."
-              : "Social-sentiment driven agent that executes trades based on real-time social media analysis and community trends using LLM-based sentiment extraction."}
+              ? "Investigation-focused agent that gathers context, summarizes findings, and requests bounded spend through policy-aware execution controls."
+              : "Execution-focused agent that handles supplier interactions and requests budget-scoped wallet actions under approval-first governance."}
           </p>
         </div>
         <div

@@ -148,7 +148,7 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
             <div>
               <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]};`}>
                 <CardTitle>{title}</CardTitle>
-                {isShowcase && <Badge variant="primary">Showcase</Badge>}
+                {isShowcase && <Badge variant="primary">Demo</Badge>}
                 <Badge variant={status.isActive ? "success" : "secondary"}>
                   {status.isActive ? "Live" : "Standby"}
                 </Badge>
@@ -160,10 +160,10 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
                 onClick={toggleShadow}
                 variant={isShadowed ? "primary" : "outline"}
                 size="sm"
-                title={isShadowed ? "Following" : "Follow Agent"}
+                title={isShadowed ? "Watching" : "Watch Agent"}
               >
                 {isShadowed ? <EyeOff size={14} css={css`margin-right: ${designTokens.spacing[1]};`} /> : <Eye size={14} css={css`margin-right: ${designTokens.spacing[1]};`} />}
-                {isShadowed ? "Unfollow" : "Follow"}
+                {isShadowed ? "Unwatch" : "Watch"}
               </Button>
               {!status.isActive ? (
                 <Button onClick={startAgent} disabled={isLoading} size="sm">
@@ -214,10 +214,10 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
       <div css={monitorGridStyles}>
         <Card>
           <CardHeader>
-            <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base};`}>Behavioral Performance</CardTitle>
+            <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base};`}>Decision Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <React.Suspense fallback={<div css={css`height: 300px; display: flex; align-items: center; justify-content: center;`}>Loading chart...</div>}>
+            <React.Suspense fallback={<div css={css`height: 300px; display: flex; align-items: center; justify-content: center;`}>Loading activity...</div>}>
               <TradingChart
                 decisions={decisions}
                 agentType={agentType}
@@ -232,7 +232,7 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
             <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base};`}>Activity Audit Trail</CardTitle>
           </CardHeader>
           <CardContent>
-            <React.Suspense fallback={<div css={css`height: 300px; display: flex; align-items: center; justify-content: center;`}>Loading history...</div>}>
+            <React.Suspense fallback={<div css={css`height: 300px; display: flex; align-items: center; justify-content: center;`}>Loading audit trail...</div>}>
               <TradeHistory
                 decisions={decisions}
                 agentType={agentType}

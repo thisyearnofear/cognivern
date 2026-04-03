@@ -20,8 +20,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Users,
   Percent,
-  TrendingUp,
-  TrendingDown,
   ArrowRight,
   ShieldCheck,
   FileSearch,
@@ -71,9 +69,9 @@ interface DashboardProps {
 interface QuickStats {
   activeAgents: number;
   totalAgents: number;
-  totalTrades: number;
-  avgWinRate: number;
-  totalReturn: number;
+  totalSpendEvents: number;
+  avgApprovalRate: number;
+  totalVolume: number;
   totalPolicies: number;
 }
 
@@ -843,24 +841,18 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
             trend={{ value: `${quests.filter((quest) => quest.actionRequired).length} require attention`, isPositive: quests.filter((quest) => quest.actionRequired).length === 0 }}
           />
           <StatCard
-            label="Avg Win Rate"
+            label="Approval Rate"
             value={`${((stats?.avgWinRate || 0) * 100).toFixed(1)}%`}
             icon={<Percent size={24} />}
             color="success"
             trend={{ value: `${stats?.activeAgents || 0}/${stats?.totalAgents || 0} agents online`, isPositive: true }}
           />
           <StatCard
-            label="Total Return"
-            value={`${((stats?.totalReturn || 0) * 100).toFixed(2)}%`}
-            icon={
-              stats && stats.totalReturn >= 0 ? (
-                <TrendingUp size={24} />
-              ) : (
-                <TrendingDown size={24} />
-              )
-            }
-            color={stats && stats.totalReturn >= 0 ? "success" : "error"}
-            trend={{ value: stats ? `${stats.totalTrades} trades analyzed` : "No trading data", isPositive: stats ? stats.totalReturn >= 0 : true }}
+            label="Policy Decisions"
+            value={stats?.totalTrades || 0}
+            icon={<FileSearch size={24} />}
+            color="info"
+            trend={{ value: stats ? `${((stats.avgWinRate || 0) * 100).toFixed(1)}% approval rate` : "No policy activity", isPositive: true }}
           />
         </div>
       </section>

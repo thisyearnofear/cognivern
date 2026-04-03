@@ -176,8 +176,8 @@ export const filterFieldDefinitions: FilterFieldDefinition[] = [
     label: "Agent Type",
     type: "checkbox",
     options: [
-      { label: "Recall", value: "recall" },
-      { label: "Vincent", value: "vincent" },
+      { label: "SpendOS Governance", value: "governance" },
+      { label: "Portfolio Agent", value: "portfolio" },
       { label: "Sapience", value: "sapience" },
       { label: "Custom", value: "custom" },
     ],

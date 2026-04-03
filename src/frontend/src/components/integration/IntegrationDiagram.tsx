@@ -11,13 +11,13 @@ export default function IntegrationDiagram() {
 
   return (
     <div className="integration-diagram">
-      <h3>Cognivern + Bitte Protocol Integration</h3>
+      <h3>Cognivern + OWS Wallet Control Plane</h3>
 
       <div className="diagram-container">
         <div className="diagram-section cognivern">
           <div className="platform-header">
             <h4>Cognivern Platform</h4>
-            <div className="platform-tag">Governance & Monitoring</div>
+            <div className="platform-tag">Spend Governance & Forensics</div>
           </div>
 
           <div className="platform-components">
@@ -47,7 +47,7 @@ export default function IntegrationDiagram() {
             <div className="arrow-head"></div>
             {activeFlow === "flow-1" && (
               <div className="flow-tooltip">
-                Agent registration and capabilities exchange
+                Scoped agent access and treasury assignment
               </div>
             )}
           </div>
@@ -60,7 +60,7 @@ export default function IntegrationDiagram() {
             <div className="arrow-head"></div>
             {activeFlow === "flow-2" && (
               <div className="flow-tooltip">
-                Policy enforcement and governance
+                Budget checks, allowlists, and approval thresholds
               </div>
             )}
           </div>
@@ -73,7 +73,7 @@ export default function IntegrationDiagram() {
             <div className="arrow-head"></div>
             {activeFlow === "flow-3" && (
               <div className="flow-tooltip">
-                Transaction generation and verification
+                Signed execution plus audit evidence capture
               </div>
             )}
           </div>
@@ -81,24 +81,24 @@ export default function IntegrationDiagram() {
 
         <div className="diagram-section bitte">
           <div className="platform-header">
-            <h4>Bitte Protocol</h4>
-            <div className="platform-tag">Multi-Chain Protocol</div>
+            <h4>OWS Wallet Layer</h4>
+            <div className="platform-tag">Wallet Access & Signing</div>
           </div>
 
           <div className="platform-components">
             <div className="component">
               <div className="component-icon mcp-icon">MCP</div>
-              <div className="component-label">MCP Server</div>
+              <div className="component-label">Agent Access</div>
             </div>
 
             <div className="component">
               <div className="component-icon agent-icon">A</div>
-              <div className="component-label">Agent Network</div>
+              <div className="component-label">API Keys</div>
             </div>
 
             <div className="component">
               <div className="component-icon tx-icon">Tx</div>
-              <div className="component-label">Transaction Tools</div>
+              <div className="component-label">Policy-Gated Signing</div>
             </div>
           </div>
         </div>
@@ -110,29 +110,30 @@ export default function IntegrationDiagram() {
           <li>
             <span className="benefit-icon">✓</span>
             <span className="benefit-text">
-              <strong>Enhanced Agent Governance:</strong> Apply Cognivern's
-              policy enforcement to Bitte Protocol agents
+              <strong>SpendOS for teams:</strong> Assign budgets, restrictions,
+              and approval rules per agent instead of handing out a blank check
             </span>
           </li>
           <li>
             <span className="benefit-icon">✓</span>
             <span className="benefit-text">
-              <strong>Multi-Chain Support:</strong> Extend governance
-              capabilities across multiple blockchains
+              <strong>Operator visibility:</strong> Watch every attempted spend
+              move through approval, hold, or denial with human-readable
+              reasons
             </span>
           </li>
           <li>
             <span className="benefit-icon">✓</span>
             <span className="benefit-text">
-              <strong>Verifiable Transactions:</strong> Generate and audit
-              blockchain transactions with full traceability
+              <strong>Audit log forensics:</strong> Preserve the evidence chain
+              for every decision so teams can investigate incidents fast
             </span>
           </li>
           <li>
             <span className="benefit-icon">✓</span>
             <span className="benefit-text">
-              <strong>Showcase Agents:</strong> Demonstrate platform
-              capabilities through purpose-built agents
+              <strong>Wallet control without wallet sprawl:</strong> Keep OWS as
+              the execution layer while Cognivern handles oversight and trust
             </span>
           </li>
         </ul>

@@ -390,8 +390,8 @@ function TradingAgentDashboardContent() {
   const carouselItems: CarouselItem[] = [
     {
       id: "recall",
-      title: "Recall Trading Agent",
-      subtitle: "Recall Ecosystem",
+      title: "Research Agent",
+      subtitle: "Analysis & Intake",
       icon: "🧠",
       content: (
         <div
@@ -399,15 +399,15 @@ function TradingAgentDashboardContent() {
             font-size: ${designTokens.typography.fontSize.sm};
           `}
         >
-          High-frequency trading agent with on-chain memory and verifiable
-          intent.
+          Research-focused agent that gathers context and proposes bounded
+          actions for review.
         </div>
       ),
     },
     {
       id: "vincent",
-      title: "Vincent Social Agent",
-      subtitle: "Vincent Ecosystem",
+      title: "Procurement Agent",
+      subtitle: "Execution & Vendors",
       icon: "🎭",
       content: (
         <div
@@ -415,15 +415,15 @@ function TradingAgentDashboardContent() {
             font-size: ${designTokens.typography.fontSize.sm};
           `}
         >
-          Social trading agent leveraging sentiment analysis and community
-          insights.
+          Execution-focused agent that requests supplier-facing spend under
+          strict policy controls.
         </div>
       ),
     },
     {
       id: "sapience",
-      title: "Sapience Oracle",
-      subtitle: "Governance Layer",
+      title: "Oversight Agent",
+      subtitle: "Policy & Review",
       icon: "👁️",
       content: (
         <div
@@ -431,8 +431,8 @@ function TradingAgentDashboardContent() {
             font-size: ${designTokens.typography.fontSize.sm};
           `}
         >
-          Forecasting and governance agent ensuring protocol alignment and risk
-          mitigation.
+          Governance-focused agent that scores risk, triggers holds, and
+          escalates actions for approval.
         </div>
       ),
     },
@@ -449,15 +449,15 @@ function TradingAgentDashboardContent() {
 
   return (
     <PageWrapper
-      title="Agent Behavioral & Governance"
-      subtitle="Monitor autonomy levels, compliance scores, and governance risk across your agent ecosystem."
+      title="Governed Agent Operations"
+      subtitle="Monitor scoped agents, review policy outcomes, and inspect the evidence trail behind every proposed action."
       actions={
         <Button
           variant="primary"
           onClick={() => navigate("/agents/workshop")}
           icon={<Plus size={18} />}
         >
-          Deploy New Agent
+          Add Governed Agent
         </Button>
       }
     >
@@ -1227,7 +1227,7 @@ function TradingAgentDashboardContent() {
               color: ${designTokens.colors.neutral[900]};
             `}
           >
-            Showcase Agents
+            Managed Agent Views
           </h2>
           <Badge
             variant="outline"
@@ -1235,7 +1235,7 @@ function TradingAgentDashboardContent() {
               margin-left: auto;
             `}
           >
-            3 Verified
+            3 Ready
           </Badge>
         </div>
 
@@ -1248,22 +1248,22 @@ function TradingAgentDashboardContent() {
         >
           <AgentMonitor
             agentType="recall"
-            title="Recall Trading Agent"
-            description="High-frequency trading agent leveraging Recall Network's decentralized on-chain memory for verifiable intent."
+            title="Research Agent"
+            description="Investigation-first agent that gathers context, summarizes findings, and proposes bounded actions."
             isShowcase
           />
 
           <AgentMonitor
             agentType="vincent"
-            title="Vincent Social Agent"
-            description="Sentiment-driven agent that executes trades based on social media trends and community-defined governance policies."
+            title="Procurement Agent"
+            description="Execution-first agent that handles vendor interactions and requests spend under budget and approval guardrails."
             isShowcase
           />
 
           <AgentMonitor
             agentType="sapience"
-            title="Sapience Oracle"
-            description="Advanced forecasting and governance agent that mitigates risk by ensuring protocol alignment through ZK-proofs."
+            title="Oversight Agent"
+            description="Governance-first agent that reviews risk, evaluates policy fit, and routes high-impact actions into approval."
             isShowcase
           />
         </div>

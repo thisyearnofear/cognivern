@@ -61,8 +61,8 @@ export default function PolicyConfiguration({
   return (
     <div css={configStyles}>
       <div className="policy-header">
-        <h3>Trading Policies</h3>
-        <p>Configure your trading agent's behavior and limits</p>
+        <h3>Spend Policies</h3>
+        <p>Configure the budgets and execution boundaries your agent must follow</p>
         {!isEditing && (
           <button className="edit-button" onClick={() => setIsEditing(true)}>
             <span className="edit-icon">ED</span>
@@ -101,10 +101,10 @@ export default function PolicyConfiguration({
           </div>
         </div>
 
-        {/* Maximum Trade Size */}
+        {/* Maximum Single Action Size */}
         <div className="policy-section">
-          <h4>Maximum Trade Size</h4>
-          <p>Largest single trade the agent can execute</p>
+          <h4>Maximum Single Action Size</h4>
+          <p>Largest single wallet-backed action the agent can request</p>
           <div className="policy-control">
             <div className="input-group">
               <span className="input-prefix">$</span>
@@ -130,10 +130,10 @@ export default function PolicyConfiguration({
           </div>
         </div>
 
-        {/* Allowed Tokens */}
+        {/* Allowed Assets */}
         <div className="policy-section">
-          <h4>Allowed Tokens</h4>
-          <p>Tokens the agent is permitted to trade</p>
+          <h4>Allowed Assets</h4>
+          <p>Assets or destinations the agent is permitted to use</p>
           <div className="token-grid">
             {AVAILABLE_TOKENS.map((token) => (
               <div
@@ -171,13 +171,13 @@ export default function PolicyConfiguration({
               </span>
             </div>
             <div className="summary-item">
-              <span className="summary-label">Max Trade:</span>
+              <span className="summary-label">Max Action:</span>
               <span className="summary-value">
                 ${localPolicies.maxTradeSize}
               </span>
             </div>
             <div className="summary-item">
-              <span className="summary-label">Allowed Tokens:</span>
+              <span className="summary-label">Allowed Assets:</span>
               <span className="summary-value">
                 {localPolicies.allowedTokens.length}
               </span>
@@ -249,7 +249,7 @@ export default function PolicyConfiguration({
                 ? "OK"
                 : "NO"}
             </span>
-            <span>Max trade size is within daily limit</span>
+            <span>Max single action is within daily limit</span>
           </div>
           <div
             className={`validation-item ${localPolicies.allowedTokens.length > 0 ? "valid" : "invalid"}`}

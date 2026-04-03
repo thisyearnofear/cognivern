@@ -183,9 +183,9 @@ export const Header: React.FC = () => {
       case "/":
         return "Dashboard";
       case "/agents":
-        return isMobile ? "Agents" : "Agent Management";
+        return isMobile ? "Agents" : "Governed Agents";
       case "/policies":
-        return isMobile ? "Policies" : "Policy Management";
+        return isMobile ? "Policies" : "Spend Policies";
       case "/audit":
         return isMobile ? "Audit" : "Audit Logs";
       case "/runs":

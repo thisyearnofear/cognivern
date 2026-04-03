@@ -68,13 +68,13 @@ export const CommandPalette: React.FC = () => {
       {
         id: "nav-agents",
         title: "Go to Agents",
-        description: "Manage AI trading agents",
+        description: "Manage governed agents",
         icon: "🤖",
         action: () => {
           navigate("/agents");
           onClose();
         },
-        keywords: ["agents", "trading", "ai", "bot"],
+        keywords: ["agents", "governance", "ai", "bot"],
         category: "navigation",
       },
       {
@@ -118,13 +118,13 @@ export const CommandPalette: React.FC = () => {
       {
         id: "action-start-agent",
         title: "Open Agent Manager",
-        description: "Open AI agent management",
+        description: "Open governed agent management",
         icon: "▶️",
         action: () => {
           navigate("/agents");
           onClose();
         },
-        keywords: ["start", "agent", "trading", "run"],
+        keywords: ["start", "agent", "governance", "run"],
         category: "actions",
       },
 

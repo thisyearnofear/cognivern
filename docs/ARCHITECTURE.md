@@ -1,246 +1,200 @@
-# Architecture & Overview
+# Architecture
 
 ## Mission
 
-**Make agent systems operable: every run is observable, auditable, and (when needed) provable.**
+**Make agent wallet activity governable.**
 
-Cognivern is an **AI Governance Command Center** — a coordination and coordination layer that turns agent runs into something you can operate, audit, and bill.
+Cognivern is being retargeted from a broad agent-governance platform into a narrower product for the OWS Hackathon:
 
-## Core Value Propositions
+> **a control plane for OWS wallets that handles policy checks, approvals, and audit for autonomous agents**
 
-1. **Multi-Chain Governance**: Leveraging **Filecoin (FVM)** for verifiable forensic evidence and **Polkadot Hub (REVM/PVM)** for high-performance coordination.
-2. **Confidential AI**: LLM reasoning executes in confidential enclaves, ensuring private decision-making.
-3. **Voice of Governance**: High-quality AI audio briefings powered by **ElevenLabs**, synthesizing agent thoughts and actions into conversational summaries.
-4. **Agentic UX**: A high-fidelity, spatial HUD for visualizing agent networks, cognitive paths, and behavioral compliance.
-5. **Verifiable Intent**: On-chain proof of decision-making process, moving beyond simple result tracking.
-6. **Real-Time Guardrails**: Low-latency policy enforcement using stateful **Cloudflare Durable Objects** for edge-native governance.
+## Best Hackathon Fit
 
-## System Architecture
+The strongest fit is **Track 02: Agent Spend Governance & Identity**.
 
-Cognivern utilizes a Cloudflare-native, hybrid multi-chain architecture:
+The codebase is already closest to these opportunities:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Cloudflare Workers Edge                       │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │         GovernanceAgent (Durable Object)                 │   │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │   │
-│  │  │  Persistent  │  │   Policy     │  │   Voice      │  │   │
-│  │  │  State (DO)  │  │   Engine     │  │   Briefing   │  │   │
-│  │  │  - thoughts  │  │  - evaluate  │  │  - AI script │  │   │
-│  │  │  - actions   │  │  - enforce   │  │  - ElevenLabs│  │   │
-│  │  │  - metrics   │  │  - rate limit│  │  - streaming │  │   │
-│  │  └──────────────┘  └──────────────┘  └──────────────┘  │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                          │                                      │
-│  ┌──────────┐   ┌───────┴───────┐   ┌──────────────────┐      │
-│  │ D1 DB    │   │ Workers AI    │   │ Cron Triggers    │      │
-│  │ agents,  │   │ (on-edge      │   │ (hourly audits,  │      │
-│  │ policies,│   │  inference)   │   │  cleanup)        │      │
-│  │ audits   │   └───────────────┘   └──────────────────┘      │
-│  └──────────┘                                                  │
-└─────────────────────────────────────────────────────────────────┘
-                          │
-            ┌─────────────┼─────────────┐
-            ▼             ▼             ▼
-    ┌──────────────┐ ┌──────────┐ ┌──────────┐
-    │ Arbitrum/EAS │ │  Recall  │ │ Filecoin │
-    │ Attestations │ │  Memory  │ │ Forensic │
-    └──────────────┘ └──────────┘ └──────────┘
-```
+- `SpendOS for teams`
+- `Audit log forensics`
+- `Dead man's switch`
+- `Multi-sig agent governance`
 
-## Two-Plane Design
+## Architecture Summary
 
-Cognivern separates concerns into two planes:
+The current system already has two useful planes:
 
-### Data Plane (`/ingest/*`)
+- a **data plane** for ingesting external agent runs
+- a **control plane** for governance evaluation, run review, and audit analysis
 
-- High-volume write path for agent run ingestion.
-- Ingest-key authentication (`Authorization: Bearer <ingestKey>`).
-- Project-scoped via `X-PROJECT-ID` header.
-- Multi-chain data anchoring (Polkadot Hub for coordination, Filecoin for forensics).
+That maps well to an OWS-based system:
 
-### Control Plane (`/api/*`)
+- **OWS** owns wallet storage, API keys, and signing
+- **Cognivern** owns policy evaluation, operator controls, and forensics
 
-- UI + admin APIs.
-- Real-time ecosystem visualization and forensic timeline reconstruction.
-- Behavioral governance management and policy orchestration.
+## Current Runtime Shape
 
-## Core Components
-
-### Application Layer
-
-- **Agent Controller**: Handles incoming requests and orchestrates workflows
-- **Voice of Governance**: Edge-native service integrating ElevenLabs for high-fidelity audio briefings.
-- **Agentic UI/UX**:
-  - **Intent-Driven Bridge**: Natural language interface with Generative UI responses (`StatCard`, `ForensicTimeline`, `ActionForm`)
-  - **Ecosystem Visualizer**: Spatial, interactive HUD for network state
-  - **Forensic Transparency**: High-fidelity cognitive path reconstruction
-  - **Unified Dashboard**: Real-time view of agent thoughts, actions, and metrics
-
-### Domain Layer
-
-- **Governance Engine**: Centralized policy management (`governanceStore`) with visual safety scores
-- **Governance Agent (Cloudflare DO)**: Stateful agent running on the edge, maintaining thought history and enforcing policies.
-- **Policy Service**: Validates actions against risk management rules
-- **Privacy Engine**: Implements PII redaction and ZK-attestations for confidential agent reasoning (supporting OpenClaw, Hermes).
-- **Trading Agent**: Executes forecasting and trading strategies
-
-### Infrastructure Layer
-
-- **Cloudflare Workers**: High-performance compute platform for governance agents.
-- **ElevenLabs API**: AI voice synthesis for conversational briefings.
-- **SapienceService**: EAS attestations, Ethereal contract interactions
-- **Chainlink Integration**: Data Feeds (EVM Read), CRE workflows, EVM Write
-- **Recall Network**: Persistent memory for agent reasoning
-
-## Agent Structure
-
-```typescript
-class SapienceTradingAgent {
-  private readonly config: TradingAgentConfig;
-  private readonly sapienceService: SapienceService;
-
-  async executeTrade(decision: TradingDecision): Promise<TradeResult> {
-    // 1. Check governance compliance
-    const compliance = await this.checkCompliance(decision);
-    if (!compliance.isCompliant) return { status: 'failed', ... };
-
-    // 2. Submit forecast to Sapience (EAS Attestation)
-    const txHash = await this.sapienceService.submitForecast({
-      marketId: decision.symbol,
-      probability: decision.confidence,
-      reasoning: decision.reasoning
-    });
-
-    // 3. Log result
-    return { status: 'executed', id: txHash, ... };
-  }
-}
+```text
+External Agents / Services
+        |
+        |  POST /ingest/runs
+        v
+  IngestController
+        |
+        v
+    CRE Run Store  <-------------------------------+
+        |                                          |
+        |                                          |
+        v                                          |
+ AuditLogService  <---- GovernanceController ------+
+        |                   |
+        |                   | evaluate action
+        |                   v
+        |           PolicyEnforcementService
+        |                   |
+        |                   v
+        |              PolicyService
+        |
+        v
+  UI / Operator Views
+  - audit logs
+  - run ledger
+  - policy state
+  - usage telemetry
 ```
 
-## Decision Flow
+## Planned OWS-Centric Shape
 
-1. **Market Analysis**: Identify active markets on Sapience protocol
-2. **Forecast Generation**: Calculate probability (0-100%) based on available data
-3. **Policy Check**: Governance engine validates trade size and risk level
-4. **Attestation**: Submit forecast to Arbitrum via `SapienceService.submitForecast`
-5. **Execution**: Optionally take position on Ethereal via `SapienceService.executeTrade`
-6. **Memory**: Store reasoning to Recall Network for auditability
-
-## Trading Strategy
-
-### Horizon-Weighted Market Selection
-
-Cognivern optimizes for accuracy scoring by prioritizing markets with the longest time until resolution:
-
-1. Batch fetch up to 50 active conditions from GraphQL API
-2. Calculate `Time Until Resolution` for each market
-3. Sort markets by horizon (furthest `endTime` first)
-4. Submit forecasts to highest-value markets first
-
-### Multi-LLM Resilience
-
-```
-Tier 1 (Primary): Routeway.ai — Kimi K2 0905 (best reasoning)
-                      ↓ (on timeout/5xx)
-Tier 2 (Fallback): Groq — Llama 3.3 70B (ultra-fast)
-```
-
-Both execute within CRE Confidential HTTP — API keys and reasoning stay private.
-
-## Performance Tracking
-
-- **Brier Score**: Accuracy of probabilistic forecasts (horizon-weighted)
-- **PnL**: Profit/loss from Ethereal trading positions
-- **Attestation History**: Verifiable on-chain log of all predictions
-- **Operational Metrics**: Uptime, latency, success rate, error rate
-
-## Data Persistence
-
-### Cloudflare D1 (Production)
-
-- **agents**: Registered agent metadata, capabilities, and status
-- **policies**: Governance rules and enforcement configurations
-- **action_logs**: Audit trail of all agent actions and decisions
-- **policy_decisions**: Detailed decision records with AI reasoning
-- **agent_metrics**: Aggregated performance and compliance metrics
-- **thought_history**: Cognitive transparency log
-
-### Durable Objects (Per-Agent State)
-
-- Persistent thought history and action logs via `ctx.storage`
-- Rate limiting counters and policy enforcement state
-- Voice briefing rate limits (10 per hour)
-- Metrics and configuration snapshots
-
-### Local Fallback
-
-- Runs: `data/cre-runs.jsonl` (append-only JSONL)
-- Quota Usage: `data/usage.json`
-- Token Telemetry: `data/token-telemetry.json`
-
-## Configuration
-
-Centralized config with Zod validation (`src/shared/config/index.ts`):
-
-```env
-# Sapience / Arbitrum (Trading)
-ARBITRUM_RPC_URL=https://arb1.arbitrum.io/rpc
-ETHEREAL_RPC_URL=https://ethereal-rpc.sapience.xyz
-SAPIENCE_PRIVATE_KEY=your_private_key
-
-# Cloudflare (Governance Agents)
-CLOUDFLARE_ACCOUNT_ID=your_id
-CLOUDFLARE_API_TOKEN=your_token
-
-# ElevenLabs (Voice Briefings)
-ELEVENLABS_API_KEY=your_elevenlabs_key
-
-# LLM Providers (at least one required)
-FIREWORKS_API_KEY=
-OPENROUTER_API_KEY=
-
-# Recall Network (Agent Memory)
-RECALL_API_KEY=your_recall_key
-RECALL_BUCKET=agent-memory
+```text
+Agent
+  |
+  | intended spend / sign request
+  v
+OWS Wallet + API Key
+  |
+  | policy-gated signing boundary
+  v
+Cognivern Evaluation Layer
+  - budget checks
+  - chain restrictions
+  - vendor allowlists
+  - approval thresholds
+  - anomaly detection
+  |
+  +--> approve -> OWS signs and sends
+  |
+  +--> hold    -> human or second wallet approves
+  |
+  +--> deny    -> no signing
+  |
+  v
+Cognivern Audit + Run Ledger
+  - every attempt recorded
+  - reasons preserved
+  - project and agent views
 ```
 
-## Security Features
+## Existing Building Blocks
 
-- **Private Key Management**: Keys in environment variables, never in code
-- **RPC Security**: HTTPS communication with Arbitrum/Ethereal nodes
-- **Policy Guardrails**: Hard-coded limits on trade size and frequency
-- **Input Validation**: Zod schemas validate all configuration and inputs
-- **Rate Limiting**: Per-project quotas with usage headers
+### 1. Ingestion
 
-## Monitoring & Observability
+`IngestController` accepts project-scoped run submissions through `/ingest/runs`.
 
-### Key Metrics
+Useful today:
 
-- API response time (p50, p95, p99)
-- Cache hit rate
-- Filter application time
-- Agent uptime and latency
-- Forecast accuracy (Brier Score)
+- external agent compatibility
+- per-project ingest keys
+- quota and usage metering
+- normalized run capture for downstream UI
 
-### Logging Strategy
+### 2. Governance evaluation
 
-```typescript
-logger.info("Forecast submitted", { marketId, probability, txHash });
-logger.error("Policy violation", { action, reason, agentId });
-logger.warn("LLM fallback triggered", { provider, error });
-```
+`GovernanceController` exposes:
 
-## Live On-Chain Activity
+- `GET /api/governance/policies`
+- `POST /api/governance/policies`
+- `POST /api/governance/evaluate`
 
-- **Agent Wallet**: `0xc8F0D4FF31166Daf37804C20eeFd059e041E64dC`
-- **Arbiscan**: [View EAS Attestations](https://arbiscan.io/address/0xc8F0D4FF31166Daf37804C20eeFd059e041E64dC)
-- **Proof of Accuracy**: Horizon-Weighted Strategy prioritizes long-horizon markets
+`PolicyEnforcementService` loads the active policy and evaluates actions rule by rule, returning structured policy checks.
 
-## Related Docs
+### 3. Audit and run ledger
 
-- **[Developer Guide](./DEVELOPER.md)** — API reference, adding features, testing
-- **[CRE Integration](./CRE.md)** — Chainlink workflow design and implementation
-- **[Deployment](./DEPLOYMENT.md)** — Release process, rollback, operations
+`AuditLogService` turns actions and events into CRE-backed evidence.
+
+`CreController` exposes:
+
+- run lists
+- run details
+- event streams
+- retries
+- approval flows
+- plan updates
+
+These are the right primitives for spend forensics and operator review.
+
+### 4. Frontend control plane
+
+The frontend already contains surfaces for:
+
+- policy management
+- audit logs
+- run ledger
+- agent status and monitoring
+
+Those views are more valuable for the hackathon than the older trading-specific story.
+
+## Current Mismatches
+
+### Legacy wallet assumptions
+
+Some services still assume signer keys come from environment variables. That is incompatible with the intended OWS-first architecture and should be treated as transitional.
+
+### Discontinued integrations
+
+Bitte-related flows are stale and should not be part of the product narrative.
+
+### Mixed product story
+
+The repo still contains material from trading, forecasting, and deprecated ecosystem integrations. The hackathon story should ignore those unless they directly support the spend-governance demo.
+
+## Recommended Boundaries
+
+### OWS responsibilities
+
+- wallet storage
+- API-key issuance
+- transaction signing
+- signing policy enforcement at the wallet boundary
+
+### Cognivern responsibilities
+
+- project and agent oversight
+- policy simulation and explanation
+- approval workflows
+- audit-log indexing and visualization
+- run ledger, anomaly surfacing, and spend analytics
+
+## Near-Term Demo Design
+
+The cleanest demo is:
+
+1. create a treasury wallet
+2. issue scoped access to multiple agents
+3. submit proposed spend actions into Cognivern
+4. approve low-risk actions automatically
+5. hold medium-risk actions for approval
+6. deny out-of-policy actions
+7. show everything in the run ledger and audit views
+
+## Why This Fits The Hackathon
+
+OWS provides the wallet primitives.
+
+Cognivern provides the operator experience teams actually need once agents start spending real money:
+
+- visibility
+- control
+- limits
+- evidence
+- recovery workflows
+
+That is a much stronger and more defensible position for this repo than the previous broad "agent governance command center" framing.

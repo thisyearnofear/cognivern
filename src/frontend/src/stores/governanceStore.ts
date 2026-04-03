@@ -89,9 +89,9 @@ interface GovernanceState {
 const defaultTemplates: GovernanceTemplate[] = [
   {
     id: "trading-risk-control",
-    name: "Trading Risk Management",
+    name: "Agent Spend Guardrails",
     description:
-      "Comprehensive risk controls for trading agents including position limits, stop-losses, and approval workflows.",
+      "Core spend controls for autonomous agents including budget limits, approval thresholds, and action-rate controls.",
     category: "trading",
     icon: "📊",
     complexity: "moderate",
@@ -99,8 +99,8 @@ const defaultTemplates: GovernanceTemplate[] = [
     defaultRules: [
       {
         id: "rule-position-limit",
-        name: "Position Limit",
-        description: "Deny trades exceeding 10% of account balance.",
+        name: "Single Action Limit",
+        description: "Deny actions exceeding 10% of available balance.",
         type: "DENY",
         condition: "trade.amount > account.balance * 0.1",
         action: "block_trade",
@@ -108,12 +108,12 @@ const defaultTemplates: GovernanceTemplate[] = [
         strictness: "medium",
         category: "trading",
         priority: 1,
-        metadata: { reason: "Position size exceeds 10% of balance" },
+        metadata: { reason: "Single action exceeds 10% of balance" },
       },
       {
         id: "rule-risk-approval",
         name: "High Risk Approval",
-        description: "Require human approval for trades with high risk scores.",
+        description: "Require human approval for actions with high risk scores.",
         type: "REQUIRE",
         condition: "trade.riskScore > 0.8",
         action: "human_approval",
@@ -125,8 +125,8 @@ const defaultTemplates: GovernanceTemplate[] = [
       },
       {
         id: "rule-trade-rate",
-        name: "Trade Rate Limit",
-        description: "Limit agents to 10 trades per hour.",
+        name: "Action Rate Limit",
+        description: "Limit agents to 10 wallet-impacting actions per hour.",
         type: "RATE_LIMIT",
         condition: "agent.trades_per_hour",
         action: "limit_to_10",

@@ -45,47 +45,47 @@ export const SmartOnboarding: React.FC = () => {
 
   const userTypes = [
     {
-      id: "trader",
-      title: "AI Trader",
-      description: "Automate high-yield strategies with risk-aware agents.",
+      id: "operator",
+      title: "Operator",
+      description: "Control how autonomous agents spend from shared wallets.",
       icon: <TrendingUp size={32} color={designTokens.colors.primary[500]} />,
       features: [
-        "Real-time alpha detection",
-        "Risk-mitigated trade execution",
-        "Verifiable performance metrics",
+        "Per-agent budget controls",
+        "Approval thresholds and holds",
+        "Live spend visibility",
       ],
     },
     {
       id: "developer",
       title: "Builder",
-      description: "Integrate governance APIs into your agentic stack.",
+      description: "Integrate policy checks and audit evidence into your agent stack.",
       icon: <Code size={32} color={designTokens.colors.primary[500]} />,
       features: [
-        "Sovereign data SDK",
+        "BYO-agent ingestion API",
         "Custom policy enforcement",
-        "Multi-chain coordination layer",
+        "OWS-ready control-plane hooks",
       ],
     },
     {
-      id: "governance",
+      id: "guardian",
       title: "Guardian",
-      description: "Enforce safety and compliance across agent fleets.",
+      description: "Enforce wallet restrictions and review risky agent actions.",
       icon: <ShieldCheck size={32} color={designTokens.colors.primary[500]} />,
       features: [
         "Real-time policy guardrails",
         "Immutable forensic audit trails",
-        "Automated compliance scoring",
+        "Approval-first governance flows",
       ],
     },
     {
       id: "explorer",
       title: "Curious",
-      description: "See the Agentic Era in action with a live demo.",
+      description: "See how teams can give agents wallets without giving them a blank check.",
       icon: <Search size={32} color={designTokens.colors.primary[500]} />,
       features: [
-        "Interactive network map",
-        "Agent thought-stream observation",
-        "No-wallet playground mode",
+        "Interactive audit views",
+        "Approval and denial examples",
+        "Hackathon demo mode",
       ],
     },
   ];
@@ -94,7 +94,7 @@ export const SmartOnboarding: React.FC = () => {
     {
       id: "welcome",
       title: "Welcome to Cognivern",
-      description: "The future of AI agent governance",
+      description: "Spend governance for autonomous agents",
       component: (
         <div style={{ textAlign: "center", padding: designTokens.spacing[6] }}>
           <div
@@ -125,9 +125,8 @@ export const SmartOnboarding: React.FC = () => {
               lineHeight: designTokens.typography.lineHeight.relaxed,
             }}
           >
-            Decentralized governance for AI agents built on Filecoin's sovereign
-            data layer. Create transparent, verifiable, and trustless AI
-            governance.
+            Give agents real execution power with clear budgets, approval
+            boundaries, and an evidence trail your team can actually operate.
           </p>
         </div>
       ),

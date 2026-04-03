@@ -228,9 +228,9 @@ const summaryRowStyles = css`
 `;
 
 const AGENT_TYPES = [
-  { type: "trading" as AgentType, title: "Trading Agent", description: "Automated trading strategies with risk management", icon: <TrendingUp size={24} /> },
+  { type: "trading" as AgentType, title: "Execution Agent", description: "Wallet-impacting actions with budget and approval controls", icon: <TrendingUp size={24} /> },
   { type: "governance" as AgentType, title: "Governance Agent", description: "Policy enforcement and compliance monitoring", icon: <Shield size={24} /> },
-  { type: "research" as AgentType, title: "Research Agent", description: "Data analysis and market research", icon: <Search size={24} /> },
+  { type: "research" as AgentType, title: "Research Agent", description: "Investigation, analysis, and recommendation workflows", icon: <Search size={24} /> },
   { type: "custom" as AgentType, title: "Custom Agent", description: "Connect any agent type with custom settings", icon: <Bot size={24} /> },
 ];
 
@@ -246,7 +246,7 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
   const [currentStep, setCurrentStep] = useState(1);
   const [showConfetti, setShowConfetti] = useState(false);
   const [config, setConfig] = useState<AgentConnectionConfig>({
-    type: "trading",
+    type: "governance",
     name: "",
     address: "",
     description: "",
@@ -367,7 +367,7 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
             <p css={subtitleStyles}>Enter your agent's connection information</p>
             <div css={formGroupStyles}>
               <label css={labelStyles}>Agent Name *</label>
-              <input css={inputStyles} type="text" placeholder="e.g., Alpha Trading Bot" value={config.name} onChange={(e) => updateConfig({ name: e.target.value })} />
+              <input css={inputStyles} type="text" placeholder="e.g., Procurement Agent" value={config.name} onChange={(e) => updateConfig({ name: e.target.value })} />
             </div>
             <div css={formGroupStyles}>
               <label css={labelStyles}>Agent Address *</label>
@@ -400,9 +400,9 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
                   <div key={level} css={radioOptionStyles(config.riskLevel === level)} onClick={() => updateConfig({ riskLevel: level })}>
                     <div css="font-weight: 600; text-transform: capitalize; margin-bottom: 4px;">{level}</div>
                     <div css={`font-size: 12px; color: ${designTokens.colors.text.secondary};`}>
-                      {level === "low" && "Conservative trades"}
-                      {level === "medium" && "Balanced approach"}
-                      {level === "high" && "Aggressive strategies"}
+                      {level === "low" && "Tighter budgets and more approvals"}
+                      {level === "medium" && "Balanced autonomy and review"}
+                      {level === "high" && "Expanded autonomy with higher operator risk"}
                     </div>
                   </div>
                 ))}
@@ -438,10 +438,10 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
         )}
 
         {currentStep === 4 && (
-          <div css={successStyles}>
-            <div css={successIconStyles}><CheckCircle size={40} /></div>
-            <h2 css={titleStyles}>Ready to Connect!</h2>
-            <p css={subtitleStyles}>Your agent is configured and ready to be added</p>
+            <div css={successStyles}>
+              <div css={successIconStyles}><CheckCircle size={40} /></div>
+            <h2 css={titleStyles}>Ready to Add The Agent</h2>
+            <p css={subtitleStyles}>Your governed agent profile is configured and ready to be added</p>
             <div css={summaryStyles}>
               <div css={summaryRowStyles}>
                 <span css={`color: ${designTokens.colors.text.secondary};`}>Name</span>

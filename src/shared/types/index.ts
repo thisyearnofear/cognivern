@@ -117,7 +117,12 @@ export interface TradingPerformance {
 }
 
 // ===== POLICY TYPES =====
-export type PolicyStatus = "active" | "inactive" | "draft" | "deprecated" | "archived";
+export type PolicyStatus =
+  | "active"
+  | "inactive"
+  | "draft"
+  | "deprecated"
+  | "archived";
 
 export interface Policy {
   id: string;
@@ -230,8 +235,8 @@ export interface UxEvent {
   timestamp: string;
 }
 
-// ===== VINCENT SPECIFIC TYPES =====
-export interface VincentStatus {
+// ===== SPENDOS STATUS TYPES =====
+export interface SpendOsStatus {
   isConnected: boolean;
   hasConsent: boolean;
   appId: string;
@@ -243,6 +248,8 @@ export interface VincentStatus {
   };
   isConfigured: boolean;
 }
+
+export type VincentStatus = SpendOsStatus;
 
 // ===== CONFIGURATION TYPES =====
 export interface ServiceConfig {
