@@ -15,7 +15,7 @@
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@recallnet/chains": "^0.0.8",
-    "@recallnet/sdk": "^0.0.9",
+    "@recallnet/sdk": "^0.0.14",
     "lucide-react": "0.577.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
