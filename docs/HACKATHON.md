@@ -4,7 +4,7 @@
 
 - **Hackathon**: OWS Hackathon
 - **Date**: Friday, April 3, 2026
-- **Submission window**: opens Friday morning and closes at **11:59 PM EST on April 3, 2026**
+- **Submission window**: opens Friday morning and closes at **Saturday, April 4 at 9:00 AM EDT**
 - **Prize pool**: **$50,000**
 - **Prize structure**:
   - Grand Prize: **$10,000**
