@@ -175,11 +175,14 @@ export class AgentApiService extends ApiService {
   // Get voice briefing for an agent
   async getAgentBriefing(agentId: string) {
     try {
-      const response = await fetch(getApiUrl(`/api/agents/${agentId}/briefing`), {
-        headers: {
-          ...DEFAULT_HEADERS,
+      const response = await fetch(
+        getApiUrl(`/api/agents/${agentId}/briefing`),
+        {
+          headers: {
+            ...DEFAULT_HEADERS,
+          },
         },
-      });
+      );
 
       if (!response.ok) {
         throw new Error(`Briefing Error: ${response.status}`);
@@ -200,7 +203,8 @@ export class AgentApiService extends ApiService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch briefing",
+        error:
+          error instanceof Error ? error.message : "Failed to fetch briefing",
       };
     }
   }
@@ -424,6 +428,20 @@ export class SpendApiService extends ApiService {
   }
 
   /**
+   * Preview/simulate a spend without executing
+   */
+  async previewSpend(data: {
+    agentId: string;
+    recipient: string;
+    amount: string;
+    asset: string;
+    reason: string;
+    metadata?: Record<string, any>;
+  }) {
+    return this.post("/api/spend/preview", data);
+  }
+
+  /**
    * Get execution layer status
    */
   async getStatus() {
@@ -461,6 +479,64 @@ export const policyApi = new PolicyApiService();
 export const spendOsApi = new SpendOsApiService();
 export const spendApi = new SpendApiService();
 export const sapienceApi = new SapienceApiService();
+
+// OWS-specific API service (Wallet, API Keys)
+export class OwsApiService extends ApiService {
+  // Get OWS status
+  async getStatus() {
+    return this.get("/api/ows/status");
+  }
+
+  // Bootstrap wallet
+  async bootstrap() {
+    return this.post("/api/ows/bootstrap", {});
+  }
+
+  // List wallets
+  async listWallets() {
+    return this.get("/api/ows/wallets");
+  }
+
+  // Import wallet
+  async importWallet(data: {
+    name: string;
+    privateKey: string;
+    chainId?: string;
+  }) {
+    return this.post("/api/ows/wallets/import", data);
+  }
+
+  // Connect external wallet
+  async connectExternalWallet(url: string) {
+    return this.post("/api/ows/wallets/connect", { url });
+  }
+
+  // List API keys
+  async listApiKeys() {
+    return this.get("/api/ows/api-keys");
+  }
+
+  // Create API key
+  async createApiKey(data: {
+    name: string;
+    walletIds: string[];
+    policyIds?: string[];
+    expiresAt?: string;
+  }) {
+    return this.post("/api/ows/api-keys", data);
+  }
+
+  // Request permissions
+  async requestPermissions(data: {
+    walletId: string;
+    invoker: string;
+    permissions: Array<{ type: string; value?: unknown }>;
+  }) {
+    return this.post("/api/ows/permissions", data);
+  }
+}
+
+export const owsApi = new OwsApiService();
 // Export Polkadot API service
 export {
   getGovernanceContract,

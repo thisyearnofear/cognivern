@@ -279,3 +279,101 @@ export interface UseTradingData {
   error: string | null;
   refreshData: () => Promise<void>;
 }
+
+// ===== OWS TYPES (Open Wallet Standard) =====
+
+export type ChainId = `eip155:${number}` | `solana:${string}`;
+
+export type AccountId = `${ChainId}:${string}`;
+
+export type WalletId = string;
+
+export type ChainType = "evm" | "solana" | "starknet";
+
+export interface OwsAccountDescriptor {
+  accountId: AccountId;
+  address: string;
+  derivationPath: string;
+  chainId: ChainId;
+}
+
+export interface OwsWalletDescriptor {
+  id: WalletId;
+  name: string;
+  createdAt: string;
+  chainType: ChainType;
+  accounts: OwsAccountDescriptor[];
+  metadata: Record<string, unknown>;
+}
+
+export interface OwsApiKey {
+  id: string;
+  name: string;
+  tokenHash: string;
+  createdAt: string;
+  walletIds: WalletId[];
+  policyIds: string[];
+  expiresAt?: string;
+}
+
+export interface SerializedTransaction {
+  to: string;
+  from: string;
+  value: string;
+  data?: string;
+  nonce?: number;
+  gasLimit?: string;
+  gasPrice?: string;
+  chainId: number;
+}
+
+export interface SignRequest {
+  walletId: WalletId;
+  chainId: ChainId;
+  transaction: SerializedTransaction;
+  simulate?: boolean;
+}
+
+export interface SignAndSendRequest extends SignRequest {
+  maxRetries?: number;
+  confirmations?: number;
+}
+
+export interface SignMessageRequest {
+  walletId: WalletId;
+  chainId: ChainId;
+  message: string | Uint8Array;
+  encoding?: "utf8" | "hex";
+}
+
+export type PolicyAction = "deny" | "warn";
+
+export interface OwsPolicy {
+  id: string;
+  name: string;
+  executable: string;
+  config?: Record<string, unknown>;
+  action: PolicyAction;
+}
+
+export interface PolicyContext {
+  transaction: SerializedTransaction;
+  chainId: ChainId;
+  wallet: OwsWalletDescriptor;
+  simulation?: SimulationResult;
+  timestamp: string;
+  apiKeyId: string;
+}
+
+export interface PolicyResult {
+  allow: boolean;
+  reason?: string;
+}
+
+export interface SimulationResult {
+  success: boolean;
+  gasUsed?: string;
+  balanceChanges?: Record<string, string>;
+  logs?: string[];
+  error?: string;
+}
