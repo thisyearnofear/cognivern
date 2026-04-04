@@ -1007,6 +1007,104 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
           </div>
         </div>
 
+        {/* Getting Started Hero - Show when no agents/policies */}
+        {(stats?.activeAgents === 0 || stats?.totalPolicies === 0) &&
+          !isLoading && (
+            <div
+              css={css`
+                background: linear-gradient(
+                  135deg,
+                  ${designTokens.colors.primary[50]} 0%,
+                  ${designTokens.colors.semantic.success[50]} 100%
+                );
+                border-radius: ${designTokens.borderRadius.lg};
+                padding: ${designTokens.spacing[6]};
+                margin-bottom: ${designTokens.spacing[6]};
+                border: 1px solid ${designTokens.colors.primary[200]};
+              `}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: designTokens.spacing[4],
+                }}
+              >
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: "50%",
+                    background: designTokens.colors.primary[100],
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Zap size={24} color={designTokens.colors.primary[600]} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h3
+                    style={{
+                      margin: `0 0 ${designTokens.spacing[2]} 0`,
+                      fontSize: "18px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {stats?.activeAgents === 0
+                      ? "Add Your First Agent"
+                      : "Create Your First Policy"}
+                  </h3>
+                  <p
+                    style={{
+                      margin: `0 0 ${designTokens.spacing[4]} 0`,
+                      color: designTokens.colors.neutral[600],
+                      fontSize: "14px",
+                    }}
+                  >
+                    {stats?.activeAgents === 0
+                      ? "Connect an agent to enable governed spend. We'll walk you through the setup."
+                      : "Set spend limits and rules to control what your agents can approve."}
+                  </p>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: designTokens.spacing[3],
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {stats?.activeAgents === 0 && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => navigate("/agents/connect")}
+                      >
+                        Connect Agent →
+                      </Button>
+                    )}
+                    {stats?.totalPolicies === 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate("/policies")}
+                      >
+                        Create Policy →
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate("/onboarding")}
+                    >
+                      View Tutorial
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
         {/* Compact stats row for mobile, grid for desktop */}
         <div css={styles.statsGridStyles(isMobile, isTablet)}>
           <StatCard
@@ -1144,6 +1242,36 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
 
           {isLoading ? (
             <div css={styles.loadingStyles}>Loading agents...</div>
+          ) : agents.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: designTokens.spacing[8],
+                background: designTokens.colors.neutral[50],
+                borderRadius: designTokens.borderRadius.md,
+              }}
+            >
+              <Users
+                size={40}
+                color={designTokens.colors.neutral[400]}
+                style={{ marginBottom: designTokens.spacing[3] }}
+              />
+              <p
+                style={{
+                  margin: `0 0 ${designTokens.spacing[3]} 0`,
+                  color: designTokens.colors.neutral[600],
+                }}
+              >
+                No agents connected yet
+              </p>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate("/agents/connect")}
+              >
+                Connect Your First Agent
+              </Button>
+            </div>
           ) : isMobile ? (
             <AgentCarousel agents={agents} />
           ) : (
@@ -1163,12 +1291,38 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
               View All <ArrowRight size={16} />
             </Button>
           </div>
-          <ActivityFeed
-            activities={recentActivity}
-            compact={isMobile}
-            showMore={showMoreActivity}
-            onToggleMore={() => setShowMoreActivity(!showMoreActivity)}
-          />
+          {recentActivity.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                padding: designTokens.spacing[8],
+                background: designTokens.colors.neutral[50],
+                borderRadius: designTokens.borderRadius.md,
+              }}
+            >
+              <FileSearch
+                size={40}
+                color={designTokens.colors.neutral[400]}
+                style={{ marginBottom: designTokens.spacing[3] }}
+              />
+              <p
+                style={{
+                  margin: `0 0 ${designTokens.spacing[3]} 0`,
+                  color: designTokens.colors.neutral[600],
+                }}
+              >
+                No activity yet - actions will appear here once agents start
+                making decisions
+              </p>
+            </div>
+          ) : (
+            <ActivityFeed
+              activities={recentActivity}
+              compact={isMobile}
+              showMore={showMoreActivity}
+              onToggleMore={() => setShowMoreActivity(!showMoreActivity)}
+            />
+          )}
         </section>
 
         {/* Quest HUD - Governance Quests - Only show if there are active quests */}
