@@ -534,6 +534,11 @@ export class OwsApiService extends ApiService {
   }) {
     return this.post("/api/ows/permissions", data);
   }
+
+  // Get unified OWS dashboard
+  async getDashboard() {
+    return this.get("/api/ows/dashboard");
+  }
 }
 
 export const owsApi = new OwsApiService();
