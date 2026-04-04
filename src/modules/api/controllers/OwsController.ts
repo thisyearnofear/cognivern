@@ -160,6 +160,32 @@ export class OwsController {
     });
   }
 
+  async deleteApiKey(req: Request, res: Response) {
+    const keyId = req.params.id;
+    if (!keyId) {
+      res.status(400).json({
+        success: false,
+        error: "API key ID required",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    try {
+      await owsLocalVaultService.deleteApiKey(keyId);
+      res.json({
+        success: true,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        error: error instanceof Error ? error.message : "API key not found",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
   async requestPermissions(req: Request, res: Response) {
     const parse = requestPermissionsSchema.safeParse(req.body || {});
     if (!parse.success) {

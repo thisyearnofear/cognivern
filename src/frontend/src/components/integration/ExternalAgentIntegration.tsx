@@ -1,6 +1,20 @@
 import { useState, useEffect } from "react";
 import { getApiHeaders, getApiUrl } from "../../utils/api";
 
+interface OwsApiKey {
+  id: string;
+  name: string;
+  createdAt: string;
+  walletIds: string[];
+  policyIds: string[];
+}
+
+interface OwsWallet {
+  id: string;
+  name: string;
+  accounts: Array<{ address: string }>;
+}
+
 interface ExternalAgent {
   id: string;
   name: string;
@@ -29,7 +43,14 @@ export default function ExternalAgentIntegration() {
     [],
   );
   const [walletConnected, setWalletConnected] = useState(false);
-  const [walletInfo, setWalletInfo] = useState<any>(null);
+  const [walletInfo, setWalletInfo] = useState<OwsWallet | null>(null);
+  const [apiKeys, setApiKeys] = useState<OwsApiKey[]>([]);
+  const [showApiKeyForm, setShowApiKeyForm] = useState(false);
+  const [newApiKeyName, setNewApiKeyName] = useState("");
+  const [newApiKeyWallet, setNewApiKeyWallet] = useState("");
+  const [createdApiKeyToken, setCreatedApiKeyToken] = useState<string | null>(
+    null,
+  );
 
   // Available capabilities
   const availableCapabilities = [
@@ -111,20 +132,33 @@ export default function ExternalAgentIntegration() {
 
   const checkWalletConnection = async () => {
     try {
-      const response = await fetch(getApiUrl("/api/ows/wallets"), {
-        headers: getApiHeaders(),
-      });
+      const [walletsRes, apiKeysRes] = await Promise.all([
+        fetch(getApiUrl("/api/ows/wallets"), { headers: getApiHeaders() }),
+        fetch(getApiUrl("/api/ows/api-keys"), { headers: getApiHeaders() }),
+      ]);
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data && data.data.length > 0) {
+      if (walletsRes.ok) {
+        const walletData = await walletsRes.json();
+        if (
+          walletData.success &&
+          walletData.data &&
+          walletData.data.length > 0
+        ) {
           setWalletConnected(true);
-          setWalletInfo(data.data[0]);
+          setWalletInfo(walletData.data[0]);
+          setNewApiKeyWallet(walletData.data[0].id);
         } else {
           setWalletConnected(false);
         }
       } else {
         setWalletConnected(false);
+      }
+
+      if (apiKeysRes.ok) {
+        const apiKeyData = await apiKeysRes.json();
+        if (apiKeyData.success && apiKeyData.data) {
+          setApiKeys(apiKeyData.data);
+        }
       }
     } catch (err) {
       console.error("Error checking wallet connection:", err);
@@ -144,10 +178,59 @@ export default function ExternalAgentIntegration() {
         if (data.success && data.data) {
           setWalletConnected(true);
           setWalletInfo(data.data);
+          setNewApiKeyWallet(data.data.id);
+          await checkWalletConnection();
         }
       }
     } catch (err) {
       console.error("Error connecting wallet:", err);
+    }
+  };
+
+  const handleCreateApiKey = async () => {
+    if (!newApiKeyName || !newApiKeyWallet) return;
+
+    try {
+      const response = await fetch(getApiUrl("/api/ows/api-keys"), {
+        method: "POST",
+        headers: { ...getApiHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newApiKeyName,
+          walletIds: [newApiKeyWallet],
+          policyIds: [],
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success && data.data?.token) {
+        setCreatedApiKeyToken(data.data.token);
+        setNewApiKeyName("");
+        await checkWalletConnection();
+      }
+    } catch (err) {
+      console.error("Error creating API key:", err);
+    }
+  };
+
+  const handleDeleteApiKey = async (keyId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this API key? This cannot be undone.",
+      )
+    )
+      return;
+
+    try {
+      const response = await fetch(getApiUrl(`/api/ows/api-keys/${keyId}`), {
+        method: "DELETE",
+        headers: getApiHeaders(),
+      });
+
+      if (response.ok) {
+        await checkWalletConnection();
+      }
+    } catch (err) {
+      console.error("Error deleting API key:", err);
     }
   };
 
@@ -349,6 +432,206 @@ export default function ExternalAgentIntegration() {
               : "No accounts available"}
           </div>
           <div className="wallet-balance">Wallet: {walletInfo.name}</div>
+        </div>
+      )}
+
+      {/* API Key Management */}
+      {walletConnected && (
+        <div
+          className="api-keys-section"
+          style={{
+            marginTop: "24px",
+            padding: "16px",
+            background: "#f9fafb",
+            borderRadius: "8px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "16px",
+            }}
+          >
+            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>
+              API Keys
+            </h3>
+            <button
+              onClick={() => setShowApiKeyForm(!showApiKeyForm)}
+              style={{
+                padding: "6px 12px",
+                background: "#2563eb",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "14px",
+              }}
+            >
+              {showApiKeyForm ? "Cancel" : "+ Create Key"}
+            </button>
+          </div>
+
+          {createdApiKeyToken && (
+            <div
+              style={{
+                marginBottom: "16px",
+                padding: "12px",
+                background: "#ecfdf5",
+                border: "1px solid #10b981",
+                borderRadius: "6px",
+              }}
+            >
+              <p
+                style={{
+                  margin: "0 0 8px 0",
+                  fontWeight: 600,
+                  color: "#065f46",
+                }}
+              >
+                API Key Created (copy now - won't show again)
+              </p>
+              <code
+                style={{
+                  display: "block",
+                  padding: "8px",
+                  background: "white",
+                  borderRadius: "4px",
+                  fontSize: "13px",
+                  wordBreak: "break-all",
+                }}
+              >
+                {createdApiKeyToken}
+              </code>
+              <button
+                onClick={() => setCreatedApiKeyToken(null)}
+                style={{
+                  marginTop: "8px",
+                  padding: "4px 8px",
+                  fontSize: "12px",
+                  background: "transparent",
+                  border: "1px solid #10b981",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
+              >
+                I've copied it
+              </button>
+            </div>
+          )}
+
+          {showApiKeyForm && (
+            <div
+              style={{
+                marginBottom: "16px",
+                padding: "12px",
+                background: "white",
+                borderRadius: "6px",
+                border: "1px solid #e5e7eb",
+              }}
+            >
+              <div style={{ marginBottom: "12px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "4px",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                  }}
+                >
+                  Key Name
+                </label>
+                <input
+                  type="text"
+                  value={newApiKeyName}
+                  onChange={(e) => setNewApiKeyName(e.target.value)}
+                  placeholder="e.g., Trading Agent Key"
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "6px",
+                    fontSize: "14px",
+                  }}
+                />
+              </div>
+              <button
+                onClick={handleCreateApiKey}
+                disabled={!newApiKeyName || !newApiKeyWallet}
+                style={{
+                  padding: "8px 16px",
+                  background:
+                    newApiKeyName && newApiKeyWallet ? "#2563eb" : "#9ca3af",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor:
+                    newApiKeyName && newApiKeyWallet
+                      ? "pointer"
+                      : "not-allowed",
+                  fontSize: "14px",
+                }}
+              >
+                Create API Key
+              </button>
+            </div>
+          )}
+
+          {apiKeys.length === 0 ? (
+            <p style={{ color: "#6b7280", fontSize: "14px", margin: 0 }}>
+              No API keys yet. Create one to give agents wallet access.
+            </p>
+          ) : (
+            <div style={{ display: "grid", gap: "8px" }}>
+              {apiKeys.map((key) => (
+                <div
+                  key={key.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "12px",
+                    background: "white",
+                    borderRadius: "6px",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  <div>
+                    <p
+                      style={{
+                        margin: "0 0 4px 0",
+                        fontWeight: 500,
+                        fontSize: "14px",
+                      }}
+                    >
+                      {key.name}
+                    </p>
+                    <p
+                      style={{ margin: 0, fontSize: "12px", color: "#6b7280" }}
+                    >
+                      Created: {new Date(key.createdAt).toLocaleDateString()} •{" "}
+                      {key.walletIds.length} wallet(s)
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteApiKey(key.id)}
+                    style={{
+                      padding: "6px 12px",
+                      background: "transparent",
+                      color: "#dc2626",
+                      border: "1px solid #dc2626",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                    }}
+                  >
+                    Revoke
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
