@@ -549,6 +549,10 @@ export class ApiModule extends BaseService {
       this.controllers.get("ows").getStatus(req, res);
     });
 
+    apiRouter.get("/ows/health", (req, res) => {
+      this.controllers.get("ows-wallet").getHealth(req, res);
+    });
+
     apiRouter.post("/ows/bootstrap", (req, res) => {
       this.controllers.get("ows-wallet").bootstrap(req, res);
     });
