@@ -676,19 +676,34 @@ export class ApiModule extends BaseService {
       });
     });
 
-    // Error handler
+    // Error handler - Use structured error handling
     this.app.use(
       (
         error: Error,
         req: express.Request,
         res: express.Response,
-        next: express.NextFunction,
+        _next: express.NextFunction,
       ) => {
-        this.logger.error("Unhandled error in API:", error);
+        // Log the error
+        this.logger.error(`API Error: ${error.message}`, error);
 
-        res.status(500).json({
+        // Handle Zod validation errors specifically
+        if (error.name === "ZodError") {
+          return res.status(422).json({
+            success: false,
+            error: "Validation failed",
+            code: "VALIDATION_ERROR",
+            details: error,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        // Generic error response
+        const statusCode = (error as any).statusCode || 500;
+        return res.status(statusCode).json({
           success: false,
-          error: "Internal server error",
+          error: error.message || "Internal server error",
+          code: (error as any).code || "INTERNAL_ERROR",
           timestamp: new Date().toISOString(),
         });
       },
