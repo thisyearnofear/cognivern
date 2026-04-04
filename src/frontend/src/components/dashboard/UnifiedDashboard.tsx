@@ -890,35 +890,19 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
       {isRefreshing && (
         <div css={styles.refreshingIndicatorStyles}>Refreshing...</div>
       )}
-      {/* Quick Stats Header */}
+
+      {/* Quick Stats Header - Simplified */}
       <section css={styles.statsHeaderStyles}>
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: designTokens.spacing[6],
+            marginBottom: designTokens.spacing[4],
             flexWrap: "wrap",
-            gap: designTokens.spacing[4],
+            gap: designTokens.spacing[3],
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: designTokens.spacing[4],
-            }}
-          >
-            <h1 css={styles.titleStyles} style={{ marginBottom: 0 }}>
-              Dashboard
-            </h1>
-            <div css={styles.badgeContainerStyles}>
-              <div css={styles.systemBadgeStyles("info")}>CONTROL PLANE</div>
-              <div css={styles.systemBadgeStyles("success")}>AUDIT LIVE</div>
-              <OwsStatusIndicator />
-            </div>
-          </div>
-
           <div
             style={{
               display: "flex",
@@ -926,44 +910,70 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
               gap: designTokens.spacing[3],
             }}
           >
-            <div css={styles.liveIndicatorStyles}>
-              <div css={styles.pulseDotStyles} />
-              LIVE
-            </div>
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
-              Refresh
-            </Button>
-            {!isMobile && (
+            <h1
+              css={styles.titleStyles}
+              style={{
+                marginBottom: 0,
+                fontSize: isMobile ? "1.5rem" : "1.75rem",
+              }}
+            >
+              Dashboard
+            </h1>
+            <OwsStatusIndicator />
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: designTokens.spacing[2],
+            }}
+          >
+            {isMobile ? (
               <Button
                 variant="primary"
                 size="sm"
                 onClick={() => navigate("/policies")}
               >
-                Deploy Policy
+                + Policy
               </Button>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={handleRefresh}>
+                  Refresh
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => navigate("/policies")}
+                >
+                  Deploy Policy
+                </Button>
+              </>
             )}
           </div>
         </div>
 
+        {/* Compact stats row for mobile, grid for desktop */}
         <div css={styles.statsGridStyles(isMobile, isTablet)}>
           <StatCard
-            label="Active Agents"
+            label="Agents"
             value={stats?.activeAgents || 0}
             total={stats?.totalAgents}
-            icon={<Users size={24} />}
+            icon={<Users size={isMobile ? 18 : 24} />}
             color="primary"
             trend={{
-              value: `${stats?.totalTrades || 0} tracked actions`,
+              value: `${stats?.totalTrades || 0} actions`,
               isPositive: true,
             }}
           />
           <StatCard
-            label="Active Policies"
+            label="Policies"
             value={stats?.totalPolicies || 0}
-            icon={<ShieldCheck size={24} />}
+            icon={<ShieldCheck size={isMobile ? 18 : 24} />}
             color="info"
             trend={{
-              value: `${quests.filter((quest) => quest.actionRequired).length} require attention`,
+              value: `${quests.filter((quest) => quest.actionRequired).length} need action`,
               isPositive:
                 quests.filter((quest) => quest.actionRequired).length === 0,
             }}
@@ -993,14 +1003,10 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
         </div>
       </section>
 
-      {/* Live Ecosystem Visualization */}
+      {/* Live Ecosystem - Collapsible, shown by default */}
       <section css={styles.sectionStyles}>
         <div css={styles.sectionHeaderStyles}>
-          <h2 css={styles.sectionTitleStyles}>Live Network Map</h2>
-          <div css={styles.liveIndicatorStyles}>
-            <div css={styles.pulseDotStyles} />
-            Cognitive Kernel Status: Healthy
-          </div>
+          <h2 css={styles.sectionTitleStyles}>Network</h2>
         </div>
         <Card overflow="hidden">
           <Suspense
@@ -1019,7 +1025,7 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
         </Card>
       </section>
 
-      {/* Performance Trends - New analytics section inspired by Smart Bin dashboard */}
+      {/* Performance Trends - Hidden on mobile */}
       {!isMobile && (
         <section css={styles.sectionStyles}>
           <div css={styles.chartsGridStyles(isMobile, isTablet)}>
@@ -1029,7 +1035,7 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                   css={styles.sectionTitleStyles}
                   style={{ fontSize: "14px", marginBottom: "20px" }}
                 >
-                  24H Return by Agent
+                  24H Return
                 </h3>
                 <Chart
                   type="area"
@@ -1046,7 +1052,7 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                   css={styles.sectionTitleStyles}
                   style={{ fontSize: "14px", marginBottom: "20px" }}
                 >
-                  Active Agent Distribution
+                  Agent Distribution
                 </h3>
                 <div
                   style={{

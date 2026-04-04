@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect } from "react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -8,6 +8,7 @@ import {
 
 import { AppLayout } from "./components/layout";
 import SmartOnboarding from "./components/onboarding/SmartOnboarding";
+import LandingPage from "./components/landing/LandingPage";
 import { useTheme, useAppStore } from "./stores/appStore";
 import PageTransition from "./components/ui/PageTransition";
 import { LoadingSpinner } from "./components/ui/LoadingSpinner";
@@ -55,6 +56,8 @@ const PageSkeleton: React.FC = () => (
 function App() {
   const { effectiveTheme } = useTheme();
   const setError = useAppStore((state) => state.setError);
+  const preferences = useAppStore((state) => state.preferences);
+  const [hasSeenLanding, setHasSeenLanding] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle(
@@ -67,12 +70,25 @@ function App() {
     setError(error.message);
   };
 
+  const handleLandingComplete = () => {
+    setHasSeenLanding(true);
+  };
+
+  // Show landing page for new users who haven't seen it
+  const showLanding = !preferences.onboardingCompleted && !hasSeenLanding;
+
   return (
     <Router>
-      <ErrorBoundary componentName="Application Root" onError={handleGlobalError}>
+      <ErrorBoundary
+        componentName="Application Root"
+        onError={handleGlobalError}
+      >
         <div className="app">
+          {/* Landing Page for new users */}
+          {showLanding && <LandingPage onComplete={handleLandingComplete} />}
+
           {/* Smart Onboarding - only shows when needed */}
-          <SmartOnboarding />
+          {!showLanding && <SmartOnboarding />}
 
           <Routes>
             <Route path="/" element={<AppLayout />}>
@@ -90,105 +106,108 @@ function App() {
                 }
               />
 
-            {/* Agents Route - Detailed agent management */}
-            <Route
-              path="agents"
-              element={
-                <PageTransition type="slide">
-                  <Suspense fallback={<PageSkeleton />}>
-                    <TradingAgentDashboard />
-                  </Suspense>
-                </PageTransition>
-              }
-            />
+              {/* Agents Route - Detailed agent management */}
+              <Route
+                path="agents"
+                element={
+                  <PageTransition type="slide">
+                    <Suspense fallback={<PageSkeleton />}>
+                      <TradingAgentDashboard />
+                    </Suspense>
+                  </PageTransition>
+                }
+              />
 
-            <Route
-              path="agents/:agentId"
-              element={
-                <PageTransition type="slide">
-                  <Suspense fallback={<PageSkeleton />}>
-                    <AgentProfile />
-                  </Suspense>
-                </PageTransition>
-              }
-            />
+              <Route
+                path="agents/:agentId"
+                element={
+                  <PageTransition type="slide">
+                    <Suspense fallback={<PageSkeleton />}>
+                      <AgentProfile />
+                    </Suspense>
+                  </PageTransition>
+                }
+              />
 
-            <Route
-              path="agents/workshop"
-              element={
-                <PageTransition type="slide">
-                  <Suspense fallback={<PageSkeleton />}>
-                    <AgentWorkshop />
-                  </Suspense>
-                </PageTransition>
-              }
-            />
+              <Route
+                path="agents/workshop"
+                element={
+                  <PageTransition type="slide">
+                    <Suspense fallback={<PageSkeleton />}>
+                      <AgentWorkshop />
+                    </Suspense>
+                  </PageTransition>
+                }
+              />
 
-            <Route
-              path="agents/connect"
-              element={
-                <PageTransition type="slide">
-                  <Suspense fallback={<PageSkeleton />}>
-                    <AgentConnectionWizard />
-                  </Suspense>
-                </PageTransition>
-              }
-            />
+              <Route
+                path="agents/connect"
+                element={
+                  <PageTransition type="slide">
+                    <Suspense fallback={<PageSkeleton />}>
+                      <AgentConnectionWizard />
+                    </Suspense>
+                  </PageTransition>
+                }
+              />
 
-            {/* Legacy trading route - redirect to agents */}
-            <Route path="trading" element={<Navigate to="/agents" replace />} />
+              {/* Legacy trading route - redirect to agents */}
+              <Route
+                path="trading"
+                element={<Navigate to="/agents" replace />}
+              />
 
-            {/* Policies Route */}
-            <Route
-              path="policies"
-              element={
-                <PageTransition type="slide">
-                  <Suspense fallback={<PageSkeleton />}>
-                    <PolicyManagement />
-                  </Suspense>
-                </PageTransition>
-              }
-            />
+              {/* Policies Route */}
+              <Route
+                path="policies"
+                element={
+                  <PageTransition type="slide">
+                    <Suspense fallback={<PageSkeleton />}>
+                      <PolicyManagement />
+                    </Suspense>
+                  </PageTransition>
+                }
+              />
 
-            {/* Audit Logs Route */}
-            <Route
-              path="audit"
-              element={
-                <PageTransition type="slide">
-                  <Suspense fallback={<PageSkeleton />}>
-                    <AuditLogs />
-                  </Suspense>
-                </PageTransition>
-              }
-            />
+              {/* Audit Logs Route */}
+              <Route
+                path="audit"
+                element={
+                  <PageTransition type="slide">
+                    <Suspense fallback={<PageSkeleton />}>
+                      <AuditLogs />
+                    </Suspense>
+                  </PageTransition>
+                }
+              />
 
-            {/* Run Ledger Routes */}
-            <Route
-              path="runs"
-              element={
-                <PageTransition type="slide">
-                  <Suspense fallback={<PageSkeleton />}>
-                    <RunLedger />
-                  </Suspense>
-                </PageTransition>
-              }
-            />
+              {/* Run Ledger Routes */}
+              <Route
+                path="runs"
+                element={
+                  <PageTransition type="slide">
+                    <Suspense fallback={<PageSkeleton />}>
+                      <RunLedger />
+                    </Suspense>
+                  </PageTransition>
+                }
+              />
 
-            <Route
-              path="runs/:runId"
-              element={
-                <PageTransition type="slide">
-                  <Suspense fallback={<PageSkeleton />}>
-                    <RunDetails />
-                  </Suspense>
-                </PageTransition>
-              }
-            />
+              <Route
+                path="runs/:runId"
+                element={
+                  <PageTransition type="slide">
+                    <Suspense fallback={<PageSkeleton />}>
+                      <RunDetails />
+                    </Suspense>
+                  </PageTransition>
+                }
+              />
 
-            {/* Redirect unknown routes to dashboard */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
+              {/* Redirect unknown routes to dashboard */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
         </div>
       </ErrorBoundary>
     </Router>
