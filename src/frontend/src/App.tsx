@@ -1,9 +1,10 @@
-import React, { Suspense, lazy, useEffect, useState } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
+  useNavigate,
 } from "react-router-dom";
 
 import { AppLayout } from "./components/layout";
@@ -57,7 +58,6 @@ function App() {
   const { effectiveTheme } = useTheme();
   const setError = useAppStore((state) => state.setError);
   const preferences = useAppStore((state) => state.preferences);
-  const [hasSeenLanding, setHasSeenLanding] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle(
@@ -70,13 +70,6 @@ function App() {
     setError(error.message);
   };
 
-  const handleLandingComplete = () => {
-    setHasSeenLanding(true);
-  };
-
-  // Show landing page for new users who haven't seen it
-  const showLanding = !preferences.onboardingCompleted && !hasSeenLanding;
-
   return (
     <Router>
       <ErrorBoundary
@@ -84,17 +77,36 @@ function App() {
         onError={handleGlobalError}
       >
         <div className="app">
-          {/* Landing Page for new users */}
-          {showLanding && <LandingPage onComplete={handleLandingComplete} />}
-
-          {/* Smart Onboarding - only shows when needed */}
-          {!showLanding && <SmartOnboarding />}
-
           <Routes>
+            {/* Landing Page - New users see this first */}
+            <Route
+              path="/"
+              element={
+                preferences.onboardingCompleted ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <LandingPage />
+                )
+              }
+            />
+
+            {/* Onboarding - Shown after "Get Started" on landing */}
+            <Route
+              path="/onboarding"
+              element={
+                preferences.onboardingCompleted ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <SmartOnboarding />
+                )
+              }
+            />
+
+            {/* App Routes with Layout */}
             <Route path="/" element={<AppLayout />}>
-              {/* Unified Dashboard - Single source of truth */}
+              {/* Dashboard - Default for returning users */}
               <Route
-                index
+                path="dashboard"
                 element={
                   <ErrorBoundary componentName="Dashboard">
                     <PageTransition type="slide">
@@ -106,7 +118,7 @@ function App() {
                 }
               />
 
-              {/* Agents Route - Detailed agent management */}
+              {/* Agents Route */}
               <Route
                 path="agents"
                 element={

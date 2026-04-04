@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { css } from "@emotion/react";
 import { designTokens } from "../../styles/design-system";
-import { useAppStore } from "../../stores/appStore";
 import { Button } from "../ui/Button";
 import { Card, CardContent } from "../ui/Card";
 import {
@@ -12,18 +11,16 @@ import {
   Key,
   BarChart3,
   ArrowRight,
-  CheckCircle2,
   Brain,
   Zap,
 } from "lucide-react";
 
 interface LandingPageProps {
-  onComplete: () => void;
+  onComplete?: () => void; // Kept for backward compatibility - now uses routing instead
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
   const navigate = useNavigate();
-  const { preferences } = useAppStore();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -58,11 +55,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
   ];
 
   const handleGetStarted = () => {
-    onComplete();
+    navigate("/onboarding");
   };
 
   const handleExplore = () => {
-    navigate("/");
+    navigate("/dashboard");
   };
 
   return (
