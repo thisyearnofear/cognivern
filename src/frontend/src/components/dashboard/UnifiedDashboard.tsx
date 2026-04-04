@@ -57,33 +57,50 @@ import * as styles from "./UnifiedDashboard.styles";
 import { Column } from "../ui/DataTable";
 import { ChartDataPoint } from "../ui/Chart";
 
-// OWS Status Indicator - Shows wallet and API key status
+// OWS Status Indicator - Shows wallet, API key, and agent status
 function OwsStatusIndicator() {
   const [owsStatus, setOwsStatus] = useState<{
     walletConnected: boolean;
     walletName?: string;
     apiKeysCount: number;
+    agentsCount: number;
+    activeAgents: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchOwsStatus() {
       try {
-        const [walletsRes, apiKeysRes] = await Promise.all([
-          owsApi.listWallets(),
-          owsApi.listApiKeys(),
-        ]);
+        const dashboardRes = await owsApi.getDashboard();
 
-        const wallets = walletsRes.success ? walletsRes.data || [] : [];
-        const apiKeys = apiKeysRes.success ? apiKeysRes.data || [] : [];
+        if (dashboardRes.success && dashboardRes.data) {
+          const agents = dashboardRes.data.agents || [];
+          const activeAgents = agents.filter(
+            (a: any) => a.status === "active",
+          ).length;
 
-        setOwsStatus({
-          walletConnected: wallets.length > 0,
-          walletName: wallets[0]?.name,
-          apiKeysCount: apiKeys.length,
-        });
+          setOwsStatus({
+            walletConnected: dashboardRes.data.hasWallet || false,
+            walletName: dashboardRes.data.wallet?.name,
+            apiKeysCount: (dashboardRes.data.apiKeys || []).length,
+            agentsCount: agents.length,
+            activeAgents,
+          });
+        } else {
+          setOwsStatus({
+            walletConnected: false,
+            apiKeysCount: 0,
+            agentsCount: 0,
+            activeAgents: 0,
+          });
+        }
       } catch (error) {
-        setOwsStatus({ walletConnected: false, apiKeysCount: 0 });
+        setOwsStatus({
+          walletConnected: false,
+          apiKeysCount: 0,
+          agentsCount: 0,
+          activeAgents: 0,
+        });
       } finally {
         setIsLoading(false);
       }
@@ -157,7 +174,10 @@ function OwsStatusIndicator() {
         {owsStatus?.walletConnected
           ? `OWS: ${owsStatus.walletName || "Connected"}`
           : "OWS: No Wallet"}
-        {owsStatus?.apiKeysCount ? ` (${owsStatus.apiKeysCount} keys)` : ""}
+        {owsStatus?.apiKeysCount ? ` · ${owsStatus.apiKeysCount} keys` : ""}
+        {owsStatus?.agentsCount
+          ? ` · ${owsStatus.activeAgents}/${owsStatus.agentsCount} agents`
+          : ""}
       </span>
     </div>
   );
