@@ -67,9 +67,10 @@ export const MobileBottomTabNav: React.FC = () => {
       : "rgba(255, 255, 255, 0.8)"};
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid ${effectiveTheme === "dark"
-      ? designTokens.colors.neutral[800]
-      : designTokens.colors.neutral[200]};
+    border-top: 1px solid
+      ${effectiveTheme === "dark"
+        ? designTokens.colors.neutral[800]
+        : designTokens.colors.neutral[200]};
     display: flex;
     align-items: center;
     justify-content: space-around;
@@ -113,14 +114,16 @@ export const MobileBottomTabNav: React.FC = () => {
     align-items: center;
     justify-content: center;
     transition: ${easings.smooth};
-    ${isActive ? `
+    ${isActive
+      ? `
       transform: translateY(-2px);
       color: ${designTokens.colors.primary[500]};
-    ` : ""}
+    `
+      : ""}
   `;
 
   return (
-    <nav css={navStyles}>
+    <nav css={navStyles} aria-label="Main navigation">
       {tabItems.map((tab) => {
         const isActive = location.pathname === tab.path;
         return (
@@ -128,11 +131,19 @@ export const MobileBottomTabNav: React.FC = () => {
             key={tab.id}
             css={tabStyles(isActive)}
             onClick={() => navigate(tab.path)}
+            aria-label={tab.label}
+            aria-current={isActive ? "page" : undefined}
           >
-            <div css={iconContainerStyles(isActive)}>
-              {tab.icon}
-            </div>
-            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%", textAlign: "center" }}>
+            <div css={iconContainerStyles(isActive)}>{tab.icon}</div>
+            <span
+              style={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                width: "100%",
+                textAlign: "center",
+              }}
+            >
               {tab.label}
             </span>
           </button>

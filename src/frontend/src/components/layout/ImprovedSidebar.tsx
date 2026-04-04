@@ -359,7 +359,7 @@ export const ImprovedSidebar: React.FC = () => {
 
   const navDescriptionStyles = css`
     font-size: ${designTokens.typography.fontSize.xs};
-    opacity: 0.7;
+    color: ${designTokens.colors.neutral[500]};
     line-height: ${designTokens.typography.lineHeight.tight};
   `;
 
