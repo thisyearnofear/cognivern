@@ -94,11 +94,13 @@ function App() {
             <Route
               path="/onboarding"
               element={
-                preferences.onboardingCompleted ? (
-                  <Navigate to="/dashboard" replace />
-                ) : (
-                  <SmartOnboarding />
-                )
+                <ErrorBoundary componentName="Onboarding" showRetry>
+                  {preferences.onboardingCompleted ? (
+                    <Navigate to="/dashboard" replace />
+                  ) : (
+                    <SmartOnboarding />
+                  )}
+                </ErrorBoundary>
               }
             />
 
