@@ -1151,20 +1151,22 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
           />
         </section>
 
-        {/* Quest HUD - Governance Quests */}
-        <section css={styles.sectionStyles}>
-          <div css={styles.sectionHeaderStyles}>
-            <h2 css={styles.sectionTitleStyles}>Governance Quests</h2>
-            <Badge variant="secondary" size="sm">
-              {quests.filter((q) => q.actionRequired).length} ACTIVE
-            </Badge>
-          </div>
-          <QuestHUD quests={quests} onResolve={handleResolveQuest} />
-        </section>
+        {/* Quest HUD - Governance Quests - Only show if there are active quests */}
+        {quests.filter((q) => q.actionRequired).length > 0 && (
+          <section css={styles.sectionStyles}>
+            <div css={styles.sectionHeaderStyles}>
+              <h2 css={styles.sectionTitleStyles}>Governance Quests</h2>
+              <Badge variant="secondary" size="sm">
+                {quests.filter((q) => q.actionRequired).length} ACTIVE
+              </Badge>
+            </div>
+            <QuestHUD quests={quests} onResolve={handleResolveQuest} />
+          </section>
+        )}
       </div>
 
-      {/* Global Leaderboard - New high-density view inspired by Smart Bin table */}
-      {!isMobile && (
+      {/* Global Leaderboard - Only show if there are agents */}
+      {!isMobile && agents.length > 0 && (
         <section css={styles.sectionStyles}>
           <div css={styles.sectionHeaderStyles}>
             <h2 css={styles.sectionTitleStyles}>Autonomous Leaderboard</h2>
