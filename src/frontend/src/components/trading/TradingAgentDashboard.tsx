@@ -1247,16 +1247,16 @@ function TradingAgentDashboardContent() {
           `}
         >
           <AgentMonitor
-            agentType="recall"
-            title="Research Agent"
-            description="Investigation-first agent that gathers context, summarizes findings, and proposes bounded actions."
+            agentType="governance"
+            title="Spend Governance Agent"
+            description="Evaluates spend requests against policies, enforces limits, and logs all decisions for audit."
             isShowcase
           />
 
           <AgentMonitor
-            agentType="vincent"
-            title="Procurement Agent"
-            description="Execution-first agent that handles vendor interactions and requests spend under budget and approval guardrails."
+            agentType="portfolio"
+            title="Portfolio Agent"
+            description="Executes approved spends, manages wallet access through scoped API keys, handles signing."
             isShowcase
           />
 

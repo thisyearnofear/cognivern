@@ -7,12 +7,14 @@
 
 // ===== AGENT TYPES =====
 export type AgentType =
+  | "governance"
+  | "portfolio"
+  | "sapience"
   | "recall"
   | "vincent"
   | "trading"
   | "analysis"
   | "monitoring"
-  | "sapience"
   | "filecoin"
   | "social-trading"
   | "contract"
