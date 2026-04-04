@@ -368,19 +368,19 @@ export class ApiModule extends BaseService {
 
     // Specific agent status/decisions routes for dashboard
     apiRouter.get("/agents/governance/status", (req, res) => {
-      this.controllers.get("recall").getStatus(req, res);
+      this.controllers.get("agents").getAgentStatus(req, res);
     });
 
     apiRouter.get("/agents/governance/decisions", (req, res) => {
-      this.controllers.get("recall").getDecisions(req, res);
+      this.controllers.get("agents").getAgentDecisions(req, res);
     });
 
     apiRouter.get("/agents/portfolio/status", (req, res) => {
-      this.controllers.get("recall").getStatus(req, res);
+      this.controllers.get("agents").getAgentStatus(req, res);
     });
 
     apiRouter.get("/agents/portfolio/decisions", (req, res) => {
-      this.controllers.get("recall").getDecisions(req, res);
+      this.controllers.get("agents").getAgentDecisions(req, res);
     });
 
     apiRouter.get("/agents/sapience/status", (req, res) => {
