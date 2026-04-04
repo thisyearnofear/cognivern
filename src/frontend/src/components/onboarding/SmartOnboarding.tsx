@@ -12,6 +12,9 @@ import {
   ChevronRight,
   ArrowRight,
   CheckCircle2,
+  Wallet,
+  Key,
+  Shield,
 } from "lucide-react";
 import {
   Card,
@@ -20,12 +23,206 @@ import {
   CardDescription,
   CardContent,
 } from "../ui/Card";
+import { owsApi } from "../../services/apiService";
 
 interface OnboardingStep {
   id: string;
   title: string;
   description: string;
   component: React.ReactNode;
+}
+
+// OWS Wallet Setup Step - Guided wallet connection
+function OwsSetupStep() {
+  const [walletStatus, setWalletStatus] = useState<
+    "checking" | "connected" | "none"
+  >("checking");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    checkWalletStatus();
+  }, []);
+
+  const checkWalletStatus = async () => {
+    try {
+      const res = await owsApi.listWallets();
+      if (res.success && res.data && res.data.length > 0) {
+        setWalletStatus("connected");
+      } else {
+        setWalletStatus("none");
+      }
+    } catch {
+      setWalletStatus("none");
+    }
+  };
+
+  const handleBootstrap = async () => {
+    setIsLoading(true);
+    try {
+      await owsApi.bootstrap();
+      setWalletStatus("connected");
+    } catch (error) {
+      console.error("Failed to bootstrap wallet:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (walletStatus === "checking") {
+    return (
+      <div style={{ textAlign: "center", padding: designTokens.spacing[8] }}>
+        <div style={{ marginBottom: designTokens.spacing[4] }}>
+          <Brain size={48} color={designTokens.colors.primary[500]} />
+        </div>
+        <p>Checking wallet status...</p>
+      </div>
+    );
+  }
+
+  if (walletStatus === "connected") {
+    return (
+      <div style={{ textAlign: "center", padding: designTokens.spacing[6] }}>
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: "50%",
+            background: designTokens.colors.semantic.success[100],
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: `0 auto ${designTokens.spacing[4]}`,
+          }}
+        >
+          <CheckCircle2
+            size={32}
+            color={designTokens.colors.semantic.success[500]}
+          />
+        </div>
+        <h3 style={{ marginBottom: designTokens.spacing[2] }}>
+          Wallet Connected!
+        </h3>
+        <p style={{ color: designTokens.colors.neutral[600] }}>
+          Your OWS wallet is ready for agent spend governance.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: designTokens.spacing[4] }}>
+      <div
+        style={{
+          textAlign: "center",
+          marginBottom: designTokens.spacing[6],
+        }}
+      >
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: "50%",
+            background: designTokens.colors.primary[50],
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: `0 auto ${designTokens.spacing[4]}`,
+          }}
+        >
+          <Wallet size={32} color={designTokens.colors.primary[500]} />
+        </div>
+        <h3 style={{ marginBottom: designTokens.spacing[2] }}>
+          Connect OWS Wallet
+        </h3>
+        <p
+          style={{
+            color: designTokens.colors.neutral[600],
+            maxWidth: 400,
+            margin: "0 auto",
+          }}
+        >
+          Your wallet will be encrypted locally. Agents can request spend but
+          policy rules control what gets approved.
+        </p>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: designTokens.spacing[4],
+          marginBottom: designTokens.spacing[6],
+        }}
+      >
+        <Card variant="outlined">
+          <CardContent
+            style={{ textAlign: "center", padding: designTokens.spacing[4] }}
+          >
+            <Key size={24} color={designTokens.colors.primary[500]} />
+            <h4
+              style={{
+                margin: `${designTokens.spacing[2]} 0`,
+                fontSize: designTokens.typography.fontSize.sm,
+              }}
+            >
+              Scoped API Keys
+            </h4>
+            <p
+              style={{
+                fontSize: designTokens.typography.fontSize.xs,
+                color: designTokens.colors.neutral[500],
+              }}
+            >
+              Agents get limited access, not full wallet control
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card variant="outlined">
+          <CardContent
+            style={{ textAlign: "center", padding: designTokens.spacing[4] }}
+          >
+            <Shield size={24} color={designTokens.colors.primary[500]} />
+            <h4
+              style={{
+                margin: `${designTokens.spacing[2]} 0`,
+                fontSize: designTokens.typography.fontSize.sm,
+              }}
+            >
+              Policy Enforcement
+            </h4>
+            <p
+              style={{
+                fontSize: designTokens.typography.fontSize.xs,
+                color: designTokens.colors.neutral[500],
+              }}
+            >
+              Every spend checked against your rules before signing
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div style={{ textAlign: "center" }}>
+        <Button
+          variant="primary"
+          onClick={handleBootstrap}
+          disabled={isLoading}
+        >
+          {isLoading ? "Connecting..." : "Bootstrap Wallet"}
+        </Button>
+        <p
+          style={{
+            marginTop: designTokens.spacing[3],
+            fontSize: designTokens.typography.fontSize.sm,
+            color: designTokens.colors.neutral[400],
+          }}
+        >
+          Creates an encrypted local vault with derived wallet keys
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export const SmartOnboarding: React.FC = () => {
@@ -58,7 +255,8 @@ export const SmartOnboarding: React.FC = () => {
     {
       id: "developer",
       title: "Builder",
-      description: "Integrate policy checks and audit evidence into your agent stack.",
+      description:
+        "Integrate policy checks and audit evidence into your agent stack.",
       icon: <Code size={32} color={designTokens.colors.primary[500]} />,
       features: [
         "BYO-agent ingestion API",
@@ -69,7 +267,8 @@ export const SmartOnboarding: React.FC = () => {
     {
       id: "guardian",
       title: "Guardian",
-      description: "Enforce wallet restrictions and review risky agent actions.",
+      description:
+        "Enforce wallet restrictions and review risky agent actions.",
       icon: <ShieldCheck size={32} color={designTokens.colors.primary[500]} />,
       features: [
         "Real-time policy guardrails",
@@ -80,7 +279,8 @@ export const SmartOnboarding: React.FC = () => {
     {
       id: "explorer",
       title: "Curious",
-      description: "See how teams can give agents wallets without giving them a blank check.",
+      description:
+        "See how teams can give agents wallets without giving them a blank check.",
       icon: <Search size={32} color={designTokens.colors.primary[500]} />,
       features: [
         "Interactive audit views",
@@ -229,6 +429,12 @@ export const SmartOnboarding: React.FC = () => {
       ),
     },
     {
+      id: "ows-setup",
+      title: "Connect Your Wallet",
+      description: "Set up OWS wallet for agent spend governance",
+      component: <OwsSetupStep />,
+    },
+    {
       id: "complete",
       title: "You're all set!",
       description: "Ready to explore Cognivern",
@@ -337,19 +543,30 @@ export const SmartOnboarding: React.FC = () => {
       >
         <Card variant="elevated">
           <CardHeader>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
               <div style={{ flex: 1 }}>
-                <CardTitle style={{ fontSize: "16px" }}>Experience the Agentic Era</CardTitle>
+                <CardTitle style={{ fontSize: "16px" }}>
+                  Experience the Agentic Era
+                </CardTitle>
                 <CardDescription style={{ fontSize: "13px" }}>
-                  Explore the dashboard with live agents and verifiable audit trails.
+                  Explore the dashboard with live agents and verifiable audit
+                  trails.
                 </CardDescription>
               </div>
-              <div style={{
-                background: designTokens.colors.primary[50],
-                padding: "8px",
-                borderRadius: "12px",
-                display: isMobile ? "none" : "flex"
-              }}>
+              <div
+                style={{
+                  background: designTokens.colors.primary[50],
+                  padding: "8px",
+                  borderRadius: "12px",
+                  display: isMobile ? "none" : "flex",
+                }}
+              >
                 <Brain size={24} color={designTokens.colors.primary[500]} />
               </div>
             </div>
@@ -360,13 +577,17 @@ export const SmartOnboarding: React.FC = () => {
                 display: "flex",
                 justifyContent: "flex-end",
                 gap: designTokens.spacing[2],
-                marginTop: designTokens.spacing[2]
+                marginTop: designTokens.spacing[2],
               }}
             >
               <Button variant="ghost" size="sm" onClick={handleSkip}>
                 Maybe Later
               </Button>
-              <Button variant="primary" size="sm" onClick={handleStartOnboarding}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleStartOnboarding}
+              >
                 Quick Start
               </Button>
             </div>
