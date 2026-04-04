@@ -559,6 +559,66 @@ export class OwsWalletService {
       apiKeyToken: context.apiKeyToken,
     });
   }
+
+  /**
+   * Preview a spend without executing - returns policy evaluation without signing
+   */
+  public async previewSpend(intent: SpendIntent): Promise<{
+    intentId: string;
+    status: "approved" | "denied" | "held";
+    policyId?: string;
+    reason?: string;
+    simulation: {
+      wouldExecute: boolean;
+      gasEstimate?: string;
+      warnings: string[];
+    };
+  }> {
+    const access = await this.resolveAccess(intent, {
+      apiKeyToken: intent.metadata?.apiKeyToken as string | undefined,
+    });
+
+    const activePolicy = await this.resolveActiveSpendPolicy(
+      access?.apiKey?.policyIds?.[0] ||
+        (typeof intent.metadata?.policyId === "string"
+          ? intent.metadata.policyId
+          : undefined),
+    );
+
+    if (!activePolicy) {
+      return {
+        intentId: intent.id,
+        status: "held",
+        reason: "No active spend policy available",
+        simulation: {
+          wouldExecute: false,
+          warnings: ["No policy configured - spend would be held for review"],
+        },
+      };
+    }
+
+    await this.policyEnforcement.loadPolicy(activePolicy.id);
+    const action = this.toAgentAction(intent);
+    const decision = await this.policyEnforcement.evaluateDecision(action);
+    const policyResult = this.classifyDecision(
+      activePolicy,
+      decision.policyChecks,
+    );
+
+    return {
+      intentId: intent.id,
+      status: policyResult.status,
+      policyId: activePolicy.id,
+      reason: policyResult.reason,
+      simulation: {
+        wouldExecute: policyResult.status === "approved",
+        gasEstimate: policyResult.status === "approved" ? "21000" : undefined,
+        warnings: decision.policyChecks
+          .filter((c) => !c.result)
+          .map((c) => c.reason || `Policy check failed`),
+      },
+    };
+  }
 }
 
 export const owsWalletService = new OwsWalletService();

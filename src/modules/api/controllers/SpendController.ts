@@ -91,4 +91,49 @@ export class SpendController {
       timestamp: new Date().toISOString(),
     });
   }
+
+  /**
+   * Preview/simulate a spend without executing it
+   */
+  async previewSpend(req: Request, res: Response) {
+    try {
+      const parse = spendIntentSchema.safeParse(req.body);
+      if (!parse.success) {
+        res.status(400).json({
+          success: false,
+          error: "Invalid spend intent payload",
+          details: parse.error.format(),
+        });
+        return;
+      }
+
+      const intent: SpendIntent = {
+        id: `preview_${crypto.randomUUID()}`,
+        timestamp: new Date().toISOString(),
+        agentId: parse.data.agentId,
+        recipient: parse.data.recipient,
+        amount: parse.data.amount,
+        asset: parse.data.asset,
+        reason: parse.data.reason,
+        metadata: { ...parse.data.metadata, previewMode: true },
+      };
+
+      const preview = await owsWalletService.previewSpend(intent);
+
+      res.json({
+        success: true,
+        data: preview,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unknown spend preview error",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
 }

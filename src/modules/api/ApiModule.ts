@@ -531,6 +531,10 @@ export class ApiModule extends BaseService {
       this.controllers.get("spend").requestSpend(req, res);
     });
 
+    apiRouter.post("/spend/preview", (req, res) => {
+      this.controllers.get("spend").previewSpend(req, res);
+    });
+
     apiRouter.get("/spend/status", (req, res) => {
       this.controllers.get("spend").getStatus(req, res);
     });
