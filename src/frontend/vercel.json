@@ -1,12 +1,12 @@
 {
   "env": {
-    "VITE_API_KEY": "",
+    "VITE_API_KEY": "sapience-hackathon-key",
     "VITE_BACKEND_URL": "https://api.thisyearnofear.com",
     "VITE_API_BASE_URL": "/api"
   },
   "build": {
     "env": {
-      "VITE_API_KEY": "",
+      "VITE_API_KEY": "sapience-hackathon-key",
       "VITE_BACKEND_URL": "https://api.thisyearnofear.com",
       "VITE_API_BASE_URL": "/api"
     }

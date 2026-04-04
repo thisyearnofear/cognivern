@@ -236,8 +236,15 @@ export const SmartOnboarding: React.FC = () => {
 
   // Check if onboarding should be shown
   useEffect(() => {
-    const shouldShow = !preferences.onboardingCompleted && !user.isConnected;
+    // When directly navigating to /onboarding route, always show the wizard
+    const isOnboardingRoute = window.location.pathname === '/onboarding';
+    const shouldShow = isOnboardingRoute || (!preferences.onboardingCompleted && !user.isConnected);
     setShowOnboarding(shouldShow);
+
+    // Auto-open wizard when on onboarding route
+    if (isOnboardingRoute && !preferences.onboardingCompleted) {
+      setIsWizardOpen(true);
+    }
   }, [preferences.onboardingCompleted, user.isConnected]);
 
   const userTypes = [
@@ -527,6 +534,27 @@ export const SmartOnboarding: React.FC = () => {
   };
 
   if (!showOnboarding) {
+    // If navigated directly to /onboarding but already completed, show a message
+    if (window.location.pathname === '/onboarding' && preferences.onboardingCompleted) {
+      return (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          padding: designTokens.spacing[6],
+          textAlign: 'center'
+        }}>
+          <div>
+            <Brain size={64} color={designTokens.colors.primary[500]} style={{ margin: '0 auto' }} />
+            <h2 style={{ marginTop: designTokens.spacing[4] }}>You're already set up!</h2>
+            <p style={{ color: designTokens.colors.neutral[600], marginTop: designTokens.spacing[2] }}>
+              Redirecting to dashboard...
+            </p>
+          </div>
+        </div>
+      );
+    }
     return null;
   }
 

@@ -1,22 +1,5 @@
 # Developer Guide
 
-## Purpose
-
-This repo is being narrowed around a single hackathon story:
-
-**Cognivern is a SpendOS and audit layer for OWS-powered agents.**
-
-The codebase already supports:
-
-- run ingestion for external agents
-- local policy evaluation
-- audit-log and run-ledger persistence
-- project-scoped access and usage tracking
-- local encrypted OWS wallet storage
-- delegated OWS API-key issuance for agent-scoped access
-
-The spend path now uses a local OWS-style vault and delegated API keys. Legacy env private keys remain only as an optional bootstrap source for seeding the first local wallet.
-
 ## Local Setup
 
 ### Requirements
@@ -24,185 +7,154 @@ The spend path now uses a local OWS-style vault and delegated API keys. Legacy e
 - Node.js v20.14+
 - pnpm
 
-### Install
+### Install & Run
 
 ```bash
-git clone https://github.com/thisyearnofear/cognivern.git
-cd cognivern
 pnpm install
 pnpm build
 pnpm start
 ```
 
-## Primary APIs
+### Environment
 
-### Data plane
+Create `.env` from `.env.example`. Minimum for local dev:
 
-#### `POST /ingest/runs`
+```env
+API_KEY=development-api-key
+OWS_VAULT_SECRET=development-ows-vault-secret
+```
 
-Accepts runs from external agents and stores them in the CRE ledger.
+For project-scoped run ingestion:
 
-Headers:
+```env
+COGNIVERN_PROJECTS="default:Default Project"
+COGNIVERN_INGEST_KEYS="default=dev-ingest-key"
+```
 
-- `Authorization: Bearer <ingestKey>`
-- `X-PROJECT-ID: <projectId>`
-- `Content-Type: application/json`
+## Core Services
 
-Request shape:
+| Service | Responsibility |
+|---------|---------------|
+| `PolicyService` | Loads and stores local policies |
+| `PolicyEnforcementService` | Evaluates actions against policy rules, returns allow/deny decisions |
+| `AuditLogService` | Maps events into CRE-backed evidence records |
+| `IngestController` | Validates and stores BYO-agent runs, enforces ingest keys |
+| `CreController` | Exposes run ledger, event streams, retries, approvals |
+| `OwsLocalVaultService` | Encrypted local wallet storage, API-key issuance |
+| `OwsWalletService` | Spend execution, policy enforcement, signed authorizations |
 
-```ts
+## API Reference
+
+### Data Plane — Run Ingestion
+
+**`POST /ingest/runs`**
+
+Headers: `Authorization: Bearer <ingestKey>`, `X-PROJECT-ID: <projectId>`
+
+```json
 {
-  runId: string;
-  projectId?: string;
-  workflow: string;
-  mode: "local" | "cre";
-  startedAt: string;
-  finishedAt?: string;
-  ok?: boolean;
-  steps: CreStep[];
-  artifacts: CreArtifact[];
+  "runId": "string",
+  "workflow": "string",
+  "mode": "local",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "finishedAt": "2026-01-01T00:00:01.000Z",
+  "ok": true,
+  "steps": [],
+  "artifacts": []
 }
 ```
 
-Example:
+Related: `GET /api/projects`, `GET /api/projects/:projectId/usage`
+
+### Governance Control Plane
+
+**`POST /api/governance/evaluate`**
+
+```json
+{
+  "agentId": "string",
+  "action": { "type": "string", "metadata": {} }
+}
+```
+
+Returns `approved`, `reason`, and per-rule `policyChecks`.
+
+Related: `GET/POST /api/governance/policies`, `GET /api/governance/health`
+
+### OWS Wallet
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/ows/bootstrap` | POST | Bootstrap OWS wallet |
+| `/api/ows/wallets` | GET | List wallets |
+| `/api/ows/api-keys` | GET, POST | API key management |
+
+### Spend Execution
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/spend` | POST | Execute governed spend |
+| `/api/spend/preview` | POST | Simulate spend (dry-run) |
+| `/api/spend/status` | GET | Execution status |
+
+### Audit & Run Ledger
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/audit/logs` | GET | Audit trail |
+| `/api/audit/insights` | GET | Audit insights |
+| `/api/cre/runs` | GET | Run ledger |
+| `/api/cre/runs/:runId` | GET | Run details |
+| `/api/cre/runs/:runId/events/stream` | GET | SSE event stream |
+
+## Testing
 
 ```bash
-curl -X POST http://localhost:3000/ingest/runs \
-  -H 'Authorization: Bearer dev-ingest-key' \
-  -H 'X-PROJECT-ID: default' \
-  -H 'Content-Type: application/json' \
-  -d '{"runId":"123","projectId":"default","workflow":"governance","mode":"local","startedAt":"2026-01-01T00:00:00.000Z","finishedAt":"2026-01-01T00:00:01.000Z","ok":true,"steps":[],"artifacts":[]}'
+pnpm test
+pnpm typecheck
+pnpm lint
 ```
 
-Related endpoints:
+## Production Readiness
 
-- `GET /api/projects`
-- `GET /api/projects/:projectId/usage`
-- `GET /api/projects/:projectId/tokens`
+### Completed
 
-### Governance control plane
+- [x] Error boundaries for frontend resilience
+- [x] Circuit breakers for external services (Recall, Sapience, Contract)
+- [x] Code splitting and adaptive loading
+- [x] Sensitive data redaction in public proofs
+- [x] Unit tests for core services (PolicyEnforcement, TradingHistory, Sapience)
+- [x] Integration tests for CRE controller
+- [x] CI pipeline for backend and frontend builds
+- [x] `.env.example` synced with required keys
 
-#### `POST /api/governance/evaluate`
+### Remaining
 
-Evaluates an action against the active local policy set and returns structured policy checks.
+- [ ] Rate limiting on public endpoints
+- [ ] Sentry integration for frontend error tracking
+- [ ] 80%+ test coverage for core business logic
+- [ ] Automated versioning and changelog
+- [ ] Staging environment
 
-Request shape:
+### Progress: ~82%
 
-```ts
-{
-  agentId: string;
-  policyId?: string;
-  action: {
-    id?: string;
-    type: string;
-    description?: string;
-    timestamp?: string;
-    metadata?: Record<string, unknown>;
-  };
-}
-```
+See the full checklist in [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md) (archived).
 
-Response shape:
+## Platform Enhancements (Completed 2026-03-30)
 
-```ts
-{
-  success: true;
-  data: {
-    approved: boolean;
-    reason: string;
-    agentId: string;
-    actionType: string;
-    policyId: string;
-    policyChecks: Array<{
-      policyId: string;
-      result: boolean;
-      reason: string;
-    }>;
-    timestamp: string;
-  };
-}
-```
+All planned enhancements have been implemented:
 
-Related endpoints:
+- **Caching** — `BaseService.withCache()` for TTL-based caching
+- **BaseStore** — Unified lazy loading, persistence, and TTL patterns
+- **Error Boundaries** — Global and section-level error handling
+- **Collapsible Dashboard** — Information density with collapsible cards
+- **Accessibility** — ARIA labels, focus management, role attributes
+- **Circuit Breakers** — External service call protection
 
-- `GET /api/governance/policies`
-- `POST /api/governance/policies`
-- `GET /api/governance/health`
+See [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) (archived) for details.
 
-### Audit and run-ledger APIs
+## Related Docs
 
-- `GET /api/audit/logs`
-- `GET /api/audit/insights`
-- `POST /api/audit/insights/:id/resolve`
-- `GET /api/cre/runs`
-- `GET /api/cre/runs/:runId`
-- `GET /api/cre/runs/:runId/events`
-- `GET /api/cre/runs/:runId/events/stream`
-- `POST /api/cre/runs/:runId/retry`
-- `POST /api/cre/runs/:runId/approval`
-- `POST /api/cre/runs/:runId/plan`
-
-## Current Core Services
-
-### `PolicyService`
-
-Loads and stores local policies. On startup it loads the bundled trading competition policy from `src/policies/trading-competition-policy.json`.
-
-### `PolicyEnforcementService`
-
-Evaluates an `AgentAction` against policy rules and returns allow or deny decisions plus per-rule checks. This is the local decision engine behind `/api/governance/evaluate`.
-
-### `AuditLogService`
-
-Maps governance actions and other system events into CRE-backed evidence records so the UI can render them as audit logs.
-
-### `IngestController`
-
-Validates and stores BYO-agent runs, enforces project ingest keys, and exposes quota and token telemetry for operator views.
-
-### `CreController`
-
-Exposes the run ledger, event streams, retries, approvals, and plan updates.
-
-## Hackathon-Focused Product Direction
-
-The best near-term product is not a wallet itself.
-
-It is the operator layer around an OWS wallet:
-
-- issue scoped agent access
-- evaluate intended spend before signing
-- hold or deny risky actions
-- track approvals and denials in one ledger
-- visualize per-agent and per-project wallet activity
-
-That means the next meaningful integration surface should look like:
-
-1. OWS wallet and API-key issuance
-2. Cognivern governance evaluation before signing
-3. Cognivern audit-log capture after every attempted or completed operation
-4. dashboard and forensics UI for operators
-
-## Migration Notes
-
-### Legacy pieces to phase out
-
-- Bitte wallet integration
-- docs that frame env private keys as the preferred wallet model
-- old trading-first project narrative
-
-### Accurate current limitations
-
-- OWS wallet storage and OWS API-key issuance are implemented in the local vault service and exposed through `/api/ows/*`
-- some attestation flows still use signer keys from environment variables
-- several frontend surfaces still reference older agent ecosystems and integrations
-
-## Suggested Demo Path
-
-For the hackathon, optimize the story around:
-
-1. a treasury wallet
-2. multiple agents with different budgets
-3. policy-enforced evaluation of proposed spend
-4. a blocked, held, and approved example
-5. audit-log and run-ledger evidence shown in the Cognivern UI
+- [Hackathon Brief](./HACKATHON.md) — Demo story and submission
+- [Architecture](./ARCHITECTURE.md) — System design and data flows
+- [Deployment](./DEPLOYMENT.md) — Production deployment and operations
