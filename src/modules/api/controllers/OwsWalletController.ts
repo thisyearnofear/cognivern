@@ -4,7 +4,10 @@
 
 import { Request, Response } from "express";
 import { z } from "zod";
-import { OwsLocalVaultService } from "../../../services/OwsLocalVaultService.js";
+import {
+  OwsLocalVaultService,
+  OwsAgentRecord,
+} from "../../../services/OwsLocalVaultService.js";
 import {
   BadRequestError,
   NotFoundError,
@@ -177,10 +180,9 @@ export class OwsWalletController {
    */
   async getDashboard(req: Request, res: Response) {
     try {
-      const [wallets, apiKeys, permissions] = await Promise.all([
+      const [wallets, apiKeys, permissions, agents] = await Promise.all([
         this.vaultService.listWallets(),
         this.vaultService.listApiKeys(),
-        // Get permissions for first wallet if exists
         this.vaultService
           .listWallets()
           .then((w) =>
@@ -188,6 +190,7 @@ export class OwsWalletController {
               ? this.vaultService.getPermissions(w[0].id)
               : Promise.resolve([]),
           ),
+        this.vaultService.listAgents(),
       ]);
 
       const wallet = wallets[0];
@@ -213,9 +216,17 @@ export class OwsWalletController {
             walletCount: k.walletIds.length,
             policyCount: k.policyIds.length,
           })),
+          agents: agents.map((a) => ({
+            id: a.id,
+            name: a.name,
+            type: a.type,
+            status: a.status,
+            policyCount: a.policyIds.length,
+          })),
           permissions: permissions.slice(0, 5),
           hasWallet: !!wallet,
           hasApiKeys: apiKeys.length > 0,
+          hasAgents: agents.length > 0,
         },
         timestamp: new Date().toISOString(),
       });
@@ -226,6 +237,50 @@ export class OwsWalletController {
         timestamp: new Date().toISOString(),
       });
     }
+  }
+
+  /**
+   * GET /ows/agents - List all OWS agents
+   */
+  async listAgents(req: Request, res: Response) {
+    const agents = await this.vaultService.listAgents();
+    res.json({
+      success: true,
+      data: agents,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * POST /ows/agents - Register a new agent
+   */
+  async createAgent(req: Request, res: Response) {
+    const { name, description, type, walletId, apiKeyId, policyIds, metadata } =
+      req.body;
+
+    if (!name || !type) {
+      throw new BadRequestError("Agent name and type are required");
+    }
+
+    const agent: OwsAgentRecord = {
+      id: `agent-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      name,
+      description: description || "",
+      type,
+      status: "active",
+      walletId,
+      apiKeyId,
+      policyIds: policyIds || [],
+      createdAt: new Date().toISOString(),
+      metadata,
+    };
+
+    const created = await this.vaultService.registerAgent(agent);
+    res.status(201).json({
+      success: true,
+      data: created,
+      timestamp: new Date().toISOString(),
+    });
   }
 }
 
