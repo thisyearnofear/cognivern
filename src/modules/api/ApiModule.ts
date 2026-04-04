@@ -582,6 +582,15 @@ export class ApiModule extends BaseService {
       this.controllers.get("ows-wallet").deleteWallet(req, res);
     });
 
+    // Agent routes
+    apiRouter.get("/ows/agents", (req, res) => {
+      this.controllers.get("ows-wallet").listAgents(req, res);
+    });
+
+    apiRouter.post("/ows/agents", (req, res) => {
+      this.controllers.get("ows-wallet").createAgent(req, res);
+    });
+
     // API Key routes
     apiRouter.get("/ows/api-keys", (req, res) => {
       this.controllers.get("ows-apikey").listApiKeys(req, res);

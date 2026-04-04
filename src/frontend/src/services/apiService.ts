@@ -539,6 +539,24 @@ export class OwsApiService extends ApiService {
   async getDashboard() {
     return this.get("/api/ows/dashboard");
   }
+
+  // List OWS agents
+  async listAgents() {
+    return this.get("/api/ows/agents");
+  }
+
+  // Register OWS agent
+  async createAgent(data: {
+    name: string;
+    description?: string;
+    type: string;
+    walletId?: string;
+    apiKeyId?: string;
+    policyIds?: string[];
+    metadata?: Record<string, unknown>;
+  }) {
+    return this.post("/api/ows/agents", data);
+  }
 }
 
 export const owsApi = new OwsApiService();

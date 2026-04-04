@@ -159,6 +159,50 @@ export interface PolicyCheck {
   reason?: string;
 }
 
+// ===== OWS AGENT TYPES =====
+
+export type OwsAgentStatus = "active" | "standby" | "error" | "disabled";
+
+export interface OwsAgent {
+  id: string;
+  name: string;
+  description: string;
+  type: "governance" | "portfolio" | "research" | "procurement" | "oversight";
+  status: OwsAgentStatus;
+  walletId?: string;
+  apiKeyId?: string;
+  policyIds: string[];
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface OwsAgentMetrics {
+  agentId: string;
+  totalSpendRequests: number;
+  approvedRequests: number;
+  deniedRequests: number;
+  heldRequests: number;
+  lastActivityAt?: string;
+  complianceRate: number;
+}
+
+export interface SpendRequest {
+  id: string;
+  agentId: string;
+  recipient: string;
+  amount: string;
+  asset: string;
+  reason: string;
+  status: "pending" | "approved" | "denied" | "held";
+  policyEvaluations: PolicyCheck[];
+  createdAt: string;
+  resolvedAt?: string;
+  evidence?: {
+    hash: string;
+    artifactIds: string[];
+  };
+}
+
 // ===== MONITORING & API TYPES =====
 export interface ApiResponse<T = any> {
   success: boolean;

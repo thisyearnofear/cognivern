@@ -49,10 +49,34 @@ export interface OwsCaveat {
   value: unknown;
 }
 
+export interface OwsAgentRecord {
+  id: string;
+  name: string;
+  description: string;
+  type: "governance" | "portfolio" | "research" | "procurement" | "oversight";
+  status: "active" | "standby" | "error" | "disabled";
+  walletId?: string;
+  apiKeyId?: string;
+  policyIds: string[];
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface OwsAgentMetrics {
+  agentId: string;
+  totalSpendRequests: number;
+  approvedRequests: number;
+  deniedRequests: number;
+  heldRequests: number;
+  lastActivityAt?: string;
+  complianceRate: number;
+}
+
 interface OwsVaultData {
   version: 1;
   wallets: OwsStoredWallet[];
   apiKeys: OwsApiKeyRecord[];
+  agents: OwsAgentRecord[];
 }
 
 export interface OwsResolvedAccess {
@@ -101,6 +125,35 @@ export class OwsLocalVaultService {
   async listApiKeys(): Promise<Array<Omit<OwsApiKeyRecord, "tokenHash">>> {
     const vault = this.readVault();
     return vault.apiKeys.map(({ tokenHash, ...rest }) => rest);
+  }
+
+  async listAgents(): Promise<OwsAgentRecord[]> {
+    const vault = this.readVault();
+    return vault.agents || [];
+  }
+
+  async getAgent(id: string): Promise<OwsAgentRecord | null> {
+    const vault = this.readVault();
+    return vault.agents.find((a) => a.id === id) || null;
+  }
+
+  async registerAgent(agent: OwsAgentRecord): Promise<OwsAgentRecord> {
+    const vault = this.readVault();
+    vault.agents.push(agent);
+    this.writeVault(vault);
+    return agent;
+  }
+
+  async updateAgentStatus(
+    id: string,
+    status: OwsAgentRecord["status"],
+  ): Promise<void> {
+    const vault = this.readVault();
+    const agent = vault.agents.find((a) => a.id === id);
+    if (agent) {
+      agent.status = status;
+      this.writeVault(vault);
+    }
   }
 
   async ensureBootstrapWallet(): Promise<OwsWalletDescriptor | null> {
@@ -361,6 +414,7 @@ export class OwsLocalVaultService {
         version: 1,
         wallets: [],
         apiKeys: [],
+        agents: [],
       };
       fs.writeFileSync(this.vaultPath, JSON.stringify(emptyVault, null, 2));
     }
