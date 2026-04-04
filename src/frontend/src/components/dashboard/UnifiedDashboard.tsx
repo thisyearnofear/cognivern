@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { agentApi } from "../../services/apiService";
+import { agentApi, owsApi } from "../../services/apiService";
 import { getApiKey, getApiUrl } from "../../utils/api";
 import { copyTextToClipboard } from "../../utils/clipboard";
 import {
@@ -56,6 +56,79 @@ import Tooltip from "../ui/Tooltip";
 import * as styles from "./UnifiedDashboard.styles";
 import { Column } from "../ui/DataTable";
 import { ChartDataPoint } from "../ui/Chart";
+
+// OWS Status Indicator - Shows wallet and API key status
+function OwsStatusIndicator() {
+  const [owsStatus, setOwsStatus] = useState<{
+    walletConnected: boolean;
+    walletName?: string;
+    apiKeysCount: number;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchOwsStatus() {
+      try {
+        const [walletsRes, apiKeysRes] = await Promise.all([
+          owsApi.listWallets(),
+          owsApi.listApiKeys(),
+        ]);
+
+        const wallets = walletsRes.success ? walletsRes.data || [] : [];
+        const apiKeys = apiKeysRes.success ? apiKeysRes.data || [] : [];
+
+        setOwsStatus({
+          walletConnected: wallets.length > 0,
+          walletName: wallets[0]?.name,
+          apiKeysCount: apiKeys.length,
+        });
+      } catch (error) {
+        setOwsStatus({ walletConnected: false, apiKeysCount: 0 });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchOwsStatus();
+  }, []);
+
+  if (isLoading) return null;
+
+  return (
+    <div
+      css={css`
+        display: flex;
+        align-items: center;
+        gap: ${designTokens.spacing[2]};
+        font-size: ${designTokens.typography.fontSize.xs};
+        padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+        border-radius: ${designTokens.borderRadius.md};
+        background: ${owsStatus?.walletConnected
+          ? designTokens.colors.semantic.success[100]
+          : designTokens.colors.neutral[100]};
+        color: ${owsStatus?.walletConnected
+          ? designTokens.colors.semantic.success[700]
+          : designTokens.colors.neutral[600]};
+      `}
+    >
+      <div
+        css={css`
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: ${owsStatus?.walletConnected
+            ? designTokens.colors.semantic.success[500]
+            : designTokens.colors.neutral[400]};
+        `}
+      />
+      <span>
+        {owsStatus?.walletConnected
+          ? `OWS: ${owsStatus.walletName || "Connected"}`
+          : "OWS: No Wallet"}
+        {owsStatus?.apiKeysCount ? ` (${owsStatus.apiKeysCount} keys)` : ""}
+      </span>
+    </div>
+  );
+}
 
 // Lazy load heavy components for performance
 const EcosystemVisualizer = lazy(() =>
@@ -842,6 +915,7 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
             <div css={styles.badgeContainerStyles}>
               <div css={styles.systemBadgeStyles("info")}>CONTROL PLANE</div>
               <div css={styles.systemBadgeStyles("success")}>AUDIT LIVE</div>
+              <OwsStatusIndicator />
             </div>
           </div>
 
