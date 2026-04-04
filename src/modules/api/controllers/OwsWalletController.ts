@@ -173,23 +173,59 @@ export class OwsWalletController {
   }
 
   /**
-   * DELETE /ows/wallets/:id - Delete a wallet
+   * GET /ows/dashboard - Unified OWS dashboard data
    */
-  async deleteWallet(req: Request, res: Response) {
-    const { id } = req.params;
-    const wallets = await this.vaultService.listWallets();
-    const wallet = wallets.find((w) => w.id === id);
+  async getDashboard(req: Request, res: Response) {
+    try {
+      const [wallets, apiKeys, permissions] = await Promise.all([
+        this.vaultService.listWallets(),
+        this.vaultService.listApiKeys(),
+        // Get permissions for first wallet if exists
+        this.vaultService
+          .listWallets()
+          .then((w) =>
+            w[0]?.id
+              ? this.vaultService.getPermissions(w[0].id)
+              : Promise.resolve([]),
+          ),
+      ]);
 
-    if (!wallet) {
-      throw new NotFoundError("Wallet");
+      const wallet = wallets[0];
+
+      res.json({
+        success: true,
+        data: {
+          wallet: wallet
+            ? {
+                id: wallet.id,
+                name: wallet.name,
+                chainType: wallet.chainType,
+                accounts: wallet.accounts.map((a) => ({
+                  address: a.address,
+                  chainId: a.chainId,
+                })),
+              }
+            : null,
+          apiKeys: apiKeys.map((k) => ({
+            id: k.id,
+            name: k.name,
+            createdAt: k.createdAt,
+            walletCount: k.walletIds.length,
+            policyCount: k.policyIds.length,
+          })),
+          permissions: permissions.slice(0, 5),
+          hasWallet: !!wallet,
+          hasApiKeys: apiKeys.length > 0,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      });
     }
-
-    // Note: Would need to add deleteWallet to vault service
-    res.json({
-      success: true,
-      message: "Wallet deleted",
-      timestamp: new Date().toISOString(),
-    });
   }
 }
 
