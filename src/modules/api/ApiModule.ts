@@ -32,6 +32,9 @@ import { CreController } from "./controllers/CreController.js";
 import { IngestController } from "./controllers/IngestController.js";
 import { SpendController } from "./controllers/SpendController.js";
 import { OwsController } from "./controllers/OwsController.js";
+import { OwsWalletController } from "./controllers/OwsWalletController.js";
+import { OwsApiKeyController } from "./controllers/OwsApiKeyController.js";
+import { OwsPermissionsController } from "./controllers/OwsPermissionsController.js";
 
 export class ApiModule extends BaseService {
   private app: express.Application;
@@ -284,6 +287,9 @@ export class ApiModule extends BaseService {
     this.controllers.set("ingest", new IngestController());
     this.controllers.set("spend", new SpendController());
     this.controllers.set("ows", new OwsController());
+    this.controllers.set("ows-wallet", new OwsWalletController());
+    this.controllers.set("ows-apikey", new OwsApiKeyController());
+    this.controllers.set("ows-permissions", new OwsPermissionsController());
 
     // Initialize all controllers
     for (const [name, controller] of this.controllers) {
@@ -544,39 +550,54 @@ export class ApiModule extends BaseService {
     });
 
     apiRouter.post("/ows/bootstrap", (req, res) => {
-      this.controllers.get("ows").bootstrap(req, res);
+      this.controllers.get("ows-wallet").bootstrap(req, res);
     });
 
+    // Wallet routes
     apiRouter.get("/ows/wallets", (req, res) => {
-      this.controllers.get("ows").listWallets(req, res);
+      this.controllers.get("ows-wallet").listWallets(req, res);
+    });
+
+    apiRouter.get("/ows/wallets/:id", (req, res) => {
+      this.controllers.get("ows-wallet").getWallet(req, res);
     });
 
     apiRouter.post("/ows/wallets/connect", (req, res) => {
-      this.controllers.get("ows").connectExternalWallet(req, res);
+      this.controllers.get("ows-wallet").connectExternal(req, res);
     });
 
     apiRouter.post("/ows/wallets/import", (req, res) => {
-      this.controllers.get("ows").importWallet(req, res);
+      this.controllers.get("ows-wallet").importWallet(req, res);
     });
 
+    apiRouter.delete("/ows/wallets/:id", (req, res) => {
+      this.controllers.get("ows-wallet").deleteWallet(req, res);
+    });
+
+    // API Key routes
     apiRouter.get("/ows/api-keys", (req, res) => {
-      this.controllers.get("ows").listApiKeys(req, res);
+      this.controllers.get("ows-apikey").listApiKeys(req, res);
+    });
+
+    apiRouter.get("/ows/api-keys/:id", (req, res) => {
+      this.controllers.get("ows-apikey").getApiKey(req, res);
     });
 
     apiRouter.post("/ows/api-keys", (req, res) => {
-      this.controllers.get("ows").createApiKey(req, res);
+      this.controllers.get("ows-apikey").createApiKey(req, res);
     });
 
     apiRouter.delete("/ows/api-keys/:id", (req, res) => {
-      this.controllers.get("ows").deleteApiKey(req, res);
+      this.controllers.get("ows-apikey").deleteApiKey(req, res);
     });
 
+    // Permissions routes
     apiRouter.post("/ows/permissions", (req, res) => {
-      this.controllers.get("ows").requestPermissions(req, res);
+      this.controllers.get("ows-permissions").requestPermissions(req, res);
     });
 
     apiRouter.get("/ows/permissions/:walletId", (req, res) => {
-      this.controllers.get("ows").getPermissions(req, res);
+      this.controllers.get("ows-permissions").getPermissions(req, res);
     });
 
     // Projects (multi-project support)
