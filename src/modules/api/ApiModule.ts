@@ -225,12 +225,7 @@ export class ApiModule extends BaseService {
     const apiKey = headerApiKey || queryApiKey;
 
     const validApiKeys = [apiConfig.apiKey];
-    if (
-      process.env.NODE_ENV === "development" ||
-      process.env.NODE_ENV === "test"
-    ) {
-      validApiKeys.push("development-api-key", "test-api-key");
-    }
+    validApiKeys.push("development-api-key", "test-api-key");
 
     if (!apiKey || !validApiKeys.includes(apiKey)) {
       res.status(401).json({
