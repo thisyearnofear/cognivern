@@ -72,6 +72,37 @@ export class OwsWalletController {
   }
 
   /**
+   * GET /ows/health - OWS domain health check
+   */
+  async getHealth(req: Request, res: Response) {
+    try {
+      const wallets = await this.vaultService.listWallets();
+      const apiKeys = await this.vaultService.listApiKeys();
+
+      res.json({
+        success: true,
+        data: {
+          status: "healthy",
+          wallets: wallets.length,
+          apiKeys: apiKeys.length,
+          vaultAccessible: true,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(503).json({
+        success: false,
+        data: {
+          status: "unhealthy",
+          vaultAccessible: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
    * GET /ows/wallets/:id - Get specific wallet
    */
   async getWallet(req: Request, res: Response) {
