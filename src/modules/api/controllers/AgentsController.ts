@@ -225,13 +225,48 @@ export class AgentsController {
       const { id, agentType } = req.params;
       const agentId = id || agentType; // Support both :id and :agentType parameters
 
+      // Return mock data for governance/portfolio agents (OWS demo agents)
+      if (agentType === "governance" || agentType === "portfolio") {
+        res.json({
+          success: true,
+          data: {
+            agent: {
+              id: agentType,
+              name:
+                agentType === "governance"
+                  ? "Spend Governance Agent"
+                  : "Portfolio Agent",
+              type: agentType,
+              status: "active",
+            },
+            status: {
+              isActive: true,
+              lastUpdate: new Date().toISOString(),
+              tradesExecuted: 5,
+              performance: {
+                totalReturn: 0,
+                winRate: 0,
+                sharpeRatio: 0,
+              },
+            },
+          },
+          governance: {
+            compliance: "Policy enforcement active",
+            riskManagement: "Spend limits enforced",
+            auditTrail: "All decisions logged",
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
       // Get real agent status from our showcase agents
       const status = await this.agentsModule.getAgentStatus(agentId);
 
       if (!status) {
         res.status(500).json({
           success: false,
-          error: "Failed to fetch recall agent data",
+          error: `Failed to fetch ${agentType} agent data`,
           timestamp: new Date().toISOString(),
         });
         return;
@@ -260,9 +295,10 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
+      const type = req.params.agentType || req.params.id || "unknown";
       res.status(500).json({
         success: false,
-        error: "Failed to fetch recall agent data",
+        error: `Failed to fetch ${type} agent data`,
         timestamp: new Date().toISOString(),
       });
     }
@@ -813,7 +849,8 @@ export class AgentsController {
   }
 
   async streamDashboardEvents(req: Request, res: Response): Promise<void> {
-    const sinceQuery = typeof req.query.since === "string" ? req.query.since : undefined;
+    const sinceQuery =
+      typeof req.query.since === "string" ? req.query.since : undefined;
     const lastEventId = req.header("Last-Event-ID") || sinceQuery || "";
     let cursorTimestamp = 0;
     let cursorId = "";
@@ -919,8 +956,7 @@ export class AgentsController {
           }
 
           return (
-            entry.timestampMs === cursorTimestamp &&
-            entry.cursorTail > cursorId
+            entry.timestampMs === cursorTimestamp && entry.cursorTail > cursorId
           );
         })
         .sort((left, right) => {
