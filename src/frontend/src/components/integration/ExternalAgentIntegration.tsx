@@ -238,46 +238,73 @@ export default function ExternalAgentIntegration() {
     e.preventDefault();
 
     try {
-      // Add privacy-preserving metadata for OpenClaw/Hermes
-      const privacyConfig =
-        newAgent.provider === "openclaw" || newAgent.provider === "hermes"
-          ? {
-              redactionEnabled: true,
-              zkProofsRequired: true,
-              localOnlyForensics: false,
-            }
-          : {
-              redactionEnabled: false,
-              zkProofsRequired: false,
-              localOnlyForensics: false,
-            };
+      // 1. Create OWS Agent
+      const agentType =
+        newAgent.provider === "openclaw"
+          ? "procurement"
+          : newAgent.provider === "hermes"
+            ? "research"
+            : "governance";
 
-      // Add capabilities to the new agent
-      const agentWithCapabilities = {
-        ...newAgent,
-        capabilities: selectedCapabilities,
-        privacyConfig,
-      };
-
-      const response = await fetch(getApiUrl("/external-agents"), {
+      const agentResponse = await fetch(getApiUrl("/api/ows/agents"), {
         method: "POST",
-        headers: getApiHeaders(),
-        body: JSON.stringify(agentWithCapabilities),
+        headers: { ...getApiHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newAgent.name,
+          description: `External agent via ${newAgent.provider}`,
+          type: agentType,
+          metadata: {
+            provider: newAgent.provider,
+            connectionUrl: newAgent.connectionUrl,
+            capabilities: selectedCapabilities,
+            isExternal: true,
+          },
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+      if (!agentResponse.ok) {
+        throw new Error("Failed to register agent");
       }
 
-      // For demo purposes, add the agent locally
+      const agentData = await agentResponse.json();
+
+      // 2. Get wallet ID for API key
+      const walletsRes = await fetch(getApiUrl("/api/ows/wallets"), {
+        headers: getApiHeaders(),
+      });
+      const walletsJson = await walletsRes.json();
+      const wallets = walletsJson.success ? walletsJson.data || [] : [];
+
+      if (wallets.length === 0) {
+        throw new Error("No wallet available - please connect wallet first");
+      }
+
+      // 3. Create scoped API key for the agent
+      const apiKeyResponse = await fetch(getApiUrl("/api/ows/api-keys"), {
+        method: "POST",
+        headers: { ...getApiHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${newAgent.name}-key`,
+          walletIds: [wallets[0].id],
+          policyIds: [],
+        }),
+      });
+
+      let apiKeyData = null;
+      if (apiKeyResponse.ok) {
+        const apiKeyResult = await apiKeyResponse.json();
+        apiKeyData = apiKeyResult.data;
+      }
+
+      // Add to local state with OWS status
       const newAgentWithId: ExternalAgent = {
-        id: `ext-${Date.now()}`,
+        id: agentData.data?.id || `ext-${Date.now()}`,
         name: newAgent.name || "Unnamed Agent",
         type: newAgent.type || "llm",
         provider: newAgent.provider || "custom",
         status: "connected",
         connectionUrl: newAgent.connectionUrl,
-        apiKey: newAgent.apiKey,
+        apiKey: apiKeyData?.token || "",
         capabilities: selectedCapabilities,
       };
 
@@ -294,6 +321,9 @@ export default function ExternalAgentIntegration() {
       });
       setSelectedCapabilities([]);
       setShowAddForm(false);
+
+      // Refresh wallet connection to see new agent
+      await checkWalletConnection();
     } catch (err) {
       console.error("Error adding external agent:", err);
       setError(
