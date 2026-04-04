@@ -567,6 +567,10 @@ export class ApiModule extends BaseService {
       this.controllers.get("ows").createApiKey(req, res);
     });
 
+    apiRouter.delete("/ows/api-keys/:id", (req, res) => {
+      this.controllers.get("ows").deleteApiKey(req, res);
+    });
+
     apiRouter.post("/ows/permissions", (req, res) => {
       this.controllers.get("ows").requestPermissions(req, res);
     });

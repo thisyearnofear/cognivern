@@ -211,6 +211,16 @@ export class OwsLocalVaultService {
     return { apiKey, token };
   }
 
+  async deleteApiKey(keyId: string): Promise<void> {
+    const vault = this.readVault();
+    const index = vault.apiKeys.findIndex((k) => k.id === keyId);
+    if (index === -1) {
+      throw new Error(`API key ${keyId} not found`);
+    }
+    vault.apiKeys.splice(index, 1);
+    this.writeVault(vault);
+  }
+
   async validateApiKey(token?: string | null): Promise<OwsApiKeyRecord | null> {
     if (!token) {
       return null;
