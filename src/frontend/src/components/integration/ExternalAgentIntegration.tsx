@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
-import { css } from "@emotion/react";
 import { getApiHeaders, getApiUrl } from "../../utils/api";
-import { designTokens, tradingStyles } from "../../styles/design-system";
 
 interface ExternalAgent {
   id: string;
@@ -113,15 +111,15 @@ export default function ExternalAgentIntegration() {
 
   const checkWalletConnection = async () => {
     try {
-      const response = await fetch(getApiUrl("/wallet/info"), {
+      const response = await fetch(getApiUrl("/api/ows/wallets"), {
         headers: getApiHeaders(),
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.wallet) {
+        if (data.success && data.data && data.data.length > 0) {
           setWalletConnected(true);
-          setWalletInfo(data.wallet);
+          setWalletInfo(data.data[0]);
         } else {
           setWalletConnected(false);
         }
@@ -136,16 +134,16 @@ export default function ExternalAgentIntegration() {
 
   const connectWallet = async () => {
     try {
-      const response = await fetch(getApiUrl("/wallet/connect"), {
+      const response = await fetch(getApiUrl("/api/ows/bootstrap"), {
         method: "POST",
         headers: getApiHeaders(),
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.wallet) {
+        if (data.success && data.data) {
           setWalletConnected(true);
-          setWalletInfo(data.wallet);
+          setWalletInfo(data.data);
         }
       }
     } catch (err) {
@@ -261,10 +259,13 @@ export default function ExternalAgentIntegration() {
 
   const reconnectAgent = async (agentId: string) => {
     try {
-      const response = await fetch(getApiUrl(`/external-agents/${agentId}/connect`), {
-        method: "POST",
-        headers: getApiHeaders(),
-      });
+      const response = await fetch(
+        getApiUrl(`/external-agents/${agentId}/connect`),
+        {
+          method: "POST",
+          headers: getApiHeaders(),
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
@@ -329,8 +330,8 @@ export default function ExternalAgentIntegration() {
                 spend from this workspace.
               </p>
             </div>
-            <button className="connect-wallet-button" disabled>
-              Bootstrap Required
+            <button className="connect-wallet-button" onClick={connectWallet}>
+              Bootstrap Wallet
             </button>
           </div>
         </div>
@@ -343,10 +344,11 @@ export default function ExternalAgentIntegration() {
             <span>Execution Wallet Connected</span>
           </div>
           <div className="wallet-address">
-            Address: {walletInfo.address.substring(0, 6)}...
-            {walletInfo.address.substring(walletInfo.address.length - 4)}
+            {walletInfo.accounts?.[0]?.address
+              ? `Address: ${walletInfo.accounts[0].address.substring(0, 6)}...${walletInfo.accounts[0].address.substring(walletInfo.accounts[0].address.length - 4)}`
+              : "No accounts available"}
           </div>
-          <div className="wallet-balance">Balance: {walletInfo.balance}</div>
+          <div className="wallet-balance">Wallet: {walletInfo.name}</div>
         </div>
       )}
 
