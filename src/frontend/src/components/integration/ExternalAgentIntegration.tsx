@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { getApiHeaders, getApiUrl } from "../../utils/api";
+import Tooltip from "../ui/Tooltip";
+import { Confetti } from "../ui";
 
 interface OwsApiKey {
   id: string;
@@ -51,6 +53,7 @@ export default function ExternalAgentIntegration() {
   const [createdApiKeyToken, setCreatedApiKeyToken] = useState<string | null>(
     null,
   );
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Available capabilities
   const availableCapabilities = [
@@ -179,6 +182,8 @@ export default function ExternalAgentIntegration() {
           setWalletConnected(true);
           setWalletInfo(data.data);
           setNewApiKeyWallet(data.data.id);
+          setShowSuccess(true);
+          setTimeout(() => setShowSuccess(false), 3000);
           await checkWalletConnection();
         }
       }
@@ -309,6 +314,10 @@ export default function ExternalAgentIntegration() {
       };
 
       setAgents([...agents, newAgentWithId]);
+
+      // Show success animation
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
 
       // Reset form
       setNewAgent({
@@ -454,7 +463,12 @@ export default function ExternalAgentIntegration() {
         <div className="wallet-info">
           <div className="wallet-status">
             <div className="status-dot connected"></div>
-            <span>Execution Wallet Connected</span>
+            <span>
+              Execution Wallet Connected
+              <Tooltip content="Your OWS wallet - funds are held here and released when policy approves">
+                <span style={{ marginLeft: 4, cursor: "help" }}>ℹ️</span>
+              </Tooltip>
+            </span>
           </div>
           <div className="wallet-address">
             {walletInfo.accounts?.[0]?.address
@@ -486,6 +500,11 @@ export default function ExternalAgentIntegration() {
           >
             <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>
               API Keys
+              <Tooltip content="API keys give agents limited access to your wallet - they can request spends but can't withdraw funds directly">
+                <span style={{ marginLeft: 4, cursor: "help", fontSize: 12 }}>
+                  ℹ️
+                </span>
+              </Tooltip>
             </h3>
             <button
               onClick={() => setShowApiKeyForm(!showApiKeyForm)}
@@ -888,6 +907,8 @@ export default function ExternalAgentIntegration() {
           </div>
         </div>
       </div>
+
+      {showSuccess && <Confetti />}
     </div>
   );
 }
