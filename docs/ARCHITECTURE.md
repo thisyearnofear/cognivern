@@ -4,36 +4,75 @@
 
 **Make agent wallet activity governable.**
 
-Cognivern is being retargeted from a broad agent-governance platform into a narrower product for the OWS Hackathon:
+Cognivern is a control plane for OWS wallets that handles policy checks, approvals, and audit for autonomous agents.
 
-> **a control plane for OWS wallets that handles policy checks, approvals, and audit for autonomous agents**
+## Responsibility Boundary
 
-## Best Hackathon Fit
+| OWS Owns | Cognivern Owns |
+|----------|----------------|
+| Wallet storage | Policy evaluation |
+| API-key issuance | Approval workflows |
+| Transaction signing | Audit-log indexing |
+| Signing policy enforcement | Run ledger & analytics |
 
-The strongest fit is **Track 02: Agent Spend Governance & Identity**.
+## System Overview
 
-The codebase is already closest to these opportunities:
+```
+Agent
+  |
+  | intended spend / sign request
+  v
+OWS Wallet + API Key
+  |
+  | policy-gated signing boundary
+  v
+Cognivern Evaluation Layer
+  - budget checks, chain restrictions, vendor allowlists
+  - approval thresholds, anomaly detection
+  |
+  +--> approve -> OWS signs and sends
+  +--> hold    -> human or second wallet approves
+  +--> deny    -> no signing
+  |
+  v
+Cognivern Audit + Run Ledger
+  - every attempt recorded, reasons preserved
+  - project and agent views
+```
 
-- `SpendOS for teams`
-- `Audit log forensics`
-- `Dead man's switch`
-- `Multi-sig agent governance`
+## Existing Building Blocks
 
-## Architecture Summary
+### 1. Ingestion — `POST /ingest/runs`
 
-The current system already has two useful planes:
+Project-scoped run submission with ingest key validation, quota metering, and normalized run capture for downstream UI.
 
-- a **data plane** for ingesting external agent runs
-- a **control plane** for governance evaluation, run review, and audit analysis
+### 2. Governance Evaluation
 
-That maps well to an OWS-based system:
+`GovernanceController` exposes policy CRUD and evaluation:
+- `GET/POST /api/governance/policies`
+- `POST /api/governance/evaluate`
 
-- **OWS** owns wallet storage, API keys, and signing
-- **Cognivern** owns policy evaluation, operator controls, and forensics
+`PolicyEnforcementService` loads the active policy and evaluates actions rule by rule, returning structured allow/deny decisions with per-rule checks.
 
-## Current Runtime Shape
+### 3. Audit & Run Ledger
 
-```text
+`AuditLogService` converts actions and events into CRE-backed evidence records.
+
+`CreController` exposes run lists, details, event streams, retries, approvals, and plan updates — the right primitives for spend forensics and operator review.
+
+### 4. OWS Wallet Layer
+
+`OwsLocalVaultService` stores encrypted local wallets, issues delegated API keys, and resolves wallet access for spend execution.
+
+`OwsWalletService` exposes `/api/spend`, enforces spend policies, produces approve/hold/deny outcomes, signs approved spend envelopes, and persists runs to the CRE ledger.
+
+### 5. Frontend Control Plane
+
+The frontend already contains surfaces for policy management, audit logs, run ledger, and agent monitoring.
+
+## Data Flow
+
+```
 External Agents / Services
         |
         |  POST /ingest/runs
@@ -42,7 +81,6 @@ External Agents / Services
         |
         v
     CRE Run Store  <-------------------------------+
-        |                                          |
         |                                          |
         v                                          |
  AuditLogService  <---- GovernanceController ------+
@@ -56,145 +94,37 @@ External Agents / Services
         |
         v
   UI / Operator Views
-  - audit logs
-  - run ledger
-  - policy state
-  - usage telemetry
 ```
 
-## Planned OWS-Centric Shape
+## Legacy Components
 
-```text
-Agent
-  |
-  | intended spend / sign request
-  v
-OWS Wallet + API Key
-  |
-  | policy-gated signing boundary
-  v
-Cognivern Evaluation Layer
-  - budget checks
-  - chain restrictions
-  - vendor allowlists
-  - approval thresholds
-  - anomaly detection
-  |
-  +--> approve -> OWS signs and sends
-  |
-  +--> hold    -> human or second wallet approves
-  |
-  +--> deny    -> no signing
-  |
-  v
-Cognivern Audit + Run Ledger
-  - every attempt recorded
-  - reasons preserved
-  - project and agent views
-```
+These parts of the repo are considered transitional and should not be part of the product narrative:
 
-## Existing Building Blocks
+- **Bitte integration** — discontinued, should not be part of the hackathon story
+- **Env-var private keys** — some services still use signer keys from env vars as a temporary implementation detail; the intended architecture uses OWS wallet storage
 
-### 1. Ingestion
+## Key Endpoints
 
-`IngestController` accepts project-scoped run submissions through `/ingest/runs`.
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/ingest/runs` | POST | Project-scoped run ingestion |
+| `/api/governance/policies` | GET, POST | Policy management |
+| `/api/governance/evaluate` | POST | Evaluate action against policy |
+| `/api/ows/bootstrap` | POST | Bootstrap OWS wallet |
+| `/api/ows/api-keys` | GET, POST | API key management |
+| `/api/ows/wallets` | GET | List wallets |
+| `/api/spend` | POST | Execute governed spend |
+| `/api/spend/preview` | POST | Simulate spend (dry-run) |
+| `/api/spend/status` | GET | Execution layer status |
+| `/api/audit/logs` | GET | Audit trail |
+| `/api/audit/insights` | GET | Audit insights |
+| `/api/cre/runs` | GET | Run ledger |
+| `/api/cre/runs/:runId` | GET | Run details |
+| `/api/projects` | GET | Project list |
+| `/api/projects/:projectId/usage` | GET | Project usage |
 
-Useful today:
+## Related Docs
 
-- external agent compatibility
-- per-project ingest keys
-- quota and usage metering
-- normalized run capture for downstream UI
-
-### 2. Governance evaluation
-
-`GovernanceController` exposes:
-
-- `GET /api/governance/policies`
-- `POST /api/governance/policies`
-- `POST /api/governance/evaluate`
-
-`PolicyEnforcementService` loads the active policy and evaluates actions rule by rule, returning structured policy checks.
-
-### 3. Audit and run ledger
-
-`AuditLogService` turns actions and events into CRE-backed evidence.
-
-`CreController` exposes:
-
-- run lists
-- run details
-- event streams
-- retries
-- approval flows
-- plan updates
-
-These are the right primitives for spend forensics and operator review.
-
-### 4. Frontend control plane
-
-The frontend already contains surfaces for:
-
-- policy management
-- audit logs
-- run ledger
-- agent status and monitoring
-
-Those views are more valuable for the hackathon than the older trading-specific story.
-
-## Current Mismatches
-
-### Legacy wallet assumptions
-
-Some services still assume signer keys come from environment variables. That is incompatible with the intended OWS-first architecture and should be treated as transitional.
-
-### Discontinued integrations
-
-Bitte-related flows are stale and should not be part of the product narrative.
-
-### Mixed product story
-
-The repo still contains material from trading, forecasting, and deprecated ecosystem integrations. The hackathon story should ignore those unless they directly support the spend-governance demo.
-
-## Recommended Boundaries
-
-### OWS responsibilities
-
-- wallet storage
-- API-key issuance
-- transaction signing
-- signing policy enforcement at the wallet boundary
-
-### Cognivern responsibilities
-
-- project and agent oversight
-- policy simulation and explanation
-- approval workflows
-- audit-log indexing and visualization
-- run ledger, anomaly surfacing, and spend analytics
-
-## Near-Term Demo Design
-
-The cleanest demo is:
-
-1. create a treasury wallet
-2. issue scoped access to multiple agents
-3. submit proposed spend actions into Cognivern
-4. approve low-risk actions automatically
-5. hold medium-risk actions for approval
-6. deny out-of-policy actions
-7. show everything in the run ledger and audit views
-
-## Why This Fits The Hackathon
-
-OWS provides the wallet primitives.
-
-Cognivern provides the operator experience teams actually need once agents start spending real money:
-
-- visibility
-- control
-- limits
-- evidence
-- recovery workflows
-
-That is a much stronger and more defensible position for this repo than the previous broad "agent governance command center" framing.
+- [Hackathon Brief](./HACKATHON.md) — Demo story and submission
+- [Developer Guide](./DEVELOPER.md) — APIs, local setup, testing
+- [Deployment](./DEPLOYMENT.md) — Production deployment and operations

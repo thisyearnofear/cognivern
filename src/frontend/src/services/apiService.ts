@@ -36,8 +36,15 @@ class ApiService {
         clearTimeout(timeout);
 
         if (!response.ok) {
-          // Don't retry on 4xx errors, only on 5xx or network errors
+          // Don't retry on 4xx errors (client errors like 401, 404)
           if (response.status >= 400 && response.status < 500) {
+            // For 401, don't log repeatedly - fail silently for demo mode
+            if (response.status === 401) {
+              return {
+                error: `Authentication required`,
+                success: false,
+              };
+            }
             throw new Error(
               `API Error: ${response.status} - ${response.statusText}`,
             );
@@ -69,18 +76,24 @@ class ApiService {
 
         // Network error or fetch failed
         if (attempt < retries - 1) {
-          console.warn(
-            `API request attempt ${attempt + 1} failed for ${endpoint}, retrying...`,
-            error,
-          );
+          // Only log in development to avoid console spam
+          if (!import.meta.env.PROD) {
+            console.warn(
+              `API request attempt ${attempt + 1} failed for ${endpoint}, retrying...`,
+              error,
+            );
+          }
           await new Promise((resolve) =>
             setTimeout(resolve, delay * Math.pow(2, attempt)),
           );
         } else {
-          console.error(
-            `API request failed for ${endpoint} after ${retries} attempts:`,
-            error,
-          );
+          // Only log final failure in development
+          if (!import.meta.env.PROD) {
+            console.error(
+              `API request failed for ${endpoint} after ${retries} attempts:`,
+              error,
+            );
+          }
           return {
             error:
               error instanceof Error

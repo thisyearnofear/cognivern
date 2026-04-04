@@ -7,14 +7,13 @@
  * WARNING: This exposes the API key in the browser - only use for development
  */
 export function getApiKey(): string {
-  // In production, the backend should handle API authentication
-  // The frontend should not have access to sensitive API keys
-  if (import.meta.env.PROD) {
-    // API key exposure is handled by backend in production
-    return ""; // Don't expose API key in production
-  }
-
   const apiKey = import.meta.env.VITE_API_KEY;
+
+  // In production, use the environment variable if set
+  // Otherwise, use a public API key for demo/hackathon purposes
+  if (import.meta.env.PROD) {
+    return apiKey || "sapience-hackathon-key";
+  }
 
   if (!apiKey) {
     console.warn("VITE_API_KEY not set, using development key");

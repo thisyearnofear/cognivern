@@ -57,13 +57,14 @@ coverage
 
 # Local deploy artifacts
 .artifacts
-.junie/memory/
+.junie/
 
 # AI/IDE assistant artifacts
 .zencoder/
 .zenflow/
 .cursor/
 .aider*
+.blackboxcli/
 
 # Wrangler
 .wrangler/
