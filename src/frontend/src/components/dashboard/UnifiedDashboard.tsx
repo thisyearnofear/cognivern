@@ -91,7 +91,40 @@ function OwsStatusIndicator() {
     fetchOwsStatus();
   }, []);
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <div
+        css={css`
+          display: flex;
+          align-items: center;
+          gap: ${designTokens.spacing[2]};
+          font-size: ${designTokens.spacing[2]};
+          padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+          border-radius: ${designTokens.borderRadius.md};
+          background: ${designTokens.colors.neutral[100]};
+          opacity: 0.6;
+        `}
+      >
+        <div
+          css={css`
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: ${designTokens.colors.neutral[300]};
+            animation: pulse 1.5s ease-in-out infinite;
+          `}
+        />
+        <span
+          css={css`
+            color: ${designTokens.colors.neutral[400]};
+            font-size: ${designTokens.typography.fontSize.xs};
+          `}
+        >
+          Loading...
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div
