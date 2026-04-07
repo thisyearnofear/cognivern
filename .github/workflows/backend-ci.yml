@@ -33,7 +33,7 @@ jobs:
           node-version: "18"
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v5
         with:
           version: 9.15.0
 
