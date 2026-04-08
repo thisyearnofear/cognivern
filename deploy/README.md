@@ -1,218 +1,106 @@
-# Cognivern Hetzner Deployment Guide
+# Cognivern Deployment Scripts
 
-This guide will help you deploy the full Cognivern platform to your Hetzner server for 24/7 trading agent operation.
+## Overview
 
-## 🎯 Architecture Overview
+This directory contains deployment scripts for the Cognivern backend API. The frontend is deployed separately to Vercel.
 
-```
-Internet → Nginx (SSL/Reverse Proxy) → Backend API + Trading Agent
-                                    ↓
-                              Recall Network + Filecoin
-```
-
-## 📋 Prerequisites
-
-1. **Hetzner Server** with Ubuntu 20.04+ or similar
-2. **Domain name** pointing to your server
-3. **SSL certificates** (Let's Encrypt recommended)
-4. **Environment variables** configured
-
-## 🚀 Quick Deployment
-
-### 1. Configure Environment
+## Quick Deploy
 
 ```bash
-# Copy and edit environment file
-cp deploy/.env.hetzner.example .env
+# 1. Configure environment
+cp .env.example .env
 nano .env  # Fill in your actual values
-```
 
-### 2. Update Deployment Script
+# 2. Set server host in deploy.sh
+# Edit deploy/deploy.sh and set SERVER_HOST="your-server-ip"
 
-Edit `deploy/deploy.sh`:
-
-```bash
-SERVER_HOST="your-hetzner-server-ip"
-DOMAIN="your-domain.com"
-```
-
-### 3. Deploy
-
-```bash
-# Make script executable
+# 3. Deploy
 chmod +x deploy/deploy.sh
-
-# Deploy to Hetzner
 ./deploy/deploy.sh
 ```
 
-## 🔧 Manual Setup (Alternative)
+## What the Deploy Script Does
 
-### 1. Server Preparation
+1. Builds the backend locally (`pnpm run build`)
+2. Creates a tarball (excludes `node_modules`, `.git`, frontend builds, logs)
+3. Uploads to the server via SCP
+4. On server: installs production-only dependencies (`pnpm install --prod`)
+5. Restarts the PM2 process
+6. Cleans up old logs and pnpm cache
 
-```bash
-# SSH into your Hetzner server
-ssh root@your-server-ip
+## Server Setup (One-Time)
 
-# Update system
-apt update && apt upgrade -y
-
-# Install Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sh get-docker.sh
-
-# Install Docker Compose
-curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
-```
-
-### 2. Upload Code
+The server needs:
+- Node.js 20+
+- pnpm
+- PM2 with pm2-logrotate module
+- SSH access for the deploy user
 
 ```bash
-# From your local machine
-scp -r . root@your-server-ip:/opt/cognivern/
-scp .env root@your-server-ip:/opt/cognivern/
+# Install PM2 and log rotation
+npm install -g pm2
+pm2 install pm2-logrotate
+pm2 set pm2-logrotate:max_size 10M
+pm2 set pm2-logrotate:retain 7
+pm2 set pm2-logrotate:compress true
 ```
 
-### 3. Start Services
+## Contract Deployment
+
+Before first deployment, deploy the smart contracts:
+
+```bash
+# On the server (needs dev dependencies temporarily)
+cd /opt/cognivern
+pnpm install  # Full install for hardhat
+npx hardhat run scripts/deploy-hardhat.cjs --network calibration
+# Add the output contract addresses to .env
+pnpm install --prod --force  # Back to production-only deps
+pm2 restart cognivern --update-env
+```
+
+## Manual Deployment
+
+If the automated script doesn't work for your setup:
+
+```bash
+# From local machine
+scp -r src/ config/ dist/ package.json pnpm-lock.yaml deploy/ user@server:/opt/cognivern/
+scp .env user@server:/opt/cognivern/.env
+
+# On server
+ssh user@server
+cd /opt/cognivern
+pnpm install --prod --force
+pm2 restart cognivern --update-env
+```
+
+## Monitoring
 
 ```bash
 # On server
-cd /opt/cognivern
-docker-compose up -d --build
+pm2 list                    # View all processes
+pm2 logs cognivern          # View live logs
+pm2 monit                   # Resource monitoring
+curl http://localhost:10000/health  # Health check
 ```
 
-## 🔒 SSL Setup with Let's Encrypt
+## Rollback
 
-```bash
-# Install certbot
-apt install certbot
+To rollback to a previous version:
+1. Re-deploy the previous working commit/version
+2. `pm2 restart cognivern --update-env`
 
-# Get SSL certificate
-certbot certonly --standalone -d your-domain.com
+## Troubleshooting
 
-# Copy certificates
-cp /etc/letsencrypt/live/your-domain.com/fullchain.pem /opt/cognivern/deploy/nginx/ssl/cert.pem
-cp /etc/letsencrypt/live/your-domain.com/privkey.pem /opt/cognivern/deploy/nginx/ssl/key.pem
+| Issue | Solution |
+|-------|----------|
+| App won't start | Check `pm2 logs cognivern --err`, verify `.env` has all required vars |
+| Missing contract addresses | Deploy contracts first, add addresses to `.env` |
+| Out of disk space | Run `pnpm store prune`, truncate logs in `logs/` |
+| Port already in use | Check `lsof -i :10000`, kill old process |
 
-# Restart nginx
-docker-compose restart nginx
-```
+## Related Docs
 
-## 📊 Monitoring & Management
-
-### Check Status
-
-```bash
-docker-compose ps
-```
-
-### View Logs
-
-```bash
-# All services
-docker-compose logs -f
-
-# Specific service
-docker-compose logs -f cognivern-agent
-docker-compose logs -f cognivern-backend
-```
-
-### Restart Services
-
-```bash
-# Restart all
-docker-compose restart
-
-# Restart specific service
-docker-compose restart cognivern-agent
-```
-
-### Update Deployment
-
-```bash
-# Pull latest code and rebuild
-git pull
-docker-compose down
-docker-compose up -d --build
-```
-
-## 🎯 Service Architecture
-
-### Backend Service (`cognivern-backend`)
-
-- **Port**: 10000
-- **Purpose**: API server, dashboard, governance
-- **Health Check**: `/health`
-- **Auto-restart**: Yes
-
-### Trading Agent Service (`cognivern-agent`)
-
-- **Purpose**: 24/7 automated trading
-- **Command**: `pnpm auto-competition`
-- **Depends on**: Backend service
-- **Auto-restart**: Yes
-
-### Nginx Service
-
-- **Ports**: 80 (HTTP), 443 (HTTPS)
-- **Purpose**: SSL termination, reverse proxy, rate limiting
-- **Features**: Gzip, security headers, WebSocket support
-
-## 🔍 Troubleshooting
-
-### Agent Not Trading
-
-```bash
-# Check agent logs
-docker-compose logs cognivern-agent
-
-# Check environment variables
-docker-compose exec cognivern-agent env | grep RECALL
-```
-
-### API Not Responding
-
-```bash
-# Check backend logs
-docker-compose logs cognivern-backend
-
-# Check nginx logs
-docker-compose logs nginx
-```
-
-### SSL Issues
-
-```bash
-# Check certificate files
-ls -la deploy/nginx/ssl/
-
-# Test SSL configuration
-openssl s_client -connect your-domain.com:443
-```
-
-## 🎯 Benefits of Hetzner Deployment
-
-✅ **24/7 Uptime** - No sleeping like free Render instances
-✅ **Better Performance** - Dedicated resources
-✅ **Cost Effective** - Hetzner pricing is excellent
-✅ **Full Control** - Root access, custom configurations
-✅ **Scalability** - Easy to upgrade server specs
-✅ **Reliability** - Enterprise-grade infrastructure
-
-## 🔗 Access Points
-
-After deployment:
-
-- **Dashboard**: https://your-domain.com
-- **API**: https://your-domain.com/api
-- **Health Check**: https://your-domain.com/health
-- **Trading Agent**: Running 24/7 in background
-
-## 📈 Next Steps
-
-1. Monitor trading agent performance
-2. Set up log rotation and backups
-3. Configure monitoring/alerting
-4. Scale horizontally if needed
-5. Add CI/CD pipeline for automated deployments
+- [Deployment Guide](../docs/DEPLOYMENT.md) — Full deployment documentation
+- [Developer Guide](../docs/DEVELOPER.md) — Local development setup

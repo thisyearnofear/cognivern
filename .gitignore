@@ -82,3 +82,6 @@ remix-smart-bin-monitoring-das
 
 # Pre-commit
 .secrets.baseline
+
+# Private operations docs (server details, keys, addresses)
+OPS.md

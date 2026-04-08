@@ -2,152 +2,107 @@
 
 ## Overview
 
-Cognivern uses a **backend artifact + releases** deployment model for fast, safe rollbacks.
+Cognivern runs as a Node.js backend served from a VPS (e.g. Hetzner), with the frontend hosted on Vercel. The backend is managed by PM2 for process management and auto-restart.
 
-## Why This Model
-
-- Production servers are runtime environments only (no TypeScript builds)
-- Fast rollbacks via symlink switching
-- Prod dependencies only (no frontend deps on backend server)
-- Secrets separated from code (commit-safe config)
-
-## Server Layout
+## Architecture
 
 ```
-/opt/cognivern/
-  releases/
-    <release-id>/
-      dist/
-      node_modules/        # prod deps only
-      .env -> ../shared/.env
-  current -> releases/<release-id>   # active release
-  shared/
-    .env                             # secrets (server-local, NOT in git)
-    data/
-    logs/
-  config/
-    ecosystem.config.cjs             # PM2 config
+Internet → VPS (Hetzner) → Express API (PM2) → Filecoin / Recall / LLMs
+                          ↕
+                    Vercel (Frontend)
 ```
 
-**Rule:** Application runs from `/opt/cognivern/current`.
+## Required Environment Variables
 
-## Secrets Policy
+See `.env.example` for the full list. Minimum required for production:
 
-| Do NOT Commit | Safe to Commit |
-|---------------|----------------|
-| `.env`, `.env.production` | Deployment scripts |
-| Private keys, API keys | Deployment documentation |
-| PM2 files with secrets | `.env.example` with placeholders |
+| Variable | Purpose |
+|----------|---------|
+| `NODE_ENV` | Set to `production` |
+| `PORT` | API port (default: 3000) |
+| `API_KEY` | API authentication key |
+| `FILECOIN_PRIVATE_KEY` | Filecoin wallet for contract interaction |
+| `FILECOIN_RPC_URL` | Filecoin RPC endpoint |
+| `GOVERNANCE_CONTRACT_ADDRESS` | Deployed governance contract address |
+| `STORAGE_CONTRACT_ADDRESS` | Deployed storage contract address |
+| `RECALL_API_KEY` | Recall network API key |
+| `OPENAI_API_KEY` | Primary LLM provider key |
 
-Secrets live in `/opt/cognivern/shared/.env` on server.
+## Contract Deployment
 
-## Local Developer Workflow
-
-### Build Backend Artifact
+Before running the backend, deploy the smart contracts to your target network:
 
 ```bash
-bash scripts/deploy/build-backend-artifact.sh
+# Set FILECOIN_PRIVATE_KEY and FILECOIN_RPC_URL in .env first
+pnpm install
+npx hardhat run scripts/deploy-hardhat.cjs --network calibration
 ```
 
-Creates tarball under `.artifacts/` with `dist/`, `package.json`, `pnpm-lock.yaml`, `config/`.
+This deploys `GovernanceContract` and `AIGovernanceStorage`, creates a sample policy, and outputs the addresses to add to your `.env`.
 
-### Deploy
+## Deployment Steps
 
-```bash
-bash scripts/deploy/deploy-backend-artifact-hetzner.sh
-```
+1. **Build locally**: `pnpm run build`
+2. **Upload source + dist** to server (exclude `node_modules`, `.git`, `logs`)
+3. **Install dependencies**: `pnpm install --prod` on server
+4. **Configure `.env`** with production values
+5. **Start with PM2**: `pm2 start config/ecosystem.config.cjs`
+6. **Verify**: `curl http://localhost:<PORT>/health`
 
-Deploy script: uploads tarball, installs prod deps, links shared state, updates symlink, restarts PM2, runs health check.
-
-### List Releases
-
-```bash
-bash scripts/deploy/list-releases-hetzner.sh
-```
-
-### Rollback
-
-```bash
-bash scripts/deploy/rollback-hetzner.sh <release-dir-name>
-```
+The `deploy/deploy.sh` script automates this flow (requires `SERVER_HOST` configuration).
 
 ## PM2 Configuration
 
-### ecosystem.config.cjs (Commit-Safe)
+The PM2 config is at `config/ecosystem.config.cjs`. Key settings:
 
-```javascript
-module.exports = {
-  apps: [{
-    name: "cognivern-agent",
-    script: "./dist/index.js",
-    instances: 1,
-    exec_mode: "cluster",
-    env: { NODE_ENV: "production" },
-    max_memory_restart: "1G",
-  }],
-};
-```
+- **Log rotation**: 10 MB max per file, 7 compressed backups retained
+- **Memory restart**: Auto-restart if memory exceeds 512 MB
+- **Log files**: Written to `logs/` directory
 
-### Run Script (Server-Local)
+### Useful Commands
 
 ```bash
-#!/bin/bash
-# /opt/cognivern/shared/run.sh
-source /opt/cognivern/shared/.env
-cd /opt/cognivern/current
-pm2 startOrRestart config/ecosystem.config.cjs
+pm2 list                    # View all processes
+pm2 logs cognivern          # View logs
+pm2 restart cognivern       # Restart
+pm2 monit                   # Resource monitoring
+pm2 save                    # Persist process list
 ```
+
+## Frontend
+
+The frontend is built separately and deployed to Vercel. It communicates with the backend API via the `CORS_ORIGIN` setting.
+
+## Log Rotation
+
+PM2 log rotation is configured via the `pm2-logrotate` module:
+- Max size: 10 MB per log file
+- Retention: 7 compressed backups
+- Rotation: Daily at midnight
+
+## Data Persistence
+
+The following directories contain persistent data:
+- `logs/` — Application and PM2 logs
+- `data/` — Application data files (optional)
+
+## Rollback
+
+Since the server runs from the deployed `dist/` directory, rollback means:
+1. Re-deploy the previous working build
+2. Restart PM2
 
 ## Health Checks
 
 ```bash
-curl http://localhost:3000/health
-# Expected: {"status":"ok","timestamp":"..."}
+curl http://localhost:<PORT>/health
+# Expected: {"status":"ok","message":"Server is running","timestamp":"...","uptime":...}
 ```
 
-Deploy script retries health check up to 5 times with 5s intervals.
+## Security Notes
 
-## Monitoring
-
-```bash
-pm2 logs cognivern-agent --lines 100 --follow   # View logs
-pm2 logs cognivern-agent --err                   # Errors only
-pm2 monit                                        # Resource usage
-```
-
-## Data Persistence
-
-Storage: `data/cre-runs.jsonl`, `data/usage.json`, `data/token-telemetry.json`
-
-### Backup
-
-```bash
-BACKUP_DIR="/backups/cognivern/$(date +%Y%m%d)"
-mkdir -p $BACKUP_DIR
-cp /opt/cognivern/shared/data/*.jsonl $BACKUP_DIR/
-cp /opt/cognivern/shared/data/*.json $BACKUP_DIR/
-```
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| App won't start | `pm2 status`, `pm2 logs --err`, verify `.env`, check Node version |
-| High memory | `pm2 monit`, restart, check for leaks |
-| Data corruption | Stop app, backup data, restore or start fresh |
-| Rollback | `bash scripts/deploy/rollback-hetzner.sh <release>`, verify health |
-
-## Deployment Checklist
-
-- [ ] Tests passing, build clean
-- [ ] `.env.example` updated
-- [ ] Artifact built, uploaded, deployed
-- [ ] Health check passed
-- [ ] Logs monitored (first 5 minutes)
-- [ ] Team notified
-
-## Related Docs
-
-- [Hackathon Brief](./HACKATHON.md) — Demo story and submission
-- [Architecture](./ARCHITECTURE.md) — System design and data flows
-- [Developer Guide](./DEVELOPER.md) — APIs, local setup, testing
+- Never commit `.env` files or private keys
+- The `FILECOIN_PRIVATE_KEY` controls the wallet that interacts with deployed contracts
+- Use strong, unique values for `API_KEY`
+- Restrict `CORS_ORIGIN` to your actual frontend domain in production
+- The Hardhat default test key (`0xac0974...`) should never be used in production
