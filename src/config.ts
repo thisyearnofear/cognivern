@@ -35,14 +35,14 @@ const envSchema = z.object({
   FILECOIN_RPC_URL: z
     .string()
     .default("https://api.calibration.node.glif.io/rpc/v1"),
-  GOVERNANCE_CONTRACT_ADDRESS: z.string().min(1),
-  STORAGE_CONTRACT_ADDRESS: z.string().min(1),
-  USDFC_TOKEN_ADDRESS: z.string().min(1),
+  GOVERNANCE_CONTRACT_ADDRESS: z.string().default(""),
+  STORAGE_CONTRACT_ADDRESS: z.string().default(""),
+  USDFC_TOKEN_ADDRESS: z.string().default("0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9"),
   SPARK_API_URL: z.string().default("https://api.filspark.com"),
   FILECOIN_NETWORK: z.enum(["mainnet", "calibration"]).default("calibration"),
 
   // Recall Configuration
-  RECALL_API_KEY: z.string().min(1),
+  RECALL_API_KEY: z.string().default(""),
   RECALL_API_URL: z.string().default("https://api.competitions.recall.network"),
   RECALL_SANDBOX_URL: z
     .string()
@@ -81,7 +81,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
 
   // Provider Configuration
-  OPENAI_API_KEY: z.string().min(1),
+  OPENAI_API_KEY: z.string().default(""),
   MODEL_NAME: z.string().default("gpt-4"),
   GEMINI_API_KEY: z.string().optional(),
 

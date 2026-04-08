@@ -21,15 +21,40 @@ Create `.env` from `.env.example`. Minimum for local dev:
 
 ```env
 API_KEY=development-api-key
-OWS_VAULT_SECRET=development-ows-vault-secret
+FILECOIN_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+GOVERNANCE_CONTRACT_ADDRESS=
+STORAGE_CONTRACT_ADDRESS=
+RECALL_API_KEY=
+OPENAI_API_KEY=
 ```
 
-For project-scoped run ingestion:
+Contract addresses (`GOVERNANCE_CONTRACT_ADDRESS`, `STORAGE_CONTRACT_ADDRESS`) and `RECALL_API_KEY` can be left empty for local dev — they default to empty strings. `OPENAI_API_KEY` is required if using OpenAI models.
 
-```env
-COGNIVERN_PROJECTS="default:Default Project"
-COGNIVERN_INGEST_KEYS="default=dev-ingest-key"
+### Smart Contracts
+
+The project includes Solidity contracts in `contracts/src/`:
+- **GovernanceContract** — Policy management and agent governance
+- **AIGovernanceStorage** — Specialized AI governance data storage
+
+To deploy contracts (e.g. to Filecoin Calibration testnet):
+
+```bash
+# Set FILECOIN_PRIVATE_KEY and FILECOIN_RPC_URL in .env
+npx hardhat compile
+npx hardhat run scripts/deploy-hardhat.cjs --network calibration
 ```
+
+The deployment script outputs contract addresses to add to your `.env`. See [Deployment](./DEPLOYMENT.md) for details.
+
+### Workspace Structure
+
+This is a pnpm monorepo with three packages:
+
+| Package | Path | Purpose |
+|---------|------|---------|
+| Root (backend) | `.` | Express API, agents, services |
+| Frontend | `src/frontend` | React dashboard |
+| Contracts | `contracts` | Hardhat Solidity contracts |
 
 ## Core Services
 
