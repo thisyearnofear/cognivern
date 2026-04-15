@@ -397,18 +397,22 @@ export class ApiModule extends BaseService {
 
     // Specific agent status/decisions routes for dashboard
     apiRouter.get("/agents/governance/status", (req, res) => {
+      (req.params as Record<string, string>).agentType = "governance";
       this.ctrl("agents").getAgentStatus(req, res);
     });
 
     apiRouter.get("/agents/governance/decisions", (req, res) => {
+      (req.params as Record<string, string>).agentType = "governance";
       this.ctrl("agents").getAgentDecisions(req, res);
     });
 
     apiRouter.get("/agents/portfolio/status", (req, res) => {
+      (req.params as Record<string, string>).agentType = "portfolio";
       this.ctrl("agents").getAgentStatus(req, res);
     });
 
     apiRouter.get("/agents/portfolio/decisions", (req, res) => {
+      (req.params as Record<string, string>).agentType = "portfolio";
       this.ctrl("agents").getAgentDecisions(req, res);
     });
 
