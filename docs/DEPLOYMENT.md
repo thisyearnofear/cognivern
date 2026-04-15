@@ -23,14 +23,17 @@ See `.env.example` for the full list. Minimum required for production:
 | `API_KEY` | API authentication key |
 | `FILECOIN_PRIVATE_KEY` | Filecoin wallet for contract interaction |
 | `FILECOIN_RPC_URL` | Filecoin RPC endpoint |
-| `GOVERNANCE_CONTRACT_ADDRESS` | Deployed governance contract address |
-| `STORAGE_CONTRACT_ADDRESS` | Deployed storage contract address |
+| `GOVERNANCE_CONTRACT_ADDRESS` | Deployed governance contract address (Filecoin) |
+| `STORAGE_CONTRACT_ADDRESS` | Deployed storage contract address (Filecoin) |
+| `XLAYER_GOVERNANCE_CONTRACT` | Deployed governance contract address (X Layer) |
+| `XLAYER_STORAGE_CONTRACT` | Deployed storage contract address (X Layer) |
+| `XLAYER_PRIVATE_KEY` | Wallet private key for X Layer deployment |
 | `RECALL_API_KEY` | Recall network API key |
 | `OPENAI_API_KEY` | Primary LLM provider key |
 
 ## Contract Deployment
 
-Before running the backend, deploy the smart contracts to your target network:
+### Filecoin Calibration (audit storage layer)
 
 ```bash
 # Set FILECOIN_PRIVATE_KEY and FILECOIN_RPC_URL in .env first
@@ -38,7 +41,21 @@ pnpm install
 npx hardhat run scripts/deploy-hardhat.cjs --network calibration
 ```
 
-This deploys `GovernanceContract` and `AIGovernanceStorage`, creates a sample policy, and outputs the addresses to add to your `.env`.
+### X Layer Testnet (execution layer)
+
+```bash
+# Set XLAYER_PRIVATE_KEY in .env first
+npx hardhat run scripts/deploy-xlayer.cjs --network xlayerTestnet --config contracts/hardhat.config.cjs
+```
+
+Both scripts deploy `GovernanceContract` and `AIGovernanceStorage`, create a sample policy, register a sample agent, and output addresses to add to your `.env`.
+
+### Deployed Contracts (X Layer Testnet — live)
+
+| Contract | Address |
+|----------|---------|
+| GovernanceContract | `0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6` |
+| AIGovernanceStorage | `0x1E0317beFf188e314BbC3483e06773EEfa28bB2D` |
 
 ## Deployment Steps
 

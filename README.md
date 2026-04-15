@@ -55,9 +55,16 @@ pnpm demo:live
 | [Developer Guide](./docs/DEVELOPER.md) | Local setup, APIs, testing, production readiness |
 | [Deployment](./docs/DEPLOYMENT.md) | Production deployment, PM2, rollbacks |
 
+## Multi-Chain Deployment
+
+| Layer | Chain | Contracts |
+|-------|-------|-----------|
+| Execution & Policy | X Layer Testnet (chainId 1952) | GovernanceContract `0x755602bB...`, AIGovernanceStorage `0x1E0317bF...` |
+| Audit Storage | Filecoin Calibration | GovernanceContract + AIGovernanceStorage |
+
 ## Status
 
-The spend control plane is live: policy evaluation, signed approvals, held actions, denials, and persisted run evidence.
+The spend control plane is live: policy evaluation, signed approvals, held actions, denials, and persisted run evidence. Contracts deployed on X Layer testnet and Filecoin Calibration.
 
 ## License
 
