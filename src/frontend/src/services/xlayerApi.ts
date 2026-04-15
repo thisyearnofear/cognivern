@@ -1,7 +1,7 @@
 /**
- * Polkadot API Service - Frontend Integration
+ * X Layer API Service - Frontend Integration
  *
- * Integrates with Polkadot Hub for:
+ * Integrates with X Layer (OKX L2 zkEVM) for:
  * - Fetching account information and balances
  * - Interacting with deployed governance contracts
  * - Monitoring network status and connectivity
@@ -9,13 +9,12 @@
 
 import { ethers } from "ethers";
 
-// Polkadot Hub RPC endpoint (placeholder - will be configured via env)
-const POLKADOT_HUB_RPC_ENDPOINT =
-  import.meta.env.VITE_POLKADOT_RPC_URL || "https://polkadot-hub-rpc.url";
+// X Layer RPC endpoint
+const XLAYER_RPC_ENDPOINT =
+  import.meta.env.VITE_XLAYER_RPC_URL || "https://testrpc.xlayer.tech";
 
-// Contract addresses (these would be deployed addresses on Polkadot Hub)
+// Contract addresses (deployed on X Layer)
 export const CONTRACT_ADDRESSES = {
-  // These would be set after deployment to Polkadot Hub
   GOVERNANCE_CONTRACT:
     import.meta.env.VITE_GOVERNANCE_CONTRACT_ADDRESS ||
     "0x0000000000000000000000000000000000000000",
@@ -52,10 +51,10 @@ const AI_GOVERNANCE_ABI = [
 ];
 
 /**
- * Create an ethers provider for Polkadot Hub
+ * Create an ethers provider for X Layer
  */
-export const getPolkadotProvider = () => {
-  return new ethers.JsonRpcProvider(POLKADOT_HUB_RPC_ENDPOINT);
+export const getXLayerProvider = () => {
+  return new ethers.JsonRpcProvider(XLAYER_RPC_ENDPOINT);
 };
 
 /**
@@ -98,11 +97,11 @@ export const getAIGovernanceContract = (
 };
 
 /**
- * Fetch governance statistics from Polkadot Hub
+ * Fetch governance statistics from X Layer
  */
 export async function fetchGovernanceStats() {
   try {
-    const provider = getPolkadotProvider();
+    const provider = getXLayerProvider();
     const contract = getGovernanceContract(provider);
     const [totalPolicies, totalAgents, totalActions] =
       await contract.getStats();
@@ -113,7 +112,7 @@ export async function fetchGovernanceStats() {
       totalActions: Number(totalActions),
     };
   } catch (error) {
-    console.error("Failed to fetch Polkadot governance stats:", error);
+    console.error("Failed to fetch X Layer governance stats:", error);
     return {
       totalPolicies: 0,
       totalAgents: 0,
@@ -123,11 +122,11 @@ export async function fetchGovernanceStats() {
 }
 
 /**
- * Fetch storage statistics from Polkadot Hub
+ * Fetch storage statistics from X Layer
  */
 export async function fetchStorageStats() {
   try {
-    const provider = getPolkadotProvider();
+    const provider = getXLayerProvider();
     const contract = getStorageContract(provider);
     const [totalStorageRequests, totalRetrievalRequests, totalProviders] =
       await contract.getStats();
@@ -138,7 +137,7 @@ export async function fetchStorageStats() {
       totalProviders: Number(totalProviders),
     };
   } catch (error) {
-    console.error("Failed to fetch Polkadot storage stats:", error);
+    console.error("Failed to fetch X Layer storage stats:", error);
     return {
       totalStorageRequests: 0,
       totalRetrievalRequests: 0,
@@ -148,11 +147,11 @@ export async function fetchStorageStats() {
 }
 
 /**
- * Fetch AI governance statistics from Polkadot Hub
+ * Fetch AI governance statistics from X Layer
  */
 export async function fetchAIGovernanceStats() {
   try {
-    const provider = getPolkadotProvider();
+    const provider = getXLayerProvider();
     const contract = getAIGovernanceContract(provider);
     const [_totalActions, _totalViolations, _totalAgents, _approvalRate] =
       await contract.getGovernanceStats();
@@ -164,7 +163,7 @@ export async function fetchAIGovernanceStats() {
       approvalRate: Number(_approvalRate),
     };
   } catch (error) {
-    console.error("Failed to fetch Polkadot AI governance stats:", error);
+    console.error("Failed to fetch X Layer AI governance stats:", error);
     return {
       totalActions: 0,
       totalViolations: 0,
@@ -179,7 +178,7 @@ export async function fetchAIGovernanceStats() {
  */
 export async function fetchAllPolicyIds() {
   try {
-    const provider = getPolkadotProvider();
+    const provider = getXLayerProvider();
     const contract = getGovernanceContract(provider);
     const policyIds = await contract.getAllPolicyIds();
 
@@ -195,7 +194,7 @@ export async function fetchAllPolicyIds() {
  */
 export async function fetchAllAgentIds() {
   try {
-    const provider = getPolkadotProvider();
+    const provider = getXLayerProvider();
     const contract = getGovernanceContract(provider);
     const agentIds = await contract.getAllAgentIds();
 
@@ -211,7 +210,7 @@ export async function fetchAllAgentIds() {
  */
 export async function fetchActiveProviders() {
   try {
-    const provider = getPolkadotProvider();
+    const provider = getXLayerProvider();
     const contract = getStorageContract(provider);
     const providers = await contract.getActiveProviders();
 
@@ -223,18 +222,18 @@ export async function fetchActiveProviders() {
 }
 
 /**
- * Check Polkadot Hub network connectivity
+ * Check X Layer network connectivity
  */
-export async function checkPolkadotConnection() {
+export async function checkXLayerConnection() {
   try {
-    const provider = getPolkadotProvider();
+    const provider = getXLayerProvider();
     const blockNumber = await provider.getBlockNumber();
     return {
       connected: true,
       blockNumber: Number(blockNumber),
     };
   } catch (error) {
-    console.error("Failed to connect to Polkadot Hub:", error);
+    console.error("Failed to connect to X Layer:", error);
     return {
       connected: false,
       blockNumber: 0,
@@ -247,7 +246,7 @@ export async function checkPolkadotConnection() {
  */
 export async function fetchPolicyDetails(policyId: string) {
   try {
-    const provider = getPolkadotProvider();
+    const provider = getXLayerProvider();
     const contract = getGovernanceContract(provider);
     const policy = await contract.getPolicy(policyId);
 
@@ -272,7 +271,7 @@ export async function fetchPolicyDetails(policyId: string) {
  */
 export async function fetchAgentDetails(agentId: string) {
   try {
-    const provider = getPolkadotProvider();
+    const provider = getXLayerProvider();
     const contract = getGovernanceContract(provider);
     const agent = await contract.getAgent(agentId);
 

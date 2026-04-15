@@ -35,17 +35,51 @@ import { OwsController } from "./controllers/OwsController.js";
 import { OwsWalletController } from "./controllers/OwsWalletController.js";
 import { OwsApiKeyController } from "./controllers/OwsApiKeyController.js";
 import { OwsPermissionsController } from "./controllers/OwsPermissionsController.js";
+import type { Server } from "node:http";
+
+/** Typed controller registry */
+interface ControllerRegistry {
+  health: HealthController;
+  agents: AgentsController;
+  governance: GovernanceController;
+  metrics: MetricsController;
+  sapience: SapienceController;
+  recall: RecallController;
+  auditLog: AuditLogController;
+  cre: CreController;
+  ingest: IngestController;
+  spend: SpendController;
+  ows: OwsController;
+  owsWallet: OwsWalletController;
+  owsApiKey: OwsApiKeyController;
+  owsPermissions: OwsPermissionsController;
+}
+
+/** Typed error with optional HTTP status code */
+interface HttpError extends Error {
+  statusCode?: number;
+  code?: string;
+}
 
 export class ApiModule extends BaseService {
   private app: express.Application;
-  private server: any;
-  private controllers: Map<string, any> = new Map();
+  private server: Server | null = null;
+  private controllers = {} as ControllerRegistry;
+
+  /** Type-safe controller accessor */
+  private ctrl<K extends keyof ControllerRegistry>(key: K): ControllerRegistry[K] {
+    return this.controllers[key];
+  }
 
   constructor() {
+    const env = process.env.NODE_ENV;
+    const environment: ServiceConfig["environment"] =
+      env === "production" || env === "test" ? env : "development";
+
     const config: ServiceConfig = {
       name: "api",
       version: "1.0.0",
-      environment: (process.env.NODE_ENV as any) || "development",
+      environment,
       port: apiConfig.port,
       logLevel: "info",
     };
@@ -265,36 +299,30 @@ export class ApiModule extends BaseService {
     const policyService = sharedPolicyService;
 
     // Initialize controllers with dependency injection
-    this.controllers.set("health", new HealthController(agentsModule));
-    this.controllers.set(
-      "agents",
-      new AgentsController(
-        agentsModule,
-        undefined,
-        undefined, // Will initialize its own unified AuditLogService
-        policyService,
-      ),
+    this.controllers.health = new HealthController(agentsModule);
+    this.controllers.agents = new AgentsController(
+      agentsModule,
+      undefined,
+      undefined, // Will initialize its own unified AuditLogService
+      policyService,
     );
-    this.controllers.set(
-      "governance",
-      new GovernanceController(policyService, undefined),
-    );
-    this.controllers.set("metrics", new MetricsController());
-    this.controllers.set("sapience", new SapienceController());
-    this.controllers.set("recall", new RecallController());
-    this.controllers.set("audit", new AuditLogController());
-    this.controllers.set("cre", new CreController());
-    this.controllers.set("ingest", new IngestController());
-    this.controllers.set("spend", new SpendController());
-    this.controllers.set("ows", new OwsController());
-    this.controllers.set("ows-wallet", new OwsWalletController());
-    this.controllers.set("ows-apikey", new OwsApiKeyController());
-    this.controllers.set("ows-permissions", new OwsPermissionsController());
+    this.controllers.governance = new GovernanceController(policyService, undefined);
+    this.controllers.metrics = new MetricsController();
+    this.controllers.sapience = new SapienceController();
+    this.controllers.recall = new RecallController();
+    this.controllers.auditLog = new AuditLogController();
+    this.controllers.cre = new CreController();
+    this.controllers.ingest = new IngestController();
+    this.controllers.spend = new SpendController();
+    this.controllers.ows = new OwsController();
+    this.controllers.owsWallet = new OwsWalletController();
+    this.controllers.owsApiKey = new OwsApiKeyController();
+    this.controllers.owsPermissions = new OwsPermissionsController();
 
-    // Initialize all controllers
-    for (const [name, controller] of this.controllers) {
-      if (controller.initialize && name !== "agents") {
-        await controller.initialize();
+    // Initialize all controllers that have an initialize method
+    for (const [name, controller] of Object.entries(this.controllers)) {
+      if ((controller as any).initialize && name !== "agents") {
+        await (controller as any).initialize();
         this.logger.debug(`${name} controller initialized`);
       }
     }
@@ -305,389 +333,372 @@ export class ApiModule extends BaseService {
 
     // Health check (no API key required)
     this.app.get("/health", (req, res) => {
-      this.controllers.get("health").getHealth(req, res);
+      this.ctrl("health").getHealth(req, res);
     });
 
     this.app.get("/health/ready", (req, res) => {
-      this.controllers.get("health").getReadiness(req, res);
+      this.ctrl("health").getReadiness(req, res);
     });
     this.app.get("/health/live", (req, res) => {
-      this.controllers.get("health").getLiveness(req, res);
+      this.ctrl("health").getLiveness(req, res);
     });
 
     // Data plane ingestion (NO API key middleware)
     // Keep this outside of the /api router so it can be locked down independently.
     this.app.post("/ingest/runs", (req, res) => {
-      this.controllers.get("ingest").ingestRun(req, res);
+      this.ctrl("ingest").ingestRun(req, res);
     });
 
     // API routes (require API key)
     const apiRouter = express.Router();
 
     apiRouter.get("/health", (req, res) => {
-      this.controllers.get("health").getHealth(req, res);
+      this.ctrl("health").getHealth(req, res);
     });
 
     // System health
     apiRouter.get("/system/health", (req, res) => {
-      this.controllers.get("health").getSystemHealth(req, res);
+      this.ctrl("health").getSystemHealth(req, res);
     });
 
     // Agent comparison routes (must come before parameterized routes)
     apiRouter.get("/agents/stats", (req, res) => {
-      this.controllers.get("agents").getAggregateStats(req, res);
+      this.ctrl("agents").getAggregateStats(req, res);
     });
 
     apiRouter.get("/agents/compare", (req, res) => {
-      this.controllers.get("agents").compareAgents(req, res);
+      this.ctrl("agents").compareAgents(req, res);
     });
 
     apiRouter.get("/agents/leaderboard", (req, res) => {
-      this.controllers.get("agents").getLeaderboard(req, res);
+      this.ctrl("agents").getLeaderboard(req, res);
     });
 
     apiRouter.get("/agents", (req, res) => {
-      this.controllers.get("agents").getAgents(req, res);
+      this.ctrl("agents").getAgents(req, res);
     });
 
     apiRouter.post("/agents/register", (req, res) => {
-      this.controllers.get("agents").registerAgent(req, res);
+      this.ctrl("agents").registerAgent(req, res);
     });
 
     // Specific routes must come before parameterized routes
     apiRouter.get("/agents/connections", (req, res) => {
-      this.controllers.get("agents").getConnections(req, res);
+      this.ctrl("agents").getConnections(req, res);
     });
 
     apiRouter.get("/agents/monitoring", (req, res) => {
-      this.controllers.get("agents").getMonitoring(req, res);
+      this.ctrl("agents").getMonitoring(req, res);
     });
 
     apiRouter.get("/agents/unified", (req, res) => {
-      this.controllers.get("agents").getUnified(req, res);
+      this.ctrl("agents").getUnified(req, res);
     });
 
     // Specific agent status/decisions routes for dashboard
     apiRouter.get("/agents/governance/status", (req, res) => {
-      this.controllers.get("agents").getAgentStatus(req, res);
+      this.ctrl("agents").getAgentStatus(req, res);
     });
 
     apiRouter.get("/agents/governance/decisions", (req, res) => {
-      this.controllers.get("agents").getAgentDecisions(req, res);
+      this.ctrl("agents").getAgentDecisions(req, res);
     });
 
     apiRouter.get("/agents/portfolio/status", (req, res) => {
-      this.controllers.get("agents").getAgentStatus(req, res);
+      this.ctrl("agents").getAgentStatus(req, res);
     });
 
     apiRouter.get("/agents/portfolio/decisions", (req, res) => {
-      this.controllers.get("agents").getAgentDecisions(req, res);
+      this.ctrl("agents").getAgentDecisions(req, res);
     });
 
     apiRouter.get("/agents/sapience/status", (req, res) => {
-      this.controllers.get("sapience").getStatus(req, res);
+      this.ctrl("sapience").getStatus(req, res);
     });
 
     apiRouter.get("/agents/sapience/decisions", (req, res) => {
-      this.controllers.get("sapience").getDecisions(req, res);
+      this.ctrl("sapience").getDecisions(req, res);
     });
 
     // Parameterized routes come after specific routes
     apiRouter.get("/agents/:id", (req, res) => {
-      this.controllers.get("agents").getAgent(req, res);
+      this.ctrl("agents").getAgent(req, res);
     });
 
     apiRouter.get("/agents/:id/status", (req, res) => {
-      this.controllers.get("agents").getAgentStatus(req, res);
+      this.ctrl("agents").getAgentStatus(req, res);
     });
 
     apiRouter.get("/agents/:id/decisions", (req, res) => {
-      this.controllers.get("agents").getAgentDecisions(req, res);
+      this.ctrl("agents").getAgentDecisions(req, res);
     });
 
     apiRouter.get("/agents/:id/briefing", (req, res) => {
-      this.controllers.get("agents").getAgentBriefing(req, res);
+      this.ctrl("agents").getAgentBriefing(req, res);
     });
 
     apiRouter.post("/agents/:id/start", (req, res) => {
-      this.controllers.get("agents").startAgent(req, res);
+      this.ctrl("agents").startAgent(req, res);
     });
 
     apiRouter.post("/agents/:id/stop", (req, res) => {
-      this.controllers.get("agents").stopAgent(req, res);
+      this.ctrl("agents").stopAgent(req, res);
     });
 
     // Trading routes - Updated to match frontend expectations
     apiRouter.get("/agents/:agentType/status", (req, res) => {
-      this.controllers.get("agents").getAgentStatus(req, res);
+      this.ctrl("agents").getAgentStatus(req, res);
     });
 
     apiRouter.get("/agents/:agentType/decisions", (req, res) => {
-      this.controllers.get("agents").getAgentDecisions(req, res);
+      this.ctrl("agents").getAgentDecisions(req, res);
     });
 
     apiRouter.post("/agents/:agentType/start", (req, res) => {
-      this.controllers.get("agents").startAgent(req, res);
+      this.ctrl("agents").startAgent(req, res);
     });
 
     apiRouter.post("/agents/:agentType/stop", (req, res) => {
-      this.controllers.get("agents").stopAgent(req, res);
+      this.ctrl("agents").stopAgent(req, res);
     });
 
     // Market Data Routes
     apiRouter.get("/market/data/:symbol", (req, res) => {
-      this.controllers.get("agents").getMarketData(req, res);
+      this.ctrl("agents").getMarketData(req, res);
     });
 
     apiRouter.get("/market/historical/:symbol", (req, res) => {
-      this.controllers.get("agents").getHistoricalData(req, res);
+      this.ctrl("agents").getHistoricalData(req, res);
     });
 
     apiRouter.get("/market/stats", (req, res) => {
-      this.controllers.get("agents").getMarketStats(req, res);
+      this.ctrl("agents").getMarketStats(req, res);
     });
 
     apiRouter.get("/market/top", (req, res) => {
-      this.controllers.get("agents").getTopMarkets(req, res);
+      this.ctrl("agents").getTopMarkets(req, res);
     });
 
     // Governance routes
     apiRouter.get("/governance/policies", (req, res) => {
-      this.controllers.get("governance").getPolicies(req, res);
+      this.ctrl("governance").getPolicies(req, res);
     });
 
     apiRouter.post("/governance/policies", (req, res) => {
-      this.controllers.get("governance").createPolicy(req, res);
+      this.ctrl("governance").createPolicy(req, res);
     });
 
     // New governance routes for Cloudflare Worker integration
     apiRouter.get("/governance/health", (req, res) => {
-      this.controllers.get("governance").getHealth(req, res);
+      this.ctrl("governance").getHealth(req, res);
     });
 
     apiRouter.post("/governance/evaluate", (req, res) => {
-      this.controllers.get("governance").evaluateAction(req, res);
+      this.ctrl("governance").evaluateAction(req, res);
     });
 
     // Metrics routes
     apiRouter.get("/metrics/daily", (req, res) => {
-      this.controllers.get("metrics").getDailyMetrics(req, res);
+      this.ctrl("metrics").getDailyMetrics(req, res);
     });
 
     apiRouter.post("/metrics/ux-events", (req, res) => {
-      this.controllers.get("metrics").postUxEvent(req, res);
+      this.ctrl("metrics").postUxEvent(req, res);
     });
 
     apiRouter.get("/metrics/ux-summary", (req, res) => {
-      this.controllers.get("metrics").getUxSummary(req, res);
+      this.ctrl("metrics").getUxSummary(req, res);
     });
 
     // Audit routes - Updated to match frontend expectations
     apiRouter.get("/audit/logs", (req, res) => {
-      this.controllers.get("audit").getLogs(req, res);
+      this.ctrl("auditLog").getLogs(req, res);
     });
 
     apiRouter.get("/audit/insights", (req, res) => {
-      this.controllers.get("audit").getInsights(req, res);
+      this.ctrl("auditLog").getInsights(req, res);
     });
 
     apiRouter.post("/audit/insights/:id/resolve", (req, res) => {
-      this.controllers.get("audit").resolveInsight(req, res);
+      this.ctrl("auditLog").resolveInsight(req, res);
     });
 
     // CRE / Agent Run Ledger routes
     apiRouter.get("/cre/runs", (req, res) => {
-      this.controllers.get("cre").listRuns(req, res);
+      this.ctrl("cre").listRuns(req, res);
     });
 
     apiRouter.get("/cre/runs/:runId", (req, res) => {
-      this.controllers.get("cre").getRun(req, res);
+      this.ctrl("cre").getRun(req, res);
     });
 
     apiRouter.get("/cre/runs/:runId/events", (req, res) => {
-      this.controllers.get("cre").getRunEvents(req, res);
+      this.ctrl("cre").getRunEvents(req, res);
     });
 
     apiRouter.get("/cre/runs/:runId/events/stream", (req, res) => {
-      this.controllers.get("cre").streamRunEvents(req, res);
+      this.ctrl("cre").streamRunEvents(req, res);
     });
 
     apiRouter.post("/cre/runs/:runId/cancel", (req, res) => {
-      this.controllers.get("cre").cancelRun(req, res);
+      this.ctrl("cre").cancelRun(req, res);
     });
 
     apiRouter.post("/cre/runs/:runId/retry", (req, res) => {
-      this.controllers.get("cre").retryRun(req, res);
+      this.ctrl("cre").retryRun(req, res);
     });
 
     apiRouter.post("/cre/runs/:runId/approval", (req, res) => {
-      this.controllers.get("cre").submitApproval(req, res);
+      this.ctrl("cre").submitApproval(req, res);
     });
 
     apiRouter.post("/cre/runs/:runId/plan", (req, res) => {
-      this.controllers.get("cre").updateRunPlan(req, res);
+      this.ctrl("cre").updateRunPlan(req, res);
     });
 
     apiRouter.post("/cre/forecast", (req, res) => {
-      this.controllers.get("cre").triggerForecast(req, res);
+      this.ctrl("cre").triggerForecast(req, res);
     });
 
     // SpendOS / OWS Wallet Execution Layer routes
     apiRouter.post("/spend", (req, res) => {
-      this.controllers.get("spend").requestSpend(req, res);
+      this.ctrl("spend").requestSpend(req, res);
     });
 
     apiRouter.post("/spend/preview", (req, res) => {
-      this.controllers.get("spend").previewSpend(req, res);
+      this.ctrl("spend").previewSpend(req, res);
     });
 
     apiRouter.get("/spend/status", (req, res) => {
-      this.controllers.get("spend").getStatus(req, res);
+      this.ctrl("spend").getStatus(req, res);
     });
 
     apiRouter.get("/ows/status", (req, res) => {
-      this.controllers.get("ows").getStatus(req, res);
+      this.ctrl("ows").getStatus(req, res);
     });
 
     apiRouter.get("/ows/health", (req, res) => {
-      this.controllers.get("ows-wallet").getHealth(req, res);
+      this.ctrl("owsWallet").getHealth(req, res);
     });
 
     apiRouter.get("/ows/dashboard", (req, res) => {
-      this.controllers.get("ows-wallet").getDashboard(req, res);
+      this.ctrl("owsWallet").getDashboard(req, res);
     });
 
     apiRouter.post("/ows/bootstrap", (req, res) => {
-      this.controllers.get("ows-wallet").bootstrap(req, res);
+      this.ctrl("owsWallet").bootstrap(req, res);
     });
 
     // Wallet routes
     apiRouter.get("/ows/wallets", (req, res) => {
-      this.controllers.get("ows-wallet").listWallets(req, res);
+      this.ctrl("owsWallet").listWallets(req, res);
     });
 
     apiRouter.get("/ows/wallets/:id", (req, res) => {
-      this.controllers.get("ows-wallet").getWallet(req, res);
+      this.ctrl("owsWallet").getWallet(req, res);
     });
 
     apiRouter.post("/ows/wallets/connect", (req, res) => {
-      this.controllers.get("ows-wallet").connectExternal(req, res);
+      this.ctrl("owsWallet").connectExternal(req, res);
     });
 
     apiRouter.post("/ows/wallets/import", (req, res) => {
-      this.controllers.get("ows-wallet").importWallet(req, res);
-    });
-
-    apiRouter.delete("/ows/wallets/:id", (req, res) => {
-      this.controllers.get("ows-wallet").deleteWallet(req, res);
+      this.ctrl("owsWallet").importWallet(req, res);
     });
 
     // Agent routes
     apiRouter.get("/ows/agents", (req, res) => {
-      this.controllers.get("ows-wallet").listAgents(req, res);
+      this.ctrl("owsWallet").listAgents(req, res);
     });
 
     apiRouter.post("/ows/agents", (req, res) => {
-      this.controllers.get("ows-wallet").createAgent(req, res);
+      this.ctrl("owsWallet").createAgent(req, res);
     });
 
     // API Key routes
     apiRouter.get("/ows/api-keys", (req, res) => {
-      this.controllers.get("ows-apikey").listApiKeys(req, res);
+      this.ctrl("owsApiKey").listApiKeys(req, res);
     });
 
     apiRouter.get("/ows/api-keys/:id", (req, res) => {
-      this.controllers.get("ows-apikey").getApiKey(req, res);
+      this.ctrl("owsApiKey").getApiKey(req, res);
     });
 
     apiRouter.post("/ows/api-keys", (req, res) => {
-      this.controllers.get("ows-apikey").createApiKey(req, res);
+      this.ctrl("owsApiKey").createApiKey(req, res);
     });
 
     apiRouter.delete("/ows/api-keys/:id", (req, res) => {
-      this.controllers.get("ows-apikey").deleteApiKey(req, res);
+      this.ctrl("owsApiKey").deleteApiKey(req, res);
     });
 
     // Permissions routes
     apiRouter.post("/ows/permissions", (req, res) => {
-      this.controllers.get("ows-permissions").requestPermissions(req, res);
+      this.ctrl("owsPermissions").requestPermissions(req, res);
     });
 
     apiRouter.get("/ows/permissions/:walletId", (req, res) => {
-      this.controllers.get("ows-permissions").getPermissions(req, res);
+      this.ctrl("owsPermissions").getPermissions(req, res);
     });
 
     // Projects (multi-project support)
     apiRouter.get("/projects", (req, res) => {
-      this.controllers.get("ingest").listProjects(req, res);
+      this.ctrl("ingest").listProjects(req, res);
     });
 
     apiRouter.get("/projects/:projectId/usage", (req, res) => {
-      this.controllers.get("ingest").getUsage(req, res);
+      this.ctrl("ingest").getUsage(req, res);
     });
 
     apiRouter.get("/projects/:projectId/tokens", (req, res) => {
-      this.controllers.get("ingest").listTokens(req, res);
+      this.ctrl("ingest").listTokens(req, res);
     });
 
     // Sapience routes
     apiRouter.get("/sapience/status", (req, res) => {
-      this.controllers.get("sapience").getStatus(req, res);
+      this.ctrl("sapience").getStatus(req, res);
     });
 
     apiRouter.post("/sapience/forecast", (req, res) => {
-      this.controllers.get("sapience").submitForecast(req, res);
+      this.ctrl("sapience").submitForecast(req, res);
     });
 
     apiRouter.post("/sapience/forecast/auto", (req, res) => {
-      this.controllers.get("sapience").submitAutomatedForecast(req, res);
+      this.ctrl("sapience").submitAutomatedForecast(req, res);
     });
 
     apiRouter.get("/sapience/wallet", (req, res) => {
-      this.controllers.get("sapience").getWallet(req, res);
+      this.ctrl("sapience").getWallet(req, res);
     });
 
     // SpendOS routes
     apiRouter.get("/spendos/status", (req, res) => {
-      this.controllers.get("recall").getStatus(req, res);
+      this.ctrl("recall").getStatus(req, res);
     });
 
     apiRouter.get("/spendos/decisions", (req, res) => {
-      this.controllers.get("recall").getDecisions(req, res);
-    });
-
-    // Compatibility aliases for Agents dashboard (deprecated - moved to /agents/...)
-    apiRouter.get("/spendos/status", (req, res) => {
-      this.controllers.get("recall").getStatus(req, res);
-    });
-
-    apiRouter.get("/spendos/decisions", (req, res) => {
-      this.controllers.get("recall").getDecisions(req, res);
-    });
-
-    apiRouter.get("/sapience/status", (req, res) => {
-      this.controllers.get("sapience").getStatus(req, res);
+      this.ctrl("recall").getDecisions(req, res);
     });
 
     apiRouter.post("/recall/store", (req, res) => {
-      this.controllers.get("recall").storeMemory(req, res);
+      this.ctrl("recall").storeMemory(req, res);
     });
 
     apiRouter.get("/recall/query", (req, res) => {
-      this.controllers.get("recall").queryMemories(req, res);
+      this.ctrl("recall").queryMemories(req, res);
     });
 
     // Dashboard routes
     apiRouter.get("/dashboard/unified", (req, res) => {
-      this.controllers.get("agents").getUnified(req, res);
+      this.ctrl("agents").getUnified(req, res);
     });
 
     apiRouter.get("/dashboard/bundle", (req, res) => {
-      this.controllers.get("agents").getDashboardBundle(req, res);
+      this.ctrl("agents").getDashboardBundle(req, res);
     });
 
     apiRouter.get("/dashboard/events/stream", (req, res) => {
-      this.controllers.get("agents").streamDashboardEvents(req, res);
+      this.ctrl("agents").streamDashboardEvents(req, res);
     });
 
     // Mount API router
@@ -737,11 +748,12 @@ export class ApiModule extends BaseService {
         }
 
         // Generic error response
-        const statusCode = (error as any).statusCode || 500;
+        const httpError = error as HttpError;
+        const statusCode = httpError.statusCode || 500;
         return res.status(statusCode).json({
           success: false,
           error: error.message || "Internal server error",
-          code: (error as any).code || "INTERNAL_ERROR",
+          code: httpError.code || "INTERNAL_ERROR",
           timestamp: new Date().toISOString(),
         });
       },

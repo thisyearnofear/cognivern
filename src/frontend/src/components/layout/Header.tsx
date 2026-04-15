@@ -54,7 +54,7 @@ export const Header: React.FC = () => {
 
   const handleWalletConnect = (
     address: string,
-    network: "filecoin" | "polkadot",
+    network: "filecoin" | "xlayer",
   ) => {
     setUser({ address, isConnected: true, network });
   };

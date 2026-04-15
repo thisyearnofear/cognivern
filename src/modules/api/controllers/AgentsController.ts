@@ -3,8 +3,11 @@
  */
 
 import { Request, Response } from "express";
+import { Logger } from "../../../shared/logging/Logger.js";
 import { AgentsModule } from "../../agents/AgentsModule.js";
 import { MarketDataService } from "../../../services/MarketDataService.js";
+
+const logger = new Logger("AgentsController");
 import { AgentMetricsAggregator } from "../../../shared/services/AgentMetricsAggregator.js";
 import { TradingHistoryService } from "../../../services/TradingHistoryService.js";
 import { MetricsService } from "../../../services/MetricsService.js";
@@ -119,7 +122,7 @@ export class AgentsController {
           },
         });
       } catch (logError) {
-        console.error("Failed to log agent registration:", logError);
+        logger.error("Failed to log agent registration", logError instanceof Error ? logError : undefined);
       }
 
       res.json({
@@ -129,7 +132,7 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      console.error("Agent registration error:", error);
+      logger.error("Agent registration failed", error instanceof Error ? error : undefined);
       res.status(500).json({
         success: false,
         error: {
@@ -501,7 +504,7 @@ export class AgentsController {
           }));
           allActivity.push(...activityItems);
         } catch (e) {
-          console.warn(`Failed to enrich agent ${agent.id}:`, e);
+          logger.warn(`Failed to enrich agent ${agent.id}`);
           enrichedAgents.push(agent);
         }
       }
@@ -532,7 +535,7 @@ export class AgentsController {
             );
           }
         } catch (e) {
-          console.warn("Failed to fetch Worker data:", e);
+          logger.warn("Failed to fetch Worker data");
         }
       }
 
@@ -728,7 +731,7 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      console.error("Comparison API error:", error);
+      logger.error("Comparison API error", error instanceof Error ? error : undefined);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -769,7 +772,7 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      console.error("Leaderboard API error:", error);
+      logger.error("Leaderboard API error", error instanceof Error ? error : undefined);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -797,7 +800,7 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      console.error("Stats API error:", error);
+      logger.error("Stats API error", error instanceof Error ? error : undefined);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -839,7 +842,7 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      console.error("Dashboard bundle error:", error);
+      logger.error("Dashboard bundle error", error instanceof Error ? error : undefined);
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",

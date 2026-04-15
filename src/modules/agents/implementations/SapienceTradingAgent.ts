@@ -13,6 +13,9 @@ import {
   AgentActivity,
   AgentInfo,
 } from "../types/TradingAgent.js";
+import { Logger } from "../../../shared/logging/Logger.js";
+
+const logger = new Logger("SapienceTradingAgent");
 import {
   SapienceService,
   ForecastRequest,
@@ -128,7 +131,7 @@ export class SapienceTradingAgent implements TradingAgent {
         if (this.history.length > 50) this.history.pop();
       }
     } catch (error) {
-      console.error("Agent forecast cycle failed:", error);
+      logger.error("Agent forecast cycle failed", error instanceof Error ? error : undefined);
     }
   }
 
@@ -174,7 +177,7 @@ export class SapienceTradingAgent implements TradingAgent {
           },
         });
       } catch (recallError) {
-        console.error("Failed to store memory in Recall:", recallError);
+        logger.error("Failed to store memory in Recall", recallError instanceof Error ? recallError : undefined);
       }
 
       const tradeResult: TradeResult = {
@@ -229,7 +232,7 @@ export class SapienceTradingAgent implements TradingAgent {
         lastUpdated: new Date(),
       };
     } catch (e) {
-      console.warn("Failed to fetch real portfolio balance:", e);
+      logger.warn("Failed to fetch real portfolio balance");
       if (!this.portfolio) {
         this.portfolio = {
           totalValue: 0,
@@ -280,7 +283,7 @@ export class SapienceTradingAgent implements TradingAgent {
 
   async reportActivity(activity: AgentActivity): Promise<void> {
     // Log locally for now, could integrate with Sapience logging if available
-    console.log(`[${this.name}] Activity:`, activity);
+    logger.debug(`Activity: ${activity.type}`, { agentId: activity.agentId });
   }
 
   getId(): string {

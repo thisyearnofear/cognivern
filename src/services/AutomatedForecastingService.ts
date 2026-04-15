@@ -61,9 +61,7 @@ export class AutomatedForecastingService {
     this.sapienceService = config.sapienceService;
     this.marketDataService =
       config.marketDataService || new MarketDataService();
-    console.log(
-      "[ForecastingService] Initialized with Multi-LLM Fallback and Market Data Integration",
-    );
+    logger.info("Initialized with Multi-LLM Fallback and Market Data Integration");
   }
 
   private recordThought(thought: string) {
@@ -79,11 +77,11 @@ export class AutomatedForecastingService {
 
   private async callLLM(prompt: string): Promise<string> {
     this.recordThought("Consulting LLM cluster for market analysis...");
-    console.log("[ForecastingService] Calling LLM...");
+    logger.debug("Calling LLM...");
     for (const provider of this.providers) {
       if (!provider.apiKey) continue;
       try {
-        console.log(`[ForecastingService] Trying provider: ${provider.name}`);
+        logger.debug(`Trying provider: ${provider.name}`);
 
         // Add timeout to prevent hanging
         const controller = new AbortController();
@@ -115,15 +113,13 @@ export class AutomatedForecastingService {
         const content = data.choices[0]?.message?.content;
         if (content) return content.trim();
       } catch (error) {
-        console.warn(`[ForecastingService] ${provider.name} failed`, error);
+        logger.warn(`LLM provider ${provider.name} failed`);
         // Continue to next provider
       }
     }
 
     // If all providers fail, return a fallback response
-    console.warn(
-      "[ForecastingService] All LLM providers failed, using fallback",
-    );
+    logger.warn("All LLM providers failed, using fallback");
     return `Market analysis suggests moderate uncertainty. Based on current conditions, probability appears balanced.\n50`;
   }
 
@@ -131,7 +127,7 @@ export class AutomatedForecastingService {
     this.recordThought(
       "Scanning Sapience GraphQL for optimal market conditions...",
     );
-    console.log("[ForecastingService] Fetching optimal condition...");
+    logger.debug("Fetching optimal condition...");
     const nowSec = Math.floor(Date.now() / 1000);
     const query = `
       query GetConditions($nowSec: Int, $limit: Int) {
@@ -171,7 +167,7 @@ export class AutomatedForecastingService {
       candidates.sort((a, b) => b.endTime - a.endTime);
       return candidates[0];
     } catch (error) {
-      console.error("[ForecastingService] GraphQL fetch failed", error);
+      logger.error("GraphQL fetch failed", error instanceof Error ? error : undefined);
       throw error;
     }
   }
@@ -225,10 +221,7 @@ export class AutomatedForecastingService {
 
     // Handle NaN case with fallback
     if (isNaN(probability)) {
-      console.warn(
-        "[ForecastingService] Failed to parse probability from:",
-        lastLine,
-      );
+      logger.warn(`Failed to parse probability from: ${lastLine}`);
       probability = 50; // Default to neutral 50%
     }
 
@@ -317,7 +310,7 @@ export class AutomatedForecastingService {
   }
 
   async runForecastingCycle(): Promise<any> {
-    console.log("[ForecastingService] Starting cycle...");
+    logger.info("Starting forecasting cycle...");
     try {
       const condition = await this.fetchOptimalCondition();
       if (!condition) {
@@ -326,14 +319,12 @@ export class AutomatedForecastingService {
         );
         return { success: false, error: "No markets" };
       }
-      console.log("[ForecastingService] Selected market:", condition.question);
+      logger.info(`Selected market: ${condition.question}`);
 
       const forecast = await this.generateForecast(
         condition.shortName || condition.question,
       );
-      console.log(
-        `[ForecastingService] Generated forecast: ${forecast.probability}%`,
-      );
+      logger.info(`Generated forecast: ${forecast.probability}%`);
 
       // Step 1: Submit forecast to Arbitrum (Forecasting Track)
       this.recordThought(
@@ -345,18 +336,13 @@ export class AutomatedForecastingService {
         confidence: forecast.confidence,
         reasoning: forecast.reasoning,
       });
-      console.log(
-        "[ForecastingService] Forecast submitted! Tx:",
-        forecastTxHash,
-      );
+      logger.info(`Forecast submitted! Tx: ${forecastTxHash}`);
 
       // Step 2: Check for trading opportunity (Trading Track)
       // Only trade if we have high confidence
       if (forecast.confidence >= 0.6) {
         try {
-          console.log(
-            "[ForecastingService] Checking for trading opportunity...",
-          );
+          logger.debug("Checking for trading opportunity...");
           this.recordThought("Analyzing market price for trading edge...");
 
           const marketPrice = await this.sapienceService.getMarketPrice(
@@ -367,18 +353,14 @@ export class AutomatedForecastingService {
               forecast.probability,
               marketPrice,
             );
-            console.log(
-              `[ForecastingService] Market price - YES: ${marketPrice.yesPrice}, NO: ${marketPrice.noPrice}, Edge: ${edge.toFixed(4)}`,
-            );
+            logger.info(`Market price - YES: ${marketPrice.yesPrice}, NO: ${marketPrice.noPrice}, Edge: ${edge.toFixed(4)}`);
 
             // Trade if edge > 10%
             if (Math.abs(edge) > 0.1) {
               const side = edge > 0 ? "YES" : "NO";
               const tradeAmount = "10.0"; // Start with 10 USDe per trade
 
-              console.log(
-                `[ForecastingService] Significant edge detected (${(edge * 100).toFixed(1)}%). Executing ${side} trade...`,
-              );
+              logger.info(`Significant edge detected (${(edge * 100).toFixed(1)}%). Executing ${side} trade...`);
               this.recordThought(
                 `Executing ${side} trade with ${edge > 0 ? "positive" : "negative"} edge...`,
               );
@@ -391,10 +373,7 @@ export class AutomatedForecastingService {
                 resolver: undefined, // Use default resolver
               });
 
-              console.log(
-                "[ForecastingService] Trade executed! Tx:",
-                tradeTxHash,
-              );
+              logger.info(`Trade executed! Tx: ${tradeTxHash}`);
               this.recordThought(
                 `Trade executed successfully! Monitoring position.`,
               );
@@ -411,27 +390,21 @@ export class AutomatedForecastingService {
                 edge,
               };
             } else {
-              console.log(
-                "[ForecastingService] No significant edge found. Skipping trade.",
-              );
+              logger.debug("No significant edge found. Skipping trade.");
               this.recordThought("No trading edge detected. Forecast only.");
             }
           } else {
-            console.log(
-              "[ForecastingService] Could not fetch market price. Skipping trade.",
-            );
+            logger.debug("Could not fetch market price. Skipping trade.");
           }
         } catch (tradeError) {
-          console.error("[ForecastingService] Trading failed:", tradeError);
+          logger.error("Trading failed", tradeError instanceof Error ? tradeError : undefined);
           this.recordThought(
             "Trading attempt failed. Continuing with forecast only.",
           );
           // Don't fail the whole cycle if trading fails
         }
       } else {
-        console.log(
-          "[ForecastingService] Confidence too low for trading. Skipping trade.",
-        );
+        logger.debug("Confidence too low for trading. Skipping trade.");
       }
 
       this.forecastedMarkets.add(condition.id);
@@ -446,7 +419,7 @@ export class AutomatedForecastingService {
         traded: false,
       };
     } catch (error) {
-      console.error("[ForecastingService] Cycle failed", error);
+      logger.error("Forecasting cycle failed", error instanceof Error ? error : undefined);
       this.recordThought("Last cycle failed. Recovering for next attempt.");
       return { success: false, error: "Internal" };
     }

@@ -18,7 +18,6 @@ export type AgentType =
   | "filecoin"
   | "social-trading"
   | "contract"
-  | "governance"
   | "external-trading"
   | "custom";
 

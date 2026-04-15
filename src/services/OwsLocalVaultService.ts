@@ -2,6 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { ethers } from "ethers";
+import { Logger } from "../shared/logging/Logger.js";
+
+const logger = new Logger("OwsLocalVaultService");
 
 export interface OwsAccountDescriptor {
   accountId: string;
@@ -310,14 +313,11 @@ export class OwsLocalVaultService {
     }
 
     const apiKey = await this.validateApiKey(params.apiKeyToken);
-    console.log(
-      "[OWS] resolveAccess: apiKeyToken provided =",
-      !!params.apiKeyToken,
-      ", apiKey found =",
-      !!apiKey,
-      ", vault.apiKeys.length =",
-      vault.apiKeys.length,
-    );
+    logger.debug("Resolving wallet access", {
+      apiKeyProvided: !!params.apiKeyToken,
+      apiKeyFound: !!apiKey,
+      vaultKeyCount: vault.apiKeys.length,
+    });
     let wallet: OwsStoredWallet | undefined;
 
     if (apiKey) {
@@ -365,12 +365,6 @@ export class OwsLocalVaultService {
     }
 
     const vault = this.readVault();
-    console.log(
-      "[OWS] signMessage: walletId =",
-      params.walletId,
-      ", access.wallet.id =",
-      access.wallet.id,
-    );
     const storedWallet = vault.wallets.find(
       (wallet) => wallet.id === access.wallet.id,
     );
@@ -379,17 +373,14 @@ export class OwsLocalVaultService {
     }
 
     const privateKey = this.decryptPrivateKey(storedWallet);
-    console.log("[OWS] signMessage: decrypted key length =", privateKey.length);
     try {
       const wallet = new ethers.Wallet(privateKey);
-      console.log("[OWS] signMessage: wallet address =", wallet.address);
       const signature = await wallet.signMessage(params.message);
-      console.log("[OWS] signMessage: signature length =", signature.length);
       return { signature, signer: wallet.address };
     } catch (signError) {
-      console.log(
-        "[OWS] signMessage: ERROR:",
-        signError instanceof Error ? signError.message : "unknown",
+      logger.error(
+        "Message signing failed",
+        signError instanceof Error ? signError : undefined,
       );
       throw signError;
     }
@@ -590,7 +581,10 @@ export class OwsLocalVaultService {
         },
       };
     } catch (error) {
-      console.error("[OWS] Failed to connect to external wallet:", error);
+      logger.error(
+        "Failed to connect to external wallet",
+        error instanceof Error ? error : undefined,
+      );
       return null;
     }
   }
@@ -638,7 +632,10 @@ export class OwsLocalVaultService {
         signer: data.signer || wallet.accounts[0]?.address || "",
       };
     } catch (error) {
-      console.error("[OWS] Failed to sign with external wallet:", error);
+      logger.error(
+        "Failed to sign with external wallet",
+        error instanceof Error ? error : undefined,
+      );
       return null;
     }
   }
