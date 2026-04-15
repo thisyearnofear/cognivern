@@ -1,6 +1,26 @@
-# OWS Hackathon
+# Hackathon Submissions
 
-## Track 02: Agent Spend Governance & Identity
+## X Layer Arena — X Layer Hackathon
+
+**Cognivern is SpendOS for agent wallets** — a complete onchain application for agent spend governance, deployed across X Layer (execution) and Filecoin (audit storage).
+
+### Multi-Chain Architecture
+
+| Layer | Chain | Purpose |
+|-------|-------|---------|
+| Execution & Policy | X Layer (chainId 1952 testnet) | Agent spend approvals, policy enforcement |
+| Audit Storage | Filecoin Calibration | Immutable governance records, CID anchoring |
+
+### Deployed Contracts (X Layer Testnet)
+
+| Contract | Address |
+|----------|---------|
+| GovernanceContract | `0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6` |
+| AIGovernanceStorage | `0x1E0317beFf188e314BbC3483e06773EEfa28bB2D` |
+
+---
+
+## OWS Hackathon — Track 02: Agent Spend Governance & Identity
 
 **Cognivern is SpendOS for OWS wallets** — a control plane for agent budgets, policy checks, approvals, and audit logs.
 
@@ -94,6 +114,14 @@ type SpendDecision = {
 
 ## Submission Package
 
+### X Layer Arena
+- **Project Name:** Cognivern
+- **Track:** X Layer Arena
+- **Primary Angle:** Complete onchain agent spend governance application
+- **Multi-chain:** X Layer (execution) + Filecoin (audit storage)
+- **Deployed:** GovernanceContract + AIGovernanceStorage on X Layer testnet
+
+### OWS Hackathon
 - **Project Name:** Cognivern
 - **Track:** Track 02: Agent Spend Governance & Identity
 - **Primary Angle:** SpendOS for teams
