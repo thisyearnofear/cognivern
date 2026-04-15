@@ -359,6 +359,39 @@ export class AgentsController {
       const agentId = id || agentType;
       const limit = parseInt(req.query.limit as string) || 10;
 
+      // Return mock decisions for governance/portfolio demo agents
+      if (agentType === "governance" || agentType === "portfolio") {
+        const mockDecisions = [
+          {
+            id: `${agentType}-decision-1`,
+            type: agentType === "governance" ? "policy_check" : "portfolio_rebalance",
+            action: agentType === "governance" ? "Evaluated spend request" : "Reviewed portfolio allocation",
+            result: "approved",
+            timestamp: new Date(Date.now() - 60000).toISOString(),
+            details: agentType === "governance"
+              ? { policy: "spend-limit", outcome: "within limits" }
+              : { asset: "ETH", action: "hold" },
+          },
+          {
+            id: `${agentType}-decision-2`,
+            type: agentType === "governance" ? "audit_log" : "risk_assessment",
+            action: agentType === "governance" ? "Logged governance event" : "Assessed risk exposure",
+            result: "completed",
+            timestamp: new Date(Date.now() - 120000).toISOString(),
+            details: agentType === "governance"
+              ? { event: "policy_enforcement", status: "active" }
+              : { riskScore: 0.3, status: "low" },
+          },
+        ];
+        res.json({
+          success: true,
+          data: mockDecisions,
+          count: mockDecisions.length,
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
       // Get real agent decisions from our agents module
       const decisions = await this.agentsModule.getAgentDecisions(
         agentId,

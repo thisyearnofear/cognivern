@@ -492,6 +492,7 @@ function TradingAgentDashboardContent() {
       {/* Interactive Agent Carousel */}
       <div
         css={css`
+          margin-top: ${designTokens.spacing[2]};
           margin-bottom: ${designTokens.spacing[10]};
         `}
       >
@@ -1214,9 +1215,9 @@ function TradingAgentDashboardContent() {
             display: flex;
             align-items: center;
             gap: ${designTokens.spacing[3]};
-            margin-bottom: ${designTokens.spacing[6]};
-            border-bottom: 1px solid ${designTokens.colors.neutral[200]};
-            padding-bottom: ${designTokens.spacing[2]};
+            margin-bottom: ${designTokens.spacing[8]};
+            border-bottom: 2px solid ${designTokens.colors.neutral[200]};
+            padding-bottom: ${designTokens.spacing[4]};
           `}
         >
           <Trophy size={20} color={designTokens.colors.primary[500]} />
@@ -1243,7 +1244,7 @@ function TradingAgentDashboardContent() {
           css={css`
             display: grid;
             grid-template-columns: 1fr;
-            gap: ${designTokens.spacing[8]};
+            gap: ${designTokens.spacing[10]};
           `}
         >
           <AgentMonitor
@@ -1276,9 +1277,9 @@ function TradingAgentDashboardContent() {
             display: flex;
             align-items: center;
             gap: ${designTokens.spacing[3]};
-            margin-bottom: ${designTokens.spacing[6]};
-            border-bottom: 1px solid ${designTokens.colors.neutral[200]};
-            padding-bottom: ${designTokens.spacing[2]};
+            margin-bottom: ${designTokens.spacing[8]};
+            border-bottom: 2px solid ${designTokens.colors.neutral[200]};
+            padding-bottom: ${designTokens.spacing[4]};
           `}
         >
           <Users size={20} color={designTokens.colors.secondary[500]} />

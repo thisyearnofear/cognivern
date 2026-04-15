@@ -161,7 +161,8 @@ export const ContentWrapper: React.FC<ContentWrapperProps> = ({
 
     ${padding
       ? `
-      padding-bottom: ${isCompactMode ? designTokens.spacing[6] : designTokens.spacing[8]};
+      padding-top: ${isCompactMode ? designTokens.spacing[4] : designTokens.spacing[6]};
+      padding-bottom: ${isCompactMode ? designTokens.spacing[6] : designTokens.spacing[10]};
     `
       : ""}
 
