@@ -58,7 +58,9 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
 
       const data = await response.json();
       setAgent(data.agent);
-      setStatus(data.status);
+      if (data.status) {
+        setStatus((prev) => ({ ...prev, ...data.status }));
+      }
     } catch (err) {
       console.error(`Error fetching ${agentType} agent data:`, err);
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -154,7 +156,7 @@ export const useTradingData = (agentType: AgentType): UseTradingData => {
       }
 
       const data = await response.json();
-      setDecisions(data.decisions || []);
+      setDecisions(data.decisions || data.data || []);
     } catch (err) {
       console.error(`Error fetching ${agentType} trading data:`, err);
       setError(err instanceof Error ? err.message : "Unknown error");
