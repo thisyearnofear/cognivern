@@ -261,9 +261,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           `}
         >
           {[
-            { label: "Multi-Chain", value: "2" },
+            { label: "Multi-Chain", value: "3" },
             { label: "Audit Coverage", value: "100%" },
-            { label: "X Layer Testnet", value: "Live" },
+            { label: "0G Storage", value: "Live" },
           ].map((item) => (
             <div
               key={item.label}
@@ -375,7 +375,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               Multi-Chain Architecture
             </h2>
           </div>
-          <div css={css`display: grid; grid-template-columns: 1fr 1fr; gap: ${designTokens.spacing[6]}; @media (max-width: 640px) { grid-template-columns: 1fr; }`}>
+          <div css={css`display: grid; grid-template-columns: 1fr 1fr 1fr; gap: ${designTokens.spacing[6]}; @media (max-width: 768px) { grid-template-columns: 1fr; }`}>
             <div>
               <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
                 <Zap size={16} color="#00d4ff" />
@@ -391,13 +391,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             <div>
               <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
                 <Lock size={16} color="#a78bfa" />
-                <span css={css`color: #a78bfa; font-weight: ${designTokens.typography.fontWeight.semibold}; font-size: ${designTokens.typography.fontSize.sm};`}>Filecoin (Storage)</span>
+                <span css={css`color: #a78bfa; font-weight: ${designTokens.typography.fontWeight.semibold}; font-size: ${designTokens.typography.fontSize.sm};`}>Filecoin (Audit Archive)</span>
               </div>
               <p css={css`color: rgba(255,255,255,0.6); font-size: ${designTokens.typography.fontSize.sm}; margin: 0 0 ${designTokens.spacing[2]} 0;`}>
-                Immutable audit trail &amp; governance records on decentralized storage
+                Long-term immutable governance records on decentralized storage
               </p>
               <code css={css`font-size: ${designTokens.typography.fontSize.xs}; color: rgba(167,139,250,0.7); word-break: break-all;`}>
                 Filecoin Calibration Testnet
+              </code>
+            </div>
+            <div>
+              <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+                <Globe size={16} color="#34d399" />
+                <span css={css`color: #34d399; font-weight: ${designTokens.typography.fontWeight.semibold}; font-size: ${designTokens.typography.fontSize.sm};`}>0G Network (Live Audit)</span>
+              </div>
+              <p css={css`color: rgba(255,255,255,0.6); font-size: ${designTokens.typography.fontSize.sm}; margin: 0 0 ${designTokens.spacing[2]} 0;`}>
+                Every governance decision anchored to 0G decentralized storage in real-time
+              </p>
+              <code css={css`font-size: ${designTokens.typography.fontSize.xs}; color: rgba(52,211,153,0.7); word-break: break-all;`}>
+                0G Newton Testnet · Track 3
               </code>
             </div>
           </div>
@@ -445,7 +457,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           font-size: ${designTokens.typography.fontSize.sm};
         `}
       >
-        Built for X Layer Arena & OWS Hackathon · Multi-Chain: X Layer + Filecoin · Open Wallet Standard Compliant
+        Built for X Layer Arena & 0G APAC Hackathon · Multi-Chain: X Layer + Filecoin + 0G · Open Wallet Standard Compliant
       </footer>
     </div>
   );
