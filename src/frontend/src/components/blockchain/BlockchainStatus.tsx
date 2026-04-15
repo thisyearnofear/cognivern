@@ -78,7 +78,7 @@ export default function BlockchainStatus() {
           xlayer: {
             connected: connectionInfo.connected,
             blockNumber: connectionInfo.blockNumber,
-            chainId: 195,
+            chainId: 1952,
             rpcUrl: "https://testrpc.xlayer.tech",
           },
           aiGovernance: {

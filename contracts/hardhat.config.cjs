@@ -1,6 +1,9 @@
+const path = require("path");
 require("@nomicfoundation/hardhat-toolbox");
-require("dotenv").config({ path: ".env.local" });
-require("dotenv").config({ path: ".env" });
+require("dotenv").config({ path: path.resolve(__dirname, "..", ".env.local") });
+require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
+
+const root = path.resolve(__dirname, "..");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -29,13 +32,13 @@ module.exports = {
       accounts: process.env.XLAYER_PRIVATE_KEY
         ? [process.env.XLAYER_PRIVATE_KEY]
         : [],
-      chainId: 195,
+      chainId: 1952,
     },
   },
   paths: {
-    sources: "./contracts/src",
-    tests: "./test",
-    cache: "./build/cache",
-    artifacts: "./build/artifacts",
+    sources: path.join(root, "contracts", "src"),
+    tests: path.join(root, "test"),
+    cache: path.join(root, "build", "cache"),
+    artifacts: path.join(root, "build", "artifacts"),
   },
 };
