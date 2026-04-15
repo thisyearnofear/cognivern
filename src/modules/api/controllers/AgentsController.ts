@@ -228,35 +228,29 @@ export class AgentsController {
       const { id, agentType } = req.params;
       const agentId = id || agentType; // Support both :id and :agentType parameters
 
-      // Return mock data for governance/portfolio agents (OWS demo agents)
-      if (agentType === "governance" || agentType === "portfolio") {
+      // Return mock data for demo agents (governance/portfolio/sapience)
+      const demoAgentNames: Record<string, string> = {
+        governance: "Spend Governance Agent",
+        portfolio: "Portfolio Agent",
+        sapience: "Oversight Agent",
+      };
+      if (agentType && agentType in demoAgentNames) {
         res.json({
-          success: true,
-          data: {
-            agent: {
-              id: agentType,
-              name:
-                agentType === "governance"
-                  ? "Spend Governance Agent"
-                  : "Portfolio Agent",
-              type: agentType,
-              status: "active",
-            },
-            status: {
-              isActive: true,
-              lastUpdate: new Date().toISOString(),
-              tradesExecuted: 5,
-              performance: {
-                totalReturn: 0,
-                winRate: 0,
-                sharpeRatio: 0,
-              },
-            },
+          agent: {
+            id: agentType,
+            name: demoAgentNames[agentType],
+            type: agentType,
+            status: "active",
           },
-          governance: {
-            compliance: "Policy enforcement active",
-            riskManagement: "Spend limits enforced",
-            auditTrail: "All decisions logged",
+          status: {
+            isActive: true,
+            lastUpdate: new Date().toISOString(),
+            tradesExecuted: 5,
+            performance: {
+              totalReturn: 0,
+              winRate: 0,
+              sharpeRatio: 0,
+            },
           },
           timestamp: new Date().toISOString(),
         });
@@ -288,13 +282,13 @@ export class AgentsController {
       };
 
       res.json({
-        success: true,
-        data: transformedStatus,
-        governance: {
-          compliance: "Real-time monitoring active",
-          riskManagement: "Automated risk controls enabled",
-          auditTrail: "All activities logged and tracked",
+        agent: {
+          id: agentId,
+          name: status.name || agentId,
+          type: agentType || agentId,
+          status: status.status || "active",
         },
+        status: transformedStatus,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
@@ -359,8 +353,8 @@ export class AgentsController {
       const agentId = id || agentType;
       const limit = parseInt(req.query.limit as string) || 10;
 
-      // Return mock decisions for governance/portfolio demo agents
-      if (agentType === "governance" || agentType === "portfolio") {
+      // Return mock decisions for demo agents
+      if (agentType === "governance" || agentType === "portfolio" || agentType === "sapience") {
         const mockDecisions = [
           {
             id: `${agentType}-decision-1`,

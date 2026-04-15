@@ -417,11 +417,13 @@ export class ApiModule extends BaseService {
     });
 
     apiRouter.get("/agents/sapience/status", (req, res) => {
-      this.ctrl("sapience").getStatus(req, res);
+      (req.params as Record<string, string>).agentType = "sapience";
+      this.ctrl("agents").getAgentStatus(req, res);
     });
 
     apiRouter.get("/agents/sapience/decisions", (req, res) => {
-      this.ctrl("sapience").getDecisions(req, res);
+      (req.params as Record<string, string>).agentType = "sapience";
+      this.ctrl("agents").getAgentDecisions(req, res);
     });
 
     // Parameterized routes come after specific routes
