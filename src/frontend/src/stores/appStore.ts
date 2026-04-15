@@ -16,7 +16,7 @@ export interface User {
   address?: string;
   userType?: string;
   isConnected: boolean;
-  network?: "filecoin" | "polkadot";
+  network?: "filecoin" | "xlayer";
 }
 
 interface AppState {

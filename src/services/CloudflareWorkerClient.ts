@@ -10,6 +10,9 @@ import type {
   GovernanceAction,
   PolicyDecision,
 } from "../modules/cloudflare-agents/types.js";
+import { Logger } from "../shared/logging/Logger.js";
+
+const logger = new Logger("CloudflareWorkerClient");
 
 export interface WorkerAgent {
   id: string;
@@ -70,7 +73,7 @@ export class CloudflareWorkerClient {
 
       return response.json();
     } catch (error) {
-      console.warn("Cloudflare Worker health check failed:", error);
+      logger.warn("Worker health check failed");
       return null;
     }
   }
@@ -95,7 +98,7 @@ export class CloudflareWorkerClient {
       const data = await response.json();
       return data.success ? data.data : [];
     } catch (error) {
-      console.warn("Cloudflare Worker listAgents failed:", error);
+      logger.warn("Worker listAgents failed");
       return [];
     }
   }
@@ -120,7 +123,7 @@ export class CloudflareWorkerClient {
       const data = await response.json();
       return data.success ? data.data : null;
     } catch (error) {
-      console.warn(`Cloudflare Worker getAgent(${agentId}) failed:`, error);
+      logger.warn(`Worker getAgent(${agentId}) failed`);
       return null;
     }
   }
@@ -155,7 +158,7 @@ export class CloudflareWorkerClient {
       const data = await response.json();
       return data.success ? data.data : null;
     } catch (error) {
-      console.warn("Cloudflare Worker registerAgent failed:", error);
+      logger.warn("Worker registerAgent failed");
       return null;
     }
   }
@@ -188,7 +191,7 @@ export class CloudflareWorkerClient {
       const data = await response.json();
       return data.success ? data.data : null;
     } catch (error) {
-      console.warn("Cloudflare Worker evaluateGovernance failed:", error);
+      logger.warn("Worker evaluateGovernance failed");
       return null;
     }
   }
@@ -213,7 +216,7 @@ export class CloudflareWorkerClient {
       const data = await response.json();
       return data.success ? data.data : [];
     } catch (error) {
-      console.warn("Cloudflare Worker listPolicies failed:", error);
+      logger.warn("Worker listPolicies failed");
       return [];
     }
   }
@@ -243,7 +246,7 @@ export class CloudflareWorkerClient {
       const data = await response.json();
       return data.success ? data.data : [];
     } catch (error) {
-      console.warn("Cloudflare Worker getThoughtHistory failed:", error);
+      logger.warn("Worker getThoughtHistory failed");
       return [];
     }
   }
@@ -271,7 +274,7 @@ export class CloudflareWorkerClient {
       const data = await response.json();
       return data.success ? data.data : null;
     } catch (error) {
-      console.warn("Cloudflare Worker getAgentMetrics failed:", error);
+      logger.warn("Worker getAgentMetrics failed");
       return null;
     }
   }
@@ -308,7 +311,7 @@ export class CloudflareWorkerClient {
         script,
       };
     } catch (error) {
-      console.warn("Cloudflare Worker getVoiceBriefing failed:", error);
+      logger.warn("Worker getVoiceBriefing failed");
       return null;
     }
   }
@@ -351,7 +354,7 @@ export class CloudflareWorkerClient {
       const data = await response.json();
       return data.success ? data.data : [];
     } catch (error) {
-      console.warn("Cloudflare Worker getActionLog failed:", error);
+      logger.warn("Worker getActionLog failed");
       return [];
     }
   }

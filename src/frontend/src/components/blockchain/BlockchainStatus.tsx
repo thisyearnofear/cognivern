@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { designTokens } from "../../styles/design-system";
 import { Card, CardContent } from "../ui/Card";
 import {
-  checkPolkadotConnection,
+  checkXLayerConnection,
   fetchGovernanceStats,
   fetchAIGovernanceStats,
 } from "../../services/apiService";
@@ -25,11 +25,11 @@ interface ContractStats {
     violations: number;
     approvalRate: number;
   };
-  polkadot?: {
+  xlayer?: {
     connected: boolean;
     blockNumber: number;
-    governanceContract: string;
-    storageContract: string;
+    chainId: number;
+    rpcUrl: string;
   };
   aiGovernance?: {
     totalActions: number;
@@ -48,14 +48,14 @@ export default function BlockchainStatus() {
       try {
         setLoading(true);
 
-        // Fetch Polkadot Hub governance stats
+        // Fetch governance stats from X Layer
         const governanceStats = await fetchGovernanceStats();
 
         // Fetch AI governance stats
         const aiGovernanceStats = await fetchAIGovernanceStats();
 
-        // Check Polkadot connection
-        const connectionInfo = await checkPolkadotConnection();
+        // Check X Layer connection
+        const connectionInfo = await checkXLayerConnection();
 
         setStats({
           governance: {
@@ -75,12 +75,11 @@ export default function BlockchainStatus() {
             storageContract: "0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada",
             usdcToken: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
           },
-          polkadot: {
+          xlayer: {
             connected: connectionInfo.connected,
             blockNumber: connectionInfo.blockNumber,
-            // In a real implementation, we'd get actual governance contract data
-            governanceContract: "0xYourGovernanceContractAddress",
-            storageContract: "0xYourStorageContractAddress",
+            chainId: 195,
+            rpcUrl: "https://testrpc.xlayer.tech",
           },
           aiGovernance: {
             totalActions: aiGovernanceStats.totalActions,
@@ -117,7 +116,7 @@ export default function BlockchainStatus() {
 
   const contractInfo = stats?.governance;
   const storageInfo = stats?.filecoin;
-  const polkadotInfo = stats?.polkadot;
+  const xlayerInfo = stats?.xlayer;
 
   return (
     <div
@@ -329,7 +328,7 @@ export default function BlockchainStatus() {
           </CardContent>
         </Card>
 
-        {/* Polkadot Hub Status */}
+        {/* X Layer Execution Layer */}
         <Card
           variant="default"
           css={css`
@@ -364,7 +363,7 @@ export default function BlockchainStatus() {
                   color: ${designTokens.colors.neutral[800]};
                 `}
               >
-                Polkadot Hub
+                X Layer
               </span>
             </div>
 
@@ -389,7 +388,7 @@ export default function BlockchainStatus() {
               >
                 ADDR:
               </strong>
-              {polkadotInfo?.governanceContract}
+              Chain ID: {xlayerInfo?.chainId} | {xlayerInfo?.rpcUrl}
             </div>
 
             <div
@@ -411,7 +410,7 @@ export default function BlockchainStatus() {
                     color: ${designTokens.colors.primary[600]};
                   `}
                 >
-                  {polkadotInfo?.connected ? "Connected" : "Disconnected"}
+                  {xlayerInfo?.connected ? "Connected" : "Disconnected"}
                 </div>
                 <div
                   css={css`
@@ -436,7 +435,7 @@ export default function BlockchainStatus() {
                     color: ${designTokens.colors.primary[600]};
                   `}
                 >
-                  Block #{polkadotInfo?.blockNumber ?? "N/A"}
+                  Block #{xlayerInfo?.blockNumber ?? "N/A"}
                 </div>
                 <div
                   css={css`

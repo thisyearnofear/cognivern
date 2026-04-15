@@ -41,25 +41,8 @@ export async function startServer(): Promise<void> {
     process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
     process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
-    // Keep the process alive by returning a Promise that never resolves
-    // The server will continue running until a signal is received
-    logger.info("🔄 Returning never-resolving Promise to keep process alive");
-    return new Promise((resolve, reject) => {
-      // This Promise never resolves, keeping the process alive
-      logger.info(
-        "🔄 Inside never-resolving Promise - process should stay alive",
-      );
-
-      // Add a heartbeat to prove the process is alive
-      const heartbeat = setInterval(() => {
-        logger.info("💓 Process heartbeat - still alive");
-      }, 10000); // Every 10 seconds
-
-      // Clean up heartbeat on process exit
-      process.on("exit", () => {
-        clearInterval(heartbeat);
-      });
-    });
+    // Keep the process alive until a shutdown signal is received
+    return new Promise(() => {});
   } catch (error) {
     logger.error("❌ Failed to start server:", error);
     process.exit(1);

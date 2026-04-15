@@ -5,6 +5,9 @@ import {
   SpendIntent,
 } from "../../../services/OwsWalletService.js";
 import crypto from "node:crypto";
+import { Logger } from "../../../shared/logging/Logger.js";
+
+const logger = new Logger("SpendController");
 
 const spendIntentSchema = z.object({
   agentId: z.string().min(1),
@@ -45,10 +48,9 @@ export class SpendController {
       const owsScopedAccess = req.headers["x-ows-scoped-access"] as
         | string
         | undefined;
-      console.log(
-        "[SpendController] owsScopedAccess:",
-        owsScopedAccess?.substring(0, 10) + "...",
-      );
+      logger.debug("OWS scoped access received", {
+        prefix: owsScopedAccess?.substring(0, 10),
+      });
       const walletId =
         typeof parse.data.metadata?.walletId === "string"
           ? parse.data.metadata.walletId
@@ -64,10 +66,9 @@ export class SpendController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      console.log(
-        "[SpendController] CATCH:",
-        error instanceof Error ? error.message : "unknown",
-        error instanceof Error ? error.stack : "",
+      logger.error(
+        "Spend execution failed",
+        error instanceof Error ? error : undefined,
       );
       res.status(500).json({
         success: false,

@@ -3,8 +3,11 @@
  */
 
 import { Request, Response } from "express";
+import { Logger } from "../../../shared/logging/Logger.js";
 import { PolicyService, sharedPolicyService } from "../../../services/PolicyService.js";
 import { getWorkerClient } from "../../../services/CloudflareWorkerClient.js";
+
+const logger = new Logger("GovernanceController");
 import { PolicyEnforcementService } from "../../../services/PolicyEnforcementService.js";
 import { AuditLogService } from "../../../services/AuditLogService.js";
 import type { AgentAction } from "../../../types/Agent.js";
@@ -164,7 +167,7 @@ export class GovernanceController {
           });
           return;
         } catch (e) {
-          console.warn("Worker listPolicies failed, using local:", e);
+          logger.warn("Worker listPolicies failed, using local fallback");
         }
       }
 

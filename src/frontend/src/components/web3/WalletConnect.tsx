@@ -5,7 +5,7 @@ import { useBreakpoint } from "../../hooks/useMediaQuery";
 import { LogOut, Wallet } from "lucide-react";
 
 interface WalletConnectProps {
-  onConnect: (address: string, network: "filecoin" | "polkadot") => void;
+  onConnect: (address: string, network: "filecoin" | "xlayer") => void;
   onDisconnect: () => void;
 }
 
@@ -21,7 +21,7 @@ export default function WalletConnect({
 }: WalletConnectProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState<string>("");
-  const [network, setNetwork] = useState<string>(""); // "filecoin" or "polkadot"
+  const [network, setNetwork] = useState<string>(""); // "filecoin" or "xlayer"
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string>("");
 
@@ -48,10 +48,10 @@ export default function WalletConnect({
             });
             const chainId = parseInt(chainIdHex, 16);
 
-            if (chainId === 100000) {
-              // Polkadot Hub placeholder chainId
-              setNetwork("polkadot");
-              onConnect(accounts[0], "polkadot");
+            if (chainId === 195 || chainId === 196) {
+              // X Layer testnet (195) or mainnet (196)
+              setNetwork("xlayer");
+              onConnect(accounts[0], "xlayer");
             } else if (chainId === 314159) {
               // Filecoin Calibration
               setNetwork("filecoin");
@@ -103,10 +103,10 @@ export default function WalletConnect({
           });
           const chainId = parseInt(chainIdHex, 16);
 
-          if (chainId === 100000) {
-            // Polkadot Hub placeholder chainId
-            setNetwork("polkadot");
-            onConnect(userAddress, "polkadot");
+          if (chainId === 195 || chainId === 196) {
+            // X Layer testnet (195) or mainnet (196)
+            setNetwork("xlayer");
+            onConnect(userAddress, "xlayer");
           } else if (chainId === 314159) {
             // Filecoin Calibration
             setNetwork("filecoin");
@@ -192,7 +192,7 @@ export default function WalletConnect({
 
   if (isConnected) {
     const networkName =
-      network === "polkadot" ? "Polkadot Hub" : "Filecoin Calibration";
+      network === "xlayer" ? "X Layer" : "Filecoin Calibration";
     return (
       <div css={containerStyles}>
         <button css={connectedButtonStyles} title={networkName}>

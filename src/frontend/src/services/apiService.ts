@@ -573,7 +573,7 @@ export class OwsApiService extends ApiService {
 }
 
 export const owsApi = new OwsApiService();
-// Export Polkadot API service
+// Export X Layer API service
 export {
   getGovernanceContract,
   getStorageContract,
@@ -584,10 +584,10 @@ export {
   fetchAllPolicyIds,
   fetchAllAgentIds,
   fetchActiveProviders,
-  checkPolkadotConnection,
+  checkXLayerConnection,
   fetchPolicyDetails,
   fetchAgentDetails,
-} from "./polkadotApi";
+} from "./xlayerApi";
 
 // Export default instance for general use
 export default new ApiService();

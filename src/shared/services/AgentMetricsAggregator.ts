@@ -9,6 +9,9 @@ import { AgentStatus } from "../types/index.js";
 import { TradingDecision } from "../../types/Agent.js";
 import { TradingHistoryService } from "../../services/TradingHistoryService.js";
 import { MetricsService } from "../../services/MetricsService.js";
+import { Logger } from "../logging/Logger.js";
+
+const logger = new Logger("AgentMetricsAggregator");
 
 export interface AgentComparisonMetrics {
   agentId: string;
@@ -296,7 +299,7 @@ export class AgentMetricsAggregator {
         performance30d: this.calculateTimeBasedPerformance(agentHistory, 720),
       };
     } catch (error) {
-      console.error(`Failed to fetch metrics for agent ${agentId}:`, error);
+      logger.error(`Failed to fetch metrics for agent ${agentId}`, error instanceof Error ? error : undefined);
       return null;
     }
   }

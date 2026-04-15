@@ -15,12 +15,21 @@ module.exports = {
         : [],
       chainId: 314159,
     },
-    polkadotHub: {
-      url: process.env.POLKADOT_RPC_URL || "https://polkadot-hub-rpc.url",
-      accounts: process.env.POLKADOT_PRIVATE_KEY
-        ? [process.env.POLKADOT_PRIVATE_KEY]
+    xlayer: {
+      url:
+        process.env.XLAYER_RPC_URL || "https://rpc.xlayer.tech",
+      accounts: process.env.XLAYER_PRIVATE_KEY
+        ? [process.env.XLAYER_PRIVATE_KEY]
         : [],
-      chainId: 100000, // Placeholder, will be updated with actual chainId for Polkadot Hub
+      chainId: 196,
+    },
+    xlayerTestnet: {
+      url:
+        process.env.XLAYER_TESTNET_RPC_URL || "https://testrpc.xlayer.tech",
+      accounts: process.env.XLAYER_PRIVATE_KEY
+        ? [process.env.XLAYER_PRIVATE_KEY]
+        : [],
+      chainId: 195,
     },
   },
   paths: {

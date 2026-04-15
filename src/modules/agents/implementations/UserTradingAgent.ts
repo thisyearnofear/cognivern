@@ -17,6 +17,9 @@ import {
   AgentInfo,
   AgentType,
 } from "../types/TradingAgent.js";
+import { Logger } from "../../../shared/logging/Logger.js";
+
+const logger = new Logger("UserTradingAgent");
 
 export class UserTradingAgent implements TradingAgent {
   public readonly id: string;
@@ -58,7 +61,7 @@ export class UserTradingAgent implements TradingAgent {
 
   async initialize(): Promise<void> {
     this.status = "inactive";
-    console.log(`User Agent ${this.name} (${this.id}) initialized at address ${this.address}`);
+    logger.info(`User Agent ${this.name} (${this.id}) initialized at address ${this.address}`);
   }
 
   async start(): Promise<void> {
@@ -170,7 +173,7 @@ export class UserTradingAgent implements TradingAgent {
   }
 
   async reportActivity(activity: AgentActivity): Promise<void> {
-    console.log(`[User Agent: ${this.name}]`, activity);
+    logger.debug(`Activity: ${activity.type}`, { agentId: activity.agentId });
   }
 
   getId(): string {
