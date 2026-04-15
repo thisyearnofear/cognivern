@@ -13,6 +13,8 @@ import {
   ArrowRight,
   Brain,
   Zap,
+  Globe,
+  Lock,
 } from "lucide-react";
 
 interface LandingPageProps {
@@ -122,9 +124,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             Cognivern
           </span>
         </div>
-        <Button variant="ghost" onClick={handleExplore}>
-          Skip to Dashboard →
-        </Button>
+        <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
+          <span css={css`
+            display: inline-flex;
+            align-items: center;
+            gap: ${designTokens.spacing[1]};
+            padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #00d4ff;
+            border-radius: ${designTokens.borderRadius.full};
+            font-size: ${designTokens.typography.fontSize.xs};
+            font-weight: ${designTokens.typography.fontWeight.semibold};
+            letter-spacing: 0.05em;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+          `}>
+            <Globe size={12} />
+            X Layer Arena
+          </span>
+          <Button variant="ghost" onClick={handleExplore}>
+            Skip to Dashboard →
+          </Button>
+        </div>
       </header>
 
       {/* Hero */}
@@ -241,9 +261,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           `}
         >
           {[
-            { label: "Policy Enforcement", value: "100%" },
+            { label: "Multi-Chain", value: "2" },
             { label: "Audit Coverage", value: "100%" },
-            { label: "Wallet Types", value: "EVM" },
+            { label: "X Layer Testnet", value: "Live" },
           ].map((item) => (
             <div
               key={item.label}
@@ -338,6 +358,51 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           ))}
         </div>
 
+        {/* Multi-Chain Section */}
+        <div
+          css={css`
+            margin-top: ${designTokens.spacing[12]};
+            padding: ${designTokens.spacing[8]};
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            border-radius: ${designTokens.borderRadius.xl};
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            text-align: left;
+          `}
+        >
+          <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[4]};`}>
+            <Globe size={20} color="#00d4ff" />
+            <h2 css={css`font-size: ${designTokens.typography.fontSize.lg}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: #00d4ff; margin: 0;`}>
+              Multi-Chain Architecture
+            </h2>
+          </div>
+          <div css={css`display: grid; grid-template-columns: 1fr 1fr; gap: ${designTokens.spacing[6]}; @media (max-width: 640px) { grid-template-columns: 1fr; }`}>
+            <div>
+              <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+                <Zap size={16} color="#00d4ff" />
+                <span css={css`color: #00d4ff; font-weight: ${designTokens.typography.fontWeight.semibold}; font-size: ${designTokens.typography.fontSize.sm};`}>X Layer (Execution)</span>
+              </div>
+              <p css={css`color: rgba(255,255,255,0.6); font-size: ${designTokens.typography.fontSize.sm}; margin: 0 0 ${designTokens.spacing[2]} 0;`}>
+                Agent spend approvals &amp; policy enforcement on OKX's zkEVM L2
+              </p>
+              <code css={css`font-size: ${designTokens.typography.fontSize.xs}; color: rgba(0,212,255,0.7); word-break: break-all;`}>
+                0x755602bB...e2DD6
+              </code>
+            </div>
+            <div>
+              <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+                <Lock size={16} color="#a78bfa" />
+                <span css={css`color: #a78bfa; font-weight: ${designTokens.typography.fontWeight.semibold}; font-size: ${designTokens.typography.fontSize.sm};`}>Filecoin (Storage)</span>
+              </div>
+              <p css={css`color: rgba(255,255,255,0.6); font-size: ${designTokens.typography.fontSize.sm}; margin: 0 0 ${designTokens.spacing[2]} 0;`}>
+                Immutable audit trail &amp; governance records on decentralized storage
+              </p>
+              <code css={css`font-size: ${designTokens.typography.fontSize.xs}; color: rgba(167,139,250,0.7); word-break: break-all;`}>
+                Filecoin Calibration Testnet
+              </code>
+            </div>
+          </div>
+        </div>
+
         {/* CTA */}
         <div
           css={css`
@@ -380,7 +445,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           font-size: ${designTokens.typography.fontSize.sm};
         `}
       >
-        Built for the OWS Hackathon · Open Wallet Standard Compliant
+        Built for X Layer Arena & OWS Hackathon · Multi-Chain: X Layer + Filecoin · Open Wallet Standard Compliant
       </footer>
     </div>
   );
