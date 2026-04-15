@@ -387,6 +387,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               <code css={css`font-size: ${designTokens.typography.fontSize.xs}; color: rgba(0,212,255,0.7); word-break: break-all;`}>
                 0x755602bB...e2DD6
               </code>
+              <a
+                href="https://www.okx.com/explorer/xlayer-test/address/0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6"
+                target="_blank"
+                rel="noopener noreferrer"
+                css={css`display: inline-block; margin-top: ${designTokens.spacing[2]}; font-size: ${designTokens.typography.fontSize.xs}; color: #00d4ff; text-decoration: none; &:hover { text-decoration: underline; }`}
+              >
+                View on Explorer ↗
+              </a>
             </div>
             <div>
               <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
@@ -399,6 +407,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               <code css={css`font-size: ${designTokens.typography.fontSize.xs}; color: rgba(167,139,250,0.7); word-break: break-all;`}>
                 Filecoin Calibration Testnet
               </code>
+              <a
+                href="https://calibration.filfox.info/en/address/0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada"
+                target="_blank"
+                rel="noopener noreferrer"
+                css={css`display: inline-block; margin-top: ${designTokens.spacing[2]}; font-size: ${designTokens.typography.fontSize.xs}; color: #a78bfa; text-decoration: none; &:hover { text-decoration: underline; }`}
+              >
+                View on Explorer ↗
+              </a>
             </div>
             <div>
               <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
@@ -411,6 +427,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               <code css={css`font-size: ${designTokens.typography.fontSize.xs}; color: rgba(52,211,153,0.7); word-break: break-all;`}>
                 0G Newton Testnet · Track 3
               </code>
+              <a
+                href="https://storagescan.0g.ai/"
+                target="_blank"
+                rel="noopener noreferrer"
+                css={css`display: inline-block; margin-top: ${designTokens.spacing[2]}; font-size: ${designTokens.typography.fontSize.xs}; color: #34d399; text-decoration: none; &:hover { text-decoration: underline; }`}
+              >
+                View on Explorer ↗
+              </a>
             </div>
           </div>
         </div>

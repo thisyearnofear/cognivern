@@ -167,7 +167,7 @@ export default function BlockchainStatus() {
               ${keyframeAnimations.pulse}
             `}
           />
-          Filecoin Calibration
+          X Layer Testnet
         </div>
       </div>
 
@@ -238,7 +238,18 @@ export default function BlockchainStatus() {
               >
                 ADDR:
               </strong>
-              {contractInfo?.address}
+              <a
+                href={`https://www.okx.com/explorer/xlayer-test/address/${contractInfo?.address}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                css={css`
+                  color: ${designTokens.colors.neutral[500]};
+                  text-decoration: none;
+                  &:hover { color: ${designTokens.colors.primary[600]}; text-decoration: underline; }
+                `}
+              >
+                {contractInfo?.address}
+              </a>
             </div>
 
             <div
@@ -387,8 +398,42 @@ export default function BlockchainStatus() {
               >
                 ADDR:
               </strong>
-              Chain ID: {xlayerInfo?.chainId} | {xlayerInfo?.rpcUrl}
+              <a
+                href="https://www.okx.com/explorer/xlayer-test/address/0x1E0317beFf188e314BbC3483e06773EEfa28bB2D"
+                target="_blank"
+                rel="noopener noreferrer"
+                css={css`
+                  color: ${designTokens.colors.neutral[500]};
+                  text-decoration: none;
+                  &:hover { color: ${designTokens.colors.primary[600]}; text-decoration: underline; }
+                `}
+              >
+                0x1E0317beFf188e314BbC3483e06773EEfa28bB2D
+              </a>
             </div>
+
+            <a
+              href="https://www.okx.com/explorer/xlayer-test/address/0x1E0317beFf188e314BbC3483e06773EEfa28bB2D"
+              target="_blank"
+              rel="noopener noreferrer"
+              css={css`
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                margin-bottom: 16px;
+                padding: 6px 12px;
+                background: ${designTokens.colors.primary[50]};
+                border: 1px solid ${designTokens.colors.primary[200]};
+                border-radius: 6px;
+                color: ${designTokens.colors.primary[600]};
+                font-size: 0.7rem;
+                font-weight: 600;
+                text-decoration: none;
+                &:hover { background: ${designTokens.colors.primary[100]}; }
+              `}
+            >
+              View on X Layer Explorer ↗
+            </a>
 
             <div
               css={css`
@@ -511,7 +556,18 @@ export default function BlockchainStatus() {
               >
                 ADDR:
               </strong>
-              {storageInfo?.storageContract}
+              <a
+                href={`https://calibration.filfox.info/en/address/${storageInfo?.storageContract}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                css={css`
+                  color: ${designTokens.colors.neutral[500]};
+                  text-decoration: none;
+                  &:hover { color: ${designTokens.colors.secondary[600]}; text-decoration: underline; }
+                `}
+              >
+                {storageInfo?.storageContract}
+              </a>
             </div>
 
             <div
