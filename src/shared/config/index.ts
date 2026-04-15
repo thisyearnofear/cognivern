@@ -116,10 +116,17 @@ export const tradingConfig = {
   maxRiskPerTrade: 0.02,
 };
 export const blockchainConfig = {
-  privateKey: "",
-  rpcUrl: "",
-  network: "calibration",
-  contracts: { governance: "", storage: "" },
+  privateKey: process.env.XLAYER_PRIVATE_KEY || "",
+  rpcUrl: process.env.XLAYER_TESTNET_RPC_URL || "https://testrpc.xlayer.tech",
+  network: "xlayerTestnet",
+  contracts: {
+    governance:
+      process.env.XLAYER_GOVERNANCE_CONTRACT_ADDRESS ||
+      "0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6",
+    storage:
+      process.env.XLAYER_STORAGE_CONTRACT_ADDRESS ||
+      "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D",
+  },
 };
 export const monitoringConfig = {
   enabled: false,

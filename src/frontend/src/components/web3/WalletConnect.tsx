@@ -48,8 +48,8 @@ export default function WalletConnect({
             });
             const chainId = parseInt(chainIdHex, 16);
 
-            if (chainId === 195 || chainId === 196) {
-              // X Layer testnet (195) or mainnet (196)
+            if (chainId === 1952 || chainId === 196) {
+              // X Layer testnet (1952) or mainnet (196)
               setNetwork("xlayer");
               onConnect(accounts[0], "xlayer");
             } else if (chainId === 314159) {
