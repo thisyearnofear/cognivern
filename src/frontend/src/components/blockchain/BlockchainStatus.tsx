@@ -59,8 +59,7 @@ export default function BlockchainStatus() {
 
         setStats({
           governance: {
-            // Using a placeholder address - in reality this would come from env or contract
-            address: "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880",
+            address: "0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6",
             policies: governanceStats.totalPolicies,
             agents: governanceStats.totalAgents,
             actions: governanceStats.totalActions,
