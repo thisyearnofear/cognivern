@@ -19,6 +19,28 @@
 | GovernanceContract | `0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6` |
 | AIGovernanceStorage | `0x1E0317beFf188e314BbC3483e06773EEfa28bB2D` |
 
+### OnchainOS Usage
+
+Cognivern uses **OnchainOS's EVM infrastructure on X Layer** to deploy and interact with two governance smart contracts: `GovernanceContract` (policy enforcement, agent registration, action logging) and `AIGovernanceStorage` (immutable audit trail for AI agent spend decisions). Our TypeScript backend uses ethers.js to call these contracts for on-chain policy evaluation and decision recording, while our React frontend reads contract state for real-time governance metrics. OnchainOS's **Trade** and **Payments** skill categories map directly to our agent spend pipeline — agents can initiate swaps and transfers, but only after passing Cognivern's cryptographic policy enforcement. We leverage X Layer's low-cost execution for high-frequency governance checks across the full lifecycle: policy creation → agent registration → spend request evaluation → on-chain action logging.
+
+### Demo: X Layer Integration
+
+Run the interactive demo script to showcase the full X Layer governance lifecycle:
+
+```bash
+# Reads deployed contracts on X Layer testnet and walks through the governance flow
+node scripts/demo-xlayer.cjs
+```
+
+The demo script:
+1. Connects to deployed GovernanceContract and AIGovernanceStorage on X Layer testnet
+2. Reads current governance stats (policies, agents, actions)
+3. Creates a new governance policy and activates it
+4. Registers a new AI agent bound to the policy
+5. Logs a governed spend action to AIGovernanceStorage
+6. Queries the audit trail to verify the action was recorded on-chain
+7. Displays a summary of the full governance lifecycle
+
 ---
 
 ## 0G APAC Hackathon — Track 3: Agentic Economy & Autonomous Applications
