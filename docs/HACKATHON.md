@@ -9,7 +9,8 @@
 | Layer | Chain | Purpose |
 |-------|-------|---------|
 | Execution & Policy | X Layer (chainId 1952 testnet) | Agent spend approvals, policy enforcement |
-| Audit Storage | Filecoin Calibration | Immutable governance records, CID anchoring |
+| Live Audit Anchoring | 0G Newton Testnet | Real-time governance decisions anchored to 0G Storage |
+| Audit Archive | Filecoin Calibration | Long-term immutable governance records, CID anchoring |
 
 ### Deployed Contracts (X Layer Testnet)
 
@@ -17,6 +18,33 @@
 |----------|---------|
 | GovernanceContract | `0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6` |
 | AIGovernanceStorage | `0x1E0317beFf188e314BbC3483e06773EEfa28bB2D` |
+
+---
+
+## 0G APAC Hackathon — Track 3: Agentic Economy & Autonomous Applications
+
+**Cognivern is SpendOS for agent wallets** — a self-custodial agent wallet governance layer with automated spend approval, policy enforcement, and a cryptographically-anchored audit trail stored on 0G decentralized storage.
+
+### Why Track 3
+
+Track 3 explicitly calls out *"Self-custodial agent wallets and AI-governed DAO infrastructure"* and *"Micropayments, automated billing, and revenue-sharing"*. Cognivern is a textbook implementation: agents request spends, Cognivern enforces policies, signs approved transactions, and anchors every decision to 0G Storage for tamper-proof auditability.
+
+### 0G Integration
+
+| Component | 0G Service | Detail |
+|-----------|-----------|--------|
+| Audit log anchoring | 0G Storage (Newton Testnet) | Every governance decision (allow/deny) is uploaded to 0G Storage via `ZeroGStorageService` |
+| Indexer endpoint | `indexer-storage-testnet-standard.0g.ai` | Used for file upload and root hash retrieval |
+| Root hash | Returned per record | Permanent, verifiable identifier for each audit event |
+
+### Submission Package (0G APAC)
+- **Project Name:** Cognivern
+- **Track:** Track 3 — Agentic Economy & Autonomous Applications
+- **Primary Angle:** Self-custodial agent wallet governance with 0G-anchored audit trail
+- **0G Usage:** `ZeroGStorageService` anchors every governance decision to 0G Storage in real-time
+- **Live Frontend:** https://cognivern.vercel.app
+- **GitHub:** https://github.com/thisyearnofear/cognivern
+- **Deadline:** May 16, 2026, 23:59 UTC+8
 
 ---
 
@@ -118,7 +146,7 @@ type SpendDecision = {
 - **Project Name:** Cognivern
 - **Track:** X Layer Arena
 - **Primary Angle:** Complete onchain agent spend governance application
-- **Multi-chain:** X Layer (execution) + Filecoin (audit storage)
+- **Multi-chain:** X Layer (execution) + 0G (live audit) + Filecoin (audit archive)
 - **Deployed:** GovernanceContract + AIGovernanceStorage on X Layer testnet
 
 ### OWS Hackathon

@@ -1,5 +1,6 @@
 import { AgentAction, PolicyCheck } from "../types/Agent.js";
 import logger from "../utils/logger.js";
+import { zeroGStorageService } from "./ZeroGStorageService.js";
 import { creRunStore, CreRunStore } from "../cre/storage/CreRunStore.js";
 import { CreRun, CreArtifact } from "../cre/types.js";
 import { ethers } from "ethers";
@@ -234,6 +235,17 @@ export class AuditLogService {
     };
 
     await this.creStore.add(run);
+
+    // Anchor governance decision to 0G Storage (non-fatal, fire-and-forget)
+    zeroGStorageService.anchorAuditRecord({
+      runId,
+      workflow: "governance",
+      outcome: allowed ? "allowed" : "denied",
+      agentId: action.metadata?.agentId,
+      actionType: action.type,
+      timestamp: now,
+      evidenceHash: evidence.hash,
+    }).catch(() => { /* already logged inside ZeroGStorageService */ });
   }
 
   async getFilteredLogs(filters: {
