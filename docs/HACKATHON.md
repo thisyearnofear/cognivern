@@ -1,5 +1,72 @@
 # Hackathon Submissions
 
+## Fhenix Privacy-by-Design dApp Buildathon
+
+**Cognivern is the privacy-by-design SpendOS for autonomous agent wallets** — an existing multi-chain spend control plane that adds **Fhenix (CoFHE)** as a confidential policy layer so institutions can run autonomous agents without leaking budgets, counterparties, or strategy.
+
+### The Institutional Gap We Close
+
+Compliance teams reject autonomous agent deployments on transparent rails because per-agent budgets, vendor allowlists, and remaining spend headroom are visible competitive intelligence. Cognivern moves these into encrypted state on Fhenix while keeping execution and audit anchoring on existing public chains.
+
+### Layered Architecture
+
+| Layer | Chain | Role |
+|-------|-------|------|
+| Confidential Policy State | Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia) | Encrypted budgets, encrypted spend counters, sealed approval ciphertexts, FHE policy evaluation |
+| Execution & Public Anchoring | X Layer Testnet (1952) | `GovernanceContract` consumes Fhenix attestations, executes signed spend |
+| Live Audit | 0G Newton Testnet | Real-time decision anchoring |
+| Audit Archive | Filecoin Calibration | Long-term immutable storage |
+
+### Fhenix Stack Usage
+
+- **Solidity library** — `ConfidentialSpendPolicy.sol` uses `euint256` / `ebool` for budgets, counters, and decisions
+- **CoFHE SDK** — `FhenixPolicyService` wraps `@cofhe/sdk` for client-side encryption + permits
+- **React hooks** — frontend uses `useEncrypt`, `useWrite`, `useDecrypt` for confidential policy editor and auditor views
+- **Hardhat plugin** — `contracts/fhenix/` workspace for local FHE development
+- **Privara SDK** — `@reineira-os/sdk` powers the confidential payment-rails half of `/api/spend`
+
+### What's Privacy-Preserving
+
+| Today (plaintext) | With Fhenix (encrypted) |
+|-------------------|--------------------------|
+| Per-agent daily budget | `euint256 dailyLimit` on Fhenix |
+| Spend counter | `euint256 spentToday` on Fhenix |
+| Approval threshold | `euint256 approvalThreshold` |
+| Spend amount in `/api/spend` | Client-encrypted via `useEncrypt` |
+| Audit row amounts | Sealed; revealed only via auditor permits |
+
+The decision (approve / hold / deny) is publicly verifiable. The inputs and thresholds stay encrypted.
+
+### Wave Plan
+
+| Wave | Deliverable |
+|------|-------------|
+| Wave 1 | Integration plan + `ConfidentialSpendPolicy.sol` skeleton + Hardhat scaffold |
+| Wave 2 | `FhenixPolicyService` end-to-end on Fhenix testnet; `/api/spend/encrypted` |
+| Wave 3 | Frontend `useEncrypt` flow; auditor permits; X Layer cross-chain attestation |
+| Wave 4 | Privara SDK confidential payroll; sealed-bid vendor selection |
+| Wave 5 | Production demo: institutional treasury agent with fully encrypted budgets, MEV-protected execution, selective auditor disclosure |
+
+### Submission Package (Fhenix Buildathon)
+
+- **Project Name:** Cognivern
+- **Primary Angle:** Privacy-by-design SpendOS for autonomous agent wallets
+- **Application Areas:** Confidential DeFi, Private Payments, RWA & Compliance
+- **Existing Foundation:** Live spend control plane on X Layer + Filecoin + 0G
+- **New Layer:** Fhenix `ConfidentialSpendPolicy` + Privara payment rails
+- **Full Plan:** [Fhenix Integration](./FHENIX_INTEGRATION.md)
+- **GitHub:** https://github.com/thisyearnofear/cognivern
+
+### Why This Wins
+
+- **Real protocol, not a weekend project.** Existing OWS wallet layer, policy engine, audit ledger, multi-chain deployment.
+- **Direct hit on the institutional gap.** Encrypted policy state removes the compliance blocker for agent deployments.
+- **MEV protection by construction.** Sealed approval ciphertexts hide agent intent until execution.
+- **Selective disclosure for audits.** Permits give auditors exactly what they need.
+- **Composable with Privara.** Cognivern decides → Privara executes the confidential transfer.
+
+---
+
 ## X Layer Arena — X Layer Hackathon
 
 **Cognivern is SpendOS for agent wallets** — a complete onchain application for agent spend governance, deployed across X Layer (execution) and Filecoin (audit storage).
@@ -160,7 +227,7 @@ type SpendDecision = {
 
 **Optimize for:** OWS-native wallet control, budget/restriction policies, approve-hold-deny flows, operator visibility, audit forensics, polished demo.
 
-**Do not optimize for:** generic multi-chain governance, old trading competition positioning, Bitte integrations, prediction-market demos.
+**Do not optimize for:** generic multi-chain governance, old trading competition positioning, prediction-market demos.
 
 ## Submission Package
 

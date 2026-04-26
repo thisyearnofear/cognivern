@@ -54,6 +54,7 @@ pnpm demo:live
 | [Architecture](./docs/ARCHITECTURE.md) | System design, data flows, endpoints |
 | [Developer Guide](./docs/DEVELOPER.md) | Local setup, APIs, testing, production readiness |
 | [Deployment](./docs/DEPLOYMENT.md) | Production deployment, PM2, rollbacks |
+| [Fhenix Integration](./docs/FHENIX_INTEGRATION.md) | Privacy-by-Design plan: encrypted budgets, sealed approvals, FHE policy evaluation |
 
 ## Multi-Chain Deployment
 
@@ -61,6 +62,7 @@ pnpm demo:live
 |-------|-------|-----------|
 | Execution & Policy | X Layer Testnet (chainId 1952) | GovernanceContract `0x755602bB...`, AIGovernanceStorage `0x1E0317bF...` |
 | Audit Storage | Filecoin Calibration | GovernanceContract + AIGovernanceStorage |
+| Confidential Policy State (planned) | Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia) | `ConfidentialSpendPolicy` — see [Fhenix Integration](./docs/FHENIX_INTEGRATION.md) |
 
 ## Status
 

@@ -79,7 +79,7 @@ export default function IntegrationDiagram() {
           </div>
         </div>
 
-        <div className="diagram-section bitte">
+        <div className="diagram-section ows-wallet">
           <div className="platform-header">
             <h4>OWS Wallet Layer</h4>
             <div className="platform-tag">Wallet Access & Signing</div>
