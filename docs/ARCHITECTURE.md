@@ -96,12 +96,24 @@ External Agents / Services
   UI / Operator Views
 ```
 
+## Confidential Policy Layer (Planned — Fhenix)
+
+A fourth layer is being added for **privacy-by-design** policy evaluation using Fully Homomorphic Encryption on Fhenix (CoFHE):
+
+- **`ConfidentialSpendPolicy.sol`** on Fhenix holds encrypted budgets (`euint256`), encrypted spend counters, and encrypted approval thresholds.
+- **`FhenixPolicyService.ts`** wraps `@cofhe/sdk` to encrypt amounts client-side, submit to Fhenix, and consume the verified decision attestation.
+- **Cross-chain bridge:** Fhenix emits `decisionId + attestation` → X Layer `GovernanceContract.recordAction(...)` consumes it for execution and public anchoring. Encrypted state never leaves Fhenix.
+- **Selective disclosure:** Auditor permits issued via `/api/audit/permits` allow scoped decryption of audit rows for compliance review.
+
+This layer is **additive** — existing X Layer / 0G / Filecoin layers remain unchanged. Policies opt in via a `confidential: true` flag.
+
+See [Fhenix Integration](./FHENIX_INTEGRATION.md) for the full plan.
+
 ## Legacy Components
 
 These parts of the repo are considered transitional and should not be part of the product narrative:
 
-- **Bitte integration** — discontinued, should not be part of the hackathon story
-- **Env-var private keys** — some services still use signer keys from env vars as a temporary implementation detail; the intended architecture uses OWS wallet storage
+- **Env-var private keys** — some services still use signer keys from env vars as a temporary implementation detail; the intended architecture uses OWS wallet storage. This refactor is sequenced after Fhenix wave 2 since encrypted policy state strengthens the case for vault-only key custody.
 
 ## Key Endpoints
 
