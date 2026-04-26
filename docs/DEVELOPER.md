@@ -119,6 +119,7 @@ Related: `GET/POST /api/governance/policies`, `GET /api/governance/health`
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/spend` | POST | Execute governed spend |
+| `/api/spend/encrypted` | POST | Execute confidential-policy spend with encrypted amount payload |
 | `/api/spend/preview` | POST | Simulate spend (dry-run) |
 | `/api/spend/status` | GET | Execution status |
 
@@ -128,6 +129,7 @@ Related: `GET/POST /api/governance/policies`, `GET /api/governance/health`
 |----------|--------|-------------|
 | `/api/audit/logs` | GET | Audit trail |
 | `/api/audit/insights` | GET | Audit insights |
+| `/api/audit/permits` | POST | Issue confidential audit decryption permits |
 | `/api/cre/runs` | GET | Run ledger |
 | `/api/cre/runs/:runId` | GET | Run details |
 | `/api/cre/runs/:runId/events/stream` | GET | SSE event stream |

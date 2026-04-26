@@ -529,6 +529,10 @@ export class ApiModule extends BaseService {
       this.ctrl("auditLog").resolveInsight(req, res);
     });
 
+    apiRouter.post("/audit/permits", (req, res) => {
+      this.ctrl("auditLog").issuePermit(req, res);
+    });
+
     // CRE / Agent Run Ledger routes
     apiRouter.get("/cre/runs", (req, res) => {
       this.ctrl("cre").listRuns(req, res);

@@ -73,7 +73,7 @@ test("SpendController.requestEncryptedSpend forwards confidential context", asyn
   assert.equal(capturedContext?.encryptedAmount, "0xdeadbeef");
   assert.equal(capturedContext?.vendorHash, "0x1234");
   assert.equal(capturedContext?.apiKeyToken, "ows_tok_123");
-  assert.equal(capturedIntent?.metadata?.confidentialPolicy, true);
+  assert.equal(capturedIntent?.metadata?.encryptedAmount, "0xdeadbeef");
 });
 
 test("SpendController.requestEncryptedSpend validates payload", async () => {

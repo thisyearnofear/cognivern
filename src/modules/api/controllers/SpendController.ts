@@ -118,7 +118,6 @@ export class SpendController {
       const metadata: Record<string, any> = {
         ...(parse.data.metadata || {}),
         encryptedAmount: parse.data.encryptedAmount,
-        confidentialPolicy: true,
       };
       if (parse.data.vendorHash) {
         metadata.vendorHash = parse.data.vendorHash;

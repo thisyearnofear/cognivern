@@ -1,5 +1,12 @@
 import { Request, Response } from "express";
 import { AuditLogService } from "../../../services/AuditLogService.js";
+import { z } from "zod";
+import { owsWalletService } from "../../../services/OwsWalletService.js";
+
+const issuePermitSchema = z.object({
+  auditor: z.string().min(1),
+  policyId: z.string().min(1),
+});
 
 export class AuditLogController {
   private auditLogService: AuditLogService;
@@ -97,6 +104,33 @@ export class AuditLogController {
     res.json({
       success,
       message: success ? "Insight resolved successfully" : "Failed to resolve insight",
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  async issuePermit(req: Request, res: Response): Promise<void> {
+    const parse = issuePermitSchema.safeParse(req.body);
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid permit request payload",
+        details: parse.error.format(),
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const permit = await owsWalletService.issueAuditPermit(
+      parse.data.auditor,
+      parse.data.policyId,
+    );
+    res.json({
+      success: true,
+      data: {
+        permit,
+        auditor: parse.data.auditor,
+        policyId: parse.data.policyId,
+      },
       timestamp: new Date().toISOString(),
     });
   }

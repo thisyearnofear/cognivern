@@ -12,7 +12,7 @@ import {
   owsLocalVaultService,
   OwsResolvedAccess,
 } from "./OwsLocalVaultService.js";
-import { FhenixPolicyService } from "./FhenixPolicyService.js";
+import { FhenixPolicyService, FhenixClientAdapter } from "./FhenixPolicyService.js";
 
 export interface SpendIntent {
   id: string;
@@ -53,12 +53,19 @@ export class OwsWalletService {
   private fhenixPolicyService: FhenixPolicyService;
 
   constructor(policyService?: PolicyService) {
+    const fhenixClient = this.resolveFhenixClient(process.env.FHENIX_CLIENT_ADAPTER);
     this.policyService = policyService || sharedPolicyService;
     this.policyEnforcement = new PolicyEnforcementService(this.policyService);
     this.fhenixPolicyService = new FhenixPolicyService({
       rpcUrl: process.env.FHENIX_RPC_URL || "",
       contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
+      client: fhenixClient,
+      evaluateTimeoutMs: Number(process.env.FHENIX_EVALUATE_TIMEOUT_MS || "15000"),
     });
+  }
+
+  public async issueAuditPermit(auditor: string, policyId: string): Promise<string> {
+    return this.fhenixPolicyService.issueAuditPermit(auditor, policyId);
   }
 
   /**
@@ -566,15 +573,8 @@ export class OwsWalletService {
     });
   }
 
-  private shouldUseConfidentialPolicy(
-    intent: SpendIntent,
-    context: SpendExecutionContext,
-  ): boolean {
-    return (
-      context.confidential === true ||
-      intent.metadata?.confidentialPolicy === true ||
-      typeof context.encryptedAmount === "string"
-    );
+  private shouldUseConfidentialPolicy(activePolicy: Policy): boolean {
+    return activePolicy.metadata?.confidential === true;
   }
 
   private async evaluatePolicyChecks(
@@ -586,10 +586,31 @@ export class OwsWalletService {
     policyChecks: AgentAction["policyChecks"];
     decision?: { status: ExecutionResult["status"]; reason?: string };
   }> {
-    if (!this.shouldUseConfidentialPolicy(intent, context)) {
+    if (!this.shouldUseConfidentialPolicy(activePolicy)) {
       await this.policyEnforcement.loadPolicy(activePolicy.id);
       const decision = await this.policyEnforcement.evaluateDecision(action);
       return { policyChecks: decision.policyChecks };
+    }
+
+    if (
+      typeof context.encryptedAmount !== "string" &&
+      typeof intent.metadata?.encryptedAmount !== "string"
+    ) {
+      return {
+        policyChecks: [
+          {
+            policyId: activePolicy.id,
+            result: false,
+            reason:
+              "Confidential policy requires encrypted amount input. Held for manual review.",
+          },
+        ],
+        decision: {
+          status: "held",
+          reason:
+            "Confidential policy requires encrypted amount input. Held for manual review.",
+        },
+      };
     }
 
     const amountWei = BigInt(intent.amount);
@@ -629,8 +650,37 @@ export class OwsWalletService {
           reason: `Confidential outcome: ${confidentialDecision.outcome}`,
         },
       ],
-      decision: decisionByOutcome[confidentialDecision.outcome],
+      decision: {
+        ...decisionByOutcome[confidentialDecision.outcome],
+        reason:
+          decisionByOutcome[confidentialDecision.outcome].reason ||
+          `Confidential decision ${confidentialDecision.decisionId} approved spend`,
+      },
     };
+  }
+
+  private resolveFhenixClient(adapterName?: string): FhenixClientAdapter | undefined {
+    if (!adapterName || adapterName.toLowerCase() === "none") {
+      return undefined;
+    }
+
+    if (adapterName.toLowerCase() === "stub") {
+      return {
+        encryptUint256: async (value: bigint) => `0x${value.toString(16)}`,
+        evaluateSpend: async ({ agentId, policyId, amountCiphertext, vendorHash }) => ({
+          decisionId: `0x${createHash("sha256")
+            .update(`${agentId}:${policyId}:${amountCiphertext}:${vendorHash}`)
+            .digest("hex")}`,
+          outcome: 2,
+          attestation: "0x",
+        }),
+        issueAuditPermit: async ({ auditor, policyId }) =>
+          `0x${createHash("sha256").update(`${auditor}:${policyId}`).digest("hex")}`,
+      };
+    }
+
+    logger.warn(`Unknown FHENIX_CLIENT_ADAPTER '${adapterName}', using default fallback`);
+    return undefined;
   }
 
   /**
