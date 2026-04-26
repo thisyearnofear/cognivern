@@ -4,6 +4,12 @@
 
 This document describes how Cognivern adds **Fhenix (CoFHE)** as a third deployment layer alongside the existing X Layer (execution) and Filecoin (audit) layers — without removing or replacing either.
 
+In product terms, this supports Cognivern's unified operating model:
+- **Policy:** every spend/decision route stays governed.
+- **Privacy:** sensitive thresholds and inputs remain encrypted.
+- **Efficiency:** teams can add model/runtime spend optimization signals without leaking operational strategy.
+- **Auditability:** decisions remain provable (`decisionId`, attestation) even when inputs are confidential.
+
 ---
 
 ## 1. Layered Architecture (Updated)
@@ -184,7 +190,17 @@ New surfaces:
 
 ---
 
-## 6. Privara Layer (Application Tooling)
+## 6. Efficiency Governance Alignment
+
+Confidential policy infrastructure is not only for hiding wallet budgets — it is also a foundation for AI spend efficiency governance.
+
+As Cognivern expands usage ingestion across IDE/CLI/agent workflows, efficiency signals (for example model choice, token/cost envelopes, and task class metadata) can be attached to policy evaluation and audit evidence while sensitive operating details remain protected.
+
+Design constraint: keep a **single enforcement plane** (no parallel decision stack). Efficiency policies should compose with existing policy checks, confidential evaluation, and audit artifacts.
+
+---
+
+## 7. Privara Layer (Application Tooling)
 
 Use `@reineira-os/sdk` for the **payment-rails** half of `/api/spend`:
 - Confidential payroll to contractor wallets — agent-initiated, policy-gated, amount-encrypted.
@@ -194,7 +210,7 @@ This composes cleanly: Cognivern decides → Privara executes the confidential t
 
 ---
 
-## 7. Hardhat Setup
+## 8. Hardhat Setup
 
 Add a `contracts/fhenix/` workspace using the CoFHE Hardhat plugin for local dev:
 
@@ -213,7 +229,7 @@ module.exports = {
 
 ---
 
-## 8. Cross-Chain Flow
+## 9. Cross-Chain Flow
 
 ```
 Frontend (useEncrypt amount)

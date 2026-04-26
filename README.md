@@ -1,10 +1,10 @@
 # Cognivern
 
-**SpendOS for agent wallets.**
+**SpendOS for agent teams.**
 
-Cognivern is a control plane for OWS wallets: budgets, policy checks, approvals, and audit for autonomous agents.
+Cognivern is a control plane for agent operations: governed wallet spend plus AI spend governance across IDE, CLI, and agent workflows.
 
-> Give agents wallets without giving them blank checks.
+> Move fast without blank checks: every spend can be policy-checked, privacy-preserving, efficiency-aware, and audit-ready.
 
 ## Quick Start
 
@@ -25,6 +25,8 @@ See [Developer Guide](./docs/DEVELOPER.md) for full setup and API reference.
 
 ## What It Does
 
+Cognivern solves a common agentic scaling problem: teams can ship quickly, but spend control, privacy, and accountability often fragment across tools. The platform unifies those rails so operators can prove disciplined execution without slowing builders down.
+
 | Capability | Endpoint |
 |------------|----------|
 | Policy evaluation | `POST /api/governance/evaluate` |
@@ -37,6 +39,13 @@ See [Developer Guide](./docs/DEVELOPER.md) for full setup and API reference.
 | Audit permits (confidential) | `POST /api/audit/permits` |
 | Run ledger | `GET /api/cre/runs` |
 | Run ingestion | `POST /ingest/runs` |
+
+### Product Primitives
+
+- **Policy:** enforce who/what/when rules before spend executes.
+- **Privacy:** evaluate sensitive policy context via confidential policy paths (`Fhenix` adapter).
+- **Efficiency:** establish one governance layer for AI operations spend (model/runtime usage visibility and optimization workflows) alongside financial spend controls.
+- **Audit:** persist decision evidence (`decisionId`, attestation, run context) for continuous accountability.
 
 ## Demo
 

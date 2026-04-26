@@ -1,5 +1,7 @@
 # Developer Guide
 
+This guide covers Cognivern as a unified governance plane for agent teams: financial spend controls, confidential policy enforcement, and emerging AI spend efficiency operations across toolchains.
+
 ## Local Setup
 
 ### Requirements
@@ -62,11 +64,19 @@ This is a pnpm monorepo with three packages:
 |---------|---------------|
 | `PolicyService` | Loads and stores local policies |
 | `PolicyEnforcementService` | Evaluates actions against policy rules, returns allow/deny decisions |
+| `FhenixPolicyService` | Evaluates confidential policy paths, normalizes encrypted decisions, and issues permit-ready evidence |
 | `AuditLogService` | Maps events into CRE-backed evidence records |
 | `IngestController` | Validates and stores BYO-agent runs, enforces ingest keys |
 | `CreController` | Exposes run ledger, event streams, retries, approvals |
 | `OwsLocalVaultService` | Encrypted local wallet storage, API-key issuance |
 | `OwsWalletService` | Spend execution, policy enforcement, signed authorizations |
+
+### Product framing for contributors
+
+- **Policy:** central enforcement path for governed execution decisions.
+- **Privacy:** confidential policy mode (`policy.metadata.confidential`) for encrypted evaluation and scoped permit workflows.
+- **Efficiency:** AI usage and model-routing optimization should integrate into the same governance/audit plane (single source of truth, no parallel enforcement stack).
+- **Auditability:** decision artifacts (`decisionId`, attestations, execution context) remain first-class outputs for downstream reporting and controls.
 
 ## API Reference
 
