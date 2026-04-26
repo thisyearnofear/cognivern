@@ -29,10 +29,12 @@ See [Developer Guide](./docs/DEVELOPER.md) for full setup and API reference.
 |------------|----------|
 | Policy evaluation | `POST /api/governance/evaluate` |
 | Governed spend | `POST /api/spend` |
+| Governed encrypted spend | `POST /api/spend/encrypted` |
 | Spend preview (dry-run) | `POST /api/spend/preview` |
 | OWS wallet bootstrap | `POST /api/ows/bootstrap` |
 | API-key issuance | `POST /api/ows/api-keys` |
 | Audit trail | `GET /api/audit/logs` |
+| Audit permits (confidential) | `POST /api/audit/permits` |
 | Run ledger | `GET /api/cre/runs` |
 | Run ingestion | `POST /ingest/runs` |
 
@@ -62,7 +64,7 @@ pnpm demo:live
 |-------|-------|-----------|
 | Execution & Policy | X Layer Testnet (chainId 1952) | GovernanceContract `0x755602bB...`, AIGovernanceStorage `0x1E0317bF...` |
 | Audit Storage | Filecoin Calibration | GovernanceContract + AIGovernanceStorage |
-| Confidential Policy State (planned) | Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia) | `ConfidentialSpendPolicy` — see [Fhenix Integration](./docs/FHENIX_INTEGRATION.md) |
+| Confidential Policy State (adapter live, chain integration in progress) | Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia) | `ConfidentialSpendPolicy` + backend confidential policy adapter — see [Fhenix Integration](./docs/FHENIX_INTEGRATION.md) |
 
 ## Status
 

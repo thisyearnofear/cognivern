@@ -249,8 +249,8 @@ Audit UI (operator sees outcome; auditor with permit sees amounts)
 | Wave | Deliverable |
 |------|-------------|
 | **Wave 1 (Ideation)** | This integration doc + `ConfidentialSpendPolicy.sol` skeleton + Hardhat scaffold |
-| **Wave 2** | `FhenixPolicyService` end-to-end on Fhenix testnet; `/api/spend/encrypted` working with plaintext fallback |
-| **Wave 3 (Marathon)** | Frontend `useEncrypt` flow; auditor permits; X Layer cross-chain decision anchoring; demo script |
+| **Wave 2** | `/api/spend/encrypted` live, `FhenixPolicyService` adapter path wired (client-injected, timeout + outcome normalization), policy metadata gate (`policy.metadata.confidential`) enforced in spend path |
+| **Wave 3 (Marathon)** | Frontend `useEncrypt` flow; production CoFHE client + contract adapter; auditor permit consumption/decrypt UX; X Layer cross-chain decision anchoring; demo script |
 | **Wave 4** | Privara SDK integration for confidential payroll; sealed-bid vendor selection example |
 | **Wave 5 (Final)** | Production-grade demo: institutional treasury agent operating with fully encrypted budgets, MEV-protected execution, selective auditor disclosure |
 
