@@ -7,10 +7,12 @@ import { creRunStore } from "../cre/storage/CreRunStore.js";
 import { enrichCreRunEvidence } from "../shared/utils/evidence.js";
 import { AgentAction } from "../types/Agent.js";
 import { ethers } from "ethers";
+import { createHash } from "node:crypto";
 import {
   owsLocalVaultService,
   OwsResolvedAccess,
 } from "./OwsLocalVaultService.js";
+import { FhenixPolicyService } from "./FhenixPolicyService.js";
 
 export interface SpendIntent {
   id: string;
@@ -40,15 +42,23 @@ export interface ExecutionResult {
 export interface SpendExecutionContext {
   apiKeyToken?: string | null;
   walletId?: string;
+  confidential?: boolean;
+  encryptedAmount?: string;
+  vendorHash?: string;
 }
 
 export class OwsWalletService {
   private policyService: PolicyService;
   private policyEnforcement: PolicyEnforcementService;
+  private fhenixPolicyService: FhenixPolicyService;
 
   constructor(policyService?: PolicyService) {
     this.policyService = policyService || sharedPolicyService;
     this.policyEnforcement = new PolicyEnforcementService(this.policyService);
+    this.fhenixPolicyService = new FhenixPolicyService({
+      rpcUrl: process.env.FHENIX_RPC_URL || "",
+      contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
+    });
   }
 
   /**
@@ -121,10 +131,18 @@ export class OwsWalletService {
       }
 
       let policyChecks: AgentAction["policyChecks"] = [];
+      let policyDecision:
+        | { status: ExecutionResult["status"]; reason?: string }
+        | undefined;
       try {
-        await this.policyEnforcement.loadPolicy(activePolicy.id);
-        const decision = await this.policyEnforcement.evaluateDecision(action);
-        policyChecks = decision.policyChecks;
+        const evaluated = await this.evaluatePolicyChecks(
+          intent,
+          action,
+          activePolicy,
+          context,
+        );
+        policyChecks = evaluated.policyChecks;
+        policyDecision = evaluated.decision;
       } catch (e) {
         step.end({ ok: false, summary: "Policy evaluation failed" });
         logger.warn(
@@ -139,7 +157,7 @@ export class OwsWalletService {
         );
       }
 
-      const decision = this.classifyDecision(activePolicy, policyChecks);
+      const decision = policyDecision || this.classifyDecision(activePolicy, policyChecks);
       const failedChecks = policyChecks.filter((check) => !check.result);
       step.end({
         ok: decision.status === "approved",
@@ -548,6 +566,73 @@ export class OwsWalletService {
     });
   }
 
+  private shouldUseConfidentialPolicy(
+    intent: SpendIntent,
+    context: SpendExecutionContext,
+  ): boolean {
+    return (
+      context.confidential === true ||
+      intent.metadata?.confidentialPolicy === true ||
+      typeof context.encryptedAmount === "string"
+    );
+  }
+
+  private async evaluatePolicyChecks(
+    intent: SpendIntent,
+    action: AgentAction,
+    activePolicy: Policy,
+    context: SpendExecutionContext,
+  ): Promise<{
+    policyChecks: AgentAction["policyChecks"];
+    decision?: { status: ExecutionResult["status"]; reason?: string };
+  }> {
+    if (!this.shouldUseConfidentialPolicy(intent, context)) {
+      await this.policyEnforcement.loadPolicy(activePolicy.id);
+      const decision = await this.policyEnforcement.evaluateDecision(action);
+      return { policyChecks: decision.policyChecks };
+    }
+
+    const amountWei = BigInt(intent.amount);
+    const vendorHash =
+      context.vendorHash ||
+      (typeof intent.metadata?.vendorHash === "string"
+        ? intent.metadata.vendorHash
+        : `0x${createHash("sha256").update(intent.recipient).digest("hex")}`);
+
+    const confidentialDecision = await this.fhenixPolicyService.evaluateEncrypted({
+      agentId: intent.agentId,
+      policyId: activePolicy.id,
+      amountWei,
+      vendorHash,
+    });
+
+    const decisionByOutcome: Record<
+      typeof confidentialDecision.outcome,
+      { status: ExecutionResult["status"]; reason?: string }
+    > = {
+      approve: { status: "approved" },
+      hold: {
+        status: "held",
+        reason: "Confidential policy requires manual review.",
+      },
+      deny: {
+        status: "denied",
+        reason: "Confidential policy denied this spend.",
+      },
+    };
+
+    return {
+      policyChecks: [
+        {
+          policyId: activePolicy.id,
+          result: confidentialDecision.outcome === "approve",
+          reason: `Confidential outcome: ${confidentialDecision.outcome}`,
+        },
+      ],
+      decision: decisionByOutcome[confidentialDecision.outcome],
+    };
+  }
+
   /**
    * Preview a spend without executing - returns policy evaluation without signing
    */
@@ -585,13 +670,27 @@ export class OwsWalletService {
       };
     }
 
-    await this.policyEnforcement.loadPolicy(activePolicy.id);
     const action = this.toAgentAction(intent);
-    const decision = await this.policyEnforcement.evaluateDecision(action);
-    const policyResult = this.classifyDecision(
+    const evaluated = await this.evaluatePolicyChecks(
+      intent,
+      action,
       activePolicy,
-      decision.policyChecks,
+      {
+        apiKeyToken: intent.metadata?.apiKeyToken as string | undefined,
+        confidential: intent.metadata?.confidentialPolicy === true,
+        encryptedAmount:
+          typeof intent.metadata?.encryptedAmount === "string"
+            ? intent.metadata.encryptedAmount
+            : undefined,
+        vendorHash:
+          typeof intent.metadata?.vendorHash === "string"
+            ? intent.metadata.vendorHash
+            : undefined,
+      },
     );
+    const policyResult =
+      evaluated.decision ||
+      this.classifyDecision(activePolicy, evaluated.policyChecks);
 
     return {
       intentId: intent.id,
@@ -601,7 +700,7 @@ export class OwsWalletService {
       simulation: {
         wouldExecute: policyResult.status === "approved",
         gasEstimate: policyResult.status === "approved" ? "21000" : undefined,
-        warnings: decision.policyChecks
+        warnings: evaluated.policyChecks
           .filter((c) => !c.result)
           .map((c) => c.reason || `Policy check failed`),
       },

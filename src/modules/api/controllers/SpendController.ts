@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   owsWalletService,
   SpendIntent,
+  SpendExecutionContext,
 } from "../../../services/OwsWalletService.js";
 import crypto from "node:crypto";
 import { Logger } from "../../../shared/logging/Logger.js";
@@ -18,7 +19,54 @@ const spendIntentSchema = z.object({
   metadata: z.record(z.any()).optional(),
 });
 
+const encryptedSpendIntentSchema = spendIntentSchema.extend({
+  encryptedAmount: z.string().min(1),
+  vendorHash: z.string().min(1).optional(),
+});
+
 export class SpendController {
+  private buildIntent(payload: z.infer<typeof spendIntentSchema>): SpendIntent {
+    return {
+      id: `spend_${crypto.randomUUID()}`,
+      timestamp: new Date().toISOString(),
+      agentId: payload.agentId,
+      recipient: payload.recipient,
+      amount: payload.amount,
+      asset: payload.asset,
+      reason: payload.reason,
+      metadata: payload.metadata,
+    };
+  }
+
+  private async executeIntent(
+    req: Request,
+    res: Response,
+    intent: SpendIntent,
+    context: SpendExecutionContext = {},
+  ) {
+    const owsScopedAccess = req.headers["x-ows-scoped-access"] as
+      | string
+      | undefined;
+    logger.debug("OWS scoped access received", {
+      prefix: owsScopedAccess?.substring(0, 10),
+    });
+    const walletId =
+      typeof intent.metadata?.walletId === "string"
+        ? intent.metadata.walletId
+        : undefined;
+
+    const result = await owsWalletService.executeSpend(intent, {
+      apiKeyToken: owsScopedAccess,
+      walletId,
+      ...context,
+    });
+    res.json({
+      success: true,
+      data: result,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   /**
    * Request a spend execution from an agent
    */
@@ -34,37 +82,8 @@ export class SpendController {
         return;
       }
 
-      const intent: SpendIntent = {
-        id: `spend_${crypto.randomUUID()}`,
-        timestamp: new Date().toISOString(),
-        agentId: parse.data.agentId,
-        recipient: parse.data.recipient,
-        amount: parse.data.amount,
-        asset: parse.data.asset,
-        reason: parse.data.reason,
-        metadata: parse.data.metadata,
-      };
-
-      const owsScopedAccess = req.headers["x-ows-scoped-access"] as
-        | string
-        | undefined;
-      logger.debug("OWS scoped access received", {
-        prefix: owsScopedAccess?.substring(0, 10),
-      });
-      const walletId =
-        typeof parse.data.metadata?.walletId === "string"
-          ? parse.data.metadata.walletId
-          : undefined;
-
-      const result = await owsWalletService.executeSpend(intent, {
-        apiKeyToken: owsScopedAccess,
-        walletId,
-      });
-      res.json({
-        success: true,
-        data: result,
-        timestamp: new Date().toISOString(),
-      });
+      const intent = this.buildIntent(parse.data);
+      await this.executeIntent(req, res, intent);
     } catch (error) {
       logger.error(
         "Spend execution failed",
@@ -76,6 +95,56 @@ export class SpendController {
           error instanceof Error
             ? error.message
             : "Unknown spend execution error",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * Request encrypted spend execution from an agent
+   */
+  async requestEncryptedSpend(req: Request, res: Response) {
+    try {
+      const parse = encryptedSpendIntentSchema.safeParse(req.body);
+      if (!parse.success) {
+        res.status(400).json({
+          success: false,
+          error: "Invalid encrypted spend payload",
+          details: parse.error.format(),
+        });
+        return;
+      }
+
+      const metadata: Record<string, any> = {
+        ...(parse.data.metadata || {}),
+        encryptedAmount: parse.data.encryptedAmount,
+        confidentialPolicy: true,
+      };
+      if (parse.data.vendorHash) {
+        metadata.vendorHash = parse.data.vendorHash;
+      }
+
+      const intent = this.buildIntent({
+        ...parse.data,
+        metadata,
+      });
+
+      await this.executeIntent(req, res, intent, {
+        confidential: true,
+        encryptedAmount: parse.data.encryptedAmount,
+        vendorHash: parse.data.vendorHash,
+      });
+    } catch (error) {
+      logger.error(
+        "Encrypted spend execution failed",
+        error instanceof Error ? error : undefined,
+      );
+      res.status(500).json({
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unknown encrypted spend execution error",
         timestamp: new Date().toISOString(),
       });
     }
