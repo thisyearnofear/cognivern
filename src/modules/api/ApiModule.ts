@@ -571,6 +571,10 @@ export class ApiModule extends BaseService {
       this.ctrl("spend").requestSpend(req, res);
     });
 
+    apiRouter.post("/spend/encrypted", (req, res) => {
+      this.ctrl("spend").requestEncryptedSpend(req, res);
+    });
+
     apiRouter.post("/spend/preview", (req, res) => {
       this.ctrl("spend").previewSpend(req, res);
     });
