@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Global, css } from '@emotion/react';
 import { CofheProvider, createCofheConfig } from '@cofhe/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createPublicClient, createWalletClient, custom, http } from 'viem';
@@ -35,6 +36,7 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
       ],
       react: {
         projectName: 'Cognivern SpendOS',
+        position: 'bottom-left',
       },
     });
   }, []);
@@ -60,6 +62,28 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <CofheProvider config={cofheConfig} publicClient={publicClient as any} walletClient={walletClient as any}>
+        <Global
+          styles={css`
+            /* Tame the CoFHE Portal widget */
+            .cofhe-floating-button {
+              z-index: 50 !important;
+              transition: all 0.3s ease !important;
+            }
+            .cofhe-floating-button:hover {
+              transform: translateY(-2px) !important;
+              box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.4) !important;
+            }
+            /* Fix massive logo and negative space inside the CoFHE modal/portal */
+            div[class*="cofhe-"] img {
+              max-width: 48px !important;
+              max-height: 48px !important;
+              object-fit: contain !important;
+            }
+            div[class*="cofhe-"] {
+              border-radius: 16px !important;
+            }
+          `}
+        />
         {children}
       </CofheProvider>
     </QueryClientProvider>
