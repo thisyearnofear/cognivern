@@ -19,7 +19,7 @@ export const modalStyles = {
     backdrop-filter: blur(4px);
   `,
   container: (size: ModalSize = 'md') => css`
-    background-color: ${designTokens.colors.neutral[0]};
+    background-color: var(--card-bg, ${designTokens.colors.neutral[0]});
     border-radius: ${designTokens.borderRadius.lg};
     box-shadow: ${designTokens.shadows['2xl']};
     max-height: 90vh;
@@ -61,7 +61,7 @@ export const modalStyles = {
   title: css`
     font-size: ${designTokens.typography.fontSize.xl};
     font-weight: ${designTokens.typography.fontWeight.semibold};
-    color: ${designTokens.colors.neutral[900]};
+    color: var(--text-primary, ${designTokens.colors.neutral[900]});
     margin: 0;
   `,
   content: css`
