@@ -24,6 +24,9 @@ export default defineConfig(({ mode }) => {
       minify: 'esbuild',
       sourcemap: false,
     },
+    worker: {
+      format: 'es',
+    },
 
     server: {
       proxy: {
@@ -33,7 +36,7 @@ export default defineConfig(({ mode }) => {
           secure: mode === 'production', // Require HTTPS in production
           rewrite: (path) => path,
           // Handle CORS headers
-          onProxyRes: (proxyRes) => {
+          onProxyRes: (proxyRes: any) => {
             proxyRes.headers['Access-Control-Allow-Origin'] = '*';
             proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
             proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-API-KEY';
