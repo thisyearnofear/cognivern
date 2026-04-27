@@ -6,11 +6,33 @@ import { baseSepolia } from 'viem/chains';
 
 const queryClient = new QueryClient();
 
+const fhenixHelium = {
+  id: 8008135,
+  name: 'Fhenix Helium',
+  nativeCurrency: { name: 'tFHE', symbol: 'tFHE', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://api.testnet.fhenix.zone'] },
+  },
+  blockExplorers: {
+    default: { name: 'Explorer', url: 'https://explorer.testnet.fhenix.zone' },
+  },
+} as const;
+
 export function FhenixProvider({ children }: { children: React.ReactNode }) {
   const cofheConfig = useMemo(() => {
     return createCofheConfig({
-      chainId: baseSepolia.id,
-      rpcUrl: 'https://api.testnet.fhenix.zone',
+      environment: 'react',
+      supportedChains: [
+        {
+          id: 8008135,
+          name: 'Fhenix Helium',
+          network: 'helium',
+          coFheUrl: 'https://api.testnet.fhenix.zone',
+          verifierUrl: 'https://api.testnet.fhenix.zone',
+          thresholdNetworkUrl: 'https://api.testnet.fhenix.zone',
+          environment: 'TESTNET',
+        },
+      ],
       react: {
         projectName: 'Cognivern SpendOS',
       },
@@ -20,7 +42,7 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
   // We use window.ethereum directly as the project doesn't use Wagmi yet
   const publicClient = useMemo(() => {
     return createPublicClient({
-      chain: baseSepolia,
+      chain: fhenixHelium as any,
       transport: http('https://api.testnet.fhenix.zone'),
     });
   }, []);
@@ -28,7 +50,7 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
   const walletClient = useMemo(() => {
     if (typeof window !== 'undefined' && window.ethereum) {
       return createWalletClient({
-        chain: baseSepolia,
+        chain: fhenixHelium as any,
         transport: custom(window.ethereum),
       });
     }
@@ -37,7 +59,7 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <CofheProvider config={cofheConfig} publicClient={publicClient} walletClient={walletClient}>
+      <CofheProvider config={cofheConfig} publicClient={publicClient as any} walletClient={walletClient as any}>
         {children}
       </CofheProvider>
     </QueryClientProvider>
