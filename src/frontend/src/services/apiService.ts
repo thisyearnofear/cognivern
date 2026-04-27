@@ -308,7 +308,7 @@ export class AgentApiService extends ApiService {
 
   // Resolve a governance quest (Functional Layer)
   async resolveQuest(questId: string) {
-    return this.post(`/api/audit/insights/${questId}/resolve`);
+    return this.post<{ success: boolean }>(`/api/audit/insights/${questId}/resolve`);
   }
 
   // Get unified dashboard bundle (Consolidation)
@@ -521,7 +521,15 @@ export class OwsApiService extends ApiService {
 
   // Get unified OWS dashboard
   async getDashboard() {
-    return this.get('/api/ows/dashboard');
+    return this.get<{
+      wallet: { id: string; name: string; chainType: string; accounts: Array<{ address: string; chainId: string }> } | null;
+      apiKeys: Array<{ id: string; name: string; createdAt: string; walletCount: number; policyCount: number }>;
+      agents: Array<{ id: string; name: string; type: string; status: string; policyCount: number }>;
+      permissions: Array<{ type: string; value?: unknown }>;
+      hasWallet: boolean;
+      hasApiKeys: boolean;
+      hasAgents: boolean;
+    }>('/api/ows/dashboard');
   }
 
   // List OWS agents
