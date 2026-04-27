@@ -73,14 +73,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
       {/* Header */}
       <header
         css={css`
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 50;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          width: 100%;
-          max-width: 1200px;
-          margin-bottom: ${designTokens.spacing[12]};
+          padding: ${designTokens.spacing[4]} max(24px, calc((100% - 1200px) / 2));
+          background: ${designTokens.colors.neutral[0]}cc;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border-bottom: 1px solid ${designTokens.colors.neutral[200]};
           opacity: ${isVisible ? 1 : 0};
-          transform: translateY(${isVisible ? 0 : -20}px);
+          transform: translateY(${isVisible ? 0 : -100}%);
           transition: all 0.5s ease-out;
         `}
       >
@@ -149,6 +156,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
         css={css`
           max-width: 800px;
           text-align: center;
+          margin-top: ${designTokens.spacing[32]};
           opacity: ${isVisible ? 1 : 0};
           transform: translateY(${isVisible ? 0 : 20}px);
           transition: all 0.6s ease-out 0.2s;
@@ -176,14 +184,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
 
         <h1
           css={css`
-            font-size: ${designTokens.typography.fontSize['4xl']};
+            font-size: ${designTokens.typography.fontSize['5xl']};
             font-weight: ${designTokens.typography.fontWeight.bold};
-            color: ${designTokens.colors.neutral[900]};
+            color: var(--text-primary, ${designTokens.colors.neutral[900]});
             margin-bottom: ${designTokens.spacing[6]};
-            line-height: 1.2;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+
+            @media (min-width: 1024px) {
+              font-size: 4.5rem;
+            }
 
             @media (max-width: 640px) {
-              font-size: ${designTokens.typography.fontSize['3xl']};
+              font-size: ${designTokens.typography.fontSize['4xl']};
             }
           `}
         >
@@ -204,7 +217,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
         <p
           css={css`
             font-size: ${designTokens.typography.fontSize.lg};
-            color: ${designTokens.colors.neutral[600]};
+            color: var(--text-secondary, ${designTokens.colors.neutral[700]});
             max-width: 600px;
             margin: 0 auto ${designTokens.spacing[8]};
             line-height: ${designTokens.typography.lineHeight.relaxed};
@@ -371,12 +384,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
         {/* Multi-Chain Section */}
         <div
           css={css`
-            margin-top: ${designTokens.spacing[12]};
-            padding: ${designTokens.spacing[8]};
-            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
-            border-radius: ${designTokens.borderRadius.xl};
-            border: 1px solid rgba(0, 212, 255, 0.2);
+            margin-top: ${designTokens.spacing[16]};
+            padding: ${designTokens.spacing[10]};
+            background: ${designTokens.colors.neutral[900]};
+            border-radius: ${designTokens.borderRadius['2xl']};
+            border: 1px solid ${designTokens.colors.neutral[800]};
+            box-shadow: ${designTokens.shadows.xl};
             text-align: left;
+            position: relative;
+            overflow: hidden;
+
+            &::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              height: 2px;
+              background: ${designTokens.colorSystem.gradients.accent};
+              opacity: 0.8;
+            }
           `}
         >
           <div
@@ -618,7 +645,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
       <footer
         css={css`
           margin-top: ${designTokens.spacing[12]};
-          color: ${designTokens.colors.neutral[400]};
+          color: ${designTokens.colors.neutral[600]};
           font-size: ${designTokens.typography.fontSize.sm};
         `}
       >

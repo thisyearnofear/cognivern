@@ -1,4 +1,6 @@
+/** @jsxImportSource @emotion/react */
 import React, { useState, useEffect } from 'react';
+import { css } from '@emotion/react';
 import { useAppStore } from '../../stores/appStore';
 import { designTokens } from '../../styles/design-system';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
@@ -38,7 +40,7 @@ function OwsSetupStep() {
   const checkWalletStatus = async () => {
     try {
       const res = await owsApi.listWallets();
-      if (res.success && res.data && res.data.length > 0) {
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         setWalletStatus('connected');
       } else {
         setWalletStatus('none');
@@ -109,7 +111,7 @@ function OwsSetupStep() {
             width: 64,
             height: 64,
             borderRadius: '50%',
-            background: designTokens.colors.primary[50],
+            background: 'var(--surface-bg-alt, #f1f5f9)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -118,10 +120,10 @@ function OwsSetupStep() {
         >
           <Wallet size={32} color={designTokens.colors.primary[500]} />
         </div>
-        <h3 style={{ marginBottom: designTokens.spacing[2] }}>Connect OWS Wallet</h3>
+        <h3 style={{ marginBottom: designTokens.spacing[2], color: 'var(--text-primary)' }}>Connect OWS Wallet</h3>
         <p
           style={{
-            color: designTokens.colors.neutral[600],
+            color: 'var(--text-secondary)',
             maxWidth: 400,
             margin: '0 auto',
           }}
@@ -146,6 +148,7 @@ function OwsSetupStep() {
               style={{
                 margin: `${designTokens.spacing[2]} 0`,
                 fontSize: designTokens.typography.fontSize.sm,
+                color: 'var(--card-text)',
               }}
             >
               Scoped API Keys
@@ -153,7 +156,7 @@ function OwsSetupStep() {
             <p
               style={{
                 fontSize: designTokens.typography.fontSize.xs,
-                color: designTokens.colors.neutral[500],
+                color: 'var(--text-secondary)',
               }}
             >
               Agents get limited access, not full wallet control
@@ -168,6 +171,7 @@ function OwsSetupStep() {
               style={{
                 margin: `${designTokens.spacing[2]} 0`,
                 fontSize: designTokens.typography.fontSize.sm,
+                color: 'var(--card-text)',
               }}
             >
               Policy Enforcement
@@ -175,7 +179,7 @@ function OwsSetupStep() {
             <p
               style={{
                 fontSize: designTokens.typography.fontSize.xs,
-                color: designTokens.colors.neutral[500],
+                color: 'var(--text-secondary)',
               }}
             >
               Every spend checked against your rules before signing
@@ -192,7 +196,7 @@ function OwsSetupStep() {
           style={{
             marginTop: designTokens.spacing[3],
             fontSize: designTokens.typography.fontSize.sm,
-            color: designTokens.colors.neutral[400],
+            color: 'var(--text-muted)',
           }}
         >
           Creates an encrypted local vault with derived wallet keys
@@ -295,7 +299,7 @@ export const SmartOnboarding: React.FC = () => {
           <p
             style={{
               fontSize: designTokens.typography.fontSize.lg,
-              color: designTokens.colors.neutral[600],
+              color: 'var(--text-secondary)',
               maxWidth: '500px',
               margin: '0 auto',
               lineHeight: designTokens.typography.lineHeight.relaxed,
@@ -325,13 +329,18 @@ export const SmartOnboarding: React.FC = () => {
               key={type.id}
               interactive
               variant={selectedUserType === type.id ? 'elevated' : 'outlined'}
-              style={{
-                cursor: 'pointer',
-                border:
-                  selectedUserType === type.id
-                    ? `2px solid ${designTokens.colors.primary[500]}`
-                    : undefined,
-              }}
+              css={css`
+                cursor: pointer;
+                border: ${selectedUserType === type.id
+                  ? `2px solid ${designTokens.colors.primary[500]}`
+                  : `1px solid ${designTokens.colors.neutral[200]}`};
+                transition: all 0.3s ease;
+                &:hover {
+                  transform: scale(1.02);
+                  box-shadow: 0 10px 25px -5px ${designTokens.colors.primary[500]}20;
+                  border-color: ${designTokens.colors.primary[400]};
+                }
+              `}
               onClick={() => setSelectedUserType(type.id)}
             >
               <CardContent>
@@ -354,6 +363,7 @@ export const SmartOnboarding: React.FC = () => {
                       margin: 0,
                       fontSize: designTokens.typography.fontSize.lg,
                       fontWeight: designTokens.typography.fontWeight.semibold,
+                      color: 'var(--card-text)',
                     }}
                   >
                     {type.title}
@@ -362,7 +372,7 @@ export const SmartOnboarding: React.FC = () => {
                     style={{
                       margin: `${designTokens.spacing[2]} 0`,
                       fontSize: designTokens.typography.fontSize.sm,
-                      color: designTokens.colors.neutral[600],
+                      color: 'var(--text-secondary)',
                     }}
                   >
                     {type.description}
@@ -374,7 +384,7 @@ export const SmartOnboarding: React.FC = () => {
                     padding: 0,
                     margin: 0,
                     fontSize: designTokens.typography.fontSize.xs,
-                    color: designTokens.colors.neutral[500],
+                    color: 'var(--text-secondary)',
                   }}
                 >
                   {type.features.map((feature, index) => (
@@ -422,6 +432,7 @@ export const SmartOnboarding: React.FC = () => {
               fontSize: designTokens.typography.fontSize['2xl'],
               fontWeight: designTokens.typography.fontWeight.bold,
               margin: `0 0 ${designTokens.spacing[4]} 0`,
+              color: 'var(--text-primary)',
             }}
           >
             Welcome aboard!
@@ -429,7 +440,7 @@ export const SmartOnboarding: React.FC = () => {
           <p
             style={{
               fontSize: designTokens.typography.fontSize.base,
-              color: designTokens.colors.neutral[600],
+              color: 'var(--text-secondary)',
               marginBottom: designTokens.spacing[6],
             }}
           >
@@ -561,7 +572,7 @@ export const SmartOnboarding: React.FC = () => {
               </div>
               <div
                 style={{
-                  background: designTokens.colors.primary[50],
+                  background: 'var(--surface-bg-alt, #f1f5f9)',
                   padding: '8px',
                   borderRadius: '12px',
                   display: isMobile ? 'none' : 'flex',
@@ -593,34 +604,59 @@ export const SmartOnboarding: React.FC = () => {
     );
   }
 
-  const overlayStyle: React.CSSProperties = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: designTokens.zIndex.modal,
-    padding: designTokens.spacing[4],
-  };
+  const overlayStyle = css`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--overlay-bg, rgba(15, 23, 42, 0.6));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: ${designTokens.zIndex.modal};
+    padding: ${designTokens.spacing[4]};
+    animation: fadeIn 0.3s ease-out;
 
-  const modalStyle: React.CSSProperties = {
-    backgroundColor: designTokens.colors.neutral[0],
-    borderRadius: designTokens.borderRadius.xl,
-    boxShadow: designTokens.shadows['2xl'],
-    maxWidth: '800px',
-    width: '100%',
-    maxHeight: '90vh',
-    overflow: 'auto',
-    position: 'relative',
-  };
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+  `;
+
+  const modalStyle = css`
+    background-color: var(--card-bg, ${designTokens.colors.neutral[0]});
+    border-radius: ${designTokens.borderRadius.xl};
+    box-shadow: ${designTokens.shadows['2xl']};
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: auto;
+    position: relative;
+    color: var(--text-primary, ${designTokens.colors.neutral[900]});
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+  `;
 
   const progressStyle: React.CSSProperties = {
     height: '4px',
-    backgroundColor: designTokens.colors.neutral[200],
+    backgroundColor: 'var(--divider, #e2e8f0)',
     borderRadius: designTokens.borderRadius.full,
     overflow: 'hidden',
   };
@@ -637,12 +673,12 @@ export const SmartOnboarding: React.FC = () => {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: designTokens.spacing[6],
-    borderTop: `1px solid ${designTokens.colors.neutral[200]}`,
+    borderTop: `1px solid var(--divider, ${designTokens.colors.neutral[200]})`,
   };
 
   return (
-    <div style={overlayStyle}>
-      <div style={modalStyle}>
+    <div css={overlayStyle}>
+      <div css={modalStyle}>
         {/* Progress Bar */}
         <div style={progressStyle}>
           <div style={progressFillStyle} />
@@ -662,10 +698,27 @@ export const SmartOnboarding: React.FC = () => {
             </Button>
           </div>
           <CardHeader>
-            <CardTitle>{steps[currentStep].title}</CardTitle>
-            <CardDescription>{steps[currentStep].description}</CardDescription>
+            <CardTitle style={{ color: designTokens.colors.neutral[900] }}>{steps[currentStep].title}</CardTitle>
+            <CardDescription style={{ color: designTokens.colors.neutral[700] }}>{steps[currentStep].description}</CardDescription>
           </CardHeader>
-          <CardContent>{steps[currentStep].component}</CardContent>
+          <CardContent
+            key={currentStep} // Key forces a re-mount for simple CSS animation
+            css={css`
+              animation: slideFadeIn 0.3s ease-out;
+              @keyframes slideFadeIn {
+                from {
+                  opacity: 0;
+                  transform: translateX(10px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateX(0);
+                }
+              }
+            `}
+          >
+            {steps[currentStep].component}
+          </CardContent>
         </div>
 
         {/* Footer */}
