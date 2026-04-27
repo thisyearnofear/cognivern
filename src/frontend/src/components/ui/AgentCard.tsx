@@ -11,8 +11,8 @@ export interface AgentCardProps {
     id: string;
     name: string;
     status: 'active' | 'inactive' | 'paused' | 'error' | string;
-    winRate: number;
-    totalReturn: number;
+    winRate?: number;
+    totalReturn?: number;
     description?: string;
   };
   compact?: boolean;
