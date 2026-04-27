@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { useAppStore } from "../../stores/appStore";
-import { designTokens } from "../../styles/design-system";
-import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { Button } from "../ui/Button";
+import React, { useState, useEffect } from 'react';
+import { useAppStore } from '../../stores/appStore';
+import { designTokens } from '../../styles/design-system';
+import { useBreakpoint } from '../../hooks/useMediaQuery';
+import { Button } from '../ui/Button';
 import {
   TrendingUp,
   Code,
@@ -15,15 +15,9 @@ import {
   Wallet,
   Key,
   Shield,
-} from "lucide-react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "../ui/Card";
-import { owsApi } from "../../services/apiService";
+} from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/Card';
+import { owsApi } from '../../services/apiService';
 
 interface OnboardingStep {
   id: string;
@@ -34,9 +28,7 @@ interface OnboardingStep {
 
 // OWS Wallet Setup Step - Guided wallet connection
 function OwsSetupStep() {
-  const [walletStatus, setWalletStatus] = useState<
-    "checking" | "connected" | "none"
-  >("checking");
+  const [walletStatus, setWalletStatus] = useState<'checking' | 'connected' | 'none'>('checking');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -47,12 +39,12 @@ function OwsSetupStep() {
     try {
       const res = await owsApi.listWallets();
       if (res.success && res.data && res.data.length > 0) {
-        setWalletStatus("connected");
+        setWalletStatus('connected');
       } else {
-        setWalletStatus("none");
+        setWalletStatus('none');
       }
     } catch {
-      setWalletStatus("none");
+      setWalletStatus('none');
     }
   };
 
@@ -60,17 +52,17 @@ function OwsSetupStep() {
     setIsLoading(true);
     try {
       await owsApi.bootstrap();
-      setWalletStatus("connected");
+      setWalletStatus('connected');
     } catch (error) {
-      console.error("Failed to bootstrap wallet:", error);
+      console.error('Failed to bootstrap wallet:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (walletStatus === "checking") {
+  if (walletStatus === 'checking') {
     return (
-      <div style={{ textAlign: "center", padding: designTokens.spacing[8] }}>
+      <div style={{ textAlign: 'center', padding: designTokens.spacing[8] }}>
         <div style={{ marginBottom: designTokens.spacing[4] }}>
           <Brain size={48} color={designTokens.colors.primary[500]} />
         </div>
@@ -79,29 +71,24 @@ function OwsSetupStep() {
     );
   }
 
-  if (walletStatus === "connected") {
+  if (walletStatus === 'connected') {
     return (
-      <div style={{ textAlign: "center", padding: designTokens.spacing[6] }}>
+      <div style={{ textAlign: 'center', padding: designTokens.spacing[6] }}>
         <div
           style={{
             width: 64,
             height: 64,
-            borderRadius: "50%",
+            borderRadius: '50%',
             background: designTokens.colors.semantic.success[100],
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             margin: `0 auto ${designTokens.spacing[4]}`,
           }}
         >
-          <CheckCircle2
-            size={32}
-            color={designTokens.colors.semantic.success[500]}
-          />
+          <CheckCircle2 size={32} color={designTokens.colors.semantic.success[500]} />
         </div>
-        <h3 style={{ marginBottom: designTokens.spacing[2] }}>
-          Wallet Connected!
-        </h3>
+        <h3 style={{ marginBottom: designTokens.spacing[2] }}>Wallet Connected!</h3>
         <p style={{ color: designTokens.colors.neutral[600] }}>
           Your OWS wallet is ready for agent spend governance.
         </p>
@@ -113,7 +100,7 @@ function OwsSetupStep() {
     <div style={{ padding: designTokens.spacing[4] }}>
       <div
         style={{
-          textAlign: "center",
+          textAlign: 'center',
           marginBottom: designTokens.spacing[6],
         }}
       >
@@ -121,43 +108,39 @@ function OwsSetupStep() {
           style={{
             width: 64,
             height: 64,
-            borderRadius: "50%",
+            borderRadius: '50%',
             background: designTokens.colors.primary[50],
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             margin: `0 auto ${designTokens.spacing[4]}`,
           }}
         >
           <Wallet size={32} color={designTokens.colors.primary[500]} />
         </div>
-        <h3 style={{ marginBottom: designTokens.spacing[2] }}>
-          Connect OWS Wallet
-        </h3>
+        <h3 style={{ marginBottom: designTokens.spacing[2] }}>Connect OWS Wallet</h3>
         <p
           style={{
             color: designTokens.colors.neutral[600],
             maxWidth: 400,
-            margin: "0 auto",
+            margin: '0 auto',
           }}
         >
-          Your wallet will be encrypted locally. Agents can request spend but
-          policy rules control what gets approved.
+          Your wallet will be encrypted locally. Agents can request spend but policy rules control
+          what gets approved.
         </p>
       </div>
 
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: designTokens.spacing[4],
           marginBottom: designTokens.spacing[6],
         }}
       >
         <Card variant="outlined">
-          <CardContent
-            style={{ textAlign: "center", padding: designTokens.spacing[4] }}
-          >
+          <CardContent style={{ textAlign: 'center', padding: designTokens.spacing[4] }}>
             <Key size={24} color={designTokens.colors.primary[500]} />
             <h4
               style={{
@@ -179,9 +162,7 @@ function OwsSetupStep() {
         </Card>
 
         <Card variant="outlined">
-          <CardContent
-            style={{ textAlign: "center", padding: designTokens.spacing[4] }}
-          >
+          <CardContent style={{ textAlign: 'center', padding: designTokens.spacing[4] }}>
             <Shield size={24} color={designTokens.colors.primary[500]} />
             <h4
               style={{
@@ -203,13 +184,9 @@ function OwsSetupStep() {
         </Card>
       </div>
 
-      <div style={{ textAlign: "center" }}>
-        <Button
-          variant="primary"
-          onClick={handleBootstrap}
-          disabled={isLoading}
-        >
-          {isLoading ? "Connecting..." : "Bootstrap Wallet"}
+      <div style={{ textAlign: 'center' }}>
+        <Button variant="primary" onClick={handleBootstrap} disabled={isLoading}>
+          {isLoading ? 'Connecting...' : 'Bootstrap Wallet'}
         </Button>
         <p
           style={{
@@ -226,11 +203,10 @@ function OwsSetupStep() {
 }
 
 export const SmartOnboarding: React.FC = () => {
-  const { preferences, user, completeOnboarding, updatePreferences } =
-    useAppStore();
+  const { preferences, user, completeOnboarding, updatePreferences } = useAppStore();
   const { isMobile } = useBreakpoint();
   const [currentStep, setCurrentStep] = useState(0);
-  const [selectedUserType, setSelectedUserType] = useState<string>("");
+  const [selectedUserType, setSelectedUserType] = useState<string>('');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
@@ -249,65 +225,58 @@ export const SmartOnboarding: React.FC = () => {
 
   const userTypes = [
     {
-      id: "operator",
-      title: "Operator",
-      description: "Control how autonomous agents spend from shared wallets.",
+      id: 'operator',
+      title: 'Operator',
+      description: 'Control how autonomous agents spend from shared wallets.',
       icon: <TrendingUp size={32} color={designTokens.colors.primary[500]} />,
       features: [
-        "Per-agent budget controls",
-        "Approval thresholds and holds",
-        "Live spend visibility",
+        'Per-agent budget controls',
+        'Approval thresholds and holds',
+        'Live spend visibility',
       ],
     },
     {
-      id: "developer",
-      title: "Builder",
-      description:
-        "Integrate policy checks and audit evidence into your agent stack.",
+      id: 'developer',
+      title: 'Builder',
+      description: 'Integrate policy checks and audit evidence into your agent stack.',
       icon: <Code size={32} color={designTokens.colors.primary[500]} />,
       features: [
-        "BYO-agent ingestion API",
-        "Custom policy enforcement",
-        "OWS-ready control-plane hooks",
+        'BYO-agent ingestion API',
+        'Custom policy enforcement',
+        'OWS-ready control-plane hooks',
       ],
     },
     {
-      id: "guardian",
-      title: "Guardian",
-      description:
-        "Enforce wallet restrictions and review risky agent actions.",
+      id: 'guardian',
+      title: 'Guardian',
+      description: 'Enforce wallet restrictions and review risky agent actions.',
       icon: <ShieldCheck size={32} color={designTokens.colors.primary[500]} />,
       features: [
-        "Real-time policy guardrails",
-        "Immutable forensic audit trails",
-        "Approval-first governance flows",
+        'Real-time policy guardrails',
+        'Immutable forensic audit trails',
+        'Approval-first governance flows',
       ],
     },
     {
-      id: "explorer",
-      title: "Curious",
-      description:
-        "See how teams can give agents wallets without giving them a blank check.",
+      id: 'explorer',
+      title: 'Curious',
+      description: 'See how teams can give agents wallets without giving them a blank check.',
       icon: <Search size={32} color={designTokens.colors.primary[500]} />,
-      features: [
-        "Interactive audit views",
-        "Approval and denial examples",
-        "Hackathon demo mode",
-      ],
+      features: ['Interactive audit views', 'Approval and denial examples', 'Hackathon demo mode'],
     },
   ];
 
   const steps: OnboardingStep[] = [
     {
-      id: "welcome",
-      title: "Welcome to Cognivern",
-      description: "Spend governance for autonomous agents",
+      id: 'welcome',
+      title: 'Welcome to Cognivern',
+      description: 'Spend governance for autonomous agents',
       component: (
-        <div style={{ textAlign: "center", padding: designTokens.spacing[6] }}>
+        <div style={{ textAlign: 'center', padding: designTokens.spacing[6] }}>
           <div
             style={{
-              display: "flex",
-              justifyContent: "center",
+              display: 'flex',
+              justifyContent: 'center',
               marginBottom: designTokens.spacing[4],
             }}
           >
@@ -315,7 +284,7 @@ export const SmartOnboarding: React.FC = () => {
           </div>
           <h2
             style={{
-              fontSize: designTokens.typography.fontSize["3xl"],
+              fontSize: designTokens.typography.fontSize['3xl'],
               fontWeight: designTokens.typography.fontWeight.bold,
               margin: `0 0 ${designTokens.spacing[4]} 0`,
               color: designTokens.colors.neutral[900],
@@ -327,26 +296,26 @@ export const SmartOnboarding: React.FC = () => {
             style={{
               fontSize: designTokens.typography.fontSize.lg,
               color: designTokens.colors.neutral[600],
-              maxWidth: "500px",
-              margin: "0 auto",
+              maxWidth: '500px',
+              margin: '0 auto',
               lineHeight: designTokens.typography.lineHeight.relaxed,
             }}
           >
-            Give agents real execution power with clear budgets, approval
-            boundaries, and an evidence trail your team can actually operate.
+            Give agents real execution power with clear budgets, approval boundaries, and an
+            evidence trail your team can actually operate.
           </p>
         </div>
       ),
     },
     {
-      id: "user-type",
-      title: "What brings you here?",
-      description: "Help us personalize your experience",
+      id: 'user-type',
+      title: 'What brings you here?',
+      description: 'Help us personalize your experience',
       component: (
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
             gap: designTokens.spacing[4],
             padding: designTokens.spacing[4],
           }}
@@ -355,9 +324,9 @@ export const SmartOnboarding: React.FC = () => {
             <Card
               key={type.id}
               interactive
-              variant={selectedUserType === type.id ? "elevated" : "outlined"}
+              variant={selectedUserType === type.id ? 'elevated' : 'outlined'}
               style={{
-                cursor: "pointer",
+                cursor: 'pointer',
                 border:
                   selectedUserType === type.id
                     ? `2px solid ${designTokens.colors.primary[500]}`
@@ -368,13 +337,13 @@ export const SmartOnboarding: React.FC = () => {
               <CardContent>
                 <div
                   style={{
-                    textAlign: "center",
+                    textAlign: 'center',
                     marginBottom: designTokens.spacing[3],
                   }}
                 >
                   <div
                     style={{
-                      fontSize: "24px",
+                      fontSize: '24px',
                       marginBottom: designTokens.spacing[2],
                     }}
                   >
@@ -401,7 +370,7 @@ export const SmartOnboarding: React.FC = () => {
                 </div>
                 <ul
                   style={{
-                    listStyle: "none",
+                    listStyle: 'none',
                     padding: 0,
                     margin: 0,
                     fontSize: designTokens.typography.fontSize.xs,
@@ -413,8 +382,8 @@ export const SmartOnboarding: React.FC = () => {
                       key={index}
                       style={{
                         padding: `${designTokens.spacing[1]} 0`,
-                        display: "flex",
-                        alignItems: "center",
+                        display: 'flex',
+                        alignItems: 'center',
                         gap: designTokens.spacing[2],
                       }}
                     >
@@ -436,25 +405,21 @@ export const SmartOnboarding: React.FC = () => {
       ),
     },
     {
-      id: "ows-setup",
-      title: "Connect Your Wallet",
-      description: "Set up OWS wallet for agent spend governance",
+      id: 'ows-setup',
+      title: 'Connect Your Wallet',
+      description: 'Set up OWS wallet for agent spend governance',
       component: <OwsSetupStep />,
     },
     {
-      id: "complete",
+      id: 'complete',
       title: "You're all set!",
-      description: "Ready to explore Cognivern",
+      description: 'Ready to explore Cognivern',
       component: (
-        <div style={{ textAlign: "center", padding: designTokens.spacing[6] }}>
-          <div
-            style={{ fontSize: "48px", marginBottom: designTokens.spacing[4] }}
-          >
-            🎉
-          </div>
+        <div style={{ textAlign: 'center', padding: designTokens.spacing[6] }}>
+          <div style={{ fontSize: '48px', marginBottom: designTokens.spacing[4] }}>🎉</div>
           <h2
             style={{
-              fontSize: designTokens.typography.fontSize["2xl"],
+              fontSize: designTokens.typography.fontSize['2xl'],
               fontWeight: designTokens.typography.fontWeight.bold,
               margin: `0 0 ${designTokens.spacing[4]} 0`,
             }}
@@ -468,15 +433,14 @@ export const SmartOnboarding: React.FC = () => {
               marginBottom: designTokens.spacing[6],
             }}
           >
-            Your personalized dashboard is ready. You can always change your
-            preferences later.
+            Your personalized dashboard is ready. You can always change your preferences later.
           </p>
           <div
             style={{
-              display: "flex",
+              display: 'flex',
               gap: designTokens.spacing[3],
-              justifyContent: "center",
-              flexWrap: "wrap",
+              justifyContent: 'center',
+              flexWrap: 'wrap',
             }}
           >
             <Button
@@ -516,7 +480,7 @@ export const SmartOnboarding: React.FC = () => {
   };
 
   const handleComplete = () => {
-    completeOnboarding(selectedUserType || "explorer");
+    completeOnboarding(selectedUserType || 'explorer');
     setShowOnboarding(false);
     setIsWizardOpen(false);
   };
@@ -527,8 +491,8 @@ export const SmartOnboarding: React.FC = () => {
   };
 
   const canProceed = () => {
-    if (steps[currentStep].id === "user-type") {
-      return selectedUserType !== "";
+    if (steps[currentStep].id === 'user-type') {
+      return selectedUserType !== '';
     }
     return true;
   };
@@ -537,18 +501,29 @@ export const SmartOnboarding: React.FC = () => {
     // If navigated directly to /onboarding but already completed, show a message
     if (window.location.pathname === '/onboarding' && preferences.onboardingCompleted) {
       return (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100vh',
-          padding: designTokens.spacing[6],
-          textAlign: 'center'
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '100vh',
+            padding: designTokens.spacing[6],
+            textAlign: 'center',
+          }}
+        >
           <div>
-            <Brain size={64} color={designTokens.colors.primary[500]} style={{ margin: '0 auto' }} />
+            <Brain
+              size={64}
+              color={designTokens.colors.primary[500]}
+              style={{ margin: '0 auto' }}
+            />
             <h2 style={{ marginTop: designTokens.spacing[4] }}>You're already set up!</h2>
-            <p style={{ color: designTokens.colors.neutral[600], marginTop: designTokens.spacing[2] }}>
+            <p
+              style={{
+                color: designTokens.colors.neutral[600],
+                marginTop: designTokens.spacing[2],
+              }}
+            >
               Redirecting to dashboard...
             </p>
           </div>
@@ -562,37 +537,34 @@ export const SmartOnboarding: React.FC = () => {
     return (
       <div
         style={{
-          position: "fixed",
+          position: 'fixed',
           right: designTokens.spacing[4],
           bottom: designTokens.spacing[4],
           zIndex: designTokens.zIndex.toast,
-          width: "min(420px, calc(100vw - 32px))",
+          width: 'min(420px, calc(100vw - 32px))',
         }}
       >
         <Card variant="elevated">
           <CardHeader>
             <div
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
               }}
             >
               <div style={{ flex: 1 }}>
-                <CardTitle style={{ fontSize: "16px" }}>
-                  Experience the Agentic Era
-                </CardTitle>
-                <CardDescription style={{ fontSize: "13px" }}>
-                  Explore the dashboard with live agents and verifiable audit
-                  trails.
+                <CardTitle style={{ fontSize: '16px' }}>Experience the Agentic Era</CardTitle>
+                <CardDescription style={{ fontSize: '13px' }}>
+                  Explore the dashboard with live agents and verifiable audit trails.
                 </CardDescription>
               </div>
               <div
                 style={{
                   background: designTokens.colors.primary[50],
-                  padding: "8px",
-                  borderRadius: "12px",
-                  display: isMobile ? "none" : "flex",
+                  padding: '8px',
+                  borderRadius: '12px',
+                  display: isMobile ? 'none' : 'flex',
                 }}
               >
                 <Brain size={24} color={designTokens.colors.primary[500]} />
@@ -602,8 +574,8 @@ export const SmartOnboarding: React.FC = () => {
           <CardContent style={{ paddingTop: 0 }}>
             <div
               style={{
-                display: "flex",
-                justifyContent: "flex-end",
+                display: 'flex',
+                justifyContent: 'flex-end',
                 gap: designTokens.spacing[2],
                 marginTop: designTokens.spacing[2],
               }}
@@ -611,11 +583,7 @@ export const SmartOnboarding: React.FC = () => {
               <Button variant="ghost" size="sm" onClick={handleSkip}>
                 Maybe Later
               </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleStartOnboarding}
-              >
+              <Button variant="primary" size="sm" onClick={handleStartOnboarding}>
                 Quick Start
               </Button>
             </div>
@@ -626,15 +594,15 @@ export const SmartOnboarding: React.FC = () => {
   }
 
   const overlayStyle: React.CSSProperties = {
-    position: "fixed",
+    position: 'fixed',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: designTokens.zIndex.modal,
     padding: designTokens.spacing[4],
   };
@@ -642,32 +610,32 @@ export const SmartOnboarding: React.FC = () => {
   const modalStyle: React.CSSProperties = {
     backgroundColor: designTokens.colors.neutral[0],
     borderRadius: designTokens.borderRadius.xl,
-    boxShadow: designTokens.shadows["2xl"],
-    maxWidth: "800px",
-    width: "100%",
-    maxHeight: "90vh",
-    overflow: "auto",
-    position: "relative",
+    boxShadow: designTokens.shadows['2xl'],
+    maxWidth: '800px',
+    width: '100%',
+    maxHeight: '90vh',
+    overflow: 'auto',
+    position: 'relative',
   };
 
   const progressStyle: React.CSSProperties = {
-    height: "4px",
+    height: '4px',
     backgroundColor: designTokens.colors.neutral[200],
     borderRadius: designTokens.borderRadius.full,
-    overflow: "hidden",
+    overflow: 'hidden',
   };
 
   const progressFillStyle: React.CSSProperties = {
-    height: "100%",
+    height: '100%',
     backgroundColor: designTokens.colors.primary[500],
     width: `${((currentStep + 1) / steps.length) * 100}%`,
     transition: `width ${designTokens.animation.duration.normal} ${designTokens.animation.easing.easeInOut}`,
   };
 
   const footerStyle: React.CSSProperties = {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: designTokens.spacing[6],
     borderTop: `1px solid ${designTokens.colors.neutral[200]}`,
   };
@@ -684,16 +652,12 @@ export const SmartOnboarding: React.FC = () => {
         <div style={{ padding: designTokens.spacing[6] }}>
           <div
             style={{
-              display: "flex",
-              justifyContent: "flex-end",
+              display: 'flex',
+              justifyContent: 'flex-end',
               marginBottom: designTokens.spacing[2],
             }}
           >
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsWizardOpen(false)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setIsWizardOpen(false)}>
               Close
             </Button>
           </div>
@@ -706,18 +670,14 @@ export const SmartOnboarding: React.FC = () => {
 
         {/* Footer */}
         <div style={footerStyle}>
-          <div style={{ display: "flex", gap: designTokens.spacing[2] }}>
+          <div style={{ display: 'flex', gap: designTokens.spacing[2] }}>
             <Button variant="ghost" onClick={handleSkip}>
               Skip for now
             </Button>
           </div>
 
-          <div style={{ display: "flex", gap: designTokens.spacing[2] }}>
-            <Button
-              variant="outline"
-              onClick={handlePrevious}
-              disabled={currentStep === 0}
-            >
+          <div style={{ display: 'flex', gap: designTokens.spacing[2] }}>
+            <Button variant="outline" onClick={handlePrevious} disabled={currentStep === 0}>
               Previous
             </Button>
 
@@ -726,11 +686,7 @@ export const SmartOnboarding: React.FC = () => {
                 Get Started
               </Button>
             ) : (
-              <Button
-                variant="primary"
-                onClick={handleNext}
-                disabled={!canProceed()}
-              >
+              <Button variant="primary" onClick={handleNext} disabled={!canProceed()}>
                 Next
               </Button>
             )}

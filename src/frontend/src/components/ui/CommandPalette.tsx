@@ -1,23 +1,17 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useMemo,
-  useCallback,
-} from "react";
-import { useNavigate } from "react-router-dom";
-import { useAppStore } from "../../stores/appStore";
-import { useIntentStore, GeneratedUIComponent } from "../../stores/intentStore";
-import { useSidebarState } from "../../hooks/useSidebarState";
-import Modal from "./Modal";
-import GenerativeReveal from "./GenerativeReveal";
-import StatCard from "./StatCard";
-import AgentCard from "./AgentCard";
-import PolicyCard from "./PolicyCard";
-import GovernanceScore from "./GovernanceScore";
-import ForensicTimeline from "./ForensicTimeline";
-import Form from "./Form";
-import { commandPaletteStyles } from "../../styles/design-system";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAppStore } from '../../stores/appStore';
+import { useIntentStore, GeneratedUIComponent } from '../../stores/intentStore';
+import { useSidebarState } from '../../hooks/useSidebarState';
+import Modal from './Modal';
+import GenerativeReveal from './GenerativeReveal';
+import StatCard from './StatCard';
+import AgentCard from './AgentCard';
+import PolicyCard from './PolicyCard';
+import GovernanceScore from './GovernanceScore';
+import ForensicTimeline from './ForensicTimeline';
+import Form from './Form';
+import { commandPaletteStyles } from '../../styles/design-system';
 
 interface Command {
   id: string;
@@ -26,11 +20,11 @@ interface Command {
   icon?: string;
   action: () => void;
   keywords: string[];
-  category: "navigation" | "actions" | "settings" | "help";
+  category: 'navigation' | 'actions' | 'settings' | 'help';
 }
 
 export const CommandPalette: React.FC = () => {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const navigate = useNavigate();
   const { updatePreferences, preferences, setError } = useAppStore();
@@ -54,152 +48,141 @@ export const CommandPalette: React.FC = () => {
     () => [
       // Navigation
       {
-        id: "nav-dashboard",
-        title: "Go to Dashboard",
-        description: "View overview and metrics",
-        icon: "📊",
+        id: 'nav-dashboard',
+        title: 'Go to Dashboard',
+        description: 'View overview and metrics',
+        icon: '📊',
         action: () => {
-          navigate("/");
+          navigate('/');
           onClose();
         },
-        keywords: ["dashboard", "home", "overview", "metrics"],
-        category: "navigation",
+        keywords: ['dashboard', 'home', 'overview', 'metrics'],
+        category: 'navigation',
       },
       {
-        id: "nav-agents",
-        title: "Go to Agents",
-        description: "Manage governed agents",
-        icon: "🤖",
+        id: 'nav-agents',
+        title: 'Go to Agents',
+        description: 'Manage governed agents',
+        icon: '🤖',
         action: () => {
-          navigate("/agents");
+          navigate('/agents');
           onClose();
         },
-        keywords: ["agents", "governance", "ai", "bot"],
-        category: "navigation",
+        keywords: ['agents', 'governance', 'ai', 'bot'],
+        category: 'navigation',
       },
       {
-        id: "nav-policies",
-        title: "Go to Policies",
-        description: "Manage governance policies",
-        icon: "📋",
+        id: 'nav-policies',
+        title: 'Go to Policies',
+        description: 'Manage governance policies',
+        icon: '📋',
         action: () => {
-          navigate("/policies");
+          navigate('/policies');
           onClose();
         },
-        keywords: ["policies", "governance", "rules", "compliance"],
-        category: "navigation",
+        keywords: ['policies', 'governance', 'rules', 'compliance'],
+        category: 'navigation',
       },
       {
-        id: "nav-audit",
-        title: "Go to Audit Logs",
-        description: "View activity history",
-        icon: "📝",
+        id: 'nav-audit',
+        title: 'Go to Audit Logs',
+        description: 'View activity history',
+        icon: '📝',
         action: () => {
-          navigate("/audit");
+          navigate('/audit');
           onClose();
         },
-        keywords: ["audit", "logs", "history", "activity"],
-        category: "navigation",
+        keywords: ['audit', 'logs', 'history', 'activity'],
+        category: 'navigation',
       },
 
       // Actions
       {
-        id: "action-new-policy",
-        title: "Create New Policy",
-        description: "Open policy management",
-        icon: "➕",
+        id: 'action-new-policy',
+        title: 'Create New Policy',
+        description: 'Open policy management',
+        icon: '➕',
         action: () => {
-          navigate("/policies");
+          navigate('/policies');
           onClose();
         },
-        keywords: ["create", "new", "policy", "add"],
-        category: "actions",
+        keywords: ['create', 'new', 'policy', 'add'],
+        category: 'actions',
       },
       {
-        id: "action-start-agent",
-        title: "Open Agent Manager",
-        description: "Open governed agent management",
-        icon: "▶️",
+        id: 'action-start-agent',
+        title: 'Open Agent Manager',
+        description: 'Open governed agent management',
+        icon: '▶️',
         action: () => {
-          navigate("/agents");
+          navigate('/agents');
           onClose();
         },
-        keywords: ["start", "agent", "governance", "run"],
-        category: "actions",
+        keywords: ['start', 'agent', 'governance', 'run'],
+        category: 'actions',
       },
 
       // Settings
       {
-        id: "setting-toggle-theme",
-        title: "Toggle Theme",
-        description: `Switch to ${preferences.theme === "dark" ? "light" : "dark"} mode`,
-        icon: preferences.theme === "dark" ? "☀️" : "🌙",
+        id: 'setting-toggle-theme',
+        title: 'Toggle Theme',
+        description: `Switch to ${preferences.theme === 'dark' ? 'light' : 'dark'} mode`,
+        icon: preferences.theme === 'dark' ? '☀️' : '🌙',
         action: () => {
           updatePreferences({
-            theme: preferences.theme === "dark" ? "light" : "dark",
+            theme: preferences.theme === 'dark' ? 'light' : 'dark',
           });
           onClose();
         },
-        keywords: ["theme", "dark", "light", "mode"],
-        category: "settings",
+        keywords: ['theme', 'dark', 'light', 'mode'],
+        category: 'settings',
       },
       {
-        id: "setting-toggle-sidebar",
-        title: "Toggle Sidebar",
+        id: 'setting-toggle-sidebar',
+        title: 'Toggle Sidebar',
         description:
-          sidebarState === "collapsed" || sidebarState === "hidden"
-            ? "Expand sidebar"
-            : "Collapse sidebar",
-        icon:
-          sidebarState === "collapsed" || sidebarState === "hidden" ? "→" : "←",
+          sidebarState === 'collapsed' || sidebarState === 'hidden'
+            ? 'Expand sidebar'
+            : 'Collapse sidebar',
+        icon: sidebarState === 'collapsed' || sidebarState === 'hidden' ? '→' : '←',
         action: () => {
           toggleSidebar();
           onClose();
         },
-        keywords: ["sidebar", "collapse", "expand", "toggle"],
-        category: "settings",
+        keywords: ['sidebar', 'collapse', 'expand', 'toggle'],
+        category: 'settings',
       },
 
       // Help
       {
-        id: "help-shortcuts",
-        title: "Keyboard Shortcuts",
-        description: "View available keyboard shortcuts",
-        icon: "⌨️",
+        id: 'help-shortcuts',
+        title: 'Keyboard Shortcuts',
+        description: 'View available keyboard shortcuts',
+        icon: '⌨️',
         action: () => {
           setError(
-            "Shortcuts: Ctrl/Cmd+K Search, Alt+D Dashboard, Alt+T Agents, Alt+P Policies, Alt+A Audit, Ctrl/Cmd+B Sidebar.",
+            'Shortcuts: Ctrl/Cmd+K Search, Alt+D Dashboard, Alt+T Agents, Alt+P Policies, Alt+A Audit, Ctrl/Cmd+B Sidebar.',
           );
           onClose();
         },
-        keywords: ["shortcuts", "keyboard", "help", "hotkeys"],
-        category: "help",
+        keywords: ['shortcuts', 'keyboard', 'help', 'hotkeys'],
+        category: 'help',
       },
       {
-        id: "help-docs",
-        title: "Documentation",
-        description: "View platform documentation",
-        icon: "📚",
+        id: 'help-docs',
+        title: 'Documentation',
+        description: 'View platform documentation',
+        icon: '📚',
         action: () => {
-          navigate("/");
-          setError(
-            "Documentation is available in this repo: README.md and /docs.",
-          );
+          navigate('/');
+          setError('Documentation is available in this repo: README.md and /docs.');
           onClose();
         },
-        keywords: ["docs", "documentation", "help", "guide"],
-        category: "help",
+        keywords: ['docs', 'documentation', 'help', 'guide'],
+        category: 'help',
       },
     ],
-    [
-      navigate,
-      onClose,
-      updatePreferences,
-      preferences,
-      setError,
-      sidebarState,
-      toggleSidebar,
-    ],
+    [navigate, onClose, updatePreferences, preferences, setError, sidebarState, toggleSidebar],
   );
 
   // Filter commands based on query
@@ -210,9 +193,7 @@ export const CommandPalette: React.FC = () => {
     return (
       command.title.toLowerCase().includes(searchText) ||
       command.description?.toLowerCase().includes(searchText) ||
-      command.keywords.some((keyword) =>
-        keyword.toLowerCase().includes(searchText),
-      )
+      command.keywords.some((keyword) => keyword.toLowerCase().includes(searchText))
     );
   });
 
@@ -237,7 +218,7 @@ export const CommandPalette: React.FC = () => {
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 0);
-      setQuery("");
+      setQuery('');
       setSelectedIndex(0);
     }
   }, [isOpen]);
@@ -248,21 +229,30 @@ export const CommandPalette: React.FC = () => {
       if (!isOpen) return;
 
       switch (event.key) {
-        case "ArrowDown":
+        case 'ArrowDown':
           event.preventDefault();
           if (activeComponent) break;
           setSelectedIndex((prev) =>
-            prev < filteredCommands.length + (query ? 0 : suggestions.length + Math.min(history.length, 3)) - 1 ? prev + 1 : 0,
+            prev <
+            filteredCommands.length +
+              (query ? 0 : suggestions.length + Math.min(history.length, 3)) -
+              1
+              ? prev + 1
+              : 0,
           );
           break;
-        case "ArrowUp":
+        case 'ArrowUp':
           event.preventDefault();
           if (activeComponent) break;
           setSelectedIndex((prev) =>
-            prev > 0 ? prev - 1 : filteredCommands.length + (query ? 0 : suggestions.length + Math.min(history.length, 3)) - 1,
+            prev > 0
+              ? prev - 1
+              : filteredCommands.length +
+                (query ? 0 : suggestions.length + Math.min(history.length, 3)) -
+                1,
           );
           break;
-        case "Enter":
+        case 'Enter':
           event.preventDefault();
           if (activeComponent) {
             clearActiveIntent();
@@ -271,12 +261,11 @@ export const CommandPalette: React.FC = () => {
           // If the query matches a specific static command exactly or is selected, run it
           // Otherwise, treat it as a general agentic intent
 
-          const totalStaticItems = filteredCommands.length + (query ? 0 : suggestions.length + Math.min(history.length, 3));
+          const totalStaticItems =
+            filteredCommands.length +
+            (query ? 0 : suggestions.length + Math.min(history.length, 3));
 
-          if (
-            totalStaticItems > 0 &&
-            selectedIndex < totalStaticItems
-          ) {
+          if (totalStaticItems > 0 && selectedIndex < totalStaticItems) {
             // Determine what was selected
             if (!query) {
               if (selectedIndex < suggestions.length) {
@@ -284,7 +273,9 @@ export const CommandPalette: React.FC = () => {
               } else if (selectedIndex < suggestions.length + Math.min(history.length, 3)) {
                 submitIntent(history[selectedIndex - suggestions.length].query);
               } else {
-                filteredCommands[selectedIndex - suggestions.length - Math.min(history.length, 3)].action();
+                filteredCommands[
+                  selectedIndex - suggestions.length - Math.min(history.length, 3)
+                ].action();
               }
             } else {
               filteredCommands[selectedIndex].action();
@@ -296,15 +287,25 @@ export const CommandPalette: React.FC = () => {
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, selectedIndex, filteredCommands, suggestions, history, query, activeComponent, submitIntent, clearActiveIntent]);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isOpen,
+    selectedIndex,
+    filteredCommands,
+    suggestions,
+    history,
+    query,
+    activeComponent,
+    submitIntent,
+    clearActiveIntent,
+  ]);
 
   const categoryLabels = {
-    navigation: "Navigation",
-    actions: "Actions",
-    settings: "Settings",
-    help: "Help",
+    navigation: 'Navigation',
+    actions: 'Actions',
+    settings: 'Settings',
+    help: 'Help',
   };
 
   let globalIndex = 0;
@@ -312,32 +313,32 @@ export const CommandPalette: React.FC = () => {
   // Simple Generative UI Renderer
   const renderGenerativeUI = (component: GeneratedUIComponent) => {
     switch (component.type) {
-      case "stat":
+      case 'stat':
         return (
-          <div style={{ padding: "10px" }}>
+          <div style={{ padding: '10px' }}>
             <StatCard
               label={component.props.title || component.props.label}
               value={component.props.value}
-              icon={component.props.icon || "📊"}
-              color={component.props.color || "primary"}
+              icon={component.props.icon || '📊'}
+              color={component.props.color || 'primary'}
               trend={component.props.trend}
             />
           </div>
         );
-      case "agent":
+      case 'agent':
         return (
-          <div style={{ padding: "10px" }}>
+          <div style={{ padding: '10px' }}>
             <AgentCard agent={component.data || (component.props as any)} />
           </div>
         );
-      case "action-form":
+      case 'action-form':
         return (
-          <div style={{ padding: "15px" }}>
+          <div style={{ padding: '15px' }}>
             <div
               style={{
-                marginBottom: "15px",
-                fontSize: "16px",
-                fontWeight: "bold",
+                marginBottom: '15px',
+                fontSize: '16px',
+                fontWeight: 'bold',
               }}
             >
               {component.props.title}
@@ -346,57 +347,51 @@ export const CommandPalette: React.FC = () => {
               fields={component.props.fields}
               submitText={component.props.submitText}
               onSubmit={(data) => {
-                console.log("Form submitted via Intent:", data);
+                console.log('Form submitted via Intent:', data);
                 setError(`Agent action initiated: ${component.props.title}`);
                 clearActiveIntent();
               }}
             />
           </div>
         );
-      case "status":
+      case 'status':
         return (
           <div
             style={{
-              padding: "20px",
-              textAlign: "center",
-              animation: "fadeIn 0.5s ease-out",
+              padding: '20px',
+              textAlign: 'center',
+              animation: 'fadeIn 0.5s ease-out',
             }}
           >
             <div
               style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "50%",
-                background:
-                  component.props.status === "success" ? "#dcfce7" : "#fee2e2",
-                color:
-                  component.props.status === "success" ? "#166534" : "#991b1b",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 15px",
-                fontSize: "24px",
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: component.props.status === 'success' ? '#dcfce7' : '#fee2e2',
+                color: component.props.status === 'success' ? '#166534' : '#991b1b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 15px',
+                fontSize: '24px',
               }}
             >
-              {component.props.status === "success" ? "✓" : "!"}
+              {component.props.status === 'success' ? '✓' : '!'}
             </div>
-            <div style={{ fontWeight: "bold", marginBottom: "5px" }}>
-              {component.props.title}
-            </div>
-            <div style={{ fontSize: "14px", opacity: 0.7 }}>
-              {component.props.message}
-            </div>
+            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>{component.props.title}</div>
+            <div style={{ fontSize: '14px', opacity: 0.7 }}>{component.props.message}</div>
           </div>
         );
-      case "policy":
+      case 'policy':
         return (
-          <div style={{ padding: "10px" }}>
+          <div style={{ padding: '10px' }}>
             <PolicyCard policy={component.data || (component.props as any)} />
           </div>
         );
-      case "governance-score":
+      case 'governance-score':
         return (
-          <div style={{ padding: "10px" }}>
+          <div style={{ padding: '10px' }}>
             <GovernanceScore
               score={component.props.score}
               label={component.props.label}
@@ -404,22 +399,20 @@ export const CommandPalette: React.FC = () => {
             />
           </div>
         );
-      case "forensic-timeline":
+      case 'forensic-timeline':
         return (
-          <div style={{ padding: "10px" }}>
+          <div style={{ padding: '10px' }}>
             <ForensicTimeline
               events={component.props.events}
               agentName={component.props.agentName}
             />
           </div>
         );
-      case "markdown":
-        return <div style={{ padding: "15px" }}>{component.props.content}</div>;
+      case 'markdown':
+        return <div style={{ padding: '15px' }}>{component.props.content}</div>;
       default:
         return (
-          <div style={{ padding: "15px", opacity: 0.5 }}>
-            Generated view: {component.type}
-          </div>
+          <div style={{ padding: '15px', opacity: 0.5 }}>Generated view: {component.type}</div>
         );
     }
   };
@@ -439,11 +432,7 @@ export const CommandPalette: React.FC = () => {
           <input
             ref={inputRef}
             type="text"
-            placeholder={
-              isThinking
-                ? "Agent is thinking..."
-                : "Ask anything or type a command..."
-            }
+            placeholder={isThinking ? 'Agent is thinking...' : 'Ask anything or type a command...'}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -455,16 +444,16 @@ export const CommandPalette: React.FC = () => {
           {isThinking && (
             <div
               style={{
-                position: "absolute",
-                right: "15px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                width: "20px",
-                height: "20px",
-                borderRadius: "50%",
-                border: "2px solid transparent",
-                borderTopColor: "#3b82f6",
-                animation: "spin 1s linear infinite",
+                position: 'absolute',
+                right: '15px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                border: '2px solid transparent',
+                borderTopColor: '#3b82f6',
+                animation: 'spin 1s linear infinite',
               }}
             />
           )}
@@ -476,14 +465,14 @@ export const CommandPalette: React.FC = () => {
             <GenerativeReveal duration={800}>
               <div css={commandPaletteStyles.category}>Agent Response</div>
               {renderGenerativeUI(activeComponent)}
-              <div style={{ padding: "10px", textAlign: "right" }}>
+              <div style={{ padding: '10px', textAlign: 'right' }}>
                 <button
                   onClick={clearActiveIntent}
                   style={{
-                    fontSize: "11px",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
+                    fontSize: '11px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
                     opacity: 0.5,
                   }}
                 >
@@ -495,13 +484,13 @@ export const CommandPalette: React.FC = () => {
             <div css={commandPaletteStyles.noResults}>
               <div
                 style={{
-                  width: "40px",
-                  height: "40px",
-                  background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
-                  borderRadius: "12px",
-                  margin: "0 auto 15px",
-                  filter: "blur(8px)",
-                  animation: "pulse 2s infinite",
+                  width: '40px',
+                  height: '40px',
+                  background: 'linear-gradient(45deg, #3b82f6, #8b5cf6)',
+                  borderRadius: '12px',
+                  margin: '0 auto 15px',
+                  filter: 'blur(8px)',
+                  animation: 'pulse 2s infinite',
                 }}
               />
               <div>Processing Intent...</div>
@@ -511,9 +500,7 @@ export const CommandPalette: React.FC = () => {
               {/* Proactive Suggestions */}
               {!query && suggestions.length > 0 && (
                 <div>
-                  <div css={commandPaletteStyles.category}>
-                    ✨ Recommended for you
-                  </div>
+                  <div css={commandPaletteStyles.category}>✨ Recommended for you</div>
                   {suggestions.map((suggestion, idx) => {
                     const isSelected = globalIndex === selectedIndex;
                     const currentIndex = globalIndex++;
@@ -524,13 +511,9 @@ export const CommandPalette: React.FC = () => {
                         onClick={() => submitIntent(suggestion.intent)}
                         onMouseEnter={() => setSelectedIndex(currentIndex)}
                       >
-                        <span css={commandPaletteStyles.icon}>
-                          {suggestion.icon || "💡"}
-                        </span>
+                        <span css={commandPaletteStyles.icon}>{suggestion.icon || '💡'}</span>
                         <div css={commandPaletteStyles.text}>
-                          <div css={commandPaletteStyles.title}>
-                            {suggestion.label}
-                          </div>
+                          <div css={commandPaletteStyles.title}>{suggestion.label}</div>
                         </div>
                       </div>
                     );
@@ -565,50 +548,40 @@ export const CommandPalette: React.FC = () => {
                 </div>
               )}
 
-              {Object.entries(groupedCommands).map(
-                ([category, categoryCommands]) => (
-                  <div key={category}>
-                    <div css={commandPaletteStyles.category}>
-                      {categoryLabels[category as keyof typeof categoryLabels]}
-                    </div>
-                    {categoryCommands.map((command) => {
-                      const isSelected = globalIndex === selectedIndex;
-                      const currentIndex = globalIndex++;
-
-                      return (
-                        <div
-                          key={command.id}
-                          css={commandPaletteStyles.item(isSelected)}
-                          onClick={() => command.action()}
-                          onMouseEnter={() => setSelectedIndex(currentIndex)}
-                        >
-                          <span css={commandPaletteStyles.icon}>
-                            {command.icon}
-                          </span>
-                          <div css={commandPaletteStyles.text}>
-                            <div css={commandPaletteStyles.title}>
-                              {command.title}
-                            </div>
-                            {command.description && (
-                              <div css={commandPaletteStyles.description}>
-                                {command.description}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+              {Object.entries(groupedCommands).map(([category, categoryCommands]) => (
+                <div key={category}>
+                  <div css={commandPaletteStyles.category}>
+                    {categoryLabels[category as keyof typeof categoryLabels]}
                   </div>
-                ),
-              )}
+                  {categoryCommands.map((command) => {
+                    const isSelected = globalIndex === selectedIndex;
+                    const currentIndex = globalIndex++;
+
+                    return (
+                      <div
+                        key={command.id}
+                        css={commandPaletteStyles.item(isSelected)}
+                        onClick={() => command.action()}
+                        onMouseEnter={() => setSelectedIndex(currentIndex)}
+                      >
+                        <span css={commandPaletteStyles.icon}>{command.icon}</span>
+                        <div css={commandPaletteStyles.text}>
+                          <div css={commandPaletteStyles.title}>{command.title}</div>
+                          {command.description && (
+                            <div css={commandPaletteStyles.description}>{command.description}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
 
               {query && filteredCommands.length === 0 && (
                 <div css={commandPaletteStyles.noResults}>
                   <div>✨</div>
                   <div>Press Enter to ask the Agent</div>
-                  <div style={{ fontSize: "11px", opacity: 0.6 }}>
-                    "{query}"
-                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.6 }}>"{query}"</div>
                 </div>
               )}
 
@@ -632,12 +605,12 @@ export const CommandPalette: React.FC = () => {
               <button
                 onClick={clearActiveIntent}
                 style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: "10px",
-                  cursor: "pointer",
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '10px',
+                  cursor: 'pointer',
                   opacity: 0.5,
-                  textDecoration: "underline",
+                  textDecoration: 'underline',
                 }}
               >
                 Clear Result
@@ -646,9 +619,7 @@ export const CommandPalette: React.FC = () => {
           ) : (
             <>
               <span>Use ↑↓ to navigate, ↵ to select or submit intent</span>
-              <div
-                style={{ display: "flex", gap: "12px", alignItems: "center" }}
-              >
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <span>{filteredCommands.length} shortcuts available</span>
                 {history.length > 0 && (
                   <button
@@ -657,12 +628,12 @@ export const CommandPalette: React.FC = () => {
                       clearHistory();
                     }}
                     style={{
-                      background: "none",
-                      border: "none",
-                      fontSize: "10px",
-                      cursor: "pointer",
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '10px',
+                      cursor: 'pointer',
                       opacity: 0.5,
-                      textDecoration: "underline",
+                      textDecoration: 'underline',
                     }}
                   >
                     Clear History & Context

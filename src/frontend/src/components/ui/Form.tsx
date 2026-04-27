@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from "react";
-import { css } from "@emotion/react";
-import { Button } from "./Button";
+import React, { useState } from 'react';
+import { css } from '@emotion/react';
+import { Button } from './Button';
 import {
   formStyles,
   getFormFieldGroupStyles,
@@ -10,12 +10,12 @@ import {
   formErrorStyles,
   formDescriptionStyles,
   formSubmitContainerStyles,
-} from "../../styles/design-system";
+} from '../../styles/design-system';
 
 export interface FormFieldProps {
   label: string;
   name: string;
-  type?: "text" | "email" | "password" | "number" | "textarea" | "select";
+  type?: 'text' | 'email' | 'password' | 'number' | 'textarea' | 'select';
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
@@ -30,16 +30,16 @@ export interface FormProps {
   submitText?: string;
   loading?: boolean;
   initialValues?: Record<string, string>;
-  layout?: "vertical" | "horizontal";
+  layout?: 'vertical' | 'horizontal';
 }
 
 export const Form: React.FC<FormProps> = ({
   fields,
   onSubmit,
-  submitText = "Submit",
+  submitText = 'Submit',
   loading = false,
   initialValues = {},
-  layout = "vertical",
+  layout = 'vertical',
 }) => {
   const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,20 +50,20 @@ export const Form: React.FC<FormProps> = ({
 
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
   const handleBlur = (name: string) => {
     setTouched((prev) => ({ ...prev, [name]: true }));
-    validateField(name, values[name] || "");
+    validateField(name, values[name] || '');
   };
 
   const validateField = (name: string, value: string) => {
     const field = fields.find((f) => f.name === name);
     if (!field) return;
 
-    let error = "";
+    let error = '';
 
     // Required validation
     if (field.required && !value.trim()) {
@@ -90,7 +90,7 @@ export const Form: React.FC<FormProps> = ({
     let hasErrors = false;
 
     fields.forEach((field) => {
-      const error = validateField(field.name, values[field.name] || "");
+      const error = validateField(field.name, values[field.name] || '');
       if (error) {
         newErrors[field.name] = error;
         hasErrors = true;
@@ -98,9 +98,7 @@ export const Form: React.FC<FormProps> = ({
     });
 
     setErrors(newErrors);
-    setTouched(
-      fields.reduce((acc, field) => ({ ...acc, [field.name]: true }), {}),
-    );
+    setTouched(fields.reduce((acc, field) => ({ ...acc, [field.name]: true }), {}));
 
     if (!hasErrors) {
       onSubmit(values);
@@ -108,16 +106,14 @@ export const Form: React.FC<FormProps> = ({
   };
 
   const renderField = (field: FormFieldProps) => {
-    const value = values[field.name] || "";
+    const value = values[field.name] || '';
     const error = errors[field.name];
     const showError = touched[field.name] && error;
 
     const commonProps = {
       value,
       onChange: (
-        e: React.ChangeEvent<
-          HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-        >,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
       ) => handleChange(field.name, e.target.value),
       onBlur: () => handleBlur(field.name),
       placeholder: field.placeholder,
@@ -128,18 +124,14 @@ export const Form: React.FC<FormProps> = ({
     let input: React.ReactNode;
 
     switch (field.type) {
-      case "textarea":
-        input = (
-          <textarea {...commonProps} css={getFormInputStyles(!!showError)} />
-        );
+      case 'textarea':
+        input = <textarea {...commonProps} css={getFormInputStyles(!!showError)} />;
         break;
 
-      case "select":
+      case 'select':
         input = (
           <select {...commonProps} css={getFormInputStyles(!!showError)}>
-            <option value="">
-              {field.placeholder || `Select ${field.label}`}
-            </option>
+            <option value="">{field.placeholder || `Select ${field.label}`}</option>
             {field.options?.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -153,7 +145,7 @@ export const Form: React.FC<FormProps> = ({
         input = (
           <input
             {...commonProps}
-            type={field.type || "text"}
+            type={field.type || 'text'}
             css={getFormInputStyles(!!showError)}
           />
         );
@@ -176,7 +168,7 @@ export const Form: React.FC<FormProps> = ({
         </label>
         <div
           css={css`
-            flex: ${layout === "horizontal" ? 1 : "auto"};
+            flex: ${layout === 'horizontal' ? 1 : 'auto'};
           `}
         >
           {input}
@@ -194,12 +186,7 @@ export const Form: React.FC<FormProps> = ({
       {fields.map(renderField)}
 
       <div css={formSubmitContainerStyles}>
-        <Button
-          type="submit"
-          variant="primary"
-          isLoading={loading}
-          disabled={loading}
-        >
+        <Button type="submit" variant="primary" isLoading={loading} disabled={loading}>
           {submitText}
         </Button>
       </div>
@@ -217,11 +204,8 @@ export const FormField: React.FC<{
 }> = ({ field, value, error, onChange, onBlur }) => {
   const commonProps = {
     value,
-    onChange: (
-      e: React.ChangeEvent<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >,
-    ) => onChange(e.target.value),
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+      onChange(e.target.value),
     onBlur,
     placeholder: field.placeholder,
     disabled: field.disabled,
@@ -231,7 +215,7 @@ export const FormField: React.FC<{
 
   return (
     <div>
-      <label css={getFormLabelStyles("vertical")}>
+      <label css={getFormLabelStyles('vertical')}>
         {field.label}
         {field.required && (
           <span
@@ -245,13 +229,11 @@ export const FormField: React.FC<{
         )}
       </label>
 
-      {field.type === "textarea" ? (
+      {field.type === 'textarea' ? (
         <textarea {...commonProps} />
-      ) : field.type === "select" ? (
+      ) : field.type === 'select' ? (
         <select {...commonProps}>
-          <option value="">
-            {field.placeholder || `Select ${field.label}`}
-          </option>
+          <option value="">{field.placeholder || `Select ${field.label}`}</option>
           {field.options?.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -259,13 +241,11 @@ export const FormField: React.FC<{
           ))}
         </select>
       ) : (
-        <input {...commonProps} type={field.type || "text"} />
+        <input {...commonProps} type={field.type || 'text'} />
       )}
 
       {error && <div css={formErrorStyles}>{error}</div>}
-      {field.description && !error && (
-        <div css={formDescriptionStyles}>{field.description}</div>
-      )}
+      {field.description && !error && <div css={formDescriptionStyles}>{field.description}</div>}
     </div>
   );
 };

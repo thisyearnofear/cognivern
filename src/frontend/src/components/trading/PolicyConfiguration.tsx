@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { css } from "@emotion/react";
-import { designTokens, tradingStyles } from "../../styles/design-system";
+import { useState } from 'react';
+import { css } from '@emotion/react';
+import { designTokens, tradingStyles } from '../../styles/design-system';
 
 interface PolicyConfigurationProps {
   policies: {
@@ -20,10 +20,7 @@ const AVAILABLE_TOKENS = [
   // This should be populated from API call to get supported tokens
 ];
 
-export default function PolicyConfiguration({
-  policies,
-  onUpdate,
-}: PolicyConfigurationProps) {
+export default function PolicyConfiguration({ policies, onUpdate }: PolicyConfigurationProps) {
   const [localPolicies, setLocalPolicies] = useState(policies);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -34,7 +31,7 @@ export default function PolicyConfiguration({
       await onUpdate(localPolicies);
       setIsEditing(false);
     } catch (error) {
-      console.error("Failed to save policies:", error);
+      console.error('Failed to save policies:', error);
     } finally {
       setIsSaving(false);
     }
@@ -138,7 +135,7 @@ export default function PolicyConfiguration({
             {AVAILABLE_TOKENS.map((token) => (
               <div
                 key={token.symbol}
-                className={`token-card ${localPolicies.allowedTokens.includes(token.symbol) ? "selected" : ""} ${!isEditing ? "disabled" : ""}`}
+                className={`token-card ${localPolicies.allowedTokens.includes(token.symbol) ? 'selected' : ''} ${!isEditing ? 'disabled' : ''}`}
                 onClick={() => isEditing && toggleToken(token.symbol)}
               >
                 <div className="token-header">
@@ -166,32 +163,26 @@ export default function PolicyConfiguration({
           <div className="summary-grid">
             <div className="summary-item">
               <span className="summary-label">Daily Limit:</span>
-              <span className="summary-value">
-                ${localPolicies.dailySpendingLimit}
-              </span>
+              <span className="summary-value">${localPolicies.dailySpendingLimit}</span>
             </div>
             <div className="summary-item">
               <span className="summary-label">Max Action:</span>
-              <span className="summary-value">
-                ${localPolicies.maxTradeSize}
-              </span>
+              <span className="summary-value">${localPolicies.maxTradeSize}</span>
             </div>
             <div className="summary-item">
               <span className="summary-label">Allowed Assets:</span>
-              <span className="summary-value">
-                {localPolicies.allowedTokens.length}
-              </span>
+              <span className="summary-value">{localPolicies.allowedTokens.length}</span>
             </div>
             <div className="summary-item">
               <span className="summary-label">Risk Level:</span>
               <span
-                className={`summary-value risk-${localPolicies.dailySpendingLimit > 1000 ? "high" : localPolicies.dailySpendingLimit > 500 ? "medium" : "low"}`}
+                className={`summary-value risk-${localPolicies.dailySpendingLimit > 1000 ? 'high' : localPolicies.dailySpendingLimit > 500 ? 'medium' : 'low'}`}
               >
                 {localPolicies.dailySpendingLimit > 1000
-                  ? "High"
+                  ? 'High'
                   : localPolicies.dailySpendingLimit > 500
-                    ? "Medium"
-                    : "Low"}
+                    ? 'Medium'
+                    : 'Low'}
               </span>
             </div>
           </div>
@@ -200,11 +191,7 @@ export default function PolicyConfiguration({
         {/* Action Buttons */}
         {isEditing && (
           <div className="policy-actions">
-            <button
-              className="save-button"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
+            <button className="save-button" onClick={handleSave} disabled={isSaving}>
               {isSaving ? (
                 <>
                   <span className="loading-spinner"></span>
@@ -217,11 +204,7 @@ export default function PolicyConfiguration({
                 </>
               )}
             </button>
-            <button
-              className="cancel-button"
-              onClick={handleCancel}
-              disabled={isSaving}
-            >
+            <button className="cancel-button" onClick={handleCancel} disabled={isSaving}>
               <span className="cancel-icon">CN</span>
               Cancel
             </button>
@@ -234,28 +217,26 @@ export default function PolicyConfiguration({
         <h4>Policy Validation</h4>
         <div className="validation-checks">
           <div
-            className={`validation-item ${localPolicies.dailySpendingLimit > 0 ? "valid" : "invalid"}`}
+            className={`validation-item ${localPolicies.dailySpendingLimit > 0 ? 'valid' : 'invalid'}`}
           >
             <span className="validation-icon">
-              {localPolicies.dailySpendingLimit > 0 ? "OK" : "NO"}
+              {localPolicies.dailySpendingLimit > 0 ? 'OK' : 'NO'}
             </span>
             <span>Daily spending limit is set</span>
           </div>
           <div
-            className={`validation-item ${localPolicies.maxTradeSize <= localPolicies.dailySpendingLimit ? "valid" : "invalid"}`}
+            className={`validation-item ${localPolicies.maxTradeSize <= localPolicies.dailySpendingLimit ? 'valid' : 'invalid'}`}
           >
             <span className="validation-icon">
-              {localPolicies.maxTradeSize <= localPolicies.dailySpendingLimit
-                ? "OK"
-                : "NO"}
+              {localPolicies.maxTradeSize <= localPolicies.dailySpendingLimit ? 'OK' : 'NO'}
             </span>
             <span>Max single action is within daily limit</span>
           </div>
           <div
-            className={`validation-item ${localPolicies.allowedTokens.length > 0 ? "valid" : "invalid"}`}
+            className={`validation-item ${localPolicies.allowedTokens.length > 0 ? 'valid' : 'invalid'}`}
           >
             <span className="validation-icon">
-              {localPolicies.allowedTokens.length > 0 ? "OK" : "NO"}
+              {localPolicies.allowedTokens.length > 0 ? 'OK' : 'NO'}
             </span>
             <span>At least one token is allowed</span>
           </div>

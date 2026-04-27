@@ -1,19 +1,14 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
-import { css } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
+import React from 'react';
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
 
 export interface BadgeProps {
   children: React.ReactNode;
-  variant?:
-    | "default"
-    | "success"
-    | "error"
-    | "warning"
-    | "secondary"
-    | "outline";
-  size?: "sm" | "md" | "lg";
+  variant?: 'default' | 'success' | 'error' | 'warning' | 'secondary' | 'outline';
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
+  style?: React.CSSProperties;
 }
 
 const badgeBaseStyles = css`
@@ -77,18 +72,16 @@ const badgeSizeStyles = {
 
 export const Badge: React.FC<BadgeProps> = ({
   children,
-  variant = "default",
-  size = "md",
+  variant = 'default',
+  size = 'md',
   className,
+  style,
 }) => {
   return (
     <span
-      css={[
-        badgeBaseStyles,
-        badgeVariantStyles[variant],
-        badgeSizeStyles[size],
-      ]}
+      css={[badgeBaseStyles, badgeVariantStyles[variant], badgeSizeStyles[size]]}
       className={className}
+      style={style}
     >
       {children}
     </span>

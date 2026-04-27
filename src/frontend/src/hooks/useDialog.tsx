@@ -1,13 +1,13 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback } from 'react';
 
-export type DialogType = "confirm" | "prompt" | "alert" | "multifield";
+export type DialogType = 'confirm' | 'prompt' | 'alert' | 'multifield';
 
 interface DialogState {
   isOpen: boolean;
   type: DialogType | null;
   title: string;
   message: string;
-  variant?: "info" | "warning" | "success" | "error";
+  variant?: 'info' | 'warning' | 'success' | 'error';
   onConfirm?: (value?: any) => void;
   onCancel?: () => void;
   fields?: any[];
@@ -44,9 +44,9 @@ export const useDialog = () => {
   const [dialogState, setDialogState] = useState<DialogState>({
     isOpen: false,
     type: null,
-    title: "",
-    message: "",
-    variant: "info",
+    title: '',
+    message: '',
+    variant: 'info',
   });
 
   const closeDialog = useCallback(() => {
@@ -56,9 +56,9 @@ export const useDialog = () => {
       setDialogState({
         isOpen: false,
         type: null,
-        title: "",
-        message: "",
-        variant: "info",
+        title: '',
+        message: '',
+        variant: 'info',
       });
     }, 300);
   }, []);
@@ -70,12 +70,12 @@ export const useDialog = () => {
     (
       title: string,
       message: string,
-      variant: "info" | "warning" | "success" | "error" = "info",
+      variant: 'info' | 'warning' | 'success' | 'error' = 'info',
     ): Promise<void> => {
       return new Promise((resolve) => {
         setDialogState({
           isOpen: true,
-          type: "alert",
+          type: 'alert',
           title,
           message,
           variant,
@@ -96,12 +96,12 @@ export const useDialog = () => {
     (
       title: string,
       message: string,
-      variant: "info" | "warning" | "error" = "info",
+      variant: 'info' | 'warning' | 'error' = 'info',
     ): Promise<boolean> => {
       return new Promise((resolve) => {
         setDialogState({
           isOpen: true,
-          type: "confirm",
+          type: 'confirm',
           title,
           message,
           variant,
@@ -128,12 +128,12 @@ export const useDialog = () => {
       message: string,
       placeholder?: string,
       defaultValue?: string,
-      inputType: "text" | "number" | "email" | "password" = "text",
+        inputType: 'text' | 'number' | 'email' | 'password' = 'text', // pragma: allowlist secret
     ): Promise<string | null> => {
       return new Promise((resolve) => {
         setDialogState({
           isOpen: true,
-          type: "prompt",
+          type: 'prompt',
           title,
           message,
           placeholder,
@@ -157,15 +157,11 @@ export const useDialog = () => {
    * Show a multi-field dialog
    */
   const showMultiField = useCallback(
-    (
-      title: string,
-      message: string,
-      fields: any[],
-    ): Promise<Record<string, string> | null> => {
+    (title: string, message: string, fields: any[]): Promise<Record<string, string> | null> => {
       return new Promise((resolve) => {
         setDialogState({
           isOpen: true,
-          type: "multifield",
+          type: 'multifield',
           title,
           message,
           fields,

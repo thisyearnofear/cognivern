@@ -1,24 +1,15 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { getApiUrl, getRequestHeaders } from "../../utils/api";
-import { copyTextToClipboard } from "../../utils/clipboard";
-import { css } from "@emotion/react";
-import {
-  designTokens,
-  colorSystem,
-  keyframeAnimations,
-} from "../../styles/design-system";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "../ui/Card";
-import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
-import Tooltip from "../ui/Tooltip";
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { getApiUrl, getRequestHeaders } from '../../utils/api';
+import { copyTextToClipboard } from '../../utils/clipboard';
+import { css } from '@emotion/react';
+import { designTokens, colorSystem, keyframeAnimations } from '../../styles/design-system';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import Tooltip from '../ui/Tooltip';
+import ConfidentialAuditViewer from './ConfidentialAuditViewer';
 
 interface AuditLog {
   id: string;
@@ -43,13 +34,15 @@ interface AuditLog {
   metadata: {
     modelVersion: string;
     governancePolicy: string;
-    complianceStatus: "compliant" | "non-compliant" | "warning";
+    complianceStatus: 'compliant' | 'non-compliant' | 'warning';
     latencyMs: number;
     executionContext?: string;
+    confidential?: boolean;
+    amountCiphertext?: any;
   };
   impact: {
-    severity: "low" | "medium" | "high" | "critical";
-    category: "trading" | "security" | "compliance" | "performance";
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    category: 'trading' | 'security' | 'compliance' | 'performance';
     financialImpact?: number;
   };
   evidence?: {
@@ -63,7 +56,7 @@ interface AuditLog {
 
 interface AIInsight {
   id: string;
-  type: "pattern" | "anomaly" | "recommendation" | "trend";
+  type: 'pattern' | 'anomaly' | 'recommendation' | 'trend';
   title: string;
   description: string;
   confidence: number;
@@ -88,8 +81,8 @@ interface RawAuditLogResponse {
   agent?: string;
   actionType?: string;
   description?: string;
-  complianceStatus?: "compliant" | "non-compliant" | "warning";
-  severity?: "low" | "medium" | "high" | "critical";
+  complianceStatus?: 'compliant' | 'non-compliant' | 'warning';
+  severity?: 'low' | 'medium' | 'high' | 'critical';
   responseTime?: number;
   details?: Record<string, any>;
   policyChecks?: Array<{
@@ -108,32 +101,28 @@ interface RawAuditLogResponse {
 
 const normalizeAuditLog = (log: RawAuditLogResponse): AuditLog => {
   const details = log.details || {};
-  const confidence =
-    typeof details.confidence === "number" ? details.confidence : undefined;
-  const riskScore =
-    typeof details.riskScore === "number" ? details.riskScore : undefined;
+  const confidence = typeof details.confidence === 'number' ? details.confidence : undefined;
+  const riskScore = typeof details.riskScore === 'number' ? details.riskScore : undefined;
   const financialImpact =
-    typeof details.financialImpact === "number"
-      ? details.financialImpact
-      : undefined;
+    typeof details.financialImpact === 'number' ? details.financialImpact : undefined;
   const category =
-    details.category === "trading" ||
-    details.category === "security" ||
-    details.category === "compliance" ||
-    details.category === "performance"
+    details.category === 'trading' ||
+    details.category === 'security' ||
+    details.category === 'compliance' ||
+    details.category === 'performance'
       ? details.category
-      : "compliance";
+      : 'compliance';
 
   return {
     id: log.id,
     timestamp: log.timestamp,
-    agentId: String(details.agentId || log.agent || "unknown"),
-    agentName: String(details.agentName || log.agent || "Unknown Agent"),
+    agentId: String(details.agentId || log.agent || 'unknown'),
+    agentName: String(details.agentName || log.agent || 'Unknown Agent'),
     action: {
-      type: String(log.actionType || "unknown"),
-      description: String(log.description || "No description available"),
+      type: String(log.actionType || 'unknown'),
+      description: String(log.description || 'No description available'),
       input: JSON.stringify(details.input || details, null, 2),
-      decision: log.complianceStatus === "non-compliant" ? "denied" : "allowed",
+      decision: log.complianceStatus === 'non-compliant' ? 'denied' : 'allowed',
       confidence,
       riskScore,
     },
@@ -141,20 +130,20 @@ const normalizeAuditLog = (log: RawAuditLogResponse): AuditLog => {
       policyId: check.policyId,
       policyName: check.policyId,
       result: check.result,
-      reason: check.reason || "No reason provided",
+      reason: check.reason || 'No reason provided',
       ruleTriggered: check.result ? undefined : check.policyId,
     })),
     metadata: {
-      modelVersion: String(details.modelVersion || "unknown"),
-      governancePolicy: String(details.governancePolicy || "local"),
-      complianceStatus: log.complianceStatus || "warning",
-      latencyMs: typeof log.responseTime === "number" ? log.responseTime : 0,
-      executionContext: details.executionContext
-        ? String(details.executionContext)
-        : undefined,
+      modelVersion: String(details.modelVersion || 'unknown'),
+      governancePolicy: String(details.governancePolicy || 'local'),
+      complianceStatus: log.complianceStatus || 'warning',
+      latencyMs: typeof log.responseTime === 'number' ? log.responseTime : 0,
+      executionContext: details.executionContext ? String(details.executionContext) : undefined,
+      confidential: Boolean(details.confidential),
+      amountCiphertext: details.amountCiphertext,
     },
     impact: {
-      severity: log.severity || "low",
+      severity: log.severity || 'low',
       category,
       financialImpact,
     },
@@ -165,13 +154,11 @@ const normalizeAuditLog = (log: RawAuditLogResponse): AuditLog => {
 const normalizeInsight = (insight: any): AIInsight => ({
   id: String(insight.id),
   type:
-    insight.type === "recommendation" ||
-    insight.type === "pattern" ||
-    insight.type === "trend"
+    insight.type === 'recommendation' || insight.type === 'pattern' || insight.type === 'trend'
       ? insight.type
-      : "anomaly",
-  title: String(insight.title || "Insight"),
-  description: String(insight.description || ""),
+      : 'anomaly',
+  title: String(insight.title || 'Insight'),
+  description: String(insight.description || ''),
   confidence: Math.round(Number(insight.confidence || 0) * 100),
   actionable: Boolean(insight.actionRequired),
   relatedLogs: Array.isArray(insight.relatedLogs) ? insight.relatedLogs : [],
@@ -190,7 +177,7 @@ const headerStyles = css`
 `;
 
 const titleStyles = css`
-  font-size: ${designTokens.typography.fontSize["3xl"]};
+  font-size: ${designTokens.typography.fontSize['3xl']};
   font-weight: ${designTokens.typography.fontWeight.bold};
   background: ${designTokens.colorSystem.gradients.primary};
   -webkit-background-clip: text;
@@ -227,7 +214,7 @@ const metricCardStyles = css`
   overflow: hidden;
 
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     top: 0;
     left: 0;
@@ -238,7 +225,7 @@ const metricCardStyles = css`
 `;
 
 const metricValueStyles = css`
-  font-size: ${designTokens.typography.fontSize["2xl"]};
+  font-size: ${designTokens.typography.fontSize['2xl']};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: ${designTokens.colors.primary[600]};
   margin-bottom: ${designTokens.spacing[2]};
@@ -344,7 +331,7 @@ const logItemStyles = css`
   padding-left: ${designTokens.spacing[8]};
 
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     left: ${designTokens.spacing[3]};
     top: ${designTokens.spacing[4]};
@@ -354,7 +341,7 @@ const logItemStyles = css`
   }
 
   &::after {
-    content: "";
+    content: '';
     position: absolute;
     left: ${designTokens.spacing[2]};
     top: ${designTokens.spacing[4]};
@@ -444,19 +431,16 @@ export default function EnhancedAuditLogs() {
   const [isSimplifiedMode, setIsSimplifiedMode] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     startDate:
-      searchParams.get("startDate") ||
-      new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
-    endDate:
-      searchParams.get("endDate") || new Date().toISOString().split("T")[0],
-    agentId: searchParams.get("agentId") || "",
-    actionType: searchParams.get("actionType") || "",
-    complianceStatus: searchParams.get("complianceStatus") || "",
-    severity: searchParams.get("severity") || "",
-    category: searchParams.get("category") || "",
+      searchParams.get('startDate') ||
+      new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    endDate: searchParams.get('endDate') || new Date().toISOString().split('T')[0],
+    agentId: searchParams.get('agentId') || '',
+    actionType: searchParams.get('actionType') || '',
+    complianceStatus: searchParams.get('complianceStatus') || '',
+    severity: searchParams.get('severity') || '',
+    category: searchParams.get('category') || '',
   });
-  const highlightedEventId = searchParams.get("eventId") || "";
+  const highlightedEventId = searchParams.get('eventId') || '';
 
   const [metrics, setMetrics] = useState({
     totalLogs: 0,
@@ -473,12 +457,12 @@ export default function EnhancedAuditLogs() {
   useEffect(() => {
     const nextParams = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== "") {
+      if (value !== '') {
         nextParams.set(key, value);
       }
     });
     if (highlightedEventId) {
-      nextParams.set("eventId", highlightedEventId);
+      nextParams.set('eventId', highlightedEventId);
     }
     setSearchParams(nextParams, { replace: true });
   }, [filters, highlightedEventId, setSearchParams]);
@@ -487,9 +471,9 @@ export default function EnhancedAuditLogs() {
     try {
       setLoading(true);
       const queryEntries = Object.entries(filters).flatMap(([key, value]) => {
-        if (value === "") return [];
-        if (key === "agentId") {
-          return [["agent", value]];
+        if (value === '') return [];
+        if (key === 'agentId') {
+          return [['agent', value]];
         }
         return [[key, value]];
       });
@@ -510,15 +494,13 @@ export default function EnhancedAuditLogs() {
         setLogs(normalizedLogs);
         calculateMetrics(normalizedLogs);
       } else {
-        setError("Failed to load audit logs");
+        setError('Failed to load audit logs');
         setLogs([]);
         calculateMetrics([]);
       }
     } catch (err) {
-      console.error("Error fetching audit logs:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to load audit logs",
-      );
+      console.error('Error fetching audit logs:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load audit logs');
       setLogs([]);
       calculateMetrics([]);
     } finally {
@@ -529,16 +511,12 @@ export default function EnhancedAuditLogs() {
   const calculateMetrics = (logs: AuditLog[]) => {
     const totalLogs = logs.length;
     const compliantLogs = logs.filter(
-      (log) => log.metadata.complianceStatus === "compliant",
+      (log) => log.metadata.complianceStatus === 'compliant',
     ).length;
-    const complianceRate =
-      totalLogs > 0 ? (compliantLogs / totalLogs) * 100 : 0;
+    const complianceRate = totalLogs > 0 ? (compliantLogs / totalLogs) * 100 : 0;
     const avgResponseTime =
-      logs.reduce((sum, log) => sum + log.metadata.latencyMs, 0) / totalLogs ||
-      0;
-    const criticalIssues = logs.filter(
-      (log) => log.impact.severity === "critical",
-    ).length;
+      logs.reduce((sum, log) => sum + log.metadata.latencyMs, 0) / totalLogs || 0;
+    const criticalIssues = logs.filter((log) => log.impact.severity === 'critical').length;
 
     setMetrics({
       totalLogs,
@@ -550,7 +528,7 @@ export default function EnhancedAuditLogs() {
 
   const generateAIInsights = async () => {
     try {
-      const response = await fetch(getApiUrl("/api/audit/insights"), {
+      const response = await fetch(getApiUrl('/api/audit/insights'), {
         headers: getRequestHeaders(),
       });
 
@@ -561,7 +539,7 @@ export default function EnhancedAuditLogs() {
         setAiInsights([]);
       }
     } catch (error) {
-      console.error("Error fetching AI insights:", error);
+      console.error('Error fetching AI insights:', error);
       setAiInsights([]);
     }
   };
@@ -574,27 +552,21 @@ export default function EnhancedAuditLogs() {
     <div css={dashboardGridStyles}>
       <Card variant="default" css={metricCardStyles}>
         <CardContent>
-          <div css={metricValueStyles}>
-            {metrics.totalLogs.toLocaleString()}
-          </div>
+          <div css={metricValueStyles}>{metrics.totalLogs.toLocaleString()}</div>
           <div css={metricLabelStyles}>Total Actions Logged</div>
         </CardContent>
       </Card>
 
       <Card variant="default" css={metricCardStyles}>
         <CardContent>
-          <div css={metricValueStyles}>
-            {metrics.complianceRate.toFixed(1)}%
-          </div>
+          <div css={metricValueStyles}>{metrics.complianceRate.toFixed(1)}%</div>
           <div css={metricLabelStyles}>Compliance Rate</div>
         </CardContent>
       </Card>
 
       <Card variant="default" css={metricCardStyles}>
         <CardContent>
-          <div css={metricValueStyles}>
-            {metrics.avgResponseTime.toFixed(0)}ms
-          </div>
+          <div css={metricValueStyles}>{metrics.avgResponseTime.toFixed(0)}ms</div>
           <div css={metricLabelStyles}>Avg Response Time</div>
         </CardContent>
       </Card>
@@ -624,7 +596,7 @@ export default function EnhancedAuditLogs() {
             <input
               type="date"
               value={filters.startDate}
-              onChange={(e) => handleFilterChange("startDate", e.target.value)}
+              onChange={(e) => handleFilterChange('startDate', e.target.value)}
               css={inputStyles}
             />
           </div>
@@ -634,7 +606,7 @@ export default function EnhancedAuditLogs() {
             <input
               type="date"
               value={filters.endDate}
-              onChange={(e) => handleFilterChange("endDate", e.target.value)}
+              onChange={(e) => handleFilterChange('endDate', e.target.value)}
               css={inputStyles}
             />
           </div>
@@ -643,7 +615,7 @@ export default function EnhancedAuditLogs() {
             <label css={labelStyles}>Agent</label>
             <select
               value={filters.agentId}
-              onChange={(e) => handleFilterChange("agentId", e.target.value)}
+              onChange={(e) => handleFilterChange('agentId', e.target.value)}
               css={inputStyles}
             >
               <option value="">All Agents</option>
@@ -656,7 +628,7 @@ export default function EnhancedAuditLogs() {
             <label css={labelStyles}>Action Type</label>
             <select
               value={filters.actionType}
-              onChange={(e) => handleFilterChange("actionType", e.target.value)}
+              onChange={(e) => handleFilterChange('actionType', e.target.value)}
               css={inputStyles}
             >
               <option value="">All Actions</option>
@@ -670,9 +642,7 @@ export default function EnhancedAuditLogs() {
             <label css={labelStyles}>Compliance Status</label>
             <select
               value={filters.complianceStatus}
-              onChange={(e) =>
-                handleFilterChange("complianceStatus", e.target.value)
-              }
+              onChange={(e) => handleFilterChange('complianceStatus', e.target.value)}
               css={inputStyles}
             >
               <option value="">All Status</option>
@@ -686,7 +656,7 @@ export default function EnhancedAuditLogs() {
             <label css={labelStyles}>Severity</label>
             <select
               value={filters.severity}
-              onChange={(e) => handleFilterChange("severity", e.target.value)}
+              onChange={(e) => handleFilterChange('severity', e.target.value)}
               css={inputStyles}
             >
               <option value="">All Severities</option>
@@ -749,8 +719,7 @@ export default function EnhancedAuditLogs() {
                 </CardTitle>
                 <span
                   css={css`
-                    padding: ${designTokens.spacing[1]}
-                      ${designTokens.spacing[2]};
+                    padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
                     background: ${designTokens.colors.primary[100]};
                     color: ${designTokens.colors.primary[700]};
                     border-radius: ${designTokens.borderRadius.full};
@@ -795,8 +764,7 @@ export default function EnhancedAuditLogs() {
                   <span
                     css={css`
                       font-size: ${designTokens.typography.fontSize.sm};
-                      font-weight: ${designTokens.typography.fontWeight
-                        .semibold};
+                      font-weight: ${designTokens.typography.fontWeight.semibold};
                     `}
                   >
                     {insight.confidence}%
@@ -854,12 +822,14 @@ export default function EnhancedAuditLogs() {
             css={css`
               ${logItemStyles};
               &.${log.metadata.complianceStatus}
-              ${highlightedEventId === log.id
-                ? `
+              ${
+                highlightedEventId === log.id
+                  ? `
                     border: 2px solid ${designTokens.colors.primary[500]};
                     box-shadow: 0 0 0 4px ${designTokens.colors.primary[100]};
                   `
-                : ""}
+                  : ''
+              }
             `}
           >
             <Card variant="default">
@@ -871,7 +841,7 @@ export default function EnhancedAuditLogs() {
                     align-items: start;
                     margin-bottom: ${designTokens.spacing[3]};
                   `}
-                  >
+                >
                   <div>
                     <CardTitle
                       css={css`
@@ -883,17 +853,29 @@ export default function EnhancedAuditLogs() {
                     <div css={trustBadgeRowStyles}>
                       {log.evidence?.hash && (
                         <Tooltip content="This audit event is backed by a stable evidence hash.">
-                          <span><Badge variant="success" size="sm">hash-backed</Badge></span>
+                          <span>
+                            <Badge variant="success" size="sm">
+                              hash-backed
+                            </Badge>
+                          </span>
                         </Tooltip>
                       )}
                       {log.evidence?.cid && (
                         <Tooltip content="This audit event references content-addressed evidence.">
-                          <span><Badge variant="secondary" size="sm">cid-linked</Badge></span>
+                          <span>
+                            <Badge variant="secondary" size="sm">
+                              cid-linked
+                            </Badge>
+                          </span>
                         </Tooltip>
                       )}
                       {log.evidence?.policyIds?.length ? (
                         <Tooltip content="Policy checks were recorded for this audit event.">
-                          <span><Badge variant="warning" size="sm">policy-enforced</Badge></span>
+                          <span>
+                            <Badge variant="warning" size="sm">
+                              policy-enforced
+                            </Badge>
+                          </span>
                         </Tooltip>
                       ) : null}
                     </div>
@@ -912,14 +894,10 @@ export default function EnhancedAuditLogs() {
                       align-items: center;
                     `}
                   >
-                    <span
-                      css={css`${statusBadgeStyles}; &.${log.metadata.complianceStatus}`}
-                    >
+                    <span css={css`${statusBadgeStyles}; &.${log.metadata.complianceStatus}`}>
                       {log.metadata.complianceStatus}
                     </span>
-                    <span
-                      css={css`${severityBadgeStyles}; &.${log.impact.severity}`}
-                    >
+                    <span css={css`${severityBadgeStyles}; &.${log.impact.severity}`}>
                       {log.impact.severity}
                     </span>
                   </div>
@@ -933,8 +911,7 @@ export default function EnhancedAuditLogs() {
                   <h4
                     css={css`
                       font-size: ${designTokens.typography.fontSize.sm};
-                      font-weight: ${designTokens.typography.fontWeight
-                        .semibold};
+                      font-weight: ${designTokens.typography.fontWeight.semibold};
                       margin-bottom: ${designTokens.spacing[2]};
                     `}
                   >
@@ -969,16 +946,14 @@ export default function EnhancedAuditLogs() {
                         margin-top: ${designTokens.spacing[2]};
                       `}
                     >
-                      <strong>Confidence:</strong>{" "}
-                      {(log.action.confidence * 100).toFixed(1)}%
+                      <strong>Confidence:</strong> {(log.action.confidence * 100).toFixed(1)}%
                       {log.action.riskScore && (
                         <span
                           css={css`
                             margin-left: ${designTokens.spacing[4]};
                           `}
                         >
-                          <strong>Risk Score:</strong>{" "}
-                          {(log.action.riskScore * 100).toFixed(1)}%
+                          <strong>Risk Score:</strong> {(log.action.riskScore * 100).toFixed(1)}%
                         </span>
                       )}
                     </div>
@@ -993,8 +968,7 @@ export default function EnhancedAuditLogs() {
                   <h4
                     css={css`
                       font-size: ${designTokens.typography.fontSize.sm};
-                      font-weight: ${designTokens.typography.fontWeight
-                        .semibold};
+                      font-weight: ${designTokens.typography.fontWeight.semibold};
                       margin-bottom: ${designTokens.spacing[2]};
                     `}
                   >
@@ -1027,8 +1001,7 @@ export default function EnhancedAuditLogs() {
                         <strong>{check.policyName}</strong>
                         <span
                           css={css`
-                            padding: ${designTokens.spacing[1]}
-                              ${designTokens.spacing[2]};
+                            padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
                             background: ${check.result
                               ? designTokens.colors.semantic.success[100]
                               : designTokens.colors.semantic.error[100]};
@@ -1037,11 +1010,10 @@ export default function EnhancedAuditLogs() {
                               : designTokens.colors.semantic.error[700]};
                             border-radius: ${designTokens.borderRadius.full};
                             font-size: ${designTokens.typography.fontSize.xs};
-                            font-weight: ${designTokens.typography.fontWeight
-                              .semibold};
+                            font-weight: ${designTokens.typography.fontWeight.semibold};
                           `}
                         >
-                          {check.result ? "PASSED" : "FAILED"}
+                          {check.result ? 'PASSED' : 'FAILED'}
                         </span>
                       </div>
                       <div
@@ -1089,10 +1061,10 @@ export default function EnhancedAuditLogs() {
                           margin-left: ${designTokens.spacing[4]};
                         `}
                       >
-                        Impact: {log.impact.financialImpact > 0 ? "+" : ""}
-                        {log.impact.financialImpact.toLocaleString("en-US", {
-                          style: "currency",
-                          currency: "USD",
+                        Impact: {log.impact.financialImpact > 0 ? '+' : ''}
+                        {log.impact.financialImpact.toLocaleString('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
                         })}
                       </span>
                     )}
@@ -1107,6 +1079,13 @@ export default function EnhancedAuditLogs() {
                   </div>
                 </div>
 
+                {log.metadata.confidential && log.metadata.amountCiphertext && (
+                  <ConfidentialAuditViewer
+                    encryptedAmount={log.metadata.amountCiphertext}
+                    decisionId={log.id}
+                  />
+                )}
+
                 {log.evidence && (
                   <div
                     css={css`
@@ -1120,15 +1099,14 @@ export default function EnhancedAuditLogs() {
                       css={css`
                         background: ${designTokens.colors.neutral[100]};
                         color: ${designTokens.colors.neutral[700]};
-                        padding: ${designTokens.spacing[1]}
-                          ${designTokens.spacing[2]};
+                        padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
                         border-radius: ${designTokens.borderRadius.full};
                         border: none;
                         cursor: pointer;
                         font-size: ${designTokens.typography.fontSize.xs};
                       `}
                       onClick={() => {
-                        void copyTextToClipboard(log.evidence?.hash || "");
+                        void copyTextToClipboard(log.evidence?.hash || '');
                       }}
                     >
                       Hash {log.evidence.hash.slice(0, 12)}…
@@ -1138,15 +1116,14 @@ export default function EnhancedAuditLogs() {
                         css={css`
                           background: ${designTokens.colors.neutral[100]};
                           color: ${designTokens.colors.neutral[700]};
-                          padding: ${designTokens.spacing[1]}
-                            ${designTokens.spacing[2]};
+                          padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
                           border-radius: ${designTokens.borderRadius.full};
                           border: none;
                           cursor: pointer;
                           font-size: ${designTokens.typography.fontSize.xs};
                         `}
                         onClick={() => {
-                          void copyTextToClipboard(log.evidence?.cid || "");
+                          void copyTextToClipboard(log.evidence?.cid || '');
                         }}
                       >
                         CID {log.evidence.cid.slice(0, 12)}…
@@ -1154,12 +1131,12 @@ export default function EnhancedAuditLogs() {
                     )}
                     {log.evidence.artifactIds?.length ? (
                       <span css={statusBadgeStyles}>
-                        Artifacts {log.evidence.artifactIds.slice(0, 2).join(", ")}
+                        Artifacts {log.evidence.artifactIds.slice(0, 2).join(', ')}
                       </span>
                     ) : null}
                     {log.evidence.policyIds?.length ? (
                       <span css={statusBadgeStyles}>
-                        Policies {log.evidence.policyIds.slice(0, 2).join(", ")}
+                        Policies {log.evidence.policyIds.slice(0, 2).join(', ')}
                       </span>
                     ) : null}
                   </div>
@@ -1220,27 +1197,26 @@ export default function EnhancedAuditLogs() {
       <div css={headerStyles}>
         <h1 css={titleStyles}>Audit Logs & Insights</h1>
         <p css={subtitleStyles}>
-          Monitor your autonomous agents with comprehensive audit trails and
-          AI-powered insights
+          Monitor your autonomous agents with comprehensive audit trails and AI-powered insights
         </p>
         <div
           style={{
             marginTop: designTokens.spacing[6],
-            display: "flex",
-            justifyContent: "center",
-            gap: "12px",
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '12px',
           }}
         >
           <Button
             size="sm"
-            variant={!isSimplifiedMode ? "primary" : "secondary"}
+            variant={!isSimplifiedMode ? 'primary' : 'secondary'}
             onClick={() => setIsSimplifiedMode(false)}
           >
             Technical View
           </Button>
           <Button
             size="sm"
-            variant={isSimplifiedMode ? "primary" : "secondary"}
+            variant={isSimplifiedMode ? 'primary' : 'secondary'}
             onClick={() => setIsSimplifiedMode(true)}
           >
             Executive Summary
@@ -1249,7 +1225,7 @@ export default function EnhancedAuditLogs() {
       </div>
 
       {isSimplifiedMode ? (
-        <div style={{ animation: "fadeIn 0.5s ease-out" }}>
+        <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
           {renderMetrics()}
           {renderAIInsights()}
           <Card variant="outlined">
@@ -1259,54 +1235,48 @@ export default function EnhancedAuditLogs() {
               </CardTitle>
               <div
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
                 }}
               >
                 {logs
-                  .filter(
-                    (l) =>
-                      l.impact.severity === "critical" ||
-                      l.impact.severity === "high",
-                  )
+                  .filter((l) => l.impact.severity === 'critical' || l.impact.severity === 'high')
                   .slice(0, 5)
                   .map((log) => (
                     <div
                       key={log.id}
                       style={{
-                        padding: "16px",
+                        padding: '16px',
                         background: designTokens.colors.neutral[50],
                         borderRadius: designTokens.borderRadius.md,
                         borderLeft: `4px solid ${
-                          log.impact.severity === "critical"
+                          log.impact.severity === 'critical'
                             ? designTokens.colors.semantic.error[500]
                             : designTokens.colors.semantic.warning[500]
                         }`,
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
                       }}
                     >
                       <div>
-                        <div
-                          style={{ fontWeight: "bold", marginBottom: "4px" }}
-                        >
+                        <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
                           {log.agentName}: {log.action.type}
                         </div>
                         <div
                           style={{
-                            fontSize: "14px",
+                            fontSize: '14px',
                             color: designTokens.colors.neutral[600],
                           }}
                         >
                           {log.action.description}
                         </div>
                       </div>
-                      <div style={{ textAlign: "right" }}>
+                      <div style={{ textAlign: 'right' }}>
                         <div
                           style={{
-                            fontSize: "12px",
+                            fontSize: '12px',
                             color: designTokens.colors.neutral[500],
                           }}
                         >
@@ -1314,10 +1284,10 @@ export default function EnhancedAuditLogs() {
                         </div>
                         <div
                           style={{
-                            fontSize: "12px",
-                            fontWeight: "bold",
+                            fontSize: '12px',
+                            fontWeight: 'bold',
                             color:
-                              log.metadata.complianceStatus === "compliant"
+                              log.metadata.complianceStatus === 'compliant'
                                 ? designTokens.colors.semantic.success[600]
                                 : designTokens.colors.semantic.error[600],
                           }}
@@ -1328,14 +1298,12 @@ export default function EnhancedAuditLogs() {
                     </div>
                   ))}
                 {logs.filter(
-                  (l) =>
-                    l.impact.severity === "critical" ||
-                    l.impact.severity === "high",
+                  (l) => l.impact.severity === 'critical' || l.impact.severity === 'high',
                 ).length === 0 && (
                   <div
                     style={{
-                      textAlign: "center",
-                      padding: "20px",
+                      textAlign: 'center',
+                      padding: '20px',
                       color: designTokens.colors.neutral[500],
                     }}
                   >

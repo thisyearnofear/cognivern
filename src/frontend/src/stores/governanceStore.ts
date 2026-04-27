@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
 /**
  * Governance Domain Interfaces
@@ -9,15 +9,15 @@ import { create } from "zustand";
  * - ENHANCEMENT FIRST: Bridges descriptive governance with technical runtime rules.
  */
 
-export type StrictnessLevel = "low" | "medium" | "high";
-export type RuleType = "ALLOW" | "DENY" | "REQUIRE" | "RATE_LIMIT";
+export type StrictnessLevel = 'low' | 'medium' | 'high';
+export type RuleType = 'ALLOW' | 'DENY' | 'REQUIRE' | 'RATE_LIMIT';
 export type PolicyCategory =
-  | "trading"
-  | "security"
-  | "compliance"
-  | "performance"
-  | "data"
-  | "ethics";
+  | 'trading'
+  | 'security'
+  | 'compliance'
+  | 'performance'
+  | 'data'
+  | 'ethics';
 
 export interface GovernanceRule {
   id: string;
@@ -38,7 +38,7 @@ export interface GovernancePolicy {
   name: string;
   description: string;
   rules: GovernanceRule[];
-  status: "active" | "draft" | "archived";
+  status: 'active' | 'draft' | 'archived';
   templateId?: string;
   effectivenessScore?: number;
   violationsPrevented?: number;
@@ -50,9 +50,9 @@ export interface GovernanceTemplate {
   id: string;
   name: string;
   description: string;
-  category: "trading" | "security" | "compliance" | "performance";
+  category: 'trading' | 'security' | 'compliance' | 'performance';
   icon: string;
-  complexity: "simple" | "moderate" | "advanced";
+  complexity: 'simple' | 'moderate' | 'advanced';
   estimatedSetupTime: string;
   defaultRules: GovernanceRule[];
 }
@@ -69,17 +69,11 @@ interface GovernanceState {
   setError: (error: string | null) => void;
   fetchPolicies: () => Promise<void>;
   createPolicy: (
-    policy: Omit<GovernancePolicy, "id" | "createdAt" | "updatedAt">,
+    policy: Omit<GovernancePolicy, 'id' | 'createdAt' | 'updatedAt'>,
   ) => Promise<GovernancePolicy>;
-  updatePolicy: (
-    id: string,
-    updates: Partial<GovernancePolicy>,
-  ) => Promise<void>;
+  updatePolicy: (id: string, updates: Partial<GovernancePolicy>) => Promise<void>;
   deletePolicy: (id: string) => Promise<void>;
-  applyTemplate: (
-    templateId: string,
-    customName?: string,
-  ) => Promise<GovernancePolicy>;
+  applyTemplate: (templateId: string, customName?: string) => Promise<GovernancePolicy>;
 }
 
 /**
@@ -88,129 +82,129 @@ interface GovernanceState {
  */
 const defaultTemplates: GovernanceTemplate[] = [
   {
-    id: "trading-risk-control",
-    name: "Agent Spend Guardrails",
+    id: 'trading-risk-control',
+    name: 'Agent Spend Guardrails',
     description:
-      "Core spend controls for autonomous agents including budget limits, approval thresholds, and action-rate controls.",
-    category: "trading",
-    icon: "📊",
-    complexity: "moderate",
-    estimatedSetupTime: "10-15 min",
+      'Core spend controls for autonomous agents including budget limits, approval thresholds, and action-rate controls.',
+    category: 'trading',
+    icon: '📊',
+    complexity: 'moderate',
+    estimatedSetupTime: '10-15 min',
     defaultRules: [
       {
-        id: "rule-position-limit",
-        name: "Single Action Limit",
-        description: "Deny actions exceeding 10% of available balance.",
-        type: "DENY",
-        condition: "trade.amount > account.balance * 0.1",
-        action: "block_trade",
+        id: 'rule-position-limit',
+        name: 'Single Action Limit',
+        description: 'Deny actions exceeding 10% of available balance.',
+        type: 'DENY',
+        condition: 'trade.amount > account.balance * 0.1',
+        action: 'block_trade',
         enabled: true,
-        strictness: "medium",
-        category: "trading",
+        strictness: 'medium',
+        category: 'trading',
         priority: 1,
-        metadata: { reason: "Single action exceeds 10% of balance" },
+        metadata: { reason: 'Single action exceeds 10% of balance' },
       },
       {
-        id: "rule-risk-approval",
-        name: "High Risk Approval",
-        description: "Require human approval for actions with high risk scores.",
-        type: "REQUIRE",
-        condition: "trade.riskScore > 0.8",
-        action: "human_approval",
+        id: 'rule-risk-approval',
+        name: 'High Risk Approval',
+        description: 'Require human approval for actions with high risk scores.',
+        type: 'REQUIRE',
+        condition: 'trade.riskScore > 0.8',
+        action: 'human_approval',
         enabled: true,
-        strictness: "high",
-        category: "trading",
+        strictness: 'high',
+        category: 'trading',
         priority: 2,
         metadata: { timeout: 300 },
       },
       {
-        id: "rule-trade-rate",
-        name: "Action Rate Limit",
-        description: "Limit agents to 10 wallet-impacting actions per hour.",
-        type: "RATE_LIMIT",
-        condition: "agent.trades_per_hour",
-        action: "limit_to_10",
+        id: 'rule-trade-rate',
+        name: 'Action Rate Limit',
+        description: 'Limit agents to 10 wallet-impacting actions per hour.',
+        type: 'RATE_LIMIT',
+        condition: 'agent.trades_per_hour',
+        action: 'limit_to_10',
         enabled: true,
-        strictness: "medium",
-        category: "trading",
+        strictness: 'medium',
+        category: 'trading',
         priority: 3,
         metadata: { window: 3600 },
       },
     ],
   },
   {
-    id: "security-baseline",
-    name: "Security Foundation",
+    id: 'security-baseline',
+    name: 'Security Foundation',
     description:
-      "Essential security controls including authentication, authorization, and audit logging.",
-    category: "security",
-    icon: "🔒",
-    complexity: "simple",
-    estimatedSetupTime: "5-10 min",
+      'Essential security controls including authentication, authorization, and audit logging.',
+    category: 'security',
+    icon: '🔒',
+    complexity: 'simple',
+    estimatedSetupTime: '5-10 min',
     defaultRules: [
       {
-        id: "rule-auth-mfa",
-        name: "MFA Requirement",
-        description: "Require authentication and identity verification.",
-        type: "REQUIRE",
-        condition: "request.authenticated === true",
-        action: "verify_identity",
+        id: 'rule-auth-mfa',
+        name: 'MFA Requirement',
+        description: 'Require authentication and identity verification.',
+        type: 'REQUIRE',
+        condition: 'request.authenticated === true',
+        action: 'verify_identity',
         enabled: true,
-        strictness: "medium",
-        category: "security",
+        strictness: 'medium',
+        category: 'security',
         priority: 1,
-        metadata: { method: "mfa" },
+        metadata: { method: 'mfa' },
       },
       {
-        id: "rule-network-auth",
-        name: "Authorized Network",
-        description: "Deny requests from unauthorized source networks.",
-        type: "DENY",
+        id: 'rule-network-auth',
+        name: 'Authorized Network',
+        description: 'Deny requests from unauthorized source networks.',
+        type: 'DENY',
         condition: 'request.source !== "authorized_network"',
-        action: "block_request",
+        action: 'block_request',
         enabled: true,
-        strictness: "high",
-        category: "security",
+        strictness: 'high',
+        category: 'security',
         priority: 2,
-        metadata: { log_level: "high" },
+        metadata: { log_level: 'high' },
       },
     ],
   },
   {
-    id: "compliance-framework",
-    name: "Regulatory Compliance",
+    id: 'compliance-framework',
+    name: 'Regulatory Compliance',
     description:
-      "Advanced compliance controls for regulated environments with audit trails and reporting.",
-    category: "compliance",
-    icon: "⚖️",
-    complexity: "advanced",
-    estimatedSetupTime: "20-30 min",
+      'Advanced compliance controls for regulated environments with audit trails and reporting.',
+    category: 'compliance',
+    icon: '⚖️',
+    complexity: 'advanced',
+    estimatedSetupTime: '20-30 min',
     defaultRules: [
       {
-        id: "rule-kyc-limit",
-        name: "Enhanced KYC",
-        description: "Require enhanced KYC for transactions over $10k.",
-        type: "REQUIRE",
-        condition: "transaction.amount > 10000",
-        action: "kyc_verification",
+        id: 'rule-kyc-limit',
+        name: 'Enhanced KYC',
+        description: 'Require enhanced KYC for transactions over $10k.',
+        type: 'REQUIRE',
+        condition: 'transaction.amount > 10000',
+        action: 'kyc_verification',
         enabled: true,
-        strictness: "high",
-        category: "compliance",
+        strictness: 'high',
+        category: 'compliance',
         priority: 1,
-        metadata: { level: "enhanced" },
+        metadata: { level: 'enhanced' },
       },
       {
-        id: "rule-jurisdiction-block",
-        name: "Jurisdiction Restriction",
-        description: "Block access from restricted jurisdictions.",
-        type: "DENY",
+        id: 'rule-jurisdiction-block',
+        name: 'Jurisdiction Restriction',
+        description: 'Block access from restricted jurisdictions.',
+        type: 'DENY',
         condition: 'user.jurisdiction === "restricted"',
-        action: "block_access",
+        action: 'block_access',
         enabled: true,
-        strictness: "high",
-        category: "compliance",
+        strictness: 'high',
+        category: 'compliance',
         priority: 2,
-        metadata: { reason: "Regulatory restriction" },
+        metadata: { reason: 'Regulatory restriction' },
       },
     ],
   },
@@ -232,11 +226,11 @@ export const useGovernanceStore = create<GovernanceState>((set, get) => ({
     set({ isLoading: true });
     try {
       await new Promise((resolve) => setTimeout(resolve, 600));
-      const stored = localStorage.getItem("cognivern-policies");
+      const stored = localStorage.getItem('cognivern-policies');
       const policies = stored ? JSON.parse(stored) : [];
       set({ policies, isLoading: false });
     } catch (err) {
-      set({ error: "Failed to fetch policies", isLoading: false });
+      set({ error: 'Failed to fetch policies', isLoading: false });
     }
   },
 
@@ -257,16 +251,13 @@ export const useGovernanceStore = create<GovernanceState>((set, get) => ({
 
       set((state) => {
         const nextPolicies = [newPolicy, ...state.policies];
-        localStorage.setItem(
-          "cognivern-policies",
-          JSON.stringify(nextPolicies),
-        );
+        localStorage.setItem('cognivern-policies', JSON.stringify(nextPolicies));
         return { policies: nextPolicies, isLoading: false };
       });
 
       return newPolicy;
     } catch (err) {
-      set({ error: "Failed to create policy", isLoading: false });
+      set({ error: 'Failed to create policy', isLoading: false });
       throw err;
     }
   },
@@ -279,7 +270,7 @@ export const useGovernanceStore = create<GovernanceState>((set, get) => ({
       const nextPolicies = state.policies.map((p) =>
         p.id === id ? { ...p, ...updates, updatedAt: Date.now() } : p,
       );
-      localStorage.setItem("cognivern-policies", JSON.stringify(nextPolicies));
+      localStorage.setItem('cognivern-policies', JSON.stringify(nextPolicies));
       return { policies: nextPolicies };
     });
   },
@@ -290,7 +281,7 @@ export const useGovernanceStore = create<GovernanceState>((set, get) => ({
   deletePolicy: async (id) => {
     set((state) => {
       const nextPolicies = state.policies.filter((p) => p.id !== id);
-      localStorage.setItem("cognivern-policies", JSON.stringify(nextPolicies));
+      localStorage.setItem('cognivern-policies', JSON.stringify(nextPolicies));
       return { policies: nextPolicies };
     });
   },
@@ -300,16 +291,15 @@ export const useGovernanceStore = create<GovernanceState>((set, get) => ({
    */
   applyTemplate: async (templateId, customName) => {
     const template = get().templates.find((t) => t.id === templateId);
-    if (!template) throw new Error("Governance template not found");
+    if (!template) throw new Error('Governance template not found');
 
-    const policyData: Omit<GovernancePolicy, "id" | "createdAt" | "updatedAt"> =
-      {
-        name: customName || `My ${template.name}`,
-        description: template.description,
-        rules: [...template.defaultRules],
-        status: "draft",
-        templateId: template.id,
-      };
+    const policyData: Omit<GovernancePolicy, 'id' | 'createdAt' | 'updatedAt'> = {
+      name: customName || `My ${template.name}`,
+      description: template.description,
+      rules: [...template.defaultRules],
+      status: 'draft',
+      templateId: template.id,
+    };
 
     return get().createPolicy(policyData);
   },

@@ -1,14 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { css } from "@emotion/react";
-import { Link } from "react-router-dom";
-import { creApi, CreRun } from "../../services/creApi";
-import { toAgentRunViewModel } from "../../services/agentRunAdapter";
-import { uxAnalytics } from "../../services/uxAnalytics";
-import { getApiUrl, getApiKey } from "../../utils/api";
-import { designTokens } from "../../styles/design-system";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card";
-import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
+import React, { useEffect, useMemo, useState } from 'react';
+import { css } from '@emotion/react';
+import { Link } from 'react-router-dom';
+import { creApi, CreRun } from '../../services/creApi';
+import { toAgentRunViewModel } from '../../services/agentRunAdapter';
+import { uxAnalytics } from '../../services/uxAnalytics';
+import { getApiUrl, getApiKey } from '../../utils/api';
+import { designTokens } from '../../styles/design-system';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
 
 const containerStyles = css`
   width: 100%;
@@ -33,7 +33,7 @@ const titleBlockStyles = css`
 
 const titleStyles = css`
   margin: 0;
-  font-size: ${designTokens.typography.fontSize["3xl"]};
+  font-size: ${designTokens.typography.fontSize['3xl']};
   font-weight: ${designTokens.typography.fontWeight.bold};
 `;
 
@@ -71,7 +71,7 @@ const smallText = css`
 `;
 
 function formatDuration(run: CreRun) {
-  if (!run.finishedAt) return "running";
+  if (!run.finishedAt) return 'running';
   const start = new Date(run.startedAt).getTime();
   const end = new Date(run.finishedAt).getTime();
   const ms = Math.max(0, end - start);
@@ -80,12 +80,12 @@ function formatDuration(run: CreRun) {
 
 const statusDotColor = (status: string) => {
   switch (status) {
-    case "completed":
+    case 'completed':
       return designTokens.colors.semantic.success;
-    case "failed":
-    case "cancelled":
+    case 'failed':
+    case 'cancelled':
       return designTokens.colors.semantic.error;
-    case "paused_for_approval":
+    case 'paused_for_approval':
       return designTokens.colors.semantic.warning;
     default:
       return designTokens.colors.primary[500];
@@ -94,10 +94,8 @@ const statusDotColor = (status: string) => {
 
 export default function RunLedger() {
   const [runs, setRuns] = useState<CreRun[]>([]);
-  const [projects, setProjects] = useState<
-    Array<{ projectId: string; name: string }>
-  >([]);
-  const [projectId, setProjectId] = useState<string>("default");
+  const [projects, setProjects] = useState<Array<{ projectId: string; name: string }>>([]);
+  const [projectId, setProjectId] = useState<string>('default');
   const [isLoading, setIsLoading] = useState(true);
   const [isTriggering, setIsTriggering] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,10 +110,10 @@ export default function RunLedger() {
 
   const loadProjects = async () => {
     try {
-      const res = await fetch("/api/projects", {
+      const res = await fetch('/api/projects', {
         headers: {
-          "Content-Type": "application/json",
-          "X-API-KEY": getApiKey(),
+          'Content-Type': 'application/json',
+          'X-API-KEY': getApiKey(),
         },
       });
       const json = await res.json();
@@ -132,7 +130,7 @@ export default function RunLedger() {
     setError(null);
     const res = await creApi.listRuns(projectId);
     if (!res.success) {
-      setError(res.error || "Failed to load runs");
+      setError(res.error || 'Failed to load runs');
       setIsLoading(false);
       return;
     }
@@ -146,10 +144,10 @@ export default function RunLedger() {
 
   const loadUxSummary = async () => {
     try {
-      const res = await fetch(getApiUrl("/api/metrics/ux-summary"), {
+      const res = await fetch(getApiUrl('/api/metrics/ux-summary'), {
         headers: {
-          "Content-Type": "application/json",
-          "X-API-KEY": getApiKey(),
+          'Content-Type': 'application/json',
+          'X-API-KEY': getApiKey(),
         },
       });
       const json = await res.json();
@@ -182,10 +180,7 @@ export default function RunLedger() {
     return () => window.clearInterval(id);
   }, [autoRefresh, refreshIntervalMs]);
 
-  const trigger = async (
-    writeAttestation: boolean,
-    requireApproval: boolean = false,
-  ) => {
+  const trigger = async (writeAttestation: boolean, requireApproval: boolean = false) => {
     setIsTriggering(true);
     setError(null);
     const res = await creApi.triggerForecast({
@@ -193,11 +188,11 @@ export default function RunLedger() {
       requireApproval,
     });
     if (!res.success) {
-      setError(res.error || "Failed to trigger forecast");
+      setError(res.error || 'Failed to trigger forecast');
       setIsTriggering(false);
       return;
     }
-    await uxAnalytics.track("run_console_view", { source: "ledger_trigger" });
+    await uxAnalytics.track('run_console_view', { source: 'ledger_trigger' });
     await refresh();
     setIsTriggering(false);
   };
@@ -211,9 +206,9 @@ export default function RunLedger() {
     setActiveRunAction(`cancel-${runId}`);
     const res = await creApi.cancelRun(runId);
     if (!res.success) {
-      setError(res.error || "Failed to cancel run");
+      setError(res.error || 'Failed to cancel run');
     }
-    await uxAnalytics.track("run_cancel", { runId, source: "ledger" });
+    await uxAnalytics.track('run_cancel', { runId, source: 'ledger' });
     await refresh();
     setActiveRunAction(null);
   };
@@ -222,9 +217,9 @@ export default function RunLedger() {
     setActiveRunAction(`retry-${runId}`);
     const res = await creApi.retryRun(runId);
     if (!res.success) {
-      setError(res.error || "Failed to retry run");
+      setError(res.error || 'Failed to retry run');
     }
-    await uxAnalytics.track("run_retry", { runId, source: "ledger" });
+    await uxAnalytics.track('run_retry', { runId, source: 'ledger' });
     await refresh();
     setActiveRunAction(null);
   };
@@ -235,8 +230,7 @@ export default function RunLedger() {
         <div css={titleBlockStyles}>
           <h1 css={titleStyles}>Agent Run Ledger</h1>
           <p css={subtitleStyles}>
-            Verifiable agent execution traces, cognitive paths, and governance
-            attestations.
+            Verifiable agent execution traces, cognitive paths, and governance attestations.
           </p>
           <div
             css={css`
@@ -259,7 +253,7 @@ export default function RunLedger() {
             >
               {(projects.length
                 ? projects
-                : [{ projectId: "default", name: "Default Project" }]
+                : [{ projectId: 'default', name: 'Default Project' }]
               ).map((p) => (
                 <option key={p.projectId} value={p.projectId}>
                   {p.name} ({p.projectId})
@@ -309,25 +303,13 @@ export default function RunLedger() {
           <Button onClick={() => refresh()} variant="secondary">
             Refresh
           </Button>
-          <Button
-            onClick={() => trigger(false)}
-            disabled={isTriggering}
-            variant="primary"
-          >
+          <Button onClick={() => trigger(false)} disabled={isTriggering} variant="primary">
             Run forecast (dry)
           </Button>
-          <Button
-            onClick={() => trigger(true)}
-            disabled={isTriggering}
-            variant="danger"
-          >
+          <Button onClick={() => trigger(true)} disabled={isTriggering} variant="danger">
             Run + Attest
           </Button>
-          <Button
-            onClick={() => trigger(true, true)}
-            disabled={isTriggering}
-            variant="outline"
-          >
+          <Button onClick={() => trigger(true, true)} disabled={isTriggering} variant="outline">
             Run + Approval Gate
           </Button>
         </div>
@@ -356,8 +338,8 @@ export default function RunLedger() {
           </CardHeader>
           <CardContent>
             <div css={smallText}>
-              Events: {uxSummary.totalEvents} · Completion rate:{" "}
-              {(uxSummary.completionRate * 100).toFixed(1)}% · Retry rate:{" "}
+              Events: {uxSummary.totalEvents} · Completion rate:{' '}
+              {(uxSummary.completionRate * 100).toFixed(1)}% · Retry rate:{' '}
               {(uxSummary.retryRate * 100).toFixed(1)}%
             </div>
           </CardContent>
@@ -380,8 +362,7 @@ export default function RunLedger() {
             <div css={smallText}>Loading runs…</div>
           ) : runs.length === 0 ? (
             <div css={smallText}>
-              No runs yet. Click “Run forecast (dry)” to generate your first
-              verifiable trace.
+              No runs yet. Click “Run forecast (dry)” to generate your first verifiable trace.
             </div>
           ) : (
             <div
@@ -414,21 +395,17 @@ export default function RunLedger() {
                                 display: inline-block;
                               `}
                             />
-                            <strong>{r.workflow}</strong> ·{" "}
-                            <span>{r.mode}</span>
+                            <strong>{r.workflow}</strong> · <span>{r.mode}</span>
                           </div>
                           <div css={smallText}>
-                            {new Date(r.startedAt).toLocaleString()} ·{" "}
-                            {formatDuration(r)}
+                            {new Date(r.startedAt).toLocaleString()} · {formatDuration(r)}
                           </div>
                           <div css={smallText}>
-                            Status: {vm.status} · Steps: {vm.metrics.stepCount}{" "}
-                            · Artifacts: {vm.metrics.artifactCount}
+                            Status: {vm.status} · Steps: {vm.metrics.stepCount} · Artifacts:{' '}
+                            {vm.metrics.artifactCount}
                           </div>
                           {vm.currentStepName && (
-                            <div css={smallText}>
-                              Current step: {vm.currentStepName}
-                            </div>
+                            <div css={smallText}>Current step: {vm.currentStepName}</div>
                           )}
                         </div>
 
@@ -443,14 +420,13 @@ export default function RunLedger() {
                         >
                           <Badge
                             variant={
-                              vm.status === "completed"
-                                ? "success"
-                                : vm.status === "failed" ||
-                                    vm.status === "cancelled"
-                                  ? "error"
-                                  : vm.status === "paused_for_approval"
-                                    ? "warning"
-                                    : "secondary"
+                              vm.status === 'completed'
+                                ? 'success'
+                                : vm.status === 'failed' || vm.status === 'cancelled'
+                                  ? 'error'
+                                  : vm.status === 'paused_for_approval'
+                                    ? 'warning'
+                                    : 'secondary'
                             }
                           >
                             {vm.status.toUpperCase()}

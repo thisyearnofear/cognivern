@@ -1,4 +1,4 @@
-export * from "../../../shared/types";
+export * from '../../../shared/types';
 
 // ===== COMMON COMPONENT PROPS =====
 export interface BaseComponentProps {

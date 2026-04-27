@@ -1,6 +1,7 @@
 import { Policy, PolicyRule, PolicyRuleType } from "../types/Policy.js";
 import { AgentAction, PolicyCheck } from "../types/Agent.js";
 import { PolicyService } from "./PolicyService.js";
+import { FhenixPolicyService } from "./FhenixPolicyService.js";
 import logger from "../utils/logger.js";
 import { Script } from "node:vm";
 
@@ -13,19 +14,24 @@ import { Script } from "node:vm";
 export class PolicyEnforcementService {
   private currentPolicy: Policy | null = null;
   private policyService: PolicyService | null = null;
+  private fhenixPolicyService: FhenixPolicyService | null = null;
   private rateLimitCounters: Map<string, { count: number; resetTime: number }> =
     new Map();
 
-  constructor(policyService?: PolicyService) {
+  constructor(policyService?: PolicyService, fhenixPolicyService?: FhenixPolicyService) {
     this.policyService = policyService || null;
+    this.fhenixPolicyService = fhenixPolicyService || null;
     logger.info("PolicyEnforcementService initialized");
   }
 
   /**
    * Initialize with PolicyService instance (for dependency injection)
    */
-  initialize(policyService: PolicyService): void {
+  initialize(policyService: PolicyService, fhenixPolicyService?: FhenixPolicyService): void {
     this.policyService = policyService;
+    if (fhenixPolicyService) {
+      this.fhenixPolicyService = fhenixPolicyService;
+    }
     logger.info("PolicyEnforcementService initialized with PolicyService");
   }
 
@@ -78,8 +84,9 @@ export class PolicyEnforcementService {
         const result = await this.evaluateRule(rule, action);
         checks.push({
           policyId: rule.id,
-          result,
-          reason: result ? "Rule passed" : "Rule failed",
+          result: result.allowed,
+          reason: result.reason || (result.allowed ? "Rule passed" : "Rule failed"),
+          metadata: result.metadata,
         });
       } catch (error) {
         checks.push({
@@ -134,16 +141,36 @@ export class PolicyEnforcementService {
   private async evaluateRule(
     rule: PolicyRule,
     action: AgentAction,
-  ): Promise<boolean> {
+  ): Promise<{ allowed: boolean; reason?: string; metadata?: any }> {
+    // If rule is confidential, delegate to FhenixPolicyService
+    if (rule.metadata?.confidential && this.fhenixPolicyService) {
+      logger.info(`Evaluating confidential rule via Fhenix: ${rule.id}`);
+      const decision = await this.fhenixPolicyService.evaluateEncrypted({
+        agentId: action.metadata?.agentId || action.id || "unknown",
+        policyId: rule.id,
+        amountWei: BigInt(action.metadata?.amountWei || 0),
+        vendorHash: action.metadata?.vendorHash || "0x0000000000000000000000000000000000000000000000000000000000000000",
+      });
+      return {
+        allowed: decision.outcome === "approve",
+        reason: `Fhenix Evaluation: ${decision.outcome}`,
+        metadata: {
+          decisionId: decision.decisionId,
+          attestation: decision.attestation,
+          confidential: true,
+        },
+      };
+    }
+
     switch (this.normalizeRuleType(rule.type)) {
       case "allow":
-        return this.evaluateAllowRule(rule, action);
+        return { allowed: this.evaluateAllowRule(rule, action) };
       case "deny":
-        return !this.evaluateDenyRule(rule, action);
+        return { allowed: !this.evaluateDenyRule(rule, action) };
       case "require":
-        return this.evaluateRequireRule(rule, action);
+        return { allowed: this.evaluateRequireRule(rule, action) };
       case "rate_limit":
-        return this.evaluateRateLimitRule(rule, action);
+        return { allowed: this.evaluateRateLimitRule(rule, action) };
       default:
         throw new Error(`Unknown rule type: ${rule.type}`);
     }

@@ -15,7 +15,7 @@ export interface LayoutOptimization {
   sidebarWidth: number;
   contentWidth: number;
   recommendedColumns: number;
-  recommendedSidebarState: "expanded" | "collapsed" | "hidden" | "overlay";
+  recommendedSidebarState: 'expanded' | 'collapsed' | 'hidden' | 'overlay';
   spaceUtilization: number; // 0-1 score
 }
 
@@ -44,7 +44,7 @@ export const getViewportDimensions = (): ViewportDimensions => {
  */
 export const calculateOptimalLayout = (
   viewport: ViewportDimensions,
-  contentType: "dashboard" | "form" | "table" | "chart" | "list" = "dashboard",
+  contentType: 'dashboard' | 'form' | 'table' | 'chart' | 'list' = 'dashboard',
 ): LayoutOptimization => {
   const { availableWidth } = viewport;
 
@@ -60,26 +60,22 @@ export const calculateOptimalLayout = (
   const minContentWidth = minContentWidths[contentType];
 
   // Calculate optimal sidebar width (percentage-based with constraints)
-  const calculateSidebarWidth = (
-    percentage: number,
-    min: number,
-    max: number,
-  ) => {
+  const calculateSidebarWidth = (percentage: number, min: number, max: number) => {
     const calculated = Math.floor(availableWidth * percentage);
     return Math.max(min, Math.min(max, calculated));
   };
 
   // Determine optimal sidebar state based on available space
-  let recommendedSidebarState: "expanded" | "collapsed" | "hidden" | "overlay";
+  let recommendedSidebarState: 'expanded' | 'collapsed' | 'hidden' | 'overlay';
   let sidebarWidth: number;
 
   if (availableWidth < 768) {
     // Mobile: use overlay or hidden
-    recommendedSidebarState = "hidden";
+    recommendedSidebarState = 'hidden';
     sidebarWidth = 0;
   } else if (availableWidth < 1024) {
     // Tablet: use collapsed or overlay
-    recommendedSidebarState = "collapsed";
+    recommendedSidebarState = 'collapsed';
     sidebarWidth = 80;
   } else {
     // Desktop: calculate based on content needs
@@ -91,15 +87,15 @@ export const calculateOptimalLayout = (
 
     if (contentWidthWithExpanded >= minContentWidth * 1.2) {
       // Plenty of space for expanded sidebar
-      recommendedSidebarState = "expanded";
+      recommendedSidebarState = 'expanded';
       sidebarWidth = expandedWidth;
     } else if (contentWidthWithCollapsed >= minContentWidth) {
       // Enough space with collapsed sidebar
-      recommendedSidebarState = "collapsed";
+      recommendedSidebarState = 'collapsed';
       sidebarWidth = collapsedWidth;
     } else {
       // Need maximum space for content
-      recommendedSidebarState = "hidden";
+      recommendedSidebarState = 'hidden';
       sidebarWidth = 0;
     }
   }
@@ -119,10 +115,7 @@ export const calculateOptimalLayout = (
 
   // Calculate space utilization score (0-1)
   const idealContentWidth = Math.min(contentWidth, minContentWidth * 1.5);
-  const spaceUtilization = Math.min(
-    1,
-    idealContentWidth / (availableWidth * 0.85),
-  );
+  const spaceUtilization = Math.min(1, idealContentWidth / (availableWidth * 0.85));
 
   return {
     sidebarWidth,
@@ -166,17 +159,12 @@ export const isLayoutOptimal = (
  * Get responsive breakpoint information
  */
 export const getBreakpointInfo = (width: number) => {
-  if (width < 640)
-    return { name: "xs", isMobile: true, isTablet: false, isDesktop: false };
-  if (width < 768)
-    return { name: "sm", isMobile: true, isTablet: false, isDesktop: false };
-  if (width < 1024)
-    return { name: "md", isMobile: false, isTablet: true, isDesktop: false };
-  if (width < 1280)
-    return { name: "lg", isMobile: false, isTablet: false, isDesktop: true };
-  if (width < 1536)
-    return { name: "xl", isMobile: false, isTablet: false, isDesktop: true };
-  return { name: "2xl", isMobile: false, isTablet: false, isDesktop: true };
+  if (width < 640) return { name: 'xs', isMobile: true, isTablet: false, isDesktop: false };
+  if (width < 768) return { name: 'sm', isMobile: true, isTablet: false, isDesktop: false };
+  if (width < 1024) return { name: 'md', isMobile: false, isTablet: true, isDesktop: false };
+  if (width < 1280) return { name: 'lg', isMobile: false, isTablet: false, isDesktop: true };
+  if (width < 1536) return { name: 'xl', isMobile: false, isTablet: false, isDesktop: true };
+  return { name: '2xl', isMobile: false, isTablet: false, isDesktop: true };
 };
 
 /**
@@ -189,7 +177,7 @@ export class ViewportTracker {
 
   constructor() {
     this.handleResize = this.handleResize.bind(this);
-    window.addEventListener("resize", this.handleResize, { passive: true });
+    window.addEventListener('resize', this.handleResize, { passive: true });
   }
 
   private handleResize() {
@@ -224,7 +212,7 @@ export class ViewportTracker {
   }
 
   destroy() {
-    window.removeEventListener("resize", this.handleResize);
+    window.removeEventListener('resize', this.handleResize);
     if (this.rafId) {
       cancelAnimationFrame(this.rafId);
     }

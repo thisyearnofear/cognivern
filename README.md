@@ -73,11 +73,11 @@ pnpm demo:live
 |-------|-------|-----------|
 | Execution & Policy | X Layer Testnet (chainId 1952) | GovernanceContract `0x755602bB...`, AIGovernanceStorage `0x1E0317bF...` |
 | Audit Storage | Filecoin Calibration | GovernanceContract + AIGovernanceStorage |
-| Confidential Policy State (adapter live, chain integration in progress) | Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia) | `ConfidentialSpendPolicy` + backend confidential policy adapter — see [Fhenix Integration](./docs/FHENIX_INTEGRATION.md) |
+| Confidential Policy State (LIVE) | Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia) | `ConfidentialSpendPolicy` + full-stack FHE policy evaluation & authorized decryption — see [Fhenix Integration](./docs/FHENIX_INTEGRATION.md) |
 
 ## Status
 
-The spend control plane is live: policy evaluation, signed approvals, held actions, denials, and persisted run evidence. Contracts deployed on X Layer testnet and Filecoin Calibration.
+The spend control plane is live: policy evaluation, signed approvals, held actions, denials, and persisted run evidence. Contracts deployed on X Layer testnet and Filecoin Calibration. Fhenix integration live for privacy-native operations.
 
 ## License
 

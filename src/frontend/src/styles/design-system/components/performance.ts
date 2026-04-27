@@ -1,5 +1,5 @@
-import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
+import { css } from '@emotion/react';
+import { designTokens } from '../tokens/designTokens';
 
 export const performanceStyles = {
   grid: css`
@@ -9,7 +9,7 @@ export const performanceStyles = {
     padding: ${designTokens.spacing[4]};
   `,
   score: (scoreColor: string) => css`
-    font-size: ${designTokens.typography.fontSize["3xl"]};
+    font-size: ${designTokens.typography.fontSize['3xl']};
     font-weight: ${designTokens.typography.fontWeight.bold};
     color: ${scoreColor};
     text-align: center;

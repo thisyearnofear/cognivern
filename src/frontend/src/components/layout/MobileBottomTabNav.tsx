@@ -1,15 +1,9 @@
-import React from "react";
-import { css } from "@emotion/react";
-import { useNavigate, useLocation } from "react-router-dom";
-import {
-  LayoutDashboard,
-  Users,
-  ShieldCheck,
-  FileSearch,
-  Activity,
-} from "lucide-react";
-import { useTheme } from "../../stores/appStore";
-import { designTokens, easings } from "../../styles/design-system";
+import React from 'react';
+import { css } from '@emotion/react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Users, ShieldCheck, FileSearch, Activity } from 'lucide-react';
+import { useTheme } from '../../stores/appStore';
+import { designTokens, easings } from '../../styles/design-system';
 
 interface TabItem {
   id: string;
@@ -20,34 +14,34 @@ interface TabItem {
 
 const tabItems: TabItem[] = [
   {
-    id: "dashboard",
-    label: "Home",
+    id: 'dashboard',
+    label: 'Home',
     icon: <LayoutDashboard size={20} />,
-    path: "/",
+    path: '/',
   },
   {
-    id: "agents",
-    label: "Agents",
+    id: 'agents',
+    label: 'Agents',
     icon: <Users size={20} />,
-    path: "/agents",
+    path: '/agents',
   },
   {
-    id: "policies",
-    label: "Policies",
+    id: 'policies',
+    label: 'Policies',
     icon: <ShieldCheck size={20} />,
-    path: "/policies",
+    path: '/policies',
   },
   {
-    id: "audit",
-    label: "Audit",
+    id: 'audit',
+    label: 'Audit',
     icon: <FileSearch size={20} />,
-    path: "/audit",
+    path: '/audit',
   },
   {
-    id: "runs",
-    label: "Runs",
+    id: 'runs',
+    label: 'Runs',
     icon: <Activity size={20} />,
-    path: "/runs",
+    path: '/runs',
   },
 ];
 
@@ -62,13 +56,11 @@ export const MobileBottomTabNav: React.FC = () => {
     left: 0;
     right: 0;
     height: 64px;
-    background: ${effectiveTheme === "dark"
-      ? "rgba(15, 23, 42, 0.8)"
-      : "rgba(255, 255, 255, 0.8)"};
+    background: ${effectiveTheme === 'dark' ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)'};
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-top: 1px solid
-      ${effectiveTheme === "dark"
+      ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[800]
         : designTokens.colors.neutral[200]};
     display: flex;
@@ -89,12 +81,10 @@ export const MobileBottomTabNav: React.FC = () => {
     align-items: center;
     justify-content: center;
     gap: 4px;
-    color: ${isActive
-      ? designTokens.colors.primary[500]
-      : designTokens.colors.neutral[500]};
+    color: ${isActive ? designTokens.colors.primary[500] : designTokens.colors.neutral[500]};
     text-decoration: none;
     font-size: 10px;
-    font-weight: ${isActive ? "600" : "500"};
+    font-weight: ${isActive ? '600' : '500'};
     transition: ${easings.smooth};
     padding: ${designTokens.spacing[2]};
     border-radius: ${designTokens.borderRadius.md};
@@ -103,9 +93,9 @@ export const MobileBottomTabNav: React.FC = () => {
 
     &:active {
       transform: scale(0.95);
-      background: ${effectiveTheme === "dark"
-        ? "rgba(255, 255, 255, 0.05)"
-        : "rgba(0, 0, 0, 0.05)"};
+      background: ${effectiveTheme === 'dark'
+        ? 'rgba(255, 255, 255, 0.05)'
+        : 'rgba(0, 0, 0, 0.05)'};
     }
   `;
 
@@ -119,7 +109,7 @@ export const MobileBottomTabNav: React.FC = () => {
       transform: translateY(-2px);
       color: ${designTokens.colors.primary[500]};
     `
-      : ""}
+      : ''}
   `;
 
   return (
@@ -132,16 +122,16 @@ export const MobileBottomTabNav: React.FC = () => {
             css={tabStyles(isActive)}
             onClick={() => navigate(tab.path)}
             aria-label={tab.label}
-            aria-current={isActive ? "page" : undefined}
+            aria-current={isActive ? 'page' : undefined}
           >
             <div css={iconContainerStyles(isActive)}>{tab.icon}</div>
             <span
               style={{
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                width: "100%",
-                textAlign: "center",
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                width: '100%',
+                textAlign: 'center',
               }}
             >
               {tab.label}

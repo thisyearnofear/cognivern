@@ -1,5 +1,5 @@
-import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
+import { css } from '@emotion/react';
+import { designTokens } from '../tokens/designTokens';
 
 export const tableStyles = {
   table: css`
@@ -12,10 +12,7 @@ export const tableStyles = {
     background-color: ${designTokens.colors.neutral[50]};
     border-bottom: 2px solid ${designTokens.colors.neutral[200]};
   `,
-  headerCell: (
-    align: "left" | "center" | "right" = "left",
-    sortable: boolean = false,
-  ) => css`
+  headerCell: (align: 'left' | 'center' | 'right' = 'left', sortable: boolean = false) => css`
     padding: ${designTokens.spacing[4]};
     text-align: ${align};
     font-weight: ${designTokens.typography.fontWeight.semibold};
@@ -45,7 +42,7 @@ export const tableStyles = {
       }
     `}
   `,
-  cell: (align: "left" | "center" | "right" = "left") => css`
+  cell: (align: 'left' | 'center' | 'right' = 'left') => css`
     padding: ${designTokens.spacing[4]};
     text-align: ${align};
   `,

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
-import { useState, useEffect, useMemo } from "react";
-import { css } from "@emotion/react";
+import { useState, useEffect, useMemo } from 'react';
+import { css } from '@emotion/react';
 import {
   Users,
   BarChart3,
@@ -21,36 +21,30 @@ import {
   Search,
   Trophy,
   Zap,
-} from "lucide-react";
-import { designTokens, keyframeAnimations } from "../../styles/design-system";
-import { AgentType } from "../../types";
-import { useAgentData, useTradingData } from "../../hooks/useAgentData";
-import { useBreakpoint } from "../../hooks/useMediaQuery";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "../ui/Card";
-import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
-import { ErrorBoundary } from "../ui/ErrorBoundary";
-import { PageWrapper } from "../layout";
-import TradingChart from "./TradingChart";
-import TradeHistory from "./TradeHistory";
-import { AgentMonitor } from "./AgentMonitor";
-import { InteractiveCarousel, CarouselItem } from "../ui/InteractiveCarousel";
-import { agentApi } from "../../services/apiService";
-import { useNavigate } from "react-router-dom";
-import VoiceBriefing from "../agents/VoiceBriefing";
+} from 'lucide-react';
+import { designTokens, keyframeAnimations } from '../../styles/design-system';
+import { AgentType } from '../../types';
+import { useAgentData, useTradingData } from '../../hooks/useAgentData';
+import { useBreakpoint } from '../../hooks/useMediaQuery';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
+import { PageWrapper } from '../layout';
+import TradingChart from './TradingChart';
+import TradeHistory from './TradeHistory';
+import { AgentMonitor } from './AgentMonitor';
+import { InteractiveCarousel, CarouselItem } from '../ui/InteractiveCarousel';
+import { agentApi } from '../../services/apiService';
+import { useNavigate } from 'react-router-dom';
+import VoiceBriefing from '../agents/VoiceBriefing';
 import {
   agentComparisonSchema,
   defaultFilters,
   filterFieldDefinitions,
   type AgentComparisonFilters,
-} from "../../lib/store/agentComparisonSchema";
-import * as styles from "./TradingAgentDashboard.styles";
+} from '../../lib/store/agentComparisonSchema';
+import * as styles from './TradingAgentDashboard.styles';
 
 export default function TradingAgentDashboard() {
   return (
@@ -65,7 +59,7 @@ function TradingAgentDashboardContent() {
   const { isMobile } = useBreakpoint();
   const [showComparison, setShowComparison] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<string>("recall");
+  const [selectedAgent, setSelectedAgent] = useState<string>('recall');
   const [error, setError] = useState<string | null>(null);
   const [comparisonFilters, setComparisonFilters] =
     useState<AgentComparisonFilters>(defaultFilters);
@@ -84,24 +78,18 @@ function TradingAgentDashboardContent() {
     setIsLoadingComparison(true);
     try {
       const response = await agentApi.compareAgents({
-        agentTypes: comparisonFilters.agentTypes?.length
-          ? comparisonFilters.agentTypes
-          : undefined,
-        ecosystems: comparisonFilters.ecosystems?.length
-          ? comparisonFilters.ecosystems
-          : undefined,
-        status: comparisonFilters.status?.length
-          ? comparisonFilters.status
-          : undefined,
-        sortBy: comparisonFilters.sortBy || "totalReturn",
-        sortDirection: comparisonFilters.sortDirection || "desc",
+        agentTypes: comparisonFilters.agentTypes?.length ? comparisonFilters.agentTypes : undefined,
+        ecosystems: comparisonFilters.ecosystems?.length ? comparisonFilters.ecosystems : undefined,
+        status: comparisonFilters.status?.length ? comparisonFilters.status : undefined,
+        sortBy: comparisonFilters.sortBy || 'totalReturn',
+        sortDirection: comparisonFilters.sortDirection || 'desc',
       });
 
       if (response.success && response.data) {
         setComparisonData(response.data);
       }
     } catch (error) {
-      console.error("Failed to fetch comparison data:", error);
+      console.error('Failed to fetch comparison data:', error);
     } finally {
       setIsLoadingComparison(false);
     }
@@ -136,51 +124,36 @@ function TradingAgentDashboardContent() {
     if (comparisonFilters.complianceScore) {
       const [min, max] = comparisonFilters.complianceScore;
       filtered = filtered.filter(
-        (agent) =>
-          (agent.complianceScore ?? 100) >= min &&
-          (agent.complianceScore ?? 100) <= max,
+        (agent) => (agent.complianceScore ?? 100) >= min && (agent.complianceScore ?? 100) <= max,
       );
     }
 
     if (comparisonFilters.autonomyLevel) {
       const [min, max] = comparisonFilters.autonomyLevel;
       filtered = filtered.filter(
-        (agent) =>
-          (agent.autonomyLevel ?? 1) >= min &&
-          (agent.autonomyLevel ?? 1) <= max,
+        (agent) => (agent.autonomyLevel ?? 1) >= min && (agent.autonomyLevel ?? 1) <= max,
       );
     }
 
-    if (
-      comparisonFilters.riskProfile &&
-      (comparisonFilters.riskProfile as any[]).length > 0
-    ) {
+    if (comparisonFilters.riskProfile && (comparisonFilters.riskProfile as any[]).length > 0) {
       filtered = filtered.filter((agent) =>
-        (comparisonFilters.riskProfile as any[]).includes(
-          agent.riskProfile ?? "low",
-        ),
+        (comparisonFilters.riskProfile as any[]).includes(agent.riskProfile ?? 'low'),
       );
     }
 
     if (comparisonFilters.winRate) {
       const [min, max] = comparisonFilters.winRate;
-      filtered = filtered.filter(
-        (agent) => agent.winRate >= min && agent.winRate <= max,
-      );
+      filtered = filtered.filter((agent) => agent.winRate >= min && agent.winRate <= max);
     }
 
     if (comparisonFilters.totalReturn) {
       const [min, max] = comparisonFilters.totalReturn;
-      filtered = filtered.filter(
-        (agent) => agent.totalReturn >= min && agent.totalReturn <= max,
-      );
+      filtered = filtered.filter((agent) => agent.totalReturn >= min && agent.totalReturn <= max);
     }
 
     if (comparisonFilters.sharpeRatio) {
       const [min, max] = comparisonFilters.sharpeRatio;
-      filtered = filtered.filter(
-        (agent) => agent.sharpeRatio >= min && agent.sharpeRatio <= max,
-      );
+      filtered = filtered.filter((agent) => agent.sharpeRatio >= min && agent.sharpeRatio <= max);
     }
 
     return filtered;
@@ -200,7 +173,7 @@ function TradingAgentDashboardContent() {
     overflow: hidden;
 
     &::before {
-      content: "";
+      content: '';
       position: absolute;
       top: 0;
       left: 0;
@@ -233,7 +206,7 @@ function TradingAgentDashboardContent() {
   `;
 
   const titleStyles = css`
-    font-size: ${designTokens.typography.fontSize["4xl"]};
+    font-size: ${designTokens.typography.fontSize['4xl']};
     font-weight: ${designTokens.typography.fontWeight.bold};
     background: linear-gradient(
       135deg,
@@ -264,8 +237,7 @@ function TradingAgentDashboardContent() {
     position: relative;
     cursor: pointer;
     transition: all 0.3s ease;
-    border: 2px solid
-      ${isSelected ? designTokens.colors.primary[500] : "transparent"};
+    border: 2px solid ${isSelected ? designTokens.colors.primary[500] : 'transparent'};
 
     &:hover {
       transform: translateY(-2px);
@@ -275,11 +247,7 @@ function TradingAgentDashboardContent() {
     ${isSelected &&
     css`
       box-shadow: ${designTokens.shadows.lg};
-      background: linear-gradient(
-        135deg,
-        ${designTokens.colors.primary[50]} 0%,
-        white 100%
-      );
+      background: linear-gradient(135deg, ${designTokens.colors.primary[50]} 0%, white 100%);
     `}
   `;
 
@@ -389,50 +357,48 @@ function TradingAgentDashboardContent() {
 
   const carouselItems: CarouselItem[] = [
     {
-      id: "recall",
-      title: "Research Agent",
-      subtitle: "Analysis & Intake",
-      icon: "🧠",
+      id: 'recall',
+      title: 'Research Agent',
+      subtitle: 'Analysis & Intake',
+      icon: '🧠',
       content: (
         <div
           css={css`
             font-size: ${designTokens.typography.fontSize.sm};
           `}
         >
-          Research-focused agent that gathers context and proposes bounded
-          actions for review.
+          Research-focused agent that gathers context and proposes bounded actions for review.
         </div>
       ),
     },
     {
-      id: "vincent",
-      title: "Procurement Agent",
-      subtitle: "Execution & Vendors",
-      icon: "🎭",
+      id: 'vincent',
+      title: 'Procurement Agent',
+      subtitle: 'Execution & Vendors',
+      icon: '🎭',
       content: (
         <div
           css={css`
             font-size: ${designTokens.typography.fontSize.sm};
           `}
         >
-          Execution-focused agent that requests supplier-facing spend under
-          strict policy controls.
+          Execution-focused agent that requests supplier-facing spend under strict policy controls.
         </div>
       ),
     },
     {
-      id: "sapience",
-      title: "Oversight Agent",
-      subtitle: "Policy & Review",
-      icon: "👁️",
+      id: 'sapience',
+      title: 'Oversight Agent',
+      subtitle: 'Policy & Review',
+      icon: '👁️',
       content: (
         <div
           css={css`
             font-size: ${designTokens.typography.fontSize.sm};
           `}
         >
-          Governance-focused agent that scores risk, triggers holds, and
-          escalates actions for approval.
+          Governance-focused agent that scores risk, triggers holds, and escalates actions for
+          approval.
         </div>
       ),
     },
@@ -443,7 +409,7 @@ function TradingAgentDashboardContent() {
     // Scroll to the agent monitor or navigate to it
     const element = document.getElementById(`agent-monitor-${id}`);
     if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
+      element.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -454,7 +420,7 @@ function TradingAgentDashboardContent() {
       actions={
         <Button
           variant="primary"
-          onClick={() => navigate("/agents/workshop")}
+          onClick={() => navigate('/agents/workshop')}
           icon={<Plus size={18} />}
         >
           Add Governed Agent
@@ -464,10 +430,7 @@ function TradingAgentDashboardContent() {
       {/* Error Display */}
       {error && (
         <div css={styles.errorStyles}>
-          <AlertTriangle
-            size={24}
-            color={designTokens.colors.semantic.error[500]}
-          />
+          <AlertTriangle size={24} color={designTokens.colors.semantic.error[500]} />
           <div>
             <h3
               css={css`
@@ -496,10 +459,7 @@ function TradingAgentDashboardContent() {
           margin-bottom: ${designTokens.spacing[10]};
         `}
       >
-        <InteractiveCarousel
-          items={carouselItems}
-          onItemClick={handleCarouselItemClick}
-        />
+        <InteractiveCarousel items={carouselItems} onItemClick={handleCarouselItemClick} />
         <p
           css={css`
             text-align: center;
@@ -525,20 +485,12 @@ function TradingAgentDashboardContent() {
           margin-bottom: ${designTokens.spacing[6]};
         `}
       >
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setShowComparison(!showComparison)}
-        >
-          {showComparison ? "Hide" : "Show"} Agent Comparison
+        <Button variant="secondary" size="sm" onClick={() => setShowComparison(!showComparison)}>
+          {showComparison ? 'Hide' : 'Show'} Agent Comparison
         </Button>
         {showComparison && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            {showFilters ? "Hide" : "Show"} Filters
+          <Button variant="ghost" size="sm" onClick={() => setShowFilters(!showFilters)}>
+            {showFilters ? 'Hide' : 'Show'} Filters
           </Button>
         )}
       </div>
@@ -561,8 +513,7 @@ function TradingAgentDashboardContent() {
               <div>
                 <CardTitle>Agent Behavioral Comparison</CardTitle>
                 <CardDescription>
-                  Compare compliance scores, autonomy levels, and risk across
-                  all agents
+                  Compare compliance scores, autonomy levels, and risk across all agents
                 </CardDescription>
               </div>
               <Button variant="ghost" size="sm" onClick={resetFilters}>
@@ -594,8 +545,7 @@ function TradingAgentDashboardContent() {
                     css={css`
                       margin: 0;
                       font-size: ${designTokens.typography.fontSize.sm};
-                      font-weight: ${designTokens.typography.fontWeight
-                        .semibold};
+                      font-weight: ${designTokens.typography.fontWeight.semibold};
                       text-transform: uppercase;
                       color: ${designTokens.colors.neutral[600]};
                     `}
@@ -618,8 +568,7 @@ function TradingAgentDashboardContent() {
                         display: block;
                         margin-bottom: ${designTokens.spacing[2]};
                         font-size: ${designTokens.typography.fontSize.sm};
-                        font-weight: ${designTokens.typography.fontWeight
-                          .medium};
+                        font-weight: ${designTokens.typography.fontWeight.medium};
                       `}
                     >
                       Search
@@ -642,14 +591,11 @@ function TradingAgentDashboardContent() {
                       <input
                         type="text"
                         placeholder="Search agents..."
-                        value={comparisonFilters.search || ""}
-                        onChange={(e) =>
-                          updateFilter("search", e.target.value || null)
-                        }
+                        value={comparisonFilters.search || ''}
+                        onChange={(e) => updateFilter('search', e.target.value || null)}
                         css={css`
                           width: 100%;
-                          padding: ${designTokens.spacing[2]}
-                            ${designTokens.spacing[2]}
+                          padding: ${designTokens.spacing[2]} ${designTokens.spacing[2]}
                             ${designTokens.spacing[2]} 32px;
                           border: 1px solid ${designTokens.colors.neutral[300]};
                           border-radius: ${designTokens.borderRadius.md};
@@ -666,8 +612,7 @@ function TradingAgentDashboardContent() {
                         display: block;
                         margin-bottom: ${designTokens.spacing[2]};
                         font-size: ${designTokens.typography.fontSize.sm};
-                        font-weight: ${designTokens.typography.fontWeight
-                          .medium};
+                        font-weight: ${designTokens.typography.fontWeight.medium};
                       `}
                     >
                       Agent Types
@@ -679,7 +624,7 @@ function TradingAgentDashboardContent() {
                         gap: ${designTokens.spacing[2]};
                       `}
                     >
-                      {["recall", "vincent", "sapience"].map((type) => (
+                      {['recall', 'vincent', 'sapience'].map((type) => (
                         <label
                           key={type}
                           css={css`
@@ -692,18 +637,13 @@ function TradingAgentDashboardContent() {
                         >
                           <input
                             type="checkbox"
-                            checked={
-                              comparisonFilters.agentTypes?.includes(
-                                type as any,
-                              ) || false
-                            }
+                            checked={comparisonFilters.agentTypes?.includes(type as any) || false}
                             onChange={(e) => {
-                              const current =
-                                comparisonFilters.agentTypes || [];
+                              const current = comparisonFilters.agentTypes || [];
                               const updated = e.target.checked
                                 ? [...current, type as any]
                                 : current.filter((t) => t !== type);
-                              updateFilter("agentTypes", updated);
+                              updateFilter('agentTypes', updated);
                             }}
                           />
                           {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -719,8 +659,7 @@ function TradingAgentDashboardContent() {
                         display: block;
                         margin-bottom: ${designTokens.spacing[2]};
                         font-size: ${designTokens.typography.fontSize.sm};
-                        font-weight: ${designTokens.typography.fontWeight
-                          .medium};
+                        font-weight: ${designTokens.typography.fontWeight.medium};
                       `}
                     >
                       Status
@@ -732,7 +671,7 @@ function TradingAgentDashboardContent() {
                         gap: ${designTokens.spacing[2]};
                       `}
                     >
-                      {["active", "inactive"].map((status) => (
+                      {['active', 'inactive'].map((status) => (
                         <label
                           key={status}
                           css={css`
@@ -745,17 +684,13 @@ function TradingAgentDashboardContent() {
                         >
                           <input
                             type="checkbox"
-                            checked={
-                              comparisonFilters.status?.includes(
-                                status as any,
-                              ) || false
-                            }
+                            checked={comparisonFilters.status?.includes(status as any) || false}
                             onChange={(e) => {
                               const current = comparisonFilters.status || [];
                               const updated = e.target.checked
                                 ? [...current, status as any]
                                 : current.filter((s) => s !== status);
-                              updateFilter("status", updated);
+                              updateFilter('status', updated);
                             }}
                           />
                           {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -806,14 +741,12 @@ function TradingAgentDashboardContent() {
                     td {
                       padding: ${designTokens.spacing[3]};
                       text-align: left;
-                      border-bottom: 1px solid
-                        ${designTokens.colors.neutral[200]};
+                      border-bottom: 1px solid ${designTokens.colors.neutral[200]};
                     }
 
                     th {
                       background: ${designTokens.colors.neutral[50]};
-                      font-weight: ${designTokens.typography.fontWeight
-                        .semibold};
+                      font-weight: ${designTokens.typography.fontWeight.semibold};
                       color: ${designTokens.colors.neutral[700]};
                       position: sticky;
                       top: 0;
@@ -836,7 +769,7 @@ function TradingAgentDashboardContent() {
                 >
                   <thead>
                     <tr>
-                      <th onClick={() => updateFilter("sortBy", "agentName")}>
+                      <th onClick={() => updateFilter('sortBy', 'agentName')}>
                         <div
                           css={css`
                             display: flex;
@@ -845,15 +778,15 @@ function TradingAgentDashboardContent() {
                           `}
                         >
                           Agent
-                          {comparisonFilters.sortBy === "agentName" &&
-                            (comparisonFilters.sortDirection === "asc" ? (
+                          {comparisonFilters.sortBy === 'agentName' &&
+                            (comparisonFilters.sortDirection === 'asc' ? (
                               <ChevronUp size={14} />
                             ) : (
                               <ChevronDown size={14} />
                             ))}
                         </div>
                       </th>
-                      <th onClick={() => updateFilter("sortBy", "agentType")}>
+                      <th onClick={() => updateFilter('sortBy', 'agentType')}>
                         <div
                           css={css`
                             display: flex;
@@ -862,8 +795,8 @@ function TradingAgentDashboardContent() {
                           `}
                         >
                           Type
-                          {comparisonFilters.sortBy === "agentType" &&
-                            (comparisonFilters.sortDirection === "asc" ? (
+                          {comparisonFilters.sortBy === 'agentType' &&
+                            (comparisonFilters.sortDirection === 'asc' ? (
                               <ChevronUp size={14} />
                             ) : (
                               <ChevronDown size={14} />
@@ -871,11 +804,7 @@ function TradingAgentDashboardContent() {
                         </div>
                       </th>
                       <th>Status</th>
-                      <th
-                        onClick={() =>
-                          updateFilter("sortBy", "complianceScore")
-                        }
-                      >
+                      <th onClick={() => updateFilter('sortBy', 'complianceScore')}>
                         <div
                           css={css`
                             display: flex;
@@ -884,17 +813,15 @@ function TradingAgentDashboardContent() {
                           `}
                         >
                           Compliance
-                          {comparisonFilters.sortBy === "complianceScore" &&
-                            (comparisonFilters.sortDirection === "asc" ? (
+                          {comparisonFilters.sortBy === 'complianceScore' &&
+                            (comparisonFilters.sortDirection === 'asc' ? (
                               <ChevronUp size={14} />
                             ) : (
                               <ChevronDown size={14} />
                             ))}
                         </div>
                       </th>
-                      <th
-                        onClick={() => updateFilter("sortBy", "autonomyLevel")}
-                      >
+                      <th onClick={() => updateFilter('sortBy', 'autonomyLevel')}>
                         <div
                           css={css`
                             display: flex;
@@ -903,19 +830,15 @@ function TradingAgentDashboardContent() {
                           `}
                         >
                           Autonomy
-                          {comparisonFilters.sortBy === "autonomyLevel" &&
-                            (comparisonFilters.sortDirection === "asc" ? (
+                          {comparisonFilters.sortBy === 'autonomyLevel' &&
+                            (comparisonFilters.sortDirection === 'asc' ? (
                               <ChevronUp size={14} />
                             ) : (
                               <ChevronDown size={14} />
                             ))}
                         </div>
                       </th>
-                      <th
-                        onClick={() =>
-                          updateFilter("sortBy", "riskProfile" as any)
-                        }
-                      >
+                      <th onClick={() => updateFilter('sortBy', 'riskProfile' as any)}>
                         <div
                           css={css`
                             display: flex;
@@ -924,16 +847,15 @@ function TradingAgentDashboardContent() {
                           `}
                         >
                           Risk
-                          {comparisonFilters.sortBy ===
-                            ("riskProfile" as any) &&
-                            (comparisonFilters.sortDirection === "asc" ? (
+                          {comparisonFilters.sortBy === ('riskProfile' as any) &&
+                            (comparisonFilters.sortDirection === 'asc' ? (
                               <ChevronUp size={14} />
                             ) : (
                               <ChevronDown size={14} />
                             ))}
                         </div>
                       </th>
-                      <th onClick={() => updateFilter("sortBy", "winRate")}>
+                      <th onClick={() => updateFilter('sortBy', 'winRate')}>
                         <div
                           css={css`
                             display: flex;
@@ -942,15 +864,15 @@ function TradingAgentDashboardContent() {
                           `}
                         >
                           Win Rate
-                          {comparisonFilters.sortBy === "winRate" &&
-                            (comparisonFilters.sortDirection === "asc" ? (
+                          {comparisonFilters.sortBy === 'winRate' &&
+                            (comparisonFilters.sortDirection === 'asc' ? (
                               <ChevronUp size={14} />
                             ) : (
                               <ChevronDown size={14} />
                             ))}
                         </div>
                       </th>
-                      <th onClick={() => updateFilter("sortBy", "totalReturn")}>
+                      <th onClick={() => updateFilter('sortBy', 'totalReturn')}>
                         <div
                           css={css`
                             display: flex;
@@ -959,15 +881,15 @@ function TradingAgentDashboardContent() {
                           `}
                         >
                           Return
-                          {comparisonFilters.sortBy === "totalReturn" &&
-                            (comparisonFilters.sortDirection === "asc" ? (
+                          {comparisonFilters.sortBy === 'totalReturn' &&
+                            (comparisonFilters.sortDirection === 'asc' ? (
                               <ChevronUp size={14} />
                             ) : (
                               <ChevronDown size={14} />
                             ))}
                         </div>
                       </th>
-                      <th onClick={() => updateFilter("sortBy", "avgLatency")}>
+                      <th onClick={() => updateFilter('sortBy', 'avgLatency')}>
                         <div
                           css={css`
                             display: flex;
@@ -976,8 +898,8 @@ function TradingAgentDashboardContent() {
                           `}
                         >
                           Latency
-                          {comparisonFilters.sortBy === "avgLatency" &&
-                            (comparisonFilters.sortDirection === "asc" ? (
+                          {comparisonFilters.sortBy === 'avgLatency' &&
+                            (comparisonFilters.sortDirection === 'asc' ? (
                               <ChevronUp size={14} />
                             ) : (
                               <ChevronDown size={14} />
@@ -991,27 +913,22 @@ function TradingAgentDashboardContent() {
                       <tr key={agent.agentId || idx}>
                         <td
                           css={css`
-                            font-weight: ${designTokens.typography.fontWeight
-                              .medium};
+                            font-weight: ${designTokens.typography.fontWeight.medium};
                           `}
                         >
-                          {agent.agentName || "Unknown"}
+                          {agent.agentName || 'Unknown'}
                         </td>
                         <td>
                           <Badge variant="secondary" size="sm">
-                            {agent.agentType || "N/A"}
+                            {agent.agentType || 'N/A'}
                           </Badge>
                         </td>
                         <td>
                           <Badge
-                            variant={
-                              agent.status === "active"
-                                ? "success"
-                                : "secondary"
-                            }
+                            variant={agent.status === 'active' ? 'success' : 'secondary'}
                             size="sm"
                           >
-                            {agent.status || "unknown"}
+                            {agent.status || 'unknown'}
                           </Badge>
                         </td>
                         <td
@@ -1021,8 +938,7 @@ function TradingAgentDashboardContent() {
                               : (agent.complianceScore ?? 100) >= 70
                                 ? designTokens.colors.semantic.warning
                                 : designTokens.colors.semantic.error};
-                            font-weight: ${designTokens.typography.fontWeight
-                              .medium};
+                            font-weight: ${designTokens.typography.fontWeight.medium};
                           `}
                         >
                           {agent.complianceScore ?? 100}%
@@ -1031,18 +947,18 @@ function TradingAgentDashboardContent() {
                         <td>
                           <Badge
                             variant={
-                              (agent.riskProfile ?? "low") === "low"
-                                ? "success"
-                                : (agent.riskProfile ?? "low") === "medium"
-                                  ? "warning"
-                                  : "error"
+                              (agent.riskProfile ?? 'low') === 'low'
+                                ? 'success'
+                                : (agent.riskProfile ?? 'low') === 'medium'
+                                  ? 'warning'
+                                  : 'error'
                             }
                             size="sm"
                             css={css`
                               text-transform: capitalize;
                             `}
                           >
-                            {agent.riskProfile ?? "low"}
+                            {agent.riskProfile ?? 'low'}
                           </Badge>
                         </td>
                         <td
@@ -1061,12 +977,10 @@ function TradingAgentDashboardContent() {
                               : designTokens.colors.semantic.error};
                           `}
                         >
-                          {(agent.totalReturn || 0) >= 0 ? "+" : ""}
+                          {(agent.totalReturn || 0) >= 0 ? '+' : ''}
                           {((agent.totalReturn || 0) * 100).toFixed(2)}%
                         </td>
-                        <td>
-                          {agent.avgLatency ? `${agent.avgLatency}ms` : "N/A"}
-                        </td>
+                        <td>{agent.avgLatency ? `${agent.avgLatency}ms` : 'N/A'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1094,7 +1008,7 @@ function TradingAgentDashboardContent() {
                 >
                   <div
                     css={css`
-                      font-size: ${designTokens.typography.fontSize["2xl"]};
+                      font-size: ${designTokens.typography.fontSize['2xl']};
                       font-weight: ${designTokens.typography.fontWeight.bold};
                       color: ${designTokens.colors.primary[600]};
                     `}
@@ -1117,16 +1031,13 @@ function TradingAgentDashboardContent() {
                 >
                   <div
                     css={css`
-                      font-size: ${designTokens.typography.fontSize["2xl"]};
+                      font-size: ${designTokens.typography.fontSize['2xl']};
                       font-weight: ${designTokens.typography.fontWeight.bold};
                       color: ${designTokens.colors.primary[600]};
                     `}
                   >
                     {(
-                      (filteredComparisonData.reduce(
-                        (sum, a) => sum + (a.winRate || 0),
-                        0,
-                      ) /
+                      (filteredComparisonData.reduce((sum, a) => sum + (a.winRate || 0), 0) /
                         filteredComparisonData.length) *
                       100
                     ).toFixed(1)}
@@ -1148,16 +1059,13 @@ function TradingAgentDashboardContent() {
                 >
                   <div
                     css={css`
-                      font-size: ${designTokens.typography.fontSize["2xl"]};
+                      font-size: ${designTokens.typography.fontSize['2xl']};
                       font-weight: ${designTokens.typography.fontWeight.bold};
                       color: ${designTokens.colors.primary[600]};
                     `}
                   >
                     {(
-                      (filteredComparisonData.reduce(
-                        (sum, a) => sum + (a.totalReturn || 0),
-                        0,
-                      ) /
+                      (filteredComparisonData.reduce((sum, a) => sum + (a.totalReturn || 0), 0) /
                         filteredComparisonData.length) *
                       100
                     ).toFixed(2)}
@@ -1179,15 +1087,12 @@ function TradingAgentDashboardContent() {
                 >
                   <div
                     css={css`
-                      font-size: ${designTokens.typography.fontSize["2xl"]};
+                      font-size: ${designTokens.typography.fontSize['2xl']};
                       font-weight: ${designTokens.typography.fontWeight.bold};
                       color: ${designTokens.colors.primary[600]};
                     `}
                   >
-                    {filteredComparisonData.reduce(
-                      (sum, a) => sum + (a.totalTrades || 0),
-                      0,
-                    )}
+                    {filteredComparisonData.reduce((sum, a) => sum + (a.totalTrades || 0), 0)}
                   </div>
                   <div
                     css={css`
@@ -1343,10 +1248,10 @@ function TradingAgentDashboardContent() {
               margin-bottom: ${designTokens.spacing[6]};
             `}
           >
-            Connect your own OpenClaw or Hermes agents to monitor their
-            behavioral performance and governance scores privately.
+            Connect your own OpenClaw or Hermes agents to monitor their behavioral performance and
+            governance scores privately.
           </p>
-          <Button variant="outline" onClick={() => navigate("/workshop")}>
+          <Button variant="outline" onClick={() => navigate('/workshop')}>
             Go to Workshop
           </Button>
         </Card>

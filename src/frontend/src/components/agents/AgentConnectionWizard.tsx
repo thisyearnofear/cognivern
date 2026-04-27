@@ -3,17 +3,27 @@
  * Multi-step wizard for connecting user agents.
  */
 
-import React, { useState, useEffect } from "react";
-import { css } from "@emotion/react";
-import { useNavigate } from "react-router-dom";
-import { Bot, TrendingUp, Shield, Search, CheckCircle, ArrowRight, ArrowLeft, Check, AlertTriangle } from "lucide-react";
-import { designTokens } from "../../styles/design-system";
-import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
-import { Tooltip } from "../ui/Tooltip";
-import { Confetti } from "../ui";
-import { agentApi, policyApi } from "../../services/apiService";
-import { HelpCircle } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { css } from '@emotion/react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Bot,
+  TrendingUp,
+  Shield,
+  Search,
+  CheckCircle,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  AlertTriangle,
+} from 'lucide-react';
+import { designTokens } from '../../styles/design-system';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import { Tooltip } from '../ui/Tooltip';
+import { Confetti } from '../ui';
+import { agentApi, policyApi } from '../../services/apiService';
+import { HelpCircle } from 'lucide-react';
 
 // Contextual help component
 const HelpTooltip: React.FC<{ content: string }> = ({ content }) => (
@@ -24,20 +34,20 @@ const HelpTooltip: React.FC<{ content: string }> = ({ content }) => (
         marginLeft: '4px',
         color: designTokens.colors.neutral[400],
         cursor: 'help',
-        verticalAlign: 'middle'
+        verticalAlign: 'middle',
       }}
     />
   </Tooltip>
 );
 
-export type AgentType = "trading" | "governance" | "research" | "custom";
+export type AgentType = 'trading' | 'governance' | 'research' | 'custom';
 
 export interface AgentConnectionConfig {
   type: AgentType;
   name: string;
   address: string;
   description: string;
-  riskLevel: "low" | "medium" | "high";
+  riskLevel: 'low' | 'medium' | 'high';
   policyId?: string;
 }
 
@@ -58,7 +68,7 @@ const stepperStyles = css`
   margin-bottom: ${designTokens.spacing[8]};
   position: relative;
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     top: 20px;
     left: 40px;
@@ -76,7 +86,7 @@ const stepStyles = (isActive: boolean, isCompleted: boolean) => css`
   gap: ${designTokens.spacing[2]};
   position: relative;
   z-index: 1;
-  cursor: ${isCompleted ? "pointer" : "default"};
+  cursor: ${isCompleted ? 'pointer' : 'default'};
 `;
 
 const stepCircleStyles = (isActive: boolean, isCompleted: boolean) => css`
@@ -88,14 +98,18 @@ const stepCircleStyles = (isActive: boolean, isCompleted: boolean) => css`
   justify-content: center;
   font-weight: bold;
   font-size: ${designTokens.typography.fontSize.sm};
-  ${isCompleted ? `background: ${designTokens.colors.semantic.success[500]}; color: white;` : ""}
-  ${isActive ? `background: ${designTokens.colors.primary[500]}; color: white; box-shadow: 0 0 0 4px ${designTokens.colors.primary[100]};` : ""}
-  ${!isActive && !isCompleted ? `background: white; color: ${designTokens.colors.neutral[400]}; border: 2px solid ${designTokens.colors.neutral[300]};` : ""}
+  ${isCompleted ? `background: ${designTokens.colors.semantic.success[500]}; color: white;` : ''}
+  ${isActive
+    ? `background: ${designTokens.colors.primary[500]}; color: white; box-shadow: 0 0 0 4px ${designTokens.colors.primary[100]};`
+    : ''}
+  ${!isActive && !isCompleted
+    ? `background: white; color: ${designTokens.colors.neutral[400]}; border: 2px solid ${designTokens.colors.neutral[300]};`
+    : ''}
 `;
 
 const stepLabelStyles = (isActive: boolean) => css`
   font-size: ${designTokens.typography.fontSize.sm};
-  font-weight: ${isActive ? "600" : "400"};
+  font-weight: ${isActive ? '600' : '400'};
   color: ${isActive ? designTokens.colors.text.primary : designTokens.colors.text.secondary};
 `;
 
@@ -108,7 +122,7 @@ const contentStyles = css`
 `;
 
 const titleStyles = css`
-  font-size: ${designTokens.typography.fontSize["2xl"]};
+  font-size: ${designTokens.typography.fontSize['2xl']};
   font-weight: bold;
   margin: 0 0 ${designTokens.spacing[2]} 0;
 `;
@@ -130,10 +144,11 @@ const agentTypeGridStyles = css`
 
 const agentTypeCardStyles = (isSelected: boolean) => css`
   padding: ${designTokens.spacing[6]};
-  border: 2px solid ${isSelected ? designTokens.colors.primary[500] : designTokens.colors.neutral[200]};
+  border: 2px solid
+    ${isSelected ? designTokens.colors.primary[500] : designTokens.colors.neutral[200]};
   border-radius: ${designTokens.borderRadius.lg};
   cursor: pointer;
-  background: ${isSelected ? designTokens.colors.primary[50] : "white"};
+  background: ${isSelected ? designTokens.colors.primary[50] : 'white'};
   &:hover {
     border-color: ${designTokens.colors.primary[300]};
   }
@@ -179,11 +194,12 @@ const radioOptionStyles = (isSelected: boolean) => css`
   flex: 1;
   min-width: 100px;
   padding: ${designTokens.spacing[4]};
-  border: 2px solid ${isSelected ? designTokens.colors.primary[500] : designTokens.colors.neutral[200]};
+  border: 2px solid
+    ${isSelected ? designTokens.colors.primary[500] : designTokens.colors.neutral[200]};
   border-radius: ${designTokens.borderRadius.md};
   cursor: pointer;
   text-align: center;
-  background: ${isSelected ? designTokens.colors.primary[50] : "white"};
+  background: ${isSelected ? designTokens.colors.primary[50] : 'white'};
 `;
 
 const actionsStyles = css`
@@ -224,33 +240,58 @@ const summaryRowStyles = css`
   justify-content: space-between;
   padding: ${designTokens.spacing[2]} 0;
   border-bottom: 1px solid ${designTokens.colors.neutral[200]};
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 `;
 
 const AGENT_TYPES = [
-  { type: "trading" as AgentType, title: "Execution Agent", description: "Wallet-impacting actions with budget and approval controls", icon: <TrendingUp size={24} /> },
-  { type: "governance" as AgentType, title: "Governance Agent", description: "Policy enforcement and compliance monitoring", icon: <Shield size={24} /> },
-  { type: "research" as AgentType, title: "Research Agent", description: "Investigation, analysis, and recommendation workflows", icon: <Search size={24} /> },
-  { type: "custom" as AgentType, title: "Custom Agent", description: "Connect any agent type with custom settings", icon: <Bot size={24} /> },
+  {
+    type: 'trading' as AgentType,
+    title: 'Execution Agent',
+    description: 'Wallet-impacting actions with budget and approval controls',
+    icon: <TrendingUp size={24} />,
+  },
+  {
+    type: 'governance' as AgentType,
+    title: 'Governance Agent',
+    description: 'Policy enforcement and compliance monitoring',
+    icon: <Shield size={24} />,
+  },
+  {
+    type: 'research' as AgentType,
+    title: 'Research Agent',
+    description: 'Investigation, analysis, and recommendation workflows',
+    icon: <Search size={24} />,
+  },
+  {
+    type: 'custom' as AgentType,
+    title: 'Custom Agent',
+    description: 'Connect any agent type with custom settings',
+    icon: <Bot size={24} />,
+  },
 ];
 
 const STEPS = [
-  { id: 1, label: "Agent Type" },
-  { id: 2, label: "Details" },
-  { id: 3, label: "Risk Level" },
-  { id: 4, label: "Complete" },
+  { id: 1, label: 'Agent Type' },
+  { id: 2, label: 'Details' },
+  { id: 3, label: 'Risk Level' },
+  { id: 4, label: 'Complete' },
 ];
 
-export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ onComplete, onCancel }) => {
+export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({
+  onComplete,
+  onCancel,
+}) => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [showConfetti, setShowConfetti] = useState(false);
   const [config, setConfig] = useState<AgentConnectionConfig>({
-    type: "governance",
-    name: "",
-    address: "",
-    description: "",
-    riskLevel: "medium",
+    type: 'governance',
+    name: '',
+    address: '',
+    description: '',
+    riskLevel: 'medium',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [policies, setPolicies] = useState<any[]>([]);
@@ -267,7 +308,7 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
             setPolicies(response.data);
           }
         } catch (err) {
-          console.error("Failed to fetch policies:", err);
+          console.error('Failed to fetch policies:', err);
         } finally {
           setIsLoadingPolicies(false);
         }
@@ -295,7 +336,7 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
       const response = await agentApi.registerAgent(config);
 
       if (!response.success) {
-        throw new Error(response.error || "Failed to register agent");
+        throw new Error(response.error || 'Failed to register agent');
       }
 
       // Success celebration!
@@ -307,20 +348,23 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
 
       // Redirect after a short delay
       setTimeout(() => {
-        navigate("/agents");
+        navigate('/agents');
       }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to connect agent");
+      setError(err instanceof Error ? err.message : 'Failed to connect agent');
       setIsLoading(false);
     }
   };
   const canProceed = () => {
     switch (currentStep) {
-      case 1: return config.type !== undefined;
+      case 1:
+        return config.type !== undefined;
       case 2:
-        return config.name.trim() !== "" && config.address.trim().length >= 4;
-      case 3: return config.riskLevel !== undefined;
-      default: return true;
+        return config.name.trim() !== '' && config.address.trim().length >= 4;
+      case 3:
+        return config.riskLevel !== undefined;
+      default:
+        return true;
     }
   };
 
@@ -332,7 +376,11 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
           const isCompleted = currentStep > step.id;
           const isActive = currentStep === step.id;
           return (
-            <div key={step.id} css={stepStyles(isActive, isCompleted)} onClick={() => isCompleted && setCurrentStep(step.id)}>
+            <div
+              key={step.id}
+              css={stepStyles(isActive, isCompleted)}
+              onClick={() => isCompleted && setCurrentStep(step.id)}
+            >
               <div css={stepCircleStyles(isActive, isCompleted)}>
                 {isCompleted ? <Check size={18} /> : step.id}
               </div>
@@ -349,12 +397,44 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
             <p css={subtitleStyles}>Choose the type that best describes your agent</p>
             <div css={agentTypeGridStyles}>
               {AGENT_TYPES.map((agentType) => (
-                <div key={agentType.type} css={agentTypeCardStyles(config.type === agentType.type)} onClick={() => updateConfig({ type: agentType.type })}>
-                  <div css={`width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: ${designTokens.colors.primary[100]}; color: ${designTokens.colors.primary[600]}; margin-bottom: 12px;`}>
+                <div
+                  key={agentType.type}
+                  css={agentTypeCardStyles(config.type === agentType.type)}
+                  onClick={() => updateConfig({ type: agentType.type })}
+                >
+                  <div
+                    css={`
+                      width: 48px;
+                      height: 48px;
+                      border-radius: 12px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      background: ${designTokens.colors.primary[100]};
+                      color: ${designTokens.colors.primary[600]};
+                      margin-bottom: 12px;
+                    `}
+                  >
                     {agentType.icon}
                   </div>
-                  <h3 css={`font-size: ${designTokens.typography.fontSize.lg}; font-weight: 600; margin: 0 0 4px 0;`}>{agentType.title}</h3>
-                  <p css={`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.text.secondary}; margin: 0;`}>{agentType.description}</p>
+                  <h3
+                    css={`
+                      font-size: ${designTokens.typography.fontSize.lg};
+                      font-weight: 600;
+                      margin: 0 0 4px 0;
+                    `}
+                  >
+                    {agentType.title}
+                  </h3>
+                  <p
+                    css={`
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      color: ${designTokens.colors.text.secondary};
+                      margin: 0;
+                    `}
+                  >
+                    {agentType.description}
+                  </p>
                 </div>
               ))}
             </div>
@@ -367,20 +447,43 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
             <p css={subtitleStyles}>Enter your agent's connection information</p>
             <div css={formGroupStyles}>
               <label css={labelStyles}>Agent Name *</label>
-              <input css={inputStyles} type="text" placeholder="e.g., Procurement Agent" value={config.name} onChange={(e) => updateConfig({ name: e.target.value })} />
+              <input
+                css={inputStyles}
+                type="text"
+                placeholder="e.g., Procurement Agent"
+                value={config.name}
+                onChange={(e) => updateConfig({ name: e.target.value })}
+              />
             </div>
             <div css={formGroupStyles}>
               <label css={labelStyles}>Agent Address *</label>
-              <input css={inputStyles} type="text" placeholder="e.g., 0x... or agent-id" value={config.address} onChange={(e) => updateConfig({ address: e.target.value })} />
+              <input
+                css={inputStyles}
+                type="text"
+                placeholder="e.g., 0x... or agent-id"
+                value={config.address}
+                onChange={(e) => updateConfig({ address: e.target.value })}
+              />
               {config.address && config.address.trim().length < 4 && (
-                <p style={{ color: designTokens.colors.semantic.error[500], fontSize: '12px', marginTop: '4px' }}>
+                <p
+                  style={{
+                    color: designTokens.colors.semantic.error[500],
+                    fontSize: '12px',
+                    marginTop: '4px',
+                  }}
+                >
                   Please enter a valid agent address (min 4 characters).
                 </p>
               )}
             </div>
             <div css={formGroupStyles}>
               <label css={labelStyles}>Description</label>
-              <textarea css={textareaStyles} placeholder="Brief description..." value={config.description} onChange={(e) => updateConfig({ description: e.target.value })} />
+              <textarea
+                css={textareaStyles}
+                placeholder="Brief description..."
+                value={config.description}
+                onChange={(e) => updateConfig({ description: e.target.value })}
+              />
             </div>
           </>
         )}
@@ -396,13 +499,24 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
                 <HelpTooltip content="Defines the operational boundaries. Low risk has tighter spend limits and stricter compliance checks." />
               </label>
               <div css={radioGroupStyles}>
-                {(["low", "medium", "high"] as const).map((level) => (
-                  <div key={level} css={radioOptionStyles(config.riskLevel === level)} onClick={() => updateConfig({ riskLevel: level })}>
-                    <div css="font-weight: 600; text-transform: capitalize; margin-bottom: 4px;">{level}</div>
-                    <div css={`font-size: 12px; color: ${designTokens.colors.text.secondary};`}>
-                      {level === "low" && "Tighter budgets and more approvals"}
-                      {level === "medium" && "Balanced autonomy and review"}
-                      {level === "high" && "Expanded autonomy with higher operator risk"}
+                {(['low', 'medium', 'high'] as const).map((level) => (
+                  <div
+                    key={level}
+                    css={radioOptionStyles(config.riskLevel === level)}
+                    onClick={() => updateConfig({ riskLevel: level })}
+                  >
+                    <div css="font-weight: 600; text-transform: capitalize; margin-bottom: 4px;">
+                      {level}
+                    </div>
+                    <div
+                      css={`
+                        font-size: 12px;
+                        color: ${designTokens.colors.text.secondary};
+                      `}
+                    >
+                      {level === 'low' && 'Tighter budgets and more approvals'}
+                      {level === 'medium' && 'Balanced autonomy and review'}
+                      {level === 'high' && 'Expanded autonomy with higher operator risk'}
                     </div>
                   </div>
                 ))}
@@ -416,7 +530,7 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
               </label>
               <select
                 css={inputStyles}
-                value={config.policyId || ""}
+                value={config.policyId || ''}
                 onChange={(e) => updateConfig({ policyId: e.target.value })}
               >
                 <option value="">No custom policy (Use default)</option>
@@ -430,7 +544,13 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
                   ))
                 )}
               </select>
-              <p css={`font-size: 12px; color: ${designTokens.colors.text.secondary}; margin-top: 8px;`}>
+              <p
+                css={`
+                  font-size: 12px;
+                  color: ${designTokens.colors.text.secondary};
+                  margin-top: 8px;
+                `}
+              >
                 Policies define the operational guardrails for your agent.
               </p>
             </div>
@@ -438,29 +558,74 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
         )}
 
         {currentStep === 4 && (
-            <div css={successStyles}>
-              <div css={successIconStyles}><CheckCircle size={40} /></div>
+          <div css={successStyles}>
+            <div css={successIconStyles}>
+              <CheckCircle size={40} />
+            </div>
             <h2 css={titleStyles}>Ready to Add The Agent</h2>
-            <p css={subtitleStyles}>Your governed agent profile is configured and ready to be added</p>
+            <p css={subtitleStyles}>
+              Your governed agent profile is configured and ready to be added
+            </p>
             <div css={summaryStyles}>
               <div css={summaryRowStyles}>
-                <span css={`color: ${designTokens.colors.text.secondary};`}>Name</span>
+                <span
+                  css={`
+                    color: ${designTokens.colors.text.secondary};
+                  `}
+                >
+                  Name
+                </span>
                 <span css="font-weight: 500;">{config.name}</span>
               </div>
               <div css={summaryRowStyles}>
-                <span css={`color: ${designTokens.colors.text.secondary};`}>Type</span>
+                <span
+                  css={`
+                    color: ${designTokens.colors.text.secondary};
+                  `}
+                >
+                  Type
+                </span>
                 <Badge variant="primary">{config.type}</Badge>
               </div>
               <div css={summaryRowStyles}>
-                <span css={`color: ${designTokens.colors.text.secondary};`}>Risk Level</span>
-                <Badge variant={config.riskLevel === "low" ? "success" : config.riskLevel === "medium" ? "warning" : "error"}>{config.riskLevel}</Badge>
+                <span
+                  css={`
+                    color: ${designTokens.colors.text.secondary};
+                  `}
+                >
+                  Risk Level
+                </span>
+                <Badge
+                  variant={
+                    config.riskLevel === 'low'
+                      ? 'success'
+                      : config.riskLevel === 'medium'
+                        ? 'warning'
+                        : 'error'
+                  }
+                >
+                  {config.riskLevel}
+                </Badge>
               </div>
             </div>
           </div>
         )}
 
         {error && (
-          <div css={`margin-top: 16px; padding: 12px 16px; background: ${designTokens.colors.semantic.error[50]}; border: 1px solid ${designTokens.colors.semantic.error[200]}; border-radius: ${designTokens.borderRadius.md}; color: ${designTokens.colors.semantic.error[700]}; font-size: 14px; display: flex; align-items: center; gap: 8px;`}>
+          <div
+            css={`
+              margin-top: 16px;
+              padding: 12px 16px;
+              background: ${designTokens.colors.semantic.error[50]};
+              border: 1px solid ${designTokens.colors.semantic.error[200]};
+              border-radius: ${designTokens.borderRadius.md};
+              color: ${designTokens.colors.semantic.error[700]};
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            `}
+          >
             <AlertTriangle size={16} />
             {error}
           </div>
@@ -468,15 +633,29 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({ on
       </div>
 
       <div css={actionsStyles}>
-        <Button variant="ghost" onClick={currentStep === 1 ? onCancel : handleBack} icon={<ArrowLeft size={16} />}>
-          {currentStep === 1 ? "Cancel" : "Back"}
+        <Button
+          variant="ghost"
+          onClick={currentStep === 1 ? onCancel : handleBack}
+          icon={<ArrowLeft size={16} />}
+        >
+          {currentStep === 1 ? 'Cancel' : 'Back'}
         </Button>
         {currentStep < 4 ? (
-          <Button variant="primary" onClick={handleNext} disabled={!canProceed()} icon={<ArrowRight size={16} />}>
+          <Button
+            variant="primary"
+            onClick={handleNext}
+            disabled={!canProceed()}
+            icon={<ArrowRight size={16} />}
+          >
             Continue
           </Button>
         ) : (
-          <Button variant="primary" onClick={handleComplete} isLoading={isLoading} icon={<Check size={16} />}>
+          <Button
+            variant="primary"
+            onClick={handleComplete}
+            isLoading={isLoading}
+            icon={<Check size={16} />}
+          >
             Connect Agent
           </Button>
         )}

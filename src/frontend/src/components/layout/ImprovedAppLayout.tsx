@@ -1,16 +1,16 @@
-import React, { useEffect } from "react";
-import { css } from "@emotion/react";
-import { Outlet } from "react-router-dom";
-import { useAppStore, useTheme } from "../../stores/appStore";
-import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { usePerformanceMonitor } from "../../hooks/usePerformanceMonitor";
-import { designTokens } from "../../styles/design-system";
-import { LayoutProvider, useLayout } from "./ResponsiveLayout";
-import ImprovedSidebar from "./ImprovedSidebar";
-import Header from "./Header";
-import MobileBottomTabNav from "./MobileBottomTabNav";
-import Toast from "../ui/Toast";
-import NotificationCenter from "../ui/NotificationCenter";
+import React, { useEffect } from 'react';
+import { css } from '@emotion/react';
+import { Outlet } from 'react-router-dom';
+import { useAppStore, useTheme } from '../../stores/appStore';
+import { useBreakpoint } from '../../hooks/useMediaQuery';
+import { usePerformanceMonitor } from '../../hooks/usePerformanceMonitor';
+import { designTokens } from '../../styles/design-system';
+import { LayoutProvider, useLayout } from './ResponsiveLayout';
+import ImprovedSidebar from './ImprovedSidebar';
+import Header from './Header';
+import MobileBottomTabNav from './MobileBottomTabNav';
+import Toast from '../ui/Toast';
+import NotificationCenter from '../ui/NotificationCenter';
 
 // Main layout component with responsive behavior
 const AppLayoutContent: React.FC = () => {
@@ -22,19 +22,19 @@ const AppLayoutContent: React.FC = () => {
 
   // Apply theme to document
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", effectiveTheme);
+    document.documentElement.setAttribute('data-theme', effectiveTheme);
     document.documentElement.style.colorScheme = effectiveTheme;
   }, [effectiveTheme]);
 
   // Calculate layout dimensions - using fixed 280px for expanded
   const getSidebarWidth = () => {
     switch (sidebarState) {
-      case "expanded":
+      case 'expanded':
         return 280;
-      case "collapsed":
+      case 'collapsed':
         return 80;
-      case "overlay":
-      case "hidden":
+      case 'overlay':
+      case 'hidden':
       default:
         return 0;
     }
@@ -44,29 +44,27 @@ const AppLayoutContent: React.FC = () => {
     display: grid;
     min-height: 100vh;
     width: 100%;
-    background: ${effectiveTheme === "dark"
-      ? "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
-      : "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)"};
+    background: ${effectiveTheme === 'dark'
+      ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
+      : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'};
     transition: all ${designTokens.animation.duration.slow}
       ${designTokens.animation.easing.easeInOut};
     position: relative;
     overflow: hidden;
 
-    grid-template-rows: ${isMobile ? "60px" : designTokens.layout.headerHeight} 1fr;
-    grid-template-columns: ${sidebarState === "hidden" ||
-    sidebarState === "overlay"
-      ? "1fr"
+    grid-template-rows: ${isMobile ? '60px' : designTokens.layout.headerHeight} 1fr;
+    grid-template-columns: ${sidebarState === 'hidden' || sidebarState === 'overlay'
+      ? '1fr'
       : `${getSidebarWidth()}px 1fr`};
-    grid-template-areas: ${sidebarState === "hidden" ||
-    sidebarState === "overlay"
+    grid-template-areas: ${sidebarState === 'hidden' || sidebarState === 'overlay'
       ? '"header" "main"'
       : '"sidebar header" "sidebar main"'};
 
     @media (max-width: ${designTokens.breakpoints.md}) {
       grid-template-columns: 1fr;
       grid-template-areas:
-        "header"
-        "main";
+        'header'
+        'main';
     }
   `;
 
@@ -78,7 +76,7 @@ const AppLayoutContent: React.FC = () => {
     position: relative;
     width: 100%;
     height: 100%;
-    padding-bottom: ${isMobile ? "80px" : "0"};
+    padding-bottom: ${isMobile ? '80px' : '0'};
 
     /* Smooth scrolling */
     scroll-behavior: smooth;
@@ -93,20 +91,20 @@ const AppLayoutContent: React.FC = () => {
     }
 
     &::-webkit-scrollbar-track {
-      background: ${effectiveTheme === "dark"
+      background: ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[800]
         : designTokens.colors.neutral[100]};
     }
 
     &::-webkit-scrollbar-thumb {
-      background: ${effectiveTheme === "dark"
+      background: ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[600]
         : designTokens.colors.neutral[400]};
       border-radius: ${designTokens.borderRadius.full};
     }
 
     &::-webkit-scrollbar-thumb:hover {
-      background: ${effectiveTheme === "dark"
+      background: ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[500]
         : designTokens.colors.neutral[500]};
     }
@@ -128,7 +126,7 @@ const AppLayoutContent: React.FC = () => {
     min-height: 0;
 
     /* Add backdrop for mobile when sidebar is overlay */
-    ${isMobile && sidebarState === "overlay"
+    ${isMobile && sidebarState === 'overlay'
       ? `
       &::before {
         content: '';
@@ -143,7 +141,7 @@ const AppLayoutContent: React.FC = () => {
         pointer-events: auto;
       }
     `
-      : ""}
+      : ''}
 
     & > * {
       width: 100%;
@@ -151,7 +149,7 @@ const AppLayoutContent: React.FC = () => {
     }
 
     /* Special handling for dashboard content */
-    & > [data-dashboard="true"] {
+    & > [data-dashboard='true'] {
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -174,12 +172,7 @@ const AppLayoutContent: React.FC = () => {
 
       {/* Global Toast Notifications */}
       {error && (
-        <Toast
-          type="error"
-          message={error}
-          onClose={() => setError(null)}
-          duration={5000}
-        />
+        <Toast type="error" message={error} onClose={() => setError(null)} duration={5000} />
       )}
 
       {/* Performance Alerts */}
@@ -203,9 +196,7 @@ export const ImprovedAppLayout: React.FC = () => {
   const { preferences } = useAppStore();
 
   return (
-    <LayoutProvider
-      initialSidebarState={preferences.sidebarState || "expanded"}
-    >
+    <LayoutProvider initialSidebarState={preferences.sidebarState || 'expanded'}>
       <AppLayoutContent />
     </LayoutProvider>
   );

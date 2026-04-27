@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { css } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
+import { useState } from 'react';
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
 
 export default function IntegrationDiagram() {
   const [activeFlow, setActiveFlow] = useState<string | null>(null);
@@ -40,41 +40,35 @@ export default function IntegrationDiagram() {
 
         <div className="integration-flows">
           <div
-            className={`flow-arrow flow-1 ${activeFlow === "flow-1" ? "active" : ""}`}
-            onClick={() => handleFlowClick("flow-1")}
+            className={`flow-arrow flow-1 ${activeFlow === 'flow-1' ? 'active' : ''}`}
+            onClick={() => handleFlowClick('flow-1')}
           >
             <div className="arrow-line"></div>
             <div className="arrow-head"></div>
-            {activeFlow === "flow-1" && (
-              <div className="flow-tooltip">
-                Scoped agent access and treasury assignment
-              </div>
+            {activeFlow === 'flow-1' && (
+              <div className="flow-tooltip">Scoped agent access and treasury assignment</div>
             )}
           </div>
 
           <div
-            className={`flow-arrow flow-2 ${activeFlow === "flow-2" ? "active" : ""}`}
-            onClick={() => handleFlowClick("flow-2")}
+            className={`flow-arrow flow-2 ${activeFlow === 'flow-2' ? 'active' : ''}`}
+            onClick={() => handleFlowClick('flow-2')}
           >
             <div className="arrow-line"></div>
             <div className="arrow-head"></div>
-            {activeFlow === "flow-2" && (
-              <div className="flow-tooltip">
-                Budget checks, allowlists, and approval thresholds
-              </div>
+            {activeFlow === 'flow-2' && (
+              <div className="flow-tooltip">Budget checks, allowlists, and approval thresholds</div>
             )}
           </div>
 
           <div
-            className={`flow-arrow flow-3 ${activeFlow === "flow-3" ? "active" : ""}`}
-            onClick={() => handleFlowClick("flow-3")}
+            className={`flow-arrow flow-3 ${activeFlow === 'flow-3' ? 'active' : ''}`}
+            onClick={() => handleFlowClick('flow-3')}
           >
             <div className="arrow-line"></div>
             <div className="arrow-head"></div>
-            {activeFlow === "flow-3" && (
-              <div className="flow-tooltip">
-                Signed execution plus audit evidence capture
-              </div>
+            {activeFlow === 'flow-3' && (
+              <div className="flow-tooltip">Signed execution plus audit evidence capture</div>
             )}
           </div>
         </div>
@@ -110,30 +104,29 @@ export default function IntegrationDiagram() {
           <li>
             <span className="benefit-icon">✓</span>
             <span className="benefit-text">
-              <strong>SpendOS for teams:</strong> Assign budgets, restrictions,
-              and approval rules per agent instead of handing out a blank check
+              <strong>SpendOS for teams:</strong> Assign budgets, restrictions, and approval rules
+              per agent instead of handing out a blank check
             </span>
           </li>
           <li>
             <span className="benefit-icon">✓</span>
             <span className="benefit-text">
-              <strong>Operator visibility:</strong> Watch every attempted spend
-              move through approval, hold, or denial with human-readable
-              reasons
+              <strong>Operator visibility:</strong> Watch every attempted spend move through
+              approval, hold, or denial with human-readable reasons
             </span>
           </li>
           <li>
             <span className="benefit-icon">✓</span>
             <span className="benefit-text">
-              <strong>Audit log forensics:</strong> Preserve the evidence chain
-              for every decision so teams can investigate incidents fast
+              <strong>Audit log forensics:</strong> Preserve the evidence chain for every decision
+              so teams can investigate incidents fast
             </span>
           </li>
           <li>
             <span className="benefit-icon">✓</span>
             <span className="benefit-text">
-              <strong>Wallet control without wallet sprawl:</strong> Keep OWS as
-              the execution layer while Cognivern handles oversight and trust
+              <strong>Wallet control without wallet sprawl:</strong> Keep OWS as the execution layer
+              while Cognivern handles oversight and trust
             </span>
           </li>
         </ul>

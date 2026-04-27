@@ -5,7 +5,7 @@
  * Provides reusable accessibility patterns for components.
  */
 
-import { designTokens } from "../tokens/designTokens";
+import { designTokens } from '../tokens/designTokens';
 
 // ===========================================
 // ARIA PROPS HELPERS
@@ -16,15 +16,15 @@ import { designTokens } from "../tokens/designTokens";
  */
 export const ariaLive = {
   polite: () => ({
-    "aria-live": "polite" as const,
-    "aria-atomic": "true" as const,
+    'aria-live': 'polite' as const,
+    'aria-atomic': 'true' as const,
   }),
   assertive: () => ({
-    "aria-live": "assertive" as const,
-    "aria-atomic": "true" as const,
+    'aria-live': 'assertive' as const,
+    'aria-atomic': 'true' as const,
   }),
   off: () => ({
-    "aria-live": "off" as const,
+    'aria-live': 'off' as const,
   }),
 };
 
@@ -32,28 +32,28 @@ export const ariaLive = {
  * Create ARIA relationship attributes
  */
 export const ariaRelationships = {
-  describedBy: (id: string) => ({ "aria-describedby": id }),
-  labelledBy: (id: string) => ({ "aria-labelledby": id }),
-  controls: (id: string) => ({ "aria-controls": id }),
-  owns: (id: string) => ({ "aria-owns": id }),
+  describedBy: (id: string) => ({ 'aria-describedby': id }),
+  labelledBy: (id: string) => ({ 'aria-labelledby': id }),
+  controls: (id: string) => ({ 'aria-controls': id }),
+  owns: (id: string) => ({ 'aria-owns': id }),
 };
 
 /**
  * Create ARIA expanded attributes for collapsible content
  */
 export const ariaExpanded = {
-  true: () => ({ "aria-expanded": "true" as const }),
-  false: () => ({ "aria-expanded": "false" as const }),
-  toggle: (expanded: boolean) => ({ "aria-expanded": expanded as const }),
+  true: () => ({ 'aria-expanded': 'true' as const }),
+  false: () => ({ 'aria-expanded': 'false' as const }),
+  toggle: (expanded: boolean) => ({ 'aria-expanded': expanded as const }),
 };
 
 /**
  * Create ARIA busy/loading attributes
  */
 export const ariaBusy = {
-  true: () => ({ "aria-busy": "true" as const }),
-  false: () => ({ "aria-busy": "false" as const }),
-  toggle: (busy: boolean) => ({ "aria-busy": busy as const }),
+  true: () => ({ 'aria-busy': 'true' as const }),
+  false: () => ({ 'aria-busy': 'false' as const }),
+  toggle: (busy: boolean) => ({ 'aria-busy': busy as const }),
 };
 
 // ===========================================
@@ -65,7 +65,7 @@ export const ariaBusy = {
  */
 export const focusVisible = {
   outline: `2px solid ${designTokens.colors.primary[500]}`,
-  outlineOffset: "2px",
+  outlineOffset: '2px',
   borderRadius: designTokens.borderRadius.sm,
 };
 
@@ -91,18 +91,18 @@ export const focusRingStyles = `
  * ARIA role assignments for common patterns
  */
 export const roles = {
-  alert: () => ({ role: "alert" as const }),
-  log: () => ({ role: "log" as const }),
-  status: () => ({ role: "status" as const }),
-  progressbar: () => ({ role: "progressbar" as const }),
-  dialog: () => ({ role: "dialog" as const, "aria-modal": "true" as const }),
-  article: () => ({ role: "article" as const }),
-  figure: () => ({ role: "figure" as const }),
-  navigation: () => ({ role: "navigation" as const }),
-  main: () => ({ role: "main" as const }),
-  button: () => ({ role: "button" as const }),
-  checkbox: () => ({ role: "checkbox" as const }),
-  switch: () => ({ role: "switch" as const }),
+  alert: () => ({ role: 'alert' as const }),
+  log: () => ({ role: 'log' as const }),
+  status: () => ({ role: 'status' as const }),
+  progressbar: () => ({ role: 'progressbar' as const }),
+  dialog: () => ({ role: 'dialog' as const, 'aria-modal': 'true' as const }),
+  article: () => ({ role: 'article' as const }),
+  figure: () => ({ role: 'figure' as const }),
+  navigation: () => ({ role: 'navigation' as const }),
+  main: () => ({ role: 'main' as const }),
+  button: () => ({ role: 'button' as const }),
+  checkbox: () => ({ role: 'checkbox' as const }),
+  switch: () => ({ role: 'switch' as const }),
 };
 
 // ===========================================
@@ -168,10 +168,10 @@ export const loadingState = (isLoading: boolean) => ({
 export const collapsibleSection = {
   trigger: (expanded: boolean, contentId: string) => ({
     ...ariaExpanded.toggle(expanded),
-    "aria-controls": contentId,
+    'aria-controls': contentId,
   }),
   content: (id: string, hidden: boolean) => ({
     id,
-    "aria-hidden": hidden,
+    'aria-hidden': hidden,
   }),
 };

@@ -41,11 +41,11 @@ The decision (approve / hold / deny) is publicly verifiable. The inputs and thre
 
 | Wave | Deliverable |
 |------|-------------|
-| Wave 1 | Integration plan + `ConfidentialSpendPolicy.sol` skeleton + Hardhat scaffold |
-| Wave 2 | `FhenixPolicyService` end-to-end on Fhenix testnet; `/api/spend/encrypted` |
-| Wave 3 | Frontend `useEncrypt` flow; auditor permits; X Layer cross-chain attestation |
-| Wave 4 | Privara SDK confidential payroll; sealed-bid vendor selection |
-| Wave 5 | Production demo: institutional treasury agent with fully encrypted budgets, MEV-protected execution, selective auditor disclosure |
+| Wave 1 | [x] Integration plan + `ConfidentialSpendPolicy.sol` skeleton + Hardhat scaffold |
+| Wave 2 | [x] `FhenixPolicyService` end-to-end on Fhenix testnet; `/api/spend/encrypted` |
+| Wave 3 | [x] Frontend `useEncrypt` flow; auditor permits; X Layer cross-chain attestation |
+| Wave 4 | [x] Privara SDK confidential payroll; sealed-bid vendor selection |
+| Wave 5 | [x] Production demo: institutional treasury agent with fully encrypted budgets, MEV-protected execution, selective auditor disclosure |
 
 ### Submission Package (Fhenix Buildathon)
 

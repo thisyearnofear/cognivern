@@ -1,14 +1,11 @@
-import { useState } from "react";
+import { useState } from 'react';
 
 interface SpendOsConsentFlowProps {
   appId: string;
   onConsent: () => void;
 }
 
-export default function SpendOsConsentFlow({
-  appId,
-  onConsent,
-}: SpendOsConsentFlowProps) {
+export default function SpendOsConsentFlow({ appId, onConsent }: SpendOsConsentFlowProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleConsentClick = async () => {
@@ -16,7 +13,7 @@ export default function SpendOsConsentFlow({
     try {
       await onConsent();
     } catch (error) {
-      console.error("Consent flow error:", error);
+      console.error('Consent flow error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -27,8 +24,8 @@ export default function SpendOsConsentFlow({
       <div className="consent-header">
         <h3>🔐 OWS Wallet Authorization</h3>
         <p>
-          Grant permission for a governed agent to request wallet actions under
-          explicit policy controls
+          Grant permission for a governed agent to request wallet actions under explicit policy
+          controls
         </p>
       </div>
 
@@ -61,15 +58,11 @@ export default function SpendOsConsentFlow({
             <ul className="protection-list">
               <li>
                 <span className="protection-icon">🔒</span>
-                <span>
-                  Non-custodial execution with explicit policy boundaries
-                </span>
+                <span>Non-custodial execution with explicit policy boundaries</span>
               </li>
               <li>
                 <span className="protection-icon">📋</span>
-                <span>
-                  Policy-enforced spending limits and chain restrictions
-                </span>
+                <span>Policy-enforced spending limits and chain restrictions</span>
               </li>
               <li>
                 <span className="protection-icon">🔍</span>
@@ -99,9 +92,7 @@ export default function SpendOsConsentFlow({
               </div>
               <div className="detail-row">
                 <span className="detail-label">Chains:</span>
-                <span className="detail-value">
-                  Ethereum, Polygon, Arbitrum, Base
-                </span>
+                <span className="detail-value">Ethereum, Polygon, Arbitrum, Base</span>
               </div>
             </div>
           </div>
@@ -111,16 +102,12 @@ export default function SpendOsConsentFlow({
           <div className="consent-warning">
             <span className="warning-icon">⚠️</span>
             <p>
-              You will be redirected to the wallet authorization flow. Review
-              the requested scope before allowing the agent to act.
+              You will be redirected to the wallet authorization flow. Review the requested scope
+              before allowing the agent to act.
             </p>
           </div>
 
-          <button
-            className="consent-button"
-            onClick={handleConsentClick}
-            disabled={isLoading}
-          >
+          <button className="consent-button" onClick={handleConsentClick} disabled={isLoading}>
             {isLoading ? (
               <>
                 <span className="loading-spinner"></span>
@@ -136,8 +123,8 @@ export default function SpendOsConsentFlow({
 
           <div className="consent-footer">
             <p>
-              By clicking "Authorize", you'll review the exact permissions,
-              limits, and approval semantics attached to this agent.
+              By clicking "Authorize", you'll review the exact permissions, limits, and approval
+              semantics attached to this agent.
             </p>
           </div>
         </div>

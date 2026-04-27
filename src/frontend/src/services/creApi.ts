@@ -1,9 +1,9 @@
-import { ApiResponse } from "./types";
-import { getApiUrl, getApiKey } from "../utils/api";
+import { ApiResponse } from './types';
+import { getApiUrl, getApiKey } from '../utils/api';
 
 const DEFAULT_HEADERS = {
-  "Content-Type": "application/json",
-  "X-API-KEY": getApiKey(),
+  'Content-Type': 'application/json',
+  'X-API-KEY': getApiKey(),
 };
 
 export interface CreRun {
@@ -13,18 +13,12 @@ export interface CreRun {
   startedAt: string;
   finishedAt?: string;
   ok: boolean;
-  status?:
-    | "queued"
-    | "running"
-    | "paused_for_approval"
-    | "cancelled"
-    | "completed"
-    | "failed";
+  status?: 'queued' | 'running' | 'paused_for_approval' | 'cancelled' | 'completed' | 'failed';
   parentRunId?: string;
   retryCount?: number;
   currentStepName?: string;
   requiresApproval?: boolean;
-  approvalState?: "not_required" | "pending" | "approved" | "rejected";
+  approvalState?: 'not_required' | 'pending' | 'approved' | 'rejected';
   approvalReason?: string;
   plan?: {
     version: number;
@@ -35,7 +29,7 @@ export interface CreRun {
       title: string;
       description?: string;
       enabled: boolean;
-      status?: "pending" | "approved" | "rejected";
+      status?: 'pending' | 'approved' | 'rejected';
     }>;
   };
   controls?: {
@@ -51,7 +45,7 @@ export interface CreRun {
     estimatedCostUsd?: number;
   };
   provenance?: {
-    source: "cognivern" | "ingested";
+    source: 'cognivern' | 'ingested';
     workflowVersion?: string;
     model?: string;
     citations?: Array<{ label: string; value: string }>;
@@ -88,16 +82,16 @@ export interface CreRunEvent {
   id: string;
   runId: string;
   type:
-    | "run_started"
-    | "message_delta"
-    | "tool_call_started"
-    | "tool_result"
-    | "run_paused_for_approval"
-    | "run_cancel_requested"
-    | "run_cancelled"
-    | "run_retry_requested"
-    | "run_finished"
-    | "run_failed";
+    | 'run_started'
+    | 'message_delta'
+    | 'tool_call_started'
+    | 'tool_result'
+    | 'run_paused_for_approval'
+    | 'run_cancel_requested'
+    | 'run_cancelled'
+    | 'run_retry_requested'
+    | 'run_finished'
+    | 'run_failed';
   timestamp: string;
   stepName?: string;
   payload?: Record<string, unknown>;
@@ -127,25 +121,20 @@ async function request<T>(endpoint: string, options: RequestInit = {}) {
 }
 
 export const creApi = {
-  listRuns: async (projectId: string = "default") =>
+  listRuns: async (projectId: string = 'default') =>
     request<{ success: boolean; runs: CreRun[] }>(
       `/api/cre/runs?projectId=${encodeURIComponent(projectId)}`,
     ),
   getRun: async (runId: string) =>
     request<{ success: boolean; run: CreRun }>(`/api/cre/runs/${runId}`),
-  triggerForecast: async (
-    params: { writeAttestation?: boolean; requireApproval?: boolean } = {},
-  ) =>
-    request<{ success: boolean; runId: string; run: CreRun }>(
-      "/api/cre/forecast",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          writeAttestation: Boolean(params.writeAttestation),
-          requireApproval: Boolean(params.requireApproval),
-        }),
-      },
-    ),
+  triggerForecast: async (params: { writeAttestation?: boolean; requireApproval?: boolean } = {}) =>
+    request<{ success: boolean; runId: string; run: CreRun }>('/api/cre/forecast', {
+      method: 'POST',
+      body: JSON.stringify({
+        writeAttestation: Boolean(params.writeAttestation),
+        requireApproval: Boolean(params.requireApproval),
+      }),
+    }),
   listRunEvents: async (runId: string, since?: number) =>
     request<{
       success: boolean;
@@ -154,40 +143,32 @@ export const creApi = {
       cursor: number;
     }>(
       `/api/cre/runs/${encodeURIComponent(runId)}/events${
-        since ? `?since=${encodeURIComponent(String(since))}` : ""
+        since ? `?since=${encodeURIComponent(String(since))}` : ''
       }`,
     ),
   cancelRun: async (runId: string) =>
     request<{ success: boolean; run: CreRun }>(
       `/api/cre/runs/${encodeURIComponent(runId)}/cancel`,
-      { method: "POST", body: JSON.stringify({}) },
+      { method: 'POST', body: JSON.stringify({}) },
     ),
-  retryRun: async (
-    runId: string,
-    params: { writeAttestation?: boolean; fromStep?: number } = {},
-  ) =>
+  retryRun: async (runId: string, params: { writeAttestation?: boolean; fromStep?: number } = {}) =>
     request<{
       success: boolean;
       runId: string;
       run: CreRun;
       retriedFrom: string;
     }>(`/api/cre/runs/${encodeURIComponent(runId)}/retry`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify({
         writeAttestation: Boolean(params.writeAttestation),
-        ...(typeof params.fromStep === "number"
-          ? { fromStep: params.fromStep }
-          : {}),
+        ...(typeof params.fromStep === 'number' ? { fromStep: params.fromStep } : {}),
       }),
     }),
-  submitRunApproval: async (
-    runId: string,
-    params: { approve: boolean; reason?: string },
-  ) =>
+  submitRunApproval: async (runId: string, params: { approve: boolean; reason?: string }) =>
     request<{ success: boolean; run: CreRun }>(
       `/api/cre/runs/${encodeURIComponent(runId)}/approval`,
       {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify(params),
       },
     ),
@@ -201,15 +182,12 @@ export const creApi = {
         title: string;
         description?: string;
         enabled: boolean;
-        status?: "pending" | "approved" | "rejected";
+        status?: 'pending' | 'approved' | 'rejected';
       }>;
     },
   ) =>
-    request<{ success: boolean; run: CreRun }>(
-      `/api/cre/runs/${encodeURIComponent(runId)}/plan`,
-      {
-        method: "POST",
-        body: JSON.stringify({ plan }),
-      },
-    ),
+    request<{ success: boolean; run: CreRun }>(`/api/cre/runs/${encodeURIComponent(runId)}/plan`, {
+      method: 'POST',
+      body: JSON.stringify({ plan }),
+    }),
 };

@@ -4,17 +4,17 @@
  * Displays live Sapience prediction markets with forecast capabilities
  */
 
-import { useState } from "react";
-import { css } from "@emotion/react";
-import { Card, CardContent, CardTitle } from "../ui/Card";
-import { Badge } from "../ui/Badge";
-import { Button } from "../ui/Button";
-import { MultiFieldDialog, ConfirmDialog } from "../ui/Dialog";
-import { designTokens, keyframeAnimations } from "../../styles/design-system";
-import { useSapienceData } from "../../hooks/useSapienceData";
-import { getTimeRemaining } from "../../services/sapienceApi";
-import { textStyles } from "../dashboard/sharedStyles";
-import { sapienceApi as sapienceBackendApi } from "../../services/apiService";
+import { useState } from 'react';
+import { css } from '@emotion/react';
+import { Card, CardContent, CardTitle } from '../ui/Card';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { MultiFieldDialog, ConfirmDialog } from '../ui/Dialog';
+import { designTokens, keyframeAnimations } from '../../styles/design-system';
+import { useSapienceData } from '../../hooks/useSapienceData';
+import { getTimeRemaining } from '../../services/sapienceApi';
+import { textStyles } from '../dashboard/sharedStyles';
+import { sapienceApi as sapienceBackendApi } from '../../services/apiService';
 
 const containerStyles = css`
   display: flex;
@@ -31,7 +31,7 @@ const headerStyles = css`
 `;
 
 const titleStyles = css`
-  font-size: ${designTokens.typography.fontSize["3xl"]};
+  font-size: ${designTokens.typography.fontSize['3xl']};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: ${designTokens.colors.neutral[900]};
   margin-bottom: ${designTokens.spacing[3]};
@@ -78,7 +78,7 @@ const statCardStyles = css`
   overflow: hidden;
 
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     top: 0;
     left: 0;
@@ -93,7 +93,7 @@ const statCardStyles = css`
 `;
 
 const statValueStyles = css`
-  font-size: ${designTokens.typography.fontSize["3xl"]};
+  font-size: ${designTokens.typography.fontSize['3xl']};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: ${designTokens.colors.primary[600]};
   margin-bottom: ${designTokens.spacing[2]};
@@ -157,11 +157,7 @@ const marketCardStyles = css`
 
   &.featured {
     border-left-color: ${designTokens.colors.secondary[500]};
-    background: linear-gradient(
-      135deg,
-      ${designTokens.colors.secondary[50]} 0%,
-      white 100%
-    );
+    background: linear-gradient(135deg, ${designTokens.colors.secondary[50]} 0%, white 100%);
   }
 `;
 
@@ -173,9 +169,7 @@ const statusBadgeStyles = (isActive: boolean) => css`
   background: ${isActive
     ? designTokens.colors.semantic.success[50]
     : designTokens.colors.neutral[100]};
-  color: ${isActive
-    ? designTokens.colors.semantic.success[700]
-    : designTokens.colors.neutral[600]};
+  color: ${isActive ? designTokens.colors.semantic.success[700] : designTokens.colors.neutral[600]};
   border-radius: ${designTokens.borderRadius.full};
   font-size: ${designTokens.typography.fontSize.xs};
   font-weight: ${designTokens.typography.fontWeight.semibold};
@@ -228,133 +222,130 @@ const emptyStateStyles = css`
 `;
 
 export default function SapienceMarkets() {
-  const { conditions, stats, isLoading, error, lastUpdated, refresh } =
-    useSapienceData();
+  const { conditions, stats, isLoading, error, lastUpdated, refresh } = useSapienceData();
   const [submittingId, setSubmittingId] = useState<string | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<string>("ending_soon");
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('ending_soon');
 
   // Dynamic categorization based on market content with ML-like keyword detection
-  const categorizeMarket = (
-    question: string,
-  ): { category: string; confidence: number } => {
+  const categorizeMarket = (question: string): { category: string; confidence: number } => {
     const q = question.toLowerCase();
 
     // Define keyword patterns with weights
     const patterns = {
       social: {
         keywords: [
-          "elon",
-          "tweet",
-          "post",
-          "twitter",
-          "social",
-          "instagram",
-          "tiktok",
-          "facebook",
-          "youtube",
-          "influencer",
+          'elon',
+          'tweet',
+          'post',
+          'twitter',
+          'social',
+          'instagram',
+          'tiktok',
+          'facebook',
+          'youtube',
+          'influencer',
         ],
         weight: 1.0,
       },
       sports: {
         keywords: [
-          "gaming",
-          "vs",
-          "win",
-          "fc",
-          "match",
-          "game",
-          "team",
-          "player",
-          "championship",
-          "league",
-          "tournament",
-          "score",
-          "defeat",
-          "beat",
+          'gaming',
+          'vs',
+          'win',
+          'fc',
+          'match',
+          'game',
+          'team',
+          'player',
+          'championship',
+          'league',
+          'tournament',
+          'score',
+          'defeat',
+          'beat',
         ],
         weight: 1.0,
       },
       crypto: {
         keywords: [
-          "bitcoin",
-          "eth",
-          "crypto",
-          "blockchain",
-          "defi",
-          "nft",
-          "token",
-          "coin",
-          "btc",
-          "ethereum",
-          "price",
-          "trading",
+          'bitcoin',
+          'eth',
+          'crypto',
+          'blockchain',
+          'defi',
+          'nft',
+          'token',
+          'coin',
+          'btc',
+          'ethereum',
+          'price',
+          'trading',
         ],
         weight: 1.0,
       },
       politics: {
         keywords: [
-          "election",
-          "president",
-          "vote",
-          "government",
-          "policy",
-          "congress",
-          "senate",
-          "political",
-          "candidate",
-          "campaign",
+          'election',
+          'president',
+          'vote',
+          'government',
+          'policy',
+          'congress',
+          'senate',
+          'political',
+          'candidate',
+          'campaign',
         ],
         weight: 1.0,
       },
       finance: {
         keywords: [
-          "stock",
-          "market",
-          "economy",
-          "gdp",
-          "inflation",
-          "fed",
-          "interest",
-          "bank",
-          "financial",
-          "revenue",
-          "earnings",
+          'stock',
+          'market',
+          'economy',
+          'gdp',
+          'inflation',
+          'fed',
+          'interest',
+          'bank',
+          'financial',
+          'revenue',
+          'earnings',
         ],
         weight: 1.0,
       },
       tech: {
         keywords: [
-          "ai",
-          "artificial intelligence",
-          "tech",
-          "software",
-          "app",
-          "platform",
-          "startup",
-          "ipo",
-          "launch",
-          "release",
+          'ai',
+          'artificial intelligence',
+          'tech',
+          'software',
+          'app',
+          'platform',
+          'startup',
+          'ipo',
+          'launch',
+          'release',
         ],
         weight: 1.0,
       },
       weather: {
         keywords: [
-          "weather",
-          "temperature",
-          "rain",
-          "snow",
-          "hurricane",
-          "storm",
-          "climate",
-          "forecast",
+          'weather',
+          'temperature',
+          'rain',
+          'snow',
+          'hurricane',
+          'storm',
+          'climate',
+          'forecast',
         ],
         weight: 1.0,
       },
     };
 
-    let bestCategory = "other";
+    let bestCategory = 'other';
     let bestScore = 0;
 
     // Calculate scores for each category
@@ -392,9 +383,7 @@ export default function SapienceMarkets() {
   const getAvailableCategories = () => {
     const categoryCounts = conditions.reduce(
       (acc, condition) => {
-        const { category } = categorizeMarket(
-          condition.shortName || condition.question,
-        );
+        const { category } = categorizeMarket(condition.shortName || condition.question);
         acc[category] = (acc[category] || 0) + 1;
         return acc;
       },
@@ -413,19 +402,17 @@ export default function SapienceMarkets() {
   // Filter and sort markets dynamically
   const filteredConditions = conditions
     .filter((condition) => {
-      if (categoryFilter === "all") return true;
-      const { category } = categorizeMarket(
-        condition.shortName || condition.question,
-      );
+      if (categoryFilter === 'all') return true;
+      const { category } = categorizeMarket(condition.shortName || condition.question);
       return category === categoryFilter;
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case "ending_soon":
+        case 'ending_soon':
           return a.endTime - b.endTime;
-        case "newest":
+        case 'newest':
           return b.endTime - a.endTime;
-        case "relevance":
+        case 'relevance':
           // Sort by categorization confidence
           const aResult = categorizeMarket(a.shortName || a.question);
           const bResult = categorizeMarket(b.shortName || b.question);
@@ -468,8 +455,8 @@ export default function SapienceMarkets() {
   const [confirmDialogState, setConfirmDialogState] = useState<{
     open: boolean;
     message: string;
-    variant: "success" | "error";
-  }>({ open: false, message: "", variant: "success" });
+    variant: 'success' | 'error';
+  }>({ open: false, message: '', variant: 'success' });
 
   const handleForecast = (conditionId: string, question: string) => {
     setSelectedMarket({ id: conditionId, question });
@@ -480,7 +467,7 @@ export default function SapienceMarkets() {
     if (!selectedMarket) return;
 
     const probability = parseInt(values.probability, 10);
-    const reasoning = values.reasoning || "Manual forecast";
+    const reasoning = values.reasoning || 'Manual forecast';
 
     try {
       setSubmittingId(selectedMarket.id);
@@ -497,15 +484,15 @@ export default function SapienceMarkets() {
       if (result.success) {
         setConfirmDialogState({
           open: true,
-          message: "Forecast submitted successfully!",
-          variant: "success",
+          message: 'Forecast submitted successfully!',
+          variant: 'success',
         });
         refresh(); // Refresh data
       } else {
         setConfirmDialogState({
           open: true,
-          message: result.error || "Submission failed",
-          variant: "error",
+          message: result.error || 'Submission failed',
+          variant: 'error',
         });
       }
     } catch (err) {
@@ -514,8 +501,8 @@ export default function SapienceMarkets() {
       setSelectedMarket(null);
       setConfirmDialogState({
         open: true,
-        message: "Failed to submit forecast",
-        variant: "error",
+        message: 'Failed to submit forecast',
+        variant: 'error',
       });
     } finally {
       setSubmittingId(null);
@@ -524,33 +511,31 @@ export default function SapienceMarkets() {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case "social":
-        return "📱";
-      case "sports":
-        return "⚽";
-      case "crypto":
-        return "₿";
-      case "politics":
-        return "🗳️";
-      case "finance":
-        return "💰";
-      case "tech":
-        return "💻";
-      case "weather":
-        return "🌤️";
-      case "other":
-        return "📊";
+      case 'social':
+        return '📱';
+      case 'sports':
+        return '⚽';
+      case 'crypto':
+        return '₿';
+      case 'politics':
+        return '🗳️';
+      case 'finance':
+        return '💰';
+      case 'tech':
+        return '💻';
+      case 'weather':
+        return '🌤️';
+      case 'other':
+        return '📊';
       default:
-        return "📊";
+        return '📊';
     }
   };
 
   const renderMarketCard = (condition: any, isFeatured = false) => {
     const timeRemaining = getTimeRemaining(condition.endTime);
     const isActive = condition.endTime > Date.now() / 1000;
-    const { category, confidence } = categorizeMarket(
-      condition.shortName || condition.question,
-    );
+    const { category, confidence } = categorizeMarket(condition.shortName || condition.question);
     const sapienceUrl = `https://sapience.xyz/markets/${condition.id}`;
 
     return (
@@ -586,7 +571,7 @@ export default function SapienceMarkets() {
                     `}
                   />
                 )}
-                {isActive ? "LIVE" : "ENDED"}
+                {isActive ? 'LIVE' : 'ENDED'}
               </span>
 
               <span css={[categoryBadgeStyles, css`&.${category}`]}>
@@ -670,23 +655,18 @@ export default function SapienceMarkets() {
               variant="primary"
               size="sm"
               onClick={() =>
-                handleForecast(
-                  condition.id,
-                  condition.shortName || condition.question,
-                )
+                handleForecast(condition.id, condition.shortName || condition.question)
               }
               disabled={!!submittingId}
               style={{ flex: 1 }}
             >
-              {submittingId === condition.id
-                ? "Submitting..."
-                : "Submit Forecast"}
+              {submittingId === condition.id ? 'Submitting...' : 'Submit Forecast'}
             </Button>
 
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => window.open(sapienceUrl, "_blank")}
+              onClick={() => window.open(sapienceUrl, '_blank')}
             >
               🔗 Verify
             </Button>
@@ -799,8 +779,7 @@ export default function SapienceMarkets() {
       <div css={headerStyles}>
         <h1 css={titleStyles}>Prediction Markets</h1>
         <p css={subtitleStyles}>
-          Live prediction markets powered by Sapience Protocol with verifiable
-          on-chain outcomes
+          Live prediction markets powered by Sapience Protocol with verifiable on-chain outcomes
         </p>
 
         <div css={verificationBannerStyles}>
@@ -867,9 +846,9 @@ export default function SapienceMarkets() {
       <div css={filtersStyles}>
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             marginBottom: designTokens.spacing[4],
           }}
         >
@@ -909,7 +888,7 @@ export default function SapienceMarkets() {
           <div>
             <label
               style={{
-                display: "block",
+                display: 'block',
                 marginBottom: designTokens.spacing[2],
                 fontSize: designTokens.typography.fontSize.sm,
                 fontWeight: designTokens.typography.fontWeight.medium,
@@ -925,8 +904,7 @@ export default function SapienceMarkets() {
               <option value="all">All Categories</option>
               {availableCategories.map((category) => (
                 <option key={category} value={category}>
-                  {getCategoryIcon(category)}{" "}
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
+                  {getCategoryIcon(category)} {category.charAt(0).toUpperCase() + category.slice(1)}
                 </option>
               ))}
             </select>
@@ -935,7 +913,7 @@ export default function SapienceMarkets() {
           <div>
             <label
               style={{
-                display: "block",
+                display: 'block',
                 marginBottom: designTokens.spacing[2],
                 fontSize: designTokens.typography.fontSize.sm,
                 fontWeight: designTokens.typography.fontWeight.medium,
@@ -943,11 +921,7 @@ export default function SapienceMarkets() {
             >
               Sort By
             </label>
-            <select
-              css={selectStyles}
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
+            <select css={selectStyles} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
               <option value="ending_soon">Ending Soon</option>
               <option value="newest">Newest First</option>
               <option value="relevance">Most Relevant</option>
@@ -973,9 +947,7 @@ export default function SapienceMarkets() {
           </h2>
 
           <div css={marketGridStyles}>
-            {featuredMarkets.map((condition) =>
-              renderMarketCard(condition, true),
-            )}
+            {featuredMarkets.map((condition) => renderMarketCard(condition, true))}
           </div>
         </div>
       )}
@@ -999,28 +971,24 @@ export default function SapienceMarkets() {
         </h2>
 
         <div css={marketGridStyles}>
-          {filteredConditions.map((condition) =>
-            renderMarketCard(condition, false),
-          )}
+          {filteredConditions.map((condition) => renderMarketCard(condition, false))}
 
           {filteredConditions.length === 0 && (
             <div css={emptyStateStyles}>
               <div
                 style={{
-                  fontSize: "3rem",
+                  fontSize: '3rem',
                   marginBottom: designTokens.spacing[4],
                 }}
               >
                 🔍
               </div>
               <h3>No markets found</h3>
-              <p>
-                Try adjusting your filters or check back later for new markets.
-              </p>
+              <p>Try adjusting your filters or check back later for new markets.</p>
               <Button
                 onClick={() => {
-                  setCategoryFilter("all");
-                  setSortBy("ending_soon");
+                  setCategoryFilter('all');
+                  setSortBy('ending_soon');
                 }}
                 style={{ marginTop: designTokens.spacing[4] }}
               >
@@ -1078,25 +1046,24 @@ export default function SapienceMarkets() {
           message={`Predict the probability for: "${selectedMarket.question}"`}
           fields={[
             {
-              name: "probability",
-              label: "Probability (%)",
-              type: "number",
-              placeholder: "Enter 0-100",
+              name: 'probability',
+              label: 'Probability (%)',
+              type: 'number',
+              placeholder: 'Enter 0-100',
               required: true,
               validation: (value) => {
                 const num = parseInt(value, 10);
-                if (isNaN(num)) return "Please enter a valid number";
-                if (num < 0 || num > 100)
-                  return "Probability must be between 0 and 100";
+                if (isNaN(num)) return 'Please enter a valid number';
+                if (num < 0 || num > 100) return 'Probability must be between 0 and 100';
                 return null;
               },
             },
             {
-              name: "reasoning",
-              label: "Reasoning",
-              type: "textarea",
-              placeholder: "Explain your forecast (optional)",
-              defaultValue: "Manual forecast",
+              name: 'reasoning',
+              label: 'Reasoning',
+              type: 'textarea',
+              placeholder: 'Explain your forecast (optional)',
+              defaultValue: 'Manual forecast',
             },
           ]}
           submitText="Submit Forecast"
@@ -1110,20 +1077,20 @@ export default function SapienceMarkets() {
         onClose={() =>
           setConfirmDialogState({
             open: false,
-            message: "",
-            variant: "success",
+            message: '',
+            variant: 'success',
           })
         }
         onConfirm={() =>
           setConfirmDialogState({
             open: false,
-            message: "",
-            variant: "success",
+            message: '',
+            variant: 'success',
           })
         }
-        title={confirmDialogState.variant === "success" ? "Success" : "Error"}
+        title={confirmDialogState.variant === 'success' ? 'Success' : 'Error'}
         message={confirmDialogState.message}
-        variant={confirmDialogState.variant === "success" ? "info" : "error"}
+        variant={confirmDialogState.variant === 'success' ? 'info' : 'error'}
         confirmText="OK"
       />
     </div>

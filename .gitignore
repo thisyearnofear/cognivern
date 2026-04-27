@@ -60,11 +60,40 @@ coverage
 .junie/
 
 # AI/IDE assistant artifacts
-.zencoder/
-.zenflow/
+# Claude Code
+.claude/
+
+# Cursor
 .cursor/
+
+# Windsurf
+.windsurf/
+
+# Aider
 .aider*
+
+# Blackbox
+.blackbox/
 .blackboxcli/
+
+# Zed AI
+.zeav/
+
+# Zencoder
+.zencoder/
+
+# Zenflow
+.zenflow/
+
+# Juno
+.junie/
+
+# Volta (tool version manager)
+.volta/
+.tool-versions
+
+# Mise (tool version manager)
+.mise/
 
 # Wrangler
 .wrangler/
@@ -74,8 +103,8 @@ coverage
 .DS_Store
 Thumbs.db
 
-# External repos
-remix-smart-bin-monitoring-das
+# External repos (cloned dependencies, not part of this project)
+remix-smart-bin-monitoring-das/
 
 # Debug
 .vite-inspect

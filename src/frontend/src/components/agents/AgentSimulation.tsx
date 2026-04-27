@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { css } from "@emotion/react";
-import { designTokens, tradingStyles } from "../../styles/design-system";
+import { useState, useEffect, useRef } from 'react';
+import { css } from '@emotion/react';
+import { designTokens, tradingStyles } from '../../styles/design-system';
 
 interface SimulationTask {
   id: string;
@@ -10,7 +10,7 @@ interface SimulationTask {
   agentTimeMinutes: number;
   humanErrorRate: number;
   agentErrorRate: number;
-  complexity: "low" | "medium" | "high";
+  complexity: 'low' | 'medium' | 'high';
 }
 
 interface SimulationResult {
@@ -26,8 +26,7 @@ export default function AgentSimulation() {
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [simulationRunning, setSimulationRunning] = useState(false);
   const [simulationComplete, setSimulationComplete] = useState(false);
-  const [simulationResults, setSimulationResults] =
-    useState<SimulationResult | null>(null);
+  const [simulationResults, setSimulationResults] = useState<SimulationResult | null>(null);
   const [logs, setLogs] = useState<{ message: string; type: string }[]>([]);
   const [simulationTasks, setSimulationTasks] = useState<SimulationTask[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
@@ -36,7 +35,7 @@ export default function AgentSimulation() {
   const logRef = useRef<HTMLDivElement>(null);
 
   // Add a log message
-  const addLog = (message: string, type: string = "info") => {
+  const addLog = (message: string, type: string = 'info') => {
     setLogs((prev) => [...prev, { message, type }]);
   };
 
@@ -50,7 +49,7 @@ export default function AgentSimulation() {
     const fetchTasks = async () => {
       try {
         setLoadingTasks(true);
-        const response = await fetch("/api/simulation/tasks");
+        const response = await fetch('/api/simulation/tasks');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -58,7 +57,7 @@ export default function AgentSimulation() {
         setSimulationTasks(data.tasks);
       } catch (e: any) {
         setError(`Failed to fetch simulation tasks: ${e.message}`);
-        addLog(`Failed to fetch simulation tasks: ${e.message}`, "error");
+        addLog(`Failed to fetch simulation tasks: ${e.message}`, 'error');
       } finally {
         setLoadingTasks(false);
       }
@@ -82,13 +81,13 @@ export default function AgentSimulation() {
     setSimulationComplete(false);
     setSimulationResults(null);
     clearLogs();
-    addLog(`Starting simulation for ${task.name}...`, "info");
+    addLog(`Starting simulation for ${task.name}...`, 'info');
 
     try {
-      const response = await fetch("/api/simulation/run", {
-        method: "POST",
+      const response = await fetch('/api/simulation/run', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ taskId: selectedTask }),
       });
@@ -102,22 +101,16 @@ export default function AgentSimulation() {
 
       setSimulationResults(result);
       setSimulationComplete(true);
-      addLog("Simulation complete!", "success");
-      addLog(
-        `Time saved: ${result.humanTime - result.agentTime} minutes`,
-        "success",
-      );
+      addLog('Simulation complete!', 'success');
+      addLog(`Time saved: ${result.humanTime - result.agentTime} minutes`, 'success');
       addLog(
         `Error reduction: ${Math.round((1 - result.agentErrors / result.humanErrors) * 100)}%`,
-        "success",
+        'success',
       );
-      addLog(
-        `Cost savings: ${result.costSavings.toFixed(2)} per task`,
-        "success",
-      );
+      addLog(`Cost savings: ${result.costSavings.toFixed(2)} per task`, 'success');
     } catch (e: any) {
       setError(`Simulation failed: ${e.message}`);
-      addLog(`Simulation failed: ${e.message}`, "error");
+      addLog(`Simulation failed: ${e.message}`, 'error');
     } finally {
       setSimulationRunning(false);
     }
@@ -142,9 +135,7 @@ export default function AgentSimulation() {
     <div className="agent-simulation">
       <div className="simulation-header">
         <h2>Agent vs Human Simulation</h2>
-        <p>
-          See how agents compare to human workers in real-time task execution
-        </p>
+        <p>See how agents compare to human workers in real-time task execution</p>
       </div>
 
       <div className="simulation-content">
@@ -157,7 +148,7 @@ export default function AgentSimulation() {
               {simulationTasks.map((task) => (
                 <div
                   key={task.id}
-                  className={`task-card ${selectedTask === task.id ? "selected" : ""}`}
+                  className={`task-card ${selectedTask === task.id ? 'selected' : ''}`}
                   onClick={() => setSelectedTask(task.id)}
                 >
                   <h4>{task.name}</h4>
@@ -165,24 +156,17 @@ export default function AgentSimulation() {
                   <div className="task-metrics">
                     <div className="task-metric">
                       <span className="metric-label">Complexity:</span>
-                      <span
-                        className={`metric-value complexity-${task.complexity}`}
-                      >
-                        {task.complexity.charAt(0).toUpperCase() +
-                          task.complexity.slice(1)}
+                      <span className={`metric-value complexity-${task.complexity}`}>
+                        {task.complexity.charAt(0).toUpperCase() + task.complexity.slice(1)}
                       </span>
                     </div>
                     <div className="task-metric">
                       <span className="metric-label">Human Time:</span>
-                      <span className="metric-value">
-                        {task.humanTimeMinutes} min
-                      </span>
+                      <span className="metric-value">{task.humanTimeMinutes} min</span>
                     </div>
                     <div className="task-metric">
                       <span className="metric-label">Agent Time:</span>
-                      <span className="metric-value">
-                        {task.agentTimeMinutes} min
-                      </span>
+                      <span className="metric-value">{task.agentTimeMinutes} min</span>
                     </div>
                   </div>
                 </div>
@@ -197,7 +181,7 @@ export default function AgentSimulation() {
             onClick={startSimulation}
             disabled={!selectedTask || simulationRunning}
           >
-            {simulationRunning ? "Simulation Running..." : "Start Simulation"}
+            {simulationRunning ? 'Simulation Running...' : 'Start Simulation'}
           </button>
         </div>
 
@@ -236,10 +220,7 @@ export default function AgentSimulation() {
                 <div className="result-title">Time Efficiency</div>
                 <div className="result-value">
                   {Math.round(
-                    (1 -
-                      simulationResults.agentTime /
-                        simulationResults.humanTime) *
-                      100,
+                    (1 - simulationResults.agentTime / simulationResults.humanTime) * 100,
                   )}
                   %
                 </div>
@@ -250,10 +231,7 @@ export default function AgentSimulation() {
                 <div className="result-title">Error Reduction</div>
                 <div className="result-value">
                   {Math.round(
-                    (1 -
-                      simulationResults.agentErrors /
-                        simulationResults.humanErrors) *
-                      100,
+                    (1 - simulationResults.agentErrors / simulationResults.humanErrors) * 100,
                   )}
                   %
                 </div>
@@ -262,9 +240,7 @@ export default function AgentSimulation() {
 
               <div className="result-card">
                 <div className="result-title">Cost Savings</div>
-                <div className="result-value">
-                  ${simulationResults.costSavings.toFixed(2)}
-                </div>
+                <div className="result-value">${simulationResults.costSavings.toFixed(2)}</div>
                 <div className="result-desc">Per task</div>
               </div>
             </div>
@@ -276,20 +252,16 @@ export default function AgentSimulation() {
                   <span className="metric-label">Time Saved:</span>
                   <span className="metric-value">
                     {(
-                      ((simulationResults.humanTime -
-                        simulationResults.agentTime) *
-                        1000) /
+                      ((simulationResults.humanTime - simulationResults.agentTime) * 1000) /
                       60
-                    ).toFixed(0)}{" "}
+                    ).toFixed(0)}{' '}
                     hours
                   </span>
                 </div>
                 <div className="projection-metric">
                   <span className="metric-label">Errors Prevented:</span>
                   <span className="metric-value">
-                    {(simulationResults.humanErrors -
-                      simulationResults.agentErrors) *
-                      1000}
+                    {(simulationResults.humanErrors - simulationResults.agentErrors) * 1000}
                   </span>
                 </div>
                 <div className="projection-metric">

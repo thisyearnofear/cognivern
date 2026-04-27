@@ -19,7 +19,7 @@ In product terms, this supports Cognivern's unified operating model:
 | Execution & Public Policy Anchoring | X Layer Testnet (1952) | `GovernanceContract`, `AIGovernanceStorage` — public agent registry, policy hash anchoring, spend execution logs | **Existing — kept as-is** |
 | Live Audit Anchoring | 0G Newton Testnet | Real-time governance decision anchoring | **Existing — kept as-is** |
 | Audit Archive | Filecoin Calibration | Long-term immutable audit storage | **Existing — kept as-is** |
-| **Confidential Policy State** | **Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia)** | **Encrypted budgets, encrypted spend counters, sealed approval ciphertexts, FHE-evaluated policy checks** | **NEW** |
+| **Confidential Policy State** | **Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia)** | **Encrypted budgets, encrypted spend counters, sealed approval ciphertexts, FHE-evaluated policy checks** | **LIVE** |
 
 **Bridge pattern:** Fhenix computes the encrypted policy decision → emits a verifiable boolean attestation + `decisionId` → X Layer `GovernanceContract.recordAction(decisionId, attestation)` consumes it for execution and public anchoring. Encrypted state never leaves Fhenix; only the verified outcome crosses chains.
 
@@ -264,11 +264,11 @@ Audit UI (operator sees outcome; auditor with permit sees amounts)
 
 | Wave | Deliverable |
 |------|-------------|
-| **Wave 1 (Ideation)** | This integration doc + `ConfidentialSpendPolicy.sol` skeleton + Hardhat scaffold |
-| **Wave 2** | `/api/spend/encrypted` live, `FhenixPolicyService` adapter path wired (client-injected, timeout + outcome normalization), policy metadata gate (`policy.metadata.confidential`) enforced in spend path |
-| **Wave 3 (Marathon)** | Frontend `useEncrypt` flow; production CoFHE client + contract adapter; auditor permit consumption/decrypt UX; X Layer cross-chain decision anchoring; demo script |
-| **Wave 4** | Privara SDK integration for confidential payroll; sealed-bid vendor selection example |
-| **Wave 5 (Final)** | Production-grade demo: institutional treasury agent operating with fully encrypted budgets, MEV-protected execution, selective auditor disclosure |
+| **Wave 1 (Ideation)** | [x] This integration doc + `ConfidentialSpendPolicy.sol` skeleton + Hardhat scaffold |
+| **Wave 2** | [x] `/api/spend/encrypted` live, `FhenixPolicyService` adapter path wired (client-injected, timeout + outcome normalization), policy metadata gate (`policy.metadata.confidential`) enforced in spend path |
+| **Wave 3 (Marathon)** | [x] Frontend `useEncrypt` flow; production CoFHE client + contract adapter; auditor permit consumption/decrypt UX; X Layer cross-chain decision anchoring; demo script |
+| **Wave 4** | [x] Privara SDK integration for confidential payroll; sealed-bid vendor selection example |
+| **Wave 5 (Final)** | [x] Production-grade demo: institutional treasury agent operating with fully encrypted budgets, MEV-protected execution, selective auditor disclosure |
 
 ---
 

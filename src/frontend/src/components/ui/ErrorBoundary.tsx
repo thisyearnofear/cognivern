@@ -7,8 +7,8 @@
  * Phase 2 Enhancement: CLEAN + MODULAR principles
  */
 
-import { Component, ErrorInfo, ReactNode } from "react";
-import { UserFriendlyError } from "./UserFriendlyError";
+import { Component, ErrorInfo, ReactNode } from 'react';
+import { UserFriendlyError } from './UserFriendlyError';
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
@@ -28,10 +28,7 @@ interface ErrorBoundaryState {
   errorInfo: ErrorInfo | null;
 }
 
-export class ErrorBoundary extends Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
@@ -48,8 +45,8 @@ export class ErrorBoundary extends Component<
     this.props.onError?.(error, errorInfo);
 
     // Log to console in development
-    if (process.env.NODE_ENV === "development") {
-      console.error("ErrorBoundary caught an error:", error, errorInfo);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('ErrorBoundary caught an error:', error, errorInfo);
     }
   }
 
@@ -72,11 +69,11 @@ export class ErrorBoundary extends Component<
           message={
             this.props.componentName
               ? `Error in ${this.props.componentName}`
-              : this.state.error?.message || "An unexpected error occurred"
+              : this.state.error?.message || 'An unexpected error occurred'
           }
           showRetry={this.props.showRetry !== false}
           onRetry={this.handleRetry}
-          onHome={() => (window.location.href = "/")}
+          onHome={() => (window.location.href = '/')}
           onBack={() => window.history.back()}
         />
       );
@@ -86,44 +83,44 @@ export class ErrorBoundary extends Component<
   }
 
   private getErrorType() {
-    if (!this.state.error) return "unknown";
+    if (!this.state.error) return 'unknown';
     const errorMessage = this.state.error.message;
 
     if (
-      errorMessage.includes("network") ||
-      errorMessage.includes("fetch") ||
-      errorMessage.includes("Failed to fetch")
+      errorMessage.includes('network') ||
+      errorMessage.includes('fetch') ||
+      errorMessage.includes('Failed to fetch')
     ) {
-      return "network";
+      return 'network';
     }
     if (
-      errorMessage.includes("500") ||
-      errorMessage.includes("server") ||
-      errorMessage.includes("Internal Server Error")
+      errorMessage.includes('500') ||
+      errorMessage.includes('server') ||
+      errorMessage.includes('Internal Server Error')
     ) {
-      return "server";
+      return 'server';
     }
-    if (errorMessage.includes("timeout") || errorMessage.includes("timed out")) {
-      return "timeout";
+    if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+      return 'timeout';
     }
-    if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
-      return "not_found";
+    if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+      return 'not_found';
     }
     if (
-      errorMessage.includes("403") ||
-      errorMessage.includes("Forbidden") ||
-      errorMessage.includes("unauthorized")
+      errorMessage.includes('403') ||
+      errorMessage.includes('Forbidden') ||
+      errorMessage.includes('unauthorized')
     ) {
-      return "permission";
+      return 'permission';
     }
     if (
-      errorMessage.includes("validation") ||
-      errorMessage.includes("invalid") ||
-      errorMessage.includes("400")
+      errorMessage.includes('validation') ||
+      errorMessage.includes('invalid') ||
+      errorMessage.includes('400')
     ) {
-      return "validation";
+      return 'validation';
     }
-    return "unknown";
+    return 'unknown';
   }
 }
 

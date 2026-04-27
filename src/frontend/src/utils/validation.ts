@@ -36,12 +36,12 @@ export class FormValidator {
     if (!rule) return null;
 
     // Required validation
-    if (rule.required && (!value || value.trim() === "")) {
+    if (rule.required && (!value || value.trim() === '')) {
       return `${this.formatFieldName(fieldName)} is required`;
     }
 
     // Skip other validations if field is empty and not required
-    if (!value || value.trim() === "") {
+    if (!value || value.trim() === '') {
       return null;
     }
 
@@ -106,7 +106,7 @@ export class FormValidator {
     const errors: ValidationErrors = {};
 
     Object.keys(this.schema).forEach((fieldName) => {
-      const error = this.validateField(fieldName, values[fieldName] || "");
+      const error = this.validateField(fieldName, values[fieldName] || '');
       if (error) {
         errors[fieldName] = error;
       }
@@ -122,7 +122,7 @@ export class FormValidator {
 
   private formatFieldName(fieldName: string): string {
     return fieldName
-      .replace(/([A-Z])/g, " $1")
+      .replace(/([A-Z])/g, ' $1')
       .replace(/^./, (str) => str.toUpperCase())
       .trim();
   }
@@ -214,7 +214,7 @@ export class AsyncValidator {
       return null; // Validation was superseded
     } catch (error) {
       this.pendingValidations.delete(fieldName);
-      return "Validation failed";
+      return 'Validation failed';
     }
   }
 
@@ -225,15 +225,13 @@ export class AsyncValidator {
 
 // Common async validators
 export const AsyncValidators = {
-  checkUsernameAvailability: async (
-    username: string,
-  ): Promise<string | null> => {
+  checkUsernameAvailability: async (username: string): Promise<string | null> => {
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    const unavailableUsernames = ["admin", "root", "user", "test"];
+    const unavailableUsernames = ['admin', 'root', 'user', 'test'];
     if (unavailableUsernames.includes(username.toLowerCase())) {
-      return "Username is already taken";
+      return 'Username is already taken';
     }
 
     return null;
@@ -254,7 +252,7 @@ export const AsyncValidators = {
 
     // Basic Ethereum address validation
     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      return "Invalid wallet address format";
+      return 'Invalid wallet address format';
     }
 
     return null;
@@ -267,11 +265,9 @@ export const useFormValidation = (schema: ValidationSchema) => {
   const asyncValidator = new AsyncValidator();
 
   return {
-    validateField: (fieldName: string, value: string) =>
-      validator.validateField(fieldName, value),
+    validateField: (fieldName: string, value: string) => validator.validateField(fieldName, value),
 
-    validateAll: (values: Record<string, string>) =>
-      validator.validateAll(values),
+    validateAll: (values: Record<string, string>) => validator.validateAll(values),
 
     isValid: (values: Record<string, string>) => validator.isValid(values),
 

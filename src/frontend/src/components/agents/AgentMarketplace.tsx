@@ -1,35 +1,28 @@
-import { useState, useRef, useEffect } from "react";
-import { css } from "@emotion/react";
+import { useState, useRef, useEffect } from 'react';
+import { css } from '@emotion/react';
 import {
   designTokens,
   designTokens,
   keyframeAnimations,
   easings,
   layoutUtils,
-} from "../../styles/design-system";
-import { useLoadingState } from "../../hooks/useAgentData";
-import InteractiveAgentDemo from "./InteractiveAgentDemo";
-import { getApiUrl, getRequestHeaders } from "../../utils/api";
-import { BaseAgent } from "../../types";
-import { Button } from "../ui/Button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "../ui/Card";
-import { Badge } from "../ui/Badge";
-import LoadingSpinner from "../ui/LoadingSpinner";
+} from '../../styles/design-system';
+import { useLoadingState } from '../../hooks/useAgentData';
+import InteractiveAgentDemo from './InteractiveAgentDemo';
+import { getApiUrl, getRequestHeaders } from '../../utils/api';
+import { BaseAgent } from '../../types';
+import { Button } from '../ui/Button';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/Card';
+import { Badge } from '../ui/Badge';
+import LoadingSpinner from '../ui/LoadingSpinner';
 import {
   formStyles,
   getFormInputStyles,
   getFormLabelStyles,
-} from "../../styles/design-system/components/form";
+} from '../../styles/design-system/components/form';
 
-interface MCPAgent extends BaseAgent {
-  // MCPAgent inherits id, name, type, status, capabilities, createdAt, updatedAt from BaseAgent
-}
+// MCPAgent inherits id, name, type, status, capabilities, createdAt, updatedAt from BaseAgent
+type MCPAgent = BaseAgent;
 
 interface MCPStatus {
   status: string;
@@ -50,18 +43,15 @@ interface AgentTemplate {
 export default function AgentMarketplace() {
   const [mcpStatus, setMcpStatus] = useState<MCPStatus | null>(null);
   const { isLoading, error, withLoading, clearError } = useLoadingState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedAgent, setSelectedAgent] = useState<AgentTemplate | null>(
-    null,
-  );
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedAgent, setSelectedAgent] = useState<AgentTemplate | null>(null);
   const [demoAgent, setDemoAgent] = useState<AgentTemplate | null>(null);
   const [deploymentStep, setDeploymentStep] = useState<number>(0);
 
   // Progressive disclosure states
   const [showAllAgents, setShowAllAgents] = useState<boolean>(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] =
-    useState<boolean>(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
   const [expandedAgentCards, setExpandedAgentCards] = useState<string[]>([]);
   const [userEngagement, setUserEngagement] = useState<number>(0);
 
@@ -72,7 +62,7 @@ export default function AgentMarketplace() {
 
   const fetchMCPStatus = async () => {
     const result = await withLoading(async () => {
-      const response = await fetch(getApiUrl("/api/mcp/status"), {
+      const response = await fetch(getApiUrl('/api/mcp/status'), {
         headers: getRequestHeaders(),
       });
 
@@ -92,8 +82,8 @@ export default function AgentMarketplace() {
 
   const reconnectMCP = async () => {
     try {
-      const response = await fetch(getApiUrl("/api/mcp/reconnect"), {
-        method: "POST",
+      const response = await fetch(getApiUrl('/api/mcp/reconnect'), {
+        method: 'POST',
         headers: getRequestHeaders(),
       });
 
@@ -106,165 +96,162 @@ export default function AgentMarketplace() {
       // Refresh status after reconnection
       setTimeout(fetchMCPStatus, 2000);
     } catch (err) {
-      console.error("Error reconnecting to MCP:", err);
+      console.error('Error reconnecting to MCP:', err);
     }
   };
 
   // Sample agent templates
   const agentTemplates: AgentTemplate[] = [
     {
-      id: "ad-allocation",
-      name: "Ad Allocation Agent",
+      id: 'ad-allocation',
+      name: 'Ad Allocation Agent',
       description:
-        "Intelligently allocates ad placements based on contract terms, content relevance, and audience targeting",
-      icon: "📊",
-      category: "marketing",
+        'Intelligently allocates ad placements based on contract terms, content relevance, and audience targeting',
+      icon: '📊',
+      category: 'marketing',
       capabilities: [
-        "Contract Analysis",
-        "Content Relevance Scoring",
-        "Audience Targeting",
-        "Performance Tracking",
+        'Contract Analysis',
+        'Content Relevance Scoring',
+        'Audience Targeting',
+        'Performance Tracking',
       ],
-      integrations: ["Google Analytics", "Mailchimp", "HubSpot"],
+      integrations: ['Google Analytics', 'Mailchimp', 'HubSpot'],
     },
     {
-      id: "compliance-guardian",
-      name: "Compliance Guardian",
+      id: 'compliance-guardian',
+      name: 'Compliance Guardian',
       description:
-        "Ensures all content and operations meet regulatory requirements with automatic policy enforcement",
-      icon: "🛡️",
-      category: "governance",
+        'Ensures all content and operations meet regulatory requirements with automatic policy enforcement',
+      icon: '🛡️',
+      category: 'governance',
       capabilities: [
-        "Policy Enforcement",
-        "Regulatory Monitoring",
-        "Audit Trail Generation",
-        "Violation Detection",
+        'Policy Enforcement',
+        'Regulatory Monitoring',
+        'Audit Trail Generation',
+        'Violation Detection',
       ],
-      integrations: ["DocuSign", "Salesforce", "Microsoft 365"],
+      integrations: ['DocuSign', 'Salesforce', 'Microsoft 365'],
     },
     {
-      id: "content-moderator",
-      name: "Content Moderation Agent",
+      id: 'content-moderator',
+      name: 'Content Moderation Agent',
       description:
-        "Automatically reviews and moderates user-generated content according to platform policies",
-      icon: "🔍",
-      category: "content",
+        'Automatically reviews and moderates user-generated content according to platform policies',
+      icon: '🔍',
+      category: 'content',
       capabilities: [
-        "Text Analysis",
-        "Image Recognition",
-        "Policy Enforcement",
-        "Escalation Management",
+        'Text Analysis',
+        'Image Recognition',
+        'Policy Enforcement',
+        'Escalation Management',
       ],
-      integrations: ["Slack", "Discord", "WordPress"],
+      integrations: ['Slack', 'Discord', 'WordPress'],
     },
     {
-      id: "financial-advisor",
-      name: "Financial Advisory Agent",
+      id: 'financial-advisor',
+      name: 'Financial Advisory Agent',
       description:
-        "Provides personalized financial advice while ensuring compliance with regulations",
-      icon: "💰",
-      category: "finance",
+        'Provides personalized financial advice while ensuring compliance with regulations',
+      icon: '💰',
+      category: 'finance',
       capabilities: [
-        "Risk Assessment",
-        "Portfolio Analysis",
-        "Regulatory Compliance",
-        "Document Generation",
+        'Risk Assessment',
+        'Portfolio Analysis',
+        'Regulatory Compliance',
+        'Document Generation',
       ],
-      integrations: ["Plaid", "QuickBooks", "Stripe"],
+      integrations: ['Plaid', 'QuickBooks', 'Stripe'],
     },
     {
-      id: "supply-chain",
-      name: "Supply Chain Optimizer",
+      id: 'supply-chain',
+      name: 'Supply Chain Optimizer',
       description:
-        "Optimizes inventory and logistics while maintaining compliance with trade regulations",
-      icon: "🚚",
-      category: "operations",
+        'Optimizes inventory and logistics while maintaining compliance with trade regulations',
+      icon: '🚚',
+      category: 'operations',
       capabilities: [
-        "Inventory Optimization",
-        "Logistics Planning",
-        "Compliance Verification",
-        "Cost Analysis",
+        'Inventory Optimization',
+        'Logistics Planning',
+        'Compliance Verification',
+        'Cost Analysis',
       ],
-      integrations: ["SAP", "Shopify", "ShipStation"],
+      integrations: ['SAP', 'Shopify', 'ShipStation'],
     },
     {
-      id: "healthcare-assistant",
-      name: "Healthcare Assistant",
+      id: 'healthcare-assistant',
+      name: 'Healthcare Assistant',
       description:
-        "Assists healthcare providers with patient management while ensuring HIPAA compliance",
-      icon: "🏥",
-      category: "healthcare",
+        'Assists healthcare providers with patient management while ensuring HIPAA compliance',
+      icon: '🏥',
+      category: 'healthcare',
       capabilities: [
-        "Patient Data Management",
-        "Appointment Scheduling",
-        "Compliance Verification",
-        "Documentation",
+        'Patient Data Management',
+        'Appointment Scheduling',
+        'Compliance Verification',
+        'Documentation',
       ],
-      integrations: ["Epic", "Cerner", "Athenahealth"],
+      integrations: ['Epic', 'Cerner', 'Athenahealth'],
     },
     {
-      id: "legal-document",
-      name: "Legal Document Analyzer",
+      id: 'legal-document',
+      name: 'Legal Document Analyzer',
       description:
-        "Reviews legal documents and identifies potential issues while maintaining confidentiality",
-      icon: "⚖️",
-      category: "legal",
+        'Reviews legal documents and identifies potential issues while maintaining confidentiality',
+      icon: '⚖️',
+      category: 'legal',
       capabilities: [
-        "Document Analysis",
-        "Risk Identification",
-        "Compliance Checking",
-        "Citation Verification",
+        'Document Analysis',
+        'Risk Identification',
+        'Compliance Checking',
+        'Citation Verification',
       ],
-      integrations: ["DocuSign", "Clio", "LexisNexis"],
+      integrations: ['DocuSign', 'Clio', 'LexisNexis'],
     },
     {
-      id: "customer-support",
-      name: "Customer Support Agent",
+      id: 'customer-support',
+      name: 'Customer Support Agent',
       description:
-        "Handles customer inquiries while ensuring compliance with company policies and regulations",
-      icon: "🎧",
-      category: "customer-service",
+        'Handles customer inquiries while ensuring compliance with company policies and regulations',
+      icon: '🎧',
+      category: 'customer-service',
       capabilities: [
-        "Query Resolution",
-        "Escalation Management",
-        "Policy Enforcement",
-        "Satisfaction Tracking",
+        'Query Resolution',
+        'Escalation Management',
+        'Policy Enforcement',
+        'Satisfaction Tracking',
       ],
-      integrations: ["Zendesk", "Intercom", "Salesforce"],
+      integrations: ['Zendesk', 'Intercom', 'Salesforce'],
     },
   ];
 
   const categories = [
-    { id: "all", name: "All Categories" },
-    { id: "marketing", name: "Marketing" },
-    { id: "governance", name: "Governance" },
-    { id: "content", name: "Content" },
-    { id: "finance", name: "Finance" },
-    { id: "operations", name: "Operations" },
-    { id: "healthcare", name: "Healthcare" },
-    { id: "legal", name: "Legal" },
-    { id: "customer-service", name: "Customer Service" },
+    { id: 'all', name: 'All Categories' },
+    { id: 'marketing', name: 'Marketing' },
+    { id: 'governance', name: 'Governance' },
+    { id: 'content', name: 'Content' },
+    { id: 'finance', name: 'Finance' },
+    { id: 'operations', name: 'Operations' },
+    { id: 'healthcare', name: 'Healthcare' },
+    { id: 'legal', name: 'Legal' },
+    { id: 'customer-service', name: 'Customer Service' },
   ];
 
   // Define featured/recommended agents (a subset of all agents)
   const featuredAgentIds = [
-    "ad-allocation",
-    "compliance-guardian",
-    "customer-support",
-    "financial-advisor",
+    'ad-allocation',
+    'compliance-guardian',
+    'customer-support',
+    'financial-advisor',
   ];
 
   // Get featured agents
-  const featuredAgents = agentTemplates.filter((agent) =>
-    featuredAgentIds.includes(agent.id),
-  );
+  const featuredAgents = agentTemplates.filter((agent) => featuredAgentIds.includes(agent.id));
 
   // Filter agents based on category and search query
   const filteredAgents = agentTemplates.filter((agent) => {
-    const matchesCategory =
-      selectedCategory === "all" || agent.category === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || agent.category === selectedCategory;
     const matchesSearch =
-      searchQuery === "" ||
+      searchQuery === '' ||
       agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       agent.description.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -274,7 +261,7 @@ export default function AgentMarketplace() {
   // Determine which agents to display based on progressive disclosure state
   const displayedAgents = showAllAgents
     ? filteredAgents
-    : searchQuery || selectedCategory !== "all"
+    : searchQuery || selectedCategory !== 'all'
       ? filteredAgents.slice(0, 4)
       : featuredAgents;
 
@@ -375,7 +362,7 @@ export default function AgentMarketplace() {
       >
         <h2
           css={css`
-            font-size: ${designTokens.typography.fontSize["3xl"]};
+            font-size: ${designTokens.typography.fontSize['3xl']};
             font-weight: ${designTokens.typography.fontWeight.bold};
             margin-bottom: ${designTokens.spacing[2]};
           `}
@@ -389,8 +376,7 @@ export default function AgentMarketplace() {
             margin: 0 auto;
           `}
         >
-          Discover and deploy pre-built agents with built-in governance and
-          compliance capabilities
+          Discover and deploy pre-built agents with built-in governance and compliance capabilities
         </p>
       </div>
 
@@ -422,17 +408,17 @@ export default function AgentMarketplace() {
               {[
                 {
                   n: 1,
-                  t: "Explore Featured Agents",
-                  d: "Browse our curated selection of popular agents below",
+                  t: 'Explore Featured Agents',
+                  d: 'Browse our curated selection of popular agents below',
                 },
                 {
                   n: 2,
-                  t: "Try Before You Deploy",
+                  t: 'Try Before You Deploy',
                   d: 'Test any agent with the "Try Now" button to see it in action',
                 },
                 {
                   n: 3,
-                  t: "Deploy With Confidence",
+                  t: 'Deploy With Confidence',
                   d: "When you're ready, deploy your agent with full governance controls",
                 },
               ].map((step) => (
@@ -521,10 +507,10 @@ export default function AgentMarketplace() {
           </div>
 
           <Button
-            variant={showAdvancedFilters ? "secondary" : "outline"}
+            variant={showAdvancedFilters ? 'secondary' : 'outline'}
             onClick={toggleAdvancedFilters}
           >
-            {showAdvancedFilters ? "Hide Filters" : "Show Filters"}
+            {showAdvancedFilters ? 'Hide Filters' : 'Show Filters'}
           </Button>
         </div>
 
@@ -565,11 +551,7 @@ export default function AgentMarketplace() {
                   {categories.map((category) => (
                     <Button
                       key={category.id}
-                      variant={
-                        selectedCategory === category.id
-                          ? "secondary"
-                          : "outline"
-                      }
+                      variant={selectedCategory === category.id ? 'secondary' : 'outline'}
                       size="sm"
                       onClick={() => {
                         setSelectedCategory(category.id);
@@ -603,18 +585,17 @@ export default function AgentMarketplace() {
             font-weight: ${designTokens.typography.fontWeight.bold};
           `}
         >
-          {searchQuery || selectedCategory !== "all"
-            ? "Search Results"
+          {searchQuery || selectedCategory !== 'all'
+            ? 'Search Results'
             : showAllAgents
-              ? "All Agents"
-              : "Featured Agents"}
+              ? 'All Agents'
+              : 'Featured Agents'}
         </h3>
 
-        {(filteredAgents.length > 4 &&
-          (searchQuery || selectedCategory !== "all")) ||
+        {(filteredAgents.length > 4 && (searchQuery || selectedCategory !== 'all')) ||
         (!showAllAgents && agentTemplates.length > featuredAgents.length) ? (
           <Button variant="outline" size="sm" onClick={toggleShowAllAgents}>
-            {showAllAgents ? "Show Less" : "Show More"}
+            {showAllAgents ? 'Show Less' : 'Show More'}
           </Button>
         ) : null}
       </div>
@@ -647,12 +628,11 @@ export default function AgentMarketplace() {
             return (
               <Card
                 key={agent.id}
-                variant={isExpanded ? "elevated" : "default"}
+                variant={isExpanded ? 'elevated' : 'default'}
                 onClick={() => handleAgentSelect(agent)}
                 css={css`
                   cursor: pointer;
-                  animation: ${keyframeAnimations.revealUp} 0.5s ${easings.out}
-                    ${idx * 0.05}s both;
+                  animation: ${keyframeAnimations.revealUp} 0.5s ${easings.out} ${idx * 0.05}s both;
                   ${isExpanded &&
                   css`
                     grid-column: span 2;
@@ -671,7 +651,7 @@ export default function AgentMarketplace() {
                 >
                   <div
                     css={css`
-                      font-size: ${designTokens.typography.fontSize["2xl"]};
+                      font-size: ${designTokens.typography.fontSize['2xl']};
                       background: ${designTokens.colors.primary[50]};
                       width: 48px;
                       height: 48px;
@@ -708,8 +688,7 @@ export default function AgentMarketplace() {
                         grid-template-columns: 1fr 1fr;
                         gap: ${designTokens.spacing[8]};
                         margin-bottom: ${designTokens.spacing[6]};
-                        animation: ${keyframeAnimations.reveal} 0.4s
-                          ${easings.out};
+                        animation: ${keyframeAnimations.reveal} 0.4s ${easings.out};
                       `}
                     >
                       <div>
@@ -778,11 +757,7 @@ export default function AgentMarketplace() {
                       gap: ${designTokens.spacing[2]};
                     `}
                   >
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => handleDemoAgent(agent, e)}
-                    >
+                    <Button size="sm" variant="outline" onClick={(e) => handleDemoAgent(agent, e)}>
                       Try Now
                     </Button>
                     <Button size="sm">Deploy</Button>
@@ -792,7 +767,7 @@ export default function AgentMarketplace() {
                     size="sm"
                     onClick={(e) => toggleAgentCardExpansion(agent.id, e)}
                   >
-                    {isExpanded ? "Hide Details" : "Show Details"}
+                    {isExpanded ? 'Hide Details' : 'Show Details'}
                   </Button>
                 </CardFooter>
               </Card>
@@ -814,8 +789,7 @@ export default function AgentMarketplace() {
               font-size: ${designTokens.typography.fontSize.sm};
             `}
           >
-            💡 {filteredAgents.length - displayedAgents.length} more agents
-            available.{" "}
+            💡 {filteredAgents.length - displayedAgents.length} more agents available.{' '}
             <Button variant="outline" size="sm" onClick={toggleShowAllAgents}>
               Show all
             </Button>
@@ -849,7 +823,7 @@ export default function AgentMarketplace() {
           </Button>
           <h2
             css={css`
-              font-size: ${designTokens.typography.fontSize["2xl"]};
+              font-size: ${designTokens.typography.fontSize['2xl']};
               font-weight: ${designTokens.typography.fontWeight.bold};
             `}
           >
@@ -868,10 +842,10 @@ export default function AgentMarketplace() {
           `}
         >
           {[
-            { n: 1, l: "Configure" },
-            { n: 2, l: "Review" },
-            { n: 3, l: "Deploy" },
-            { n: 4, l: "Complete" },
+            { n: 1, l: 'Configure' },
+            { n: 2, l: 'Review' },
+            { n: 3, l: 'Deploy' },
+            { n: 4, l: 'Complete' },
           ].map((s, i) => (
             <React.Fragment key={s.n}>
               <div
@@ -896,14 +870,10 @@ export default function AgentMarketplace() {
                     background: ${deploymentStep >= s.n
                       ? designTokens.colors.primary[500]
                       : designTokens.colors.neutral[200]};
-                    color: ${deploymentStep >= s.n
-                      ? "white"
-                      : designTokens.colors.neutral[500]};
+                    color: ${deploymentStep >= s.n ? 'white' : designTokens.colors.neutral[500]};
                     transition: all 0.3s ease;
                     border: 4px solid
-                      ${deploymentStep === s.n
-                        ? designTokens.colors.primary[100]
-                        : "transparent"};
+                      ${deploymentStep === s.n ? designTokens.colors.primary[100] : 'transparent'};
                   `}
                 >
                   {s.n}
@@ -966,7 +936,7 @@ export default function AgentMarketplace() {
                 >
                   <div
                     css={css`
-                      font-size: ${designTokens.typography.fontSize["4xl"]};
+                      font-size: ${designTokens.typography.fontSize['4xl']};
                       margin-bottom: ${designTokens.spacing[4]};
                     `}
                   >
@@ -1069,10 +1039,10 @@ export default function AgentMarketplace() {
                       `}
                     >
                       {[
-                        { l: "Agent Type", v: selectedAgent.name },
-                        { l: "Agent Name", v: `My ${selectedAgent.name}` },
-                        { l: "Environment", v: "Development" },
-                        { l: "Governance Policy", v: "Standard Policy" },
+                        { l: 'Agent Type', v: selectedAgent.name },
+                        { l: 'Agent Name', v: `My ${selectedAgent.name}` },
+                        { l: 'Environment', v: 'Development' },
+                        { l: 'Governance Policy', v: 'Standard Policy' },
                       ].map((item) => (
                         <div
                           key={item.l}
@@ -1116,14 +1086,14 @@ export default function AgentMarketplace() {
                     >
                       {[
                         {
-                          i: "🔍",
-                          t: "Complete Audit Trail",
-                          d: "Every action logged with reasoning",
+                          i: '🔍',
+                          t: 'Complete Audit Trail',
+                          d: 'Every action logged with reasoning',
                         },
                         {
-                          i: "🛡️",
-                          t: "Policy Enforcement",
-                          d: "Automatic violation prevention",
+                          i: '🛡️',
+                          t: 'Policy Enforcement',
+                          d: 'Automatic violation prevention',
                         },
                       ].map((f) => (
                         <div
@@ -1143,8 +1113,7 @@ export default function AgentMarketplace() {
                           <div>
                             <h4
                               css={css`
-                                font-size: ${designTokens.typography.fontSize
-                                  .sm};
+                                font-size: ${designTokens.typography.fontSize.sm};
                                 font-weight: 600;
                               `}
                             >
@@ -1152,8 +1121,7 @@ export default function AgentMarketplace() {
                             </h4>
                             <p
                               css={css`
-                                font-size: ${designTokens.typography.fontSize
-                                  .xs};
+                                font-size: ${designTokens.typography.fontSize.xs};
                                 color: ${designTokens.colors.neutral[500]};
                               `}
                             >
@@ -1241,16 +1209,16 @@ export default function AgentMarketplace() {
                     `}
                   >
                     {[
-                      "Initializing environment...",
-                      "Loading governance policies...",
-                      "Configuring audit logging...",
-                      "Registering with MCP server...",
+                      'Initializing environment...',
+                      'Loading governance policies...',
+                      'Configuring audit logging...',
+                      'Registering with MCP server...',
                     ].map((log, i) => (
                       <div
                         key={i}
                         css={css`
-                          animation: ${keyframeAnimations.reveal} 0.3s
-                            ${easings.out} ${i * 0.5}s both;
+                          animation: ${keyframeAnimations.reveal} 0.3s ${easings.out} ${i * 0.5}s
+                            both;
                         `}
                       >
                         <span
@@ -1299,17 +1267,16 @@ export default function AgentMarketplace() {
                   display: flex;
                   align-items: center;
                   justify-content: center;
-                  font-size: ${designTokens.typography.fontSize["4xl"]};
+                  font-size: ${designTokens.typography.fontSize['4xl']};
                   margin-bottom: ${designTokens.spacing[6]};
-                  box-shadow: 0 0 30px
-                    ${designTokens.colors.semantic.success[200]};
+                  box-shadow: 0 0 30px ${designTokens.colors.semantic.success[200]};
                 `}
               >
                 ✓
               </div>
               <h2
                 css={css`
-                  font-size: ${designTokens.typography.fontSize["3xl"]};
+                  font-size: ${designTokens.typography.fontSize['3xl']};
                   font-weight: bold;
                   margin-bottom: ${designTokens.spacing[2]};
                 `}
@@ -1323,8 +1290,8 @@ export default function AgentMarketplace() {
                   max-width: 500px;
                 `}
               >
-                Your agent has been successfully deployed and is ready to use in
-                your governance network.
+                Your agent has been successfully deployed and is ready to use in your governance
+                network.
               </p>
 
               <div
@@ -1346,9 +1313,7 @@ export default function AgentMarketplace() {
   };
 
   if (isLoading && !mcpStatus) {
-    return (
-      <div className="marketplace-loading">Loading Agent Marketplace...</div>
-    );
+    return <div className="marketplace-loading">Loading Agent Marketplace...</div>;
   }
 
   if (error && !mcpStatus) {
@@ -1391,11 +1356,11 @@ export default function AgentMarketplace() {
               width: 10px;
               height: 10px;
               border-radius: 50%;
-              background: ${mcpStatus?.status === "connected"
+              background: ${mcpStatus?.status === 'connected'
                 ? designTokens.colors.semantic.success[500]
                 : designTokens.colors.semantic.error[500]};
               box-shadow: 0 0 8px
-                ${mcpStatus?.status === "connected"
+                ${mcpStatus?.status === 'connected'
                   ? designTokens.colors.semantic.success[300]
                   : designTokens.colors.semantic.error[300]};
             `}
@@ -1407,17 +1372,11 @@ export default function AgentMarketplace() {
               color: ${designTokens.colors.neutral[700]};
             `}
           >
-            {mcpStatus?.status === "connected" ? "Connected" : "Disconnected"}{" "}
-            to Agent Network
+            {mcpStatus?.status === 'connected' ? 'Connected' : 'Disconnected'} to Agent Network
           </span>
-          {mcpStatus?.status !== "connected" && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={reconnectMCP}
-              disabled={isLoading}
-            >
-              {isLoading ? "Connecting..." : "Connect"}
+          {mcpStatus?.status !== 'connected' && (
+            <Button variant="outline" size="sm" onClick={reconnectMCP} disabled={isLoading}>
+              {isLoading ? 'Connecting...' : 'Connect'}
             </Button>
           )}
         </div>
@@ -1430,7 +1389,7 @@ export default function AgentMarketplace() {
         >
           <Badge variant="secondary" size="sm">
             {mcpStatus?.agents?.length || 0}
-          </Badge>{" "}
+          </Badge>{' '}
           Active Agents
         </div>
       </div>

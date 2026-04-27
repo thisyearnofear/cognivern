@@ -1,10 +1,10 @@
 // Unified API service layer to eliminate fetch duplication across components
-import { getApiUrl, getApiKey } from "../utils/api";
+import { getApiUrl, getApiKey } from '../utils/api';
 
 // Base API configuration
 const DEFAULT_HEADERS = {
-  "Content-Type": "application/json",
-  "X-API-KEY": getApiKey(),
+  'Content-Type': 'application/json',
+  'X-API-KEY': getApiKey(),
 };
 
 // Generic API response type
@@ -45,20 +45,14 @@ class ApiService {
                 success: false,
               };
             }
-            throw new Error(
-              `API Error: ${response.status} - ${response.statusText}`,
-            );
+            throw new Error(`API Error: ${response.status} - ${response.statusText}`);
           }
           // Retry on 5xx errors
           if (attempt < retries - 1 && response.status >= 500) {
-            await new Promise((resolve) =>
-              setTimeout(resolve, delay * Math.pow(2, attempt)),
-            );
+            await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, attempt)));
             continue;
           }
-          throw new Error(
-            `API Error: ${response.status} - ${response.statusText}`,
-          );
+          throw new Error(`API Error: ${response.status} - ${response.statusText}`);
         }
 
         const data = await response.json();
@@ -67,9 +61,9 @@ class ApiService {
         clearTimeout(timeout);
 
         // Handle abort errors
-        if (error instanceof Error && error.name === "AbortError") {
+        if (error instanceof Error && error.name === 'AbortError') {
           return {
-            error: "Request timeout - server took too long to respond",
+            error: 'Request timeout - server took too long to respond',
             success: false,
           };
         }
@@ -83,22 +77,15 @@ class ApiService {
               error,
             );
           }
-          await new Promise((resolve) =>
-            setTimeout(resolve, delay * Math.pow(2, attempt)),
-          );
+          await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, attempt)));
         } else {
           // Only log final failure in development
           if (!import.meta.env.PROD) {
-            console.error(
-              `API request failed for ${endpoint} after ${retries} attempts:`,
-              error,
-            );
+            console.error(`API request failed for ${endpoint} after ${retries} attempts:`, error);
           }
           return {
             error:
-              error instanceof Error
-                ? error.message
-                : "Network error - failed to reach server",
+              error instanceof Error ? error.message : 'Network error - failed to reach server',
             success: false,
           };
         }
@@ -106,28 +93,25 @@ class ApiService {
     }
 
     return {
-      error: "Failed after all retry attempts",
+      error: 'Failed after all retry attempts',
       success: false,
     };
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {},
-  ): Promise<ApiResponse<T>> {
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     return this.requestWithRetry(endpoint, options);
   }
 
   // GET request
   async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: "GET" });
+    return this.request<T>(endpoint, { method: 'GET' });
   }
 
   // Health check
   async checkHealth(): Promise<boolean> {
     try {
-      const response = await fetch(getApiUrl("/health"), {
-        method: "GET",
+      const response = await fetch(getApiUrl('/health'), {
+        method: 'GET',
         headers: DEFAULT_HEADERS,
       });
       return response.ok;
@@ -139,7 +123,7 @@ class ApiService {
   // POST request
   async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: "POST",
+      method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
     });
   }
@@ -147,14 +131,14 @@ class ApiService {
   // PUT request
   async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: "PUT",
+      method: 'PUT',
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
   // DELETE request
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: "DELETE" });
+    return this.request<T>(endpoint, { method: 'DELETE' });
   }
 }
 
@@ -188,22 +172,17 @@ export class AgentApiService extends ApiService {
   // Get voice briefing for an agent
   async getAgentBriefing(agentId: string) {
     try {
-      const response = await fetch(
-        getApiUrl(`/api/agents/${agentId}/briefing`),
-        {
-          headers: {
-            ...DEFAULT_HEADERS,
-          },
+      const response = await fetch(getApiUrl(`/api/agents/${agentId}/briefing`), {
+        headers: {
+          ...DEFAULT_HEADERS,
         },
-      );
+      });
 
       if (!response.ok) {
         throw new Error(`Briefing Error: ${response.status}`);
       }
 
-      const script = decodeURIComponent(
-        response.headers.get("X-Briefing-Script") || "",
-      );
+      const script = decodeURIComponent(response.headers.get('X-Briefing-Script') || '');
       const audioBlob = await response.blob();
 
       return {
@@ -216,8 +195,7 @@ export class AgentApiService extends ApiService {
     } catch (error) {
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to fetch briefing",
+        error: error instanceof Error ? error.message : 'Failed to fetch briefing',
       };
     }
   }
@@ -232,42 +210,39 @@ export class AgentApiService extends ApiService {
     status?: string[];
     timeRange?: { start: string; end: string };
     sortBy?: string;
-    sortDirection?: "asc" | "desc";
+    sortDirection?: 'asc' | 'desc';
   }) {
     const queryParams = new URLSearchParams();
 
-    if (params.agentIds) queryParams.set("agentIds", params.agentIds.join(","));
-    if (params.agentTypes)
-      queryParams.set("agentTypes", params.agentTypes.join(","));
-    if (params.ecosystems)
-      queryParams.set("ecosystems", params.ecosystems.join(","));
-    if (params.status) queryParams.set("status", params.status.join(","));
+    if (params.agentIds) queryParams.set('agentIds', params.agentIds.join(','));
+    if (params.agentTypes) queryParams.set('agentTypes', params.agentTypes.join(','));
+    if (params.ecosystems) queryParams.set('ecosystems', params.ecosystems.join(','));
+    if (params.status) queryParams.set('status', params.status.join(','));
     if (params.timeRange) {
-      queryParams.set("startDate", params.timeRange.start);
-      queryParams.set("endDate", params.timeRange.end);
+      queryParams.set('startDate', params.timeRange.start);
+      queryParams.set('endDate', params.timeRange.end);
     }
-    if (params.sortBy) queryParams.set("sortBy", params.sortBy);
-    if (params.sortDirection)
-      queryParams.set("sortDirection", params.sortDirection);
+    if (params.sortBy) queryParams.set('sortBy', params.sortBy);
+    if (params.sortDirection) queryParams.set('sortDirection', params.sortDirection);
 
     const query = queryParams.toString();
-    return this.get(`/api/agents/compare${query ? `?${query}` : ""}`);
+    return this.get(`/api/agents/compare${query ? `?${query}` : ''}`);
   }
 
   // Get leaderboard across ecosystems
   async getLeaderboard(params?: {
     ecosystem?: string;
-    metric?: "winRate" | "totalReturn" | "sharpeRatio";
+    metric?: 'winRate' | 'totalReturn' | 'sharpeRatio';
     limit?: number;
   }) {
     const queryParams = new URLSearchParams();
 
-    if (params?.ecosystem) queryParams.set("ecosystem", params.ecosystem);
-    if (params?.metric) queryParams.set("metric", params.metric);
-    if (params?.limit) queryParams.set("limit", params.limit.toString());
+    if (params?.ecosystem) queryParams.set('ecosystem', params.ecosystem);
+    if (params?.metric) queryParams.set('metric', params.metric);
+    if (params?.limit) queryParams.set('limit', params.limit.toString());
 
     const query = queryParams.toString();
-    return this.get(`/api/agents/leaderboard${query ? `?${query}` : ""}`);
+    return this.get(`/api/agents/leaderboard${query ? `?${query}` : ''}`);
   }
 
   // Get aggregate statistics
@@ -278,39 +253,32 @@ export class AgentApiService extends ApiService {
   }) {
     const queryParams = new URLSearchParams();
 
-    if (params?.agentTypes)
-      queryParams.set("agentTypes", params.agentTypes.join(","));
-    if (params?.ecosystems)
-      queryParams.set("ecosystems", params.ecosystems.join(","));
+    if (params?.agentTypes) queryParams.set('agentTypes', params.agentTypes.join(','));
+    if (params?.ecosystems) queryParams.set('ecosystems', params.ecosystems.join(','));
     if (params?.timeRange) {
-      queryParams.set("startDate", params.timeRange.start);
-      queryParams.set("endDate", params.timeRange.end);
+      queryParams.set('startDate', params.timeRange.start);
+      queryParams.set('endDate', params.timeRange.end);
     }
 
     const query = queryParams.toString();
-    return this.get(`/api/agents/stats${query ? `?${query}` : ""}`);
+    return this.get(`/api/agents/stats${query ? `?${query}` : ''}`);
   }
 
   // Get all agents with basic info (for filtering)
-  async listAgents(params?: {
-    status?: string[];
-    types?: string[];
-    ecosystems?: string[];
-  }) {
+  async listAgents(params?: { status?: string[]; types?: string[]; ecosystems?: string[] }) {
     const queryParams = new URLSearchParams();
 
-    if (params?.status) queryParams.set("status", params.status.join(","));
-    if (params?.types) queryParams.set("types", params.types.join(","));
-    if (params?.ecosystems)
-      queryParams.set("ecosystems", params.ecosystems.join(","));
+    if (params?.status) queryParams.set('status', params.status.join(','));
+    if (params?.types) queryParams.set('types', params.types.join(','));
+    if (params?.ecosystems) queryParams.set('ecosystems', params.ecosystems.join(','));
 
     const query = queryParams.toString();
-    return this.get(`/api/agents${query ? `?${query}` : ""}`);
+    return this.get(`/api/agents${query ? `?${query}` : ''}`);
   }
 
   // Get connected agents and governance links
   async getConnections() {
-    return this.get("/api/agents/connections");
+    return this.get('/api/agents/connections');
   }
 
   // Get recent activity from audit logs for dashboard surfaces
@@ -318,7 +286,7 @@ export class AgentApiService extends ApiService {
     const response = await this.get<{
       success?: boolean;
       data?: { logs?: any[] };
-    }>("/api/audit/logs");
+    }>('/api/audit/logs');
 
     if (!response.success || !response.data) {
       return response;
@@ -335,7 +303,7 @@ export class AgentApiService extends ApiService {
 
   // Get audit insights for governance quests
   async getInsights() {
-    return this.get<any[]>("/api/audit/insights");
+    return this.get<any[]>('/api/audit/insights');
   }
 
   // Resolve a governance quest (Functional Layer)
@@ -345,12 +313,12 @@ export class AgentApiService extends ApiService {
 
   // Get unified dashboard bundle (Consolidation)
   async getDashboardBundle() {
-    return this.get<any>("/api/dashboard/bundle");
+    return this.get<any>('/api/dashboard/bundle');
   }
 
   // Get unified dashboard/control-plane data
   async getUnifiedDashboard() {
-    return this.get<any>("/api/dashboard/unified");
+    return this.get<any>('/api/dashboard/unified');
   }
 
   // Register a new user-owned agent (New Feature)
@@ -361,7 +329,7 @@ export class AgentApiService extends ApiService {
     description?: string;
     riskLevel?: string;
   }) {
-    return this.post("/api/agents/register", agent);
+    return this.post('/api/agents/register', agent);
   }
 }
 
@@ -369,17 +337,17 @@ export class AgentApiService extends ApiService {
 export class MCPApiService extends ApiService {
   // Get MCP status
   async getStatus() {
-    return this.get("/api/mcp/status");
+    return this.get('/api/mcp/status');
   }
 
   // Reconnect MCP
   async reconnect() {
-    return this.post("/api/mcp/reconnect");
+    return this.post('/api/mcp/reconnect');
   }
 
   // Get MCP agents
   async getAgents() {
-    return this.get("/api/mcp/agents");
+    return this.get('/api/mcp/agents');
   }
 }
 
@@ -387,12 +355,12 @@ export class MCPApiService extends ApiService {
 export class PolicyApiService extends ApiService {
   // Get all policies
   async getPolicies() {
-    return this.get("/api/policies");
+    return this.get('/api/policies');
   }
 
   // Create policy
   async createPolicy(policy: any) {
-    return this.post("/api/policies", policy);
+    return this.post('/api/policies', policy);
   }
 
   // Update policy
@@ -407,7 +375,7 @@ export class PolicyApiService extends ApiService {
 
   // Get policy violations
   async getViolations() {
-    return this.get("/api/policies/violations");
+    return this.get('/api/policies/violations');
   }
 }
 
@@ -415,12 +383,12 @@ export class PolicyApiService extends ApiService {
 export class SpendOsApiService extends ApiService {
   // Get SpendOS status
   async getStatus() {
-    return this.get("/api/spendos/status");
+    return this.get('/api/spendos/status');
   }
 
   // Get SpendOS decisions
   async getDecisions() {
-    return this.get("/api/spendos/decisions");
+    return this.get('/api/spendos/decisions');
   }
 }
 
@@ -437,7 +405,7 @@ export class SpendApiService extends ApiService {
     reason: string;
     metadata?: Record<string, any>;
   }) {
-    return this.post("/api/spend", data);
+    return this.post('/api/spend', data);
   }
 
   /**
@@ -451,14 +419,21 @@ export class SpendApiService extends ApiService {
     reason: string;
     metadata?: Record<string, any>;
   }) {
-    return this.post("/api/spend/preview", data);
+    return this.post('/api/spend/preview', data);
   }
 
   /**
    * Get execution layer status
    */
   async getStatus() {
-    return this.get("/api/spend/status");
+    return this.get('/api/spend/status');
+  }
+
+  /**
+   * Decrypt confidential data using a permit (Auditor only)
+   */
+  async decrypt(data: { permit: any; encryptedValue: any; contractAddress: string }) {
+    return this.post('/api/fhenix/decrypt', data);
   }
 }
 
@@ -471,17 +446,17 @@ export class SapienceApiService extends ApiService {
     reasoning: string;
     confidence: number;
   }) {
-    return this.post("/api/sapience/forecast", data);
+    return this.post('/api/sapience/forecast', data);
   }
 
   // Get Sapience status
   async getStatus() {
-    return this.get("/api/sapience/status");
+    return this.get('/api/sapience/status');
   }
 
   // Get wallet info
   async getWallet() {
-    return this.get("/api/sapience/wallet");
+    return this.get('/api/sapience/wallet');
   }
 }
 
@@ -497,36 +472,32 @@ export const sapienceApi = new SapienceApiService();
 export class OwsApiService extends ApiService {
   // Get OWS status
   async getStatus() {
-    return this.get("/api/ows/status");
+    return this.get('/api/ows/status');
   }
 
   // Bootstrap wallet
   async bootstrap() {
-    return this.post("/api/ows/bootstrap", {});
+    return this.post('/api/ows/bootstrap', {});
   }
 
   // List wallets
   async listWallets() {
-    return this.get("/api/ows/wallets");
+    return this.get('/api/ows/wallets');
   }
 
   // Import wallet
-  async importWallet(data: {
-    name: string;
-    privateKey: string;
-    chainId?: string;
-  }) {
-    return this.post("/api/ows/wallets/import", data);
+  async importWallet(data: { name: string; privateKey: string; chainId?: string }) {
+    return this.post('/api/ows/wallets/import', data);
   }
 
   // Connect external wallet
   async connectExternalWallet(url: string) {
-    return this.post("/api/ows/wallets/connect", { url });
+    return this.post('/api/ows/wallets/connect', { url });
   }
 
   // List API keys
   async listApiKeys() {
-    return this.get("/api/ows/api-keys");
+    return this.get('/api/ows/api-keys');
   }
 
   // Create API key
@@ -536,7 +507,7 @@ export class OwsApiService extends ApiService {
     policyIds?: string[];
     expiresAt?: string;
   }) {
-    return this.post("/api/ows/api-keys", data);
+    return this.post('/api/ows/api-keys', data);
   }
 
   // Request permissions
@@ -545,17 +516,17 @@ export class OwsApiService extends ApiService {
     invoker: string;
     permissions: Array<{ type: string; value?: unknown }>;
   }) {
-    return this.post("/api/ows/permissions", data);
+    return this.post('/api/ows/permissions', data);
   }
 
   // Get unified OWS dashboard
   async getDashboard() {
-    return this.get("/api/ows/dashboard");
+    return this.get('/api/ows/dashboard');
   }
 
   // List OWS agents
   async listAgents() {
-    return this.get("/api/ows/agents");
+    return this.get('/api/ows/agents');
   }
 
   // Register OWS agent
@@ -568,7 +539,7 @@ export class OwsApiService extends ApiService {
     policyIds?: string[];
     metadata?: Record<string, unknown>;
   }) {
-    return this.post("/api/ows/agents", data);
+    return this.post('/api/ows/agents', data);
   }
 }
 
@@ -587,7 +558,7 @@ export {
   checkXLayerConnection,
   fetchPolicyDetails,
   fetchAgentDetails,
-} from "./xlayerApi";
+} from './xlayerApi';
 
 // Export default instance for general use
 export default new ApiService();

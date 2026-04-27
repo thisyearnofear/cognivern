@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import React, { useEffect, useState } from "react";
-import { toastStyles } from "../../styles/design-system";
-import { css } from "@emotion/react";
-import { keyframes } from "@emotion/react";
+import React, { useEffect, useState } from 'react';
+import { toastStyles } from '../../styles/design-system';
+import { css } from '@emotion/react';
+import { keyframes } from '@emotion/react';
 
 const slideIn = keyframes`
   from { transform: translateX(100%); opacity: 0; }
@@ -15,7 +15,7 @@ const slideOut = keyframes`
 `;
 
 export interface ToastProps {
-  type: "success" | "error" | "warning" | "info";
+  type: 'success' | 'error' | 'warning' | 'info';
   message: string;
   duration?: number;
   onClose: () => void;
@@ -61,8 +61,7 @@ export const Toast: React.FC<ToastProps> = ({
       ref={toastRef}
       css={css`
         ${toastStyles.item(type)};
-        animation: ${isVisible && !isExiting ? slideIn : slideOut} 0.3s ease-out
-          forwards;
+        animation: ${isVisible && !isExiting ? slideIn : slideOut} 0.3s ease-out forwards;
       `}
       role="alert"
     >
@@ -80,11 +79,7 @@ export const Toast: React.FC<ToastProps> = ({
         )}
       </div>
 
-      <button
-        css={toastStyles.closeButton}
-        onClick={handleClose}
-        title="Close notification"
-      >
+      <button css={toastStyles.closeButton} onClick={handleClose} title="Close notification">
         ×
       </button>
     </div>
@@ -93,16 +88,16 @@ export const Toast: React.FC<ToastProps> = ({
 
 const toastVariants = {
   success: {
-    icon: "✅",
+    icon: '✅',
   },
   error: {
-    icon: "❌",
+    icon: '❌',
   },
   warning: {
-    icon: "⚠️",
+    icon: '⚠️',
   },
   info: {
-    icon: "ℹ️",
+    icon: 'ℹ️',
   },
 };
 

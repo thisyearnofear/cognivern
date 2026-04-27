@@ -1,39 +1,36 @@
-import React from "react";
-import { designTokens } from "../../styles/design-system";
-import { loadingStyles } from "../../styles/design-system";
+import React from 'react';
+import { designTokens } from '../../styles/design-system';
+import { loadingStyles } from '../../styles/design-system';
 
 export interface LoadingSpinnerProps {
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
   color?: string;
-  type?: "spinner" | "dots" | "pulse" | "bars" | "skeleton";
+  type?: 'spinner' | 'dots' | 'pulse' | 'bars' | 'skeleton';
   text?: string;
   // Skeleton-specific props
   width?: string | number;
   height?: string | number;
   lines?: number;
-  variant?: "text" | "rectangular" | "circular" | "card";
+  variant?: 'text' | 'rectangular' | 'circular' | 'card';
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
-  size = "md",
+  size = 'md',
   color = designTokens.colors.primary[500],
-  type = "spinner",
+  type = 'spinner',
   text,
   width,
   height,
   lines = 1,
-  variant = "text",
+  variant = 'text',
 }) => {
   const renderContent = () => {
-    if (type === "skeleton") {
-      if (variant === "text" && lines > 1) {
+    if (type === 'skeleton') {
+      if (variant === 'text' && lines > 1) {
         return (
-          <div style={{ width: width || "100%" }}>
+          <div style={{ width: width || '100%' }}>
             {Array.from({ length: lines }).map((_, i) => (
-              <div
-                key={i}
-                css={loadingStyles.skeleton("text", "100%", height)}
-              />
+              <div key={i} css={loadingStyles.skeleton('text', '100%', height)} />
             ))}
           </div>
         );
@@ -42,9 +39,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     }
 
     switch (type) {
-      case "spinner":
+      case 'spinner':
         return <div css={loadingStyles.spinner(size, color)} />;
-      case "dots":
+      case 'dots':
         return (
           <div css={loadingStyles.dots(color)}>
             <div />
@@ -52,9 +49,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
             <div />
           </div>
         );
-      case "pulse":
+      case 'pulse':
         return <div css={loadingStyles.pulse(color)} />;
-      case "bars":
+      case 'bars':
         return (
           <div css={loadingStyles.bars(color)}>
             <div />
@@ -68,11 +65,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   };
 
   return (
-    <div css={type === "skeleton" ? undefined : loadingStyles.container}>
+    <div css={type === 'skeleton' ? undefined : loadingStyles.container}>
       {renderContent()}
-      {text && type !== "skeleton" && (
-        <span css={loadingStyles.text(size)}>{text}</span>
-      )}
+      {text && type !== 'skeleton' && <span css={loadingStyles.text(size)}>{text}</span>}
     </div>
   );
 };

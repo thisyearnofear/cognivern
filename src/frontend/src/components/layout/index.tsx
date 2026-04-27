@@ -1,7 +1,7 @@
 // Main layout components
-export { ImprovedAppLayout as AppLayout } from "./ImprovedAppLayout";
-export { default as Sidebar } from "./ImprovedSidebar";
-export { default as Header } from "./Header";
+export { ImprovedAppLayout as AppLayout } from './ImprovedAppLayout';
+export { default as Sidebar } from './ImprovedSidebar';
+export { default as Header } from './Header';
 
 // Responsive layout system
 export {
@@ -12,15 +12,13 @@ export {
   GridItem,
   Flex,
   Spacer,
-} from "./ResponsiveLayout";
+} from './ResponsiveLayout';
 
 // Layout helpers (inline to avoid deleted ContentWrapper)
-import { css } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
 
-export const DashboardWrapper: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => (
+export const DashboardWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
     css={css`
       width: 100%;
@@ -34,9 +32,7 @@ export const DashboardWrapper: React.FC<{ children: React.ReactNode }> = ({
   </div>
 );
 
-export const PageWrapper: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => (
+export const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
     css={css`
       min-height: 100%;
@@ -55,20 +51,14 @@ export type {
   GridItemProps,
   FlexProps,
   SpacerProps,
-} from "./ResponsiveLayout";
+} from './ResponsiveLayout';
 
 // Re-export responsive utilities
-export {
-  viewport,
-  responsive,
-  layout,
-  performance,
-  a11y,
-} from "../../utils/responsive";
+export { viewport, responsive, layout, performance, a11y } from '../../utils/responsive';
 
 // Re-export viewport optimization utilities
-export * from "../../utils/viewportOptimization";
+export * from '../../utils/viewportOptimization';
 
 // Re-export enhanced hooks
-export { default as useSidebarState } from "../../hooks/useSidebarState";
-export { default as useViewportOptimization } from "../../hooks/useViewportOptimization";
+export { default as useSidebarState } from '../../hooks/useSidebarState';
+export { default as useViewportOptimization } from '../../hooks/useViewportOptimization';

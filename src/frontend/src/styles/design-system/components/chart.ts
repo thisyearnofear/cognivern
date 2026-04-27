@@ -1,5 +1,5 @@
-import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
+import { css } from '@emotion/react';
+import { designTokens } from '../tokens/designTokens';
 
 // Consistent chart color palette
 export const chartColors = [

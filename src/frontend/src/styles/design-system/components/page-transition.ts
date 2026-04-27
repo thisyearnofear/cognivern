@@ -1,5 +1,5 @@
-import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
+import { css } from '@emotion/react';
+import { designTokens } from '../tokens/designTokens';
 
 export const pageTransitionStyles = {
   container: css`
@@ -9,8 +9,8 @@ export const pageTransitionStyles = {
     overflow-x: hidden;
   `,
   content: (
-    stage: "entering" | "entered" | "exiting",
-    type: "fade" | "slide" | "scale" = "fade",
+    stage: 'entering' | 'entered' | 'exiting',
+    type: 'fade' | 'slide' | 'scale' = 'fade',
     duration: number = 300,
   ) => {
     const transition = `all ${duration}ms ${designTokens.animation.easing.easeInOut}`;

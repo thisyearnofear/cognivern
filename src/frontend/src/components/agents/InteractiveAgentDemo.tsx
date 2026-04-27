@@ -1,19 +1,9 @@
-import React from "react";
-import { css } from "@emotion/react";
-import {
-  designTokens,
-  keyframeAnimations,
-  easings,
-} from "../../styles/design-system";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "../ui/Card";
-import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
+import React from 'react';
+import { css } from '@emotion/react';
+import { designTokens, keyframeAnimations, easings } from '../../styles/design-system';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/Card';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
 
 interface InteractiveAgentDemoProps {
   agentId: string;
@@ -34,17 +24,16 @@ export default function InteractiveAgentDemo({
 
   const demoSteps = [
     {
-      action: "System Initialization",
+      action: 'System Initialization',
       response: `${agentName} is coming online. All governance protocols verified.`,
     },
     {
-      action: "Policy Check",
-      response:
-        "Analyzing input against ERC-8004 standards... Compliance: 100%.",
+      action: 'Policy Check',
+      response: 'Analyzing input against ERC-8004 standards... Compliance: 100%.',
     },
     {
-      action: "Strategic Analysis",
-      response: "Identifying optimal pathing for current market conditions.",
+      action: 'Strategic Analysis',
+      response: 'Identifying optimal pathing for current market conditions.',
     },
   ];
 
@@ -164,10 +153,10 @@ export default function InteractiveAgentDemo({
             `}
           >
             {step === 0
-              ? "Start the simulation to see how this agent operates."
+              ? 'Start the simulation to see how this agent operates.'
               : step < demoSteps.length
-                ? "Simulating agent logic and governance checks..."
-                : "Simulation complete. This agent is ready for deployment."}
+                ? 'Simulating agent logic and governance checks...'
+                : 'Simulation complete. This agent is ready for deployment.'}
           </p>
         </div>
       </CardContent>
@@ -180,9 +169,7 @@ export default function InteractiveAgentDemo({
         `}
       >
         {step < demoSteps.length ? (
-          <Button onClick={handleNext}>
-            {step === 0 ? "Begin Simulation" : "Next Step"}
-          </Button>
+          <Button onClick={handleNext}>{step === 0 ? 'Begin Simulation' : 'Next Step'}</Button>
         ) : (
           <Button onClick={onDeploy}>Deploy Now</Button>
         )}

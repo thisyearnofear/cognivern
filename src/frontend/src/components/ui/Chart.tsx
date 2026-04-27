@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState } from "react";
-import { designTokens, chartColors } from "../../styles/design-system";
+import React, { useRef, useEffect, useState } from 'react';
+import { designTokens, chartColors } from '../../styles/design-system';
 
 export interface ChartDataPoint {
   x: number | string;
@@ -10,7 +10,7 @@ export interface ChartDataPoint {
 
 export interface ChartProps {
   data: ChartDataPoint[];
-  type: "line" | "bar" | "area" | "pie";
+  type: 'line' | 'bar' | 'area' | 'pie';
   width?: number;
   height?: number;
   title?: string;
@@ -60,7 +60,7 @@ export const Chart: React.FC<ChartProps> = ({
     const canvas = canvasRef.current;
     if (!canvas || !data.length) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Set canvas size
@@ -72,11 +72,11 @@ export const Chart: React.FC<ChartProps> = ({
 
     // Set up drawing context
     ctx.font = `${designTokens.typography.fontSize.xs} ${designTokens.typography.fontFamily.sans[0]}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
 
     // Calculate data ranges
-    const xValues = data.map((d) => (typeof d.x === "number" ? d.x : 0));
+    const xValues = data.map((d) => (typeof d.x === 'number' ? d.x : 0));
     const yValues = data.map((d) => d.y);
     const xMin = Math.min(...xValues);
     const xMax = Math.max(...xValues);
@@ -84,8 +84,7 @@ export const Chart: React.FC<ChartProps> = ({
     const yMax = Math.max(...yValues);
 
     // Scale functions
-    const scaleX = (x: number) =>
-      padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth;
+    const scaleX = (x: number) => padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth;
     const scaleY = (y: number) =>
       padding.top + chartHeight - ((y - yMin) / (yMax - yMin)) * chartHeight;
 
@@ -137,7 +136,7 @@ export const Chart: React.FC<ChartProps> = ({
     for (let i = 0; i <= 5; i++) {
       const value = yMin + (i / 5) * (yMax - yMin);
       const y = padding.top + chartHeight - (i / 5) * chartHeight;
-      ctx.textAlign = "right";
+      ctx.textAlign = 'right';
       ctx.fillText(value.toFixed(1), padding.left - 10, y);
     }
 
@@ -145,22 +144,22 @@ export const Chart: React.FC<ChartProps> = ({
     for (let i = 0; i <= 5; i++) {
       const value = xMin + (i / 5) * (xMax - xMin);
       const x = padding.left + (i / 5) * chartWidth;
-      ctx.textAlign = "center";
+      ctx.textAlign = 'center';
       ctx.fillText(value.toFixed(1), x, padding.top + chartHeight + 20);
     }
 
     // Draw chart based on type
     switch (type) {
-      case "line":
+      case 'line':
         drawLineChart(ctx, data, scaleX, scaleY, colors[0]);
         break;
-      case "bar":
+      case 'bar':
         drawBarChart(ctx, data, scaleX, scaleY, colors);
         break;
-      case "area":
+      case 'area':
         drawAreaChart(ctx, data, scaleX, scaleY, colors[0]);
         break;
-      case "pie":
+      case 'pie':
         drawPieChart(
           ctx,
           data,
@@ -176,7 +175,7 @@ export const Chart: React.FC<ChartProps> = ({
     if (title) {
       ctx.fillStyle = designTokens.colors.neutral[900];
       ctx.font = `${designTokens.typography.fontWeight.semibold} ${designTokens.typography.fontSize.lg} ${designTokens.typography.fontFamily.sans[0]}`;
-      ctx.textAlign = "center";
+      ctx.textAlign = 'center';
       ctx.fillText(title, actualWidth / 2, 20);
     }
 
@@ -184,7 +183,7 @@ export const Chart: React.FC<ChartProps> = ({
     if (xAxisLabel) {
       ctx.fillStyle = designTokens.colors.neutral[600];
       ctx.font = `${designTokens.typography.fontSize.sm} ${designTokens.typography.fontFamily.sans[0]}`;
-      ctx.textAlign = "center";
+      ctx.textAlign = 'center';
       ctx.fillText(xAxisLabel, actualWidth / 2, actualHeight - 10);
     }
 
@@ -194,21 +193,11 @@ export const Chart: React.FC<ChartProps> = ({
       ctx.rotate(-Math.PI / 2);
       ctx.fillStyle = designTokens.colors.neutral[600];
       ctx.font = `${designTokens.typography.fontSize.sm} ${designTokens.typography.fontFamily.sans[0]}`;
-      ctx.textAlign = "center";
+      ctx.textAlign = 'center';
       ctx.fillText(yAxisLabel, 0, 0);
       ctx.restore();
     }
-  }, [
-    data,
-    actualWidth,
-    actualHeight,
-    type,
-    colors,
-    showGrid,
-    title,
-    xAxisLabel,
-    yAxisLabel,
-  ]);
+  }, [data, actualWidth, actualHeight, type, colors, showGrid, title, xAxisLabel, yAxisLabel]);
 
   const drawLineChart = (
     ctx: CanvasRenderingContext2D,
@@ -221,12 +210,12 @@ export const Chart: React.FC<ChartProps> = ({
 
     ctx.strokeStyle = color;
     ctx.lineWidth = 3;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
 
     ctx.beginPath();
     data.forEach((point, index) => {
-      const x = scaleX(typeof point.x === "number" ? point.x : index);
+      const x = scaleX(typeof point.x === 'number' ? point.x : index);
       const y = scaleY(point.y);
 
       if (index === 0) {
@@ -240,7 +229,7 @@ export const Chart: React.FC<ChartProps> = ({
     // Draw points
     ctx.fillStyle = color;
     data.forEach((point, index) => {
-      const x = scaleX(typeof point.x === "number" ? point.x : index);
+      const x = scaleX(typeof point.x === 'number' ? point.x : index);
       const y = scaleY(point.y);
 
       ctx.beginPath();
@@ -259,8 +248,7 @@ export const Chart: React.FC<ChartProps> = ({
     const barWidth = (chartWidth / data.length) * 0.8;
 
     data.forEach((point, index) => {
-      const x =
-        scaleX(typeof point.x === "number" ? point.x : index) - barWidth / 2;
+      const x = scaleX(typeof point.x === 'number' ? point.x : index) - barWidth / 2;
       const y = scaleY(point.y);
       const height = scaleY(0) - y;
 
@@ -284,21 +272,16 @@ export const Chart: React.FC<ChartProps> = ({
     if (data.length < 2) return;
 
     // Create gradient
-    const gradient = ctx.createLinearGradient(
-      0,
-      padding.top,
-      0,
-      padding.top + chartHeight,
-    );
-    gradient.addColorStop(0, color + "40"); // 25% opacity
-    gradient.addColorStop(1, color + "10"); // 6% opacity
+    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
+    gradient.addColorStop(0, color + '40'); // 25% opacity
+    gradient.addColorStop(1, color + '10'); // 6% opacity
 
     // Draw area
     ctx.fillStyle = gradient;
     ctx.beginPath();
 
     // Start from bottom-left
-    const firstX = scaleX(typeof data[0].x === "number" ? data[0].x : 0);
+    const firstX = scaleX(typeof data[0].x === 'number' ? data[0].x : 0);
     ctx.moveTo(firstX, scaleY(0));
 
     // Draw to first point
@@ -306,16 +289,14 @@ export const Chart: React.FC<ChartProps> = ({
 
     // Draw line through all points
     data.forEach((point, index) => {
-      const x = scaleX(typeof point.x === "number" ? point.x : index);
+      const x = scaleX(typeof point.x === 'number' ? point.x : index);
       const y = scaleY(point.y);
       ctx.lineTo(x, y);
     });
 
     // Close area to bottom
     const lastX = scaleX(
-      typeof data[data.length - 1].x === "number"
-        ? data[data.length - 1].x
-        : data.length - 1,
+      typeof data[data.length - 1].x === 'number' ? data[data.length - 1].x : data.length - 1,
     );
     ctx.lineTo(lastX, scaleY(0));
     ctx.closePath();
@@ -344,13 +325,7 @@ export const Chart: React.FC<ChartProps> = ({
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
-      ctx.arc(
-        centerX,
-        centerY,
-        radius,
-        currentAngle,
-        currentAngle + sliceAngle,
-      );
+      ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
       ctx.closePath();
       ctx.fill();
 
@@ -366,7 +341,7 @@ export const Chart: React.FC<ChartProps> = ({
 
       ctx.fillStyle = designTokens.colors.neutral[0];
       ctx.font = `${designTokens.typography.fontWeight.semibold} ${designTokens.typography.fontSize.sm} ${designTokens.typography.fontFamily.sans[0]}`;
-      ctx.textAlign = "center";
+      ctx.textAlign = 'center';
       ctx.fillText(`${((point.y / total) * 100).toFixed(1)}%`, labelX, labelY);
 
       currentAngle += sliceAngle;
@@ -392,12 +367,9 @@ export const Chart: React.FC<ChartProps> = ({
     data.forEach((point, index) => {
       const pointX =
         padding.left +
-        ((typeof point.x === "number" ? point.x : index) / (data.length - 1)) *
-          chartWidth;
+        ((typeof point.x === 'number' ? point.x : index) / (data.length - 1)) * chartWidth;
       const pointY =
-        padding.top +
-        chartHeight -
-        (point.y / Math.max(...data.map((d) => d.y))) * chartHeight;
+        padding.top + chartHeight - (point.y / Math.max(...data.map((d) => d.y))) * chartHeight;
 
       const distance = Math.sqrt((x - pointX) ** 2 + (y - pointY) ** 2);
       if (distance < minDistance && distance < 20) {
@@ -424,11 +396,10 @@ export const Chart: React.FC<ChartProps> = ({
 
       {hoveredPoint && showTooltip && (
         <div css={chartStyles.tooltip(mousePosition.x, mousePosition.y)}>
-          <div css={chartStyles.tooltipLabel}>
-            {hoveredPoint.label || "Value"}
-          </div>
+          <div css={chartStyles.tooltipLabel}>{hoveredPoint.label || 'Value'}</div>
           <div css={chartStyles.tooltipValue}>
-            {typeof hoveredPoint.x === "number" ? hoveredPoint.x.toFixed(2) : hoveredPoint.x}: {hoveredPoint.y.toFixed(2)}
+            {typeof hoveredPoint.x === 'number' ? hoveredPoint.x.toFixed(2) : hoveredPoint.x}:{' '}
+            {hoveredPoint.y.toFixed(2)}
           </div>
         </div>
       )}

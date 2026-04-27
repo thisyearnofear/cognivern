@@ -1,10 +1,10 @@
-import { css } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
 
 export const containerStyles = (isMobile: boolean) => css`
   padding: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[8]};
   padding-bottom: ${isMobile
-    ? "calc(72px + env(safe-area-inset-bottom))"
+    ? 'calc(72px + env(safe-area-inset-bottom))'
     : designTokens.spacing[8]};
   max-width: 1440px;
   margin: 0 auto;
@@ -30,7 +30,7 @@ export const statsHeaderStyles = css`
 `;
 
 export const titleStyles = css`
-  font-size: ${designTokens.typography.fontSize["2xl"]};
+  font-size: ${designTokens.typography.fontSize['2xl']};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: var(--section-title, ${designTokens.colors.text.primary});
   margin-bottom: ${designTokens.spacing[2]};
@@ -40,34 +40,26 @@ export const titleStyles = css`
 export const statsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   display: grid;
   grid-template-columns: ${isMobile
-    ? "repeat(2, 1fr)"
+    ? 'repeat(2, 1fr)'
     : isTablet
-      ? "repeat(2, 1fr)"
-      : "repeat(4, 1fr)"};
+      ? 'repeat(2, 1fr)'
+      : 'repeat(4, 1fr)'};
   gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[6]};
-  margin-bottom: ${isMobile
-    ? designTokens.spacing[4]
-    : designTokens.spacing[8]};
+  margin-bottom: ${isMobile ? designTokens.spacing[4] : designTokens.spacing[8]};
 `;
 
 export const mainGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   display: grid;
-  grid-template-columns: ${isMobile ? "1fr" : isTablet ? "1fr" : "3fr 2fr"};
+  grid-template-columns: ${isMobile ? '1fr' : isTablet ? '1fr' : '3fr 2fr'};
   gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[8]};
   align-items: start;
 `;
 
 export const chartsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   display: grid;
-  grid-template-columns: ${isMobile
-    ? "1fr"
-    : isTablet
-      ? "1fr"
-      : "repeat(2, 1fr)"};
+  grid-template-columns: ${isMobile ? '1fr' : isTablet ? '1fr' : 'repeat(2, 1fr)'};
   gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[6]};
-  margin-bottom: ${isMobile
-    ? designTokens.spacing[4]
-    : designTokens.spacing[8]};
+  margin-bottom: ${isMobile ? designTokens.spacing[4] : designTokens.spacing[8]};
 `;
 
 export const sectionStyles = css`
@@ -147,7 +139,7 @@ export const activityIconStyles = (type?: string) => {
     info: `${designTokens.colors.primary[500]}15`,
   };
 
-  const statusType = (type || "info") as keyof typeof colorMap;
+  const statusType = (type || 'info') as keyof typeof colorMap;
 
   return css`
     width: 40px;
@@ -272,10 +264,7 @@ export const liveIndicatorStyles = css`
   font-size: ${designTokens.typography.fontSize.xs};
   font-weight: ${designTokens.typography.fontWeight.semibold};
   color: ${designTokens.colors.text.secondary};
-  background: var(
-    --surface-bg-alt,
-    ${designTokens.colors.background.secondary}
-  );
+  background: var(--surface-bg-alt, ${designTokens.colors.background.secondary});
   padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
   border-radius: ${designTokens.borderRadius.full};
   border: 1px solid var(--divider, ${designTokens.colors.border.primary});
@@ -289,7 +278,7 @@ export const pulseDotStyles = css`
   position: relative;
 
   &::after {
-    content: "";
+    content: '';
     position: absolute;
     top: 0;
     left: 0;
@@ -322,9 +311,7 @@ export const badgeContainerStyles = css`
   align-items: center;
 `;
 
-export const systemBadgeStyles = (
-  color: "success" | "warning" | "error" | "info" = "info",
-) => {
+export const systemBadgeStyles = (color: 'success' | 'warning' | 'error' | 'info' = 'info') => {
   const colorMap = {
     success: designTokens.colors.semantic.success[600],
     warning: designTokens.colors.semantic.warning[600],
@@ -362,9 +349,7 @@ export const mobileActionsStyles = css`
   grid-template-columns: repeat(3, 1fr);
   border-top: 1px solid var(--divider, ${designTokens.colors.border.primary});
   padding: ${designTokens.spacing[2]};
-  padding-bottom: calc(
-    ${designTokens.spacing[2]} + env(safe-area-inset-bottom)
-  );
+  padding-bottom: calc(${designTokens.spacing[2]} + env(safe-area-inset-bottom));
   z-index: 100;
   box-shadow: ${designTokens.shadows.lg};
 `;
@@ -387,10 +372,7 @@ export const mobileActionButtonStyles = css`
   transition: background 0.15s;
 
   &:active {
-    background: var(
-      --surface-bg-alt,
-      ${designTokens.colors.background.secondary}
-    );
+    background: var(--surface-bg-alt, ${designTokens.colors.background.secondary});
   }
 `;
 

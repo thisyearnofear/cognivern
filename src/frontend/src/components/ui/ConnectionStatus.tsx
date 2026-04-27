@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { css } from "@emotion/react";
-import { designTokens, keyframeAnimations } from "../../styles/design-system";
+import React, { useState } from 'react';
+import { css } from '@emotion/react';
+import { designTokens, keyframeAnimations } from '../../styles/design-system';
 
 interface ConnectionStatusProps {
   isConnected: boolean;
@@ -9,7 +9,7 @@ interface ConnectionStatusProps {
 
 export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   isConnected,
-  apiUrl = "API Server",
+  apiUrl = 'API Server',
 }) => {
   const [showStatus, setShowStatus] = useState(true);
 
@@ -90,11 +90,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
       <div css={statusTextStyles}>
         {isConnected ? `Connected to ${apiUrl}` : `Disconnected from ${apiUrl}`}
       </div>
-      <button
-        css={closeButtonStyles}
-        onClick={() => setShowStatus(false)}
-        title="Dismiss"
-      >
+      <button css={closeButtonStyles} onClick={() => setShowStatus(false)} title="Dismiss">
         ✕
       </button>
     </div>

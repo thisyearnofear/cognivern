@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
-import { css } from "@emotion/react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useEffect, useRef } from 'react';
+import { css } from '@emotion/react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -8,13 +8,13 @@ import {
   FileSearch,
   Activity,
   PlusCircle,
-} from "lucide-react";
-import { useAppStore, useTheme } from "../../stores/appStore";
-import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { designTokens } from "../../styles/design-system";
-import { useLayout } from "./ResponsiveLayout";
-import { useSidebarState } from "../../hooks/useSidebarState";
-import { Button } from "../ui/Button";
+} from 'lucide-react';
+import { useAppStore, useTheme } from '../../stores/appStore';
+import { useBreakpoint } from '../../hooks/useMediaQuery';
+import { designTokens } from '../../styles/design-system';
+import { useLayout } from './ResponsiveLayout';
+import { useSidebarState } from '../../hooks/useSidebarState';
+import { Button } from '../ui/Button';
 
 interface NavItem {
   id: string;
@@ -27,46 +27,46 @@ interface NavItem {
 
 const navigationItems: NavItem[] = [
   {
-    id: "dashboard",
-    label: "Dashboard",
+    id: 'dashboard',
+    label: 'Dashboard',
     icon: <LayoutDashboard size={20} />,
-    path: "/",
-    description: "Unified overview",
+    path: '/',
+    description: 'Unified overview',
   },
   {
-    id: "agents",
-    label: "Agents",
+    id: 'agents',
+    label: 'Agents',
     icon: <Users size={20} />,
-    path: "/agents",
-    description: "Governed operations",
+    path: '/agents',
+    description: 'Governed operations',
   },
   {
-    id: "policies",
-    label: "Policies",
+    id: 'policies',
+    label: 'Policies',
     icon: <ShieldCheck size={20} />,
-    path: "/policies",
-    description: "Spend rules",
+    path: '/policies',
+    description: 'Spend rules',
   },
   {
-    id: "audit",
-    label: "Audit",
+    id: 'audit',
+    label: 'Audit',
     icon: <FileSearch size={20} />,
-    path: "/audit",
-    description: "Activity logs",
+    path: '/audit',
+    description: 'Activity logs',
   },
   {
-    id: "runs",
-    label: "Runs",
+    id: 'runs',
+    label: 'Runs',
     icon: <Activity size={20} />,
-    path: "/runs",
-    description: "Verifiable traces",
+    path: '/runs',
+    description: 'Verifiable traces',
   },
   {
-    id: "add-agent",
-    label: "Add Agent",
+    id: 'add-agent',
+    label: 'Add Agent',
     icon: <PlusCircle size={20} />,
-    path: "/agents/workshop",
-    badge: "NEW",
+    path: '/agents/workshop',
+    badge: 'NEW',
   },
 ];
 
@@ -77,14 +77,8 @@ export const ImprovedSidebar: React.FC = () => {
   const { effectiveTheme } = useTheme();
   const { isMobile, isTablet, isDesktop } = useBreakpoint();
   const { sidebarWidth } = useLayout();
-  const {
-    sidebarState,
-    toggleSidebar,
-    hideSidebarOnMobile,
-    isCollapsed,
-    isHidden,
-    isOverlay,
-  } = useSidebarState();
+  const { sidebarState, toggleSidebar, hideSidebarOnMobile, isCollapsed, isHidden, isOverlay } =
+    useSidebarState();
   const sidebarRef = useRef<HTMLElement>(null);
 
   // Handle click outside to close sidebar on mobile
@@ -100,20 +94,20 @@ export const ImprovedSidebar: React.FC = () => {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobile, isOverlay, hideSidebarOnMobile]);
 
   // Handle escape key to close sidebar
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && (isOverlay || (isMobile && !isHidden))) {
+      if (event.key === 'Escape' && (isOverlay || (isMobile && !isHidden))) {
         hideSidebarOnMobile();
       }
     };
 
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
   }, [isOverlay, isMobile, isHidden, hideSidebarOnMobile]);
 
   // Auto-close sidebar on mobile navigation
@@ -125,11 +119,11 @@ export const ImprovedSidebar: React.FC = () => {
 
   const sidebarStyles = css`
     grid-area: sidebar;
-    background: ${effectiveTheme === "dark"
+    background: ${effectiveTheme === 'dark'
       ? `linear-gradient(180deg, ${designTokens.colors.neutral[900]} 0%, ${designTokens.colors.neutral[800]} 100%)`
       : `linear-gradient(180deg, ${designTokens.colors.neutral[0]} 0%, ${designTokens.colors.neutral[50]} 100%)`};
     border-right: 1px solid
-      ${effectiveTheme === "dark"
+      ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[700]
         : designTokens.colors.neutral[200]};
     display: flex;
@@ -148,10 +142,10 @@ export const ImprovedSidebar: React.FC = () => {
       bottom: 0;
       width: ${sidebarWidth}px;
       z-index: ${designTokens.zIndex.modal};
-      box-shadow: ${designTokens.shadows["2xl"]};
+      box-shadow: ${designTokens.shadows['2xl']};
       transform: translateX(0);
     `
-      : ""}
+      : ''}
 
     /* Hidden state for mobile */
     ${isHidden && isMobile
@@ -164,20 +158,18 @@ export const ImprovedSidebar: React.FC = () => {
       width: ${sidebarWidth}px;
       z-index: ${designTokens.zIndex.modal};
     `
-      : ""}
+      : ''}
 
     /* Collapsed state */
     ${isCollapsed && !isMobile
       ? `
       width: ${designTokens.layout.sidebarCollapsedWidth};
     `
-      : ""}
+      : ''}
 
     /* Smooth width transitions for desktop */
     @media (min-width: ${designTokens.breakpoints.lg}) {
-      width: ${isCollapsed
-        ? designTokens.layout.sidebarCollapsedWidth
-        : `${sidebarWidth}px`};
+      width: ${isCollapsed ? designTokens.layout.sidebarCollapsedWidth : `${sidebarWidth}px`};
     }
   `;
 
@@ -188,7 +180,7 @@ export const ImprovedSidebar: React.FC = () => {
     padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]};
     margin-bottom: ${designTokens.spacing[4]};
     border-bottom: 1px solid
-      ${effectiveTheme === "dark"
+      ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[700]
         : designTokens.colors.neutral[200]};
     min-height: 80px;
@@ -198,17 +190,17 @@ export const ImprovedSidebar: React.FC = () => {
       justify-content: center;
       padding: ${designTokens.spacing[6]} ${designTokens.spacing[2]};
     `
-      : ""}
+      : ''}
   `;
 
   const logoIconStyles = css`
-    font-size: ${designTokens.typography.fontSize["2xl"]};
+    font-size: ${designTokens.typography.fontSize['2xl']};
     flex-shrink: 0;
   `;
 
   const logoTextStyles = css`
-    opacity: ${isCollapsed ? "0" : "1"};
-    transform: ${isCollapsed ? "translateX(-10px)" : "translateX(0)"};
+    opacity: ${isCollapsed ? '0' : '1'};
+    transform: ${isCollapsed ? 'translateX(-10px)' : 'translateX(0)'};
     transition: all ${designTokens.animation.duration.normal}
       ${designTokens.animation.easing.easeInOut};
 
@@ -216,7 +208,7 @@ export const ImprovedSidebar: React.FC = () => {
       margin: 0;
       font-size: ${designTokens.typography.fontSize.xl};
       font-weight: ${designTokens.typography.fontWeight.bold};
-      color: ${effectiveTheme === "dark"
+      color: ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[100]
         : designTokens.colors.neutral[900]};
       line-height: ${designTokens.typography.lineHeight.tight};
@@ -225,7 +217,7 @@ export const ImprovedSidebar: React.FC = () => {
     p {
       margin: 0;
       font-size: ${designTokens.typography.fontSize.sm};
-      color: ${effectiveTheme === "dark"
+      color: ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[400]
         : designTokens.colors.neutral[500]};
       line-height: ${designTokens.typography.lineHeight.snug};
@@ -234,17 +226,17 @@ export const ImprovedSidebar: React.FC = () => {
 
   const userInfoStyles = css`
     padding: ${designTokens.spacing[4]};
-    background: ${effectiveTheme === "dark"
+    background: ${effectiveTheme === 'dark'
       ? designTokens.colors.neutral[800]
       : designTokens.colors.neutral[50]};
     border-radius: ${designTokens.borderRadius.lg};
     margin: 0 ${designTokens.spacing[4]} ${designTokens.spacing[6]};
-    opacity: ${isCollapsed ? "0" : "1"};
-    transform: ${isCollapsed ? "scale(0.9)" : "scale(1)"};
+    opacity: ${isCollapsed ? '0' : '1'};
+    transform: ${isCollapsed ? 'scale(0.9)' : 'scale(1)'};
     transition: all ${designTokens.animation.duration.normal}
       ${designTokens.animation.easing.easeInOut};
 
-    ${isCollapsed ? "pointer-events: none;" : ""}
+    ${isCollapsed ? 'pointer-events: none;' : ''}
   `;
 
   const navStyles = css`
@@ -262,7 +254,7 @@ export const ImprovedSidebar: React.FC = () => {
     }
 
     &::-webkit-scrollbar-thumb {
-      background: ${effectiveTheme === "dark"
+      background: ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[600]
         : designTokens.colors.neutral[300]};
       border-radius: ${designTokens.borderRadius.full};
@@ -287,10 +279,10 @@ export const ImprovedSidebar: React.FC = () => {
       justify-content: center;
       padding: ${designTokens.spacing[3]} ${designTokens.spacing[2]};
     `
-      : ""}
+      : ''}
 
     &:hover {
-      background: ${effectiveTheme === "dark"
+      background: ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[700]
         : designTokens.colors.neutral[100]};
       transform: translateY(-1px);
@@ -299,23 +291,23 @@ export const ImprovedSidebar: React.FC = () => {
     ${isActive
       ? `
       background: ${
-        effectiveTheme === "dark"
+        effectiveTheme === 'dark'
           ? designTokens.colors.primary[800]
           : designTokens.colors.primary[100]
       };
       color: ${
-        effectiveTheme === "dark"
+        effectiveTheme === 'dark'
           ? designTokens.colors.primary[200]
           : designTokens.colors.primary[700]
       };
       border-color: ${
-        effectiveTheme === "dark"
+        effectiveTheme === 'dark'
           ? designTokens.colors.primary[700]
           : designTokens.colors.primary[300]
       };
       box-shadow: ${designTokens.shadows.sm};
     `
-      : ""}
+      : ''}
   `;
 
   const navIconStyles = css`
@@ -324,10 +316,10 @@ export const ImprovedSidebar: React.FC = () => {
     height: 28px;
     border-radius: ${designTokens.borderRadius.full};
     border: 1px solid
-      ${effectiveTheme === "dark"
+      ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[600]
         : designTokens.colors.neutral[300]};
-    background: ${effectiveTheme === "dark"
+    background: ${effectiveTheme === 'dark'
       ? designTokens.colors.neutral[800]
       : designTokens.colors.neutral[100]};
     text-align: center;
@@ -340,14 +332,14 @@ export const ImprovedSidebar: React.FC = () => {
   `;
 
   const navContentStyles = css`
-    opacity: ${isCollapsed ? "0" : "1"};
-    transform: ${isCollapsed ? "translateX(-10px)" : "translateX(0)"};
+    opacity: ${isCollapsed ? '0' : '1'};
+    transform: ${isCollapsed ? 'translateX(-10px)' : 'translateX(0)'};
     transition: all ${designTokens.animation.duration.normal}
       ${designTokens.animation.easing.easeInOut};
     min-width: 0;
     flex: 1;
 
-    ${isCollapsed ? "pointer-events: none;" : ""}
+    ${isCollapsed ? 'pointer-events: none;' : ''}
   `;
 
   const navLabelStyles = css`
@@ -374,13 +366,13 @@ export const ImprovedSidebar: React.FC = () => {
     padding: 2px ${designTokens.spacing[1]};
     border-radius: ${designTokens.borderRadius.full};
     line-height: 1;
-    opacity: ${isCollapsed ? "0" : "1"};
+    opacity: ${isCollapsed ? '0' : '1'};
     transition: opacity ${designTokens.animation.duration.normal};
   `;
 
   const toggleStyles = css`
     border-top: 1px solid
-      ${effectiveTheme === "dark"
+      ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[700]
         : designTokens.colors.neutral[200]};
     padding: ${designTokens.spacing[4]};
@@ -405,27 +397,27 @@ export const ImprovedSidebar: React.FC = () => {
           <div css={userInfoStyles}>
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
+                display: 'flex',
+                alignItems: 'center',
                 gap: designTokens.spacing[3],
               }}
             >
               <div
                 style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
                   background: `linear-gradient(135deg, ${designTokens.colors.primary[500]}, ${designTokens.colors.primary[600]})`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
                   fontSize: designTokens.typography.fontSize.sm,
                   fontWeight: designTokens.typography.fontWeight.bold,
                   boxShadow: designTokens.shadows.md,
                 }}
               >
-                {user.userType?.charAt(0).toUpperCase() || "U"}
+                {user.userType?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div
@@ -433,24 +425,23 @@ export const ImprovedSidebar: React.FC = () => {
                     fontSize: designTokens.typography.fontSize.sm,
                     fontWeight: designTokens.typography.fontWeight.medium,
                     color:
-                      effectiveTheme === "dark"
+                      effectiveTheme === 'dark'
                         ? designTokens.colors.neutral[100]
                         : designTokens.colors.neutral[900],
-                    marginBottom: "2px",
+                    marginBottom: '2px',
                   }}
                 >
-                  {user.userType || "User"}
+                  {user.userType || 'User'}
                 </div>
                 {user.address && (
                   <div
                     style={{
                       fontSize: designTokens.typography.fontSize.xs,
                       color:
-                        effectiveTheme === "dark"
+                        effectiveTheme === 'dark'
                           ? designTokens.colors.neutral[400]
                           : designTokens.colors.neutral[500],
-                      fontFamily:
-                        designTokens.typography.fontFamily.mono.join(", "),
+                      fontFamily: designTokens.typography.fontFamily.mono.join(', '),
                     }}
                   >
                     {user.address.slice(0, 6)}...{user.address.slice(-4)}
@@ -475,9 +466,7 @@ export const ImprovedSidebar: React.FC = () => {
                 <span css={navIconStyles}>{item.icon}</span>
                 <div css={navContentStyles}>
                   <div css={navLabelStyles}>{item.label}</div>
-                  {item.description && (
-                    <div css={navDescriptionStyles}>{item.description}</div>
-                  )}
+                  {item.description && <div css={navDescriptionStyles}>{item.description}</div>}
                 </div>
                 {item.badge && <span css={badgeStyles}>{item.badge}</span>}
               </div>
@@ -492,12 +481,12 @@ export const ImprovedSidebar: React.FC = () => {
             size="sm"
             onClick={toggleSidebar}
             style={{
-              width: "100%",
-              justifyContent: isCollapsed ? "center" : "flex-start",
-              gap: isCollapsed ? "0" : designTokens.spacing[2],
+              width: '100%',
+              justifyContent: isCollapsed ? 'center' : 'flex-start',
+              gap: isCollapsed ? '0' : designTokens.spacing[2],
             }}
           >
-            <span>{isCollapsed ? "→" : "←"}</span>
+            <span>{isCollapsed ? '→' : '←'}</span>
             {!isCollapsed && <span>Collapse</span>}
           </Button>
         </div>

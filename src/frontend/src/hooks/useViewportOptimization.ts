@@ -1,23 +1,21 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 import {
   ViewportDimensions,
   LayoutOptimization,
   getViewportDimensions,
   calculateOptimalLayout,
   viewportTracker,
-} from "../utils/viewportOptimization";
-import { useLayout } from "../components/layout/ResponsiveLayout";
+} from '../utils/viewportOptimization';
+import { useLayout } from '../components/layout/ResponsiveLayout';
 
 /**
  * Hook for intelligent viewport optimization and layout management
  */
 export const useViewportOptimization = (
-  contentType: "dashboard" | "form" | "table" | "chart" | "list" = "dashboard",
+  contentType: 'dashboard' | 'form' | 'table' | 'chart' | 'list' = 'dashboard',
   autoOptimize: boolean = false,
 ) => {
-  const [viewport, setViewport] = useState<ViewportDimensions>(() =>
-    getViewportDimensions(),
-  );
+  const [viewport, setViewport] = useState<ViewportDimensions>(() => getViewportDimensions());
   const [optimization, setOptimization] = useState<LayoutOptimization>(() =>
     calculateOptimalLayout(getViewportDimensions(), contentType),
   );
@@ -43,12 +41,7 @@ export const useViewportOptimization = (
     if (autoOptimize && optimization.recommendedSidebarState !== sidebarState) {
       setSidebarState(optimization.recommendedSidebarState);
     }
-  }, [
-    autoOptimize,
-    optimization.recommendedSidebarState,
-    sidebarState,
-    setSidebarState,
-  ]);
+  }, [autoOptimize, optimization.recommendedSidebarState, sidebarState, setSidebarState]);
 
   // Manual optimization trigger
   const optimizeLayout = useCallback(() => {
@@ -79,12 +72,8 @@ export const useViewportOptimization = (
 
     return {
       columns: optimization.recommendedColumns,
-      maxItemWidth:
-        Math.floor(contentWidth / optimization.recommendedColumns) - 24, // Account for gaps
-      minItemWidth: Math.max(
-        200,
-        Math.floor(contentWidth / (optimization.recommendedColumns + 1)),
-      ),
+      maxItemWidth: Math.floor(contentWidth / optimization.recommendedColumns) - 24, // Account for gaps
+      minItemWidth: Math.max(200, Math.floor(contentWidth / (optimization.recommendedColumns + 1))),
       gapSize: contentWidth > 1200 ? 24 : 16,
     };
   }, [optimization]);

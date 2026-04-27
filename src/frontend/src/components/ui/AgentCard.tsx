@@ -1,16 +1,16 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
-import { css } from "@emotion/react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "./Card";
-import { Badge } from "./Badge";
-import { designTokens } from "../../styles/design-system";
+import React from 'react';
+import { css } from '@emotion/react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent } from './Card';
+import { Badge } from './Badge';
+import { designTokens } from '../../styles/design-system';
 
 export interface AgentCardProps {
   agent: {
     id: string;
     name: string;
-    status: "active" | "inactive" | "paused" | "error" | string;
+    status: 'active' | 'inactive' | 'paused' | 'error' | string;
     winRate: number;
     totalReturn: number;
     description?: string;
@@ -30,7 +30,7 @@ export interface AgentCardProps {
  */
 
 const cardWrapperStyles = (compact: boolean) => css`
-  ${compact ? "width: 240px; flex-shrink: 0;" : "width: 100%; max-width: 320px;"}
+  ${compact ? 'width: 240px; flex-shrink: 0;' : 'width: 100%; max-width: 320px;'}
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -133,14 +133,12 @@ export const AgentCard: React.FC<AgentCardProps> = ({
           <h3 css={nameStyles} title={agent.name}>
             {agent.name}
           </h3>
-          <Badge variant={agent.status === "active" ? "success" : "secondary"}>
+          <Badge variant={agent.status === 'active' ? 'success' : 'secondary'}>
             {agent.status}
           </Badge>
         </div>
 
-        {!compact && agent.description && (
-          <p css={descriptionStyles}>{agent.description}</p>
-        )}
+        {!compact && agent.description && <p css={descriptionStyles}>{agent.description}</p>}
 
         <div css={metricsContainerStyles}>
           <div css={metricBlockStyles}>
@@ -152,7 +150,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
           <div css={metricBlockStyles}>
             <span css={metricLabelStyles}>Total Return</span>
             <span css={metricValueStyles(agent.totalReturn >= 0)}>
-              {agent.totalReturn >= 0 ? "+" : ""}
+              {agent.totalReturn >= 0 ? '+' : ''}
               {(agent.totalReturn * 100).toFixed(2)}%
             </span>
           </div>

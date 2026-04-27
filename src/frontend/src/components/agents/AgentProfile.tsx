@@ -1,13 +1,13 @@
-import React, { useEffect } from "react";
-import { css } from "@emotion/react";
-import { useParams, useNavigate } from "react-router-dom";
-import { designTokens, keyframeAnimations } from "../../styles/design-system";
-import { Card, CardContent } from "../ui/Card";
-import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
-import { useAgentData } from "../../hooks/useAgentData";
-import { AgentType } from "../../types";
-import VoiceBriefing from "./VoiceBriefing";
+import React, { useEffect } from 'react';
+import { css } from '@emotion/react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { designTokens, keyframeAnimations } from '../../styles/design-system';
+import { Card, CardContent } from '../ui/Card';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import { useAgentData } from '../../hooks/useAgentData';
+import { AgentType } from '../../types';
+import VoiceBriefing from './VoiceBriefing';
 
 const profileContainerStyles = css`
   max-width: 1400px;
@@ -36,7 +36,7 @@ const headerCardStyles = css`
   align-items: center;
   padding: ${designTokens.spacing[12]};
   background: ${designTokens.colors.neutral[50]};
-  border-radius: ${designTokens.borderRadius["3xl"]};
+  border-radius: ${designTokens.borderRadius['3xl']};
   border: 1px solid ${designTokens.colors.neutral[100]};
   position: relative;
   overflow: hidden;
@@ -52,7 +52,7 @@ const headerCardStyles = css`
 const avatarContainerStyles = css`
   width: 200px;
   height: 200px;
-  border-radius: ${designTokens.borderRadius["2xl"]};
+  border-radius: ${designTokens.borderRadius['2xl']};
   background: linear-gradient(
     135deg,
     ${designTokens.colors.primary[500]},
@@ -98,7 +98,7 @@ const infoSectionStyles = css`
 `;
 
 const sectionTitleStyles = css`
-  font-size: ${designTokens.typography.fontSize["2xl"]};
+  font-size: ${designTokens.typography.fontSize['2xl']};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: ${designTokens.colors.neutral[900]};
   margin-bottom: ${designTokens.spacing[6]};
@@ -108,7 +108,7 @@ const sectionTitleStyles = css`
   ${keyframeAnimations.revealUp};
 
   &::after {
-    content: "";
+    content: '';
     flex: 1;
     height: 1px;
     background: ${designTokens.colors.neutral[200]};
@@ -163,16 +163,13 @@ const AgentProfile: React.FC = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      document.documentElement.style.setProperty(
-        "--scroll-y",
-        `${window.scrollY}`,
-      );
+      document.documentElement.style.setProperty('--scroll-y', `${window.scrollY}`);
     };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const agentType: AgentType = agentId === "vincent" ? "vincent" : "recall";
+  const agentType: AgentType = agentId === 'vincent' ? 'vincent' : 'recall';
   const { status, isLoading } = useAgentData(agentType);
 
   if (isLoading) {
@@ -180,21 +177,13 @@ const AgentProfile: React.FC = () => {
   }
 
   const extendedData = {
-    developer: "CogniVern Labs",
-    techStack: [
-      "TypeScript",
-      "PyTorch",
-      "EVM",
-      "IPFS",
-      "OpenAI",
-      "React",
-      "Rust",
-    ],
-    moltbook: "https://moltbook.io/agents/recall-01",
-    erc8004: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-    registrationDate: "2025-12-10",
-    governanceModel: "DAO Managed",
-    auditHash: "0x892...31a",
+    developer: 'CogniVern Labs',
+    techStack: ['TypeScript', 'PyTorch', 'EVM', 'IPFS', 'OpenAI', 'React', 'Rust'],
+    moltbook: 'https://moltbook.io/agents/recall-01',
+    erc8004: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+    registrationDate: '2025-12-10',
+    governanceModel: 'DAO Managed',
+    auditHash: '0x892...31a',
   };
 
   return (
@@ -210,9 +199,7 @@ const AgentProfile: React.FC = () => {
       </Button>
 
       <div css={headerCardStyles}>
-        <div css={avatarContainerStyles}>
-          {agentType === "recall" ? "RC" : "VC"}
-        </div>
+        <div css={avatarContainerStyles}>{agentType === 'recall' ? 'RC' : 'VC'}</div>
         <div
           css={css`
             ${keyframeAnimations.parallax(-0.05)};
@@ -226,8 +213,8 @@ const AgentProfile: React.FC = () => {
               margin-bottom: ${designTokens.spacing[4]};
             `}
           >
-            <Badge variant={status.isActive ? "success" : "secondary"}>
-              {status.isActive ? "Active" : "Standby"}
+            <Badge variant={status.isActive ? 'success' : 'secondary'}>
+              {status.isActive ? 'Active' : 'Standby'}
             </Badge>
             <span
               css={css`
@@ -241,15 +228,13 @@ const AgentProfile: React.FC = () => {
           </div>
           <h1
             css={css`
-              font-size: ${designTokens.typography.fontSize["5xl"]};
+              font-size: ${designTokens.typography.fontSize['5xl']};
               font-weight: bold;
               margin: 0 0 ${designTokens.spacing[4]} 0;
               letter-spacing: -0.04em;
             `}
           >
-            {agentType === "recall"
-              ? "Research Agent"
-              : "Procurement Agent"}
+            {agentType === 'recall' ? 'Research Agent' : 'Procurement Agent'}
           </h1>
           <p
             css={css`
@@ -259,9 +244,9 @@ const AgentProfile: React.FC = () => {
               line-height: 1.6;
             `}
           >
-            {agentType === "recall"
-              ? "Investigation-focused agent that gathers context, summarizes findings, and requests bounded spend through policy-aware execution controls."
-              : "Execution-focused agent that handles supplier interactions and requests budget-scoped wallet actions under approval-first governance."}
+            {agentType === 'recall'
+              ? 'Investigation-focused agent that gathers context, summarizes findings, and requests bounded spend through policy-aware execution controls.'
+              : 'Execution-focused agent that handles supplier interactions and requests budget-scoped wallet actions under approval-first governance.'}
           </p>
         </div>
         <div
@@ -363,7 +348,7 @@ const AgentProfile: React.FC = () => {
             </CardContent>
           </Card>
 
-          <VoiceBriefing agentId={agentId || "recall"} />
+          <VoiceBriefing agentId={agentId || 'recall'} />
         </div>
 
         <div css={mainContentColumnStyles}>
@@ -414,8 +399,7 @@ const AgentProfile: React.FC = () => {
                         key={tech}
                         variant="secondary"
                         css={css`
-                          padding: ${designTokens.spacing[2]}
-                            ${designTokens.spacing[4]};
+                          padding: ${designTokens.spacing[2]} ${designTokens.spacing[4]};
                           font-size: ${designTokens.typography.fontSize.sm};
                         `}
                       >
@@ -441,8 +425,7 @@ const AgentProfile: React.FC = () => {
                       color: ${designTokens.colors.primary[600]};
                       text-decoration: none;
                       font-weight: 600;
-                      padding: ${designTokens.spacing[3]}
-                        ${designTokens.spacing[5]};
+                      padding: ${designTokens.spacing[3]} ${designTokens.spacing[5]};
                       background: ${designTokens.colors.primary[50]};
                       border-radius: ${designTokens.borderRadius.lg};
                       transition: all 0.2s ease;

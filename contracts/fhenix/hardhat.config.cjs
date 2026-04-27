@@ -1,11 +1,11 @@
 const path = require("path");
 require("@nomicfoundation/hardhat-toolbox");
 // CoFHE Hardhat plugin enables local FHE development without testnet dependencies.
-// Install with: pnpm add -D @fhenixprotocol/cofhe-hardhat-plugin
 try {
   require("@fhenixprotocol/cofhe-hardhat-plugin");
+  require("@fhenixprotocol/hardhat-fhenix");
 } catch (_) {
-  // Plugin is optional during initial scaffolding; required for `pnpm fhenix:test`.
+  // Plugins are optional during initial scaffolding
 }
 require("dotenv").config({ path: path.resolve(__dirname, "..", "..", ".env.local") });
 require("dotenv").config({ path: path.resolve(__dirname, "..", "..", ".env") });
@@ -14,10 +14,10 @@ const root = path.resolve(__dirname, "..", "..");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: "0.8.24",
+  solidity: "0.8.25", // Match contract version
   networks: {
     fhenixSepolia: {
-      url: process.env.FHENIX_SEPOLIA_RPC || "https://api.helium.fhenix.zone",
+      url: process.env.FHENIX_SEPOLIA_RPC || "https://api.testnet.fhenix.zone",
       accounts: process.env.FHENIX_PRIVATE_KEY ? [process.env.FHENIX_PRIVATE_KEY] : [],
     },
     arbitrumSepolia: {

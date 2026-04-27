@@ -1,7 +1,7 @@
-import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
+import { css } from '@emotion/react';
+import { designTokens } from '../tokens/designTokens';
 
-export type ModalSize = "sm" | "md" | "lg" | "xl";
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 export const modalStyles = {
   overlay: css`
@@ -18,34 +18,34 @@ export const modalStyles = {
     padding: ${designTokens.spacing[4]};
     backdrop-filter: blur(4px);
   `,
-  container: (size: ModalSize = "md") => css`
+  container: (size: ModalSize = 'md') => css`
     background-color: ${designTokens.colors.neutral[0]};
     border-radius: ${designTokens.borderRadius.lg};
-    box-shadow: ${designTokens.shadows["2xl"]};
+    box-shadow: ${designTokens.shadows['2xl']};
     max-height: 90vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
 
-    ${size === "sm" &&
+    ${size === 'sm' &&
     css`
       width: 100%;
       max-width: 400px;
     `}
 
-    ${size === "md" &&
+    ${size === 'md' &&
     css`
       width: 100%;
       max-width: 500px;
     `}
 
-    ${size === "lg" &&
+    ${size === 'lg' &&
     css`
       width: 100%;
       max-width: 700px;
     `}
 
-    ${size === "xl" &&
+    ${size === 'xl' &&
     css`
       width: 100%;
       max-width: 900px;
@@ -70,8 +70,7 @@ export const modalStyles = {
     flex: 1;
   `,
   footer: css`
-    padding: ${designTokens.spacing[4]} ${designTokens.spacing[6]}
-      ${designTokens.spacing[6]};
+    padding: ${designTokens.spacing[4]} ${designTokens.spacing[6]} ${designTokens.spacing[6]};
     border-top: 1px solid ${designTokens.colors.neutral[200]};
     display: flex;
     align-items: center;

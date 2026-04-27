@@ -40,6 +40,7 @@ export interface PolicyCheck {
   policyId: string;
   result: boolean;
   reason?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface AgentMetrics {
