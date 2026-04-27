@@ -1,11 +1,8 @@
-import { FileText, Users, Shield, Plus, PlayCircle } from "lucide-react";
-import { useState, useEffect } from "react";
-import { css } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
-import {
-  useGovernanceStore,
-  GovernanceTemplate,
-} from "../../stores/governanceStore";
+import { FileText, Users, Shield, Plus, PlayCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
+import { useGovernanceStore, GovernanceTemplate } from '../../stores/governanceStore';
 import {
   Card,
   CardContent,
@@ -16,10 +13,10 @@ import {
   AgentCard,
   LoadingSpinner,
   ErrorBoundary,
-} from "../ui";
-import AgentSimulation from "../agents/AgentSimulation";
-import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { agentApi } from "../../services/apiService";
+} from '../ui';
+import AgentSimulation from '../agents/AgentSimulation';
+import { useBreakpoint } from '../../hooks/useMediaQuery';
+import { agentApi } from '../../services/apiService';
 
 interface AgentConnection {
   id: string;
@@ -50,18 +47,15 @@ export default function PolicyManagement() {
 
 function PolicyManagementContent() {
   const { isMobile, isTablet } = useBreakpoint();
-  const [activeTab, setActiveTab] = useState<
-    "templates" | "policies" | "agents" | "simulation"
-  >("templates");
+  const [activeTab, setActiveTab] = useState<'templates' | 'policies' | 'agents' | 'simulation'>(
+    'templates',
+  );
 
   // Global Governance State
-  const { policies, templates, isLoading, fetchPolicies, applyTemplate } =
-    useGovernanceStore();
+  const { policies, templates, isLoading, fetchPolicies, applyTemplate } = useGovernanceStore();
 
   // Local state for agent connections (keeping existing logic for agent domain)
-  const [agentConnections, setAgentConnections] = useState<AgentConnection[]>(
-    [],
-  );
+  const [agentConnections, setAgentConnections] = useState<AgentConnection[]>([]);
   const [isAgentsLoading, setIsAgentsLoading] = useState(false);
 
   useEffect(() => {
@@ -78,7 +72,7 @@ function PolicyManagementContent() {
         setAgentConnections(Array.isArray(payload.data) ? payload.data : []);
       }
     } catch (error) {
-      console.error("Error fetching agent connections:", error);
+      console.error('Error fetching agent connections:', error);
     } finally {
       setIsAgentsLoading(false);
     }
@@ -87,17 +81,17 @@ function PolicyManagementContent() {
   const handleTemplateSelect = async (template: GovernanceTemplate) => {
     try {
       await applyTemplate(template.id);
-      setActiveTab("policies");
+      setActiveTab('policies');
     } catch (error) {
-      console.error("Failed to apply template:", error);
+      console.error('Failed to apply template:', error);
     }
   };
 
   const getTemplateMonogram = (name: string) =>
     name
-      .split(" ")
+      .split(' ')
       .map((part) => part[0])
-      .join("")
+      .join('')
       .slice(0, 2)
       .toUpperCase();
 
@@ -118,7 +112,7 @@ function PolicyManagementContent() {
   `;
 
   const titleStyles = css`
-    font-size: ${designTokens.typography.fontSize["3xl"]};
+    font-size: ${designTokens.typography.fontSize['3xl']};
     font-weight: ${designTokens.typography.fontWeight.bold};
     color: ${designTokens.colors.neutral[900]};
     margin-bottom: ${designTokens.spacing[2]};
@@ -149,11 +143,8 @@ function PolicyManagementContent() {
     padding: ${designTokens.spacing[4]} 0;
     font-size: ${designTokens.typography.fontSize.base};
     font-weight: ${designTokens.typography.fontWeight.semibold};
-    color: ${active
-      ? designTokens.colors.primary[600]
-      : designTokens.colors.neutral[500]};
-    border-bottom: 2px solid
-      ${active ? designTokens.colors.primary[600] : "transparent"};
+    color: ${active ? designTokens.colors.primary[600] : designTokens.colors.neutral[500]};
+    border-bottom: 2px solid ${active ? designTokens.colors.primary[600] : 'transparent'};
     cursor: pointer;
     transition: all 0.2s;
 
@@ -186,8 +177,7 @@ function PolicyManagementContent() {
       <header css={headerStyles}>
         <h1 css={titleStyles}>Governance & Policies</h1>
         <p css={subtitleStyles}>
-          Define guardrails and safety protocols for your autonomous agent
-          ecosystem.
+          Define guardrails and safety protocols for your autonomous agent ecosystem.
         </p>
       </header>
 
@@ -201,7 +191,7 @@ function PolicyManagementContent() {
         />
         <StatCard
           label="Active Guards"
-          value={policies.filter((p) => p.status === "active").length}
+          value={policies.filter((p) => p.status === 'active').length}
           icon={<Shield size={20} />}
           color="success"
         />
@@ -216,58 +206,54 @@ function PolicyManagementContent() {
       {/* Tabbed Interface */}
       <nav css={tabsContainerStyles}>
         <button
-          css={tabButtonStyles(activeTab === "templates")}
-          onClick={() => setActiveTab("templates")}
+          css={tabButtonStyles(activeTab === 'templates')}
+          onClick={() => setActiveTab('templates')}
         >
-          <FileText size={16} style={{ marginRight: "8px" }} />
+          <FileText size={16} style={{ marginRight: '8px' }} />
           Templates
         </button>
         <button
-          css={tabButtonStyles(activeTab === "policies")}
-          onClick={() => setActiveTab("policies")}
+          css={tabButtonStyles(activeTab === 'policies')}
+          onClick={() => setActiveTab('policies')}
         >
-          <Shield size={16} style={{ marginRight: "8px" }} />
+          <Shield size={16} style={{ marginRight: '8px' }} />
           My Policies ({policies.length})
         </button>
         <button
-          css={tabButtonStyles(activeTab === "agents")}
-          onClick={() => setActiveTab("agents")}
+          css={tabButtonStyles(activeTab === 'agents')}
+          onClick={() => setActiveTab('agents')}
         >
-          <Users size={16} style={{ marginRight: "8px" }} />
+          <Users size={16} style={{ marginRight: '8px' }} />
           Connected Agents
         </button>
         <button
-          css={tabButtonStyles(activeTab === "simulation")}
-          onClick={() => setActiveTab("simulation")}
+          css={tabButtonStyles(activeTab === 'simulation')}
+          onClick={() => setActiveTab('simulation')}
         >
-          <PlayCircle size={16} style={{ marginRight: "8px" }} />
+          <PlayCircle size={16} style={{ marginRight: '8px' }} />
           Simulation Mode
         </button>
       </nav>
 
       {/* Tab Content */}
       <main>
-        {activeTab === "templates" && (
+        {activeTab === 'templates' && (
           <div css={gridLayoutStyles}>
             {templates.map((template) => (
-              <Card
-                key={template.id}
-                interactive
-                onClick={() => handleTemplateSelect(template)}
-              >
+              <Card key={template.id} interactive onClick={() => handleTemplateSelect(template)}>
                 <CardContent>
                   <div
                     style={{
-                      fontSize: "0.8rem",
+                      fontSize: '0.8rem',
                       fontWeight: 700,
-                      letterSpacing: "0.04em",
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "9999px",
+                      letterSpacing: '0.04em',
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '9999px',
                       border: `1px solid ${designTokens.colors.neutral[300]}`,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       color: designTokens.colors.neutral[700],
                       background: designTokens.colors.neutral[100],
                       marginBottom: designTokens.spacing[4],
@@ -275,24 +261,20 @@ function PolicyManagementContent() {
                   >
                     {getTemplateMonogram(template.name)}
                   </div>
-                  <h3 style={{ marginBottom: designTokens.spacing[2] }}>
-                    {template.name}
-                  </h3>
+                  <h3 style={{ marginBottom: designTokens.spacing[2] }}>{template.name}</h3>
                   <p
                     style={{
                       color: designTokens.colors.neutral[500],
-                      fontSize: "0.9rem",
+                      fontSize: '0.9rem',
                       marginBottom: designTokens.spacing[4],
-                      minHeight: "3em",
+                      minHeight: '3em',
                     }}
                   >
                     {template.description}
                   </p>
-                  <div style={{ display: "flex", gap: "8px" }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     <Badge variant="secondary">{template.complexity}</Badge>
-                    <Badge variant="outline">
-                      {template.defaultRules.length} Rules
-                    </Badge>
+                    <Badge variant="outline">{template.defaultRules.length} Rules</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -300,20 +282,17 @@ function PolicyManagementContent() {
           </div>
         )}
 
-        {activeTab === "policies" && (
+        {activeTab === 'policies' && (
           <>
             {isLoading ? (
-              <div style={{ textAlign: "center", padding: "40px" }}>
+              <div style={{ textAlign: 'center', padding: '40px' }}>
                 <LoadingSpinner />
               </div>
             ) : policies.length === 0 ? (
               <div css={emptyStateStyles}>
                 <h3>No policies created yet</h3>
                 <p>Browse templates to get started with governance.</p>
-                <Button
-                  style={{ marginTop: "16px" }}
-                  onClick={() => setActiveTab("templates")}
-                >
+                <Button style={{ marginTop: '16px' }} onClick={() => setActiveTab('templates')}>
                   View Templates
                 </Button>
               </div>
@@ -323,7 +302,7 @@ function PolicyManagementContent() {
                   <PolicyCard
                     key={policy.id}
                     policy={policy}
-                    onClick={(p) => console.log("Edit policy", p)}
+                    onClick={(p) => console.log('Edit policy', p)}
                   />
                 ))}
               </div>
@@ -331,10 +310,10 @@ function PolicyManagementContent() {
           </>
         )}
 
-        {activeTab === "agents" && (
+        {activeTab === 'agents' && (
           <>
             {isAgentsLoading ? (
-              <div style={{ textAlign: "center", padding: "40px" }}>
+              <div style={{ textAlign: 'center', padding: '40px' }}>
                 <LoadingSpinner />
               </div>
             ) : agentConnections.length === 0 ? (
@@ -359,12 +338,26 @@ function PolicyManagementContent() {
           </>
         )}
 
-        {activeTab === "simulation" && (
-          <div css={css`animation: fadeIn 0.3s ease-out;`}>
-            <div css={css`margin-bottom: ${designTokens.spacing[6]};`}>
+        {activeTab === 'simulation' && (
+          <div
+            css={css`
+              animation: fadeIn 0.3s ease-out;
+            `}
+          >
+            <div
+              css={css`
+                margin-bottom: ${designTokens.spacing[6]};
+              `}
+            >
               <h2 css={sectionTitleStyles}>Policy Simulation</h2>
-              <p css={css`color: ${designTokens.colors.neutral[400]}; font-size: ${designTokens.typography.fontSize.sm};`}>
-                Test your governance policies against historical data or edge-case scenarios before applying them to live agents.
+              <p
+                css={css`
+                  color: ${designTokens.colors.neutral[400]};
+                  font-size: ${designTokens.typography.fontSize.sm};
+                `}
+              >
+                Test your governance policies against historical data or edge-case scenarios before
+                applying them to live agents.
               </p>
             </div>
             <AgentSimulation />

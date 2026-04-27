@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 export interface PolicyRule {
   id: string;
   name: string;
   description: string;
   enabled: boolean;
-  strictness: "low" | "medium" | "high";
-  category: "data" | "security" | "compliance" | "ethics";
+  strictness: 'low' | 'medium' | 'high';
+  category: 'data' | 'security' | 'compliance' | 'ethics';
 }
 
 export interface Policy {
@@ -14,7 +14,7 @@ export interface Policy {
   name: string;
   description: string;
   rules: PolicyRule[];
-  template: "minimal" | "standard" | "strict" | "custom";
+  template: 'minimal' | 'standard' | 'strict' | 'custom';
 }
 
 interface PolicyCustomizerProps {
@@ -22,206 +22,199 @@ interface PolicyCustomizerProps {
   initialPolicy?: Policy;
 }
 
-export default function PolicyCustomizer({
-  onPolicyChange,
-  initialPolicy,
-}: PolicyCustomizerProps) {
+export default function PolicyCustomizer({ onPolicyChange, initialPolicy }: PolicyCustomizerProps) {
   // Default policy templates
   const policyTemplates: Record<string, Policy> = {
     minimal: {
-      id: "minimal-policy",
-      name: "Minimal Governance",
-      description:
-        "Basic governance with minimal restrictions for maximum agent freedom",
-      template: "minimal",
+      id: 'minimal-policy',
+      name: 'Minimal Governance',
+      description: 'Basic governance with minimal restrictions for maximum agent freedom',
+      template: 'minimal',
       rules: [
         {
-          id: "audit-logging",
-          name: "Audit Logging",
-          description: "Log all agent actions for audit purposes",
+          id: 'audit-logging',
+          name: 'Audit Logging',
+          description: 'Log all agent actions for audit purposes',
           enabled: true,
-          strictness: "low",
-          category: "compliance",
+          strictness: 'low',
+          category: 'compliance',
         },
         {
-          id: "data-access",
-          name: "Data Access Control",
-          description: "Control access to sensitive data",
+          id: 'data-access',
+          name: 'Data Access Control',
+          description: 'Control access to sensitive data',
           enabled: true,
-          strictness: "low",
-          category: "data",
+          strictness: 'low',
+          category: 'data',
         },
         {
-          id: "rate-limiting",
-          name: "Rate Limiting",
-          description: "Limit the frequency of agent actions",
+          id: 'rate-limiting',
+          name: 'Rate Limiting',
+          description: 'Limit the frequency of agent actions',
           enabled: true,
-          strictness: "low",
-          category: "security",
+          strictness: 'low',
+          category: 'security',
         },
         {
-          id: "content-filtering",
-          name: "Content Filtering",
-          description: "Filter inappropriate content",
+          id: 'content-filtering',
+          name: 'Content Filtering',
+          description: 'Filter inappropriate content',
           enabled: false,
-          strictness: "low",
-          category: "ethics",
+          strictness: 'low',
+          category: 'ethics',
         },
         {
-          id: "human-in-loop",
-          name: "Human-in-the-Loop",
-          description: "Require human approval for certain actions",
+          id: 'human-in-loop',
+          name: 'Human-in-the-Loop',
+          description: 'Require human approval for certain actions',
           enabled: false,
-          strictness: "low",
-          category: "compliance",
+          strictness: 'low',
+          category: 'compliance',
         },
       ],
     },
     standard: {
-      id: "standard-policy",
-      name: "Standard Governance",
-      description: "Balanced governance with reasonable restrictions",
-      template: "standard",
+      id: 'standard-policy',
+      name: 'Standard Governance',
+      description: 'Balanced governance with reasonable restrictions',
+      template: 'standard',
       rules: [
         {
-          id: "audit-logging",
-          name: "Audit Logging",
-          description: "Log all agent actions for audit purposes",
+          id: 'audit-logging',
+          name: 'Audit Logging',
+          description: 'Log all agent actions for audit purposes',
           enabled: true,
-          strictness: "medium",
-          category: "compliance",
+          strictness: 'medium',
+          category: 'compliance',
         },
         {
-          id: "data-access",
-          name: "Data Access Control",
-          description: "Control access to sensitive data",
+          id: 'data-access',
+          name: 'Data Access Control',
+          description: 'Control access to sensitive data',
           enabled: true,
-          strictness: "medium",
-          category: "data",
+          strictness: 'medium',
+          category: 'data',
         },
         {
-          id: "rate-limiting",
-          name: "Rate Limiting",
-          description: "Limit the frequency of agent actions",
+          id: 'rate-limiting',
+          name: 'Rate Limiting',
+          description: 'Limit the frequency of agent actions',
           enabled: true,
-          strictness: "medium",
-          category: "security",
+          strictness: 'medium',
+          category: 'security',
         },
         {
-          id: "content-filtering",
-          name: "Content Filtering",
-          description: "Filter inappropriate content",
+          id: 'content-filtering',
+          name: 'Content Filtering',
+          description: 'Filter inappropriate content',
           enabled: true,
-          strictness: "medium",
-          category: "ethics",
+          strictness: 'medium',
+          category: 'ethics',
         },
         {
-          id: "human-in-loop",
-          name: "Human-in-the-Loop",
-          description: "Require human approval for certain actions",
+          id: 'human-in-loop',
+          name: 'Human-in-the-Loop',
+          description: 'Require human approval for certain actions',
           enabled: true,
-          strictness: "medium",
-          category: "compliance",
+          strictness: 'medium',
+          category: 'compliance',
         },
         {
-          id: "data-protection",
-          name: "Data Protection",
-          description: "Protect sensitive data from unauthorized access",
+          id: 'data-protection',
+          name: 'Data Protection',
+          description: 'Protect sensitive data from unauthorized access',
           enabled: true,
-          strictness: "medium",
-          category: "data",
+          strictness: 'medium',
+          category: 'data',
         },
       ],
     },
     strict: {
-      id: "strict-policy",
-      name: "Strict Governance",
-      description:
-        "Maximum governance with strict restrictions for high-risk environments",
-      template: "strict",
+      id: 'strict-policy',
+      name: 'Strict Governance',
+      description: 'Maximum governance with strict restrictions for high-risk environments',
+      template: 'strict',
       rules: [
         {
-          id: "audit-logging",
-          name: "Audit Logging",
-          description: "Log all agent actions for audit purposes",
+          id: 'audit-logging',
+          name: 'Audit Logging',
+          description: 'Log all agent actions for audit purposes',
           enabled: true,
-          strictness: "high",
-          category: "compliance",
+          strictness: 'high',
+          category: 'compliance',
         },
         {
-          id: "data-access",
-          name: "Data Access Control",
-          description: "Control access to sensitive data",
+          id: 'data-access',
+          name: 'Data Access Control',
+          description: 'Control access to sensitive data',
           enabled: true,
-          strictness: "high",
-          category: "data",
+          strictness: 'high',
+          category: 'data',
         },
         {
-          id: "rate-limiting",
-          name: "Rate Limiting",
-          description: "Limit the frequency of agent actions",
+          id: 'rate-limiting',
+          name: 'Rate Limiting',
+          description: 'Limit the frequency of agent actions',
           enabled: true,
-          strictness: "high",
-          category: "security",
+          strictness: 'high',
+          category: 'security',
         },
         {
-          id: "content-filtering",
-          name: "Content Filtering",
-          description: "Filter inappropriate content",
+          id: 'content-filtering',
+          name: 'Content Filtering',
+          description: 'Filter inappropriate content',
           enabled: true,
-          strictness: "high",
-          category: "ethics",
+          strictness: 'high',
+          category: 'ethics',
         },
         {
-          id: "human-in-loop",
-          name: "Human-in-the-Loop",
-          description: "Require human approval for certain actions",
+          id: 'human-in-loop',
+          name: 'Human-in-the-Loop',
+          description: 'Require human approval for certain actions',
           enabled: true,
-          strictness: "high",
-          category: "compliance",
+          strictness: 'high',
+          category: 'compliance',
         },
         {
-          id: "data-protection",
-          name: "Data Protection",
-          description: "Protect sensitive data from unauthorized access",
+          id: 'data-protection',
+          name: 'Data Protection',
+          description: 'Protect sensitive data from unauthorized access',
           enabled: true,
-          strictness: "high",
-          category: "data",
+          strictness: 'high',
+          category: 'data',
         },
         {
-          id: "action-verification",
-          name: "Action Verification",
-          description: "Verify all actions before execution",
+          id: 'action-verification',
+          name: 'Action Verification',
+          description: 'Verify all actions before execution',
           enabled: true,
-          strictness: "high",
-          category: "security",
+          strictness: 'high',
+          category: 'security',
         },
         {
-          id: "ethical-guidelines",
-          name: "Ethical Guidelines",
-          description: "Enforce ethical guidelines for all actions",
+          id: 'ethical-guidelines',
+          name: 'Ethical Guidelines',
+          description: 'Enforce ethical guidelines for all actions',
           enabled: true,
-          strictness: "high",
-          category: "ethics",
+          strictness: 'high',
+          category: 'ethics',
         },
       ],
     },
   };
 
   const [selectedTemplate, setSelectedTemplate] = useState<string>(
-    initialPolicy?.template || "standard",
+    initialPolicy?.template || 'standard',
   );
   const [currentPolicy, setCurrentPolicy] = useState<Policy>(
     initialPolicy || policyTemplates.standard,
   );
-  const [isCustomized, setIsCustomized] = useState<boolean>(
-    initialPolicy?.template === "custom",
-  );
+  const [isCustomized, setIsCustomized] = useState<boolean>(initialPolicy?.template === 'custom');
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
   // Update policy when template changes
   useEffect(() => {
-    if (selectedTemplate !== "custom") {
+    if (selectedTemplate !== 'custom') {
       setCurrentPolicy(policyTemplates[selectedTemplate]);
       setIsCustomized(false);
     }
@@ -244,18 +237,15 @@ export default function PolicyCustomizer({
     const updatedPolicy: Policy = {
       ...currentPolicy,
       rules: updatedRules,
-      template: "custom",
+      template: 'custom',
     };
 
     setCurrentPolicy(updatedPolicy);
-    setSelectedTemplate("custom");
+    setSelectedTemplate('custom');
     setIsCustomized(true);
   };
 
-  const handleStrictnessChange = (
-    ruleId: string,
-    strictness: "low" | "medium" | "high",
-  ) => {
+  const handleStrictnessChange = (ruleId: string, strictness: 'low' | 'medium' | 'high') => {
     const updatedRules = currentPolicy.rules.map((rule) =>
       rule.id === ruleId ? { ...rule, strictness } : rule,
     );
@@ -263,19 +253,19 @@ export default function PolicyCustomizer({
     const updatedPolicy: Policy = {
       ...currentPolicy,
       rules: updatedRules,
-      template: "custom",
+      template: 'custom',
     };
 
     setCurrentPolicy(updatedPolicy);
-    setSelectedTemplate("custom");
+    setSelectedTemplate('custom');
     setIsCustomized(true);
   };
 
-  const templateBadge = (template: Policy["template"]): string => {
-    if (template === "minimal") return "MN";
-    if (template === "standard") return "ST";
-    if (template === "strict") return "SR";
-    return "CU";
+  const templateBadge = (template: Policy['template']): string => {
+    if (template === 'minimal') return 'MN';
+    if (template === 'standard') return 'ST';
+    if (template === 'strict') return 'SR';
+    return 'CU';
   };
 
   return (
@@ -284,27 +274,21 @@ export default function PolicyCustomizer({
         <h3>Governance Templates</h3>
         <div className="template-options">
           <button
-            className={`template-option ${selectedTemplate === "minimal" ? "active" : ""}`}
-            onClick={() => handleTemplateChange("minimal")}
+            className={`template-option ${selectedTemplate === 'minimal' ? 'active' : ''}`}
+            onClick={() => handleTemplateChange('minimal')}
           >
-            <div className="template-icon minimal">
-              {templateBadge("minimal")}
-            </div>
+            <div className="template-icon minimal">{templateBadge('minimal')}</div>
             <div className="template-info">
               <div className="template-name">Minimal</div>
-              <div className="template-description">
-                Basic governance with minimal restrictions
-              </div>
+              <div className="template-description">Basic governance with minimal restrictions</div>
             </div>
           </button>
 
           <button
-            className={`template-option ${selectedTemplate === "standard" ? "active" : ""}`}
-            onClick={() => handleTemplateChange("standard")}
+            className={`template-option ${selectedTemplate === 'standard' ? 'active' : ''}`}
+            onClick={() => handleTemplateChange('standard')}
           >
-            <div className="template-icon standard">
-              {templateBadge("standard")}
-            </div>
+            <div className="template-icon standard">{templateBadge('standard')}</div>
             <div className="template-info">
               <div className="template-name">Standard</div>
               <div className="template-description">
@@ -314,12 +298,10 @@ export default function PolicyCustomizer({
           </button>
 
           <button
-            className={`template-option ${selectedTemplate === "strict" ? "active" : ""}`}
-            onClick={() => handleTemplateChange("strict")}
+            className={`template-option ${selectedTemplate === 'strict' ? 'active' : ''}`}
+            onClick={() => handleTemplateChange('strict')}
           >
-            <div className="template-icon strict">
-              {templateBadge("strict")}
-            </div>
+            <div className="template-icon strict">{templateBadge('strict')}</div>
             <div className="template-info">
               <div className="template-name">Strict</div>
               <div className="template-description">
@@ -330,17 +312,13 @@ export default function PolicyCustomizer({
 
           {isCustomized && (
             <button
-              className={`template-option ${selectedTemplate === "custom" ? "active" : ""}`}
-              onClick={() => handleTemplateChange("custom")}
+              className={`template-option ${selectedTemplate === 'custom' ? 'active' : ''}`}
+              onClick={() => handleTemplateChange('custom')}
             >
-              <div className="template-icon custom">
-                {templateBadge("custom")}
-              </div>
+              <div className="template-icon custom">{templateBadge('custom')}</div>
               <div className="template-info">
                 <div className="template-name">Custom</div>
-                <div className="template-description">
-                  Your customized governance policy
-                </div>
+                <div className="template-description">Your customized governance policy</div>
               </div>
             </button>
           )}
@@ -351,10 +329,10 @@ export default function PolicyCustomizer({
         <div className="rules-header">
           <h3>Policy Rules</h3>
           <button
-            className={`show-advanced-button ${showAdvanced ? "active" : ""}`}
+            className={`show-advanced-button ${showAdvanced ? 'active' : ''}`}
             onClick={() => setShowAdvanced(!showAdvanced)}
           >
-            {showAdvanced ? "Hide Advanced Options" : "Show Advanced Options"}
+            {showAdvanced ? 'Hide Advanced Options' : 'Show Advanced Options'}
           </button>
         </div>
 
@@ -362,10 +340,7 @@ export default function PolicyCustomizer({
           {currentPolicy.rules
             .filter((_, index) => showAdvanced || index < 4) // Show only first 4 rules unless advanced is toggled
             .map((rule) => (
-              <div
-                key={rule.id}
-                className={`rule-item ${rule.enabled ? "enabled" : "disabled"}`}
-              >
+              <div key={rule.id} className={`rule-item ${rule.enabled ? 'enabled' : 'disabled'}`}>
                 <div className="rule-header">
                   <div className="rule-toggle">
                     <input
@@ -390,22 +365,20 @@ export default function PolicyCustomizer({
                     <div className="strictness-label">Strictness:</div>
                     <div className="strictness-options">
                       <button
-                        className={`strictness-option ${rule.strictness === "low" ? "active" : ""}`}
-                        onClick={() => handleStrictnessChange(rule.id, "low")}
+                        className={`strictness-option ${rule.strictness === 'low' ? 'active' : ''}`}
+                        onClick={() => handleStrictnessChange(rule.id, 'low')}
                       >
                         Low
                       </button>
                       <button
-                        className={`strictness-option ${rule.strictness === "medium" ? "active" : ""}`}
-                        onClick={() =>
-                          handleStrictnessChange(rule.id, "medium")
-                        }
+                        className={`strictness-option ${rule.strictness === 'medium' ? 'active' : ''}`}
+                        onClick={() => handleStrictnessChange(rule.id, 'medium')}
                       >
                         Medium
                       </button>
                       <button
-                        className={`strictness-option ${rule.strictness === "high" ? "active" : ""}`}
-                        onClick={() => handleStrictnessChange(rule.id, "high")}
+                        className={`strictness-option ${rule.strictness === 'high' ? 'active' : ''}`}
+                        onClick={() => handleStrictnessChange(rule.id, 'high')}
                       >
                         High
                       </button>
@@ -418,10 +391,7 @@ export default function PolicyCustomizer({
           {!showAdvanced && currentPolicy.rules.length > 4 && (
             <div className="more-rules-indicator">
               <span>{currentPolicy.rules.length - 4} more rules available</span>
-              <button
-                className="show-more-button"
-                onClick={() => setShowAdvanced(true)}
-              >
+              <button className="show-more-button" onClick={() => setShowAdvanced(true)}>
                 Show All
               </button>
             </div>
@@ -437,41 +407,27 @@ export default function PolicyCustomizer({
 
         <div className="summary-stats">
           <div className="stat-item">
-            <div className="stat-value">
-              {currentPolicy.rules.filter((r) => r.enabled).length}
-            </div>
+            <div className="stat-value">{currentPolicy.rules.filter((r) => r.enabled).length}</div>
             <div className="stat-label">Active Rules</div>
           </div>
 
           <div className="stat-item">
             <div className="stat-value">
-              {
-                currentPolicy.rules.filter(
-                  (r) => r.enabled && r.strictness === "high",
-                ).length
-              }
+              {currentPolicy.rules.filter((r) => r.enabled && r.strictness === 'high').length}
             </div>
             <div className="stat-label">High Strictness</div>
           </div>
 
           <div className="stat-item">
             <div className="stat-value">
-              {
-                currentPolicy.rules.filter(
-                  (r) => r.enabled && r.strictness === "medium",
-                ).length
-              }
+              {currentPolicy.rules.filter((r) => r.enabled && r.strictness === 'medium').length}
             </div>
             <div className="stat-label">Medium Strictness</div>
           </div>
 
           <div className="stat-item">
             <div className="stat-value">
-              {
-                currentPolicy.rules.filter(
-                  (r) => r.enabled && r.strictness === "low",
-                ).length
-              }
+              {currentPolicy.rules.filter((r) => r.enabled && r.strictness === 'low').length}
             </div>
             <div className="stat-label">Low Strictness</div>
           </div>

@@ -1,5 +1,5 @@
-import { css } from "@emotion/react";
-import { designTokens, keyframeAnimations } from "../../styles/design-system";
+import { css } from '@emotion/react';
+import { designTokens, keyframeAnimations } from '../../styles/design-system';
 
 export const containerStyles = css`
   width: 100%;
@@ -13,7 +13,7 @@ export const headerStyles = css`
 `;
 
 export const titleStyles = css`
-  font-size: ${designTokens.typography.fontSize["2xl"]};
+  font-size: ${designTokens.typography.fontSize['2xl']};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: ${designTokens.colors.neutral[900]};
   margin-bottom: ${designTokens.spacing[1]};
@@ -37,8 +37,7 @@ export const agentCardStyles = (isSelected: boolean) => css`
   position: relative;
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 2px solid
-    ${isSelected ? designTokens.colors.primary[500] : "transparent"};
+  border: 2px solid ${isSelected ? designTokens.colors.primary[500] : 'transparent'};
 
   &:hover {
     transform: translateY(-2px);
@@ -48,11 +47,7 @@ export const agentCardStyles = (isSelected: boolean) => css`
   ${isSelected &&
   css`
     box-shadow: ${designTokens.shadows.lg};
-    background: linear-gradient(
-      135deg,
-      ${designTokens.colors.primary[50]} 0%,
-      white 100%
-    );
+    background: linear-gradient(135deg, ${designTokens.colors.primary[50]} 0%, white 100%);
   `}
 `;
 

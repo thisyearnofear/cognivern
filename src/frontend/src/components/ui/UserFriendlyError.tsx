@@ -5,8 +5,8 @@
  * Follows CLEAN + MODULAR principles.
  */
 
-import React from "react";
-import { css } from "@emotion/react";
+import React from 'react';
+import { css } from '@emotion/react';
 import {
   AlertTriangle,
   RefreshCw,
@@ -16,19 +16,19 @@ import {
   WifiOff,
   Server,
   Clock,
-  FileQuestion
-} from "lucide-react";
-import { designTokens } from "../../styles/design-system";
-import { Button } from "./Button";
+  FileQuestion,
+} from 'lucide-react';
+import { designTokens } from '../../styles/design-system';
+import { Button } from './Button';
 
 export type ErrorType =
-  | "network"
-  | "server"
-  | "timeout"
-  | "not_found"
-  | "permission"
-  | "validation"
-  | "unknown";
+  | 'network'
+  | 'server'
+  | 'timeout'
+  | 'not_found'
+  | 'permission'
+  | 'validation'
+  | 'unknown';
 
 export interface UserFriendlyErrorProps {
   errorType?: ErrorType;
@@ -48,58 +48,61 @@ export interface UserFriendlyErrorProps {
   testId?: string;
 }
 
-const errorConfig: Record<ErrorType, {
-  icon: React.ReactNode;
-  title: string;
-  message: string;
-  suggestion: string;
-}> = {
+const errorConfig: Record<
+  ErrorType,
+  {
+    icon: React.ReactNode;
+    title: string;
+    message: string;
+    suggestion: string;
+  }
+> = {
   network: {
     icon: <WifiOff size={32} />,
-    title: "Connection Problem",
-    message: "Unable to reach our servers",
-    suggestion: "Check your internet connection and try again"
+    title: 'Connection Problem',
+    message: 'Unable to reach our servers',
+    suggestion: 'Check your internet connection and try again',
   },
   server: {
     icon: <Server size={32} />,
-    title: "Server Issue",
-    message: "Something went wrong on our end",
-    suggestion: "This is usually temporary. Please try again in a few moments."
+    title: 'Server Issue',
+    message: 'Something went wrong on our end',
+    suggestion: 'This is usually temporary. Please try again in a few moments.',
   },
   timeout: {
     icon: <Clock size={32} />,
-    title: "Request Timeout",
-    message: "The request took too long",
-    suggestion: "Try refreshing the page or check your connection"
+    title: 'Request Timeout',
+    message: 'The request took too long',
+    suggestion: 'Try refreshing the page or check your connection',
   },
   not_found: {
     icon: <FileQuestion size={32} />,
-    title: "Not Found",
+    title: 'Not Found',
     message: "The page or resource you're looking for doesn't exist",
-    suggestion: "It may have been moved or deleted"
+    suggestion: 'It may have been moved or deleted',
   },
   permission: {
     icon: <Settings size={32} />,
-    title: "Access Denied",
+    title: 'Access Denied',
     message: "You don't have permission to view this",
-    suggestion: "Contact your administrator if you need access"
+    suggestion: 'Contact your administrator if you need access',
   },
   validation: {
     icon: <AlertTriangle size={32} />,
-    title: "Invalid Input",
-    message: "Please check your input and try again",
-    suggestion: "Make sure all required fields are filled correctly"
+    title: 'Invalid Input',
+    message: 'Please check your input and try again',
+    suggestion: 'Make sure all required fields are filled correctly',
   },
   unknown: {
     icon: <AlertTriangle size={32} />,
-    title: "Something Went Wrong",
-    message: "An unexpected error occurred",
-    suggestion: "Please try again or contact support if the problem persists"
-  }
+    title: 'Something Went Wrong',
+    message: 'An unexpected error occurred',
+    suggestion: 'Please try again or contact support if the problem persists',
+  },
 };
 
 export const UserFriendlyError: React.FC<UserFriendlyErrorProps> = ({
-  errorType = "unknown",
+  errorType = 'unknown',
   message,
   title,
   showRetry = true,
@@ -110,20 +113,13 @@ export const UserFriendlyError: React.FC<UserFriendlyErrorProps> = ({
   onBack,
   onHome,
   details,
-  testId
+  testId,
 }) => {
   const config = errorConfig[errorType];
 
   return (
-    <div
-      css={containerStyles}
-      data-testid={testId}
-      role="alert"
-      aria-live="polite"
-    >
-      <div css={iconContainerStyles(errorType)}>
-        {config.icon}
-      </div>
+    <div css={containerStyles} data-testid={testId} role="alert" aria-live="polite">
+      <div css={iconContainerStyles(errorType)}>{config.icon}</div>
 
       <h3 css={titleStyles}>{title || config.title}</h3>
       <p css={messageStyles}>{message || config.message}</p>
@@ -225,28 +221,44 @@ const actionsStyles = css`
 
 export function useErrorTranslation() {
   return (error: unknown): ErrorType => {
-    if (!error) return "unknown";
+    if (!error) return 'unknown';
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    if (errorMessage.includes("network") || errorMessage.includes("fetch") || errorMessage.includes("Failed to fetch")) {
-      return "network";
+    if (
+      errorMessage.includes('network') ||
+      errorMessage.includes('fetch') ||
+      errorMessage.includes('Failed to fetch')
+    ) {
+      return 'network';
     }
-    if (errorMessage.includes("500") || errorMessage.includes("server") || errorMessage.includes("Internal Server Error")) {
-      return "server";
+    if (
+      errorMessage.includes('500') ||
+      errorMessage.includes('server') ||
+      errorMessage.includes('Internal Server Error')
+    ) {
+      return 'server';
     }
-    if (errorMessage.includes("timeout") || errorMessage.includes("timed out")) {
-      return "timeout";
+    if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+      return 'timeout';
     }
-    if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
-      return "not_found";
+    if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+      return 'not_found';
     }
-    if (errorMessage.includes("403") || errorMessage.includes("Forbidden") || errorMessage.includes("unauthorized")) {
-      return "permission";
+    if (
+      errorMessage.includes('403') ||
+      errorMessage.includes('Forbidden') ||
+      errorMessage.includes('unauthorized')
+    ) {
+      return 'permission';
     }
-    if (errorMessage.includes("validation") || errorMessage.includes("invalid") || errorMessage.includes("400")) {
-      return "validation";
+    if (
+      errorMessage.includes('validation') ||
+      errorMessage.includes('invalid') ||
+      errorMessage.includes('400')
+    ) {
+      return 'validation';
     }
-    return "unknown";
+    return 'unknown';
   };
 }
 

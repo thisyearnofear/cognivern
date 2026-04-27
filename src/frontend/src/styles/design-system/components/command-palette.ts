@@ -1,5 +1,5 @@
-import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
+import { css } from '@emotion/react';
+import { designTokens } from '../tokens/designTokens';
 
 export const commandPaletteStyles = {
   input: css`

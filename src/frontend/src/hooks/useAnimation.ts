@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { useReducedMotion } from "./useMediaQuery";
+import { useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from './useMediaQuery';
 
 export interface AnimationOptions {
   duration?: number;
   delay?: number;
   easing?: string;
-  fillMode?: "none" | "forwards" | "backwards" | "both";
-  iterationCount?: number | "infinite";
-  direction?: "normal" | "reverse" | "alternate" | "alternate-reverse";
+  fillMode?: 'none' | 'forwards' | 'backwards' | 'both';
+  iterationCount?: number | 'infinite';
+  direction?: 'normal' | 'reverse' | 'alternate' | 'alternate-reverse';
 }
 
 export const useAnimation = (
@@ -21,8 +21,8 @@ export const useAnimation = (
 
   const defaultOptions: KeyframeAnimationOptions = {
     duration: 300,
-    easing: "ease-out",
-    fill: "forwards",
+    easing: 'ease-out',
+    fill: 'forwards',
     ...options,
   };
 
@@ -39,17 +39,17 @@ export const useAnimation = (
       animationRef.current = animation;
       setIsAnimating(true);
 
-      animation.addEventListener("finish", () => {
+      animation.addEventListener('finish', () => {
         setIsAnimating(false);
       });
 
-      animation.addEventListener("cancel", () => {
+      animation.addEventListener('cancel', () => {
         setIsAnimating(false);
       });
 
       return animation;
     } catch (error) {
-      console.warn("Animation failed:", error);
+      console.warn('Animation failed:', error);
       setIsAnimating(false);
     }
   };
@@ -103,41 +103,41 @@ export const useAnimation = (
 // Hook for entrance animations
 export const useEntranceAnimation = (
   type:
-    | "fadeIn"
-    | "slideInUp"
-    | "slideInDown"
-    | "slideInLeft"
-    | "slideInRight"
-    | "scaleIn" = "fadeIn",
+    | 'fadeIn'
+    | 'slideInUp'
+    | 'slideInDown'
+    | 'slideInLeft'
+    | 'slideInRight'
+    | 'scaleIn' = 'fadeIn',
   options: AnimationOptions = {},
 ) => {
   const keyframesMap = {
     fadeIn: [{ opacity: 0 }, { opacity: 1 }],
     slideInUp: [
-      { opacity: 0, transform: "translateY(20px)" },
-      { opacity: 1, transform: "translateY(0)" },
+      { opacity: 0, transform: 'translateY(20px)' },
+      { opacity: 1, transform: 'translateY(0)' },
     ],
     slideInDown: [
-      { opacity: 0, transform: "translateY(-20px)" },
-      { opacity: 1, transform: "translateY(0)" },
+      { opacity: 0, transform: 'translateY(-20px)' },
+      { opacity: 1, transform: 'translateY(0)' },
     ],
     slideInLeft: [
-      { opacity: 0, transform: "translateX(-20px)" },
-      { opacity: 1, transform: "translateX(0)" },
+      { opacity: 0, transform: 'translateX(-20px)' },
+      { opacity: 1, transform: 'translateX(0)' },
     ],
     slideInRight: [
-      { opacity: 0, transform: "translateX(20px)" },
-      { opacity: 1, transform: "translateX(0)" },
+      { opacity: 0, transform: 'translateX(20px)' },
+      { opacity: 1, transform: 'translateX(0)' },
     ],
     scaleIn: [
-      { opacity: 0, transform: "scale(0.9)" },
-      { opacity: 1, transform: "scale(1)" },
+      { opacity: 0, transform: 'scale(0.9)' },
+      { opacity: 1, transform: 'scale(1)' },
     ],
   };
 
   return useAnimation(keyframesMap[type], {
     duration: 300,
-    easing: "ease-out",
+    easing: 'ease-out',
     ...options,
   });
 };
@@ -154,8 +154,8 @@ export const useHoverAnimation = (
 
   const defaultOptions: KeyframeAnimationOptions = {
     duration: 200,
-    easing: "ease-out",
-    fill: "forwards",
+    easing: 'ease-out',
+    fill: 'forwards',
     ...options,
   };
 
@@ -173,12 +173,12 @@ export const useHoverAnimation = (
       element.animate(restKeyframes, defaultOptions);
     };
 
-    element.addEventListener("mouseenter", handleMouseEnter);
-    element.addEventListener("mouseleave", handleMouseLeave);
+    element.addEventListener('mouseenter', handleMouseEnter);
+    element.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
-      element.removeEventListener("mouseenter", handleMouseEnter);
-      element.removeEventListener("mouseleave", handleMouseLeave);
+      element.removeEventListener('mouseenter', handleMouseEnter);
+      element.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, [hoverKeyframes, restKeyframes, defaultOptions, prefersReducedMotion]);
 
@@ -202,14 +202,12 @@ export const useStaggeredAnimation = (
     return useAnimation(keyframes, {
       duration: 300,
       delay: index * staggerDelay,
-      easing: "ease-out",
+      easing: 'ease-out',
       ...options,
     });
   };
 
-  const animations = Array.from({ length: itemCount }, (_, index) =>
-    createItemAnimation(index),
-  );
+  const animations = Array.from({ length: itemCount }, (_, index) => createItemAnimation(index));
 
   const playAll = () => {
     if (prefersReducedMotion) return;
@@ -252,8 +250,8 @@ export const useScrollAnimation = (
           if (entry.isIntersecting && !hasAnimated) {
             element.animate(keyframes, {
               duration: 600,
-              easing: "ease-out",
-              fill: "forwards",
+              easing: 'ease-out',
+              fill: 'forwards',
               ...animationOptions,
             });
             setHasAnimated(true);
@@ -268,13 +266,7 @@ export const useScrollAnimation = (
     return () => {
       observer.disconnect();
     };
-  }, [
-    keyframes,
-    animationOptions,
-    threshold,
-    prefersReducedMotion,
-    hasAnimated,
-  ]);
+  }, [keyframes, animationOptions, threshold, prefersReducedMotion, hasAnimated]);
 
   const reset = () => {
     setHasAnimated(false);
@@ -290,23 +282,20 @@ export const useScrollAnimation = (
 // Hook for loading animations
 export const useLoadingAnimation = (isLoading: boolean) => {
   const skeletonAnimation = useAnimation(
-    [
-      { backgroundPosition: "-200px 0" },
-      { backgroundPosition: "calc(200px + 100%) 0" },
-    ],
+    [{ backgroundPosition: '-200px 0' }, { backgroundPosition: 'calc(200px + 100%) 0' }],
     {
       duration: 2000,
       iterationCount: Infinity,
-      easing: "ease-in-out",
+      easing: 'ease-in-out',
     },
   );
 
   const spinnerAnimation = useAnimation(
-    [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }],
+    [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
     {
       duration: 1000,
       iterationCount: Infinity,
-      easing: "linear",
+      easing: 'linear',
     },
   );
 

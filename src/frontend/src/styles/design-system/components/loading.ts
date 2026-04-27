@@ -1,6 +1,6 @@
-import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
-import { keyframeAnimations } from "../animations/keyframes";
+import { css } from '@emotion/react';
+import { designTokens } from '../tokens/designTokens';
+import { keyframeAnimations } from '../animations/keyframes';
 
 export const loadingStyles = {
   container: css`
@@ -11,7 +11,7 @@ export const loadingStyles = {
     gap: ${designTokens.spacing[3]};
   `,
   spinner: (
-    size: "sm" | "md" | "lg" = "md",
+    size: 'sm' | 'md' | 'lg' = 'md',
     color: string = designTokens.colors.primary[500],
   ) => css`
     border: 2px solid ${designTokens.colors.neutral[200]};
@@ -19,19 +19,19 @@ export const loadingStyles = {
     border-radius: 50%;
     ${keyframeAnimations.spin}
 
-    ${size === "sm" &&
+    ${size === 'sm' &&
     css`
       width: 16px;
       height: 16px;
     `}
 
-    ${size === "md" &&
+    ${size === 'md' &&
     css`
       width: 24px;
       height: 24px;
     `}
 
-    ${size === "lg" &&
+    ${size === 'lg' &&
     css`
       width: 32px;
       height: 32px;
@@ -116,27 +116,27 @@ export const loadingStyles = {
       }
     }
   `,
-  text: (size: "sm" | "md" | "lg" = "md") => css`
-    font-size: ${size === "sm"
+  text: (size: 'sm' | 'md' | 'lg' = 'md') => css`
+    font-size: ${size === 'sm'
       ? designTokens.typography.fontSize.sm
-      : size === "lg"
+      : size === 'lg'
         ? designTokens.typography.fontSize.lg
         : designTokens.typography.fontSize.base};
     color: ${designTokens.colors.neutral[600]};
     text-align: center;
   `,
   skeleton: (
-    variant: "text" | "rectangular" | "circular" | "card" = "text",
+    variant: 'text' | 'rectangular' | 'circular' | 'card' = 'text',
     width?: string | number,
     height?: string | number,
   ) => css`
     background-color: ${designTokens.colors.neutral[200]};
     position: relative;
     overflow: hidden;
-    width: ${typeof width === "number" ? `${width}px` : width || "100%"};
-    height: ${typeof height === "number" ? `${height}px` : height || "1rem"};
+    width: ${typeof width === 'number' ? `${width}px` : width || '100%'};
+    height: ${typeof height === 'number' ? `${height}px` : height || '1rem'};
 
-    ${variant === "text" &&
+    ${variant === 'text' &&
     css`
       border-radius: ${designTokens.borderRadius.sm};
       margin-bottom: ${designTokens.spacing[2]};
@@ -145,35 +145,30 @@ export const loadingStyles = {
       }
     `}
 
-    ${variant === "circular" &&
+    ${variant === 'circular' &&
     css`
       border-radius: 50%;
     `}
 
-    ${variant === "rectangular" &&
+    ${variant === 'rectangular' &&
     css`
       border-radius: ${designTokens.borderRadius.md};
     `}
 
-    ${variant === "card" &&
+    ${variant === 'card' &&
     css`
       border-radius: ${designTokens.borderRadius.lg};
       height: 200px;
     `}
 
     &::after {
-      content: "";
+      content: '';
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.4),
-        transparent
-      );
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
       animation: skeleton-shimmer 1.5s infinite;
     }
 

@@ -1,15 +1,15 @@
-import React, { useState } from "react";
-import { css } from "@emotion/react";
-import { ChevronRight } from "lucide-react";
+import React, { useState } from 'react';
+import { css } from '@emotion/react';
+import { ChevronRight } from 'lucide-react';
 import {
   getCardStyles as getModernCardStyles,
   type CardVariant,
   designTokens,
-} from "../../styles/design-system";
+} from '../../styles/design-system';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: CardVariant;
-  padding?: "none" | "sm" | "md" | "lg";
+  padding?: 'none' | 'sm' | 'md' | 'lg';
   interactive?: boolean;
   /** Enable collapsible behavior */
   collapsible?: boolean;
@@ -22,21 +22,21 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const Card: React.FC<CardProps> = ({
-  variant = "default",
-  padding = "md",
+  variant = 'default',
+  padding = 'md',
   interactive = false,
   collapsible = false,
   defaultCollapsed = false,
   title,
   onCollapseChange,
   children,
-  className = "",
+  className = '',
   ...props
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
   const paddingStyles = {
-    none: "0",
+    none: '0',
     sm: designTokens.spacing[3],
     md: designTokens.spacing[6],
     lg: designTokens.spacing[8],
@@ -51,7 +51,7 @@ export const Card: React.FC<CardProps> = ({
   const cardStyles = css`
     ${getModernCardStyles(variant)}
     padding: ${paddingStyles[padding]};
-    ${interactive && !collapsible && "cursor: pointer;"}
+    ${interactive && !collapsible && 'cursor: pointer;'}
   `;
 
   // Collapsible card with header
@@ -59,24 +59,19 @@ export const Card: React.FC<CardProps> = ({
     return (
       <div
         css={cardStyles}
-        className={`cognivern-card collapsible ${isCollapsed ? "collapsed" : ""} ${className}`}
+        className={`cognivern-card collapsible ${isCollapsed ? 'collapsed' : ''} ${className}`}
         {...props}
       >
         <button
           onClick={handleToggle}
           css={collapseHeaderStyles}
           aria-expanded={!isCollapsed}
-          aria-label={`Toggle ${title || "section"}`}
+          aria-label={`Toggle ${title || 'section'}`}
         >
-          <ChevronRight
-            size={16}
-            css={chevronStyles(isCollapsed)}
-          />
+          <ChevronRight size={16} css={chevronStyles(isCollapsed)} />
           {title && <span css={collapseTitleStyles}>{title}</span>}
         </button>
-        {!isCollapsed && (
-          <div css={collapseContentStyles}>{children}</div>
-        )}
+        {!isCollapsed && <div css={collapseContentStyles}>{children}</div>}
       </div>
     );
   }
@@ -84,7 +79,7 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       css={cardStyles}
-      className={`cognivern-card ${interactive ? "interactive" : ""} ${className}`}
+      className={`cognivern-card ${interactive ? 'interactive' : ''} ${className}`}
       {...props}
     >
       {children}
@@ -116,7 +111,7 @@ const collapseHeaderStyles = css`
 
 const chevronStyles = (isCollapsed: boolean) => css`
   transition: transform 0.2s ease;
-  transform: rotate(${isCollapsed ? "0deg" : "90deg"});
+  transform: rotate(${isCollapsed ? '0deg' : '90deg'});
   color: ${designTokens.colors.text.secondary};
   flex-shrink: 0;
 `;
@@ -165,68 +160,50 @@ const cardFooterStyles = css`
 
 export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   children,
-  className = "",
+  className = '',
   ...props
 }) => (
-  <div
-    css={cardHeaderStyles}
-    className={`cognivern-card-header ${className}`}
-    {...props}
-  >
+  <div css={cardHeaderStyles} className={`cognivern-card-header ${className}`} {...props}>
     {children}
   </div>
 );
 
 export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
   children,
-  className = "",
+  className = '',
   ...props
 }) => (
-  <h3
-    css={cardTitleStyles}
-    className={`cognivern-card-title ${className}`}
-    {...props}
-  >
+  <h3 css={cardTitleStyles} className={`cognivern-card-title ${className}`} {...props}>
     {children}
   </h3>
 );
 
-export const CardDescription: React.FC<
-  React.HTMLAttributes<HTMLParagraphElement>
-> = ({ children, className = "", ...props }) => (
-  <p
-    css={cardDescriptionStyles}
-    className={`cognivern-card-description ${className}`}
-    {...props}
-  >
+export const CardDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement>> = ({
+  children,
+  className = '',
+  ...props
+}) => (
+  <p css={cardDescriptionStyles} className={`cognivern-card-description ${className}`} {...props}>
     {children}
   </p>
 );
 
 export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   children,
-  className = "",
+  className = '',
   ...props
 }) => (
-  <div
-    css={cardContentStyles}
-    className={`cognivern-card-content ${className}`}
-    {...props}
-  >
+  <div css={cardContentStyles} className={`cognivern-card-content ${className}`} {...props}>
     {children}
   </div>
 );
 
 export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   children,
-  className = "",
+  className = '',
   ...props
 }) => (
-  <div
-    css={cardFooterStyles}
-    className={`cognivern-card-footer ${className}`}
-    {...props}
-  >
+  <div css={cardFooterStyles} className={`cognivern-card-footer ${className}`} {...props}>
     {children}
   </div>
 );

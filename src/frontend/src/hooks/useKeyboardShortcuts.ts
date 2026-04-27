@@ -1,7 +1,7 @@
-import { useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { useIntentStore } from "../stores/intentStore";
-import { useSidebarState } from "./useSidebarState";
+import { useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useIntentStore } from '../stores/intentStore';
+import { useSidebarState } from './useSidebarState';
 
 interface KeyboardShortcut {
   key: string;
@@ -20,65 +20,65 @@ export const useKeyboardShortcuts = () => {
 
   const shortcuts: KeyboardShortcut[] = [
     {
-      key: "k",
+      key: 'k',
       ctrlKey: true,
       action: () => setIsOpen(true),
-      description: "Open command palette",
+      description: 'Open command palette',
     },
     {
-      key: "k",
+      key: 'k',
       metaKey: true, // For Mac
       action: () => setIsOpen(true),
-      description: "Open command palette",
+      description: 'Open command palette',
     },
     {
-      key: "/",
+      key: '/',
       action: () => setIsOpen(true),
-      description: "Focus search",
+      description: 'Focus search',
     },
     {
-      key: "d",
+      key: 'd',
       altKey: true,
-      action: () => navigate("/"),
-      description: "Go to Dashboard",
+      action: () => navigate('/'),
+      description: 'Go to Dashboard',
     },
     {
-      key: "t",
+      key: 't',
       altKey: true,
-      action: () => navigate("/agents"),
-      description: "Go to Agents",
+      action: () => navigate('/agents'),
+      description: 'Go to Agents',
     },
     {
-      key: "p",
+      key: 'p',
       altKey: true,
-      action: () => navigate("/policies"),
-      description: "Go to Policies",
+      action: () => navigate('/policies'),
+      description: 'Go to Policies',
     },
     {
-      key: "a",
+      key: 'a',
       altKey: true,
-      action: () => navigate("/audit"),
-      description: "Go to Audit Logs",
+      action: () => navigate('/audit'),
+      description: 'Go to Audit Logs',
     },
     {
-      key: "b",
+      key: 'b',
       ctrlKey: true,
       action: () => toggleSidebar(),
-      description: "Toggle sidebar",
+      description: 'Toggle sidebar',
     },
     {
-      key: "b",
+      key: 'b',
       metaKey: true, // For Mac
       action: () => toggleSidebar(),
-      description: "Toggle sidebar",
+      description: 'Toggle sidebar',
     },
     {
-      key: "Escape",
+      key: 'Escape',
       action: () => {
         // Close any open modals/dropdowns
-        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
       },
-      description: "Close modals/dropdowns",
+      description: 'Close modals/dropdowns',
     },
   ];
 
@@ -89,7 +89,7 @@ export const useKeyboardShortcuts = () => {
         event.target instanceof HTMLInputElement ||
         event.target instanceof HTMLTextAreaElement ||
         event.target instanceof HTMLSelectElement ||
-        (event.target as HTMLElement)?.contentEditable === "true"
+        (event.target as HTMLElement)?.contentEditable === 'true'
       ) {
         return;
       }
@@ -113,8 +113,8 @@ export const useKeyboardShortcuts = () => {
   );
 
   useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
   return { shortcuts };
@@ -128,18 +128,18 @@ export const useShortcutsHelp = () => {
     const keys = [];
 
     if (shortcut.ctrlKey || shortcut.metaKey) {
-      keys.push(navigator.platform.includes("Mac") ? "⌘" : "Ctrl");
+      keys.push(navigator.platform.includes('Mac') ? '⌘' : 'Ctrl');
     }
     if (shortcut.altKey) {
-      keys.push(navigator.platform.includes("Mac") ? "⌥" : "Alt");
+      keys.push(navigator.platform.includes('Mac') ? '⌥' : 'Alt');
     }
     if (shortcut.shiftKey) {
-      keys.push("⇧");
+      keys.push('⇧');
     }
 
     keys.push(shortcut.key.toUpperCase());
 
-    return keys.join(" + ");
+    return keys.join(' + ');
   };
 
   return {

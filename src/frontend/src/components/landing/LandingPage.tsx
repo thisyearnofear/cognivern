@@ -1,21 +1,11 @@
 /** @jsxImportSource @emotion/react */
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { css } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
-import { Button } from "../ui/Button";
-import { Card, CardContent } from "../ui/Card";
-import {
-  Shield,
-  Wallet,
-  Key,
-  BarChart3,
-  ArrowRight,
-  Brain,
-  Zap,
-  Globe,
-  Lock,
-} from "lucide-react";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
+import { Button } from '../ui/Button';
+import { Card, CardContent } from '../ui/Card';
+import { Shield, Wallet, Key, BarChart3, ArrowRight, Brain, Zap, Globe, Lock } from 'lucide-react';
 
 interface LandingPageProps {
   onComplete?: () => void; // Kept for backward compatibility - now uses routing instead
@@ -32,40 +22,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
   const features = [
     {
       icon: <Wallet size={24} />,
-      title: "OWS Wallet Control",
-      description:
-        "Connect encrypted wallets - agents request spend but you control approval",
+      title: 'OWS Wallet Control',
+      description: 'Connect encrypted wallets - agents request spend but you control approval',
       accent: designTokens.colors.accent[500],
     },
     {
       icon: <Shield size={24} />,
-      title: "Policy Guardrails",
-      description:
-        "Set limits, require approvals, deny high-risk transactions automatically",
+      title: 'Policy Guardrails',
+      description: 'Set limits, require approvals, deny high-risk transactions automatically',
       accent: designTokens.colors.semantic.success[500],
     },
     {
       icon: <Key size={24} />,
-      title: "Scoped API Keys",
-      description:
-        "Give agents limited access - not full wallet control - with revocable keys",
+      title: 'Scoped API Keys',
+      description: 'Give agents limited access - not full wallet control - with revocable keys',
       accent: designTokens.colors.semantic.info[500],
     },
     {
       icon: <BarChart3 size={24} />,
-      title: "Audit Trail",
-      description:
-        "Every decision logged with evidence - know exactly what agents did and why",
+      title: 'Audit Trail',
+      description: 'Every decision logged with evidence - know exactly what agents did and why',
       accent: designTokens.colors.semantic.warning[500],
     },
   ];
 
   const handleGetStarted = () => {
-    navigate("/onboarding");
+    navigate('/onboarding');
   };
 
   const handleExplore = () => {
-    navigate("/dashboard");
+    navigate('/dashboard');
   };
 
   return (
@@ -128,22 +114,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             Cognivern
           </span>
         </div>
-        <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
-          <span css={css`
-            display: inline-flex;
+        <div
+          css={css`
+            display: flex;
             align-items: center;
-            gap: ${designTokens.spacing[1]};
-            padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #00d4ff;
-            border-radius: ${designTokens.borderRadius.full};
-            font-size: ${designTokens.typography.fontSize.xs};
-            font-weight: ${designTokens.typography.fontWeight.semibold};
-            letter-spacing: 0.05em;
-            border: 1px solid rgba(0, 212, 255, 0.3);
-          `}>
-            <Globe size={12} />
-            X Layer Arena
+            gap: ${designTokens.spacing[3]};
+          `}
+        >
+          <span
+            css={css`
+              display: inline-flex;
+              align-items: center;
+              gap: ${designTokens.spacing[1]};
+              padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
+              background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+              color: #00d4ff;
+              border-radius: ${designTokens.borderRadius.full};
+              font-size: ${designTokens.typography.fontSize.xs};
+              font-weight: ${designTokens.typography.fontWeight.semibold};
+              letter-spacing: 0.05em;
+              border: 1px solid rgba(0, 212, 255, 0.3);
+            `}
+          >
+            <Globe size={12} />X Layer Arena
           </span>
           <Button variant="ghost" onClick={handleExplore}>
             Skip to Dashboard →
@@ -183,14 +176,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
 
         <h1
           css={css`
-            font-size: ${designTokens.typography.fontSize["4xl"]};
+            font-size: ${designTokens.typography.fontSize['4xl']};
             font-weight: ${designTokens.typography.fontWeight.bold};
             color: ${designTokens.colors.neutral[900]};
             margin-bottom: ${designTokens.spacing[6]};
             line-height: 1.2;
 
             @media (max-width: 640px) {
-              font-size: ${designTokens.typography.fontSize["3xl"]};
+              font-size: ${designTokens.typography.fontSize['3xl']};
             }
           `}
         >
@@ -217,9 +210,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             line-height: ${designTokens.typography.lineHeight.relaxed};
           `}
         >
-          Cognivern connects to OWS wallets and lets you set policy guardrails.
-          Agents can request spend - you decide what gets approved. Every
-          decision is logged with evidence for your audit trail.
+          Cognivern connects to OWS wallets and lets you set policy guardrails. Agents can request
+          spend - you decide what gets approved. Every decision is logged with evidence for your
+          audit trail.
         </p>
 
         <div
@@ -268,9 +261,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           `}
         >
           {[
-            { label: "Multi-Chain", value: "3" },
-            { label: "Audit Coverage", value: "100%" },
-            { label: "0G Storage", value: "Live" },
+            { label: 'Multi-Chain', value: '3' },
+            { label: 'Audit Coverage', value: '100%' },
+            { label: '0G Storage', value: 'Live' },
           ].map((item) => (
             <div
               key={item.label}
@@ -280,7 +273,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             >
               <div
                 css={css`
-                  font-size: ${designTokens.typography.fontSize["2xl"]};
+                  font-size: ${designTokens.typography.fontSize['2xl']};
                   font-weight: ${designTokens.typography.fontWeight.bold};
                   color: ${designTokens.colors.primary[600]};
                 `}
@@ -386,69 +379,200 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             text-align: left;
           `}
         >
-          <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[4]};`}>
+          <div
+            css={css`
+              display: flex;
+              align-items: center;
+              gap: ${designTokens.spacing[2]};
+              margin-bottom: ${designTokens.spacing[4]};
+            `}
+          >
             <Globe size={20} color="#00d4ff" />
-            <h2 css={css`font-size: ${designTokens.typography.fontSize.lg}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: #00d4ff; margin: 0;`}>
+            <h2
+              css={css`
+                font-size: ${designTokens.typography.fontSize.lg};
+                font-weight: ${designTokens.typography.fontWeight.semibold};
+                color: #00d4ff;
+                margin: 0;
+              `}
+            >
               Multi-Chain Architecture
             </h2>
           </div>
-          <div css={css`display: grid; grid-template-columns: 1fr 1fr 1fr; gap: ${designTokens.spacing[6]}; @media (max-width: 768px) { grid-template-columns: 1fr; }`}>
+          <div
+            css={css`
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: ${designTokens.spacing[6]};
+              @media (max-width: 768px) {
+                grid-template-columns: 1fr;
+              }
+            `}
+          >
             <div>
-              <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  gap: ${designTokens.spacing[2]};
+                  margin-bottom: ${designTokens.spacing[2]};
+                `}
+              >
                 <Zap size={16} color="#00d4ff" />
-                <span css={css`color: #00d4ff; font-weight: ${designTokens.typography.fontWeight.semibold}; font-size: ${designTokens.typography.fontSize.sm};`}>X Layer (Execution)</span>
+                <span
+                  css={css`
+                    color: #00d4ff;
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    font-size: ${designTokens.typography.fontSize.sm};
+                  `}
+                >
+                  X Layer (Execution)
+                </span>
               </div>
-              <p css={css`color: rgba(255,255,255,0.6); font-size: ${designTokens.typography.fontSize.sm}; margin: 0 0 ${designTokens.spacing[2]} 0;`}>
+              <p
+                css={css`
+                  color: rgba(255, 255, 255, 0.6);
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  margin: 0 0 ${designTokens.spacing[2]} 0;
+                `}
+              >
                 Agent spend approvals &amp; policy enforcement on OKX's zkEVM L2
               </p>
-              <code css={css`font-size: ${designTokens.typography.fontSize.xs}; color: rgba(0,212,255,0.7); word-break: break-all;`}>
+              <code
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.xs};
+                  color: rgba(0, 212, 255, 0.7);
+                  word-break: break-all;
+                `}
+              >
                 0x755602bB...e2DD6
               </code>
               <a
                 href="https://www.okx.com/explorer/xlayer-test/address/0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6"
                 target="_blank"
                 rel="noopener noreferrer"
-                css={css`display: inline-block; margin-top: ${designTokens.spacing[2]}; font-size: ${designTokens.typography.fontSize.xs}; color: #00d4ff; text-decoration: none; &:hover { text-decoration: underline; }`}
+                css={css`
+                  display: inline-block;
+                  margin-top: ${designTokens.spacing[2]};
+                  font-size: ${designTokens.typography.fontSize.xs};
+                  color: #00d4ff;
+                  text-decoration: none;
+                  &:hover {
+                    text-decoration: underline;
+                  }
+                `}
               >
                 View on Explorer ↗
               </a>
             </div>
             <div>
-              <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  gap: ${designTokens.spacing[2]};
+                  margin-bottom: ${designTokens.spacing[2]};
+                `}
+              >
                 <Lock size={16} color="#a78bfa" />
-                <span css={css`color: #a78bfa; font-weight: ${designTokens.typography.fontWeight.semibold}; font-size: ${designTokens.typography.fontSize.sm};`}>Filecoin (Audit Archive)</span>
+                <span
+                  css={css`
+                    color: #a78bfa;
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    font-size: ${designTokens.typography.fontSize.sm};
+                  `}
+                >
+                  Filecoin (Audit Archive)
+                </span>
               </div>
-              <p css={css`color: rgba(255,255,255,0.6); font-size: ${designTokens.typography.fontSize.sm}; margin: 0 0 ${designTokens.spacing[2]} 0;`}>
+              <p
+                css={css`
+                  color: rgba(255, 255, 255, 0.6);
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  margin: 0 0 ${designTokens.spacing[2]} 0;
+                `}
+              >
                 Long-term immutable governance records on decentralized storage
               </p>
-              <code css={css`font-size: ${designTokens.typography.fontSize.xs}; color: rgba(167,139,250,0.7); word-break: break-all;`}>
+              <code
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.xs};
+                  color: rgba(167, 139, 250, 0.7);
+                  word-break: break-all;
+                `}
+              >
                 Filecoin Calibration Testnet
               </code>
               <a
                 href="https://calibration.filfox.info/en/address/0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada"
                 target="_blank"
                 rel="noopener noreferrer"
-                css={css`display: inline-block; margin-top: ${designTokens.spacing[2]}; font-size: ${designTokens.typography.fontSize.xs}; color: #a78bfa; text-decoration: none; &:hover { text-decoration: underline; }`}
+                css={css`
+                  display: inline-block;
+                  margin-top: ${designTokens.spacing[2]};
+                  font-size: ${designTokens.typography.fontSize.xs};
+                  color: #a78bfa;
+                  text-decoration: none;
+                  &:hover {
+                    text-decoration: underline;
+                  }
+                `}
               >
                 View on Explorer ↗
               </a>
             </div>
             <div>
-              <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  gap: ${designTokens.spacing[2]};
+                  margin-bottom: ${designTokens.spacing[2]};
+                `}
+              >
                 <Globe size={16} color="#34d399" />
-                <span css={css`color: #34d399; font-weight: ${designTokens.typography.fontWeight.semibold}; font-size: ${designTokens.typography.fontSize.sm};`}>0G Network (Live Audit)</span>
+                <span
+                  css={css`
+                    color: #34d399;
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    font-size: ${designTokens.typography.fontSize.sm};
+                  `}
+                >
+                  0G Network (Live Audit)
+                </span>
               </div>
-              <p css={css`color: rgba(255,255,255,0.6); font-size: ${designTokens.typography.fontSize.sm}; margin: 0 0 ${designTokens.spacing[2]} 0;`}>
+              <p
+                css={css`
+                  color: rgba(255, 255, 255, 0.6);
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  margin: 0 0 ${designTokens.spacing[2]} 0;
+                `}
+              >
                 Every governance decision anchored to 0G decentralized storage in real-time
               </p>
-              <code css={css`font-size: ${designTokens.typography.fontSize.xs}; color: rgba(52,211,153,0.7); word-break: break-all;`}>
+              <code
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.xs};
+                  color: rgba(52, 211, 153, 0.7);
+                  word-break: break-all;
+                `}
+              >
                 0G Newton Testnet · Track 3
               </code>
               <a
                 href="https://storagescan.0g.ai/"
                 target="_blank"
                 rel="noopener noreferrer"
-                css={css`display: inline-block; margin-top: ${designTokens.spacing[2]}; font-size: ${designTokens.typography.fontSize.xs}; color: #34d399; text-decoration: none; &:hover { text-decoration: underline; }`}
+                css={css`
+                  display: inline-block;
+                  margin-top: ${designTokens.spacing[2]};
+                  font-size: ${designTokens.typography.fontSize.xs};
+                  color: #34d399;
+                  text-decoration: none;
+                  &:hover {
+                    text-decoration: underline;
+                  }
+                `}
               >
                 View on Explorer ↗
               </a>
@@ -481,8 +605,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               margin-bottom: ${designTokens.spacing[6]};
             `}
           >
-            Our guided setup walks you through connecting a wallet and setting
-            your first policy in under 2 minutes.
+            Our guided setup walks you through connecting a wallet and setting your first policy in
+            under 2 minutes.
           </p>
           <Button variant="primary" size="lg" onClick={handleGetStarted}>
             Start Setup Wizard →
@@ -498,7 +622,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           font-size: ${designTokens.typography.fontSize.sm};
         `}
       >
-        Built for X Layer Arena & 0G APAC Hackathon · Multi-Chain: X Layer + Filecoin + 0G · Open Wallet Standard Compliant
+        Built for X Layer Arena & 0G APAC Hackathon · Multi-Chain: X Layer + Filecoin + 0G · Open
+        Wallet Standard Compliant
       </footer>
     </div>
   );

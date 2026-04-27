@@ -1,13 +1,13 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
-export type SidebarState = "expanded" | "collapsed" | "hidden" | "overlay";
+export type SidebarState = 'expanded' | 'collapsed' | 'hidden' | 'overlay';
 
 export interface UserPreferences {
-  theme: "light" | "dark" | "system";
+  theme: 'light' | 'dark' | 'system';
   sidebarState: SidebarState;
   onboardingCompleted: boolean;
   lastVisited: string;
-  dashboardLayout: "simplified" | "advanced";
+  dashboardLayout: 'simplified' | 'advanced';
   notifications: boolean;
   shadowedAgents: string[];
 }
@@ -16,7 +16,7 @@ export interface User {
   address?: string;
   userType?: string;
   isConnected: boolean;
-  network?: "filecoin" | "xlayer";
+  network?: 'filecoin' | 'xlayer';
 }
 
 interface AppState {
@@ -40,11 +40,11 @@ interface AppState {
 }
 
 const defaultPreferences: UserPreferences = {
-  theme: "system",
-  sidebarState: "expanded",
+  theme: 'system',
+  sidebarState: 'expanded',
   onboardingCompleted: false,
-  lastVisited: "/",
-  dashboardLayout: "simplified",
+  lastVisited: '/',
+  dashboardLayout: 'simplified',
   notifications: true,
   shadowedAgents: [],
 };
@@ -54,7 +54,7 @@ const defaultUser: User = {
 };
 
 // Simple persist implementation without middleware
-const persistKey = "cognivern-app-store";
+const persistKey = 'cognivern-app-store';
 
 const getStoredState = () => {
   try {
@@ -66,8 +66,8 @@ const getStoredState = () => {
     // Backward compatibility for older persisted sidebarCollapsed preference
     if (parsed?.preferences) {
       const prefs = parsed.preferences;
-      if (typeof prefs.sidebarCollapsed === "boolean" && !prefs.sidebarState) {
-        prefs.sidebarState = prefs.sidebarCollapsed ? "collapsed" : "expanded";
+      if (typeof prefs.sidebarCollapsed === 'boolean' && !prefs.sidebarState) {
+        prefs.sidebarState = prefs.sidebarCollapsed ? 'collapsed' : 'expanded';
       }
       delete prefs.sidebarCollapsed;
     }
@@ -97,7 +97,7 @@ export const useAppStore = create<AppState>((set, get) => {
   const initialState = {
     user: { ...defaultUser, ...stored.user },
     preferences: { ...defaultPreferences, ...stored.preferences },
-    activeTab: "dashboard",
+    activeTab: 'dashboard',
     isLoading: false,
     error: null,
   };
@@ -140,7 +140,7 @@ export const useAppStore = create<AppState>((set, get) => {
         ...get(),
         user: { ...get().user, userType },
         preferences: { ...get().preferences, onboardingCompleted: true },
-        activeTab: "dashboard",
+        activeTab: 'dashboard',
       };
       set(newState);
       setStoredState(newState);
@@ -150,7 +150,7 @@ export const useAppStore = create<AppState>((set, get) => {
       const resetState = {
         user: defaultUser,
         preferences: defaultPreferences,
-        activeTab: "dashboard",
+        activeTab: 'dashboard',
         isLoading: false,
         error: null,
       };
@@ -165,10 +165,8 @@ export const useTheme = () => {
   const { preferences } = useAppStore();
 
   const getEffectiveTheme = () => {
-    if (preferences.theme === "system") {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
+    if (preferences.theme === 'system') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     return preferences.theme;
   };
@@ -176,6 +174,6 @@ export const useTheme = () => {
   return {
     theme: preferences.theme,
     effectiveTheme: getEffectiveTheme(),
-    isDark: getEffectiveTheme() === "dark",
+    isDark: getEffectiveTheme() === 'dark',
   };
 };

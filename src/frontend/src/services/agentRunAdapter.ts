@@ -1,16 +1,13 @@
-import { CreRun, CreRunEvent } from "./creApi";
-import {
-  ForensicEvent,
-  TimelineEventType,
-} from "../components/ui/ForensicTimeline";
+import { CreRun, CreRunEvent } from './creApi';
+import { ForensicEvent, TimelineEventType } from '../components/ui/ForensicTimeline';
 
 export type AgentRunStatus =
-  | "queued"
-  | "running"
-  | "paused_for_approval"
-  | "cancelled"
-  | "completed"
-  | "failed";
+  | 'queued'
+  | 'running'
+  | 'paused_for_approval'
+  | 'cancelled'
+  | 'completed'
+  | 'failed';
 
 export interface AgentRunViewModel {
   runId: string;
@@ -32,70 +29,66 @@ export interface AgentRunViewModel {
     estimatedCostUsd?: number;
   };
   provenance: {
-    source: "cognivern" | "ingested";
+    source: 'cognivern' | 'ingested';
     workflowVersion?: string;
     model?: string;
     citations: Array<{ label: string; value: string }>;
   };
 }
 
-const eventToTimelineType = (
-  eventType: CreRunEvent["type"],
-): TimelineEventType => {
+const eventToTimelineType = (eventType: CreRunEvent['type']): TimelineEventType => {
   switch (eventType) {
-    case "tool_call_started":
-    case "message_delta":
-      return "action";
-    case "run_paused_for_approval":
-      return "validation";
-    case "run_failed":
-      return "error";
-    case "run_cancel_requested":
-    case "run_cancelled":
-      return "block";
+    case 'tool_call_started':
+    case 'message_delta':
+      return 'action';
+    case 'run_paused_for_approval':
+      return 'validation';
+    case 'run_failed':
+      return 'error';
+    case 'run_cancel_requested':
+    case 'run_cancelled':
+      return 'block';
     default:
-      return "observation";
+      return 'observation';
   }
 };
 
 const humanTitle = (event: CreRunEvent): string => {
   switch (event.type) {
-    case "run_started":
-      return "Run Started";
-    case "tool_call_started":
-      return event.stepName
-        ? `Tool Call: ${event.stepName}`
-        : "Tool Call Started";
-    case "tool_result":
-      return event.stepName ? `Tool Result: ${event.stepName}` : "Tool Result";
-    case "run_paused_for_approval":
-      return "Paused For Approval";
-    case "run_cancel_requested":
-      return "Cancellation Requested";
-    case "run_cancelled":
-      return "Run Cancelled";
-    case "run_retry_requested":
-      return "Retry Requested";
-    case "run_finished":
-      return "Run Finished";
-    case "run_failed":
-      return "Run Failed";
-    case "message_delta":
-      return "Agent Message";
+    case 'run_started':
+      return 'Run Started';
+    case 'tool_call_started':
+      return event.stepName ? `Tool Call: ${event.stepName}` : 'Tool Call Started';
+    case 'tool_result':
+      return event.stepName ? `Tool Result: ${event.stepName}` : 'Tool Result';
+    case 'run_paused_for_approval':
+      return 'Paused For Approval';
+    case 'run_cancel_requested':
+      return 'Cancellation Requested';
+    case 'run_cancelled':
+      return 'Run Cancelled';
+    case 'run_retry_requested':
+      return 'Retry Requested';
+    case 'run_finished':
+      return 'Run Finished';
+    case 'run_failed':
+      return 'Run Failed';
+    case 'message_delta':
+      return 'Agent Message';
     default:
-      return "Run Event";
+      return 'Run Event';
   }
 };
 
 const humanDescription = (event: CreRunEvent): string => {
   const payload = event.payload || {};
-  if (typeof payload.summary === "string" && payload.summary.trim()) {
+  if (typeof payload.summary === 'string' && payload.summary.trim()) {
     return payload.summary;
   }
-  if (typeof payload.reason === "string" && payload.reason.trim()) {
+  if (typeof payload.reason === 'string' && payload.reason.trim()) {
     return payload.reason;
   }
-  if (typeof payload.note === "string" && payload.note.trim()) {
+  if (typeof payload.note === 'string' && payload.note.trim()) {
     return payload.note;
   }
   if (event.stepName) {
@@ -105,13 +98,11 @@ const humanDescription = (event: CreRunEvent): string => {
 };
 
 export const toAgentRunViewModel = (run: CreRun): AgentRunViewModel => {
-  const status =
-    run.status ||
-    (run.finishedAt ? (run.ok ? "completed" : "failed") : "running");
+  const status = run.status || (run.finishedAt ? (run.ok ? 'completed' : 'failed') : 'running');
   const start = new Date(run.startedAt).getTime();
   const end = run.finishedAt ? new Date(run.finishedAt).getTime() : Date.now();
   const durationMs = Math.max(0, end - start);
-  const durationLabel = run.finishedAt ? `${durationMs}ms` : "running";
+  const durationLabel = run.finishedAt ? `${durationMs}ms` : 'running';
 
   return {
     runId: run.runId,
@@ -121,11 +112,9 @@ export const toAgentRunViewModel = (run: CreRun): AgentRunViewModel => {
     durationLabel,
     currentStepName: run.currentStepName,
     controls: run.controls || {
-      canCancel: status === "running" || status === "queued",
-      canRetry:
-        status === "failed" || status === "cancelled" || status === "completed",
-      canApprove:
-        status === "paused_for_approval" || run.requiresApproval === true,
+      canCancel: status === 'running' || status === 'queued',
+      canRetry: status === 'failed' || status === 'cancelled' || status === 'completed',
+      canApprove: status === 'paused_for_approval' || run.requiresApproval === true,
     },
     metrics: {
       latencyMs: run.metrics?.latencyMs,
@@ -135,7 +124,7 @@ export const toAgentRunViewModel = (run: CreRun): AgentRunViewModel => {
       estimatedCostUsd: run.metrics?.estimatedCostUsd,
     },
     provenance: {
-      source: run.provenance?.source || "cognivern",
+      source: run.provenance?.source || 'cognivern',
       workflowVersion: run.provenance?.workflowVersion,
       model: run.provenance?.model,
       citations: run.provenance?.citations || [],
@@ -143,10 +132,7 @@ export const toAgentRunViewModel = (run: CreRun): AgentRunViewModel => {
   };
 };
 
-export const toForensicEvents = (
-  run: CreRun,
-  liveEvents: CreRunEvent[] = [],
-): ForensicEvent[] => {
+export const toForensicEvents = (run: CreRun, liveEvents: CreRunEvent[] = []): ForensicEvent[] => {
   const sourceEvents = [...(run.events || []), ...liveEvents].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
@@ -160,21 +146,21 @@ export const toForensicEvents = (
       description: humanDescription(event),
       metadata: event.payload,
       status:
-        event.type === "run_failed" || event.type === "run_cancelled"
-          ? "error"
-          : event.type === "run_paused_for_approval"
-            ? "warning"
-            : "success",
+        event.type === 'run_failed' || event.type === 'run_cancelled'
+          ? 'error'
+          : event.type === 'run_paused_for_approval'
+            ? 'warning'
+            : 'success',
     }));
   }
 
   return run.steps.map((step, idx) => ({
     id: `step-${idx}`,
     timestamp: step.startedAt ? new Date(step.startedAt).getTime() : Date.now(),
-    type: step.ok ? "action" : "error",
+    type: step.ok ? 'action' : 'error',
     title: step.name,
     description: step.summary || `Step ${step.kind} completed.`,
     metadata: step.details,
-    status: step.ok ? "success" : "error",
+    status: step.ok ? 'success' : 'error',
   }));
 };

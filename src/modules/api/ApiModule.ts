@@ -35,6 +35,7 @@ import { OwsController } from "./controllers/OwsController.js";
 import { OwsWalletController } from "./controllers/OwsWalletController.js";
 import { OwsApiKeyController } from "./controllers/OwsApiKeyController.js";
 import { OwsPermissionsController } from "./controllers/OwsPermissionsController.js";
+import { FhenixController } from "./controllers/FhenixController.js";
 import type { Server } from "node:http";
 
 /** Typed controller registry */
@@ -53,6 +54,7 @@ interface ControllerRegistry {
   owsWallet: OwsWalletController;
   owsApiKey: OwsApiKeyController;
   owsPermissions: OwsPermissionsController;
+  fhenix: FhenixController;
 }
 
 /** Typed error with optional HTTP status code */
@@ -248,6 +250,8 @@ export class ApiModule extends BaseService {
       "/spend",
       "/spend/status",
       "/projects",
+      "/fhenix/status",
+      "/fhenix/decrypt",
     ];
     if (publicEndpoints.some((endpoint) => req.path === endpoint)) {
       return next();
@@ -318,6 +322,7 @@ export class ApiModule extends BaseService {
     this.controllers.owsWallet = new OwsWalletController();
     this.controllers.owsApiKey = new OwsApiKeyController();
     this.controllers.owsPermissions = new OwsPermissionsController();
+    this.controllers.fhenix = new FhenixController();
 
     // Initialize all controllers that have an initialize method
     for (const [name, controller] of Object.entries(this.controllers)) {
@@ -700,6 +705,15 @@ export class ApiModule extends BaseService {
 
     apiRouter.get("/recall/query", (req, res) => {
       this.ctrl("recall").queryMemories(req, res);
+    });
+
+    // Fhenix routes
+    apiRouter.get("/fhenix/status", (req, res) => {
+      this.ctrl("fhenix").getStatus(req, res);
+    });
+
+    apiRouter.post("/fhenix/decrypt", (req, res) => {
+      this.ctrl("fhenix").decrypt(req, res);
     });
 
     // Dashboard routes

@@ -96,16 +96,16 @@ External Agents / Services
   UI / Operator Views
 ```
 
-## Confidential Policy Layer (Planned — Fhenix)
+## Confidential Policy Layer (LIVE — Fhenix)
 
-A fourth layer is being added for **privacy-by-design** policy evaluation using Fully Homomorphic Encryption on Fhenix (CoFHE):
+A fourth layer has been added for **privacy-by-design** policy evaluation using Fully Homomorphic Encryption on Fhenix (CoFHE):
 
 - **`ConfidentialSpendPolicy.sol`** on Fhenix holds encrypted budgets (`euint256`), encrypted spend counters, and encrypted approval thresholds.
-- **`FhenixPolicyService.ts`** wraps `@cofhe/sdk` to encrypt amounts client-side, submit to Fhenix, and consume the verified decision attestation.
-- **Cross-chain bridge:** Fhenix emits `decisionId + attestation` → X Layer `GovernanceContract.recordAction(...)` consumes it for execution and public anchoring. Encrypted state never leaves Fhenix.
-- **Selective disclosure:** Auditor permits issued via `/api/audit/permits` allow scoped decryption of audit rows for compliance review.
+- **`FhenixPolicyService.ts`** wraps `@cofhe/sdk` to evaluate encrypted amounts, submit to Fhenix, and unseal data for auditors.
+- **Cross-chain flow:** Fhenix emits a decision attestation → backend normalizes it for execution and public anchoring. Encrypted state never leaves Fhenix.
+- **Selective disclosure:** Auditor permits issued via the dashboard allow scoped decryption of confidential audit logs.
 
-This layer is **additive** — existing X Layer / 0G / Filecoin layers remain unchanged. Policies opt in via a `confidential: true` flag.
+This layer is **integrated** — existing X Layer / 0G / Filecoin layers remain unchanged. Policies opt in via a `confidential: true` flag.
 
 See [Fhenix Integration](./FHENIX_INTEGRATION.md) for the full plan.
 

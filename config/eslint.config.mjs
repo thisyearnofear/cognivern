@@ -7,11 +7,11 @@ import prettierConfig from './prettier.config.mjs';
 /** @type {import("eslint").Linter.FlatConfig[]} */ // ✅ Explicitly define type
 const config = [
   {
-    files: ['**/*.ts', '**/*.tsx'], // This will now apply to root-level TS files
+    files: ['src/frontend/**/*.ts', 'src/frontend/**/*.tsx'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: ['./src/frontend/tsconfig.app.json'], // Points to frontend app tsconfig
+        project: ['./src/frontend/tsconfig.app.json'],
       },
     },
     plugins: {

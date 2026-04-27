@@ -1,26 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
-import { css } from "@emotion/react";
-import { Link, useParams } from "react-router-dom";
-import { getApiUrl, getApiKey } from "../../utils/api";
-import { copyTextToClipboard } from "../../utils/clipboard";
-import { creApi, CreRun, CreRunEvent } from "../../services/creApi";
-import {
-  toAgentRunViewModel,
-  toForensicEvents,
-} from "../../services/agentRunAdapter";
-import { toAgUiStream } from "../../services/agUiAdapter";
-import { uxAnalytics } from "../../services/uxAnalytics";
-import { designTokens } from "../../styles/design-system";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  Badge,
-  Button,
-  LoadingSpinner,
-} from "../ui";
-import ForensicTimeline from "../ui/ForensicTimeline";
-import Tooltip from "../ui/Tooltip";
+import { useEffect, useMemo, useState } from 'react';
+import { css } from '@emotion/react';
+import { Link, useParams } from 'react-router-dom';
+import { getApiUrl, getApiKey } from '../../utils/api';
+import { copyTextToClipboard } from '../../utils/clipboard';
+import { creApi, CreRun, CreRunEvent } from '../../services/creApi';
+import { toAgentRunViewModel, toForensicEvents } from '../../services/agentRunAdapter';
+import { toAgUiStream } from '../../services/agUiAdapter';
+import { uxAnalytics } from '../../services/uxAnalytics';
+import { designTokens } from '../../styles/design-system';
+import { Card, CardContent, CardHeader, Badge, Button, LoadingSpinner } from '../ui';
+import ForensicTimeline from '../ui/ForensicTimeline';
+import Tooltip from '../ui/Tooltip';
 
 const containerStyles = css`
   width: 100%;
@@ -57,20 +47,17 @@ export default function RunDetails() {
   const [run, setRun] = useState<CreRun | null>(null);
   const [liveEvents, setLiveEvents] = useState<CreRunEvent[]>([]);
   const [, setEventCursor] = useState<number | undefined>(undefined);
-  const [approvalReason, setApprovalReason] = useState("");
+  const [approvalReason, setApprovalReason] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPlanEditor, setShowPlanEditor] = useState(false);
-  const [planSummary, setPlanSummary] = useState("");
+  const [planSummary, setPlanSummary] = useState('');
   const [planDraft, setPlanDraft] = useState<
     Array<{ id: string; title: string; description?: string; enabled: boolean }>
   >([]);
 
-  const load = async (
-    resetEventState: boolean = true,
-    showLoadingIndicator: boolean = true,
-  ) => {
+  const load = async (resetEventState: boolean = true, showLoadingIndicator: boolean = true) => {
     if (!runId) return;
     if (showLoadingIndicator) {
       setIsLoading(true);
@@ -78,7 +65,7 @@ export default function RunDetails() {
     setError(null);
     const res = await creApi.getRun(runId);
     if (!res.success) {
-      setError(res.error || "Failed to load run.");
+      setError(res.error || 'Failed to load run.');
       if (showLoadingIndicator) {
         setIsLoading(false);
       }
@@ -88,7 +75,7 @@ export default function RunDetails() {
     const loadedRun = payload.run || null;
     setRun(loadedRun);
     if (loadedRun?.plan) {
-      setPlanSummary(loadedRun.plan.summary || "");
+      setPlanSummary(loadedRun.plan.summary || '');
       setPlanDraft(
         loadedRun.plan.steps.map((step: any) => ({
           id: step.id,
@@ -113,7 +100,7 @@ export default function RunDetails() {
 
   useEffect(() => {
     if (!runId) return;
-    uxAnalytics.track("run_console_view", { runId });
+    uxAnalytics.track('run_console_view', { runId });
   }, [runId]);
 
   useEffect(() => {
@@ -124,7 +111,7 @@ export default function RunDetails() {
     );
     const source = new EventSource(streamUrl);
 
-    source.addEventListener("run_event", (event) => {
+    source.addEventListener('run_event', (event) => {
       try {
         const parsed = JSON.parse((event as MessageEvent).data) as CreRunEvent;
         if (!parsed?.id) return;
@@ -134,9 +121,7 @@ export default function RunDetails() {
         });
         const ts = new Date(parsed.timestamp).getTime();
         if (!Number.isNaN(ts)) {
-          setEventCursor((prev) =>
-            typeof prev === "number" ? Math.max(prev, ts) : ts,
-          );
+          setEventCursor((prev) => (typeof prev === 'number' ? Math.max(prev, ts) : ts));
         }
       } catch {
         // Ignore malformed event payloads.
@@ -154,10 +139,8 @@ export default function RunDetails() {
 
   useEffect(() => {
     if (!run) return;
-    const status =
-      run.status ||
-      (run.finishedAt ? (run.ok ? "completed" : "failed") : "running");
-    if (status !== "running" && status !== "paused_for_approval") return;
+    const status = run.status || (run.finishedAt ? (run.ok ? 'completed' : 'failed') : 'running');
+    if (status !== 'running' && status !== 'paused_for_approval') return;
     const id = window.setInterval(() => {
       void load(false, false);
     }, 5000);
@@ -184,7 +167,7 @@ export default function RunDetails() {
     try {
       await action();
     } catch (err: any) {
-      setError(err?.message || "Run action failed.");
+      setError(err?.message || 'Run action failed.');
     } finally {
       await load();
       setIsBusy(false);
@@ -196,9 +179,9 @@ export default function RunDetails() {
       <div css={containerStyles}>
         <div
           style={{
-            display: "flex",
-            justifyContent: "center",
-            padding: "120px",
+            display: 'flex',
+            justifyContent: 'center',
+            padding: '120px',
           }}
         >
           <LoadingSpinner size="lg" text="Loading run console..." />
@@ -211,7 +194,7 @@ export default function RunDetails() {
     return (
       <div css={containerStyles}>
         <Card variant="outlined">
-          <CardContent style={{ textAlign: "center", padding: "60px" }}>
+          <CardContent style={{ textAlign: 'center', padding: '60px' }}>
             <h3>Run not found</h3>
             <p>The requested run could not be located.</p>
             <Link to="/runs">Return to ledger</Link>
@@ -228,7 +211,7 @@ export default function RunDetails() {
           <h1
             css={css`
               margin: 0;
-              font-size: ${designTokens.typography.fontSize["4xl"]};
+              font-size: ${designTokens.typography.fontSize['4xl']};
               font-weight: ${designTokens.typography.fontWeight.bold};
             `}
           >
@@ -245,13 +228,13 @@ export default function RunDetails() {
           >
             <Badge
               variant={
-                vm.status === "completed"
-                  ? "success"
-                  : vm.status === "failed" || vm.status === "cancelled"
-                    ? "error"
-                    : vm.status === "paused_for_approval"
-                      ? "warning"
-                      : "secondary"
+                vm.status === 'completed'
+                  ? 'success'
+                  : vm.status === 'failed' || vm.status === 'cancelled'
+                    ? 'error'
+                    : vm.status === 'paused_for_approval'
+                      ? 'warning'
+                      : 'secondary'
               }
             >
               {vm.status.toUpperCase()}
@@ -285,7 +268,7 @@ export default function RunDetails() {
               onClick={() =>
                 runAction(async () => {
                   await creApi.cancelRun(vm.runId);
-                  await uxAnalytics.track("run_cancel", { runId: vm.runId });
+                  await uxAnalytics.track('run_cancel', { runId: vm.runId });
                 })
               }
               variant="danger"
@@ -299,7 +282,7 @@ export default function RunDetails() {
               onClick={() =>
                 runAction(async () => {
                   await creApi.retryRun(vm.runId);
-                  await uxAnalytics.track("run_retry", { runId: vm.runId });
+                  await uxAnalytics.track('run_retry', { runId: vm.runId });
                 })
               }
               variant="secondary"
@@ -315,7 +298,7 @@ export default function RunDetails() {
                   await creApi.retryRun(vm.runId, {
                     fromStep: lastFailedStepIndex,
                   });
-                  await uxAnalytics.track("run_retry_from_step", {
+                  await uxAnalytics.track('run_retry_from_step', {
                     runId: vm.runId,
                     fromStep: lastFailedStepIndex,
                   });
@@ -328,9 +311,7 @@ export default function RunDetails() {
             </Button>
           )}
           <Button
-            onClick={() =>
-              void copyTextToClipboard(JSON.stringify(run, null, 2))
-            }
+            onClick={() => void copyTextToClipboard(JSON.stringify(run, null, 2))}
             variant="primary"
             disabled={isBusy}
           >
@@ -383,7 +364,7 @@ export default function RunDetails() {
                         approve: true,
                         reason: approvalReason.trim() || undefined,
                       });
-                      await uxAnalytics.track("run_approval_approve", {
+                      await uxAnalytics.track('run_approval_approve', {
                         runId: vm.runId,
                       });
                     })
@@ -400,7 +381,7 @@ export default function RunDetails() {
                         approve: false,
                         reason: approvalReason.trim() || undefined,
                       });
-                      await uxAnalytics.track("run_approval_reject", {
+                      await uxAnalytics.track('run_approval_reject', {
                         runId: vm.runId,
                       });
                     })
@@ -433,11 +414,11 @@ export default function RunDetails() {
                 onClick={() => {
                   setShowPlanEditor((prev) => !prev);
                   if (!showPlanEditor) {
-                    uxAnalytics.track("run_plan_opened", { runId: vm.runId });
+                    uxAnalytics.track('run_plan_opened', { runId: vm.runId });
                   }
                 }}
               >
-                {showPlanEditor ? "Close Plan Editor" : "Edit Plan"}
+                {showPlanEditor ? 'Close Plan Editor' : 'Edit Plan'}
               </Button>
             </div>
           </CardHeader>
@@ -489,7 +470,7 @@ export default function RunDetails() {
                           font-size: ${designTokens.typography.fontSize.sm};
                         `}
                       >
-                        {step.description || "No description"}
+                        {step.description || 'No description'}
                       </div>
                     </div>
                   </label>
@@ -506,13 +487,12 @@ export default function RunDetails() {
                           summary: planSummary.trim() || undefined,
                           steps: planDraft.map((step) => ({
                             ...step,
-                            status: "pending",
+                            status: 'pending',
                           })),
                         });
-                        await uxAnalytics.track("run_plan_saved", {
+                        await uxAnalytics.track('run_plan_saved', {
                           runId: vm.runId,
-                          enabledSteps: planDraft.filter((s) => s.enabled)
-                            .length,
+                          enabledSteps: planDraft.filter((s) => s.enabled).length,
                         });
                       })
                     }
@@ -528,15 +508,12 @@ export default function RunDetails() {
                   gap: ${designTokens.spacing[2]};
                 `}
               >
-                <div>{run.plan.summary || "No plan summary."}</div>
+                <div>{run.plan.summary || 'No plan summary.'}</div>
                 {run.plan.steps.map((step) => (
                   <div key={step.id}>
-                    <Badge
-                      variant={step.enabled ? "secondary" : "outline"}
-                      size="sm"
-                    >
-                      {step.enabled ? "enabled" : "disabled"}
-                    </Badge>{" "}
+                    <Badge variant={step.enabled ? 'secondary' : 'outline'} size="sm">
+                      {step.enabled ? 'enabled' : 'disabled'}
+                    </Badge>{' '}
                     {step.title}
                   </div>
                 ))}
@@ -549,7 +526,7 @@ export default function RunDetails() {
       <div css={metricGridStyles}>
         <Card variant="outlined">
           <CardHeader>Latency</CardHeader>
-          <CardContent>{vm.metrics.latencyMs ?? "N/A"} ms</CardContent>
+          <CardContent>{vm.metrics.latencyMs ?? 'N/A'} ms</CardContent>
         </Card>
         <Card variant="outlined">
           <CardHeader>Steps</CardHeader>
@@ -562,8 +539,8 @@ export default function RunDetails() {
         <Card variant="outlined">
           <CardHeader>Estimated Tokens / Cost</CardHeader>
           <CardContent>
-            {vm.metrics.estimatedTokens ?? "N/A"} / $
-            {vm.metrics.estimatedCostUsd?.toFixed(6) ?? "N/A"}
+            {vm.metrics.estimatedTokens ?? 'N/A'} / $
+            {vm.metrics.estimatedCostUsd?.toFixed(6) ?? 'N/A'}
           </CardContent>
         </Card>
       </div>
@@ -580,27 +557,37 @@ export default function RunDetails() {
             <div css={trustBadgeRowStyles}>
               {run.evidence?.hash && (
                 <Tooltip content="This run has a stable evidence hash derived from its persisted record.">
-                  <span><Badge variant="success" size="sm">hash-backed</Badge></span>
+                  <span>
+                    <Badge variant="success" size="sm">
+                      hash-backed
+                    </Badge>
+                  </span>
                 </Tooltip>
               )}
               {run.evidence?.cid && (
                 <Tooltip content="This run references content-addressed evidence via CID.">
-                  <span><Badge variant="secondary" size="sm">cid-linked</Badge></span>
+                  <span>
+                    <Badge variant="secondary" size="sm">
+                      cid-linked
+                    </Badge>
+                  </span>
                 </Tooltip>
               )}
               {run.evidence?.artifactIds?.length ? (
                 <Tooltip content="Artifacts are persisted and linked to this run record.">
-                  <span><Badge variant="warning" size="sm">artifact-tracked</Badge></span>
+                  <span>
+                    <Badge variant="warning" size="sm">
+                      artifact-tracked
+                    </Badge>
+                  </span>
                 </Tooltip>
               ) : null}
             </div>
             <div>Source: {vm.provenance.source}</div>
+            <div>Workflow Version: {vm.provenance.workflowVersion || 'N/A'}</div>
+            <div>Model: {vm.provenance.model || 'N/A'}</div>
             <div>
-              Workflow Version: {vm.provenance.workflowVersion || "N/A"}
-            </div>
-            <div>Model: {vm.provenance.model || "N/A"}</div>
-            <div>
-              Run Hash: {run.evidence?.hash ? `${run.evidence.hash.slice(0, 16)}…` : "N/A"}
+              Run Hash: {run.evidence?.hash ? `${run.evidence.hash.slice(0, 16)}…` : 'N/A'}
               {run.evidence?.hash && (
                 <button
                   css={css`
@@ -611,7 +598,7 @@ export default function RunDetails() {
                     cursor: pointer;
                   `}
                   onClick={() => {
-                    void copyTextToClipboard(run.evidence?.hash || "");
+                    void copyTextToClipboard(run.evidence?.hash || '');
                   }}
                 >
                   Copy
@@ -619,7 +606,7 @@ export default function RunDetails() {
               )}
             </div>
             <div>
-              CID: {run.evidence?.cid || "N/A"}
+              CID: {run.evidence?.cid || 'N/A'}
               {run.evidence?.cid && (
                 <button
                   css={css`
@@ -630,7 +617,7 @@ export default function RunDetails() {
                     cursor: pointer;
                   `}
                   onClick={() => {
-                    void copyTextToClipboard(run.evidence?.cid || "");
+                    void copyTextToClipboard(run.evidence?.cid || '');
                   }}
                 >
                   Copy
@@ -648,7 +635,7 @@ export default function RunDetails() {
                   ))}
                 </ul>
               ) : (
-                " none"
+                ' none'
               )}
             </div>
           </div>
@@ -682,17 +669,26 @@ export default function RunDetails() {
                   <div css={trustBadgeRowStyles}>
                     {artifact.evidence?.hash && (
                       <Tooltip content="Artifact payload is hash-backed for later verification.">
-                        <span><Badge variant="success" size="sm">hash-backed</Badge></span>
+                        <span>
+                          <Badge variant="success" size="sm">
+                            hash-backed
+                          </Badge>
+                        </span>
                       </Tooltip>
                     )}
                     {artifact.evidence?.cid && (
                       <Tooltip content="Artifact has a content-addressed reference.">
-                        <span><Badge variant="secondary" size="sm">cid-linked</Badge></span>
+                        <span>
+                          <Badge variant="secondary" size="sm">
+                            cid-linked
+                          </Badge>
+                        </span>
                       </Tooltip>
                     )}
                   </div>
                   <div>
-                    Hash: {artifact.evidence?.hash ? `${artifact.evidence.hash.slice(0, 16)}…` : "N/A"}
+                    Hash:{' '}
+                    {artifact.evidence?.hash ? `${artifact.evidence.hash.slice(0, 16)}…` : 'N/A'}
                     {artifact.evidence?.hash && (
                       <button
                         css={css`
@@ -703,7 +699,7 @@ export default function RunDetails() {
                           cursor: pointer;
                         `}
                         onClick={() => {
-                          void copyTextToClipboard(artifact.evidence?.hash || "");
+                          void copyTextToClipboard(artifact.evidence?.hash || '');
                         }}
                       >
                         Copy
@@ -711,7 +707,7 @@ export default function RunDetails() {
                     )}
                   </div>
                   <div>
-                    CID: {artifact.evidence?.cid || "N/A"}
+                    CID: {artifact.evidence?.cid || 'N/A'}
                     {artifact.evidence?.cid && (
                       <button
                         css={css`
@@ -722,7 +718,7 @@ export default function RunDetails() {
                           cursor: pointer;
                         `}
                         onClick={() => {
-                          void copyTextToClipboard(artifact.evidence?.cid || "");
+                          void copyTextToClipboard(artifact.evidence?.cid || '');
                         }}
                       >
                         Copy
@@ -741,16 +737,14 @@ export default function RunDetails() {
         <CardContent>
           <div>Total Events: {agUiStream.length}</div>
           <div>
-            Latest Timestamp:{" "}
-            {agUiStream.length
-              ? agUiStream[agUiStream.length - 1].timestamp
-              : "N/A"}
+            Latest Timestamp:{' '}
+            {agUiStream.length ? agUiStream[agUiStream.length - 1].timestamp : 'N/A'}
           </div>
           <div>
-            Latest Event Hash:{" "}
+            Latest Event Hash:{' '}
             {run.events?.length && run.events[run.events.length - 1].evidence?.hash
               ? `${run.events[run.events.length - 1].evidence?.hash?.slice(0, 16)}…`
-              : "N/A"}
+              : 'N/A'}
             {run.events?.length && run.events[run.events.length - 1].evidence?.hash && (
               <button
                 css={css`
@@ -762,7 +756,7 @@ export default function RunDetails() {
                 `}
                 onClick={() => {
                   void copyTextToClipboard(
-                    run.events?.[run.events.length - 1].evidence?.hash || "",
+                    run.events?.[run.events.length - 1].evidence?.hash || '',
                   );
                 }}
               >

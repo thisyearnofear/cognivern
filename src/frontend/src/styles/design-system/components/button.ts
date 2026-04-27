@@ -1,16 +1,10 @@
-import { css } from "@emotion/react";
-import { designTokens, colorSystem } from "../tokens/designTokens";
-import { easings } from "../animations/keyframes";
+import { css } from '@emotion/react';
+import { designTokens, colorSystem } from '../tokens/designTokens';
+import { easings } from '../animations/keyframes';
 
 // Button component variants
-export type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "ghost"
-  | "danger"
-  | "success"
-  | "outline";
-export type ButtonSize = "sm" | "md" | "lg";
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'outline';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export const buttonStyles = {
   base: css`
@@ -45,18 +39,13 @@ export const buttonStyles = {
 
     // Shimmer effect
     &::before {
-      content: "";
+      content: '';
       position: absolute;
       top: 0;
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent
-      );
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
       transition: left 0.5s;
     }
 
@@ -101,8 +90,7 @@ export const buttonStyles = {
 
       &:hover {
         filter: brightness(1.1);
-        box-shadow:
-          ${designTokens.shadows.glow.primary}, ${designTokens.shadows.lg};
+        box-shadow: ${designTokens.shadows.glow.primary}, ${designTokens.shadows.lg};
       }
     `,
 
@@ -136,8 +124,7 @@ export const buttonStyles = {
 
       &:hover {
         filter: brightness(1.1);
-        box-shadow:
-          ${designTokens.shadows.glow.error}, ${designTokens.shadows.lg};
+        box-shadow: ${designTokens.shadows.glow.error}, ${designTokens.shadows.lg};
       }
     `,
 
@@ -148,8 +135,7 @@ export const buttonStyles = {
 
       &:hover {
         filter: brightness(1.1);
-        box-shadow:
-          ${designTokens.shadows.glow.success}, ${designTokens.shadows.lg};
+        box-shadow: ${designTokens.shadows.glow.success}, ${designTokens.shadows.lg};
       }
     `,
 
@@ -168,10 +154,7 @@ export const buttonStyles = {
 } as const;
 
 // Button utility function
-export const getButtonStyles = (
-  variant: ButtonVariant = "primary",
-  size: ButtonSize = "md",
-) => css`
+export const getButtonStyles = (variant: ButtonVariant = 'primary', size: ButtonSize = 'md') => css`
   ${buttonStyles.base}
   ${buttonStyles.sizes[size]}
   ${buttonStyles.variants[variant]}

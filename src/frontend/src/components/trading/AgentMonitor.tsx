@@ -1,18 +1,28 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
-import { css } from "@emotion/react";
-import { AlertTriangle, RefreshCw, Play, Square, Activity, ShieldCheck, Brain, Eye, EyeOff } from "lucide-react";
-import { designTokens } from "../../styles/design-system";
-import { AgentType } from "../../types";
-import { useAgentData, useTradingData } from "../../hooks/useAgentData";
-import { useAppStore } from "../../stores/appStore";
-import { uxAnalytics } from "../../services/uxAnalytics";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/Card";
-import { Button } from "../ui/Button";
-import { Badge } from "../ui/Badge";
-import { ErrorBoundary } from "../ui/ErrorBoundary";
-const TradingChart = React.lazy(() => import("./TradingChart"));
-const TradeHistory = React.lazy(() => import("./TradeHistory"));
+import React from 'react';
+import { css } from '@emotion/react';
+import {
+  AlertTriangle,
+  RefreshCw,
+  Play,
+  Square,
+  Activity,
+  ShieldCheck,
+  Brain,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
+import { designTokens } from '../../styles/design-system';
+import { AgentType } from '../../types';
+import { useAgentData, useTradingData } from '../../hooks/useAgentData';
+import { useAppStore } from '../../stores/appStore';
+import { uxAnalytics } from '../../services/uxAnalytics';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
+const TradingChart = React.lazy(() => import('./TradingChart'));
+const TradeHistory = React.lazy(() => import('./TradeHistory'));
 
 interface AgentMonitorProps {
   agentType: AgentType;
@@ -25,7 +35,7 @@ export const AgentMonitor: React.FC<AgentMonitorProps> = ({
   agentType,
   title,
   description,
-  isShowcase = false
+  isShowcase = false,
 }) => {
   return (
     <ErrorBoundary componentName={`Agent Monitor: ${title}`}>
@@ -45,7 +55,7 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
   agentType,
   title,
   description,
-  isShowcase
+  isShowcase,
 }) => {
   const {
     status,
@@ -53,25 +63,21 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
     error: agentError,
     startAgent,
     stopAgent,
-    refreshData
+    refreshData,
   } = useAgentData(agentType);
 
-  const {
-    decisions,
-    isLoading: tradingLoading,
-    error: tradingError
-  } = useTradingData(agentType);
+  const { decisions, isLoading: tradingLoading, error: tradingError } = useTradingData(agentType);
 
   const { preferences, updatePreferences } = useAppStore();
   const isShadowed = preferences.shadowedAgents.includes(agentType);
 
   const toggleShadow = () => {
     const newShadowed = isShadowed
-      ? preferences.shadowedAgents.filter(id => id !== agentType)
+      ? preferences.shadowedAgents.filter((id) => id !== agentType)
       : [...preferences.shadowedAgents, agentType];
 
     updatePreferences({ shadowedAgents: newShadowed });
-    uxAnalytics.track(isShadowed ? "agent_shadow_stop" : "agent_shadow_start", { agentType });
+    uxAnalytics.track(isShadowed ? 'agent_shadow_stop' : 'agent_shadow_start', { agentType });
   };
 
   const isLoading = agentLoading || tradingLoading;
@@ -84,8 +90,14 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
     animation: fadeIn 0.5s ease-out;
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
   `;
 
@@ -124,15 +136,46 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
 
   if (error) {
     return (
-      <Card css={css`border-color: ${designTokens.colors.semantic.error[200]};`}>
-        <CardContent css={css`padding: ${designTokens.spacing[8]}; text-align: center;`}>
-          <AlertTriangle size={48} color={designTokens.colors.semantic.error[500]} css={css`margin: 0 auto ${designTokens.spacing[4]};`} />
-          <h3 css={css`margin-bottom: ${designTokens.spacing[2]};`}>Connection Error</h3>
-          <p css={css`color: ${designTokens.colors.neutral[600]}; margin-bottom: ${designTokens.spacing[6]};`}>
+      <Card
+        css={css`
+          border-color: ${designTokens.colors.semantic.error[200]};
+        `}
+      >
+        <CardContent
+          css={css`
+            padding: ${designTokens.spacing[8]};
+            text-align: center;
+          `}
+        >
+          <AlertTriangle
+            size={48}
+            color={designTokens.colors.semantic.error[500]}
+            css={css`
+              margin: 0 auto ${designTokens.spacing[4]};
+            `}
+          />
+          <h3
+            css={css`
+              margin-bottom: ${designTokens.spacing[2]};
+            `}
+          >
+            Connection Error
+          </h3>
+          <p
+            css={css`
+              color: ${designTokens.colors.neutral[600]};
+              margin-bottom: ${designTokens.spacing[6]};
+            `}
+          >
             Failed to fetch data for {title}. {error}
           </p>
           <Button onClick={() => refreshData()} variant="outline">
-            <RefreshCw size={16} css={css`margin-right: ${designTokens.spacing[2]};`} />
+            <RefreshCw
+              size={16}
+              css={css`
+                margin-right: ${designTokens.spacing[2]};
+              `}
+            />
             Try Again
           </Button>
         </CardContent>
@@ -146,11 +189,17 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
         <CardHeader>
           <div css={headerStyles}>
             <div>
-              <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]};`}>
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  gap: ${designTokens.spacing[2]};
+                `}
+              >
                 <CardTitle>{title}</CardTitle>
                 {isShowcase && <Badge variant="primary">Demo</Badge>}
-                <Badge variant={status.isActive ? "success" : "secondary"}>
-                  {status.isActive ? "Live" : "Standby"}
+                <Badge variant={status.isActive ? 'success' : 'secondary'}>
+                  {status.isActive ? 'Live' : 'Standby'}
                 </Badge>
               </div>
               <CardDescription>{description}</CardDescription>
@@ -158,26 +207,50 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
             <div css={controlsStyles}>
               <Button
                 onClick={toggleShadow}
-                variant={isShadowed ? "primary" : "outline"}
+                variant={isShadowed ? 'primary' : 'outline'}
                 size="sm"
-                title={isShadowed ? "Watching" : "Watch Agent"}
+                title={isShadowed ? 'Watching' : 'Watch Agent'}
               >
-                {isShadowed ? <EyeOff size={14} css={css`margin-right: ${designTokens.spacing[1]};`} /> : <Eye size={14} css={css`margin-right: ${designTokens.spacing[1]};`} />}
-                {isShadowed ? "Unwatch" : "Watch"}
+                {isShadowed ? (
+                  <EyeOff
+                    size={14}
+                    css={css`
+                      margin-right: ${designTokens.spacing[1]};
+                    `}
+                  />
+                ) : (
+                  <Eye
+                    size={14}
+                    css={css`
+                      margin-right: ${designTokens.spacing[1]};
+                    `}
+                  />
+                )}
+                {isShadowed ? 'Unwatch' : 'Watch'}
               </Button>
               {!status.isActive ? (
                 <Button onClick={startAgent} disabled={isLoading} size="sm">
-                  <Play size={14} css={css`margin-right: ${designTokens.spacing[1]};`} />
+                  <Play
+                    size={14}
+                    css={css`
+                      margin-right: ${designTokens.spacing[1]};
+                    `}
+                  />
                   Start
                 </Button>
               ) : (
                 <Button onClick={stopAgent} disabled={isLoading} variant="outline" size="sm">
-                  <Square size={14} css={css`margin-right: ${designTokens.spacing[1]};`} />
+                  <Square
+                    size={14}
+                    css={css`
+                      margin-right: ${designTokens.spacing[1]};
+                    `}
+                  />
                   Stop
                 </Button>
               )}
               <Button onClick={() => refreshData()} variant="ghost" size="sm" disabled={isLoading}>
-                <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
+                <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
               </Button>
             </div>
           </div>
@@ -202,8 +275,15 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
               <ShieldCheck size={16} color={designTokens.colors.semantic.success[500]} />
               <div>
                 <div css={statLabelStyles}>Risk Profile</div>
-                <div css={[statValueStyles, css`text-transform: capitalize;`]}>
-                  {status.performance?.riskProfile ?? "Low"}
+                <div
+                  css={[
+                    statValueStyles,
+                    css`
+                      text-transform: capitalize;
+                    `,
+                  ]}
+                >
+                  {status.performance?.riskProfile ?? 'Low'}
                 </div>
               </div>
             </div>
@@ -214,30 +294,60 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
       <div css={monitorGridStyles}>
         <Card>
           <CardHeader>
-            <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base};`}>Decision Activity</CardTitle>
+            <CardTitle
+              css={css`
+                font-size: ${designTokens.typography.fontSize.base};
+              `}
+            >
+              Decision Activity
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <React.Suspense fallback={<div css={css`height: 300px; display: flex; align-items: center; justify-content: center;`}>Loading activity...</div>}>
-              <TradingChart
-                decisions={decisions}
-                agentType={agentType}
-                isLoading={isLoading}
-              />
+            <React.Suspense
+              fallback={
+                <div
+                  css={css`
+                    height: 300px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  `}
+                >
+                  Loading activity...
+                </div>
+              }
+            >
+              <TradingChart decisions={decisions} agentType={agentType} isLoading={isLoading} />
             </React.Suspense>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base};`}>Activity Audit Trail</CardTitle>
+            <CardTitle
+              css={css`
+                font-size: ${designTokens.typography.fontSize.base};
+              `}
+            >
+              Activity Audit Trail
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <React.Suspense fallback={<div css={css`height: 300px; display: flex; align-items: center; justify-content: center;`}>Loading audit trail...</div>}>
-              <TradeHistory
-                decisions={decisions}
-                agentType={agentType}
-                isLoading={isLoading}
-              />
+            <React.Suspense
+              fallback={
+                <div
+                  css={css`
+                    height: 300px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  `}
+                >
+                  Loading audit trail...
+                </div>
+              }
+            >
+              <TradeHistory decisions={decisions} agentType={agentType} isLoading={isLoading} />
             </React.Suspense>
           </CardContent>
         </Card>

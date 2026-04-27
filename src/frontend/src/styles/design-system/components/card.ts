@@ -1,9 +1,9 @@
-import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
-import { easings } from "../animations/keyframes";
+import { css } from '@emotion/react';
+import { designTokens } from '../tokens/designTokens';
+import { easings } from '../animations/keyframes';
 
 // Card component variants
-export type CardVariant = "default" | "elevated" | "glass" | "outlined";
+export type CardVariant = 'default' | 'elevated' | 'glass' | 'outlined';
 
 export const cardStyles = {
   base: css`
@@ -62,7 +62,7 @@ export const cardStyles = {
 } as const;
 
 // Card utility function
-export const getCardStyles = (variant: CardVariant = "default") => css`
+export const getCardStyles = (variant: CardVariant = 'default') => css`
   ${cardStyles.base}
   ${cardStyles.variants[variant]}
 `;

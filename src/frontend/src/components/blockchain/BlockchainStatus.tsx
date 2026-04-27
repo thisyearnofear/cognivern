@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
-import { css } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
-import { Card, CardContent } from "../ui/Card";
+import { useState, useEffect } from 'react';
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
+import { Card, CardContent } from '../ui/Card';
 import {
   checkXLayerConnection,
   fetchGovernanceStats,
   fetchAIGovernanceStats,
-} from "../../services/apiService";
+} from '../../services/apiService';
 
 interface ContractStats {
   filecoin?: {
@@ -59,7 +59,7 @@ export default function BlockchainStatus() {
 
         setStats({
           governance: {
-            address: "0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6",
+            address: '0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6',
             policies: governanceStats.totalPolicies,
             agents: governanceStats.totalAgents,
             actions: governanceStats.totalActions,
@@ -67,18 +67,18 @@ export default function BlockchainStatus() {
             approvalRate: 100, // Would need to calculate from actual data
           },
           filecoin: {
-            network: "Calibration",
+            network: 'Calibration',
             chainId: 314159,
-            rpcUrl: "https://api.calibration.node.glif.io/rpc/v1",
-            governanceContract: "0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880",
-            storageContract: "0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada",
-            usdcToken: "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+            rpcUrl: 'https://api.calibration.node.glif.io/rpc/v1',
+            governanceContract: '0x8FBF38c4b64CABb76AA24C40C02d0a4b10173880',
+            storageContract: '0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada',
+            usdcToken: '0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9',
           },
           xlayer: {
             connected: connectionInfo.connected,
             blockNumber: connectionInfo.blockNumber,
             chainId: 1952,
-            rpcUrl: "https://testrpc.xlayer.tech",
+            rpcUrl: 'https://testrpc.xlayer.tech',
           },
           aiGovernance: {
             totalActions: aiGovernanceStats.totalActions,
@@ -88,7 +88,7 @@ export default function BlockchainStatus() {
           },
         });
       } catch (err) {
-        console.error("Error fetching blockchain stats:", err);
+        console.error('Error fetching blockchain stats:', err);
       } finally {
         setLoading(false);
       }
@@ -245,7 +245,10 @@ export default function BlockchainStatus() {
                 css={css`
                   color: ${designTokens.colors.neutral[500]};
                   text-decoration: none;
-                  &:hover { color: ${designTokens.colors.primary[600]}; text-decoration: underline; }
+                  &:hover {
+                    color: ${designTokens.colors.primary[600]};
+                    text-decoration: underline;
+                  }
                 `}
               >
                 {contractInfo?.address}
@@ -405,7 +408,10 @@ export default function BlockchainStatus() {
                 css={css`
                   color: ${designTokens.colors.neutral[500]};
                   text-decoration: none;
-                  &:hover { color: ${designTokens.colors.primary[600]}; text-decoration: underline; }
+                  &:hover {
+                    color: ${designTokens.colors.primary[600]};
+                    text-decoration: underline;
+                  }
                 `}
               >
                 0x1E0317beFf188e314BbC3483e06773EEfa28bB2D
@@ -429,7 +435,9 @@ export default function BlockchainStatus() {
                 font-size: 0.7rem;
                 font-weight: 600;
                 text-decoration: none;
-                &:hover { background: ${designTokens.colors.primary[100]}; }
+                &:hover {
+                  background: ${designTokens.colors.primary[100]};
+                }
               `}
             >
               View on X Layer Explorer ↗
@@ -454,7 +462,7 @@ export default function BlockchainStatus() {
                     color: ${designTokens.colors.primary[600]};
                   `}
                 >
-                  {xlayerInfo?.connected ? "Connected" : "Disconnected"}
+                  {xlayerInfo?.connected ? 'Connected' : 'Disconnected'}
                 </div>
                 <div
                   css={css`
@@ -479,7 +487,7 @@ export default function BlockchainStatus() {
                     color: ${designTokens.colors.primary[600]};
                   `}
                 >
-                  Block #{xlayerInfo?.blockNumber ?? "N/A"}
+                  Block #{xlayerInfo?.blockNumber ?? 'N/A'}
                 </div>
                 <div
                   css={css`
@@ -563,7 +571,10 @@ export default function BlockchainStatus() {
                 css={css`
                   color: ${designTokens.colors.neutral[500]};
                   text-decoration: none;
-                  &:hover { color: ${designTokens.colors.secondary[600]}; text-decoration: underline; }
+                  &:hover {
+                    color: ${designTokens.colors.secondary[600]};
+                    text-decoration: underline;
+                  }
                 `}
               >
                 {storageInfo?.storageContract}

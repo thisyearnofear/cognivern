@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
-import { css } from "@emotion/react";
-import { designTokens, easings } from "../../styles/design-system";
-import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { LogOut, Wallet } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { css } from '@emotion/react';
+import { designTokens, easings } from '../../styles/design-system';
+import { useBreakpoint } from '../../hooks/useMediaQuery';
+import { LogOut, Wallet } from 'lucide-react';
 
 interface WalletConnectProps {
-  onConnect: (address: string, network: "filecoin" | "xlayer") => void;
+  onConnect: (address: string, network: 'filecoin' | 'xlayer') => void;
   onDisconnect: () => void;
 }
 
@@ -15,15 +15,12 @@ declare global {
   }
 }
 
-export default function WalletConnect({
-  onConnect,
-  onDisconnect,
-}: WalletConnectProps) {
+export default function WalletConnect({ onConnect, onDisconnect }: WalletConnectProps) {
   const [isConnected, setIsConnected] = useState(false);
-  const [address, setAddress] = useState<string>("");
-  const [network, setNetwork] = useState<string>(""); // "filecoin" or "xlayer"
+  const [address, setAddress] = useState<string>('');
+  const [network, setNetwork] = useState<string>(''); // "filecoin" or "xlayer"
   const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<string>('');
 
   const { isMobile } = useBreakpoint();
 
@@ -32,10 +29,10 @@ export default function WalletConnect({
   }, []);
 
   const checkConnection = async () => {
-    if (typeof window.ethereum !== "undefined") {
+    if (typeof window.ethereum !== 'undefined') {
       try {
         const accounts = await window.ethereum.request({
-          method: "eth_accounts",
+          method: 'eth_accounts',
         });
         if (accounts.length > 0) {
           setAddress(accounts[0]);
@@ -44,51 +41,49 @@ export default function WalletConnect({
           // Detect current network
           try {
             const chainIdHex = await window.ethereum.request({
-              method: "eth_chainId",
+              method: 'eth_chainId',
             });
             const chainId = parseInt(chainIdHex, 16);
 
             if (chainId === 1952 || chainId === 196) {
               // X Layer testnet (1952) or mainnet (196)
-              setNetwork("xlayer");
-              onConnect(accounts[0], "xlayer");
+              setNetwork('xlayer');
+              onConnect(accounts[0], 'xlayer');
             } else if (chainId === 314159) {
               // Filecoin Calibration
-              setNetwork("filecoin");
-              onConnect(accounts[0], "filecoin");
+              setNetwork('filecoin');
+              onConnect(accounts[0], 'filecoin');
             } else {
               // Default to filecoin for unknown networks
-              setNetwork("filecoin");
-              onConnect(accounts[0], "filecoin");
+              setNetwork('filecoin');
+              onConnect(accounts[0], 'filecoin');
             }
           } catch (networkError) {
-            console.error("Error detecting network:", networkError);
+            console.error('Error detecting network:', networkError);
             // Default to filecoin
-            setNetwork("filecoin");
-            onConnect(accounts[0], "filecoin");
+            setNetwork('filecoin');
+            onConnect(accounts[0], 'filecoin');
           }
         }
       } catch (error) {
-        console.error("Error checking wallet connection:", error);
+        console.error('Error checking wallet connection:', error);
       }
     }
   };
 
   const connectWallet = async () => {
-    if (typeof window.ethereum === "undefined") {
-      setError(
-        "MetaMask is not installed. Please install MetaMask to continue.",
-      );
+    if (typeof window.ethereum === 'undefined') {
+      setError('MetaMask is not installed. Please install MetaMask to continue.');
       return;
     }
 
     setIsConnecting(true);
-    setError("");
+    setError('');
 
     try {
       // Request account access
       const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
+        method: 'eth_requestAccounts',
       });
 
       if (accounts.length > 0) {
@@ -99,33 +94,33 @@ export default function WalletConnect({
         // Detect current network
         try {
           const chainIdHex = await window.ethereum.request({
-            method: "eth_chainId",
+            method: 'eth_chainId',
           });
           const chainId = parseInt(chainIdHex, 16);
 
           if (chainId === 195 || chainId === 196) {
             // X Layer testnet (195) or mainnet (196)
-            setNetwork("xlayer");
-            onConnect(userAddress, "xlayer");
+            setNetwork('xlayer');
+            onConnect(userAddress, 'xlayer');
           } else if (chainId === 314159) {
             // Filecoin Calibration
-            setNetwork("filecoin");
-            onConnect(userAddress, "filecoin");
+            setNetwork('filecoin');
+            onConnect(userAddress, 'filecoin');
           } else {
             // Default to filecoin for unknown networks
-            setNetwork("filecoin");
-            onConnect(userAddress, "filecoin");
+            setNetwork('filecoin');
+            onConnect(userAddress, 'filecoin');
           }
         } catch (networkError) {
-          console.error("Error detecting network:", networkError);
+          console.error('Error detecting network:', networkError);
           // Default to filecoin
-          setNetwork("filecoin");
-          onConnect(userAddress, "filecoin");
+          setNetwork('filecoin');
+          onConnect(userAddress, 'filecoin');
         }
       }
     } catch (error: any) {
-      console.error("Error connecting wallet:", error);
-      setError(error.message || "Failed to connect wallet");
+      console.error('Error connecting wallet:', error);
+      setError(error.message || 'Failed to connect wallet');
     } finally {
       setIsConnecting(false);
     }
@@ -133,8 +128,8 @@ export default function WalletConnect({
 
   const disconnectWallet = () => {
     setIsConnected(false);
-    setAddress("");
-    setError("");
+    setAddress('');
+    setError('');
     onDisconnect();
   };
 
@@ -191,19 +186,14 @@ export default function WalletConnect({
   `;
 
   if (isConnected) {
-    const networkName =
-      network === "xlayer" ? "X Layer" : "Filecoin Calibration";
+    const networkName = network === 'xlayer' ? 'X Layer' : 'Filecoin Calibration';
     return (
       <div css={containerStyles}>
         <button css={connectedButtonStyles} title={networkName}>
           <Wallet size={16} />
           <span>{formatAddress(address)}</span>
         </button>
-        <button
-          css={buttonBaseStyles}
-          onClick={disconnectWallet}
-          title="Disconnect Wallet"
-        >
+        <button css={buttonBaseStyles} onClick={disconnectWallet} title="Disconnect Wallet">
           <LogOut size={16} />
           {!isMobile && <span>Disconnect</span>}
         </button>
@@ -224,11 +214,7 @@ export default function WalletConnect({
         </div>
       )}
 
-      <button
-        css={buttonBaseStyles}
-        onClick={connectWallet}
-        disabled={isConnecting}
-      >
+      <button css={buttonBaseStyles} onClick={connectWallet} disabled={isConnecting}>
         {isConnecting ? (
           <>
             <span
@@ -241,12 +227,12 @@ export default function WalletConnect({
                 animation: spin 1s linear infinite;
               `}
             ></span>
-            {!isMobile && "Connecting..."}
+            {!isMobile && 'Connecting...'}
           </>
         ) : (
           <>
             <Wallet size={16} />
-            <span>{!isMobile ? "Connect Wallet" : "Connect"}</span>
+            <span>{!isMobile ? 'Connect Wallet' : 'Connect'}</span>
           </>
         )}
       </button>

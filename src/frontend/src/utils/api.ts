@@ -12,12 +12,12 @@ export function getApiKey(): string {
   // In production, use the environment variable if set
   // Otherwise, use a public API key for demo/hackathon purposes
   if (import.meta.env.PROD) {
-    return apiKey || "sapience-hackathon-key";
+    return apiKey || 'sapience-hackathon-key';
   }
 
   if (!apiKey) {
-    console.warn("VITE_API_KEY not set, using development key");
-    return "development-api-key";
+    console.warn('VITE_API_KEY not set, using development key');
+    return 'development-api-key';
   }
 
   return apiKey;
@@ -28,13 +28,13 @@ export function getApiKey(): string {
  */
 export function getApiHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   };
 
   // Always include API key for backend authentication
   const apiKey = getApiKey();
   if (apiKey) {
-    headers["X-API-KEY"] = apiKey;
+    headers['X-API-KEY'] = apiKey;
   }
 
   return headers;
@@ -50,8 +50,8 @@ export function getApiUrl(endpoint: string): string {
   let cleanEndpoint = endpoint;
 
   // Ensure endpoint starts with /api/
-  if (cleanEndpoint !== "/health" && !cleanEndpoint.startsWith("/api/")) {
-    if (cleanEndpoint.startsWith("/")) {
+  if (cleanEndpoint !== '/health' && !cleanEndpoint.startsWith('/api/')) {
+    if (cleanEndpoint.startsWith('/')) {
       cleanEndpoint = `/api${cleanEndpoint}`;
     } else {
       cleanEndpoint = `/api/${cleanEndpoint}`;
@@ -60,7 +60,7 @@ export function getApiUrl(endpoint: string): string {
 
   // FORCE backend URL in production to prevent calls to vercel domain
   if (import.meta.env.PROD) {
-    const backendUrl = "https://api.thisyearnofear.com";
+    const backendUrl = 'https://api.thisyearnofear.com';
     return `${backendUrl}${cleanEndpoint}`;
   }
 
@@ -73,13 +73,13 @@ export function getApiUrl(endpoint: string): string {
  */
 export function getRequestHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   };
 
   // Add API key if it exists
   const apiKey = getApiKey();
   if (apiKey) {
-    headers["X-API-KEY"] = apiKey;
+    headers['X-API-KEY'] = apiKey;
   }
 
   return headers;
@@ -88,4 +88,4 @@ export function getRequestHeaders(): Record<string, string> {
 /**
  * Base API URL (deprecated - use getApiUrl instead)
  */
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';

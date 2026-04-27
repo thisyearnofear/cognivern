@@ -1,5 +1,5 @@
-import { css } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
 
 export const cardHoverStyles = css`
   border-color: ${designTokens.colors.primary[300]};

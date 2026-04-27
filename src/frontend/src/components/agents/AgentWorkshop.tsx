@@ -1,25 +1,14 @@
-import { useState, useRef, useEffect, useMemo } from "react";
-import { css } from "@emotion/react";
-import { ArrowRight } from "lucide-react";
-import {
-  designTokens,
-  keyframeAnimations,
-  easings,
-  layoutUtils,
-} from "../../styles/design-system";
-import { getApiHeaders, getApiUrl } from "../../utils/api";
-import { BaseAgent } from "../../types";
-import { useLoadingState } from "../../hooks/useAgentData";
-import { Button } from "../ui/Button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "../ui/Card";
-import { Badge } from "../ui/Badge";
-import LoadingSpinner from "../ui/LoadingSpinner";
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { css } from '@emotion/react';
+import { ArrowRight } from 'lucide-react';
+import { designTokens, keyframeAnimations, easings, layoutUtils } from '../../styles/design-system';
+import { getApiHeaders, getApiUrl } from '../../utils/api';
+import { BaseAgent } from '../../types';
+import { useLoadingState } from '../../hooks/useAgentData';
+import { Button } from '../ui/Button';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/Card';
+import { Badge } from '../ui/Badge';
+import LoadingSpinner from '../ui/LoadingSpinner';
 
 interface AgentAction {
   id: string;
@@ -40,7 +29,7 @@ interface TestResult {
 
 interface LogMessage {
   message: string;
-  type: "info" | "error" | "success" | "loading";
+  type: 'info' | 'error' | 'success' | 'loading';
   timestamp: Date;
 }
 
@@ -69,80 +58,75 @@ export default function AgentWorkshop() {
     }
   }, [logs]);
 
-  const addLog = (
-    message: string,
-    type: "info" | "error" | "success" | "loading" = "info",
-  ) => {
+  const addLog = (message: string, type: 'info' | 'error' | 'success' | 'loading' = 'info') => {
     setLogs((prev) => [...prev, { message, type, timestamp: new Date() }]);
   };
 
   const agentTemplates: AgentTemplate[] = [
     {
-      id: "ad-allocation",
-      name: "Ad Allocation Agent",
+      id: 'ad-allocation',
+      name: 'Ad Allocation Agent',
       description:
-        "Intelligently allocates ad placements based on contract terms, content relevance, and audience targeting",
-      icon: "📊",
+        'Intelligently allocates ad placements based on contract terms, content relevance, and audience targeting',
+      icon: '📊',
       useCases: [
-        "Newsletter publishers with multiple advertisers",
-        "Content platforms with premium placement options",
-        "Media companies managing sponsor commitments",
+        'Newsletter publishers with multiple advertisers',
+        'Content platforms with premium placement options',
+        'Media companies managing sponsor commitments',
       ],
       benefits: [
-        "Ensures fair distribution based on contract terms",
-        "Optimizes for content relevance and engagement",
-        "Maintains complete audit trail for advertiser reporting",
+        'Ensures fair distribution based on contract terms',
+        'Optimizes for content relevance and engagement',
+        'Maintains complete audit trail for advertiser reporting',
       ],
     },
     {
-      id: "compliance",
-      name: "Compliance Guardian",
+      id: 'compliance',
+      name: 'Compliance Guardian',
       description:
-        "Ensures all content and operations meet regulatory requirements with automatic policy enforcement",
-      icon: "🛡️",
+        'Ensures all content and operations meet regulatory requirements with automatic policy enforcement',
+      icon: '🛡️',
       useCases: [
-        "Financial services content review",
-        "Healthcare information management",
-        "Legal document processing",
+        'Financial services content review',
+        'Healthcare information management',
+        'Legal document processing',
       ],
       benefits: [
-        "Prevents policy violations before they occur",
-        "Creates defensible audit trails for regulators",
-        "Adapts to changing compliance requirements",
+        'Prevents policy violations before they occur',
+        'Creates defensible audit trails for regulators',
+        'Adapts to changing compliance requirements',
       ],
     },
     {
-      id: "insights",
-      name: "Audience Insights Agent",
-      description:
-        "Analyzes user behavior to optimize content strategy and business decisions",
-      icon: "📈",
+      id: 'insights',
+      name: 'Audience Insights Agent',
+      description: 'Analyzes user behavior to optimize content strategy and business decisions',
+      icon: '📈',
       useCases: [
-        "Content strategy optimization",
-        "Subscriber retention programs",
-        "Product recommendation systems",
+        'Content strategy optimization',
+        'Subscriber retention programs',
+        'Product recommendation systems',
       ],
       benefits: [
-        "Identifies engagement patterns across audience segments",
-        "Recommends content optimizations with expected impact",
-        "Protects user privacy while delivering insights",
+        'Identifies engagement patterns across audience segments',
+        'Recommends content optimizations with expected impact',
+        'Protects user privacy while delivering insights',
       ],
     },
     {
-      id: "workflow",
-      name: "Workflow Automation Agent",
-      description:
-        "Orchestrates complex business processes with governance and human oversight",
-      icon: "⚙️",
+      id: 'workflow',
+      name: 'Workflow Automation Agent',
+      description: 'Orchestrates complex business processes with governance and human oversight',
+      icon: '⚙️',
       useCases: [
-        "Editorial approval workflows",
-        "Customer onboarding processes",
-        "Supply chain management",
+        'Editorial approval workflows',
+        'Customer onboarding processes',
+        'Supply chain management',
       ],
       benefits: [
-        "Reduces manual handoffs and bottlenecks",
-        "Ensures compliance at every process step",
-        "Provides real-time visibility into process status",
+        'Reduces manual handoffs and bottlenecks',
+        'Ensures compliance at every process step',
+        'Provides real-time visibility into process status',
       ],
     },
   ];
@@ -151,81 +135,72 @@ export default function AgentWorkshop() {
     string,
     Array<{ id: string; name: string; description: string }>
   > = {
-    "ad-allocation": [
+    'ad-allocation': [
       {
-        id: "contract-based",
-        name: "Contract-Based Allocation",
-        description:
-          "Allocate ad placements based on contract terms and remaining inventory",
+        id: 'contract-based',
+        name: 'Contract-Based Allocation',
+        description: 'Allocate ad placements based on contract terms and remaining inventory',
       },
       {
-        id: "relevance-based",
-        name: "Relevance-Based Placement",
-        description:
-          "Optimize ad placements based on content relevance and expected engagement",
+        id: 'relevance-based',
+        name: 'Relevance-Based Placement',
+        description: 'Optimize ad placements based on content relevance and expected engagement',
       },
       {
-        id: "conflict-resolution",
-        name: "Advertiser Conflict Resolution",
-        description:
-          "Resolve conflicts when multiple advertisers want the same placement",
+        id: 'conflict-resolution',
+        name: 'Advertiser Conflict Resolution',
+        description: 'Resolve conflicts when multiple advertisers want the same placement',
       },
     ],
     compliance: [
       {
-        id: "content-review",
-        name: "Content Policy Review",
-        description:
-          "Review content against regulatory and internal policy requirements",
+        id: 'content-review',
+        name: 'Content Policy Review',
+        description: 'Review content against regulatory and internal policy requirements',
       },
       {
-        id: "policy-violation",
-        name: "Policy Violation Handling",
-        description:
-          "Process content that violates policies and generate appropriate responses",
+        id: 'policy-violation',
+        name: 'Policy Violation Handling',
+        description: 'Process content that violates policies and generate appropriate responses',
       },
       {
-        id: "audit-trail",
-        name: "Compliance Audit Trail",
-        description: "Generate detailed audit trails for regulatory reporting",
+        id: 'audit-trail',
+        name: 'Compliance Audit Trail',
+        description: 'Generate detailed audit trails for regulatory reporting',
       },
     ],
     insights: [
       {
-        id: "engagement-analysis",
-        name: "Engagement Analysis",
-        description: "Analyze user engagement patterns across content types",
+        id: 'engagement-analysis',
+        name: 'Engagement Analysis',
+        description: 'Analyze user engagement patterns across content types',
       },
       {
-        id: "segment-discovery",
-        name: "Audience Segment Discovery",
-        description:
-          "Identify new audience segments based on behavior patterns",
+        id: 'segment-discovery',
+        name: 'Audience Segment Discovery',
+        description: 'Identify new audience segments based on behavior patterns',
       },
       {
-        id: "content-recommendations",
-        name: "Content Recommendations",
-        description:
-          "Generate personalized content recommendations for audience segments",
+        id: 'content-recommendations',
+        name: 'Content Recommendations',
+        description: 'Generate personalized content recommendations for audience segments',
       },
     ],
     workflow: [
       {
-        id: "approval-process",
-        name: "Multi-Stage Approval Process",
-        description:
-          "Orchestrate a complex approval workflow with multiple stakeholders",
+        id: 'approval-process',
+        name: 'Multi-Stage Approval Process',
+        description: 'Orchestrate a complex approval workflow with multiple stakeholders',
       },
       {
-        id: "exception-handling",
-        name: "Exception Handling",
-        description:
-          "Process exceptions and route to appropriate human decision-makers",
+        id: 'exception-handling',
+        name: 'Exception Handling',
+        description: 'Process exceptions and route to appropriate human decision-makers',
       },
       {
-        id: "status-reporting",
-        name: "Status Reporting & Metrics",
-        description: "Generate real-time status reports and process metrics",
+        id: 'status-reporting',
+        name: 'Status Reporting & Metrics',
+        description: 'Generate real-time status reports and process metrics',
       },
     ],
   };
@@ -234,83 +209,68 @@ export default function AgentWorkshop() {
     if (!selectedTemplate || !selectedScenario) return;
 
     withLoading(async () => {
-      addLog(
-        `Starting ${selectedScenario} scenario for ${selectedTemplate} agent...`,
-        "loading",
-      );
+      addLog(`Starting ${selectedScenario} scenario for ${selectedTemplate} agent...`, 'loading');
 
       try {
         // Simulate agent initialization
-        addLog("Initializing agent environment...", "info");
+        addLog('Initializing agent environment...', 'info');
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        addLog(
-          `Loading governance policies for ${selectedTemplate}...`,
-          "info",
-        );
+        addLog(`Loading governance policies for ${selectedTemplate}...`, 'info');
         await new Promise((resolve) => setTimeout(resolve, 400));
 
         // Simulate scenario-specific actions
-        if (selectedTemplate === "ad-allocation") {
-          if (selectedScenario === "contract-based") {
-            addLog("Loading advertiser contract terms...", "info");
+        if (selectedTemplate === 'ad-allocation') {
+          if (selectedScenario === 'contract-based') {
+            addLog('Loading advertiser contract terms...', 'info');
             await new Promise((resolve) => setTimeout(resolve, 300));
 
-            addLog("Analyzing available inventory slots...", "info");
+            addLog('Analyzing available inventory slots...', 'info');
             await new Promise((resolve) => setTimeout(resolve, 400));
 
-            addLog(
-              "Calculating allocation based on contract commitments...",
-              "info",
-            );
+            addLog('Calculating allocation based on contract commitments...', 'info');
             await new Promise((resolve) => setTimeout(resolve, 500));
-          } else if (selectedScenario === "relevance-based") {
-            addLog("Analyzing content semantics...", "info");
+          } else if (selectedScenario === 'relevance-based') {
+            addLog('Analyzing content semantics...', 'info');
             await new Promise((resolve) => setTimeout(resolve, 400));
 
-            addLog(
-              "Calculating relevance scores for each advertiser...",
-              "info",
-            );
+            addLog('Calculating relevance scores for each advertiser...', 'info');
             await new Promise((resolve) => setTimeout(resolve, 500));
 
-            addLog("Optimizing placement for maximum engagement...", "info");
+            addLog('Optimizing placement for maximum engagement...', 'info');
             await new Promise((resolve) => setTimeout(resolve, 400));
-          } else if (selectedScenario === "conflict-resolution") {
-            addLog(
-              "Detecting placement conflicts between advertisers...",
-              "info",
-            );
+          } else if (selectedScenario === 'conflict-resolution') {
+            addLog('Detecting placement conflicts between advertisers...', 'info');
             await new Promise((resolve) => setTimeout(resolve, 300));
 
-            addLog("Applying conflict resolution rules...", "info");
+            addLog('Applying conflict resolution rules...', 'info');
             await new Promise((resolve) => setTimeout(resolve, 400));
 
-            addLog("Generating alternative placement options...", "info");
+            addLog('Generating alternative placement options...', 'info');
             await new Promise((resolve) => setTimeout(resolve, 500));
           }
-        } else if (selectedTemplate === "compliance") {
-          if (selectedScenario === "content-review") {
-            addLog("Loading regulatory compliance rules...", "info");
+        } else if (selectedTemplate === 'compliance') {
+          if (selectedScenario === 'content-review') {
+            addLog('Loading regulatory compliance rules...', 'info');
             await new Promise((resolve) => setTimeout(resolve, 300));
 
-            addLog("Scanning content for policy violations...", "info");
+            addLog('Scanning content for policy violations...', 'info');
             await new Promise((resolve) => setTimeout(resolve, 500));
 
-            addLog("Generating compliance report...", "info");
+            addLog('Generating compliance report...', 'info');
             await new Promise((resolve) => setTimeout(resolve, 400));
           }
         }
 
-        addLog("Verifying against governance policies...", "info");
+        addLog('Verifying against governance policies...', 'info');
         await new Promise((resolve) => setTimeout(resolve, 400));
 
-        addLog("Recording action in audit log...", "info");
+        addLog('Recording action in audit log...', 'info');
         await new Promise((resolve) => setTimeout(resolve, 300));
 
         // Make the actual API call
         const response = await fetch(getApiUrl(`/agents/test/${selectedTemplate}`), {
-          method: "POST",
+          method: 'POST',
           headers: getApiHeaders(),
           body: JSON.stringify({ scenario: selectedScenario }),
         });
@@ -323,45 +283,32 @@ export default function AgentWorkshop() {
 
         // Process the response
         if (data.action) {
-          addLog(`Action completed: ${data.action.id}`, "success");
+          addLog(`Action completed: ${data.action.id}`, 'success');
 
           if (data.action.policyChecks) {
-            const passedChecks = data.action.policyChecks.filter(
-              (c: any) => c.result,
-            ).length;
-            const failedChecks = data.action.policyChecks.filter(
-              (c: any) => !c.result,
-            ).length;
+            const passedChecks = data.action.policyChecks.filter((c: any) => c.result).length;
+            const failedChecks = data.action.policyChecks.filter((c: any) => !c.result).length;
 
             if (failedChecks > 0) {
-              addLog(
-                `Policy checks: ${passedChecks} passed, ${failedChecks} failed`,
-                "error",
-              );
+              addLog(`Policy checks: ${passedChecks} passed, ${failedChecks} failed`, 'error');
             } else {
-              addLog(
-                `Policy checks: ${passedChecks} passed, ${failedChecks} failed`,
-                "success",
-              );
+              addLog(`Policy checks: ${passedChecks} passed, ${failedChecks} failed`, 'success');
             }
           }
         }
 
-        addLog("Agent execution completed successfully", "success");
+        addLog('Agent execution completed successfully', 'success');
         setResults((prev) => [{ success: true, ...data }, ...prev]);
 
         // Move to the results step
         setCurrentStep(3);
       } catch (err) {
-        console.error("Error running agent:", err);
-        addLog(
-          `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
-          "error",
-        );
+        console.error('Error running agent:', err);
+        addLog(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`, 'error');
         setResults((prev) => [
           {
             success: false,
-            error: err instanceof Error ? err.message : "Unknown error",
+            error: err instanceof Error ? err.message : 'Unknown error',
           },
           ...prev,
         ]);
@@ -388,17 +335,14 @@ export default function AgentWorkshop() {
     setSelectedTemplate(templateId);
     setCurrentStep(2);
     clearLogs();
-    addLog(
-      `Selected ${agentTemplates.find((t) => t.id === templateId)?.name}`,
-      "info",
-    );
+    addLog(`Selected ${agentTemplates.find((t) => t.id === templateId)?.name}`, 'info');
   };
 
   const handleScenarioSelect = (scenarioId: string) => {
     setSelectedScenario(scenarioId);
     addLog(
       `Selected scenario: ${scenariosByTemplate[selectedTemplate!].find((s) => s.id === scenarioId)?.name}`,
-      "info",
+      'info',
     );
   };
 
@@ -413,7 +357,7 @@ export default function AgentWorkshop() {
     >
       <h2
         css={css`
-          font-size: ${designTokens.typography.fontSize["4xl"]};
+          font-size: ${designTokens.typography.fontSize['4xl']};
           font-weight: ${designTokens.typography.fontWeight.bold};
           color: ${designTokens.colors.neutral[900]};
           margin-bottom: ${designTokens.spacing[4]};
@@ -431,9 +375,8 @@ export default function AgentWorkshop() {
           line-height: 1.6;
         `}
       >
-        Build, test, and deploy AI agents with built-in governance and
-        accountability. Our agents help automate complex business decisions
-        while maintaining complete visibility and control.
+        Build, test, and deploy AI agents with built-in governance and accountability. Our agents
+        help automate complex business decisions while maintaining complete visibility and control.
       </p>
 
       <div
@@ -446,27 +389,26 @@ export default function AgentWorkshop() {
       >
         {[
           {
-            icon: "🔍",
-            title: "Complete Transparency",
-            desc: "Every agent action is logged with detailed reasoning and policy checks",
+            icon: '🔍',
+            title: 'Complete Transparency',
+            desc: 'Every agent action is logged with detailed reasoning and policy checks',
           },
           {
-            icon: "🛡️",
-            title: "Policy Enforcement",
-            desc: "Ensure all agent actions comply with your business rules and regulations",
+            icon: '🛡️',
+            title: 'Policy Enforcement',
+            desc: 'Ensure all agent actions comply with your business rules and regulations',
           },
           {
-            icon: "📊",
-            title: "Performance Metrics",
-            desc: "Track agent performance and compliance with real-time metrics",
+            icon: '📊',
+            title: 'Performance Metrics',
+            desc: 'Track agent performance and compliance with real-time metrics',
           },
         ].map((benefit, i) => (
           <Card
             key={i}
             variant="glass"
             css={css`
-              animation: ${keyframeAnimations.revealUp} 0.8s ${easings.out}
-                ${0.2 + i * 0.1}s both;
+              animation: ${keyframeAnimations.revealUp} 0.8s ${easings.out} ${0.2 + i * 0.1}s both;
             `}
           >
             <CardContent
@@ -480,7 +422,7 @@ export default function AgentWorkshop() {
             >
               <div
                 css={css`
-                  font-size: ${designTokens.typography.fontSize["3xl"]};
+                  font-size: ${designTokens.typography.fontSize['3xl']};
                   margin-bottom: ${designTokens.spacing[4]};
                 `}
               >
@@ -534,7 +476,7 @@ export default function AgentWorkshop() {
       >
         <h3
           css={css`
-            font-size: ${designTokens.typography.fontSize["2xl"]};
+            font-size: ${designTokens.typography.fontSize['2xl']};
             font-weight: ${designTokens.typography.fontWeight.bold};
             margin-bottom: ${designTokens.spacing[2]};
           `}
@@ -546,8 +488,7 @@ export default function AgentWorkshop() {
             color: ${designTokens.colors.neutral[500]};
           `}
         >
-          Choose a pre-configured agent template designed to solve specific
-          business challenges
+          Choose a pre-configured agent template designed to solve specific business challenges
         </p>
       </div>
 
@@ -561,15 +502,14 @@ export default function AgentWorkshop() {
         {agentTemplates.map((template, idx) => (
           <Card
             key={template.id}
-            variant={selectedTemplate === template.id ? "elevated" : "default"}
+            variant={selectedTemplate === template.id ? 'elevated' : 'default'}
             onClick={() => handleTemplateSelect(template.id)}
             css={css`
               cursor: pointer;
               border-color: ${selectedTemplate === template.id
                 ? designTokens.colors.primary[500]
-                : "transparent"};
-              animation: ${keyframeAnimations.revealUp} 0.5s ${easings.out}
-                ${idx * 0.05}s both;
+                : 'transparent'};
+              animation: ${keyframeAnimations.revealUp} 0.5s ${easings.out} ${idx * 0.05}s both;
               &:hover {
                 border-color: ${designTokens.colors.primary[300]};
               }
@@ -584,7 +524,7 @@ export default function AgentWorkshop() {
             >
               <div
                 css={css`
-                  font-size: ${designTokens.typography.fontSize["2xl"]};
+                  font-size: ${designTokens.typography.fontSize['2xl']};
                   background: ${designTokens.colors.primary[50]};
                   width: 48px;
                   height: 48px;
@@ -678,9 +618,7 @@ export default function AgentWorkshop() {
     if (!selectedTemplate) return null;
 
     const scenarios = scenariosByTemplate[selectedTemplate];
-    const selectedTemplateName = agentTemplates.find(
-      (t) => t.id === selectedTemplate,
-    )?.name;
+    const selectedTemplateName = agentTemplates.find((t) => t.id === selectedTemplate)?.name;
 
     return (
       <div
@@ -706,7 +644,7 @@ export default function AgentWorkshop() {
           >
             <h3
               css={css`
-                font-size: ${designTokens.typography.fontSize["2xl"]};
+                font-size: ${designTokens.typography.fontSize['2xl']};
                 font-weight: ${designTokens.typography.fontWeight.bold};
               `}
             >
@@ -735,15 +673,13 @@ export default function AgentWorkshop() {
           {scenarios.map((scenario) => (
             <Card
               key={scenario.id}
-              variant={
-                selectedScenario === scenario.id ? "elevated" : "default"
-              }
+              variant={selectedScenario === scenario.id ? 'elevated' : 'default'}
               onClick={() => handleScenarioSelect(scenario.id)}
               css={css`
                 cursor: pointer;
                 border-color: ${selectedScenario === scenario.id
                   ? designTokens.colors.primary[500]
-                  : "transparent"};
+                  : 'transparent'};
                 &:hover {
                   border-color: ${designTokens.colors.primary[300]};
                 }
@@ -785,7 +721,7 @@ export default function AgentWorkshop() {
               min-width: 200px;
             `}
           >
-            {isLoading ? <LoadingSpinner size="sm" /> : "Run Scenario"}
+            {isLoading ? <LoadingSpinner size="sm" /> : 'Run Scenario'}
           </Button>
         </div>
       </div>
@@ -811,7 +747,7 @@ export default function AgentWorkshop() {
         </Button>
         <h3
           css={css`
-            font-size: ${designTokens.typography.fontSize["2xl"]};
+            font-size: ${designTokens.typography.fontSize['2xl']};
             font-weight: ${designTokens.typography.fontWeight.bold};
           `}
         >
@@ -877,15 +813,14 @@ export default function AgentWorkshop() {
                   css={css`
                     margin-bottom: ${designTokens.spacing[2]};
                     line-height: 1.5;
-                    animation: ${keyframeAnimations.reveal} 0.3s ${easings.out}
-                      both;
-                    color: ${log.type === "error"
+                    animation: ${keyframeAnimations.reveal} 0.3s ${easings.out} both;
+                    color: ${log.type === 'error'
                       ? designTokens.colors.semantic.error[400]
-                      : log.type === "success"
+                      : log.type === 'success'
                         ? designTokens.colors.semantic.success[400]
-                        : log.type === "loading"
+                        : log.type === 'loading'
                           ? designTokens.colors.primary[400]
-                          : "inherit"};
+                          : 'inherit'};
                   `}
                 >
                   <span
@@ -967,8 +902,7 @@ export default function AgentWorkshop() {
                       ${result.success
                         ? designTokens.colors.semantic.success[500]
                         : designTokens.colors.semantic.error[500]};
-                    animation: ${keyframeAnimations.revealUp} 0.5s
-                      ${easings.out} both;
+                    animation: ${keyframeAnimations.revealUp} 0.5s ${easings.out} both;
                   `}
                 >
                   <CardContent padding="md">
@@ -979,8 +913,8 @@ export default function AgentWorkshop() {
                         margin-bottom: ${designTokens.spacing[4]};
                       `}
                     >
-                      <Badge variant={result.success ? "success" : "error"}>
-                        {result.success ? "Success" : "Error"}
+                      <Badge variant={result.success ? 'success' : 'error'}>
+                        {result.success ? 'Success' : 'Error'}
                       </Badge>
                       <span
                         css={css`
@@ -1034,72 +968,59 @@ export default function AgentWorkshop() {
                           {JSON.stringify(result.action, null, 2)}
                         </pre>
 
-                        {result.action.policyChecks &&
-                          result.action.policyChecks.length > 0 && (
-                            <div
+                        {result.action.policyChecks && result.action.policyChecks.length > 0 && (
+                          <div
+                            css={css`
+                              margin-top: ${designTokens.spacing[4]};
+                            `}
+                          >
+                            <h5
                               css={css`
-                                margin-top: ${designTokens.spacing[4]};
+                                font-size: ${designTokens.typography.fontSize.xs};
+                                text-transform: uppercase;
+                                color: ${designTokens.colors.neutral[400]};
+                                margin-bottom: ${designTokens.spacing[2]};
                               `}
                             >
-                              <h5
-                                css={css`
-                                  font-size: ${designTokens.typography.fontSize
-                                    .xs};
-                                  text-transform: uppercase;
-                                  color: ${designTokens.colors.neutral[400]};
-                                  margin-bottom: ${designTokens.spacing[2]};
-                                `}
-                              >
-                                Policy Checks
-                              </h5>
-                              <div
-                                css={css`
-                                  display: flex;
-                                  flex-direction: column;
-                                  gap: ${designTokens.spacing[2]};
-                                `}
-                              >
-                                {result.action.policyChecks.map(
-                                  (check, idx) => (
-                                    <div
-                                      key={idx}
-                                      css={css`
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: space-between;
-                                        padding: ${designTokens.spacing[2]};
-                                        background: ${check.result
-                                          ? designTokens.colors.semantic
-                                              .success[50]
-                                          : designTokens.colors.semantic
-                                              .error[50]};
-                                        border-radius: ${designTokens
-                                          .borderRadius.sm};
-                                        font-size: ${designTokens.typography
-                                          .fontSize.xs};
-                                      `}
-                                    >
-                                      <span
-                                        css={css`
-                                          font-weight: 500;
-                                        `}
-                                      >
-                                        {check.policyId}
-                                      </span>
-                                      <Badge
-                                        variant={
-                                          check.result ? "success" : "error"
-                                        }
-                                        size="sm"
-                                      >
-                                        {check.result ? "Passed" : "Failed"}
-                                      </Badge>
-                                    </div>
-                                  ),
-                                )}
-                              </div>
+                              Policy Checks
+                            </h5>
+                            <div
+                              css={css`
+                                display: flex;
+                                flex-direction: column;
+                                gap: ${designTokens.spacing[2]};
+                              `}
+                            >
+                              {result.action.policyChecks.map((check, idx) => (
+                                <div
+                                  key={idx}
+                                  css={css`
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    padding: ${designTokens.spacing[2]};
+                                    background: ${check.result
+                                      ? designTokens.colors.semantic.success[50]
+                                      : designTokens.colors.semantic.error[50]};
+                                    border-radius: ${designTokens.borderRadius.sm};
+                                    font-size: ${designTokens.typography.fontSize.xs};
+                                  `}
+                                >
+                                  <span
+                                    css={css`
+                                      font-weight: 500;
+                                    `}
+                                  >
+                                    {check.policyId}
+                                  </span>
+                                  <Badge variant={check.result ? 'success' : 'error'} size="sm">
+                                    {check.result ? 'Passed' : 'Failed'}
+                                  </Badge>
+                                </div>
+                              ))}
                             </div>
-                          )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </CardContent>
@@ -1183,7 +1104,7 @@ export default function AgentWorkshop() {
         </div>
         <h1
           css={css`
-            font-size: ${designTokens.typography.fontSize["4xl"]};
+            font-size: ${designTokens.typography.fontSize['4xl']};
             font-weight: ${designTokens.typography.fontWeight.bold};
             margin-bottom: ${designTokens.spacing[4]};
             background: linear-gradient(
@@ -1205,8 +1126,8 @@ export default function AgentWorkshop() {
             line-height: 1.6;
           `}
         >
-          Welcome to the lab. Here you can prototype, simulate, and stress-test
-          your AI agents before they touch production capital or governance.
+          Welcome to the lab. Here you can prototype, simulate, and stress-test your AI agents
+          before they touch production capital or governance.
         </p>
         <div
           css={css`
@@ -1219,31 +1140,27 @@ export default function AgentWorkshop() {
         >
           {[
             {
-              title: "Rapid Prototyping",
-              desc: "Choose from industry-standard templates.",
-              icon: "⚡",
+              title: 'Rapid Prototyping',
+              desc: 'Choose from industry-standard templates.',
+              icon: '⚡',
             },
             {
-              title: "Scenario Stress-Testing",
-              desc: "Run agents through adversarial edge cases.",
-              icon: "🧪",
+              title: 'Scenario Stress-Testing',
+              desc: 'Run agents through adversarial edge cases.',
+              icon: '🧪',
             },
             {
-              title: "Policy Validation",
-              desc: "Verify alignment with governance guardrails.",
-              icon: "🛡️",
+              title: 'Policy Validation',
+              desc: 'Verify alignment with governance guardrails.',
+              icon: '🛡️',
             },
           ].map((item, i) => (
             <Card key={i} variant="outline" padding="md">
-              <div style={{ fontSize: "24px", marginBottom: "8px" }}>
-                {item.icon}
-              </div>
-              <h3 style={{ fontWeight: 600, marginBottom: "4px" }}>
-                {item.title}
-              </h3>
+              <div style={{ fontSize: '24px', marginBottom: '8px' }}>{item.icon}</div>
+              <h3 style={{ fontWeight: 600, marginBottom: '4px' }}>{item.title}</h3>
               <p
                 style={{
-                  fontSize: "14px",
+                  fontSize: '14px',
                   color: designTokens.colors.neutral[500],
                 }}
               >
@@ -1253,7 +1170,7 @@ export default function AgentWorkshop() {
           ))}
         </div>
         <Button size="lg" onClick={() => setShowIntro(false)}>
-          Start Building <ArrowRight size={20} style={{ marginLeft: "8px" }} />
+          Start Building <ArrowRight size={20} style={{ marginLeft: '8px' }} />
         </Button>
       </div>
     );
@@ -1262,17 +1179,17 @@ export default function AgentWorkshop() {
   return (
     <div className="agent-workshop">
       <div className="workshop-progress">
-        <div className={`progress-step ${currentStep >= 1 ? "active" : ""}`}>
+        <div className={`progress-step ${currentStep >= 1 ? 'active' : ''}`}>
           <div className="step-number">1</div>
           <div className="step-label">Select Template</div>
         </div>
         <div className="progress-connector"></div>
-        <div className={`progress-step ${currentStep >= 2 ? "active" : ""}`}>
+        <div className={`progress-step ${currentStep >= 2 ? 'active' : ''}`}>
           <div className="step-number">2</div>
           <div className="step-label">Choose Scenario</div>
         </div>
         <div className="progress-connector"></div>
-        <div className={`progress-step ${currentStep >= 3 ? "active" : ""}`}>
+        <div className={`progress-step ${currentStep >= 3 ? 'active' : ''}`}>
           <div className="step-number">3</div>
           <div className="step-label">View Results</div>
         </div>

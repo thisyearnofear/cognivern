@@ -1,9 +1,9 @@
-import { AgentType } from "./TradingAgentDashboard";
-import { css } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
+import { AgentType } from './TradingAgentDashboard';
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
 
 interface TradingDecision {
-  action: "buy" | "sell" | "hold";
+  action: 'buy' | 'sell' | 'hold';
   symbol: string;
   quantity: number;
   price: number;
@@ -25,11 +25,7 @@ interface TradingChartProps {
   isLoading: boolean;
 }
 
-export default function TradingChart({
-  decisions,
-  agentType,
-  isLoading,
-}: TradingChartProps) {
+export default function TradingChart({ decisions, agentType, isLoading }: TradingChartProps) {
   const getChartData = () => {
     if (decisions.length === 0) return [];
 
@@ -114,11 +110,7 @@ export default function TradingChart({
     padding: ${designTokens.spacing[4]};
   `;
 
-  const chartPointStyles = (
-    action: string,
-    index: number,
-    total: number,
-  ) => css`
+  const chartPointStyles = (action: string, index: number, total: number) => css`
     position: absolute;
     left: ${(index / Math.max(total - 1, 1)) * 100}%;
     transform: translateX(-50%);
@@ -255,11 +247,10 @@ export default function TradingChart({
     );
   }
 
-  const buyCount = chartData.filter((d) => d.action === "buy").length;
-  const sellCount = chartData.filter((d) => d.action === "sell").length;
-  const holdCount = chartData.filter((d) => d.action === "hold").length;
-  const avgConfidence =
-    chartData.reduce((sum, d) => sum + d.confidence, 0) / chartData.length;
+  const buyCount = chartData.filter((d) => d.action === 'buy').length;
+  const sellCount = chartData.filter((d) => d.action === 'sell').length;
+  const holdCount = chartData.filter((d) => d.action === 'hold').length;
+  const avgConfidence = chartData.reduce((sum, d) => sum + d.confidence, 0) / chartData.length;
 
   return (
     <div css={containerStyles}>
@@ -285,15 +276,15 @@ export default function TradingChart({
       {/* Legend */}
       <div css={legendStyles}>
         <div css={legendItemStyles}>
-          <div css={legendColorStyles("buy")}></div>
+          <div css={legendColorStyles('buy')}></div>
           <span>Buy Orders</span>
         </div>
         <div css={legendItemStyles}>
-          <div css={legendColorStyles("sell")}></div>
+          <div css={legendColorStyles('sell')}></div>
           <span>Sell Orders</span>
         </div>
         <div css={legendItemStyles}>
-          <div css={legendColorStyles("hold")}></div>
+          <div css={legendColorStyles('hold')}></div>
           <span>Hold Decisions</span>
         </div>
       </div>
@@ -313,15 +304,13 @@ export default function TradingChart({
           <div css={summaryLabelStyles}>Hold Decisions</div>
         </div>
         <div css={summaryCardStyles}>
-          <div css={summaryValueStyles}>
-            {(avgConfidence * 100).toFixed(0)}%
-          </div>
+          <div css={summaryValueStyles}>{(avgConfidence * 100).toFixed(0)}%</div>
           <div css={summaryLabelStyles}>Avg Confidence</div>
         </div>
       </div>
 
       {/* Agent-specific insights */}
-      {agentType === "vincent" && chartData.some((d) => d.sentiment !== 0) && (
+      {agentType === 'vincent' && chartData.some((d) => d.sentiment !== 0) && (
         <div
           css={css`
             margin-top: ${designTokens.spacing[4]};

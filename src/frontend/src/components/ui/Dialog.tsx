@@ -1,21 +1,21 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from "react";
-import { css } from "@emotion/react";
-import { Modal } from "./Modal";
-import { Button } from "./Button";
-import { designTokens } from "../../styles/design-system";
+import React, { useState } from 'react';
+import { css } from '@emotion/react';
+import { Modal } from './Modal';
+import { Button } from './Button';
+import { designTokens } from '../../styles/design-system';
 
 export interface DialogProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   description?: string;
-  variant?: "info" | "warning" | "success" | "error";
+  variant?: 'info' | 'warning' | 'success' | 'error';
   children?: React.ReactNode;
   primaryAction?: {
     label: string;
     onClick: () => void;
-    variant?: "primary" | "danger" | "success";
+    variant?: 'primary' | 'danger' | 'success';
     isLoading?: boolean;
   };
   secondaryAction?: {
@@ -30,7 +30,7 @@ export const Dialog: React.FC<DialogProps> = ({
   onClose,
   title,
   description,
-  variant = "info",
+  variant = 'info',
   children,
   primaryAction,
   secondaryAction,
@@ -38,15 +38,15 @@ export const Dialog: React.FC<DialogProps> = ({
 }) => {
   const getVariantStyles = () => {
     switch (variant) {
-      case "success":
+      case 'success':
         return css`
           border-top: 4px solid ${designTokens.colors.semantic.success[500]};
         `;
-      case "warning":
+      case 'warning':
         return css`
           border-top: 4px solid ${designTokens.colors.semantic.warning[500]};
         `;
-      case "error":
+      case 'error':
         return css`
           border-top: 4px solid ${designTokens.colors.semantic.error[500]};
         `;
@@ -77,7 +77,7 @@ export const Dialog: React.FC<DialogProps> = ({
       )}
       {primaryAction && (
         <Button
-          variant={primaryAction.variant || "primary"}
+          variant={primaryAction.variant || 'primary'}
           onClick={primaryAction.onClick}
           isLoading={primaryAction.isLoading}
         >
@@ -121,7 +121,7 @@ export interface ConfirmDialogProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
-  variant?: "warning" | "error" | "info";
+  variant?: 'warning' | 'error' | 'info';
   isLoading?: boolean;
 }
 
@@ -131,9 +131,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   title,
   message,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
-  variant = "info",
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+  variant = 'info',
   isLoading = false,
 }) => {
   return (
@@ -146,7 +146,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       primaryAction={{
         label: confirmText,
         onClick: onConfirm,
-        variant: variant === "error" ? "danger" : "primary",
+        variant: variant === 'error' ? 'danger' : 'primary',
         isLoading,
       }}
       secondaryAction={{
@@ -167,7 +167,7 @@ export interface PromptDialogProps {
   message?: string;
   placeholder?: string;
   defaultValue?: string;
-  inputType?: "text" | "number" | "email" | "password";
+  inputType?: 'text' | 'number' | 'email' | 'password';
   submitText?: string;
   cancelText?: string;
   validation?: (value: string) => string | null;
@@ -181,10 +181,10 @@ export const PromptDialog: React.FC<PromptDialogProps> = ({
   title,
   message,
   placeholder,
-  defaultValue = "",
-  inputType = "text",
-  submitText = "Submit",
-  cancelText = "Cancel",
+  defaultValue = '',
+  inputType = 'text',
+  submitText = 'Submit',
+  cancelText = 'Cancel',
   validation,
   isLoading = false,
 }) => {
@@ -239,9 +239,7 @@ export const PromptDialog: React.FC<PromptDialogProps> = ({
             width: 100%;
             padding: ${designTokens.spacing[3]};
             border: 1px solid
-              ${error
-                ? designTokens.colors.semantic.error[500]
-                : designTokens.colors.neutral[300]};
+              ${error ? designTokens.colors.semantic.error[500] : designTokens.colors.neutral[300]};
             border-radius: ${designTokens.borderRadius.md};
             font-size: ${designTokens.typography.fontSize.base};
             transition: border-color 0.2s ease;
@@ -288,7 +286,7 @@ export interface MultiFieldDialogProps {
   fields: {
     name: string;
     label: string;
-    type?: "text" | "number" | "textarea" | "email";
+    type?: 'text' | 'number' | 'textarea' | 'email';
     placeholder?: string;
     defaultValue?: string;
     required?: boolean;
@@ -306,15 +304,12 @@ export const MultiFieldDialog: React.FC<MultiFieldDialogProps> = ({
   title,
   message,
   fields,
-  submitText = "Submit",
-  cancelText = "Cancel",
+  submitText = 'Submit',
+  cancelText = 'Cancel',
   isLoading = false,
 }) => {
   const [values, setValues] = useState<Record<string, string>>(
-    fields.reduce(
-      (acc, field) => ({ ...acc, [field.name]: field.defaultValue || "" }),
-      {},
-    ),
+    fields.reduce((acc, field) => ({ ...acc, [field.name]: field.defaultValue || '' }), {}),
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -322,7 +317,7 @@ export const MultiFieldDialog: React.FC<MultiFieldDialogProps> = ({
     const newErrors: Record<string, string> = {};
 
     fields.forEach((field) => {
-      const value = values[field.name] || "";
+      const value = values[field.name] || '';
 
       if (field.required && !value.trim()) {
         newErrors[field.name] = `${field.label} is required`;
@@ -347,10 +342,7 @@ export const MultiFieldDialog: React.FC<MultiFieldDialogProps> = ({
 
   const handleClose = () => {
     setValues(
-      fields.reduce(
-        (acc, field) => ({ ...acc, [field.name]: field.defaultValue || "" }),
-        {},
-      ),
+      fields.reduce((acc, field) => ({ ...acc, [field.name]: field.defaultValue || '' }), {}),
     );
     setErrors({});
     onClose();
@@ -382,8 +374,7 @@ export const MultiFieldDialog: React.FC<MultiFieldDialogProps> = ({
       >
         {fields.map((field) => {
           const error = errors[field.name];
-          const InputComponent =
-            field.type === "textarea" ? "textarea" : "input";
+          const InputComponent = field.type === 'textarea' ? 'textarea' : 'input';
 
           return (
             <div key={field.name}>
@@ -409,11 +400,11 @@ export const MultiFieldDialog: React.FC<MultiFieldDialogProps> = ({
                 )}
               </label>
               <InputComponent
-                type={field.type || "text"}
-                value={values[field.name] || ""}
+                type={field.type || 'text'}
+                value={values[field.name] || ''}
                 onChange={(e) => {
                   setValues({ ...values, [field.name]: e.target.value });
-                  setErrors({ ...errors, [field.name]: "" });
+                  setErrors({ ...errors, [field.name]: '' });
                 }}
                 placeholder={field.placeholder}
                 css={css`
@@ -426,9 +417,7 @@ export const MultiFieldDialog: React.FC<MultiFieldDialogProps> = ({
                   border-radius: ${designTokens.borderRadius.md};
                   font-size: ${designTokens.typography.fontSize.base};
                   transition: border-color 0.2s ease;
-                  ${field.type === "textarea"
-                    ? "min-height: 100px; resize: vertical;"
-                    : ""}
+                  ${field.type === 'textarea' ? 'min-height: 100px; resize: vertical;' : ''}
 
                   &:focus {
                     outline: none;

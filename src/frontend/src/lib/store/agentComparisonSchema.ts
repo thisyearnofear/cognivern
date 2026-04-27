@@ -15,31 +15,28 @@ export interface FilterField<T> {
 // Field builders
 export const field = {
   string: (): FilterField<string | null> => ({
-    type: "string",
+    type: 'string',
     defaultValue: null,
     parse: (value) => value || null,
     serialize: (value) => value || null,
   }),
 
   number: (): FilterField<number | null> => ({
-    type: "number",
+    type: 'number',
     defaultValue: null,
     parse: (value) => (value ? parseInt(value, 10) : null),
     serialize: (value) => (value !== null ? value.toString() : null),
   }),
 
   boolean: (): FilterField<boolean> => ({
-    type: "boolean",
+    type: 'boolean',
     defaultValue: false,
-    parse: (value) => value === "true",
-    serialize: (value) => (value ? "true" : "false"),
+    parse: (value) => value === 'true',
+    serialize: (value) => (value ? 'true' : 'false'),
   }),
 
-  array: <T>(
-    innerField: FilterField<T>,
-    delimiter = ",",
-  ): FilterField<T[]> => ({
-    type: "array",
+  array: <T>(innerField: FilterField<T>, delimiter = ','): FilterField<T[]> => ({
+    type: 'array',
     defaultValue: [],
     parse: (value) => {
       if (!value) return [];
@@ -58,7 +55,7 @@ export const field = {
   }),
 
   stringLiteral: <T extends string>(literals: T[]): FilterField<T | null> => ({
-    type: "stringLiteral",
+    type: 'stringLiteral',
     defaultValue: null,
     parse: (value) => {
       if (!value || !literals.includes(value as T)) return null;
@@ -67,8 +64,8 @@ export const field = {
     serialize: (value) => value || null,
   }),
 
-  range: (delimiter = "-"): FilterField<[number, number] | null> => ({
-    type: "range",
+  range: (delimiter = '-'): FilterField<[number, number] | null> => ({
+    type: 'range',
     defaultValue: null,
     parse: (value) => {
       if (!value) return null;
@@ -83,7 +80,7 @@ export const field = {
   }),
 
   timestamp: (): FilterField<Date | null> => ({
-    type: "timestamp",
+    type: 'timestamp',
     defaultValue: null,
     parse: (value) => {
       if (!value) return null;
@@ -98,60 +95,48 @@ export const field = {
 export const agentComparisonSchema = {
   // Agent selection
   agentIds: field.array(field.string()),
-  agentTypes: field.array(
-    field.stringLiteral(["recall", "vincent", "sapience", "custom"]),
-  ),
-  ecosystems: field.array(
-    field.stringLiteral(["sapience", "polymarket", "manifold", "other"]),
-  ),
-  status: field.array(
-    field.stringLiteral(["active", "inactive", "paused", "error"]),
-  ),
+  agentTypes: field.array(field.stringLiteral(['recall', 'vincent', 'sapience', 'custom'])),
+  ecosystems: field.array(field.stringLiteral(['sapience', 'polymarket', 'manifold', 'other'])),
+  status: field.array(field.stringLiteral(['active', 'inactive', 'paused', 'error'])),
 
   // Performance & Governance filters (ranges)
   winRate: field.range(), // [min, max] percentage
   totalReturn: field.range(), // [min, max] return
   complianceScore: field.range(), // [min, max] percentage
   autonomyLevel: field.range(), // [min, max] level (1-5)
-  riskProfile: field.array(
-    field.stringLiteral(["low", "medium", "high", "critical"]),
-  ),
+  riskProfile: field.array(field.stringLiteral(['low', 'medium', 'high', 'critical'])),
   sharpeRatio: field.range(), // [min, max] sharpe
   avgLatency: field.range(), // [min, max] ms
 
   // Time range
-  timeRange: field.array(field.timestamp(), "-"), // [start, end]
+  timeRange: field.array(field.timestamp(), '-'), // [start, end]
 
   // Sorting
   sortBy: field.stringLiteral([
-    "winRate",
-    "totalReturn",
-    "complianceScore",
-    "autonomyLevel",
-    "sharpeRatio",
-    "totalTrades",
-    "avgLatency",
-    "agentName",
+    'winRate',
+    'totalReturn',
+    'complianceScore',
+    'autonomyLevel',
+    'sharpeRatio',
+    'totalTrades',
+    'avgLatency',
+    'agentName',
   ]),
-  sortDirection: field.stringLiteral(["asc", "desc"]),
+  sortDirection: field.stringLiteral(['asc', 'desc']),
 
   // Search
   search: field.string(),
 
   // View mode
-  viewMode: field.stringLiteral(["table", "cards", "chart"]),
+  viewMode: field.stringLiteral(['table', 'cards', 'chart']),
 } as const;
 
 export type AgentComparisonFilters = {
-  [K in keyof typeof agentComparisonSchema]: ReturnType<
-    (typeof agentComparisonSchema)[K]["parse"]
-  >;
+  [K in keyof typeof agentComparisonSchema]: ReturnType<(typeof agentComparisonSchema)[K]['parse']>;
 };
 
 // Default filter values
-export const defaultFilters: AgentComparisonFilters = Object.entries(
-  agentComparisonSchema,
-).reduce(
+export const defaultFilters: AgentComparisonFilters = Object.entries(agentComparisonSchema).reduce(
   (acc, [key, field]) => ({
     ...acc,
     [key]: field.defaultValue,
@@ -163,7 +148,7 @@ export const defaultFilters: AgentComparisonFilters = Object.entries(
 export interface FilterFieldDefinition {
   key: keyof AgentComparisonFilters;
   label: string;
-  type: "checkbox" | "slider" | "timerange" | "input" | "select";
+  type: 'checkbox' | 'slider' | 'timerange' | 'input' | 'select';
   options?: Array<{ label: string; value: string | number }>;
   min?: number;
   max?: number;
@@ -172,88 +157,88 @@ export interface FilterFieldDefinition {
 
 export const filterFieldDefinitions: FilterFieldDefinition[] = [
   {
-    key: "agentTypes",
-    label: "Agent Type",
-    type: "checkbox",
+    key: 'agentTypes',
+    label: 'Agent Type',
+    type: 'checkbox',
     options: [
-      { label: "SpendOS Governance", value: "governance" },
-      { label: "Portfolio Agent", value: "portfolio" },
-      { label: "Sapience", value: "sapience" },
-      { label: "Custom", value: "custom" },
+      { label: 'SpendOS Governance', value: 'governance' },
+      { label: 'Portfolio Agent', value: 'portfolio' },
+      { label: 'Sapience', value: 'sapience' },
+      { label: 'Custom', value: 'custom' },
     ],
   },
   {
-    key: "ecosystems",
-    label: "Ecosystem",
-    type: "checkbox",
+    key: 'ecosystems',
+    label: 'Ecosystem',
+    type: 'checkbox',
     options: [
-      { label: "Sapience", value: "sapience" },
-      { label: "Polymarket", value: "polymarket" },
-      { label: "Manifold", value: "manifold" },
-      { label: "Other", value: "other" },
+      { label: 'Sapience', value: 'sapience' },
+      { label: 'Polymarket', value: 'polymarket' },
+      { label: 'Manifold', value: 'manifold' },
+      { label: 'Other', value: 'other' },
     ],
   },
   {
-    key: "status",
-    label: "Status",
-    type: "checkbox",
+    key: 'status',
+    label: 'Status',
+    type: 'checkbox',
     options: [
-      { label: "Active", value: "active" },
-      { label: "Inactive", value: "inactive" },
-      { label: "Paused", value: "paused" },
-      { label: "Error", value: "error" },
+      { label: 'Active', value: 'active' },
+      { label: 'Inactive', value: 'inactive' },
+      { label: 'Paused', value: 'paused' },
+      { label: 'Error', value: 'error' },
     ],
   },
   {
-    key: "complianceScore",
-    label: "Compliance Score (%)",
-    type: "slider",
+    key: 'complianceScore',
+    label: 'Compliance Score (%)',
+    type: 'slider',
     min: 0,
     max: 100,
   },
   {
-    key: "autonomyLevel",
-    label: "Autonomy Level",
-    type: "slider",
+    key: 'autonomyLevel',
+    label: 'Autonomy Level',
+    type: 'slider',
     min: 1,
     max: 5,
   },
   {
-    key: "riskProfile",
-    label: "Risk Profile",
-    type: "checkbox",
+    key: 'riskProfile',
+    label: 'Risk Profile',
+    type: 'checkbox',
     options: [
-      { label: "Low", value: "low" },
-      { label: "Medium", value: "medium" },
-      { label: "High", value: "high" },
-      { label: "Critical", value: "critical" },
+      { label: 'Low', value: 'low' },
+      { label: 'Medium', value: 'medium' },
+      { label: 'High', value: 'high' },
+      { label: 'Critical', value: 'critical' },
     ],
   },
   {
-    key: "winRate",
-    label: "Win Rate (%)",
-    type: "slider",
+    key: 'winRate',
+    label: 'Win Rate (%)',
+    type: 'slider',
     min: 0,
     max: 100,
   },
   {
-    key: "totalReturn",
-    label: "Total Return",
-    type: "slider",
+    key: 'totalReturn',
+    label: 'Total Return',
+    type: 'slider',
     min: -100,
     max: 100,
   },
   {
-    key: "sharpeRatio",
-    label: "Sharpe Ratio",
-    type: "slider",
+    key: 'sharpeRatio',
+    label: 'Sharpe Ratio',
+    type: 'slider',
     min: -3,
     max: 3,
   },
   {
-    key: "search",
-    label: "Search",
-    type: "input",
-    placeholder: "Search agents...",
+    key: 'search',
+    label: 'Search',
+    type: 'input',
+    placeholder: 'Search agents...',
   },
 ];

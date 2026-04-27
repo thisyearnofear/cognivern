@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { AgentType } from "./TradingAgentDashboard";
-import { css } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
-import { Badge } from "../ui/Badge";
+import { useState } from 'react';
+import { AgentType } from './TradingAgentDashboard';
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
+import { Badge } from '../ui/Badge';
 
 interface TradingDecision {
-  action: "buy" | "sell" | "hold";
+  action: 'buy' | 'sell' | 'hold';
   symbol: string;
   quantity: number;
   price: number;
@@ -27,28 +27,22 @@ interface TradeHistoryProps {
   isLoading: boolean;
 }
 
-type DecisionFilter = "all" | "buy" | "sell" | "hold";
-type DecisionSort = "timestamp" | "confidence" | "price";
+type DecisionFilter = 'all' | 'buy' | 'sell' | 'hold';
+type DecisionSort = 'timestamp' | 'confidence' | 'price';
 
-export default function TradeHistory({
-  decisions,
-  agentType,
-  isLoading,
-}: TradeHistoryProps) {
-  const [filter, setFilter] = useState<DecisionFilter>("all");
-  const [sortBy, setSortBy] = useState<DecisionSort>("timestamp");
+export default function TradeHistory({ decisions, agentType, isLoading }: TradeHistoryProps) {
+  const [filter, setFilter] = useState<DecisionFilter>('all');
+  const [sortBy, setSortBy] = useState<DecisionSort>('timestamp');
 
   const filteredDecisions = decisions
-    .filter((decision) => filter === "all" || decision.action === filter)
+    .filter((decision) => filter === 'all' || decision.action === filter)
     .sort((a, b) => {
       switch (sortBy) {
-        case "timestamp":
-          return (
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-          );
-        case "confidence":
+        case 'timestamp':
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        case 'confidence':
           return b.confidence - a.confidence;
-        case "price":
+        case 'price':
           return b.price - a.price;
         default:
           return 0;
@@ -62,14 +56,14 @@ export default function TradeHistory({
 
   const getActionVariant = (action: string) => {
     switch (action) {
-      case "buy":
-        return "success" as const;
-      case "sell":
-        return "error" as const;
-      case "hold":
-        return "secondary" as const;
+      case 'buy':
+        return 'success' as const;
+      case 'sell':
+        return 'error' as const;
+      case 'hold':
+        return 'secondary' as const;
       default:
-        return "secondary" as const;
+        return 'secondary' as const;
     }
   };
 
@@ -79,31 +73,31 @@ export default function TradeHistory({
     const isReasonableSize = decision.quantity * decision.price < 1000;
 
     const checks = [
-      { name: "Confidence Threshold", passed: hasHighConfidence },
-      { name: "Risk Limit", passed: isReasonableRisk },
-      { name: "Position Size", passed: isReasonableSize },
+      { name: 'Confidence Threshold', passed: hasHighConfidence },
+      { name: 'Risk Limit', passed: isReasonableRisk },
+      { name: 'Position Size', passed: isReasonableSize },
     ];
 
     const passedChecks = checks.filter((c) => c.passed).length;
     return {
       checks,
       score: Math.round((passedChecks / checks.length) * 100),
-      status: passedChecks === checks.length ? "approved" : "flagged",
+      status: passedChecks === checks.length ? 'approved' : 'flagged',
     };
   };
 
   const parseFilter = (value: string): DecisionFilter => {
-    if (value === "buy" || value === "sell" || value === "hold") {
+    if (value === 'buy' || value === 'sell' || value === 'hold') {
       return value;
     }
-    return "all";
+    return 'all';
   };
 
   const parseSort = (value: string): DecisionSort => {
-    if (value === "confidence" || value === "price") {
+    if (value === 'confidence' || value === 'price') {
       return value;
     }
-    return "timestamp";
+    return 'timestamp';
   };
 
   const containerStyles = css`
@@ -439,11 +433,8 @@ export default function TradeHistory({
   }
 
   const avgConfidence =
-    filteredDecisions.reduce((sum, d) => sum + d.confidence, 0) /
-    filteredDecisions.length;
-  const executedTrades = filteredDecisions.filter(
-    (d) => d.action !== "hold",
-  ).length;
+    filteredDecisions.reduce((sum, d) => sum + d.confidence, 0) / filteredDecisions.length;
+  const executedTrades = filteredDecisions.filter((d) => d.action !== 'hold').length;
 
   return (
     <div css={containerStyles}>
@@ -504,9 +495,7 @@ export default function TradeHistory({
                       </Badge>
                       <span css={tradeSymbolStyles}>{decision.symbol}</span>
                     </div>
-                    <span css={tradeTimeStyles}>
-                      {formatTime(decision.timestamp)}
-                    </span>
+                    <span css={tradeTimeStyles}>{formatTime(decision.timestamp)}</span>
                   </div>
 
                   {/* Trade Details */}
@@ -517,16 +506,12 @@ export default function TradeHistory({
                     </div>
                     <div css={detailItemStyles}>
                       <span css={detailLabelStyles}>Price</span>
-                      <span css={detailValueStyles}>
-                        ${decision.price.toFixed(2)}
-                      </span>
+                      <span css={detailValueStyles}>${decision.price.toFixed(2)}</span>
                     </div>
                     <div css={detailItemStyles}>
                       <span css={detailLabelStyles}>Confidence</span>
                       <div css={confidenceBarStyles}>
-                        <div
-                          css={confidenceFillStyles(decision.confidence)}
-                        ></div>
+                        <div css={confidenceFillStyles(decision.confidence)}></div>
                         <span css={confidenceTextStyles}>
                           {(decision.confidence * 100).toFixed(1)}%
                         </span>
@@ -561,16 +546,8 @@ export default function TradeHistory({
                   <div css={governanceStyles}>
                     <div css={governanceHeaderStyles}>
                       <span>Governance</span>
-                      <Badge
-                        variant={
-                          governance.status === "approved"
-                            ? "success"
-                            : "warning"
-                        }
-                      >
-                        {governance.status === "approved"
-                          ? "Approved"
-                          : "Flagged"}
+                      <Badge variant={governance.status === 'approved' ? 'success' : 'warning'}>
+                        {governance.status === 'approved' ? 'Approved' : 'Flagged'}
                       </Badge>
                       <span
                         css={css`
@@ -584,14 +561,14 @@ export default function TradeHistory({
                     <div css={governanceChecksStyles}>
                       {governance.checks.map((check, i) => (
                         <span key={i} css={checkItemStyles(check.passed)}>
-                          {check.passed ? "✓" : "✗"} {check.name}
+                          {check.passed ? '✓' : '✗'} {check.name}
                         </span>
                       ))}
                     </div>
                   </div>
 
                   {/* Portfolio Agent Sentiment Data */}
-                  {agentType === "portfolio" && decision.sentimentData && (
+                  {agentType === 'portfolio' && decision.sentimentData && (
                     <div css={sentimentStyles}>
                       <div css={sentimentHeaderStyles}>Sentiment Analysis</div>
                       <div css={sentimentGridStyles}>
@@ -607,19 +584,13 @@ export default function TradeHistory({
                               `,
                             ]}
                           >
-                            {(decision.sentimentData.sentiment * 100).toFixed(
-                              1,
-                            )}
-                            %
+                            {(decision.sentimentData.sentiment * 100).toFixed(1)}%
                           </span>
                         </div>
                         <div css={detailItemStyles}>
                           <span css={detailLabelStyles}>Confidence</span>
                           <span css={detailValueStyles}>
-                            {(decision.sentimentData.confidence * 100).toFixed(
-                              1,
-                            )}
-                            %
+                            {(decision.sentimentData.confidence * 100).toFixed(1)}%
                           </span>
                         </div>
                         <div css={detailItemStyles}>
@@ -630,7 +601,7 @@ export default function TradeHistory({
                               color: ${designTokens.colors.neutral[600]};
                             `}
                           >
-                            {decision.sentimentData.sources.join(", ")}
+                            {decision.sentimentData.sources.join(', ')}
                           </span>
                         </div>
                       </div>

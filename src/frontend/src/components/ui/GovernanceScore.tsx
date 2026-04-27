@@ -1,7 +1,7 @@
-import React from "react";
-import styled from "@emotion/styled";
-import { keyframes } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
+import React from 'react';
+import styled from '@emotion/styled';
+import { keyframes } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
 
 /**
  * GovernanceScore - A high-end visual safety tracker.
@@ -32,7 +32,7 @@ const Container = styled.div`
   align-items: center;
   padding: ${designTokens.spacing[8]};
   background: ${designTokens.colors.neutral[0]};
-  border-radius: ${designTokens.borderRadius["2xl"]};
+  border-radius: ${designTokens.borderRadius['2xl']};
   box-shadow: ${designTokens.shadows.xl};
   border: 1px solid ${designTokens.colors.neutral[200]};
   position: relative;
@@ -41,7 +41,7 @@ const Container = styled.div`
   transition: all 0.3s ease;
 
   &:hover {
-    box-shadow: ${designTokens.shadows["2xl"]};
+    box-shadow: ${designTokens.shadows['2xl']};
     transform: translateY(-2px);
   }
 `;
@@ -74,7 +74,7 @@ const ScoreDisplay = styled.div`
   z-index: 2;
 
   .value {
-    font-size: ${designTokens.typography.fontSize["5xl"]};
+    font-size: ${designTokens.typography.fontSize['5xl']};
     font-weight: ${designTokens.typography.fontWeight.bold};
     color: ${designTokens.colors.neutral[900]};
     letter-spacing: -0.04em;
@@ -126,7 +126,7 @@ const MetricBox = styled.div`
 
 export const GovernanceScore: React.FC<GovernanceScoreProps> = ({
   score,
-  label = "System Health",
+  label = 'System Health',
   details = [],
 }) => {
   const normalizedScore = Math.max(0, Math.min(100, score));
@@ -165,7 +165,7 @@ export const GovernanceScore: React.FC<GovernanceScoreProps> = ({
             strokeDashoffset={offset}
             strokeLinecap="round"
             style={{
-              transition: "stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)",
+              transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
             r={radius}
             cx={center}

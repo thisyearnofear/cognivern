@@ -1,15 +1,15 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
-import { css } from "@emotion/react";
-import { Card, CardContent } from "./Card";
-import { designTokens } from "../../styles/design-system";
+import React from 'react';
+import { css } from '@emotion/react';
+import { Card, CardContent } from './Card';
+import { designTokens } from '../../styles/design-system';
 
 export interface StatCardProps {
   label: string;
   value: string | number;
   total?: number;
   icon: React.ReactNode;
-  color?: "primary" | "success" | "error" | "info";
+  color?: 'primary' | 'success' | 'error' | 'info';
   trend?: {
     value: string | number;
     isPositive: boolean;
@@ -42,7 +42,7 @@ const statCardContentStyles = css`
   gap: ${designTokens.spacing[4]};
 `;
 
-const statIconStyles = (color: "primary" | "success" | "error" | "info") => {
+const statIconStyles = (color: 'primary' | 'success' | 'error' | 'info') => {
   const colorMap = {
     primary: designTokens.colors.primary[500],
     success: designTokens.colors.semantic.success[600],
@@ -122,7 +122,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   value,
   total,
   icon,
-  color = "primary",
+  color = 'primary',
   trend,
 }) => {
   return (
@@ -132,14 +132,12 @@ export const StatCard: React.FC<StatCardProps> = ({
         <div css={statDetailsStyles}>
           <div css={statValueContainerStyles}>
             <span css={statValueStyles}>{value}</span>
-            {total !== undefined && (
-              <span css={statTotalStyles}>/ {total}</span>
-            )}
+            {total !== undefined && <span css={statTotalStyles}>/ {total}</span>}
           </div>
           <span css={statLabelStyles}>{label}</span>
           {trend && (
             <div css={trendStyles(trend.isPositive)}>
-              {trend.isPositive ? "▲" : "▼"} {trend.value}
+              {trend.isPositive ? '▲' : '▼'} {trend.value}
             </div>
           )}
         </div>

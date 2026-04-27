@@ -1,9 +1,9 @@
-import React from "react";
-import { css } from "@emotion/react";
-import { Card, CardContent } from "./Card";
-import { Badge } from "./Badge";
-import { designTokens } from "../../styles/design-system";
-import { GovernancePolicy } from "../../stores/governanceStore";
+import React from 'react';
+import { css } from '@emotion/react';
+import { Card, CardContent } from './Card';
+import { Badge } from './Badge';
+import { designTokens } from '../../styles/design-system';
+import { GovernancePolicy } from '../../stores/governanceStore';
 
 export interface PolicyCardProps {
   policy: GovernancePolicy;
@@ -25,7 +25,7 @@ const cardWrapperStyles = (interactive: boolean) => css`
   transition:
     transform 0.2s ease-in-out,
     box-shadow 0.2s ease-in-out;
-  ${interactive && "cursor: pointer;"}
+  ${interactive && 'cursor: pointer;'}
 
   &:hover {
     ${interactive &&
@@ -86,14 +86,10 @@ const statValueStyles = css`
   color: ${designTokens.colors.neutral[800]};
 `;
 
-export const PolicyCard: React.FC<PolicyCardProps> = ({
-  policy,
-  onClick,
-  interactive = true,
-}) => {
+export const PolicyCard: React.FC<PolicyCardProps> = ({ policy, onClick, interactive = true }) => {
   const activeRules = policy.rules.filter((r) => r.enabled).length;
   const highStrictnessCount = policy.rules.filter(
-    (r) => r.enabled && r.strictness === "high",
+    (r) => r.enabled && r.strictness === 'high',
   ).length;
 
   return (
@@ -105,7 +101,7 @@ export const PolicyCard: React.FC<PolicyCardProps> = ({
       <CardContent>
         <div css={headerStyles}>
           <h3 css={nameStyles}>{policy.name}</h3>
-          <Badge variant={policy.status === "active" ? "success" : "secondary"}>
+          <Badge variant={policy.status === 'active' ? 'success' : 'secondary'}>
             {policy.status}
           </Badge>
         </div>
@@ -121,9 +117,7 @@ export const PolicyCard: React.FC<PolicyCardProps> = ({
           </div>
           <div css={statStyles}>
             <span css={statLabelStyles}>Strictness</span>
-            <span css={statValueStyles}>
-              {highStrictnessCount > 0 ? "High" : "Standard"}
-            </span>
+            <span css={statValueStyles}>{highStrictnessCount > 0 ? 'High' : 'Standard'}</span>
           </div>
         </div>
       </CardContent>

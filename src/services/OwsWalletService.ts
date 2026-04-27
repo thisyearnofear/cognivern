@@ -53,15 +53,14 @@ export class OwsWalletService {
   private fhenixPolicyService: FhenixPolicyService;
 
   constructor(policyService?: PolicyService) {
-    const fhenixClient = this.resolveFhenixClient(process.env.FHENIX_CLIENT_ADAPTER);
     this.policyService = policyService || sharedPolicyService;
-    this.policyEnforcement = new PolicyEnforcementService(this.policyService);
     this.fhenixPolicyService = new FhenixPolicyService({
-      rpcUrl: process.env.FHENIX_RPC_URL || "",
+      rpcUrl: process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
       contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
-      client: fhenixClient,
-      evaluateTimeoutMs: Number(process.env.FHENIX_EVALUATE_TIMEOUT_MS || "15000"),
+      privateKey: process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
+      evaluateTimeoutMs: Number(process.env.FHENIX_EVALUATE_TIMEOUT_MS || "30000"),
     });
+    this.policyEnforcement = new PolicyEnforcementService(this.policyService, this.fhenixPolicyService);
   }
 
   public async issueAuditPermit(auditor: string, policyId: string): Promise<string> {
@@ -659,29 +658,6 @@ export class OwsWalletService {
     };
   }
 
-  private resolveFhenixClient(adapterName?: string): FhenixClientAdapter | undefined {
-    if (!adapterName || adapterName.toLowerCase() === "none") {
-      return undefined;
-    }
-
-    if (adapterName.toLowerCase() === "stub") {
-      return {
-        encryptUint256: async (value: bigint) => `0x${value.toString(16)}`,
-        evaluateSpend: async ({ agentId, policyId, amountCiphertext, vendorHash }) => ({
-          decisionId: `0x${createHash("sha256")
-            .update(`${agentId}:${policyId}:${amountCiphertext}:${vendorHash}`)
-            .digest("hex")}`,
-          outcome: 2,
-          attestation: "0x",
-        }),
-        issueAuditPermit: async ({ auditor, policyId }) =>
-          `0x${createHash("sha256").update(`${auditor}:${policyId}`).digest("hex")}`,
-      };
-    }
-
-    logger.warn(`Unknown FHENIX_CLIENT_ADAPTER '${adapterName}', using default fallback`);
-    return undefined;
-  }
 
   /**
    * Preview a spend without executing - returns policy evaluation without signing

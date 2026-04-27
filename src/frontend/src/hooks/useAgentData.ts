@@ -1,21 +1,15 @@
 // Shared hooks to eliminate useState/useEffect duplication across components
-import { useState, useEffect, useCallback } from "react";
-import {
-  AgentType,
-  AgentStatus,
-  TradingDecision,
-  UseAgentState,
-  UseTradingData,
-} from "../types";
-import { getApiUrl, getApiKey } from "../utils/api";
+import { useState, useEffect, useCallback } from 'react';
+import { AgentType, AgentStatus, TradingDecision, UseAgentState, UseTradingData } from '../types';
+import { getApiUrl, getApiKey } from '../utils/api';
 
 // Generic agent data hook - replaces repeated patterns
 export const useAgentData = (agentType: AgentType): UseAgentState => {
   const [agent, setAgent] = useState(null);
   const [status, setStatus] = useState<AgentStatus>({
     isActive: false,
-    lastActivity: "",
-    lastUpdate: "",
+    lastActivity: '',
+    lastUpdate: '',
     tradesExecuted: 0,
     performance: {
       totalReturn: 0,
@@ -23,14 +17,14 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
       sharpeRatio: 0,
       complianceScore: 100,
       autonomyLevel: 1,
-      riskProfile: "low",
+      riskProfile: 'low',
     },
     metrics: {
       responseTime: 0,
       successRate: 0,
       errorRate: 0,
       totalRequests: 0,
-      lastActive: "",
+      lastActive: '',
       uptime: 0,
       actionsToday: 0,
     },
@@ -43,14 +37,11 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(
-        getApiUrl(`/api/agents/${agentType}/status`),
-        {
-          headers: {
-            "X-API-KEY": getApiKey(),
-          },
+      const response = await fetch(getApiUrl(`/api/agents/${agentType}/status`), {
+        headers: {
+          'X-API-KEY': getApiKey(),
         },
-      );
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch ${agentType} agent data`);
@@ -63,7 +54,7 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
       }
     } catch (err) {
       console.error(`Error fetching ${agentType} agent data:`, err);
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }
@@ -72,15 +63,12 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
   const startAgent = useCallback(async () => {
     try {
       setError(null);
-      const response = await fetch(
-        getApiUrl(`/api/agents/${agentType}/start`),
-        {
-          method: "POST",
-          headers: {
-            "X-API-KEY": getApiKey(),
-          },
+      const response = await fetch(getApiUrl(`/api/agents/${agentType}/start`), {
+        method: 'POST',
+        headers: {
+          'X-API-KEY': getApiKey(),
         },
-      );
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to start ${agentType} agent`);
@@ -90,7 +78,7 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
       await refreshData();
     } catch (err) {
       console.error(`Error starting ${agentType} agent:`, err);
-      setError(err instanceof Error ? err.message : "Failed to start agent");
+      setError(err instanceof Error ? err.message : 'Failed to start agent');
     }
   }, [agentType, refreshData]);
 
@@ -98,9 +86,9 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
     try {
       setError(null);
       const response = await fetch(getApiUrl(`/api/agents/${agentType}/stop`), {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "X-API-KEY": getApiKey(),
+          'X-API-KEY': getApiKey(),
         },
       });
 
@@ -112,7 +100,7 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
       await refreshData();
     } catch (err) {
       console.error(`Error stopping ${agentType} agent:`, err);
-      setError(err instanceof Error ? err.message : "Failed to stop agent");
+      setError(err instanceof Error ? err.message : 'Failed to stop agent');
     }
   }, [agentType, refreshData]);
 
@@ -142,14 +130,11 @@ export const useTradingData = (agentType: AgentType): UseTradingData => {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(
-        getApiUrl(`/api/agents/${agentType}/decisions`),
-        {
-          headers: {
-            "X-API-KEY": getApiKey(),
-          },
+      const response = await fetch(getApiUrl(`/api/agents/${agentType}/decisions`), {
+        headers: {
+          'X-API-KEY': getApiKey(),
         },
-      );
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch ${agentType} trading decisions`);
@@ -159,7 +144,7 @@ export const useTradingData = (agentType: AgentType): UseTradingData => {
       setDecisions(data.decisions || data.data || []);
     } catch (err) {
       console.error(`Error fetching ${agentType} trading data:`, err);
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : 'Unknown error');
       setDecisions([]);
     } finally {
       setIsLoading(false);
@@ -187,23 +172,20 @@ export const useLoadingState = (initialLoading = false) => {
   const [isLoading, setIsLoading] = useState(initialLoading);
   const [error, setError] = useState<string | null>(null);
 
-  const withLoading = useCallback(
-    async <T>(asyncFn: () => Promise<T>): Promise<T | null> => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const result = await asyncFn();
-        return result;
-      } catch (err) {
-        console.error("Error in async operation:", err);
-        setError(err instanceof Error ? err.message : "Unknown error");
-        return null;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [],
-  );
+  const withLoading = useCallback(async <T>(asyncFn: () => Promise<T>): Promise<T | null> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await asyncFn();
+      return result;
+    } catch (err) {
+      console.error('Error in async operation:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const clearError = useCallback(() => setError(null), []);
 

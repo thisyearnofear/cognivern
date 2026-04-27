@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from 'react';
 
 export interface PerformanceMetrics {
   // Core Web Vitals
@@ -21,7 +21,7 @@ export interface PerformanceMetrics {
 }
 
 export interface PerformanceAlert {
-  type: "warning" | "error";
+  type: 'warning' | 'error';
   metric: keyof PerformanceMetrics;
   value: number;
   threshold: number;
@@ -59,7 +59,7 @@ export const usePerformanceMonitor = () => {
   // Measure Core Web Vitals
   const measureWebVitals = useCallback(() => {
     // LCP - Largest Contentful Paint
-    if ("PerformanceObserver" in window) {
+    if ('PerformanceObserver' in window) {
       try {
         const lcpObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
@@ -68,7 +68,7 @@ export const usePerformanceMonitor = () => {
             setMetrics((prev) => ({ ...prev, lcp: lastEntry.startTime }));
           }
         });
-        lcpObserver.observe({ entryTypes: ["largest-contentful-paint"] });
+        lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
 
         // FID - First Input Delay
         const fidObserver = new PerformanceObserver((list) => {
@@ -80,7 +80,7 @@ export const usePerformanceMonitor = () => {
             }));
           });
         });
-        fidObserver.observe({ entryTypes: ["first-input"] });
+        fidObserver.observe({ entryTypes: ['first-input'] });
 
         // CLS - Cumulative Layout Shift
         let clsValue = 0;
@@ -93,29 +93,29 @@ export const usePerformanceMonitor = () => {
             }
           });
         });
-        clsObserver.observe({ entryTypes: ["layout-shift"] });
+        clsObserver.observe({ entryTypes: ['layout-shift'] });
 
         // FCP - First Contentful Paint
         const fcpObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
           entries.forEach((entry: any) => {
-            if (entry.name === "first-contentful-paint") {
+            if (entry.name === 'first-contentful-paint') {
               setMetrics((prev) => ({ ...prev, fcp: entry.startTime }));
             }
           });
         });
-        fcpObserver.observe({ entryTypes: ["paint"] });
+        fcpObserver.observe({ entryTypes: ['paint'] });
       } catch (error) {
-        console.warn("Performance monitoring not supported:", error);
+        console.warn('Performance monitoring not supported:', error);
       }
     }
   }, []);
 
   // Measure navigation timing
   const measureNavigationTiming = useCallback(() => {
-    if ("performance" in window && "getEntriesByType" in performance) {
+    if ('performance' in window && 'getEntriesByType' in performance) {
       const navigationEntries = performance.getEntriesByType(
-        "navigation",
+        'navigation',
       ) as PerformanceNavigationTiming[];
       if (navigationEntries.length > 0) {
         const navigation = navigationEntries[0];
@@ -130,15 +130,15 @@ export const usePerformanceMonitor = () => {
 
   // Measure resource timing
   const measureResourceTiming = useCallback(() => {
-    if ("performance" in window && "getEntriesByType" in performance) {
+    if ('performance' in window && 'getEntriesByType' in performance) {
       const resourceEntries = performance.getEntriesByType(
-        "resource",
+        'resource',
       ) as PerformanceResourceTiming[];
       setMetrics((prev) => ({ ...prev, resourceTiming: resourceEntries }));
 
       // Calculate bundle size from resource entries
       const jsResources = resourceEntries.filter(
-        (entry) => entry.name.includes(".js") && entry.transferSize,
+        (entry) => entry.name.includes('.js') && entry.transferSize,
       );
       const totalBundleSize = jsResources.reduce(
         (total, entry) => total + (entry.transferSize || 0),
@@ -150,7 +150,7 @@ export const usePerformanceMonitor = () => {
 
   // Measure memory usage
   const measureMemoryUsage = useCallback(() => {
-    if ("memory" in performance) {
+    if ('memory' in performance) {
       const memory = (performance as any).memory;
       const usedMB = memory.usedJSHeapSize / 1024 / 1024;
       setMetrics((prev) => ({ ...prev, memoryUsage: usedMB }));
@@ -196,13 +196,9 @@ export const usePerformanceMonitor = () => {
 
       Object.entries(PERFORMANCE_THRESHOLDS).forEach(([metric, thresholds]) => {
         const value = newMetrics[metric as keyof PerformanceMetrics] as number;
-        if (
-          value !== null &&
-          value !== undefined &&
-          value > thresholds.poor * criticalThreshold
-        ) {
+        if (value !== null && value !== undefined && value > thresholds.poor * criticalThreshold) {
           newAlerts.push({
-            type: "warning", // Always warning, never error
+            type: 'warning', // Always warning, never error
             metric: metric as keyof PerformanceMetrics,
             value,
             threshold: thresholds.poor,
@@ -289,9 +285,7 @@ export const usePerformanceMonitor = () => {
       );
     }
 
-    return scores.length > 0
-      ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
-      : null;
+    return scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
   }, [metrics]);
 
   // Monitor metrics changes for alerts
@@ -334,9 +328,7 @@ export const useComponentPerformance = (componentName: string) => {
   });
 
   const averageRenderTime =
-    renderTimes.length > 0
-      ? renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length
-      : 0;
+    renderTimes.length > 0 ? renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length : 0;
 
   return {
     componentName,

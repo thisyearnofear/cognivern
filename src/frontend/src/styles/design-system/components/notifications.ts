@@ -1,15 +1,11 @@
-import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
+import { css } from '@emotion/react';
+import { designTokens } from '../tokens/designTokens';
 
-export type StatusType = "success" | "error" | "warning" | "info";
-export type Position =
-  | "top-right"
-  | "top-left"
-  | "bottom-right"
-  | "bottom-left";
+export type StatusType = 'success' | 'error' | 'warning' | 'info';
+export type Position = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 
 export const notificationStyles = {
-  container: (position: Position = "top-right") => css`
+  container: (position: Position = 'top-right') => css`
     position: fixed;
     z-index: ${designTokens.zIndex.toast};
     display: flex;
@@ -17,31 +13,31 @@ export const notificationStyles = {
     gap: ${designTokens.spacing[2]};
     max-width: 400px;
 
-    ${position === "top-right" &&
+    ${position === 'top-right' &&
     css`
       top: ${designTokens.spacing[4]};
       right: ${designTokens.spacing[4]};
     `}
 
-    ${position === "top-left" &&
+    ${position === 'top-left' &&
     css`
       top: ${designTokens.spacing[4]};
       left: ${designTokens.spacing[4]};
     `}
 
-    ${position === "bottom-right" &&
+    ${position === 'bottom-right' &&
     css`
       bottom: ${designTokens.spacing[4]};
       right: ${designTokens.spacing[4]};
     `}
 
-    ${position === "bottom-left" &&
+    ${position === 'bottom-left' &&
     css`
       bottom: ${designTokens.spacing[4]};
       left: ${designTokens.spacing[4]};
     `}
   `,
-  item: (type: StatusType = "info") => css`
+  item: (type: StatusType = 'info') => css`
     background-color: ${designTokens.colors.neutral[0]};
     border-radius: ${designTokens.borderRadius.md};
     box-shadow: ${designTokens.shadows.lg};
@@ -52,27 +48,27 @@ export const notificationStyles = {
     min-width: 300px;
     border-left: 4px solid;
 
-    ${type === "success" &&
+    ${type === 'success' &&
     css`
       border-left-color: ${designTokens.colors.semantic.success[500]};
     `}
 
-    ${type === "error" &&
+    ${type === 'error' &&
     css`
       border-left-color: ${designTokens.colors.semantic.error[500]};
     `}
 
-    ${type === "warning" &&
+    ${type === 'warning' &&
     css`
       border-left-color: ${designTokens.colors.semantic.warning[500]};
     `}
 
-    ${type === "info" &&
+    ${type === 'info' &&
     css`
       border-left-color: ${designTokens.colors.semantic.info[500]};
     `}
   `,
-  icon: (type: StatusType = "info") => css`
+  icon: (type: StatusType = 'info') => css`
     width: 20px;
     height: 20px;
     display: flex;
@@ -81,25 +77,25 @@ export const notificationStyles = {
     border-radius: 50%;
     flex-shrink: 0;
 
-    ${type === "success" &&
+    ${type === 'success' &&
     css`
       background-color: ${designTokens.colors.semantic.success[100]};
       color: ${designTokens.colors.semantic.success[600]};
     `}
 
-    ${type === "error" &&
+    ${type === 'error' &&
     css`
       background-color: ${designTokens.colors.semantic.error[100]};
       color: ${designTokens.colors.semantic.error[600]};
     `}
 
-    ${type === "warning" &&
+    ${type === 'warning' &&
     css`
       background-color: ${designTokens.colors.semantic.warning[100]};
       color: ${designTokens.colors.semantic.warning[600]};
     `}
 
-    ${type === "info" &&
+    ${type === 'info' &&
     css`
       background-color: ${designTokens.colors.semantic.info[100]};
       color: ${designTokens.colors.semantic.info[600]};
@@ -152,12 +148,12 @@ export const notificationStyles = {
 };
 
 export const toastStyles = {
-  item: (type: StatusType = "info") => css`
+  item: (type: StatusType = 'info') => css`
     ${notificationStyles.item(type)}
     align-items: center;
     max-width: 500px;
   `,
-  icon: (type: StatusType = "info") => notificationStyles.icon(type),
+  icon: (type: StatusType = 'info') => notificationStyles.icon(type),
   content: notificationStyles.content,
   message: notificationStyles.message,
   actions: css`

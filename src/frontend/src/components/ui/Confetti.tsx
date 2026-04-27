@@ -5,17 +5,17 @@
  * Follows CLEAN + MODULAR principles.
  */
 
-import React from "react";
-import { css, keyframes } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
+import React from 'react';
+import { css, keyframes } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
 
 const colors = [
-  "#22c55e", // success
-  "#3b82f6", // info
-  "#f59e0b", // warning
-  "#ec4899", // pink
-  "#8b5cf6", // purple
-  "#0ea5e9"  // primary
+  '#22c55e', // success
+  '#3b82f6', // info
+  '#f59e0b', // warning
+  '#ec4899', // pink
+  '#8b5cf6', // purple
+  '#0ea5e9', // primary
 ];
 
 const fall = keyframes`
@@ -53,7 +53,7 @@ export const Confetti: React.FC<{ count?: number }> = ({ count = 50 }) => {
           width: ${size}px;
           height: ${size}px;
           background-color: ${color};
-          border-radius: ${Math.random() > 0.5 ? "50%" : "2px"};
+          border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
           opacity: 0;
           animation: ${fall} ${duration}s ${delay}s linear forwards;
         `;

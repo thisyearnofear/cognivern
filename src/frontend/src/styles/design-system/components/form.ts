@@ -1,5 +1,5 @@
-import { css } from "@emotion/react";
-import { designTokens } from "../tokens/designTokens";
+import { css } from '@emotion/react';
+import { designTokens } from '../tokens/designTokens';
 
 /**
  * Form Design System Components
@@ -17,25 +17,19 @@ export const formStyles = css`
   width: 100%;
 `;
 
-export const getFormFieldGroupStyles = (
-  layout: "vertical" | "horizontal" = "vertical",
-) => css`
+export const getFormFieldGroupStyles = (layout: 'vertical' | 'horizontal' = 'vertical') => css`
   display: flex;
-  flex-direction: ${layout === "vertical" ? "column" : "row"};
-  gap: ${layout === "vertical"
-    ? designTokens.spacing[2]
-    : designTokens.spacing[4]};
-  align-items: ${layout === "vertical" ? "flex-start" : "center"};
+  flex-direction: ${layout === 'vertical' ? 'column' : 'row'};
+  gap: ${layout === 'vertical' ? designTokens.spacing[2] : designTokens.spacing[4]};
+  align-items: ${layout === 'vertical' ? 'flex-start' : 'center'};
   width: 100%;
 `;
 
-export const getFormLabelStyles = (
-  layout: "vertical" | "horizontal" = "vertical",
-) => css`
+export const getFormLabelStyles = (layout: 'vertical' | 'horizontal' = 'vertical') => css`
   font-size: ${designTokens.typography.fontSize.sm};
   font-weight: ${designTokens.typography.fontWeight.semibold};
   color: ${designTokens.colors.neutral[700]};
-  min-width: ${layout === "horizontal" ? "120px" : "auto"};
+  min-width: ${layout === 'horizontal' ? '120px' : 'auto'};
   cursor: pointer;
   user-select: none;
 `;
@@ -44,13 +38,11 @@ export const getFormInputStyles = (hasError: boolean = false) => css`
   width: 100%;
   padding: ${designTokens.spacing[3]} ${designTokens.spacing[4]};
   font-size: ${designTokens.typography.fontSize.base};
-  font-family: ${designTokens.typography.fontFamily.sans.join(", ")};
+  font-family: ${designTokens.typography.fontFamily.sans.join(', ')};
   color: ${designTokens.colors.neutral[900]};
   background-color: ${designTokens.colors.neutral[0]};
   border: 1px solid
-    ${hasError
-      ? designTokens.colors.semantic.error
-      : designTokens.colors.neutral[300]};
+    ${hasError ? designTokens.colors.semantic.error : designTokens.colors.neutral[300]};
   border-radius: ${designTokens.borderRadius.md};
   transition: all ${designTokens.animation.duration.normal}
     ${designTokens.animation.easing.easeInOut};
@@ -77,7 +69,7 @@ export const getFormInputStyles = (hasError: boolean = false) => css`
   }
 
   /* Specific styles for select and textarea */
-  &[type="select"] {
+  &[type='select'] {
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
     background-repeat: no-repeat;

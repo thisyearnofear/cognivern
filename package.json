@@ -58,6 +58,8 @@
     "demo:live": "tsx scripts/demo-live.ts"
   },
   "dependencies": {
+    "@cofhe/sdk": "0.5.1",
+    "@fhenixprotocol/cofhe-contracts": "0.1.3",
     "@glif/filecoin-address": "^2.0.8",
     "@sapience/sdk": "0.2.0",
     "@vercel/node": "^3.0.0",

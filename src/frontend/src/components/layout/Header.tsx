@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { css } from "@emotion/react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { css } from '@emotion/react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Menu,
   Sun,
@@ -12,16 +12,16 @@ import {
   ShieldCheck,
   ShieldAlert,
   Plus,
-} from "lucide-react";
-import { useAppStore, useTheme } from "../../stores/appStore";
-import { agentApi } from "../../services/apiService";
-import { useIntentStore } from "../../stores/intentStore";
-import { designTokens, easings } from "../../styles/design-system";
-import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
-import { useSidebarState } from "../../hooks/useSidebarState";
-import CommandPalette from "../ui/CommandPalette";
-import WalletConnect from "../web3/WalletConnect";
+} from 'lucide-react';
+import { useAppStore, useTheme } from '../../stores/appStore';
+import { agentApi } from '../../services/apiService';
+import { useIntentStore } from '../../stores/intentStore';
+import { designTokens, easings } from '../../styles/design-system';
+import { useBreakpoint } from '../../hooks/useMediaQuery';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
+import { useSidebarState } from '../../hooks/useSidebarState';
+import CommandPalette from '../ui/CommandPalette';
+import WalletConnect from '../web3/WalletConnect';
 
 export const Header: React.FC = () => {
   const { user, setUser, updatePreferences } = useAppStore();
@@ -48,14 +48,11 @@ export const Header: React.FC = () => {
   useKeyboardShortcuts();
 
   const handleThemeToggle = () => {
-    const newTheme = effectiveTheme === "dark" ? "light" : "dark";
+    const newTheme = effectiveTheme === 'dark' ? 'light' : 'dark';
     updatePreferences({ theme: newTheme });
   };
 
-  const handleWalletConnect = (
-    address: string,
-    network: "filecoin" | "xlayer",
-  ) => {
+  const handleWalletConnect = (address: string, network: 'filecoin' | 'xlayer') => {
     setUser({ address, isConnected: true, network });
   };
 
@@ -70,12 +67,12 @@ export const Header: React.FC = () => {
     align-items: center;
     justify-content: space-between;
     padding: 0 ${isMobile ? designTokens.spacing[3] : designTokens.spacing[6]};
-    height: ${isMobile ? "60px" : designTokens.layout.headerHeight};
-    background: ${effectiveTheme === "dark"
+    height: ${isMobile ? '60px' : designTokens.layout.headerHeight};
+    background: ${effectiveTheme === 'dark'
       ? `linear-gradient(135deg, ${designTokens.colors.neutral[900]} 0%, ${designTokens.colors.neutral[800]} 100%)`
       : `linear-gradient(135deg, ${designTokens.colors.neutral[0]} 0%, ${designTokens.colors.neutral[50]} 100%)`};
     border-bottom: 1px solid
-      ${effectiveTheme === "dark"
+      ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[700]
         : designTokens.colors.neutral[200]};
     box-shadow: ${designTokens.shadowSystem.floating};
@@ -101,7 +98,7 @@ export const Header: React.FC = () => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: ${isMobile ? "120px" : "none"};
+    max-width: ${isMobile ? '120px' : 'none'};
   `;
 
   const actionsStyles = css`
@@ -114,7 +111,7 @@ export const Header: React.FC = () => {
     background: ${designTokens.colorSystem.gradients.primary};
     border: none;
     color: white;
-    padding: ${isMobile ? "6px 12px" : "8px 16px"};
+    padding: ${isMobile ? '6px 12px' : '8px 16px'};
     border-radius: ${designTokens.borderRadius.md};
     font-size: ${designTokens.typography.fontSize.sm};
     font-weight: ${designTokens.typography.fontWeight.bold};
@@ -144,19 +141,17 @@ export const Header: React.FC = () => {
     padding: ${isMobile
       ? designTokens.spacing[1]
       : `${designTokens.spacing[2]} ${designTokens.spacing[4]}`};
-    background: ${effectiveTheme === "dark"
+    background: ${effectiveTheme === 'dark'
       ? `linear-gradient(135deg, ${designTokens.colors.neutral[800]} 0%, ${designTokens.colors.neutral[700]} 100%)`
       : isMobile
-        ? "transparent"
+        ? 'transparent'
         : `linear-gradient(135deg, ${designTokens.colors.semantic.success[50]} 0%, ${designTokens.colors.semantic.success[100]} 100%)`};
     border-radius: ${designTokens.borderRadius.full};
     font-size: ${designTokens.typography.fontSize.sm};
     font-weight: ${designTokens.typography.fontWeight.medium};
     color: ${designTokens.colors.semantic.success[700]};
-    border: ${isMobile
-      ? "none"
-      : `1px solid ${designTokens.colors.semantic.success[200]}`};
-    box-shadow: ${isMobile ? "none" : designTokens.shadows.sm};
+    border: ${isMobile ? 'none' : `1px solid ${designTokens.colors.semantic.success[200]}`};
+    box-shadow: ${isMobile ? 'none' : designTokens.shadows.sm};
     transition: ${easings.smooth};
   `;
 
@@ -180,18 +175,18 @@ export const Header: React.FC = () => {
 
   const getPageTitle = () => {
     switch (pathname) {
-      case "/":
-        return "Dashboard";
-      case "/agents":
-        return isMobile ? "Agents" : "Governed Agents";
-      case "/policies":
-        return isMobile ? "Policies" : "Spend Policies";
-      case "/audit":
-        return isMobile ? "Audit" : "Audit Logs";
-      case "/runs":
-        return isMobile ? "Runs" : "Run Ledger";
+      case '/':
+        return 'Dashboard';
+      case '/agents':
+        return isMobile ? 'Agents' : 'Governed Agents';
+      case '/policies':
+        return isMobile ? 'Policies' : 'Spend Policies';
+      case '/audit':
+        return isMobile ? 'Audit' : 'Audit Logs';
+      case '/runs':
+        return isMobile ? 'Runs' : 'Run Ledger';
       default:
-        return "Cognivern";
+        return 'Cognivern';
     }
   };
 
@@ -208,7 +203,16 @@ export const Header: React.FC = () => {
         <h1 css={titleStyles}>{getPageTitle()}</h1>
 
         {/* Status Indicators */}
-        <div css={statusIndicatorStyles} title={isSystemOnline === false ? "System Offline" : isSystemOnline === true ? "System Online" : "Checking Status..."}>
+        <div
+          css={statusIndicatorStyles}
+          title={
+            isSystemOnline === false
+              ? 'System Offline'
+              : isSystemOnline === true
+                ? 'System Online'
+                : 'Checking Status...'
+          }
+        >
           <span
             css={css`
               width: 8px;
@@ -224,35 +228,27 @@ export const Header: React.FC = () => {
                   ? designTokens.colors.semantic.error[300]
                   : isSystemOnline === true
                     ? designTokens.colors.semantic.success[300]
-                    : "transparent"};
+                    : 'transparent'};
             `}
           />
           {!isMobile && (
             <span
               style={{
                 color:
-                  isSystemOnline === false
-                    ? designTokens.colors.semantic.error[700]
-                    : "inherit",
+                  isSystemOnline === false ? designTokens.colors.semantic.error[700] : 'inherit',
               }}
             >
               {isSystemOnline === false
-                ? "System Offline"
+                ? 'System Offline'
                 : isSystemOnline === true
-                  ? "System Online"
-                  : "Checking Status..."}
+                  ? 'System Online'
+                  : 'Checking Status...'}
             </span>
           )}
           {isSystemOnline === false ? (
-            <ShieldAlert
-              size={14}
-              color={designTokens.colors.semantic.error[500]}
-            />
+            <ShieldAlert size={14} color={designTokens.colors.semantic.error[500]} />
           ) : isSystemOnline === true ? (
-            <ShieldCheck
-              size={14}
-              color={designTokens.colors.semantic.success[500]}
-            />
+            <ShieldCheck size={14} color={designTokens.colors.semantic.success[500]} />
           ) : null}
         </div>
       </div>
@@ -261,7 +257,7 @@ export const Header: React.FC = () => {
         {/* Add Agent Button */}
         <button
           css={addAgentButtonStyle}
-          onClick={() => navigate("/agents/connect")}
+          onClick={() => navigate('/agents/connect')}
           title="Connect a new agent"
         >
           <Plus size={18} />
@@ -289,11 +285,7 @@ export const Header: React.FC = () => {
 
         {/* Mobile Menu Toggle */}
         {isMobile && (
-          <button
-            css={modernButtonStyle}
-            onClick={toggleSidebar}
-            title="Toggle menu"
-          >
+          <button css={modernButtonStyle} onClick={toggleSidebar} title="Toggle menu">
             <Menu size={20} />
           </button>
         )}
@@ -302,18 +294,14 @@ export const Header: React.FC = () => {
         <button
           css={modernButtonStyle}
           onClick={handleThemeToggle}
-          title={`Switch to ${effectiveTheme === "dark" ? "light" : "dark"} mode`}
+          title={`Switch to ${effectiveTheme === 'dark' ? 'light' : 'dark'} mode`}
         >
-          {effectiveTheme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          {effectiveTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
         {/* Search on Mobile */}
         {isMobile && (
-          <button
-            css={modernButtonStyle}
-            onClick={() => setIsOpen(true)}
-            title="Search"
-          >
+          <button css={modernButtonStyle} onClick={() => setIsOpen(true)} title="Search">
             <Search size={20} />
           </button>
         )}
@@ -334,10 +322,7 @@ export const Header: React.FC = () => {
         )}
 
         {/* Wallet Connection */}
-        <WalletConnect
-          onConnect={handleWalletConnect}
-          onDisconnect={handleWalletDisconnect}
-        />
+        <WalletConnect onConnect={handleWalletConnect} onDisconnect={handleWalletDisconnect} />
 
         {/* User Menu */}
         {user.isConnected && (

@@ -1,10 +1,10 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useMemo } from "react";
-import { css } from "@emotion/react";
-import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { Button } from "./Button";
-import { Card } from "./Card";
-import { tableStyles } from "../../styles/design-system";
+import React, { useState, useMemo } from 'react';
+import { css } from '@emotion/react';
+import { useBreakpoint } from '../../hooks/useMediaQuery';
+import { Button } from './Button';
+import { Card } from './Card';
+import { tableStyles } from '../../styles/design-system';
 
 export interface Column<T> {
   key: keyof T;
@@ -12,7 +12,7 @@ export interface Column<T> {
   width?: string;
   sortable?: boolean;
   render?: (value: any, record: T, index: number) => React.ReactNode;
-  align?: "left" | "center" | "right";
+  align?: 'left' | 'center' | 'right';
 }
 
 export interface DataTableProps<T> {
@@ -33,7 +33,7 @@ export interface DataTableProps<T> {
   onRowClick?: (record: T, index: number) => void;
 }
 
-type SortOrder = "asc" | "desc" | null;
+type SortOrder = 'asc' | 'desc' | null;
 
 export function DataTable<T extends Record<string, any>>({
   data,
@@ -42,12 +42,12 @@ export function DataTable<T extends Record<string, any>>({
   pagination,
   sortable = true,
   searchable = true,
-  searchPlaceholder = "Search...",
-  emptyText = "No data available",
-  rowKey = "id",
+  searchPlaceholder = 'Search...',
+  emptyText = 'No data available',
+  rowKey = 'id',
   onRowClick,
 }: DataTableProps<T>) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(null);
   const { isMobile } = useBreakpoint();
@@ -75,7 +75,7 @@ export function DataTable<T extends Record<string, any>>({
       if (aValue === bValue) return 0;
 
       const comparison = aValue < bValue ? -1 : 1;
-      return sortOrder === "asc" ? comparison : -comparison;
+      return sortOrder === 'asc' ? comparison : -comparison;
     });
   }, [filteredData, sortColumn, sortOrder]);
 
@@ -93,20 +93,20 @@ export function DataTable<T extends Record<string, any>>({
 
     if (sortColumn === column.key) {
       // Cycle through: asc -> desc -> null
-      if (sortOrder === "asc") {
-        setSortOrder("desc");
-      } else if (sortOrder === "desc") {
+      if (sortOrder === 'asc') {
+        setSortOrder('desc');
+      } else if (sortOrder === 'desc') {
         setSortColumn(null);
         setSortOrder(null);
       }
     } else {
       setSortColumn(column.key);
-      setSortOrder("asc");
+      setSortOrder('asc');
     }
   };
 
   const getRowKey = (record: T, index: number): string => {
-    if (typeof rowKey === "function") {
+    if (typeof rowKey === 'function') {
       return rowKey(record);
     }
     return String(record[rowKey] || index);
@@ -134,7 +134,7 @@ export function DataTable<T extends Record<string, any>>({
           margin-left: 4px;
         `}
       >
-        {sortOrder === "asc" ? "↑" : "↓"}
+        {sortOrder === 'asc' ? '↑' : '↓'}
       </span>
     );
   };
@@ -183,7 +183,7 @@ export function DataTable<T extends Record<string, any>>({
                     <div>
                       {column.render
                         ? column.render(record[column.key], record, index)
-                        : String(record[column.key] || "-")}
+                        : String(record[column.key] || '-')}
                     </div>
                   </div>
                 ))}
@@ -195,39 +195,24 @@ export function DataTable<T extends Record<string, any>>({
         {pagination && (
           <div css={tableStyles.pagination}>
             <div css={tableStyles.paginationInfo}>
-              Showing {(pagination.current - 1) * pagination.pageSize + 1} to{" "}
-              {Math.min(
-                pagination.current * pagination.pageSize,
-                pagination.total,
-              )}{" "}
-              of {pagination.total}
+              Showing {(pagination.current - 1) * pagination.pageSize + 1} to{' '}
+              {Math.min(pagination.current * pagination.pageSize, pagination.total)} of{' '}
+              {pagination.total}
             </div>
             <div css={tableStyles.paginationControls}>
               <Button
                 variant="outline"
                 size="sm"
                 disabled={pagination.current === 1}
-                onClick={() =>
-                  pagination.onChange(
-                    pagination.current - 1,
-                    pagination.pageSize,
-                  )
-                }
+                onClick={() => pagination.onChange(pagination.current - 1, pagination.pageSize)}
               >
                 Previous
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={
-                  pagination.current * pagination.pageSize >= pagination.total
-                }
-                onClick={() =>
-                  pagination.onChange(
-                    pagination.current + 1,
-                    pagination.pageSize,
-                  )
-                }
+                disabled={pagination.current * pagination.pageSize >= pagination.total}
+                onClick={() => pagination.onChange(pagination.current + 1, pagination.pageSize)}
               >
                 Next
               </Button>
@@ -262,10 +247,7 @@ export function DataTable<T extends Record<string, any>>({
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
-                  css={tableStyles.headerCell(
-                    column.align || "left",
-                    !!column.sortable,
-                  )}
+                  css={tableStyles.headerCell(column.align || 'left', !!column.sortable)}
                   onClick={() => handleSort(column)}
                 >
                   {column.title}
@@ -295,13 +277,10 @@ export function DataTable<T extends Record<string, any>>({
                   onClick={() => onRowClick?.(record, index)}
                 >
                   {columns.map((column) => (
-                    <td
-                      key={String(column.key)}
-                      css={tableStyles.cell(column.align || "left")}
-                    >
+                    <td key={String(column.key)} css={tableStyles.cell(column.align || 'left')}>
                       {column.render
                         ? column.render(record[column.key], record, index)
-                        : String(record[column.key] || "-")}
+                        : String(record[column.key] || '-')}
                     </td>
                   ))}
                 </tr>
@@ -314,37 +293,27 @@ export function DataTable<T extends Record<string, any>>({
       {pagination && (
         <div css={tableStyles.pagination}>
           <div css={tableStyles.paginationInfo}>
-            Showing {(pagination.current - 1) * pagination.pageSize + 1} to{" "}
-            {Math.min(
-              pagination.current * pagination.pageSize,
-              pagination.total,
-            )}{" "}
-            of {pagination.total}
+            Showing {(pagination.current - 1) * pagination.pageSize + 1} to{' '}
+            {Math.min(pagination.current * pagination.pageSize, pagination.total)} of{' '}
+            {pagination.total}
           </div>
           <div css={tableStyles.paginationControls}>
             <Button
               variant="outline"
               size="sm"
               disabled={pagination.current === 1}
-              onClick={() =>
-                pagination.onChange(pagination.current - 1, pagination.pageSize)
-              }
+              onClick={() => pagination.onChange(pagination.current - 1, pagination.pageSize)}
             >
               Previous
             </Button>
             <span css={tableStyles.paginationPageInfo}>
-              Page {pagination.current} of{" "}
-              {Math.ceil(pagination.total / pagination.pageSize)}
+              Page {pagination.current} of {Math.ceil(pagination.total / pagination.pageSize)}
             </span>
             <Button
               variant="outline"
               size="sm"
-              disabled={
-                pagination.current * pagination.pageSize >= pagination.total
-              }
-              onClick={() =>
-                pagination.onChange(pagination.current + 1, pagination.pageSize)
-              }
+              disabled={pagination.current * pagination.pageSize >= pagination.total}
+              onClick={() => pagination.onChange(pagination.current + 1, pagination.pageSize)}
             >
               Next
             </Button>

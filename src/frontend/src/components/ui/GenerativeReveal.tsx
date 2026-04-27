@@ -1,5 +1,5 @@
-import React, { useId } from "react";
-import styled from "@emotion/styled";
+import React, { useId } from 'react';
+import styled from '@emotion/styled';
 
 interface GenerativeRevealProps {
   children: React.ReactNode;
@@ -17,8 +17,7 @@ const Container = styled.div<{
   will-change: filter, transform, opacity;
   transition: opacity ${({ duration }) => duration * 0.5}ms ease-out;
   opacity: ${({ active }) => (active ? 1 : 0)};
-  filter: ${({ active, filterId }) =>
-    active ? `url(#distort-${filterId})` : "none"};
+  filter: ${({ active, filterId }) => (active ? `url(#distort-${filterId})` : 'none')};
 `;
 
 /**
@@ -37,28 +36,22 @@ export const GenerativeReveal: React.FC<GenerativeRevealProps> = ({
 }) => {
   // Use a unique ID for the SVG filter to allow multiple instances on the same page
   const rawId = useId();
-  const filterId = rawId.replace(/:/g, "");
+  const filterId = rawId.replace(/:/g, '');
 
   return (
     <>
       <svg
         style={{
-          position: "absolute",
+          position: 'absolute',
           width: 0,
           height: 0,
-          pointerEvents: "none",
-          visibility: "hidden",
+          pointerEvents: 'none',
+          visibility: 'hidden',
         }}
         aria-hidden="true"
       >
         <defs>
-          <filter
-            id={`distort-${filterId}`}
-            x="-20%"
-            y="-20%"
-            width="140%"
-            height="140%"
-          >
+          <filter id={`distort-${filterId}`} x="-20%" y="-20%" width="140%" height="140%">
             <feTurbulence
               type="fractalNoise"
               baseFrequency="0.015"
@@ -105,12 +98,7 @@ export const GenerativeReveal: React.FC<GenerativeRevealProps> = ({
           </filter>
         </defs>
       </svg>
-      <Container
-        active={active}
-        duration={duration}
-        filterId={filterId}
-        className={className}
-      >
+      <Container active={active} duration={duration} filterId={filterId} className={className}>
         {children}
       </Container>
     </>

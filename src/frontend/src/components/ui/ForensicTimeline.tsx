@@ -1,9 +1,9 @@
-import React, { useState } from "react";
-import styled from "@emotion/styled";
-import { keyframes, css } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
-import { Badge } from "./Badge";
-import { GenerativeReveal } from "./GenerativeReveal";
+import React, { useState } from 'react';
+import styled from '@emotion/styled';
+import { keyframes, css } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
+import { Badge } from './Badge';
+import { GenerativeReveal } from './GenerativeReveal';
 
 /**
  * ForensicTimeline - A high-fidelity transparency component.
@@ -17,13 +17,13 @@ import { GenerativeReveal } from "./GenerativeReveal";
  */
 
 export type TimelineEventType =
-  | "observation"
-  | "thought"
-  | "action"
-  | "validation"
-  | "privacy_redacted"
-  | "error"
-  | "block";
+  | 'observation'
+  | 'thought'
+  | 'action'
+  | 'validation'
+  | 'privacy_redacted'
+  | 'error'
+  | 'block';
 
 export interface ForensicEvent {
   id: string;
@@ -32,7 +32,7 @@ export interface ForensicEvent {
   title: string;
   description: string;
   metadata?: Record<string, any>;
-  status?: "success" | "warning" | "error";
+  status?: 'success' | 'warning' | 'error';
 }
 
 interface ForensicTimelineProps {
@@ -60,7 +60,7 @@ const TimelineContainer = styled.div`
   width: 100%;
 
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     left: 24px;
     top: 0;
@@ -102,33 +102,33 @@ const Node = styled.div<{ type: TimelineEventType; status?: string }>`
 
   ${({ type }) => {
     switch (type) {
-      case "thought":
+      case 'thought':
         return css`
           border-color: ${designTokens.colors.primary[400]};
           color: ${designTokens.colors.primary[600]};
           background: ${designTokens.colors.primary[50]};
         `;
-      case "action":
+      case 'action':
         return css`
           border-color: ${designTokens.colors.semantic.success};
           color: ${designTokens.colors.semantic.success};
           animation: ${pulseGlow} 2s infinite;
         `;
-      case "privacy_redacted":
+      case 'privacy_redacted':
         return css`
           border-color: ${designTokens.colors.neutral[400]};
           color: ${designTokens.colors.neutral[500]};
           background: ${designTokens.colors.neutral[100]};
           border-style: dashed;
         `;
-      case "block":
-      case "error":
+      case 'block':
+      case 'error':
         return css`
           border-color: ${designTokens.colors.semantic.error};
           color: ${designTokens.colors.semantic.error};
           background: ${designTokens.colors.semantic.errorBg};
         `;
-      case "validation":
+      case 'validation':
         return css`
           border-color: ${designTokens.colors.primary[500]};
           color: ${designTokens.colors.primary[700]};
@@ -152,7 +152,7 @@ const ContentWrapper = styled.div`
 const TimeStamp = styled.span`
   font-size: ${designTokens.typography.fontSize.xs};
   color: ${designTokens.colors.neutral[400]};
-  font-family: ${designTokens.typography.fontFamily.mono.join(", ")};
+  font-family: ${designTokens.typography.fontFamily.mono.join(', ')};
   margin-bottom: ${designTokens.spacing[1]};
 `;
 
@@ -175,7 +175,7 @@ const MetadataCard = styled.div`
   border-radius: ${designTokens.borderRadius.md};
   padding: ${designTokens.spacing[3]};
   border: 1px solid ${designTokens.colors.neutral[100]};
-  font-family: ${designTokens.typography.fontFamily.mono.join(", ")};
+  font-family: ${designTokens.typography.fontFamily.mono.join(', ')};
   font-size: ${designTokens.typography.fontSize.xs};
   color: ${designTokens.colors.neutral[700]};
   overflow: auto;
@@ -184,22 +184,22 @@ const MetadataCard = styled.div`
 
 const getIcon = (type: TimelineEventType) => {
   switch (type) {
-    case "thought":
-      return "🧠";
-    case "action":
-      return "⚡";
-    case "observation":
-      return "👁️";
-    case "validation":
-      return "🛡️";
-    case "privacy_redacted":
-      return "🔒";
-    case "block":
-      return "🚫";
-    case "error":
-      return "⚠️";
+    case 'thought':
+      return '🧠';
+    case 'action':
+      return '⚡';
+    case 'observation':
+      return '👁️';
+    case 'validation':
+      return '🛡️';
+    case 'privacy_redacted':
+      return '🔒';
+    case 'block':
+      return '🚫';
+    case 'error':
+      return '⚠️';
     default:
-      return "•";
+      return '•';
   }
 };
 
@@ -212,28 +212,26 @@ export const ForensicTimeline: React.FC<ForensicTimelineProps> = ({
   const redactSensitiveData = (data: any): any => {
     if (!data) return data;
     const sensitiveKeys = [
-      "apiKey",
-      "secret",
-      "password",
-      "token",
-      "email",
-      "phone",
-      "address",
-      "privateKey",
-      "seed",
-      "mnemonic",
+      'apiKey',
+      'secret',
+      'password',
+      'token',
+      'email',
+      'phone',
+      'address',
+      'privateKey',
+      'seed',
+      'mnemonic',
     ];
 
     const redact = (obj: any): any => {
       if (Array.isArray(obj)) {
         return obj.map(redact);
-      } else if (obj !== null && typeof obj === "object") {
+      } else if (obj !== null && typeof obj === 'object') {
         const newObj: any = {};
         for (const key in obj) {
-          if (
-            sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))
-          ) {
-            newObj[key] = "[REDACTED]";
+          if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))) {
+            newObj[key] = '[REDACTED]';
           } else {
             newObj[key] = redact(obj[key]);
           }
@@ -255,17 +253,17 @@ export const ForensicTimeline: React.FC<ForensicTimelineProps> = ({
             <ContentWrapper>
               <div
                 style={{
-                  height: "12px",
-                  width: "100px",
-                  background: "#f1f5f9",
-                  marginBottom: "8px",
+                  height: '12px',
+                  width: '100px',
+                  background: '#f1f5f9',
+                  marginBottom: '8px',
                 }}
               />
               <div
                 style={{
-                  height: "20px",
-                  width: "200px",
-                  background: "#f1f5f9",
+                  height: '20px',
+                  width: '200px',
+                  background: '#f1f5f9',
                 }}
               />
             </ContentWrapper>
@@ -281,8 +279,8 @@ export const ForensicTimeline: React.FC<ForensicTimelineProps> = ({
         {events.length === 0 ? (
           <div
             style={{
-              textAlign: "center",
-              padding: "40px",
+              textAlign: 'center',
+              padding: '40px',
               color: designTokens.colors.neutral[400],
             }}
           >
@@ -295,21 +293,17 @@ export const ForensicTimeline: React.FC<ForensicTimelineProps> = ({
                 {getIcon(event.type)}
               </Node>
               <ContentWrapper>
-                <TimeStamp>
-                  {new Date(event.timestamp).toLocaleTimeString()}
-                </TimeStamp>
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
+                <TimeStamp>{new Date(event.timestamp).toLocaleTimeString()}</TimeStamp>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <EventTitle>{event.title}</EventTitle>
-                  <div style={{ fontSize: "10px", textTransform: "uppercase" }}>
+                  <div style={{ fontSize: '10px', textTransform: 'uppercase' }}>
                     <Badge
                       variant={
-                        event.type === "action"
-                          ? "success"
-                          : event.type === "block" || event.type === "error"
-                            ? "error"
-                            : "secondary"
+                        event.type === 'action'
+                          ? 'success'
+                          : event.type === 'block' || event.type === 'error'
+                            ? 'error'
+                            : 'secondary'
                       }
                       size="sm"
                     >
@@ -321,55 +315,47 @@ export const ForensicTimeline: React.FC<ForensicTimelineProps> = ({
 
                 {event.metadata && (
                   <button
-                    onClick={() =>
-                      setExpandedId(expandedId === event.id ? null : event.id)
-                    }
+                    onClick={() => setExpandedId(expandedId === event.id ? null : event.id)}
                     style={{
-                      background: "none",
-                      border: "none",
-                      fontSize: "11px",
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '11px',
                       color: designTokens.colors.primary[600],
-                      cursor: "pointer",
-                      textAlign: "left",
+                      cursor: 'pointer',
+                      textAlign: 'left',
                       padding: 0,
-                      fontWeight: "bold",
+                      fontWeight: 'bold',
                     }}
                   >
-                    {expandedId === event.id
-                      ? "Collapse Details ↑"
-                      : "Inspect Raw Traces ↓"}
+                    {expandedId === event.id ? 'Collapse Details ↑' : 'Inspect Raw Traces ↓'}
                   </button>
                 )}
 
                 {expandedId === event.id && event.metadata && (
-                  <div style={{ marginTop: "12px" }}>
+                  <div style={{ marginTop: '12px' }}>
                     <GenerativeReveal duration={400}>
                       <MetadataCard>
                         <div
                           style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            marginBottom: "8px",
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            marginBottom: '8px',
                             borderBottom: `1px solid ${designTokens.colors.neutral[200]}`,
-                            paddingBottom: "4px",
+                            paddingBottom: '4px',
                           }}
                         >
-                          <span style={{ fontWeight: "bold" }}>Raw Trace</span>
+                          <span style={{ fontWeight: 'bold' }}>Raw Trace</span>
                           <span
                             style={{
                               color: designTokens.colors.semantic.success,
-                              fontSize: "10px",
+                              fontSize: '10px',
                             }}
                           >
                             🛡️ Privacy Redacted
                           </span>
                         </div>
                         <pre style={{ margin: 0 }}>
-                          {JSON.stringify(
-                            redactSensitiveData(event.metadata),
-                            null,
-                            2,
-                          )}
+                          {JSON.stringify(redactSensitiveData(event.metadata), null, 2)}
                         </pre>
                       </MetadataCard>
                     </GenerativeReveal>

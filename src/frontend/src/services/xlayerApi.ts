@@ -7,47 +7,45 @@
  * - Monitoring network status and connectivity
  */
 
-import { ethers } from "ethers";
+import { ethers } from 'ethers';
 
 // X Layer RPC endpoint
-const XLAYER_RPC_ENDPOINT =
-  import.meta.env.VITE_XLAYER_RPC_URL || "https://testrpc.xlayer.tech";
+const XLAYER_RPC_ENDPOINT = import.meta.env.VITE_XLAYER_RPC_URL || 'https://testrpc.xlayer.tech';
 
 // Contract addresses (deployed on X Layer)
 export const CONTRACT_ADDRESSES = {
   GOVERNANCE_CONTRACT:
     import.meta.env.VITE_GOVERNANCE_CONTRACT_ADDRESS ||
-    "0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6",
+    '0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6',
   STORAGE_CONTRACT:
-    import.meta.env.VITE_STORAGE_CONTRACT_ADDRESS ||
-    "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D",
+    import.meta.env.VITE_STORAGE_CONTRACT_ADDRESS || '0x1E0317beFf188e314BbC3483e06773EEfa28bB2D',
   AI_GOVERNANCE_STORAGE:
     import.meta.env.VITE_AI_GOVERNANCE_STORAGE_ADDRESS ||
-    "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D",
+    '0x1E0317beFf188e314BbC3483e06773EEfa28bB2D',
 };
 
 // Minimal ABI for governance contract interactions
 const GOVERNANCE_ABI = [
-  "function getPolicy(bytes32 policyId) view returns (tuple(bytes32 id, string name, string description, bytes32 rulesHash, address creator, uint256 createdAt, uint256 updatedAt, uint8 status))",
-  "function getAgent(bytes32 agentId) view returns (tuple(bytes32 id, string name, address owner, string[] capabilities, uint256 registeredAt, uint8 status, bytes32 currentPolicyId))",
-  "function getStats() view returns (uint256 totalPolicies, uint256 totalAgents, uint256 totalActions)",
-  "function getAllPolicyIds() view returns (bytes32[])",
-  "function getAllAgentIds() view returns (bytes32[])",
+  'function getPolicy(bytes32 policyId) view returns (tuple(bytes32 id, string name, string description, bytes32 rulesHash, address creator, uint256 createdAt, uint256 updatedAt, uint8 status))',
+  'function getAgent(bytes32 agentId) view returns (tuple(bytes32 id, string name, address owner, string[] capabilities, uint256 registeredAt, uint8 status, bytes32 currentPolicyId))',
+  'function getStats() view returns (uint256 totalPolicies, uint256 totalAgents, uint256 totalActions)',
+  'function getAllPolicyIds() view returns (bytes32[])',
+  'function getAllAgentIds() view returns (bytes32[])',
 ];
 
 // Minimal ABI for storage contract interactions
 const STORAGE_ABI = [
-  "function getStorageRequest(bytes32 requestId) view returns (tuple(bytes32 id, address requester, bytes32 dataHash, uint256 size, uint256 duration, uint256 price, uint8 status, uint256 createdAt, uint256 expiresAt, address provider))",
-  "function getUserStorageRequests(address user) view returns (bytes32[])",
-  "function getStats() view returns (uint256 totalStorageRequests, uint256 totalRetrievalRequests, uint256 totalProviders)",
-  "function getActiveProviders() view returns (address[])",
+  'function getStorageRequest(bytes32 requestId) view returns (tuple(bytes32 id, address requester, bytes32 dataHash, uint256 size, uint256 duration, uint256 price, uint8 status, uint256 createdAt, uint256 expiresAt, address provider))',
+  'function getUserStorageRequests(address user) view returns (bytes32[])',
+  'function getStats() view returns (uint256 totalStorageRequests, uint256 totalRetrievalRequests, uint256 totalProviders)',
+  'function getActiveProviders() view returns (address[])',
 ];
 
 // Minimal ABI for AI governance storage contract
 const AI_GOVERNANCE_ABI = [
-  "function getGovernanceRecord(bytes32 actionId) view returns (tuple(bytes32 actionId, address agentAddress, string actionType, string description, bool approved, uint256 policyCheckCount, string policyResult, uint256 timestamp, string filecoinCID, bool isImmutable))",
-  "function getAgentInfo(address agentAddress) view returns (tuple(address agentAddress, string name, string agentType, uint256 totalActions, uint256 approvedActions, uint256 violations, uint256 registrationTime, bool active))",
-  "function getGovernanceStats() view returns (uint256 _totalActions, uint256 _totalViolations, uint256 _totalAgents, uint256 _approvalRate)",
+  'function getGovernanceRecord(bytes32 actionId) view returns (tuple(bytes32 actionId, address agentAddress, string actionType, string description, bool approved, uint256 policyCheckCount, string policyResult, uint256 timestamp, string filecoinCID, bool isImmutable))',
+  'function getAgentInfo(address agentAddress) view returns (tuple(address agentAddress, string name, string agentType, uint256 totalActions, uint256 approvedActions, uint256 violations, uint256 registrationTime, bool active))',
+  'function getGovernanceStats() view returns (uint256 _totalActions, uint256 _totalViolations, uint256 _totalAgents, uint256 _approvalRate)',
 ];
 
 /**
@@ -60,9 +58,7 @@ export const getXLayerProvider = () => {
 /**
  * Create a contract instance for governance interactions
  */
-export const getGovernanceContract = (
-  signerOrProvider: ethers.Provider | ethers.Signer,
-) => {
+export const getGovernanceContract = (signerOrProvider: ethers.Provider | ethers.Signer) => {
   return new ethers.Contract(
     CONTRACT_ADDRESSES.GOVERNANCE_CONTRACT,
     GOVERNANCE_ABI,
@@ -73,22 +69,14 @@ export const getGovernanceContract = (
 /**
  * Create a contract instance for storage interactions
  */
-export const getStorageContract = (
-  signerOrProvider: ethers.Provider | ethers.Signer,
-) => {
-  return new ethers.Contract(
-    CONTRACT_ADDRESSES.STORAGE_CONTRACT,
-    STORAGE_ABI,
-    signerOrProvider,
-  );
+export const getStorageContract = (signerOrProvider: ethers.Provider | ethers.Signer) => {
+  return new ethers.Contract(CONTRACT_ADDRESSES.STORAGE_CONTRACT, STORAGE_ABI, signerOrProvider);
 };
 
 /**
  * Create a contract instance for AI governance storage interactions
  */
-export const getAIGovernanceContract = (
-  signerOrProvider: ethers.Provider | ethers.Signer,
-) => {
+export const getAIGovernanceContract = (signerOrProvider: ethers.Provider | ethers.Signer) => {
   return new ethers.Contract(
     CONTRACT_ADDRESSES.AI_GOVERNANCE_STORAGE,
     AI_GOVERNANCE_ABI,
@@ -103,8 +91,7 @@ export async function fetchGovernanceStats() {
   try {
     const provider = getXLayerProvider();
     const contract = getGovernanceContract(provider);
-    const [totalPolicies, totalAgents, totalActions] =
-      await contract.getStats();
+    const [totalPolicies, totalAgents, totalActions] = await contract.getStats();
 
     return {
       totalPolicies: Number(totalPolicies),
@@ -112,7 +99,7 @@ export async function fetchGovernanceStats() {
       totalActions: Number(totalActions),
     };
   } catch (error) {
-    console.error("Failed to fetch X Layer governance stats:", error);
+    console.error('Failed to fetch X Layer governance stats:', error);
     return {
       totalPolicies: 0,
       totalAgents: 0,
@@ -137,7 +124,7 @@ export async function fetchStorageStats() {
       totalProviders: Number(totalProviders),
     };
   } catch (error) {
-    console.error("Failed to fetch X Layer storage stats:", error);
+    console.error('Failed to fetch X Layer storage stats:', error);
     return {
       totalStorageRequests: 0,
       totalRetrievalRequests: 0,
@@ -163,7 +150,7 @@ export async function fetchAIGovernanceStats() {
       approvalRate: Number(_approvalRate),
     };
   } catch (error) {
-    console.error("Failed to fetch X Layer AI governance stats:", error);
+    console.error('Failed to fetch X Layer AI governance stats:', error);
     return {
       totalActions: 0,
       totalViolations: 0,
@@ -184,7 +171,7 @@ export async function fetchAllPolicyIds() {
 
     return policyIds.map((id) => id.toString());
   } catch (error) {
-    console.error("Failed to fetch policy IDs:", error);
+    console.error('Failed to fetch policy IDs:', error);
     return [];
   }
 }
@@ -200,7 +187,7 @@ export async function fetchAllAgentIds() {
 
     return agentIds.map((id) => id.toString());
   } catch (error) {
-    console.error("Failed to fetch agent IDs:", error);
+    console.error('Failed to fetch agent IDs:', error);
     return [];
   }
 }
@@ -216,7 +203,7 @@ export async function fetchActiveProviders() {
 
     return providers;
   } catch (error) {
-    console.error("Failed to fetch active providers:", error);
+    console.error('Failed to fetch active providers:', error);
     return [];
   }
 }
@@ -233,7 +220,7 @@ export async function checkXLayerConnection() {
       blockNumber: Number(blockNumber),
     };
   } catch (error) {
-    console.error("Failed to connect to X Layer:", error);
+    console.error('Failed to connect to X Layer:', error);
     return {
       connected: false,
       blockNumber: 0,
@@ -261,7 +248,7 @@ export async function fetchPolicyDetails(policyId: string) {
       status: policy.status, // 0: Draft, 1: Active, 2: Archived
     };
   } catch (error) {
-    console.error("Failed to fetch policy details:", error);
+    console.error('Failed to fetch policy details:', error);
     return null;
   }
 }
@@ -285,7 +272,7 @@ export async function fetchAgentDetails(agentId: string) {
       currentPolicyId: agent.currentPolicyId.toString(),
     };
   } catch (error) {
-    console.error("Failed to fetch agent details:", error);
+    console.error('Failed to fetch agent details:', error);
     return null;
   }
 }

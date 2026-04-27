@@ -1,11 +1,11 @@
-import React, { useEffect, useRef } from "react";
-import { modalStyles } from "../../styles/design-system";
+import React, { useEffect, useRef } from 'react';
+import { modalStyles } from '../../styles/design-system';
 
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   children: React.ReactNode;
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
@@ -17,7 +17,7 @@ export const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
   title,
-  size = "md",
+  size = 'md',
   children,
   showCloseButton = true,
   closeOnOverlayClick = true,
@@ -48,13 +48,13 @@ export const Modal: React.FC<ModalProps> = ({
     if (!closeOnEscape) return;
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isOpen) {
+      if (event.key === 'Escape' && isOpen) {
         onClose();
       }
     };
 
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose, closeOnEscape]);
 
   // Focus trap
@@ -62,7 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
     if (!isOpen) return;
 
     const handleTabKey = (event: KeyboardEvent) => {
-      if (event.key !== "Tab") return;
+      if (event.key !== 'Tab') return;
 
       const modal = modalRef.current;
       if (!modal) return;
@@ -72,9 +72,7 @@ export const Modal: React.FC<ModalProps> = ({
       );
 
       const firstElement = focusableElements[0] as HTMLElement;
-      const lastElement = focusableElements[
-        focusableElements.length - 1
-      ] as HTMLElement;
+      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
 
       if (event.shiftKey) {
         if (document.activeElement === firstElement) {
@@ -89,20 +87,20 @@ export const Modal: React.FC<ModalProps> = ({
       }
     };
 
-    document.addEventListener("keydown", handleTabKey);
-    return () => document.removeEventListener("keydown", handleTabKey);
+    document.addEventListener('keydown', handleTabKey);
+    return () => document.removeEventListener('keydown', handleTabKey);
   }, [isOpen]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = "unset";
+      document.body.style.overflow = 'unset';
     }
 
     return () => {
-      document.body.style.overflow = "unset";
+      document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
 
@@ -114,7 +112,7 @@ export const Modal: React.FC<ModalProps> = ({
       onClick={closeOnOverlayClick ? onClose : undefined}
       role="dialog"
       aria-modal="true"
-      aria-labelledby={title ? "modal-title" : undefined}
+      aria-labelledby={title ? 'modal-title' : undefined}
     >
       <div
         ref={modalRef}
@@ -131,11 +129,7 @@ export const Modal: React.FC<ModalProps> = ({
               </h2>
             )}
             {showCloseButton && (
-              <button
-                css={modalStyles.closeButton}
-                onClick={onClose}
-                aria-label="Close modal"
-              >
+              <button css={modalStyles.closeButton} onClick={onClose} aria-label="Close modal">
                 ×
               </button>
             )}

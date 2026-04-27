@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from "react";
-import { css } from "@emotion/react";
-import { designTokens } from "../../styles/design-system";
-import { Card, CardContent } from "./Card";
-import { Button } from "./Button";
+import React, { useState } from 'react';
+import { css } from '@emotion/react';
+import { designTokens } from '../../styles/design-system';
+import { Card, CardContent } from './Card';
+import { Button } from './Button';
 
 export interface CarouselItem {
   id: string;
@@ -35,11 +35,7 @@ const carouselTrackStyles = (activeIndex: number) => css`
   align-items: center;
 `;
 
-const carouselItemStyles = (
-  isActive: boolean,
-  index: number,
-  activeIndex: number,
-) => {
+const carouselItemStyles = (isActive: boolean, index: number, activeIndex: number) => {
   const distance = Math.abs(index - activeIndex);
   const scale = isActive ? 1.2 : 0.8 / (1 + distance * 0.1);
   const rotateY = isActive ? 0 : index < activeIndex ? 30 : -30;
@@ -54,14 +50,14 @@ const carouselItemStyles = (
       translateZ(${translateZ}px);
     opacity: ${isActive ? 1 : 0.4 / (1 + distance * 0.2)};
     cursor: pointer;
-    filter: blur(${blur}px) ${isActive ? "none" : "grayscale(0.8)"};
+    filter: blur(${blur}px) ${isActive ? 'none' : 'grayscale(0.8)'};
     z-index: ${10 - distance};
 
     &:hover {
-      transform: perspective(1000px) rotateY(${rotateY * 0.5}deg)
-        scale(${scale * 1.05}) translateZ(${translateZ + 20}px);
+      transform: perspective(1000px) rotateY(${rotateY * 0.5}deg) scale(${scale * 1.05})
+        translateZ(${translateZ + 20}px);
       opacity: ${isActive ? 1 : 0.7};
-      filter: blur(${blur * 0.5}px) ${isActive ? "none" : "grayscale(0.3)"};
+      filter: blur(${blur * 0.5}px) ${isActive ? 'none' : 'grayscale(0.3)'};
     }
   `;
 };
@@ -91,10 +87,7 @@ const iconWrapperStyles = css`
   font-size: 1.5rem;
 `;
 
-export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({
-  items,
-  onItemClick,
-}) => {
+export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({ items, onItemClick }) => {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const handlePrev = () => {
@@ -120,10 +113,7 @@ export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({
               }
             }}
           >
-            <Card
-              padding="lg"
-              variant={index === activeIndex ? "elevated" : "outline"}
-            >
+            <Card padding="lg" variant={index === activeIndex ? 'elevated' : 'outline'}>
               <CardContent>
                 <div css={cardHeaderStyles}>
                   {item.icon && <div css={iconWrapperStyles}>{item.icon}</div>}
