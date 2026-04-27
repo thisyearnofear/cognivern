@@ -16,9 +16,9 @@ import NotificationCenter from "../ui/NotificationCenter";
 const AppLayoutContent: React.FC = () => {
   const { preferences, error, setError } = useAppStore();
   const { effectiveTheme } = useTheme();
-  const { metrics, alerts } = usePerformanceMonitor();
-  const { isMobile, isTablet, isDesktop } = useBreakpoint();
-  const { sidebarState, sidebarWidth } = useLayout();
+  const { alerts } = usePerformanceMonitor();
+  const { isMobile } = useBreakpoint();
+  const { sidebarState } = useLayout();
 
   // Apply theme to document
   useEffect(() => {
@@ -26,17 +26,15 @@ const AppLayoutContent: React.FC = () => {
     document.documentElement.style.colorScheme = effectiveTheme;
   }, [effectiveTheme]);
 
-  // Calculate layout dimensions
+  // Calculate layout dimensions - using fixed 280px for expanded
   const getSidebarWidth = () => {
     switch (sidebarState) {
       case "expanded":
-        return sidebarWidth;
+        return 280;
       case "collapsed":
         return 80;
       case "overlay":
-        return 0; // Sidebar overlays content, doesn't affect layout
       case "hidden":
-        return 0;
       default:
         return 0;
     }
@@ -49,36 +47,26 @@ const AppLayoutContent: React.FC = () => {
     background: ${effectiveTheme === "dark"
       ? "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
       : "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)"};
-    transition: grid-template-columns ${designTokens.animation.duration.normal}
+    transition: all ${designTokens.animation.duration.slow}
       ${designTokens.animation.easing.easeInOut};
     position: relative;
-    overflow: hidden; /* Prevent horizontal scroll */
+    overflow: hidden;
 
-    /* Improved responsive grid system */
     grid-template-rows: ${isMobile ? "60px" : designTokens.layout.headerHeight} 1fr;
-
-    /* Dynamic grid columns based on sidebar state */
     grid-template-columns: ${sidebarState === "hidden" ||
     sidebarState === "overlay"
       ? "1fr"
       : `${getSidebarWidth()}px 1fr`};
-
     grid-template-areas: ${sidebarState === "hidden" ||
     sidebarState === "overlay"
       ? '"header" "main"'
       : '"sidebar header" "sidebar main"'};
 
-    /* Mobile-specific adjustments */
     @media (max-width: ${designTokens.breakpoints.md}) {
       grid-template-columns: 1fr;
       grid-template-areas:
         "header"
         "main";
-    }
-
-    /* Ensure proper viewport utilization on all screen sizes */
-    @media (min-width: ${designTokens.breakpoints["2xl"]}) {
-      max-width: none; /* Remove any max-width constraints */
     }
   `;
 
@@ -126,7 +114,7 @@ const AppLayoutContent: React.FC = () => {
     /* Ensure content uses full available space */
     & > * {
       flex: 1;
-      min-height: 0; /* Allow flex items to shrink */
+      min-height: 0;
     }
   `;
 
@@ -136,8 +124,6 @@ const AppLayoutContent: React.FC = () => {
     position: relative;
     display: flex;
     flex-direction: column;
-
-    /* Ensure content fills available space */
     flex: 1;
     min-height: 0;
 
@@ -159,7 +145,6 @@ const AppLayoutContent: React.FC = () => {
     `
       : ""}
 
-    /* Optimize for different content types */
     & > * {
       width: 100%;
       flex-shrink: 0;

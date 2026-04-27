@@ -9,7 +9,7 @@ export { keyframeAnimations, easings } from "./animations/keyframes";
 export { layoutUtils, responsiveUtils } from "./utilities/layout";
 export { cardStyles, getCardStyles } from "./components/card";
 export { buttonStyles, getButtonStyles } from "./components/button";
-export { chartStyles } from "./components/chart";
+export { chartStyles, chartColors } from "./components/chart";
 export { loadingStyles } from "./components/loading";
 export { modalStyles } from "./components/modal";
 export { notificationStyles, toastStyles } from "./components/notifications";

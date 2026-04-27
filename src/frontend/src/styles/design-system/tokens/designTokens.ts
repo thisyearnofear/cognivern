@@ -122,6 +122,22 @@ const designTokensInternal = {
       focus: "#0ea5e9",
     },
 
+    // Brand accent - distinctive Cognivern identity (cyan for blockchain/governance)
+    accent: {
+      50: "#ecfeff",
+      100: "#cffafe",
+      200: "#a5f3fc",
+      300: "#67e8f9",
+      400: "#22d3ee",
+      500: "#06b6d4",
+      600: "#0891b2",
+      700: "#0e7490",
+      800: "#155e75",
+      900: "#164e63",
+      main: "#06b6d4",
+      glow: "rgba(6, 182, 212, 0.4)",
+    },
+
     // Neutral grays
     neutral: {
       0: "#ffffff",
@@ -146,14 +162,15 @@ const designTokensInternal = {
     // Brand gradients
     gradients: {
       primary: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+      accent: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
+      accentGlow: "linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)",
       secondary: "linear-gradient(135deg, #64748b 0%, #475569 100%)",
       success: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
       warning: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
       danger: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
       info: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
       dark: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
-      glass:
-        "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)",
+      glass: "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)",
     },
     // Direct access to common semantic colors
     semantic: {

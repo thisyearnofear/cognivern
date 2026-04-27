@@ -1,7 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { designTokens } from "../../styles/design-system";
-import { useBreakpoint } from "../../hooks/useMediaQuery";
-import { chartStyles } from "../../styles/design-system";
+import { designTokens, chartColors } from "../../styles/design-system";
 
 export interface ChartDataPoint {
   x: number | string;
@@ -36,20 +34,13 @@ export const Chart: React.FC<ChartProps> = ({
   showGrid = true,
   showTooltip = true,
   interactive = true,
-  colors = [
-    designTokens.colors.primary[500],
-    designTokens.colors.semantic.success[500],
-    designTokens.colors.semantic.warning[500],
-    designTokens.colors.semantic.error[500],
-    designTokens.colors.secondary[500],
-  ],
+  colors = chartColors,
   animate = true,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredPoint, setHoveredPoint] = useState<ChartDataPoint | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const { isMobile } = useBreakpoint();
 
   const actualWidth = width || containerRef.current?.clientWidth || 400;
   const actualHeight = height;
@@ -100,7 +91,7 @@ export const Chart: React.FC<ChartProps> = ({
 
     // Draw grid
     if (showGrid) {
-      ctx.strokeStyle = designTokens.colors.neutral[200];
+      ctx.strokeStyle = designTokens.colors.neutral[100];
       ctx.lineWidth = 1;
 
       // Vertical grid lines
@@ -123,7 +114,7 @@ export const Chart: React.FC<ChartProps> = ({
     }
 
     // Draw axes
-    ctx.strokeStyle = designTokens.colors.neutral[400];
+    ctx.strokeStyle = designTokens.colors.accent[400];
     ctx.lineWidth = 2;
 
     // X-axis
@@ -433,11 +424,12 @@ export const Chart: React.FC<ChartProps> = ({
 
       {hoveredPoint && showTooltip && (
         <div css={chartStyles.tooltip(mousePosition.x, mousePosition.y)}>
-          <div>
-            <strong>{hoveredPoint.label || "Value"}</strong>
+          <div css={chartStyles.tooltipLabel}>
+            {hoveredPoint.label || "Value"}
           </div>
-          <div>X: {hoveredPoint.x}</div>
-          <div>Y: {hoveredPoint.y}</div>
+          <div css={chartStyles.tooltipValue}>
+            {typeof hoveredPoint.x === "number" ? hoveredPoint.x.toFixed(2) : hoveredPoint.x}: {hoveredPoint.y.toFixed(2)}
+          </div>
         </div>
       )}
     </div>
