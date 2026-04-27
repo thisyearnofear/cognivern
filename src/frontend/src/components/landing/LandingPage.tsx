@@ -34,25 +34,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
       icon: <Wallet size={24} />,
       title: "OWS Wallet Control",
       description:
-        "Connect encrypted wallets - agents can request spend but you control approval",
+        "Connect encrypted wallets - agents request spend but you control approval",
+      accent: designTokens.colors.accent[500],
     },
     {
       icon: <Shield size={24} />,
       title: "Policy Guardrails",
       description:
         "Set limits, require approvals, deny high-risk transactions automatically",
+      accent: designTokens.colors.semantic.success[500],
     },
     {
       icon: <Key size={24} />,
       title: "Scoped API Keys",
       description:
         "Give agents limited access - not full wallet control - with revocable keys",
+      accent: designTokens.colors.semantic.info[500],
     },
     {
       icon: <BarChart3 size={24} />,
       title: "Audit Trail",
       description:
         "Every decision logged with evidence - know exactly what agents did and why",
+      accent: designTokens.colors.semantic.warning[500],
     },
   ];
 
@@ -194,7 +198,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           <br />
           <span
             css={css`
-              color: ${designTokens.colors.primary[600]};
+              background: ${designTokens.colorSystem.gradients.accent};
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
             `}
           >
             Without Giving Them a Blank Check
@@ -309,6 +316,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
                 opacity: ${isVisible ? 1 : 0};
                 transform: translateY(${isVisible ? 0 : 20}px);
                 transition: all 0.4s ease-out ${0.4 + index * 0.1}s;
+                &:hover {
+                  border-color: ${feature.accent};
+                  box-shadow: 0 0 20px ${feature.accent}30;
+                  transform: translateY(-4px);
+                }
               `}
             >
               <CardContent
@@ -324,11 +336,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
                     width: 48px;
                     height: 48px;
                     border-radius: ${designTokens.borderRadius.lg};
-                    background: ${designTokens.colors.primary[50]};
+                    background: ${feature.accent}15;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    color: ${designTokens.colors.primary[600]};
+                    color: ${feature.accent};
+                    transition: all 0.3s ease;
+                    &:hover {
+                      transform: scale(1.1);
+                      background: ${feature.accent}25;
+                    }
                   `}
                 >
                   {feature.icon}

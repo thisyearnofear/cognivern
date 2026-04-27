@@ -1,5 +1,5 @@
 // Main layout components
-export { default as AppLayout } from "./ImprovedAppLayout";
+export { ImprovedAppLayout as AppLayout } from "./ImprovedAppLayout";
 export { default as Sidebar } from "./ImprovedSidebar";
 export { default as Header } from "./Header";
 
@@ -14,13 +14,38 @@ export {
   Spacer,
 } from "./ResponsiveLayout";
 
-// Content wrappers
-export {
-  ContentWrapper,
-  DashboardWrapper,
-  PageWrapper,
-  ModalContentWrapper,
-} from "./ContentWrapper";
+// Layout helpers (inline to avoid deleted ContentWrapper)
+import { css } from "@emotion/react";
+import { designTokens } from "../../styles/design-system";
+
+export const DashboardWrapper: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => (
+  <div
+    css={css`
+      width: 100%;
+      padding: ${designTokens.spacing[6]};
+      @media (max-width: ${designTokens.breakpoints.sm}) {
+        padding: ${designTokens.spacing[4]};
+      }
+    `}
+  >
+    {children}
+  </div>
+);
+
+export const PageWrapper: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => (
+  <div
+    css={css`
+      min-height: 100%;
+      background: transparent;
+    `}
+  >
+    {children}
+  </div>
+);
 
 // Types
 export type {
@@ -31,8 +56,6 @@ export type {
   FlexProps,
   SpacerProps,
 } from "./ResponsiveLayout";
-
-export type { ContentWrapperProps } from "./ContentWrapper";
 
 // Re-export responsive utilities
 export {
