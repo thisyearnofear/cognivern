@@ -13,7 +13,8 @@ Compliance teams reject autonomous agent deployments on transparent rails becaus
 | Layer | Chain | Role |
 |-------|-------|------|
 | Confidential Policy State | Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia) | Encrypted budgets, encrypted spend counters, sealed approval ciphertexts, FHE policy evaluation |
-| Execution & Public Anchoring | X Layer Testnet (1952) | `GovernanceContract` consumes Fhenix attestations, executes signed spend |
+| Cross-Chain Bridge | **Hyperlane Messaging Protocol** | Permissionless messaging between Fhenix and X Layer with strict origin/sender verification |
+| Execution & Public Anchoring | X Layer Testnet (1952) | `GovernanceContract` consumes Fhenix decisions via `handle()`, executes signed spend |
 | Live Audit | 0G Newton Testnet | Real-time decision anchoring |
 | Audit Archive | Filecoin Calibration | Long-term immutable storage |
 
@@ -24,6 +25,8 @@ Compliance teams reject autonomous agent deployments on transparent rails becaus
 - **React hooks** — frontend uses `useEncrypt`, `useWrite`, `useDecrypt` for confidential policy editor and auditor views
 - **Hardhat plugin** — `contracts/fhenix/` workspace for local FHE development
 - **Privara SDK** — `@reineira-os/sdk` powers the confidential payment-rails half of `/api/spend`
+- **Hyperlane Protocol** — Standard `IMailbox` and `IMessageRecipient` implementation for secure cross-chain governance logic
+- **Encryption Sidecar** — `/api/fhenix/encrypt` utility for non-TS agents (Python/Go) to perform FHE operations without native SDKs
 
 ### What's Privacy-Preserving
 

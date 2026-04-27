@@ -68,6 +68,7 @@ export interface FhenixClientAdapter {
 
 const ABI = parseAbi([
   "function evaluateSpend(bytes32 agentId, bytes32 policyId, (uint256 ctHash, uint8 securityZone, uint8 utype, bytes signature) amountCt, bytes32 vendorHash) external returns (bytes32)",
+  "function requestDeFiAction(bytes32 agentId, bytes32 policyId, (uint256 ctHash, uint8 securityZone, uint8 utype, bytes signature) amountCt, address target, bytes data) external returns (bytes32)",
   "event SpendEvaluated(bytes32 indexed decisionId, bytes32 indexed agentId, bytes32 indexed policyId, uint8 outcome, bytes attestation)",
 ]);
 
@@ -368,5 +369,87 @@ export class FhenixPolicyService {
    */
   getProvider() {
     return this.publicClient;
+  }
+
+  /**
+   * Utility for sidecar encryption of values (e.g. for Python/Go agents)
+   */
+  async encryptValue(amountWei: bigint): Promise<any> {
+    if (this.adapter) {
+      const ctHash = await this.adapter.encryptUint256(amountWei);
+      return {
+        ctHash,
+        securityZone: 0,
+        utype: 2,
+        signature: "0x"
+      };
+    }
+
+    if (!this.client) {
+      throw new Error("CoFHE client not available");
+    }
+
+    const encryptedInputs = await this.withTimeout(
+      this.client
+        .encryptInputs([Encryptable.uint128(amountWei)])
+        .setChainId(84532)
+        .execute(),
+      this.config.evaluateTimeoutMs || 30000
+    );
+
+    return encryptedInputs[0];
+  }
+
+  /**
+   * Request a DeFi action (e.g. Swap) to be executed by the GovernedVault on X Layer.
+   */
+  async requestDeFiAction(input: {
+    agentId: string;
+    policyId: string;
+    amountWei: bigint;
+    target: string;
+    data: string;
+  }): Promise<{ decisionId: string; txHash: string }> {
+    logger.info(
+      `Requesting DeFi action on Fhenix: agent=${input.agentId}, target=${input.target}`
+    );
+
+    if (!this.client) {
+      throw new Error("CoFHE client not available");
+    }
+
+    // 1. Encrypt amount
+    const encryptedInputs = await this.withTimeout(
+      this.client
+        .encryptInputs([Encryptable.uint128(input.amountWei)])
+        .setChainId(84532)
+        .execute(),
+      this.config.evaluateTimeoutMs || 30000
+    );
+    const amountCt = encryptedInputs[0];
+
+    // 2. Submit requestDeFiAction to Fhenix contract
+    const hash = await this.walletClient.writeContract({
+      address: this.config.contractAddress as Hex,
+      abi: ABI,
+      functionName: "requestDeFiAction",
+      args: [
+        input.agentId as Hex,
+        input.policyId as Hex,
+        {
+          ctHash: amountCt.ctHash,
+          securityZone: amountCt.securityZone,
+          utype: amountCt.utype,
+          signature: amountCt.signature as Hex,
+        },
+        input.target as Hex,
+        input.data as Hex,
+      ],
+    });
+
+    return {
+      decisionId: hash, // For demo, we use the tx hash as decisionId
+      txHash: hash,
+    };
   }
 }

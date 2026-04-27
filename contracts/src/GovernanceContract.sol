@@ -3,11 +3,19 @@ pragma solidity ^0.8.19;
 
 import {CBOR} from "solidity-cborutils/contracts/CBOR.sol";
 
+interface IMessageRecipient {
+    function handle(
+        uint32 _origin,
+        bytes32 _sender,
+        bytes calldata _message
+    ) external payable;
+}
+
 /**
  * @title GovernanceContract
  * @dev Core governance contract for AI agent policy enforcement on Filecoin
  */
-contract GovernanceContract {
+contract GovernanceContract is IMessageRecipient {
     using CBOR for CBOR.CBORBuffer;
 
     struct Policy {
@@ -60,6 +68,11 @@ contract GovernanceContract {
     uint256 public totalAgents;
     uint256 public totalActions;
 
+    // Hyperlane Integration
+    address public mailbox;
+    uint32 public fhenixDomain;
+    bytes32 public fhenixSender;
+
     // Events
     event PolicyCreated(bytes32 indexed policyId, string name, address creator);
     event PolicyUpdated(bytes32 indexed policyId, PolicyStatus status);
@@ -87,6 +100,53 @@ contract GovernanceContract {
     constructor() {
         owner = msg.sender;
         authorizedEvaluators[msg.sender] = true;
+    }
+
+    /**
+     * @dev Configure Hyperlane Bridge
+     */
+    function setHyperlaneConfig(
+        address _mailbox,
+        uint32 _fhenixDomain,
+        bytes32 _fhenixSender
+    ) external onlyOwner {
+        mailbox = _mailbox;
+        fhenixDomain = _fhenixDomain;
+        fhenixSender = _fhenixSender;
+    }
+
+    /**
+     * @dev Hyperlane handle method for cross-chain messages
+     */
+    function handle(
+        uint32 _origin,
+        bytes32 _sender,
+        bytes calldata _message
+    ) external payable override {
+        require(msg.sender == mailbox, "Only mailbox can call handle");
+        require(_origin == fhenixDomain, "Origin domain not supported");
+        require(_sender == fhenixSender, "Sender not authorized");
+
+        // Decode the payload from Fhenix ConfidentialSpendPolicy
+        // payload: abi.encode(decisionId, agentId, policyId, uint8(computedOutcome))
+        (bytes32 decisionId, bytes32 agentId, bytes32 policyId, uint8 outcome) = abi.decode(
+            _message,
+            (bytes32, bytes32, bytes32, uint8)
+        );
+
+        // Map Fhenix Outcome (0=Deny, 1=Hold, 2=Approve) to boolean approved
+        bool approved = (outcome == 2);
+
+        // Execute the governance action automatically based on cross-chain attestation
+        _evaluateActionInternal(
+            decisionId,
+            agentId,
+            policyId,
+            "CROSS_CHAIN_FHE_DECISION",
+            bytes32(0), // No public data hash for confidential spends
+            approved,
+            fhenixSender // Treat the Fhenix contract as the evaluator
+        );
     }
 
     /**
@@ -212,6 +272,18 @@ contract GovernanceContract {
         bytes32 policyId = agents[agentId].currentPolicyId;
         require(policies[policyId].status == PolicyStatus.Active, "Policy not active");
 
+        _evaluateActionInternal(actionId, agentId, policyId, actionType, dataHash, approved, msg.sender);
+    }
+
+    function _evaluateActionInternal(
+        bytes32 actionId,
+        bytes32 agentId,
+        bytes32 policyId,
+        string memory actionType,
+        bytes32 dataHash,
+        bool approved,
+        address evaluator
+    ) internal {
         actions[actionId] = GovernanceAction({
             id: actionId,
             agentId: agentId,
@@ -220,7 +292,7 @@ contract GovernanceContract {
             dataHash: dataHash,
             approved: approved,
             timestamp: block.timestamp,
-            evaluator: msg.sender
+            evaluator: evaluator
         });
 
         actionIds.push(actionId);
