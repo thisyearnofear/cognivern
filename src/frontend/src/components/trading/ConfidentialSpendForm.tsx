@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { css } from '@emotion/react';
 import { useCofheEncrypt } from '@cofhe/react';
+import { FheTypes } from '@cofhe/sdk';
 import { designTokens, easings, keyframeAnimations } from '../../styles/design-system';
 import { Card, CardContent, CardHeader, CardTitle, Button, LoadingSpinner } from '../ui';
 import { spendApi } from '../../services/apiService';
@@ -28,8 +29,9 @@ export default function ConfidentialSpendForm() {
       // We use uint32 for the amount in this demo context
       const encryptedData = await encryptInputsAsync([
         {
-          type: 'uint256',
-          value: parseUnits(amount, 18), // Standardize to 18 decimals for the contract
+          utype: FheTypes.Uint128,
+          data: parseUnits(amount, 18), // Standardize to 18 decimals for the contract
+          securityZone: 0,
         },
       ]);
 
@@ -50,7 +52,7 @@ export default function ConfidentialSpendForm() {
       });
 
       if (response.success) {
-        setSuccess(`Spend request submitted! Transaction: ${response.data?.txHash || 'Pending'}`);
+        setSuccess(`Spend request submitted! Transaction: ${(response.data as any)?.txHash || 'Pending'}`);
         setAmount('');
         setRecipient('');
         setReason('');
@@ -68,7 +70,7 @@ export default function ConfidentialSpendForm() {
   const formStyles = css`
     max-width: 600px;
     margin: 2rem auto;
-    animation: ${keyframeAnimations.revealUp} 0.5s ${easings.out};
+    animation: ${keyframeAnimations.revealUp} 0.5s ${easings.smooth};
   `;
 
   const fieldStyles = css`
@@ -91,7 +93,7 @@ export default function ConfidentialSpendForm() {
     padding: ${designTokens.spacing[3]};
     border: 1px solid ${designTokens.colors.neutral[300]};
     border-radius: ${designTokens.borderRadius.md};
-    font-size: ${designTokens.typography.fontSize.md};
+    font-size: ${designTokens.typography.fontSize.base};
     transition: all 0.2s ease;
     background: white;
 
@@ -129,11 +131,31 @@ export default function ConfidentialSpendForm() {
             css={css`
               color: ${designTokens.colors.neutral[500]};
               font-size: ${designTokens.typography.fontSize.sm};
+              margin-bottom: ${designTokens.spacing[4]};
             `}
           >
             Your spend amount is encrypted on-chain using Fully Homomorphic Encryption. Only the
             policy contract can "see" the value during evaluation.
           </p>
+          <div
+            css={css`
+              padding: ${designTokens.spacing[3]};
+              background: ${designTokens.colors.neutral[50]};
+              border-radius: ${designTokens.borderRadius.md};
+              border: 1px dashed ${designTokens.colors.neutral[300]};
+              display: flex;
+              align-items: flex-start;
+              gap: ${designTokens.spacing[3]};
+              font-size: ${designTokens.typography.fontSize.sm};
+              color: ${designTokens.colors.neutral[600]};
+              margin-bottom: ${designTokens.spacing[6]};
+            `}
+          >
+            <AlertCircle size={16} css={css`flex-shrink: 0; margin-top: 2px;`} />
+            <span>
+              <strong>Note on Gas:</strong> The platform does not sponsor gas via a relayer for confidential operations. Your wallet will bear the Fhenix network gas costs for this encrypted policy evaluation.
+            </span>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSpend}>

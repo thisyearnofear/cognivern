@@ -716,6 +716,10 @@ export class ApiModule extends BaseService {
       this.ctrl("fhenix").decrypt(req, res);
     });
 
+    apiRouter.post("/fhenix/encrypt", (req, res) => {
+      this.ctrl("fhenix").encrypt(req, res);
+    });
+
     // Dashboard routes
     apiRouter.get("/dashboard/unified", (req, res) => {
       this.ctrl("agents").getUnified(req, res);

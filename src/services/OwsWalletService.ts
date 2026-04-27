@@ -732,6 +732,39 @@ export class OwsWalletService {
       },
     };
   }
+
+  /**
+   * Execute a governed DeFi action (e.g. Swap) via Fhenix policy and X Layer vault.
+   */
+  public async executeDeFiAction(params: {
+    agentId: string;
+    policyId: string;
+    amountWei: bigint;
+    target: string;
+    data: string;
+  }): Promise<{ success: boolean; decisionId?: string; txHash?: string; error?: string }> {
+    try {
+      logger.info(`Executing governed DeFi action for agent ${params.agentId}`);
+
+      const result = await this.fhenixPolicyService.requestDeFiAction({
+        agentId: params.agentId,
+        policyId: params.policyId,
+        amountWei: params.amountWei,
+        target: params.target,
+        data: params.data,
+      });
+
+      return {
+        success: true,
+        decisionId: result.decisionId,
+        txHash: result.txHash,
+      };
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : "DeFi execution failed";
+      logger.error(`DeFi action failed: ${errMsg}`);
+      return { success: false, error: errMsg };
+    }
+  }
 }
 
 export const owsWalletService = new OwsWalletService();

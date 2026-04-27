@@ -74,4 +74,55 @@ export class FhenixController {
       });
     }
   }
+
+  /**
+   * Encrypt a plaintext amount into a ciphertext for agent use.
+   * This is intended as a trusted sidecar utility for non-TS agents.
+   */
+  async encrypt(req: Request, res: Response) {
+    try {
+      const { amount } = req.body;
+
+      if (amount === undefined || amount === null) {
+        res.status(400).json({
+          success: false,
+          error: "Missing required field: amount"
+        });
+        return;
+      }
+
+      logger.info(`Encrypting amount via sidecar utility`);
+
+      // We expect amount as a string representing ether/tokens or directly Wei
+      // For simplicity, we assume it's already a scaled BigInt string (e.g. Wei)
+      // or we just parse it. We'll try to parse it as BigInt.
+      let amountWei: bigint;
+      try {
+        amountWei = BigInt(amount);
+      } catch (e) {
+        // If it's a decimal, standard parseInt/BigInt will fail, but we assume
+        // the agent provides Wei-scaled integers.
+        res.status(400).json({
+          success: false,
+          error: "amount must be a valid integer string (Wei)"
+        });
+        return;
+      }
+
+      const encryptedData = await fhenixPolicyService.encryptValue(amountWei);
+
+      res.json({
+        success: true,
+        data: encryptedData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      logger.error("Sidecar encryption failed", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Encryption failed",
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
 }

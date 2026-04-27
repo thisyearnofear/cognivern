@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { css } from '@emotion/react';
 import { useCofheContext } from '@cofhe/react';
-import { designTokens, easings } from '../../styles/design-system';
+import { designTokens, easings, keyframeAnimations } from '../../styles/design-system';
 import { Card, CardContent, CardHeader, CardTitle, Button, LoadingSpinner } from '../ui';
 import { Shield, Unlock, Eye, Key, AlertCircle } from 'lucide-react';
 
@@ -25,19 +25,13 @@ export default function ConfidentialAuditViewer({
     setError(null);
 
     try {
-      // 1. In a real scenario, we'd fetch a permit from the backend or generate one
-      // For the demo, we assume the user's wallet is the auditor
-
-      // Request a permit for the ConfidentialSpendPolicy contract
       const contractAddress = '0x8245D803a6C0f11186714E78125868B4f92B8b69'; // From our implementation
 
-      const permit = await client.getPermit(contractAddress);
+      // 1. Explicitly prompt the user to sign an EIP-712 permit if one isn't cached
+      // getOrCreateSelfPermit will trigger MetaMask if needed
+      const permit = await client.permits.getOrCreateSelfPermit();
 
       // 2. Call backend to get the unsealed value using the permit
-      // Note: In Fhenix, unsealing usually happens via a view call with a permit
-      // or the backend can facilitate this if it has the auditor's authorization.
-
-      // For this demo, we'll simulate the backend calling the contract's unseal method
       const response = await fetch(`/api/fhenix/decrypt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,7 +50,7 @@ export default function ConfidentialAuditViewer({
       }
     } catch (err: any) {
       console.error('Decryption error:', err);
-      setError(err.message || 'Failed to decrypt. Ensure your wallet has auditor permissions.');
+      setError(err.message || 'Failed to sign permit or decrypt. Ensure your wallet has auditor permissions.');
     } finally {
       setIsDecrypting(false);
     }
@@ -102,7 +96,7 @@ export default function ConfidentialAuditViewer({
               gap: 0.5rem;
             `}
           >
-            {isDecrypting ? <LoadingSpinner size="xs" /> : <Unlock size={14} />}
+            {isDecrypting ? <LoadingSpinner size="sm" /> : <Unlock size={14} />}
             Decrypt with Auditor Permit
           </Button>
         )}
@@ -180,6 +174,7 @@ export default function ConfidentialAuditViewer({
                 flex-direction: column;
                 align-items: center;
                 gap: 0.5rem;
+                text-align: center;
               `}
             >
               <Key
@@ -190,9 +185,21 @@ export default function ConfidentialAuditViewer({
               />
               <p>
                 {isDecrypting
-                  ? 'Requesting permit and unsealing...'
+                  ? 'Requesting EIP-712 signature and unsealing...'
                   : 'Value is encrypted and hidden from public view.'}
               </p>
+              {!isDecrypting && !error && (
+                <p
+                  css={css`
+                    font-size: 0.75rem;
+                    color: ${designTokens.colors.neutral[500]};
+                    max-width: 300px;
+                  `}
+                >
+                  Click "Decrypt" to sign a gasless message proving your auditor authorization.
+                  (Note: While generating permits is free, operators bear the gas costs for initial Fhenix policy evaluation.)
+                </p>
+              )}
             </div>
             {error && (
               <div
@@ -202,10 +209,12 @@ export default function ConfidentialAuditViewer({
                   display: flex;
                   align-items: center;
                   gap: 0.25rem;
+                  text-align: center;
+                  max-width: 300px;
                 `}
               >
-                <AlertCircle size={14} />
-                {error}
+                <AlertCircle size={14} css={css`flex-shrink: 0;`} />
+                <span>{error}</span>
               </div>
             )}
           </>
