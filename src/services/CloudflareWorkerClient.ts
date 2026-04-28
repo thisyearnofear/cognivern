@@ -44,7 +44,7 @@ export class CloudflareWorkerClient {
   constructor() {
     this.baseUrl = config.CLOUDFLARE_WORKER_URL;
     this.enabled = config.CLOUDFLARE_WORKER_ENABLED;
-    this.apiKey = config.API_KEY;
+    this.apiKey = config.COGNIVERN_API_KEY;
   }
 
   /**
