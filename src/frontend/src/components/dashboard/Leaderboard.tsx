@@ -147,7 +147,7 @@ interface AgentCarouselProps {
 }
 
 export const AgentCarousel = ({ agents }: AgentCarouselProps) => (
-  <div css={styles.agentCarouselStyles}>
+  <div css={styles.carouselStyles}>
     {agents.map((agent) => (
       <div key={agent.id} css={styles.carouselItemStyles}>
         <AgentCard key={agent.id} agent={agent} compact />
