@@ -61,7 +61,11 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <CofheProvider config={cofheConfig} publicClient={publicClient as any} walletClient={walletClient as any}>
+      <CofheProvider
+        config={cofheConfig}
+        publicClient={publicClient as any}
+        walletClient={walletClient as any}
+      >
         <Global
           styles={css`
             /* Hide the CoFHE Portal widget by default, only show when .show-cofhe-portal class is present */
@@ -78,12 +82,12 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
               box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.4) !important;
             }
             /* Fix massive logo and negative space inside the CoFHE modal/portal */
-            div[class*="cofhe-"] img {
+            div[class*='cofhe-'] img {
               max-width: 48px !important;
               max-height: 48px !important;
               object-fit: contain !important;
             }
-            div[class*="cofhe-"] {
+            div[class*='cofhe-'] {
               border-radius: 16px !important;
             }
           `}

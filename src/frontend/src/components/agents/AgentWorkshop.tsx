@@ -413,7 +413,8 @@ export default function AgentWorkshop() {
             line-height: 1.6;
           `}
         >
-          The manufacturing floor for Governed Agents. Design, test, and validate technical agents with built-in policy enforcement and cryptographic accountability.
+          The manufacturing floor for Governed Agents. Design, test, and validate technical agents
+          with built-in policy enforcement and cryptographic accountability.
         </p>
       </div>
 
@@ -493,7 +494,15 @@ export default function AgentWorkshop() {
           justify-content: center;
         `}
       >
-        <Button size="lg" onClick={() => setShowIntro(false)} css={css`padding: 0 ${designTokens.spacing[12]}; height: 56px; font-size: ${designTokens.typography.fontSize.base};`}>
+        <Button
+          size="lg"
+          onClick={() => setShowIntro(false)}
+          css={css`
+            padding: 0 ${designTokens.spacing[12]};
+            height: 56px;
+            font-size: ${designTokens.typography.fontSize.base};
+          `}
+        >
           Enter the Workshop
         </Button>
       </div>
@@ -546,11 +555,14 @@ export default function AgentWorkshop() {
             onClick={() => handleTemplateSelect(template.id)}
             css={css`
               cursor: pointer;
-              background: ${selectedTemplate === template.id ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.6)'};
+              background: ${selectedTemplate === template.id
+                ? 'rgba(255, 255, 255, 0.95)'
+                : 'rgba(255, 255, 255, 0.6)'};
               backdrop-filter: blur(8px);
-              border: 2px solid ${selectedTemplate === template.id
-                ? designTokens.colors.primary[500]
-                : designTokens.colors.neutral[200]};
+              border: 2px solid
+                ${selectedTemplate === template.id
+                  ? designTokens.colors.primary[500]
+                  : designTokens.colors.neutral[200]};
               transition: all 0.4s ${easings.out};
               animation: ${keyframeAnimations.revealUp} 0.5s ${easings.out} ${idx * 0.05}s both;
 
@@ -572,8 +584,12 @@ export default function AgentWorkshop() {
               <div
                 css={css`
                   font-size: 1.5rem;
-                  background: ${selectedTemplate === template.id ? designTokens.colors.primary[600] : designTokens.colors.primary[100]};
-                  color: ${selectedTemplate === template.id ? 'white' : designTokens.colors.primary[600]};
+                  background: ${selectedTemplate === template.id
+                    ? designTokens.colors.primary[600]
+                    : designTokens.colors.primary[100]};
+                  color: ${selectedTemplate === template.id
+                    ? 'white'
+                    : designTokens.colors.primary[600]};
                   width: 56px;
                   height: 56px;
                   display: flex;
@@ -585,7 +601,13 @@ export default function AgentWorkshop() {
               >
                 {template.icon}
               </div>
-              <CardTitle css={css`font-size: ${designTokens.typography.fontSize.xl};`}>{template.name}</CardTitle>
+              <CardTitle
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.xl};
+                `}
+              >
+                {template.name}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p
@@ -794,7 +816,11 @@ export default function AgentWorkshop() {
         <Button variant="ghost" onClick={() => setCurrentStep(2)}>
           ← Previous Step
         </Button>
-        <div css={css`text-align: center;`}>
+        <div
+          css={css`
+            text-align: center;
+          `}
+        >
           <h3
             css={css`
               font-size: ${designTokens.typography.fontSize['3xl']};
@@ -824,17 +850,39 @@ export default function AgentWorkshop() {
         `}
       >
         {/* Execution Logs / Terminal */}
-        <div css={css`display: flex; flex-direction: column;`}>
+        <div
+          css={css`
+            display: flex;
+            flex-direction: column;
+          `}
+        >
           <div css={terminalHeaderStyles}>
             <div css={terminalDotStyles}>
               <div css={terminalDot('#ff5f56')} />
               <div css={terminalDot('#ffbd2e')} />
               <div css={terminalDot('#27c93f')} />
             </div>
-            <div css={css`font-size: 10px; color: ${designTokens.colors.neutral[400]}; font-family: ${designTokens.typography.fontFamily.mono}; text-transform: uppercase; letter-spacing: 0.1em;`}>
+            <div
+              css={css`
+                font-size: 10px;
+                color: ${designTokens.colors.neutral[400]};
+                font-family: ${designTokens.typography.fontFamily.mono};
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+              `}
+            >
               Agent Trace Monitor
             </div>
-            <Button variant="ghost" size="sm" onClick={clearLogs} css={css`color: ${designTokens.colors.neutral[400]}; font-size: 10px; height: 20px;`}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearLogs}
+              css={css`
+                color: ${designTokens.colors.neutral[400]};
+                font-size: 10px;
+                height: 20px;
+              `}
+            >
               Clear
             </Button>
           </div>
@@ -853,9 +901,16 @@ export default function AgentWorkshop() {
               box-shadow: ${designTokens.shadows.xl};
 
               /* Custom scrollbar for terminal */
-              &::-webkit-scrollbar { width: 8px; }
-              &::-webkit-scrollbar-track { background: transparent; }
-              &::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+              &::-webkit-scrollbar {
+                width: 8px;
+              }
+              &::-webkit-scrollbar-track {
+                background: transparent;
+              }
+              &::-webkit-scrollbar-thumb {
+                background: #334155;
+                border-radius: 4px;
+              }
             `}
             ref={terminalRef}
           >
@@ -891,7 +946,12 @@ export default function AgentWorkshop() {
                       min-width: 80px;
                     `}
                   >
-                    {log.timestamp.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    {log.timestamp.toLocaleTimeString([], {
+                      hour12: false,
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    })}
                   </span>
                   <span
                     css={css`
@@ -943,7 +1003,9 @@ export default function AgentWorkshop() {
               size="sm"
               onClick={clearResults}
               disabled={results.length === 0}
-              css={css`font-size: ${designTokens.typography.fontSize.xs};`}
+              css={css`
+                font-size: ${designTokens.typography.fontSize.xs};
+              `}
             >
               Clear Records
             </Button>
@@ -1045,7 +1107,9 @@ export default function AgentWorkshop() {
                             margin-bottom: ${designTokens.spacing[2]};
                           `}
                         >
-                           <Badge variant="secondary" size="sm">POLICY AUDIT</Badge>
+                          <Badge variant="secondary" size="sm">
+                            POLICY AUDIT
+                          </Badge>
                         </div>
 
                         {result.action.policyChecks && result.action.policyChecks.length > 0 && (
@@ -1068,15 +1132,28 @@ export default function AgentWorkshop() {
                                   background: ${check.result
                                     ? 'rgba(34, 197, 94, 0.05)'
                                     : 'rgba(239, 68, 68, 0.05)'};
-                                  border: 1px solid ${check.result ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'};
+                                  border: 1px solid
+                                    ${check.result
+                                      ? 'rgba(34, 197, 94, 0.1)'
+                                      : 'rgba(239, 68, 68, 0.1)'};
                                   border-radius: ${designTokens.borderRadius.md};
                                   font-size: ${designTokens.typography.fontSize.xs};
                                 `}
                               >
-                                <span css={css`font-weight: 600; color: ${designTokens.colors.neutral[700]};`}>
+                                <span
+                                  css={css`
+                                    font-weight: 600;
+                                    color: ${designTokens.colors.neutral[700]};
+                                  `}
+                                >
                                   {check.policyId}
                                 </span>
-                                <span css={css`color: ${check.result ? '#16a34a' : '#dc2626'}; font-weight: bold;`}>
+                                <span
+                                  css={css`
+                                    color: ${check.result ? '#16a34a' : '#dc2626'};
+                                    font-weight: bold;
+                                  `}
+                                >
                                   {check.result ? 'PASSED' : 'DENIED'}
                                 </span>
                               </div>
@@ -1096,7 +1173,11 @@ export default function AgentWorkshop() {
       <Card
         variant="elevated"
         css={css`
-          background: linear-gradient(90deg, ${designTokens.colors.primary[600]} 0%, ${designTokens.colors.primary[800]} 100%);
+          background: linear-gradient(
+            90deg,
+            ${designTokens.colors.primary[600]} 0%,
+            ${designTokens.colors.primary[800]} 100%
+          );
           border: none;
           color: white;
           overflow: hidden;
@@ -1109,7 +1190,11 @@ export default function AgentWorkshop() {
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+            background: radial-gradient(
+              circle at 100% 0%,
+              rgba(255, 255, 255, 0.2) 0%,
+              transparent 50%
+            );
           }
         `}
       >
@@ -1146,7 +1231,8 @@ export default function AgentWorkshop() {
                 max-width: 600px;
               `}
             >
-              The agent has successfully cleared simulation guardrails. You may now deploy this configuration to the main governance ledger.
+              The agent has successfully cleared simulation guardrails. You may now deploy this
+              configuration to the main governance ledger.
             </p>
           </div>
           <div
@@ -1155,10 +1241,29 @@ export default function AgentWorkshop() {
               gap: ${designTokens.spacing[4]};
             `}
           >
-            <Button variant="outline" onClick={resetWorkflow} css={css`background: transparent; color: white; border-color: rgba(255,255,255,0.4); &:hover { background: rgba(255,255,255,0.1); }`}>
+            <Button
+              variant="outline"
+              onClick={resetWorkflow}
+              css={css`
+                background: transparent;
+                color: white;
+                border-color: rgba(255, 255, 255, 0.4);
+                &:hover {
+                  background: rgba(255, 255, 255, 0.1);
+                }
+              `}
+            >
               Reset Workshop
             </Button>
-            <Button css={css`background: white; color: ${designTokens.colors.primary[700]}; &:hover { background: ${designTokens.colors.neutral[50]}; }`}>
+            <Button
+              css={css`
+                background: white;
+                color: ${designTokens.colors.primary[700]};
+                &:hover {
+                  background: ${designTokens.colors.neutral[50]};
+                }
+              `}
+            >
               Deploy to Production
             </Button>
           </div>

@@ -260,7 +260,8 @@ const AgentProfile: React.FC = () => {
                 padding: ${designTokens.spacing[1]} ${designTokens.spacing[4]};
                 font-weight: 800;
                 letter-spacing: 0.05em;
-                box-shadow: 0 4px 12px ${status.isActive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(0,0,0,0.1)'};
+                box-shadow: 0 4px 12px
+                  ${status.isActive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(0,0,0,0.1)'};
               `}
             >
               {status.isActive ? 'LIVE OPERATIONAL' : 'STANDBY MODE'}
@@ -324,10 +325,24 @@ const AgentProfile: React.FC = () => {
             min-width: 200px;
           `}
         >
-          <Button variant="primary" size="lg" css={css`height: 56px; font-weight: 700;`}>
+          <Button
+            variant="primary"
+            size="lg"
+            css={css`
+              height: 56px;
+              font-weight: 700;
+            `}
+          >
             Manage Deployment
           </Button>
-          <Button variant="outline" size="lg" css={css`height: 56px; background: white;`}>
+          <Button
+            variant="outline"
+            size="lg"
+            css={css`
+              height: 56px;
+              background: white;
+            `}
+          >
             Review Governance
           </Button>
         </div>

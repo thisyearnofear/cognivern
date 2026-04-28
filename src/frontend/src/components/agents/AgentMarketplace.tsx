@@ -1,11 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { css } from '@emotion/react';
-import {
-  designTokens,
-  keyframeAnimations,
-  easings,
-  layoutUtils,
-} from '../../styles/design-system';
+import { designTokens, keyframeAnimations, easings, layoutUtils } from '../../styles/design-system';
 import { useLoadingState } from '../../hooks/useAgentData';
 import InteractiveAgentDemo from './InteractiveAgentDemo';
 import { getApiUrl, getRequestHeaders } from '../../utils/api';

@@ -6,7 +6,7 @@ export interface UserPreferences {
   theme: 'light' | 'dark' | 'system';
   sidebarState: SidebarState;
   onboardingCompleted: boolean;
-  demoExplored: boolean;  // User has seen the demo
+  demoExplored: boolean; // User has seen the demo
   lastVisited: string;
   dashboardLayout: 'simplified' | 'advanced';
   notifications: boolean;

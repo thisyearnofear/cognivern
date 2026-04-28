@@ -5,7 +5,21 @@ import { css } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
 import { Button } from '../ui/Button';
 import { Card, CardContent } from '../ui/Card';
-import { Shield, Wallet, Key, BarChart3, ArrowRight, Brain, Zap, Globe, Lock, CheckCircle, Users, Clock, Eye } from 'lucide-react';
+import {
+  Shield,
+  Wallet,
+  Key,
+  BarChart3,
+  ArrowRight,
+  Brain,
+  Zap,
+  Globe,
+  Lock,
+  CheckCircle,
+  Users,
+  Clock,
+  Eye,
+} from 'lucide-react';
 
 interface LandingPageProps {
   onComplete?: () => void; // Kept for backward compatibility - now uses routing instead
@@ -23,7 +37,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
     {
       icon: <Wallet size={24} />,
       title: 'OWS Wallet Control',
-      description: 'Connect encrypted wallets powered by Fhenix FHE — agents request spend but you control approval, with budgets verified under encryption',
+      description:
+        'Connect encrypted wallets powered by Fhenix FHE — agents request spend but you control approval, with budgets verified under encryption',
       accent: designTokens.colors.accent[500],
     },
     {
@@ -129,7 +144,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               align-items: center;
               gap: ${designTokens.spacing[1]};
               padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
-              background: linear-gradient(135deg, ${designTokens.colors.semantic.success[600]} 0%, ${designTokens.colors.semantic.success[500]} 100%);
+              background: linear-gradient(
+                135deg,
+                ${designTokens.colors.semantic.success[600]} 0%,
+                ${designTokens.colors.semantic.success[500]} 100%
+              );
               color: #fff;
               border-radius: ${designTokens.borderRadius.full};
               font-size: ${designTokens.typography.fontSize.xs};
@@ -137,7 +156,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               letter-spacing: 0.05em;
             `}
           >
-            <Lock size={12} />Open Wallet Standard
+            <Lock size={12} />
+            Open Wallet Standard
           </span>
           <Button variant="ghost" onClick={handleExplore}>
             Go to Dashboard →
@@ -629,7 +649,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
                   margin: 0 0 ${designTokens.spacing[2]} 0;
                 `}
               >
-                Agent budgets and spend limits evaluated under fully homomorphic encryption — policies enforced without revealing sensitive amounts
+                Agent budgets and spend limits evaluated under fully homomorphic encryption —
+                policies enforced without revealing sensitive amounts
               </p>
               <code
                 css={css`
@@ -674,10 +695,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           `}
         >
           {[
-            { icon: <CheckCircle size={20} />, text: 'Every agent action logged with cryptographic proof' },
-            { icon: <Users size={20} />, text: 'Human-in-the-loop approval for high-value transactions' },
-            { icon: <Clock size={20} />, text: 'Real-time monitoring with instant policy enforcement' },
-            { icon: <Eye size={20} />, text: 'Spend limits enforced under Fhenix FHE — even validators can\'t see your agent\'s budget' },
+            {
+              icon: <CheckCircle size={20} />,
+              text: 'Every agent action logged with cryptographic proof',
+            },
+            {
+              icon: <Users size={20} />,
+              text: 'Human-in-the-loop approval for high-value transactions',
+            },
+            {
+              icon: <Clock size={20} />,
+              text: 'Real-time monitoring with instant policy enforcement',
+            },
+            {
+              icon: <Eye size={20} />,
+              text: "Spend limits enforced under Fhenix FHE — even validators can't see your agent's budget",
+            },
           ].map((signal) => (
             <div
               key={signal.text}
@@ -691,7 +724,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
                 border: 1px solid ${designTokens.colors.semantic.success[200]};
               `}
             >
-              <div css={css`color: ${designTokens.colors.semantic.success[600]}; flex-shrink: 0; margin-top: 2px;`}>
+              <div
+                css={css`
+                  color: ${designTokens.colors.semantic.success[600]};
+                  flex-shrink: 0;
+                  margin-top: 2px;
+                `}
+              >
                 {signal.icon}
               </div>
               <span
@@ -734,7 +773,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               margin-right: auto;
             `}
           >
-            Guided setup walks you through connecting a wallet and deploying your first policy in under 2 minutes.
+            Guided setup walks you through connecting a wallet and deploying your first policy in
+            under 2 minutes.
           </p>
           <Button variant="primary" size="lg" onClick={handleGetStarted}>
             Start Setup Wizard →
@@ -750,8 +790,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           font-size: ${designTokens.typography.fontSize.sm};
         `}
       >
-        Multi-Chain: X Layer + Filecoin + 0G + Fhenix · Open Wallet Standard Compliant · Built with ❤️ for
-        autonomous agent governance
+        Multi-Chain: X Layer + Filecoin + 0G + Fhenix · Open Wallet Standard Compliant · Built with
+        ❤️ for autonomous agent governance
       </footer>
     </div>
   );

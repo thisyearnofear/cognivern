@@ -526,9 +526,26 @@ export class OwsApiService extends ApiService {
   // Get unified OWS dashboard
   async getDashboard() {
     return this.get<{
-      wallet: { id: string; name: string; chainType: string; accounts: Array<{ address: string; chainId: string }> } | null;
-      apiKeys: Array<{ id: string; name: string; createdAt: string; walletCount: number; policyCount: number }>;
-      agents: Array<{ id: string; name: string; type: string; status: string; policyCount: number }>;
+      wallet: {
+        id: string;
+        name: string;
+        chainType: string;
+        accounts: Array<{ address: string; chainId: string }>;
+      } | null;
+      apiKeys: Array<{
+        id: string;
+        name: string;
+        createdAt: string;
+        walletCount: number;
+        policyCount: number;
+      }>;
+      agents: Array<{
+        id: string;
+        name: string;
+        type: string;
+        status: string;
+        policyCount: number;
+      }>;
       permissions: Array<{ type: string; value?: unknown }>;
       hasWallet: boolean;
       hasApiKeys: boolean;

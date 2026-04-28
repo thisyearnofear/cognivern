@@ -140,7 +140,9 @@ export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({ items,
                         background: ${index === activeIndex
                           ? designTokens.colors.primary[600]
                           : designTokens.colors.primary[100]};
-                        color: ${index === activeIndex ? 'white' : designTokens.colors.primary[600]};
+                        color: ${index === activeIndex
+                          ? 'white'
+                          : designTokens.colors.primary[600]};
                         box-shadow: ${index === activeIndex
                           ? '0 8px 16px -4px rgba(37, 99, 235, 0.4)'
                           : 'none'};

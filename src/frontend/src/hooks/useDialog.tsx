@@ -128,7 +128,7 @@ export const useDialog = () => {
       message: string,
       placeholder?: string,
       defaultValue?: string,
-        inputType: 'text' | 'number' | 'email' | 'password' = 'text', // pragma: allowlist secret
+      inputType: 'text' | 'number' | 'email' | 'password' = 'text', // pragma: allowlist secret
     ): Promise<string | null> => {
       return new Promise((resolve) => {
         setDialogState({

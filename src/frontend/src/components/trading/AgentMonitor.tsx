@@ -495,4 +495,3 @@ const statValueStyles = css`
   color: ${designTokens.colors.neutral[900]};
   letter-spacing: -0.01em;
 `;
-;

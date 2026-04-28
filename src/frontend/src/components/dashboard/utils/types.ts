@@ -31,10 +31,10 @@ export interface ActivityItem {
   agentId?: string;
   agentName?: string;
   type?: string;
-  severity?: "success" | "warning" | "error" | "info";
+  severity?: 'success' | 'warning' | 'error' | 'info';
   description?: string;
   timestamp?: string;
-  sourceType?: "audit" | "run";
+  sourceType?: 'audit' | 'run';
   sourceId?: string;
   runId?: string;
   targetPath?: string;
@@ -53,10 +53,10 @@ export interface ActivityItem {
 
 export interface QuestItem {
   id: string;
-  type: "pattern" | "recommendation" | "trend" | "alert";
+  type: 'pattern' | 'recommendation' | 'trend' | 'alert';
   title: string;
   description: string;
-  severity: "low" | "medium" | "high" | "critical";
+  severity: 'low' | 'medium' | 'high' | 'critical';
   actionRequired: boolean;
 }
 
@@ -112,7 +112,7 @@ export interface LiveFeedItem {
 }
 
 export interface DashboardProps {
-  mode?: "full" | "minimal";
+  mode?: 'full' | 'minimal';
 }
 
 export interface AuditEntry {

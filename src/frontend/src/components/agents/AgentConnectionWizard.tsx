@@ -645,7 +645,7 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({
             variant="primary"
             onClick={handleNext}
             disabled={!canProceed()}
-          leftIcon={<ArrowRight size={16} />}
+            leftIcon={<ArrowRight size={16} />}
           >
             Continue
           </Button>
@@ -654,7 +654,7 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({
             variant="primary"
             onClick={handleComplete}
             isLoading={isLoading}
-          leftIcon={<Check size={16} />}
+            leftIcon={<Check size={16} />}
           >
             Connect Agent
           </Button>

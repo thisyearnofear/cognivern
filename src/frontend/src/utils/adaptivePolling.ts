@@ -72,9 +72,7 @@ const getBatteryInfo = async (): Promise<{
 /**
  * Calculate optimal polling interval based on conditions
  */
-export const calculateOptimalInterval = async (
-  options: PollingOptions
-): Promise<PollingState> => {
+export const calculateOptimalInterval = async (options: PollingOptions): Promise<PollingState> => {
   const {
     defaultInterval,
     minInterval = defaultInterval / 4,
@@ -155,7 +153,7 @@ export const calculateOptimalInterval = async (
  */
 export const createAdaptivePoller = (
   callback: () => Promise<void> | void,
-  options: PollingOptions
+  options: PollingOptions,
 ) => {
   let timeoutId: NodeJS.Timeout | null = null;
   let isPolling = false;
@@ -218,7 +216,7 @@ export const createAdaptivePoller = (
 export const useAdaptivePolling = (
   callback: () => Promise<void> | void,
   options: PollingOptions,
-  dependencies: any[] = []
+  dependencies: any[] = [],
 ) => {
   const [pollingState, setPollingState] = useState<PollingState | null>(null);
   const callbackRef = useRef(callback);
@@ -231,10 +229,7 @@ export const useAdaptivePolling = (
 
   useEffect(() => {
     // Create poller
-    pollerRef.current = createAdaptivePoller(
-      () => callbackRef.current(),
-      options
-    );
+    pollerRef.current = createAdaptivePoller(() => callbackRef.current(), options);
 
     // Start polling
     pollerRef.current.start();

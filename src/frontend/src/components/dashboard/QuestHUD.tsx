@@ -3,12 +3,12 @@
  * Extracted from UnifiedDashboard for better modularity
  */
 
-import { ShieldCheck, AlertTriangle, Search, Info } from "lucide-react";
-import { designTokens } from "../../styles/design-system";
-import { Card, CardContent, Button } from "../ui";
-import { QuestItem } from "./utils/types";
-import { mapQuestSeverity } from "./utils/activity";
-import * as styles from "./UnifiedDashboard.styles";
+import { ShieldCheck, AlertTriangle, Search, Info } from 'lucide-react';
+import { designTokens } from '../../styles/design-system';
+import { Card, CardContent, Button } from '../ui';
+import { QuestItem } from './utils/types';
+import { mapQuestSeverity } from './utils/activity';
+import * as styles from './UnifiedDashboard.styles';
 
 interface QuestHUDProps {
   quests: QuestItem[];
@@ -29,11 +29,11 @@ export const QuestHUD = ({ quests, onResolve }: QuestHUDProps) => {
 
   const getQuestIcon = (type: string) => {
     switch (type) {
-      case "alert":
+      case 'alert':
         return <AlertTriangle size={20} />;
-      case "pattern":
+      case 'pattern':
         return <Search size={20} />;
-      case "recommendation":
+      case 'recommendation':
         return <Info size={20} />;
       default:
         return <ShieldCheck size={20} />;
@@ -45,26 +45,20 @@ export const QuestHUD = ({ quests, onResolve }: QuestHUDProps) => {
       <CardContent css={styles.activityFeedStyles(true)}>
         {quests.map((quest) => (
           <div key={quest.id} css={styles.activityItemStyles}>
-            <div
-              css={styles.activityIconStyles(mapQuestSeverity(quest.severity))}
-            >
+            <div css={styles.activityIconStyles(mapQuestSeverity(quest.severity))}>
               {getQuestIcon(quest.type)}
             </div>
             <div css={styles.activityDetailsStyles} style={{ flex: 1 }}>
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
                 }}
               >
                 <div css={styles.activityTextStyles}>{quest.title}</div>
                 {quest.actionRequired && (
-                  <div
-                    css={styles.systemBadgeStyles(
-                      mapQuestSeverity(quest.severity),
-                    )}
-                  >
+                  <div css={styles.systemBadgeStyles(mapQuestSeverity(quest.severity))}>
                     ACTION REQUIRED
                   </div>
                 )}
@@ -74,7 +68,7 @@ export const QuestHUD = ({ quests, onResolve }: QuestHUDProps) => {
                 <div
                   style={{
                     marginTop: designTokens.spacing[2],
-                    display: "flex",
+                    display: 'flex',
                     gap: designTokens.spacing[2],
                   }}
                 >
@@ -82,9 +76,9 @@ export const QuestHUD = ({ quests, onResolve }: QuestHUDProps) => {
                     variant="outline"
                     size="sm"
                     style={{
-                      fontSize: "10px",
-                      padding: "2px 8px",
-                      height: "auto",
+                      fontSize: '10px',
+                      padding: '2px 8px',
+                      height: 'auto',
                     }}
                     onClick={() => onResolve(quest.id)}
                   >
@@ -94,9 +88,9 @@ export const QuestHUD = ({ quests, onResolve }: QuestHUDProps) => {
                     variant="ghost"
                     size="sm"
                     style={{
-                      fontSize: "10px",
-                      padding: "2px 8px",
-                      height: "auto",
+                      fontSize: '10px',
+                      padding: '2px 8px',
+                      height: 'auto',
                     }}
                   >
                     Dismiss

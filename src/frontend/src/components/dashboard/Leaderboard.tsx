@@ -3,11 +3,11 @@
  * Extracted from UnifiedDashboard for better modularity
  */
 
-import { designTokens } from "../../styles/design-system";
-import { DataTable, Badge, AgentCard } from "../ui";
-import { Column } from "../ui/DataTable";
-import { AgentSummary } from "./utils/types";
-import * as styles from "./UnifiedDashboard.styles";
+import { designTokens } from '../../styles/design-system';
+import { DataTable, Badge, AgentCard } from '../ui';
+import { Column } from '../ui/DataTable';
+import { AgentSummary } from './utils/types';
+import * as styles from './UnifiedDashboard.styles';
 
 interface LeaderboardProps {
   agents: AgentSummary[];
@@ -16,15 +16,12 @@ interface LeaderboardProps {
 export const Leaderboard = ({ agents }: LeaderboardProps) => {
   const columns: Column<AgentSummary>[] = [
     {
-      key: "name",
-      title: "Agent",
+      key: 'name',
+      title: 'Agent',
       render: (val, agent) => (
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ fontWeight: 700 }}>{val}</div>
-          <Badge
-            variant={agent.status === "active" ? "success" : "secondary"}
-            size="sm"
-          >
+          <Badge variant={agent.status === 'active' ? 'success' : 'secondary'} size="sm">
             {agent.status}
           </Badge>
         </div>
@@ -32,14 +29,14 @@ export const Leaderboard = ({ agents }: LeaderboardProps) => {
       sortable: true,
     },
     {
-      key: "type",
-      title: "Type",
+      key: 'type',
+      title: 'Type',
       render: (val) => (
         <span
           style={{
-            fontSize: "11px",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
+            fontSize: '11px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
             color: designTokens.colors.text.secondary,
           }}
         >
@@ -49,22 +46,22 @@ export const Leaderboard = ({ agents }: LeaderboardProps) => {
       sortable: true,
     },
     {
-      key: "winRate",
-      title: "Win Rate",
+      key: 'winRate',
+      title: 'Win Rate',
       render: (val) => (
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div
             style={{
-              width: "60px",
-              height: "6px",
-              background: "#f0f0ed",
-              borderRadius: "3px",
-              overflow: "hidden",
+              width: '60px',
+              height: '6px',
+              background: '#f0f0ed',
+              borderRadius: '3px',
+              overflow: 'hidden',
             }}
           >
             <div
               style={{
-                height: "100%",
+                height: '100%',
                 width: `${(val ?? 0) * 100}%`,
                 background: designTokens.colors.semantic.success[500],
               }}
@@ -74,11 +71,11 @@ export const Leaderboard = ({ agents }: LeaderboardProps) => {
         </div>
       ),
       sortable: true,
-      align: "left",
+      align: 'left',
     },
     {
-      key: "totalReturn",
-      title: "Return",
+      key: 'totalReturn',
+      title: 'Return',
       render: (val) => (
         <span
           style={{
@@ -89,28 +86,28 @@ export const Leaderboard = ({ agents }: LeaderboardProps) => {
                 : designTokens.colors.semantic.error[600],
           }}
         >
-          {(val ?? 0) >= 0 ? "+" : ""}
+          {(val ?? 0) >= 0 ? '+' : ''}
           {((val ?? 0) * 100).toFixed(2)}%
         </span>
       ),
       sortable: true,
-      align: "right",
+      align: 'right',
     },
     {
-      key: "lastActive",
-      title: "Last Seen",
+      key: 'lastActive',
+      title: 'Last Seen',
       render: (val) => (
         <span
           style={{
-            fontSize: "12px",
+            fontSize: '12px',
             color: designTokens.colors.text.secondary,
           }}
         >
-          {val ? new Date(val).toLocaleTimeString() : "N/A"}
+          {val ? new Date(val).toLocaleTimeString() : 'N/A'}
         </span>
       ),
       sortable: true,
-      align: "right",
+      align: 'right',
     },
   ];
 
