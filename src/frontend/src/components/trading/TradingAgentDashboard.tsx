@@ -167,15 +167,15 @@ function TradingAgentDashboardContent() {
   }, [comparisonData, comparisonFilters]);
 
   const containerStyles = css`
-    max-width: 1400px;
+    max-width: 100%;
     margin: 0 auto;
-    padding: ${designTokens.spacing[6]};
+    padding: ${designTokens.spacing[8]};
     min-height: 100vh;
-    background: linear-gradient(
-      135deg,
-      ${designTokens.colors.background.secondary} 0%,
-      ${designTokens.colors.background.tertiary} 100%
-    );
+    background: radial-gradient(
+        circle at 50% 0%,
+        ${designTokens.colors.primary[50]} 0%,
+        ${designTokens.colors.background.secondary} 100%
+      );
     position: relative;
     overflow-x: hidden;
 
@@ -189,56 +189,77 @@ function TradingAgentDashboardContent() {
       top: 0;
       left: 0;
       right: 0;
-      height: 1px;
+      bottom: 0;
+      background-image:
+        linear-gradient(${designTokens.colors.neutral[200]} 1px, transparent 1px),
+        linear-gradient(90deg, ${designTokens.colors.neutral[200]} 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.1;
+      pointer-events: none;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
       background: linear-gradient(
         90deg,
         transparent,
-        ${designTokens.colors.primary[500]},
+        ${designTokens.colors.primary[400]},
         transparent
       );
-      opacity: 0.3;
-      animation: scanline 8s linear infinite;
+      opacity: 0.4;
+      animation: scanline 6s linear infinite;
+      z-index: 10;
     }
 
     @keyframes scanline {
       0% {
-        transform: translateY(-100vh);
+        transform: translateY(-20vh);
       }
       100% {
-        transform: translateY(100vh);
+        transform: translateY(120vh);
       }
     }
   `;
 
   const headerStyles = css`
     text-align: center;
-    margin-bottom: ${designTokens.spacing[8]};
+    margin-bottom: ${designTokens.spacing[12]};
     ${keyframeAnimations.fadeInUp}
+    position: relative;
+    z-index: 20;
   `;
 
   const titleStyles = css`
-    font-size: ${designTokens.typography.fontSize['4xl']};
+    font-size: ${designTokens.typography.fontSize['5xl']};
     font-weight: ${designTokens.typography.fontWeight.bold};
     background: linear-gradient(
       135deg,
-      ${designTokens.colors.neutral[900]},
-      ${designTokens.colors.neutral[600]}
+      ${designTokens.colors.neutral[900]} 0%,
+      ${designTokens.colors.primary[800]} 100%
     );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: ${designTokens.spacing[3]};
-    letter-spacing: -0.02em;
+    margin-bottom: ${designTokens.spacing[4]};
+    letter-spacing: -0.03em;
+    line-height: 1.1;
 
     @media (max-width: ${designTokens.breakpoints.sm}) {
-      font-size: ${designTokens.typography.fontSize['2xl']};
+      font-size: ${designTokens.typography.fontSize['3xl']};
     }
   `;
 
   const subtitleStyles = css`
-    font-size: ${designTokens.typography.fontSize.lg};
+    font-size: ${designTokens.typography.fontSize.xl};
     color: ${designTokens.colors.neutral[600]};
-    max-width: 600px;
+    max-width: 700px;
     margin: 0 auto;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
 
     @media (max-width: ${designTokens.breakpoints.sm}) {
       font-size: ${designTokens.typography.fontSize.base};
@@ -513,12 +534,17 @@ function TradingAgentDashboardContent() {
           </Button>
         )}
       </div>
-
       {/* Enhanced Agent Comparison */}
       {showComparison && (
         <Card
+          variant="elevated"
           css={css`
-            margin-bottom: ${designTokens.spacing[8]};
+            margin-bottom: ${designTokens.spacing[10]};
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid ${designTokens.colors.neutral[200]};
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.1);
+            ${keyframeAnimations.fadeIn}
           `}
         >
           <CardHeader>
@@ -530,13 +556,25 @@ function TradingAgentDashboardContent() {
               `}
             >
               <div>
-                <CardTitle>Agent Behavioral Comparison</CardTitle>
-                <CardDescription>
-                  Compare compliance scores, autonomy levels, and risk across all agents
+                <CardTitle
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize['2xl']};
+                    letter-spacing: -0.02em;
+                  `}
+                >
+                  Agent Behavioral Intelligence
+                </CardTitle>
+                <CardDescription
+                  css={css`
+                    color: ${designTokens.colors.neutral[600]};
+                  `}
+                >
+                  Cross-referencing compliance scores, autonomy levels, and risk metrics across the
+                  governed fleet.
                 </CardDescription>
               </div>
               <Button variant="ghost" size="sm" onClick={resetFilters}>
-                Reset Filters
+                Reset All Filters
               </Button>
             </div>
           </CardHeader>
@@ -545,10 +583,12 @@ function TradingAgentDashboardContent() {
             {showFilters && (
               <div
                 css={css`
-                  padding: ${designTokens.spacing[4]};
-                  background: ${designTokens.colors.neutral[50]};
-                  border-radius: ${designTokens.borderRadius.lg};
-                  margin-bottom: ${designTokens.spacing[4]};
+                  padding: ${designTokens.spacing[6]};
+                  background: rgba(15, 23, 42, 0.03);
+                  border: 1px solid rgba(15, 23, 42, 0.05);
+                  border-radius: ${designTokens.borderRadius.xl};
+                  margin-bottom: ${designTokens.spacing[6]};
+                  ${keyframeAnimations.slideInDown}
                 `}
               >
                 <div
@@ -556,28 +596,29 @@ function TradingAgentDashboardContent() {
                     display: flex;
                     align-items: center;
                     gap: ${designTokens.spacing[2]};
-                    margin: 0 0 ${designTokens.spacing[3]} 0;
+                    margin: 0 0 ${designTokens.spacing[4]} 0;
                   `}
                 >
-                  <Filter size={16} color={designTokens.colors.neutral[600]} />
+                  <Filter size={18} color={designTokens.colors.primary[600]} />
                   <h4
                     css={css`
                       margin: 0;
                       font-size: ${designTokens.typography.fontSize.sm};
-                      font-weight: ${designTokens.typography.fontWeight.semibold};
+                      font-weight: ${designTokens.typography.fontWeight.bold};
                       text-transform: uppercase;
-                      color: ${designTokens.colors.neutral[600]};
+                      letter-spacing: 0.1em;
+                      color: ${designTokens.colors.primary[600]};
                     `}
                   >
-                    Filters
+                    Intelligence Filters
                   </h4>
                 </div>
 
                 <div
                   css={css`
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                    gap: ${designTokens.spacing[4]};
+                    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                    gap: ${designTokens.spacing[6]};
                   `}
                 >
                   {/* Search */}
@@ -586,11 +627,13 @@ function TradingAgentDashboardContent() {
                       css={css`
                         display: block;
                         margin-bottom: ${designTokens.spacing[2]};
-                        font-size: ${designTokens.typography.fontSize.sm};
-                        font-weight: ${designTokens.typography.fontWeight.medium};
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        font-weight: ${designTokens.typography.fontWeight.bold};
+                        text-transform: uppercase;
+                        color: ${designTokens.colors.neutral[500]};
                       `}
                     >
-                      Search
+                      Search Governed Fleet
                     </label>
                     <div
                       css={css`
@@ -601,7 +644,7 @@ function TradingAgentDashboardContent() {
                         size={14}
                         css={css`
                           position: absolute;
-                          left: 10px;
+                          left: 12px;
                           top: 50%;
                           transform: translateY(-50%);
                           color: ${designTokens.colors.neutral[400]};
@@ -609,16 +652,23 @@ function TradingAgentDashboardContent() {
                       />
                       <input
                         type="text"
-                        placeholder="Search agents..."
+                        placeholder="Search by name or type..."
                         value={comparisonFilters.search || ''}
                         onChange={(e) => updateFilter('search', e.target.value || null)}
                         css={css`
                           width: 100%;
-                          padding: ${designTokens.spacing[2]} ${designTokens.spacing[2]}
-                            ${designTokens.spacing[2]} 32px;
-                          border: 1px solid ${designTokens.colors.neutral[300]};
-                          border-radius: ${designTokens.borderRadius.md};
+                          height: 40px;
+                          padding: 0 ${designTokens.spacing[3]} 0 36px;
+                          background: white;
+                          border: 1px solid ${designTokens.colors.neutral[200]};
+                          border-radius: ${designTokens.borderRadius.lg};
                           font-size: ${designTokens.typography.fontSize.sm};
+                          transition: all 0.3s ease;
+                          &:focus {
+                            border-color: ${designTokens.colors.primary[500]};
+                            box-shadow: 0 0 0 4px ${designTokens.colors.primary[50]};
+                            outline: none;
+                          }
                         `}
                       />
                     </div>
@@ -630,17 +680,19 @@ function TradingAgentDashboardContent() {
                       css={css`
                         display: block;
                         margin-bottom: ${designTokens.spacing[2]};
-                        font-size: ${designTokens.typography.fontSize.sm};
-                        font-weight: ${designTokens.typography.fontWeight.medium};
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        font-weight: ${designTokens.typography.fontWeight.bold};
+                        text-transform: uppercase;
+                        color: ${designTokens.colors.neutral[500]};
                       `}
                     >
-                      Agent Types
+                      Agent Model Type
                     </label>
                     <div
                       css={css`
                         display: flex;
                         flex-wrap: wrap;
-                        gap: ${designTokens.spacing[2]};
+                        gap: ${designTokens.spacing[3]};
                       `}
                     >
                       {['recall', 'vincent', 'sapience'].map((type) => (
@@ -649,13 +701,20 @@ function TradingAgentDashboardContent() {
                           css={css`
                             display: flex;
                             align-items: center;
-                            gap: ${designTokens.spacing[1]};
+                            gap: ${designTokens.spacing[2]};
                             font-size: ${designTokens.typography.fontSize.sm};
                             cursor: pointer;
+                            color: ${designTokens.colors.neutral[700]};
+                            &:hover {
+                              color: ${designTokens.colors.primary[600]};
+                            }
                           `}
                         >
                           <input
                             type="checkbox"
+                            css={css`
+                              accent-color: ${designTokens.colors.primary[600]};
+                            `}
                             checked={comparisonFilters.agentTypes?.includes(type as any) || false}
                             onChange={(e) => {
                               const current = comparisonFilters.agentTypes || [];
@@ -677,17 +736,19 @@ function TradingAgentDashboardContent() {
                       css={css`
                         display: block;
                         margin-bottom: ${designTokens.spacing[2]};
-                        font-size: ${designTokens.typography.fontSize.sm};
-                        font-weight: ${designTokens.typography.fontWeight.medium};
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        font-weight: ${designTokens.typography.fontWeight.bold};
+                        text-transform: uppercase;
+                        color: ${designTokens.colors.neutral[500]};
                       `}
                     >
-                      Status
+                      Operational Status
                     </label>
                     <div
                       css={css`
                         display: flex;
                         flex-wrap: wrap;
-                        gap: ${designTokens.spacing[2]};
+                        gap: ${designTokens.spacing[3]};
                       `}
                     >
                       {['active', 'inactive'].map((status) => (
@@ -696,13 +757,17 @@ function TradingAgentDashboardContent() {
                           css={css`
                             display: flex;
                             align-items: center;
-                            gap: ${designTokens.spacing[1]};
+                            gap: ${designTokens.spacing[2]};
                             font-size: ${designTokens.typography.fontSize.sm};
                             cursor: pointer;
+                            color: ${designTokens.colors.neutral[700]};
                           `}
                         >
                           <input
                             type="checkbox"
+                            css={css`
+                              accent-color: ${designTokens.colors.primary[600]};
+                            `}
                             checked={comparisonFilters.status?.includes(status as any) || false}
                             onChange={(e) => {
                               const current = comparisonFilters.status || [];
@@ -726,28 +791,29 @@ function TradingAgentDashboardContent() {
               <div
                 css={css`
                   text-align: center;
-                  padding: ${designTokens.spacing[8]};
+                  padding: ${designTokens.spacing[12]};
                   color: ${designTokens.colors.neutral[500]};
                 `}
               >
-                Loading comparison data...
+                Analyzing fleet behavioral data...
               </div>
             ) : filteredComparisonData.length === 0 ? (
               <div
                 css={css`
                   text-align: center;
-                  padding: ${designTokens.spacing[8]};
+                  padding: ${designTokens.spacing[12]};
                   color: ${designTokens.colors.neutral[500]};
                 `}
               >
-                No agents found matching your filters
+                No agents found matching the current criteria.
               </div>
             ) : (
               <div
                 css={css`
                   overflow-x: auto;
-                  border: 1px solid ${designTokens.colors.neutral[200]};
-                  border-radius: ${designTokens.borderRadius.lg};
+                  border: 1px solid ${designTokens.colors.neutral[100]};
+                  border-radius: ${designTokens.borderRadius.xl};
+                  background: white;
                 `}
               >
                 <table
@@ -758,27 +824,35 @@ function TradingAgentDashboardContent() {
 
                     th,
                     td {
-                      padding: ${designTokens.spacing[3]};
+                      padding: ${designTokens.spacing[4]} ${designTokens.spacing[5]};
                       text-align: left;
-                      border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+                      border-bottom: 1px solid ${designTokens.colors.neutral[100]};
                     }
 
                     th {
                       background: ${designTokens.colors.neutral[50]};
-                      font-weight: ${designTokens.typography.fontWeight.semibold};
-                      color: ${designTokens.colors.neutral[700]};
+                      font-weight: ${designTokens.typography.fontWeight.bold};
+                      color: ${designTokens.colors.neutral[900]};
+                      text-transform: uppercase;
+                      letter-spacing: 0.05em;
+                      font-size: ${designTokens.typography.fontSize.xs};
                       position: sticky;
                       top: 0;
                       cursor: pointer;
                       user-select: none;
+                      transition: background 0.3s ease;
 
                       &:hover {
                         background: ${designTokens.colors.neutral[100]};
                       }
                     }
 
-                    tbody tr:hover {
-                      background: ${designTokens.colors.neutral[50]};
+                    tbody tr {
+                      transition: all 0.3s ease;
+                      &:hover {
+                        background: ${designTokens.colors.primary[50]}40;
+                        transform: scale(1.002) translateZ(0);
+                      }
                     }
 
                     tbody tr:last-child td {
@@ -793,10 +867,10 @@ function TradingAgentDashboardContent() {
                           css={css`
                             display: flex;
                             align-items: center;
-                            gap: 4px;
+                            gap: 6px;
                           `}
                         >
-                          Agent
+                          Governed Agent
                           {comparisonFilters.sortBy === 'agentName' &&
                             (comparisonFilters.sortDirection === 'asc' ? (
                               <ChevronUp size={14} />

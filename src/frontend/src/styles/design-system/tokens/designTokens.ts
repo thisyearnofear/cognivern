@@ -203,6 +203,15 @@ const designTokensInternal = {
     64: '256px',
   },
 
+  // Touch target sizes for accessibility (minimum 44px recommended)
+  touchTargets: {
+    small: '44px',
+    medium: '48px',
+    large: '56px',
+  },
+
+  // Typography scale  },
+
   // Typography scale
   typography: {
     fontFamily: {
