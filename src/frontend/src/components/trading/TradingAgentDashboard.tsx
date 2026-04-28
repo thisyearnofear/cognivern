@@ -25,6 +25,7 @@ import {
 import { designTokens, keyframeAnimations } from '../../styles/design-system';
 import { AgentType } from '../../types';
 import { useAgentData, useTradingData } from '../../hooks/useAgentData';
+import { useAppStore } from '../../stores/appStore';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -66,6 +67,8 @@ function TradingAgentDashboardContent() {
   const [comparisonData, setComparisonData] = useState<any[]>([]);
   const [isLoadingComparison, setIsLoadingComparison] = useState(false);
   // AgentMonitor handles its own data fetching
+  const { preferences, updatePreferences } = useAppStore();
+  const hasExploredDemo = preferences.demoExplored || preferences.onboardingCompleted;
 
   // Fetch comparison data when comparison view is shown
   useEffect(() => {
@@ -93,6 +96,10 @@ function TradingAgentDashboardContent() {
     } finally {
       setIsLoadingComparison(false);
     }
+  };
+
+  const handleExploreDemo = () => {
+    updatePreferences({ demoExplored: true, onboardingCompleted: true });
   };
 
   const updateFilter = <K extends keyof AgentComparisonFilters>(
@@ -170,7 +177,11 @@ function TradingAgentDashboardContent() {
       ${designTokens.colors.background.tertiary} 100%
     );
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
+
+    @media (max-width: ${designTokens.breakpoints.sm}) {
+      padding: ${designTokens.spacing[4]} ${designTokens.spacing[3]};
+    }
 
     &::before {
       content: '';
@@ -217,6 +228,10 @@ function TradingAgentDashboardContent() {
     -webkit-text-fill-color: transparent;
     margin-bottom: ${designTokens.spacing[3]};
     letter-spacing: -0.02em;
+
+    @media (max-width: ${designTokens.breakpoints.sm}) {
+      font-size: ${designTokens.typography.fontSize['2xl']};
+    }
   `;
 
   const subtitleStyles = css`
@@ -224,6 +239,10 @@ function TradingAgentDashboardContent() {
     color: ${designTokens.colors.neutral[600]};
     max-width: 600px;
     margin: 0 auto;
+
+    @media (max-width: ${designTokens.breakpoints.sm}) {
+      font-size: ${designTokens.typography.fontSize.base};
+    }
   `;
 
   const agentSelectorStyles = css`
@@ -1113,6 +1132,10 @@ function TradingAgentDashboardContent() {
       <div
         css={css`
           margin-bottom: ${designTokens.spacing[12]};
+
+          @media (max-width: ${designTokens.breakpoints.sm}) {
+            margin-bottom: ${designTokens.spacing[8]};
+          }
         `}
       >
         <div
@@ -1120,9 +1143,16 @@ function TradingAgentDashboardContent() {
             display: flex;
             align-items: center;
             gap: ${designTokens.spacing[3]};
-            margin-bottom: ${designTokens.spacing[8]};
+            margin-bottom: ${designTokens.spacing[6]};
             border-bottom: 2px solid ${designTokens.colors.neutral[200]};
             padding-bottom: ${designTokens.spacing[4]};
+            flex-wrap: wrap;
+
+            @media (max-width: ${designTokens.breakpoints.sm}) {
+              gap: ${designTokens.spacing[2]};
+              margin-bottom: ${designTokens.spacing[4]};
+              padding-bottom: ${designTokens.spacing[3]};
+            }
           `}
         >
           <Trophy size={20} color={designTokens.colors.primary[500]} />
@@ -1131,48 +1161,123 @@ function TradingAgentDashboardContent() {
               font-size: ${designTokens.typography.fontSize.xl};
               font-weight: ${designTokens.typography.fontWeight.bold};
               color: ${designTokens.colors.neutral[900]};
+
+              @media (max-width: ${designTokens.breakpoints.sm}) {
+                font-size: ${designTokens.typography.fontSize.lg};
+              }
             `}
           >
             Managed Agent Views
           </h2>
           <Badge
-            variant="outline"
+            variant="secondary"
             css={css`
               margin-left: auto;
+
+              @media (max-width: ${designTokens.breakpoints.sm}) {
+                margin-left: 0;
+              }
             `}
           >
             3 Ready
           </Badge>
         </div>
 
-        <div
-          css={css`
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: ${designTokens.spacing[10]};
-          `}
-        >
-          <AgentMonitor
-            agentType="governance"
-            title="Spend Governance Agent"
-            description="Evaluates spend requests against policies, enforces limits, and logs all decisions for audit."
-            isShowcase
-          />
+        {!hasExploredDemo ? (
+          <div
+            css={css`
+              text-align: center;
+              padding: ${designTokens.spacing[12]};
+              max-width: 480px;
+              margin: 0 auto;
+            `}
+          >
+            <div
+              css={css`
+                width: 80px;
+                height: 80px;
+                border-radius: 50%;
+                background: ${designTokens.colors.primary[100]};
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto ${designTokens.spacing[6]};
+              `}
+            >
+              <Brain size={40} color={designTokens.colors.primary[500]} />
+            </div>
+            <h2
+              css={css`
+                font-size: ${designTokens.typography.fontSize['2xl']};
+                font-weight: ${designTokens.typography.fontWeight.bold};
+                margin-bottom: ${designTokens.spacing[3]};
+                color: var(--text-primary);
+              `}
+            >
+              Your Dashboard is Ready
+            </h2>
+            <p
+              css={css`
+                font-size: ${designTokens.typography.fontSize.base};
+                color: var(--text-secondary);
+                margin-bottom: ${designTokens.spacing[6]};
+                line-height: ${designTokens.typography.lineHeight.relaxed};
+              `}
+            >
+              Connect your first agent to see real spend governance in action,
+              or explore with sample data to see how it works.
+            </p>
+            <div
+              css={css`
+                display: flex;
+                flex-direction: column;
+                gap: ${designTokens.spacing[3]};
+                align-items: center;
+              `}
+            >
+              <Button variant="outline" onClick={handleExploreDemo}>
+                Explore Demo Agents
+              </Button>
+              <span
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  color: ${designTokens.colors.neutral[500]};
+                `}
+              >
+                Sample data with demo agents
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div
+            css={css`
+              display: grid;
+              grid-template-columns: 1fr;
+              gap: ${designTokens.spacing[10]};
+            `}
+          >
+            <AgentMonitor
+              agentType="governance"
+              title="Spend Governance Agent"
+              description="Evaluates spend requests against policies, enforces limits, and logs all decisions for audit."
+              isShowcase
+            />
 
-          <AgentMonitor
-            agentType="portfolio"
-            title="Portfolio Agent"
-            description="Executes approved spends, manages wallet access through scoped API keys, handles signing."
-            isShowcase
-          />
+            <AgentMonitor
+              agentType="portfolio"
+              title="Portfolio Agent"
+              description="Executes approved spends, manages wallet access through scoped API keys, handles signing."
+              isShowcase
+            />
 
-          <AgentMonitor
-            agentType="sapience"
-            title="Oversight Agent"
-            description="Governance-first agent that reviews risk, evaluates policy fit, and routes high-impact actions into approval."
-            isShowcase
-          />
-        </div>
+            <AgentMonitor
+              agentType="sapience"
+              title="Oversight Agent"
+              description="Governance-first agent that reviews risk, evaluates policy fit, and routes high-impact actions into approval."
+              isShowcase
+            />
+          </div>
+        )}
       </div>
 
       {/* User Tracking Section */}
@@ -1182,25 +1287,40 @@ function TradingAgentDashboardContent() {
             display: flex;
             align-items: center;
             gap: ${designTokens.spacing[3]};
-            margin-bottom: ${designTokens.spacing[8]};
+            margin-bottom: ${designTokens.spacing[6]};
             border-bottom: 2px solid ${designTokens.colors.neutral[200]};
             padding-bottom: ${designTokens.spacing[4]};
+            flex-wrap: wrap;
+
+            @media (max-width: ${designTokens.breakpoints.sm}) {
+              gap: ${designTokens.spacing[2]};
+              margin-bottom: ${designTokens.spacing[4]};
+              padding-bottom: ${designTokens.spacing[3]};
+            }
           `}
         >
-          <Users size={20} color={designTokens.colors.secondary[500]} />
+          <Users size={20} color={designTokens.colors.secondary[700]} />
           <h2
             css={css`
               font-size: ${designTokens.typography.fontSize.xl};
               font-weight: ${designTokens.typography.fontWeight.bold};
               color: ${designTokens.colors.neutral[900]};
+
+              @media (max-width: ${designTokens.breakpoints.sm}) {
+                font-size: ${designTokens.typography.fontSize.lg};
+              }
             `}
           >
             User Provided Agents
           </h2>
           <Badge
-            variant="outline"
+            variant="secondary"
             css={css`
               margin-left: auto;
+
+              @media (max-width: ${designTokens.breakpoints.sm}) {
+                margin-left: 0;
+              }
             `}
           >
             Private Tracking
@@ -1210,13 +1330,18 @@ function TradingAgentDashboardContent() {
         <Card
           css={css`
             border-style: dashed;
-            background: ${designTokens.colors.neutral[50]};
+            border-color: ${designTokens.colors.accent[200]};
+            background: ${designTokens.colors.accent[50]};
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: ${designTokens.spacing[12]};
             text-align: center;
+
+            @media (max-width: ${designTokens.breakpoints.sm}) {
+              padding: ${designTokens.spacing[8]} ${designTokens.spacing[5]};
+            }
           `}
         >
           <div
@@ -1230,28 +1355,56 @@ function TradingAgentDashboardContent() {
               justify-content: center;
               margin-bottom: ${designTokens.spacing[4]};
               box-shadow: ${designTokens.shadows.sm};
+
+              @media (max-width: ${designTokens.breakpoints.sm}) {
+                width: 40px;
+                height: 40px;
+                margin-bottom: ${designTokens.spacing[3]};
+              }
             `}
           >
-            <Zap size={24} color={designTokens.colors.neutral[400]} />
+            <Zap
+              size={24}
+              color={designTokens.colors.accent[500]}
+              css={css`
+                @media (max-width: ${designTokens.breakpoints.sm}) {
+                  width: 20px;
+                  height: 20px;
+                }
+              `}
+            />
           </div>
           <h3
             css={css`
               margin-bottom: ${designTokens.spacing[2]};
+              color: ${designTokens.colors.neutral[800]};
+              font-weight: ${designTokens.typography.fontWeight.semibold};
+
+              @media (max-width: ${designTokens.breakpoints.sm}) {
+                font-size: ${designTokens.typography.fontSize.base};
+              }
             `}
           >
             No Custom Agents Tracked
           </h3>
           <p
             css={css`
-              color: ${designTokens.colors.neutral[500]};
+              color: ${designTokens.colors.neutral[600]};
               max-width: 400px;
               margin-bottom: ${designTokens.spacing[6]};
+              line-height: 1.6;
+
+              @media (max-width: ${designTokens.breakpoints.sm}) {
+                max-width: 100%;
+                font-size: ${designTokens.typography.fontSize.sm};
+                margin-bottom: ${designTokens.spacing[5]};
+              }
             `}
           >
             Connect your own OpenClaw or Hermes agents to monitor their behavioral performance and
             governance scores privately.
           </p>
-          <Button variant="outline" onClick={() => navigate('/workshop')}>
+          <Button variant="primary" onClick={() => navigate('/workshop')}>
             Go to Workshop
           </Button>
         </Card>

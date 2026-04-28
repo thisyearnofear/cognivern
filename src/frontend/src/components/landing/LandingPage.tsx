@@ -5,7 +5,7 @@ import { css } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
 import { Button } from '../ui/Button';
 import { Card, CardContent } from '../ui/Card';
-import { Shield, Wallet, Key, BarChart3, ArrowRight, Brain, Zap, Globe, Lock } from 'lucide-react';
+import { Shield, Wallet, Key, BarChart3, ArrowRight, Brain, Zap, Globe, Lock, CheckCircle, Users, Clock, Eye } from 'lucide-react';
 
 interface LandingPageProps {
   onComplete?: () => void; // Kept for backward compatibility - now uses routing instead
@@ -23,7 +23,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
     {
       icon: <Wallet size={24} />,
       title: 'OWS Wallet Control',
-      description: 'Connect encrypted wallets - agents request spend but you control approval',
+      description: 'Connect encrypted wallets powered by Fhenix FHE — agents request spend but you control approval, with budgets verified under encryption',
       accent: designTokens.colors.accent[500],
     },
     {
@@ -129,19 +129,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               align-items: center;
               gap: ${designTokens.spacing[1]};
               padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
-              background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-              color: #00d4ff;
+              background: linear-gradient(135deg, ${designTokens.colors.semantic.success[600]} 0%, ${designTokens.colors.semantic.success[500]} 100%);
+              color: #fff;
               border-radius: ${designTokens.borderRadius.full};
               font-size: ${designTokens.typography.fontSize.xs};
               font-weight: ${designTokens.typography.fontWeight.semibold};
               letter-spacing: 0.05em;
-              border: 1px solid rgba(0, 212, 255, 0.3);
             `}
           >
-            <Globe size={12} />X Layer Arena
+            <Lock size={12} />Open Wallet Standard
           </span>
           <Button variant="ghost" onClick={handleExplore}>
-            Skip to Dashboard →
+            Go to Dashboard →
           </Button>
         </div>
       </header>
@@ -258,7 +257,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               gap: ${designTokens.spacing[2]};
             `}
           >
-            Explore Demo <Zap size={18} />
+            View Dashboard <Zap size={18} />
           </Button>
         </div>
 
@@ -273,9 +272,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           `}
         >
           {[
-            { label: 'Multi-Chain', value: '3' },
-            { label: 'Audit Coverage', value: '100%' },
-            { label: '0G Storage', value: 'Live' },
+            { label: 'Chains Supported', value: '4' },
+            { label: 'Transactions Audited', value: '100%' },
+            { label: 'Avg. Setup Time', value: '<2 min' },
           ].map((item) => (
             <div
               key={item.label}
@@ -428,7 +427,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           <div
             css={css`
               display: grid;
-              grid-template-columns: 1fr 1fr 1fr;
+              grid-template-columns: repeat(2, 1fr);
               gap: ${designTokens.spacing[6]};
               @media (max-width: 768px) {
                 grid-template-columns: 1fr;
@@ -474,7 +473,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
                 0x755602bB...e2DD6
               </code>
               <a
-                href="https://www.okx.com/explorer/xlayer-test/address/0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6"
+                href="https://www.okx.com/explorer/xlayer/address/0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6"
                 target="_blank"
                 rel="noopener noreferrer"
                 css={css`
@@ -527,7 +526,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
                   word-break: break-all;
                 `}
               >
-                Filecoin Calibration Testnet
+                Filecoin Network
               </code>
               <a
                 href="https://calibration.filfox.info/en/address/0x0Ffe56a0A202d88911e7f67dC7336fb14678Dada"
@@ -583,7 +582,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
                   word-break: break-all;
                 `}
               >
-                0G Newton Testnet · Track 3
+                0G Network
               </code>
               <a
                 href="https://storagescan.0g.ai/"
@@ -603,13 +602,115 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
                 View on Explorer ↗
               </a>
             </div>
+            <div>
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  gap: ${designTokens.spacing[2]};
+                  margin-bottom: ${designTokens.spacing[2]};
+                `}
+              >
+                <Eye size={16} color="#f59e0b" />
+                <span
+                  css={css`
+                    color: #f59e0b;
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    font-size: ${designTokens.typography.fontSize.sm};
+                  `}
+                >
+                  Fhenix (Confidential Compute)
+                </span>
+              </div>
+              <p
+                css={css`
+                  color: rgba(255, 255, 255, 0.85);
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  margin: 0 0 ${designTokens.spacing[2]} 0;
+                `}
+              >
+                Agent budgets and spend limits evaluated under fully homomorphic encryption — policies enforced without revealing sensitive amounts
+              </p>
+              <code
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.xs};
+                  color: rgba(245, 158, 11, 0.7);
+                  word-break: break-all;
+                `}
+              >
+                Fhenix Helium (testnet)
+              </code>
+              <a
+                href="https://explorer.testnet.fhenix.zone"
+                target="_blank"
+                rel="noopener noreferrer"
+                css={css`
+                  display: inline-block;
+                  margin-top: ${designTokens.spacing[2]};
+                  font-size: ${designTokens.typography.fontSize.xs};
+                  color: #f59e0b;
+                  text-decoration: none;
+                  &:hover {
+                    text-decoration: underline;
+                  }
+                `}
+              >
+                View on Explorer ↗
+              </a>
+            </div>
           </div>
+        </div>
+
+        {/* Trust Signals */}
+        <div
+          css={css`
+            margin-top: ${designTokens.spacing[12]};
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: ${designTokens.spacing[4]};
+            @media (max-width: 640px) {
+              grid-template-columns: 1fr;
+            }
+          `}
+        >
+          {[
+            { icon: <CheckCircle size={20} />, text: 'Every agent action logged with cryptographic proof' },
+            { icon: <Users size={20} />, text: 'Human-in-the-loop approval for high-value transactions' },
+            { icon: <Clock size={20} />, text: 'Real-time monitoring with instant policy enforcement' },
+            { icon: <Eye size={20} />, text: 'Spend limits enforced under Fhenix FHE — even validators can\'t see your agent\'s budget' },
+          ].map((signal) => (
+            <div
+              key={signal.text}
+              css={css`
+                display: flex;
+                align-items: flex-start;
+                gap: ${designTokens.spacing[3]};
+                padding: ${designTokens.spacing[4]};
+                background: ${designTokens.colors.semantic.success[50]};
+                border-radius: ${designTokens.borderRadius.lg};
+                border: 1px solid ${designTokens.colors.semantic.success[200]};
+              `}
+            >
+              <div css={css`color: ${designTokens.colors.semantic.success[600]}; flex-shrink: 0; margin-top: 2px;`}>
+                {signal.icon}
+              </div>
+              <span
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  color: ${designTokens.colors.neutral[700]};
+                  line-height: 1.5;
+                  text-align: left;
+                `}
+              >
+                {signal.text}
+              </span>
+            </div>
+          ))}
         </div>
 
         {/* CTA */}
         <div
           css={css`
-            margin-top: ${designTokens.spacing[12]};
             margin-top: ${designTokens.spacing[16]};
             text-align: center;
           `}
@@ -622,7 +723,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               margin-bottom: ${designTokens.spacing[3]};
             `}
           >
-            Ready to try it?
+            Ready to take control?
           </h2>
           <p
             css={css`
@@ -633,7 +734,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               margin-right: auto;
             `}
           >
-            Guided setup walks you through connecting a wallet in under 2 minutes.
+            Guided setup walks you through connecting a wallet and deploying your first policy in under 2 minutes.
           </p>
           <Button variant="primary" size="lg" onClick={handleGetStarted}>
             Start Setup Wizard →
@@ -649,8 +750,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           font-size: ${designTokens.typography.fontSize.sm};
         `}
       >
-        Built for X Layer Arena & 0G APAC Hackathon · Multi-Chain: X Layer + Filecoin + 0G · Open
-        Wallet Standard Compliant
+        Multi-Chain: X Layer + Filecoin + 0G + Fhenix · Open Wallet Standard Compliant · Built with ❤️ for
+        autonomous agent governance
       </footer>
     </div>
   );

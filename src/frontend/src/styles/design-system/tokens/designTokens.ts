@@ -337,6 +337,7 @@ const designTokensInternal = {
 
   // Breakpoints for responsive design
   breakpoints: {
+    xs: '480px',
     sm: '640px',
     md: '768px',
     lg: '1024px',

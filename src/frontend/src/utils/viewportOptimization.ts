@@ -1,7 +1,11 @@
 /**
  * Viewport Optimization Utilities
  * Provides intelligent viewport space utilization and layout optimization
+ * Consolidated to use centralized viewport utilities (DRY principle)
  */
+
+import { viewport } from './responsive';
+import { designTokens } from '../styles/design-system';
 
 export interface ViewportDimensions {
   width: number;
@@ -21,10 +25,11 @@ export interface LayoutOptimization {
 
 /**
  * Get current viewport dimensions and available space
+ * Now uses centralized viewport utilities
  */
 export const getViewportDimensions = (): ViewportDimensions => {
-  const width = window.innerWidth;
-  const height = window.innerHeight;
+  const width = viewport.getWidth();
+  const height = viewport.getHeight();
 
   // Account for browser chrome and scrollbars
   const availableWidth = document.documentElement.clientWidth || width;
@@ -41,12 +46,13 @@ export const getViewportDimensions = (): ViewportDimensions => {
 
 /**
  * Calculate optimal layout configuration for current viewport
+ * Uses centralized viewport utilities for breakpoint detection
  */
 export const calculateOptimalLayout = (
-  viewport: ViewportDimensions,
+  viewportDims: ViewportDimensions,
   contentType: 'dashboard' | 'form' | 'table' | 'chart' | 'list' = 'dashboard',
 ): LayoutOptimization => {
-  const { availableWidth } = viewport;
+  const { availableWidth } = viewportDims;
 
   // Define minimum content widths for different content types
   const minContentWidths = {
@@ -59,36 +65,37 @@ export const calculateOptimalLayout = (
 
   const minContentWidth = minContentWidths[contentType];
 
-  // Calculate optimal sidebar width (percentage-based with constraints)
-  const calculateSidebarWidth = (percentage: number, min: number, max: number) => {
-    const calculated = Math.floor(availableWidth * percentage);
-    return Math.max(min, Math.min(max, calculated));
-  };
+  // Use centralized viewport utilities for breakpoint detection
+  const isMobile = viewport.isMobile();
+  const isTablet = viewport.isTablet();
 
-  // Determine optimal sidebar state based on available space
+  // Determine optimal sidebar state based on available space and device
   let recommendedSidebarState: 'expanded' | 'collapsed' | 'hidden' | 'overlay';
   let sidebarWidth: number;
 
-  if (availableWidth < 768) {
+  if (isMobile) {
     // Mobile: use overlay or hidden
     recommendedSidebarState = 'hidden';
     sidebarWidth = 0;
-  } else if (availableWidth < 1024) {
+  } else if (isTablet) {
     // Tablet: use collapsed or overlay
     recommendedSidebarState = 'collapsed';
     sidebarWidth = 80;
   } else {
     // Desktop: calculate based on content needs
-    const expandedWidth = calculateSidebarWidth(0.18, 280, 400);
+    const expandedWidth = Math.floor(availableWidth * 0.18);
     const collapsedWidth = 80;
 
-    const contentWidthWithExpanded = availableWidth - expandedWidth;
+    // Constrain expanded width
+    const constrainedExpandedWidth = Math.max(280, Math.min(400, expandedWidth));
+
+    const contentWidthWithExpanded = availableWidth - constrainedExpandedWidth;
     const contentWidthWithCollapsed = availableWidth - collapsedWidth;
 
     if (contentWidthWithExpanded >= minContentWidth * 1.2) {
       // Plenty of space for expanded sidebar
       recommendedSidebarState = 'expanded';
-      sidebarWidth = expandedWidth;
+      sidebarWidth = constrainedExpandedWidth;
     } else if (contentWidthWithCollapsed >= minContentWidth) {
       // Enough space with collapsed sidebar
       recommendedSidebarState = 'collapsed';
@@ -103,7 +110,7 @@ export const calculateOptimalLayout = (
   const contentWidth = availableWidth - sidebarWidth;
 
   // Calculate recommended grid columns based on content width
-  const calculateColumns = () => {
+  const calculateColumns = (): number => {
     if (contentWidth < 600) return 1;
     if (contentWidth < 900) return 2;
     if (contentWidth < 1200) return 3;
@@ -149,21 +156,23 @@ export const createViewportChangeHandler = (
 export const isLayoutOptimal = (
   currentSidebarState: string,
   contentType: string,
-  viewport: ViewportDimensions,
+  viewportDims: ViewportDimensions,
 ): boolean => {
-  const optimal = calculateOptimalLayout(viewport, contentType as any);
+  const optimal = calculateOptimalLayout(viewportDims, contentType as any);
   return optimal.recommendedSidebarState === currentSidebarState;
 };
 
 /**
  * Get responsive breakpoint information
+ * Now uses centralized viewport utilities
  */
 export const getBreakpointInfo = (width: number) => {
-  if (width < 640) return { name: 'xs', isMobile: true, isTablet: false, isDesktop: false };
-  if (width < 768) return { name: 'sm', isMobile: true, isTablet: false, isDesktop: false };
-  if (width < 1024) return { name: 'md', isMobile: false, isTablet: true, isDesktop: false };
-  if (width < 1280) return { name: 'lg', isMobile: false, isTablet: false, isDesktop: true };
-  if (width < 1536) return { name: 'xl', isMobile: false, isTablet: false, isDesktop: true };
+  if (width < 480) return { name: 'xs', isMobile: true, isTablet: false, isDesktop: false };
+  if (width < 640) return { name: 'sm', isMobile: true, isTablet: false, isDesktop: false };
+  if (width < 768) return { name: 'md', isMobile: false, isTablet: true, isDesktop: false };
+  if (width < 1024) return { name: 'lg', isMobile: false, isTablet: false, isDesktop: true };
+  if (width < 1280) return { name: 'xl', isMobile: false, isTablet: false, isDesktop: true };
+  if (width < 1536) return { name: '2xl', isMobile: false, isTablet: false, isDesktop: true };
   return { name: '2xl', isMobile: false, isTablet: false, isDesktop: true };
 };
 

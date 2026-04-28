@@ -408,6 +408,7 @@ export const SmartOnboarding: React.FC = () => {
   const { isMobile } = useBreakpoint();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedUserType, setSelectedUserType] = useState<string>('');
+  const [exploreMode, setExploreMode] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
@@ -619,9 +620,54 @@ export const SmartOnboarding: React.FC = () => {
     },
     {
       id: 'complete',
-      title: "You're all set!",
-      description: 'Ready to explore Cognivern',
-      component: (
+      title: exploreMode ? 'Ready to Explore!' : "You're all set!",
+      description: exploreMode ? 'Choose how you want to get started' : 'Ready to explore Cognivern',
+      component: exploreMode ? (
+        <div style={{ textAlign: 'center', padding: designTokens.spacing[6] }}>
+          <div style={{ fontSize: '48px', marginBottom: designTokens.spacing[4] }}>🚀</div>
+          <h2
+            style={{
+              fontSize: designTokens.typography.fontSize['2xl'],
+              fontWeight: designTokens.typography.fontWeight.bold,
+              margin: `0 0 ${designTokens.spacing[2]} 0`,
+              color: 'var(--text-primary)',
+            }}
+          >
+            Ready to Explore!
+          </h2>
+          <p
+            style={{
+              fontSize: designTokens.typography.fontSize.base,
+              color: 'var(--text-secondary)',
+              marginBottom: designTokens.spacing[6],
+              maxWidth: 400,
+              margin: `0 auto ${designTokens.spacing[6]} auto`,
+            }}
+          >
+            Try the demo to see how agent spend governance works, or come back later to connect your wallet.
+          </p>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: designTokens.spacing[3],
+              maxWidth: 320,
+              margin: '0 auto',
+            }}
+          >
+            <Button variant="primary" onClick={() => handleComplete()}>
+              ▶ Explore Demo Agents
+            </Button>
+            <p style={{ fontSize: designTokens.typography.fontSize.xs, color: designTokens.colors.neutral[500], margin: 0 }}>
+              Sample data with demo agents
+            </p>
+            <div style={{ height: designTokens.spacing[4] }} />
+            <Button variant="outline" onClick={handleSkip}>
+              Skip — Connect Wallet Later
+            </Button>
+          </div>
+        </div>
+      ) : (
         <div style={{ textAlign: 'center', padding: designTokens.spacing[6] }}>
           <div style={{ fontSize: '48px', marginBottom: designTokens.spacing[4] }}>🎉</div>
           <h2
@@ -651,15 +697,6 @@ export const SmartOnboarding: React.FC = () => {
               flexWrap: 'wrap',
             }}
           >
-            <Button
-              variant="outline"
-              onClick={() => {
-                // explorer logic with demo agents
-                handleComplete();
-              }}
-            >
-              Demo Playground
-            </Button>
             <Button variant="primary" onClick={() => handleComplete()}>
               Enter Dashboard
             </Button>
@@ -670,6 +707,28 @@ export const SmartOnboarding: React.FC = () => {
   ];
 
   const handleNext = () => {
+    const currentStepId = steps[currentStep].id;
+
+    // Skip OWS setup for explorer mode - go straight to demo ready
+    if (currentStepId === 'user-type' && selectedUserType === 'explorer') {
+      setExploreMode(true);
+      // Skip to the demo-ready completion step
+      const completionIndex = steps.findIndex(s => s.id === 'complete');
+      if (completionIndex !== -1) {
+        setCurrentStep(completionIndex);
+      }
+      return;
+    }
+
+    // Normal flow: skip OWS setup if in explore mode
+    if (exploreMode && currentStepId === 'ows-setup') {
+      const completionIndex = steps.findIndex(s => s.id === 'complete');
+      if (completionIndex !== -1) {
+        setCurrentStep(completionIndex);
+      }
+      return;
+    }
+
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }

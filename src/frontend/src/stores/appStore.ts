@@ -6,6 +6,7 @@ export interface UserPreferences {
   theme: 'light' | 'dark' | 'system';
   sidebarState: SidebarState;
   onboardingCompleted: boolean;
+  demoExplored: boolean;  // User has seen the demo
   lastVisited: string;
   dashboardLayout: 'simplified' | 'advanced';
   notifications: boolean;
@@ -48,6 +49,7 @@ const defaultPreferences: UserPreferences = {
   theme: 'system',
   sidebarState: 'expanded',
   onboardingCompleted: false,
+  demoExplored: false,
   lastVisited: '/',
   dashboardLayout: 'simplified',
   notifications: true,

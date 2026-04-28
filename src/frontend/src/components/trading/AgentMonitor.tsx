@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { designTokens } from '../../styles/design-system';
 import { AgentType } from '../../types';
+import { isDemoAgent } from '../../utils/demoAgents';
 import { useAgentData, useTradingData } from '../../hooks/useAgentData';
 import { useAppStore } from '../../stores/appStore';
 import { uxAnalytics } from '../../services/uxAnalytics';
@@ -82,6 +83,7 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
 
   const isLoading = agentLoading || tradingLoading;
   const error = agentError || tradingError;
+  const isDemo = isDemoAgent(agentType);
 
   const containerStyles = css`
     display: flex;
@@ -197,12 +199,23 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
                 `}
               >
                 <CardTitle>{title}</CardTitle>
-                {isShowcase && <Badge variant="primary">Demo</Badge>}
+                {(isShowcase || isDemo) && <Badge variant="primary">Demo</Badge>}
                 <Badge variant={status.isActive ? 'success' : 'secondary'}>
                   {status.isActive ? 'Live' : 'Standby'}
                 </Badge>
               </div>
               <CardDescription>{description}</CardDescription>
+              {isDemo && (
+                <div
+                  css={css`
+                    margin-top: ${designTokens.spacing[2]};
+                    font-size: ${designTokens.typography.fontSize.xs};
+                    color: ${designTokens.colors.neutral[500]};
+                  `}
+                >
+                  Sample data — connect your agent for real performance
+                </div>
+              )}
             </div>
             <div css={controlsStyles}>
               <Button

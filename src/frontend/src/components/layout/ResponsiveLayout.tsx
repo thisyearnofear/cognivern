@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { css } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
-import { useBreakpoint, useMediaQuery } from '../../hooks/useMediaQuery';
+import { useBreakpoint } from '../../hooks/useMediaQuery';
+import { viewport } from '../../utils/responsive';
 
 // Layout Context for managing responsive state
 export interface LayoutContextType {
   sidebarWidth: number;
-  contentMaxWidth: number;
+  contentMaxWidth: string;
   containerPadding: string;
   isCompactMode: boolean;
   sidebarState: 'expanded' | 'collapsed' | 'hidden' | 'overlay';
@@ -23,53 +24,65 @@ export const useLayout = () => {
   return context;
 };
 
-// Improved responsive layout configuration with better viewport utilization
+// Improved responsive layout configuration using centralized viewport utilities
 const getLayoutConfig = (breakpoint: string, isTouch: boolean, viewportWidth: number) => {
-  // Calculate optimal sidebar width as percentage of viewport for better space utilization
-  const getSidebarWidth = (basePercentage: number, minWidth: number, maxWidth: number) => {
-    const calculatedWidth = Math.floor(viewportWidth * basePercentage);
-    return Math.max(minWidth, Math.min(maxWidth, calculatedWidth));
+  // Use centralized viewport utilities for sidebar width calculation
+  const getSidebarWidth = (state: 'expanded' | 'collapsed' | 'hidden' | 'overlay'): number => {
+    if (state === 'hidden' || state === 'overlay') return 0;
+    if (state === 'collapsed') return 80;
+
+    // Expanded width based on viewport
+    const widths = {
+      xs: 240,
+      sm: 240,
+      md: 260,
+      lg: 280,
+      xl: 320,
+      '2xl': 320,
+    };
+
+    return widths[breakpoint as keyof typeof widths] || 280;
   };
 
   const configs = {
     xs: {
       sidebarWidth: 0,
       contentMaxWidth: '100%',
-      containerPadding: designTokens.spacing[4],
+      containerPadding: designTokens.spacing[3],
       isCompactMode: true,
       defaultSidebarState: 'hidden' as const,
     },
     sm: {
-      sidebarWidth: isTouch ? 0 : getSidebarWidth(0.25, 200, 280),
+      sidebarWidth: isTouch ? 0 : getSidebarWidth('collapsed'),
       contentMaxWidth: '100%',
       containerPadding: designTokens.spacing[4],
       isCompactMode: true,
       defaultSidebarState: isTouch ? 'overlay' : ('collapsed' as const),
     },
     md: {
-      sidebarWidth: getSidebarWidth(0.22, 240, 320),
+      sidebarWidth: getSidebarWidth(viewportWidth < 900 ? 'collapsed' : 'expanded'),
       contentMaxWidth: '100%',
       containerPadding: designTokens.spacing[6],
       isCompactMode: false,
       defaultSidebarState: viewportWidth < 900 ? 'collapsed' : ('expanded' as const),
     },
     lg: {
-      sidebarWidth: getSidebarWidth(0.2, 260, 360),
-      contentMaxWidth: '100%', // Remove artificial limits for better space utilization
+      sidebarWidth: getSidebarWidth('expanded'),
+      contentMaxWidth: '100%',
       containerPadding: designTokens.spacing[8],
       isCompactMode: false,
       defaultSidebarState: 'expanded' as const,
     },
     xl: {
-      sidebarWidth: getSidebarWidth(0.18, 280, 400),
-      contentMaxWidth: '100%', // Let content use full available space
+      sidebarWidth: getSidebarWidth('expanded'),
+      contentMaxWidth: '100%',
       containerPadding: designTokens.spacing[10],
       isCompactMode: false,
       defaultSidebarState: 'expanded' as const,
     },
     '2xl': {
-      sidebarWidth: getSidebarWidth(0.16, 300, 420),
-      contentMaxWidth: '100%', // Maximum space utilization
+      sidebarWidth: getSidebarWidth('expanded'),
+      contentMaxWidth: '100%',
       containerPadding: designTokens.spacing[12],
       isCompactMode: false,
       defaultSidebarState: 'expanded' as const,
@@ -90,7 +103,6 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({
   initialSidebarState,
 }) => {
   const { current: breakpoint } = useBreakpoint();
-  const isTouch = useMediaQuery('(pointer: coarse)');
   const [sidebarState, setSidebarState] = useState<'expanded' | 'collapsed' | 'hidden' | 'overlay'>(
     'expanded',
   );
@@ -108,6 +120,7 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const isTouch = viewport.isTouch();
   const config = getLayoutConfig(breakpoint, isTouch, viewportWidth);
 
   // Auto-adjust sidebar state based on breakpoint and viewport
