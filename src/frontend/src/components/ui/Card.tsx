@@ -11,6 +11,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: CardVariant;
   padding?: 'none' | 'sm' | 'md' | 'lg';
   interactive?: boolean;
+  compact?: boolean;
   /** Enable collapsible behavior */
   collapsible?: boolean;
   /** Initial collapsed state */
@@ -25,6 +26,7 @@ export const Card: React.FC<CardProps> = ({
   variant = 'default',
   padding = 'md',
   interactive = false,
+  compact = false,
   collapsible = false,
   defaultCollapsed = false,
   title,
@@ -37,9 +39,9 @@ export const Card: React.FC<CardProps> = ({
 
   const paddingStyles = {
     none: '0',
-    sm: designTokens.spacing[3],
-    md: designTokens.spacing[6],
-    lg: designTokens.spacing[8],
+    sm: compact ? designTokens.spacing[2] : designTokens.spacing[3],
+    md: compact ? designTokens.spacing[3] : designTokens.spacing[6],
+    lg: compact ? designTokens.spacing[4] : designTokens.spacing[8],
   };
 
   const handleToggle = () => {

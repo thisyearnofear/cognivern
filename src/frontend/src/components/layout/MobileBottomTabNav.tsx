@@ -55,10 +55,12 @@ export const MobileBottomTabNav: React.FC = () => {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 64px;
-    background: ${effectiveTheme === 'dark' ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)'};
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    height: 56px;
+    background: ${effectiveTheme === 'dark'
+      ? 'rgba(15, 23, 42, 0.85)'
+      : 'rgba(255, 255, 255, 0.9)'};
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border-top: 1px solid
       ${effectiveTheme === 'dark'
         ? designTokens.colors.neutral[800]
@@ -68,7 +70,7 @@ export const MobileBottomTabNav: React.FC = () => {
     justify-content: space-around;
     padding: 0 ${designTokens.spacing[2]};
     z-index: ${designTokens.zIndex.sticky};
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
 
     @media (min-width: ${designTokens.breakpoints.md}) {
       display: none;
@@ -80,21 +82,22 @@ export const MobileBottomTabNav: React.FC = () => {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 2px;
     color: ${isActive ? designTokens.colors.primary[500] : designTokens.colors.neutral[500]};
     text-decoration: none;
     font-size: 10px;
     font-weight: ${isActive ? '600' : '500'};
-    transition: ${easings.smooth};
-    padding: ${designTokens.spacing[2]};
-    border-radius: ${designTokens.borderRadius.md};
+    transition: all 150ms ease-out;
+    padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+    border-radius: ${designTokens.borderRadius.sm};
     flex: 1;
     min-width: 0;
+    -webkit-tap-highlight-color: transparent;
 
     &:active {
-      transform: scale(0.95);
+      transform: scale(0.92);
       background: ${effectiveTheme === 'dark'
-        ? 'rgba(255, 255, 255, 0.05)'
+        ? 'rgba(255, 255, 255, 0.08)'
         : 'rgba(0, 0, 0, 0.05)'};
     }
   `;
