@@ -12,7 +12,7 @@
  * Implements fallback logic, provider health checking, and user-provided API keys.
  */
 
-import type { AIAnalysisResult, MultiModelConfig } from "./types";
+import type { AIAnalysisResult, MultiModelConfig } from "./types.js";
 
 export class MultiModelRouter {
   private config: MultiModelConfig;
