@@ -1,6 +1,14 @@
 // Shared hooks to eliminate useState/useEffect duplication across components
 import { useState, useEffect, useCallback } from 'react';
-import { Agent, AgentType, AgentStatus, AgentState, TradingDecision, UseAgentState, UseTradingData } from '../types';
+import {
+  Agent,
+  AgentType,
+  AgentStatus,
+  AgentState,
+  TradingDecision,
+  UseAgentState,
+  UseTradingData,
+} from '../types';
 import { getApiUrl, getApiKey } from '../utils/api';
 
 // Generic agent data hook - replaces repeated patterns

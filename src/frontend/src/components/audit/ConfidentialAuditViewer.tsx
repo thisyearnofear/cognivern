@@ -50,7 +50,10 @@ export default function ConfidentialAuditViewer({
       }
     } catch (err: any) {
       console.error('Decryption error:', err);
-      setError(err.message || 'Failed to sign permit or decrypt. Ensure your wallet has auditor permissions.');
+      setError(
+        err.message ||
+          'Failed to sign permit or decrypt. Ensure your wallet has auditor permissions.',
+      );
     } finally {
       setIsDecrypting(false);
     }
@@ -197,7 +200,8 @@ export default function ConfidentialAuditViewer({
                   `}
                 >
                   Click "Decrypt" to sign a gasless message proving your auditor authorization.
-                  (Note: While generating permits is free, operators bear the gas costs for initial Fhenix policy evaluation.)
+                  (Note: While generating permits is free, operators bear the gas costs for initial
+                  Fhenix policy evaluation.)
                 </p>
               )}
             </div>
@@ -213,7 +217,12 @@ export default function ConfidentialAuditViewer({
                   max-width: 300px;
                 `}
               >
-                <AlertCircle size={14} css={css`flex-shrink: 0;`} />
+                <AlertCircle
+                  size={14}
+                  css={css`
+                    flex-shrink: 0;
+                  `}
+                />
                 <span>{error}</span>
               </div>
             )}

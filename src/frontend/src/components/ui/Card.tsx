@@ -198,18 +198,28 @@ export const CardContent: React.FC<CardContentProps> = ({
   padding,
   ...props
 }) => {
-  const contentPaddingStyles = padding ? css`
-    padding: ${
-      padding === 'none' ? '0' :
-      padding === 'sm' ? designTokens.spacing[3] :
-      padding === 'md' ? designTokens.spacing[6] :
-      padding === 'lg' ? designTokens.spacing[8] :
-      padding === 'xl' ? designTokens.spacing[12] : '0'
-    };
-  ` : '';
+  const contentPaddingStyles = padding
+    ? css`
+        padding: ${padding === 'none'
+          ? '0'
+          : padding === 'sm'
+            ? designTokens.spacing[3]
+            : padding === 'md'
+              ? designTokens.spacing[6]
+              : padding === 'lg'
+                ? designTokens.spacing[8]
+                : padding === 'xl'
+                  ? designTokens.spacing[12]
+                  : '0'};
+      `
+    : '';
 
   return (
-    <div css={[cardContentStyles, contentPaddingStyles]} className={`cognivern-card-content ${className}`} {...props}>
+    <div
+      css={[cardContentStyles, contentPaddingStyles]}
+      className={`cognivern-card-content ${className}`}
+      {...props}
+    >
       {children}
     </div>
   );

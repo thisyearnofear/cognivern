@@ -233,7 +233,8 @@ export default function TradingChart({ decisions, agentType, isLoading }: Tradin
   const buyCount = chartData.filter((d) => d.action === 'buy').length;
   const sellCount = chartData.filter((d) => d.action === 'sell').length;
   const holdCount = chartData.filter((d) => d.action === 'hold').length;
-  const avgConfidence = chartData.reduce((sum, d) => sum + (d.confidence ?? 0), 0) / (chartData.length || 1);
+  const avgConfidence =
+    chartData.reduce((sum, d) => sum + (d.confidence ?? 0), 0) / (chartData.length || 1);
 
   return (
     <div css={containerStyles}>
@@ -287,7 +288,9 @@ export default function TradingChart({ decisions, agentType, isLoading }: Tradin
           <div css={summaryLabelStyles}>Hold Decisions</div>
         </div>
         <div css={summaryCardStyles}>
-          <div css={summaryValueStyles}>{isNaN(avgConfidence) ? 'N/A' : `${(avgConfidence * 100).toFixed(0)}%`}</div>
+          <div css={summaryValueStyles}>
+            {isNaN(avgConfidence) ? 'N/A' : `${(avgConfidence * 100).toFixed(0)}%`}
+          </div>
           <div css={summaryLabelStyles}>Avg Confidence</div>
         </div>
       </div>

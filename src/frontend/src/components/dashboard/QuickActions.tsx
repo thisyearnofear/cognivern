@@ -3,15 +3,10 @@
  * Extracted from UnifiedDashboard for better modularity
  */
 
-import { useNavigate } from "react-router-dom";
-import {
-  LayoutDashboard,
-  PlusCircle,
-  ShieldCheck,
-  FileSearch,
-} from "lucide-react";
-import { designTokens } from "../../styles/design-system";
-import * as styles from "./UnifiedDashboard.styles";
+import { useNavigate } from 'react-router-dom';
+import { LayoutDashboard, PlusCircle, ShieldCheck, FileSearch } from 'lucide-react';
+import { designTokens } from '../../styles/design-system';
+import * as styles from './UnifiedDashboard.styles';
 
 interface QuickActionsProps {
   isMobile: boolean;
@@ -22,24 +17,24 @@ export const QuickActions = ({ isMobile }: QuickActionsProps) => {
 
   const actions = [
     {
-      label: "Dashboard",
+      label: 'Dashboard',
       icon: <LayoutDashboard size={20} />,
-      path: "/",
+      path: '/',
     },
     {
-      label: "Add Agent",
+      label: 'Add Agent',
       icon: <PlusCircle size={20} color={designTokens.colors.primary[500]} />,
-      path: "/agents/workshop",
+      path: '/agents/workshop',
     },
     {
-      label: "Policies",
+      label: 'Policies',
       icon: <ShieldCheck size={20} />,
-      path: "/policies",
+      path: '/policies',
     },
     {
-      label: "Logs",
+      label: 'Logs',
       icon: <FileSearch size={20} />,
-      path: "/audit",
+      path: '/audit',
     },
   ];
 

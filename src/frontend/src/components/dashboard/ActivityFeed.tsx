@@ -3,21 +3,15 @@
  * Extracted from UnifiedDashboard for better modularity
  */
 
-import { useNavigate } from "react-router-dom";
-import { css } from "@emotion/react";
-import {
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Info,
-  FileSearch,
-} from "lucide-react";
-import { designTokens } from "../../styles/design-system";
-import { Card, CardContent } from "../ui";
-import { ActivityItem } from "./utils/types";
-import { buildEvidenceFacts, buildTrustSignals } from "./utils/activity";
-import { copyTextToClipboard } from "../../utils/clipboard";
-import * as styles from "./UnifiedDashboard.styles";
+import { useNavigate } from 'react-router-dom';
+import { css } from '@emotion/react';
+import { CheckCircle2, AlertTriangle, XCircle, Info, FileSearch } from 'lucide-react';
+import { designTokens } from '../../styles/design-system';
+import { Card, CardContent } from '../ui';
+import { ActivityItem } from './utils/types';
+import { buildEvidenceFacts, buildTrustSignals } from './utils/activity';
+import { copyTextToClipboard } from '../../utils/clipboard';
+import * as styles from './UnifiedDashboard.styles';
 
 interface ActivityFeedProps {
   activities: ActivityItem[];
@@ -63,14 +57,12 @@ export const ActivityFeed = ({
   onToggleMore,
 }: ActivityFeedProps) => {
   const navigate = useNavigate();
-  const displayActivities =
-    compact && !showMore ? activities.slice(0, 5) : activities;
+  const displayActivities = compact && !showMore ? activities.slice(0, 5) : activities;
 
   const getActivityIcon = (severity?: string, type?: string) => {
-    if (severity === "success" || type === "trade")
-      return <CheckCircle2 size={20} />;
-    if (severity === "warning") return <AlertTriangle size={20} />;
-    if (severity === "error") return <XCircle size={20} />;
+    if (severity === 'success' || type === 'trade') return <CheckCircle2 size={20} />;
+    if (severity === 'warning') return <AlertTriangle size={20} />;
+    if (severity === 'error') return <XCircle size={20} />;
     return <Info size={20} />;
   };
 
@@ -88,21 +80,18 @@ export const ActivityFeed = ({
               <div key={idx} css={styles.activityItemStyles}>
                 <div
                   css={styles.activityIconStyles(
-                    activity.severity ||
-                      (activity.type === "trade" ? "success" : "info"),
+                    activity.severity || (activity.type === 'trade' ? 'success' : 'info'),
                   )}
                 >
                   {getActivityIcon(activity.severity, activity.type)}
                 </div>
                 <div css={styles.activityDetailsStyles}>
-                  <div css={styles.activityTextStyles}>
-                    {activity.description || "Activity"}
-                  </div>
+                  <div css={styles.activityTextStyles}>{activity.description || 'Activity'}</div>
                   <TrustSignals activity={activity} />
                   <div css={styles.activityTimeStyles}>
                     {activity.timestamp
                       ? new Date(activity.timestamp).toLocaleTimeString()
-                      : "Unknown time"}
+                      : 'Unknown time'}
                   </div>
                   {buildEvidenceFacts(activity).length > 0 && (
                     <div
@@ -146,8 +135,7 @@ export const ActivityFeed = ({
                           color: ${designTokens.colors.primary[600]};
                           cursor: pointer;
                           font-size: ${designTokens.typography.fontSize.xs};
-                          font-weight: ${designTokens.typography.fontWeight
-                            .medium};
+                          font-weight: ${designTokens.typography.fontWeight.medium};
 
                           &:hover {
                             text-decoration: underline;
@@ -160,7 +148,7 @@ export const ActivityFeed = ({
                         }}
                         disabled={!activity.targetPath}
                       >
-                        {activity.evidenceLabel || "View Evidence"}
+                        {activity.evidenceLabel || 'View Evidence'}
                       </button>
                       {activity.evidenceHash && (
                         <button
@@ -177,9 +165,7 @@ export const ActivityFeed = ({
                             }
                           `}
                           onClick={() => {
-                            void copyTextToClipboard(
-                              activity.evidenceHash as string,
-                            );
+                            void copyTextToClipboard(activity.evidenceHash as string);
                           }}
                         >
                           Copy Hash
@@ -213,7 +199,7 @@ export const ActivityFeed = ({
             ))}
             {compact && activities.length > 5 && onToggleMore && (
               <button css={styles.showMoreButtonStyles} onClick={onToggleMore}>
-                {showMore ? "Show Less" : `Show ${activities.length - 5} More`}
+                {showMore ? 'Show Less' : `Show ${activities.length - 5} More`}
               </button>
             )}
           </>

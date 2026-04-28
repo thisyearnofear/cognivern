@@ -60,11 +60,7 @@ const VoiceBriefing: React.FC<{ agentId: string }> = ({ agentId }) => {
         variant="elevated"
         css={css`
           border: 1px solid ${designTokens.colors.primary[200]};
-          background: linear-gradient(
-            135deg,
-            ${designTokens.colors.primary[50]} 0%,
-            white 100%
-          );
+          background: linear-gradient(135deg, ${designTokens.colors.primary[50]} 0%, white 100%);
           position: relative;
           overflow: hidden;
 
@@ -124,9 +120,18 @@ const VoiceBriefing: React.FC<{ agentId: string }> = ({ agentId }) => {
                       animation: pulse 1.5s infinite;
 
                       @keyframes pulse {
-                        0% { transform: scale(1); opacity: 1; }
-                        50% { transform: scale(1.5); opacity: 0.5; }
-                        100% { transform: scale(1); opacity: 1; }
+                        0% {
+                          transform: scale(1);
+                          opacity: 1;
+                        }
+                        50% {
+                          transform: scale(1.5);
+                          opacity: 0.5;
+                        }
+                        100% {
+                          transform: scale(1);
+                          opacity: 1;
+                        }
                       }
                     `}
                   />
@@ -199,7 +204,9 @@ const VoiceBriefing: React.FC<{ agentId: string }> = ({ agentId }) => {
                   onClick={() => setBriefing(null)}
                   css={css`
                     color: ${designTokens.colors.neutral[500]};
-                    &:hover { color: ${designTokens.colors.neutral[900]}; }
+                    &:hover {
+                      color: ${designTokens.colors.neutral[900]};
+                    }
                   `}
                 >
                   Clear Audio Briefing

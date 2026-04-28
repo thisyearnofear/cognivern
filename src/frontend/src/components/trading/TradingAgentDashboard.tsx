@@ -1088,8 +1088,8 @@ function TradingAgentDashboardContent() {
                 line-height: ${designTokens.typography.lineHeight.relaxed};
               `}
             >
-              Connect your first agent to see real spend governance in action,
-              or explore with sample data to see how it works.
+              Connect your first agent to see real spend governance in action, or explore with
+              sample data to see how it works.
             </p>
             <div
               css={css`

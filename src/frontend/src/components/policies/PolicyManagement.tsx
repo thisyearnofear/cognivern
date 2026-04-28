@@ -168,7 +168,6 @@ function PolicyManagementContent() {
       title="Governance & Policies"
       subtitle="Define guardrails and safety protocols for your autonomous agent ecosystem."
     >
-
       {/* High-Level Overview Stats */}
       <div css={statsGridStyles}>
         <StatCard

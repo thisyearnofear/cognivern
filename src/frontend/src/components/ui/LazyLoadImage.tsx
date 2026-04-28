@@ -51,7 +51,7 @@ export const LazyLoadImage: React.FC<LazyLoadImageProps> = ({
           }
         });
       },
-      { rootMargin }
+      { rootMargin },
     );
 
     if (imgRef.current) {
@@ -116,12 +116,10 @@ export const LazyLoadImage: React.FC<LazyLoadImageProps> = ({
   return (
     <div css={containerStyle} style={style} className={className}>
       {/* Placeholder */}
-      {!isLoaded && placeholder && (
-        <div css={placeholderStyle}>{placeholder}</div>
-      )}
+      {!isLoaded && placeholder && <div css={placeholderStyle}>{placeholder}</div>}
 
       {/* Main Image */}
-      {(isInView && src && !hasError) && (
+      {isInView && src && !hasError && (
         <img
           ref={imgRef}
           src={src}

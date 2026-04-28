@@ -59,7 +59,9 @@ export default function ConfidentialSpendForm() {
       });
 
       if (response.success) {
-        setSuccess(`Spend request submitted! Transaction: ${(response.data as any)?.txHash || 'Pending'}`);
+        setSuccess(
+          `Spend request submitted! Transaction: ${(response.data as any)?.txHash || 'Pending'}`,
+        );
         setAmount('');
         setRecipient('');
         setReason('');
@@ -158,9 +160,17 @@ export default function ConfidentialSpendForm() {
               margin-bottom: ${designTokens.spacing[3]};
             `}
           >
-            <AlertCircle size={16} css={css`flex-shrink: 0; margin-top: 2px;`} />
+            <AlertCircle
+              size={16}
+              css={css`
+                flex-shrink: 0;
+                margin-top: 2px;
+              `}
+            />
             <span>
-              <strong>Note on Gas:</strong> The platform does not sponsor gas via a relayer for confidential operations. Your wallet will bear the Fhenix network gas costs for this encrypted policy evaluation.
+              <strong>Note on Gas:</strong> The platform does not sponsor gas via a relayer for
+              confidential operations. Your wallet will bear the Fhenix network gas costs for this
+              encrypted policy evaluation.
             </span>
           </div>
           <div
@@ -177,9 +187,17 @@ export default function ConfidentialSpendForm() {
               margin-bottom: ${designTokens.spacing[6]};
             `}
           >
-            <Info size={16} css={css`flex-shrink: 0; margin-top: 2px;`} />
+            <Info
+              size={16}
+              css={css`
+                flex-shrink: 0;
+                margin-top: 2px;
+              `}
+            />
             <span>
-              <strong>Connect Fhenix FHE:</strong> To deploy this encrypted policy, please connect your wallet via the <strong>Enable Confidential Governance</strong> widget in the bottom right corner.
+              <strong>Connect Fhenix FHE:</strong> To deploy this encrypted policy, please connect
+              your wallet via the <strong>Enable Confidential Governance</strong> widget in the
+              bottom right corner.
             </span>
           </div>
         </CardHeader>

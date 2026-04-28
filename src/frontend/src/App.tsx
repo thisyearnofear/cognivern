@@ -1,40 +1,26 @@
-import React, { Suspense, lazy, useEffect } from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-  useNavigate,
-} from "react-router-dom";
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
-import { AppLayout } from "./components/layout";
-import SmartOnboarding from "./components/onboarding/SmartOnboarding";
-import LandingPage from "./components/landing/LandingPage";
-import { useTheme, useAppStore } from "./stores/appStore";
-import PageTransition from "./components/ui/PageTransition";
-import { LoadingSpinner } from "./components/ui/LoadingSpinner";
-import { ErrorBoundary } from "./components/ui/ErrorBoundary";
-import { loadingStyles } from "./styles/design-system";
-import { FhenixProvider } from "./components/blockchain/FhenixProvider";
+import { AppLayout } from './components/layout';
+import SmartOnboarding from './components/onboarding/SmartOnboarding';
+import LandingPage from './components/landing/LandingPage';
+import { useTheme, useAppStore } from './stores/appStore';
+import PageTransition from './components/ui/PageTransition';
+import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import { loadingStyles } from './styles/design-system';
+import { FhenixProvider } from './components/blockchain/FhenixProvider';
 
 // Lazy load components for better performance
-const UnifiedDashboard = lazy(
-  () => import("./components/dashboard/UnifiedDashboard"),
-);
-const TradingAgentDashboard = lazy(
-  () => import("./components/trading/TradingAgentDashboard"),
-);
-const PolicyManagement = lazy(
-  () => import("./components/policies/PolicyManagement"),
-);
-const AuditLogs = lazy(() => import("./components/audit/EnhancedAuditLogs"));
-const RunLedger = lazy(() => import("./components/cre/RunLedger"));
-const RunDetails = lazy(() => import("./components/cre/RunDetails"));
-const AgentProfile = lazy(() => import("./components/agents/AgentProfile"));
-const AgentWorkshop = lazy(() => import("./components/agents/AgentWorkshop"));
-const AgentConnectionWizard = lazy(
-  () => import("./components/agents/AgentConnectionWizard"),
-);
+const UnifiedDashboard = lazy(() => import('./components/dashboard/UnifiedDashboard'));
+const TradingAgentDashboard = lazy(() => import('./components/trading/TradingAgentDashboard'));
+const PolicyManagement = lazy(() => import('./components/policies/PolicyManagement'));
+const AuditLogs = lazy(() => import('./components/audit/EnhancedAuditLogs'));
+const RunLedger = lazy(() => import('./components/cre/RunLedger'));
+const RunDetails = lazy(() => import('./components/cre/RunDetails'));
+const AgentProfile = lazy(() => import('./components/agents/AgentProfile'));
+const AgentWorkshop = lazy(() => import('./components/agents/AgentWorkshop'));
+const AgentConnectionWizard = lazy(() => import('./components/agents/AgentConnectionWizard'));
 
 // Enhanced loading component with animations
 const PageSkeleton: React.FC = () => (
@@ -42,10 +28,10 @@ const PageSkeleton: React.FC = () => (
     <LoadingSpinner type="skeleton" variant="card" width="100%" height={200} />
     <div
       style={{
-        width: "100%",
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "1rem",
+        width: '100%',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '1rem',
       }}
     >
       <LoadingSpinner type="skeleton" variant="rectangular" height={150} />
@@ -61,10 +47,7 @@ function App() {
   const preferences = useAppStore((state) => state.preferences);
 
   useEffect(() => {
-    document.documentElement.classList.toggle(
-      "dark",
-      effectiveTheme === "dark",
-    );
+    document.documentElement.classList.toggle('dark', effectiveTheme === 'dark');
   }, [effectiveTheme]);
 
   const handleGlobalError = (error: Error) => {
@@ -73,10 +56,7 @@ function App() {
 
   return (
     <Router>
-      <ErrorBoundary
-        componentName="Application Root"
-        onError={handleGlobalError}
-      >
+      <ErrorBoundary componentName="Application Root" onError={handleGlobalError}>
         <div className="app">
           <Routes>
             {/* Landing Page - New users see this first (no FhenixProvider so the
@@ -176,10 +156,7 @@ function App() {
               />
 
               {/* Legacy trading route - redirect to agents */}
-              <Route
-                path="trading"
-                element={<Navigate to="/agents" replace />}
-              />
+              <Route path="trading" element={<Navigate to="/agents" replace />} />
 
               {/* Policies Route */}
               <Route
