@@ -18,7 +18,6 @@ import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { css } from '@emotion/react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users,
   Percent,
   ArrowRight,
   ShieldCheck,
@@ -50,6 +49,7 @@ import {
   Modal,
   GenerativeReveal,
   LoadingSpinner,
+  EmptyState,
 } from '../ui';
 import ConfidentialSpendForm from '../trading/ConfidentialSpendForm';
 import { Node } from '../ui/EcosystemVisualizer';
@@ -1193,31 +1193,11 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
           {isLoading ? (
             <div css={styles.loadingStyles}>Loading agents...</div>
           ) : agents.length === 0 ? (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: designTokens.spacing[8],
-                background: designTokens.colors.neutral[50],
-                borderRadius: designTokens.borderRadius.md,
-              }}
-            >
-              <Users
-                size={40}
-                color={designTokens.colors.neutral[400]}
-                style={{ marginBottom: designTokens.spacing[3] }}
-              />
-              <p
-                style={{
-                  margin: `0 0 ${designTokens.spacing[3]} 0`,
-                  color: designTokens.colors.neutral[600],
-                }}
-              >
-                No agents connected yet
-              </p>
-              <Button variant="primary" size="sm" onClick={() => navigate('/agents/connect')}>
-                Connect Your First Agent
-              </Button>
-            </div>
+            <EmptyState
+              type="agents"
+              compact
+              onAction={() => navigate('/agents/connect')}
+            />
           ) : isMobile ? (
             <AgentCarousel agents={agents} />
           ) : (
@@ -1865,10 +1845,11 @@ const ActivityFeed = ({ activities, compact, showMore, onToggleMore }: ActivityF
     <Card>
       <CardContent css={styles.activityFeedStyles(compact)}>
         {activities.length === 0 ? (
-          <div css={styles.emptyStateStyles}>
-            <FileSearch size={48} />
-            <div>No recent activity</div>
-          </div>
+          <EmptyState
+            type="activity"
+            compact
+            onAction={() => navigate('/audit')}
+          />
         ) : (
           <>
             {displayActivities.map((activity, idx) => (

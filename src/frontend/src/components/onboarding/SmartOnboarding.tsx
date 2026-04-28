@@ -12,424 +12,47 @@ import {
   Search,
   Brain,
   ChevronRight,
-  ArrowRight,
   CheckCircle2,
-  Wallet,
-  Key,
-  Shield,
 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui/Card';
-import { owsApi } from '../../services/apiService';
+import { Card, CardContent } from '../ui/Card';
+import { ConnectionModal } from '../web3/ConnectionModal';
 
-interface OnboardingStep {
-  id: string;
-  title: string;
-  description: string;
-  component: React.ReactNode;
-}
-
-// OWS Wallet Setup Step - Guided wallet connection with dual-path UX
-function OwsSetupStep() {
-  const { user, setUser } = useAppStore();
-  const [walletStatus, setWalletStatus] = useState<'checking' | 'connected' | 'none'>('checking');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [walletDetails, setWalletDetails] = useState<{
-    address?: string;
-    name?: string;
-    chain?: string;
-  } | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    checkWalletStatus();
-  }, []);
-
-  const storeWalletInAppState = (address: string, name: string, chain: string) => {
-    setUser({
-      owsWalletConnected: true,
-      owsWalletAddress: address,
-      owsWalletName: name,
-      owsWalletChain: chain,
-    });
-    setWalletDetails({ address, name, chain });
-  };
-
-  const checkWalletStatus = async () => {
-    try {
-      const res = await owsApi.listWallets();
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        const wallet = res.data[0];
-        const address = (wallet as any).accounts?.[0]?.address || (wallet as any).address || '';
-        const name = (wallet as any).name || 'Cognivern Treasury';
-        const chain = (wallet as any).accounts?.[0]?.chainId || (wallet as any).chainType || '';
-        storeWalletInAppState(address, name, chain);
-        setWalletStatus('connected');
-      } else {
-        setWalletStatus('none');
-      }
-    } catch {
-      setWalletStatus('none');
-    }
-  };
-
-  const handleBootstrap = async () => {
-    setIsLoading(true);
-    try {
-      const res = await owsApi.bootstrap();
-      const data = res?.data as any;
-      const address = data?.accounts?.[0]?.address || data?.address || '';
-      const name = data?.name || 'Cognivern Treasury';
-      const chain = data?.accounts?.[0]?.chainId || data?.chainType || 'eip155:314159';
-      storeWalletInAppState(address, name, chain);
-      setWalletStatus('connected');
-    } catch (error) {
-      console.error('Failed to bootstrap wallet:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleConnectBrowserWallet = async () => {
-    if (typeof window.ethereum === 'undefined') {
-      alert('MetaMask is not installed. Please install MetaMask to connect your own wallet.');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const accounts = (await window.ethereum.request({
-        method: 'eth_requestAccounts',
-      })) as string[];
-      if (accounts.length > 0) {
-        const address = accounts[0];
-        const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
-        const chainId = parseInt(chainIdHex, 16);
-        const chainLabel = chainId === 314159 ? 'Filecoin Calibration'
-          : (chainId === 196 || chainId === 1952) ? 'X Layer'
-          : `Chain ${chainId}`;
-        const network: 'filecoin' | 'xlayer' = (chainId === 196 || chainId === 1952) ? 'xlayer' : 'filecoin';
-        setUser({
-          address,
-          isConnected: true,
-          network,
-          owsWalletConnected: true,
-          owsWalletAddress: address,
-          owsWalletName: 'Your Wallet',
-          owsWalletChain: chainLabel,
-        });
-        setWalletDetails({ address, name: 'Your Wallet', chain: chainLabel });
-        setWalletStatus('connected');
-      }
-    } catch (error) {
-      console.error('Failed to connect browser wallet:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const copyAddress = () => {
-    const addr = walletDetails?.address || user.owsWalletAddress;
-    if (addr) {
-      navigator.clipboard.writeText(addr).catch(() => {});
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-
-  if (walletStatus === 'checking') {
-    return (
-      <div style={{ textAlign: 'center', padding: designTokens.spacing[8] }}>
-        <div style={{ marginBottom: designTokens.spacing[4] }}>
-          <Brain size={48} color={designTokens.colors.primary[500]} />
-        </div>
-        <p>Checking wallet status...</p>
-      </div>
-    );
-  }
-
-  if (walletStatus === 'connected') {
-    const addr = walletDetails?.address || user.owsWalletAddress || '';
-    const name = walletDetails?.name || user.owsWalletName || 'Governance Wallet';
-    const chain = walletDetails?.chain || user.owsWalletChain || '';
-    return (
-      <div style={{ textAlign: 'center', padding: designTokens.spacing[6] }}>
-        <div
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            background: designTokens.colors.semantic.success[100],
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: `0 auto ${designTokens.spacing[4]}`,
-          }}
-        >
-          <CheckCircle2 size={32} color={designTokens.colors.semantic.success[500]} />
-        </div>
-        <h3 style={{ marginBottom: designTokens.spacing[2] }}>Wallet Connected!</h3>
-        <p style={{ color: designTokens.colors.neutral[500], marginBottom: designTokens.spacing[4], fontSize: designTokens.typography.fontSize.sm }}>
-          This is your governance treasury — agents request spend from this wallet.
-        </p>
-
-        {/* Wallet details card */}
-        <div
-          style={{
-            background: 'var(--surface-bg-alt, #f8fafc)',
-            border: `1px solid ${designTokens.colors.neutral[200]}`,
-            borderRadius: designTokens.borderRadius.lg,
-            padding: designTokens.spacing[4],
-            maxWidth: 360,
-            margin: '0 auto',
-            textAlign: 'left',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: designTokens.spacing[2] }}>
-            <span style={{ fontSize: designTokens.typography.fontSize.xs, color: designTokens.colors.neutral[500], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Wallet Name
-            </span>
-            <span style={{ fontSize: designTokens.typography.fontSize.sm, fontWeight: designTokens.typography.fontWeight.semibold, color: 'var(--text-primary)' }}>
-              {name}
-            </span>
-          </div>
-          {addr && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: designTokens.spacing[2] }}>
-              <span style={{ fontSize: designTokens.typography.fontSize.xs, color: designTokens.colors.neutral[500], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Address
-              </span>
-              <button
-                onClick={copyAddress}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: designTokens.typography.fontSize.sm,
-                  fontFamily: 'monospace',
-                  color: designTokens.colors.primary[600],
-                  padding: 0,
-                }}
-                title="Click to copy full address"
-              >
-                {copied ? '✓ Copied!' : formatAddress(addr)}
-              </button>
-            </div>
-          )}
-          {chain && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: designTokens.typography.fontSize.xs, color: designTokens.colors.neutral[500], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Chain
-              </span>
-              <span style={{ fontSize: designTokens.typography.fontSize.sm, color: 'var(--text-primary)' }}>
-                {chain}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <p style={{ marginTop: designTokens.spacing[3], fontSize: designTokens.typography.fontSize.xs, color: designTokens.colors.neutral[400] }}>
-          Your wallet is stored locally on this machine.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ padding: designTokens.spacing[4] }}>
-      <div
-        style={{
-          textAlign: 'center',
-          marginBottom: designTokens.spacing[6],
-        }}
-      >
-        <div
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            background: 'var(--surface-bg-alt, #f1f5f9)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: `0 auto ${designTokens.spacing[4]}`,
-          }}
-        >
-          <Wallet size={32} color={designTokens.colors.primary[500]} />
-        </div>
-        <h3 style={{ marginBottom: designTokens.spacing[2], color: 'var(--text-primary)' }}>Set Up Governance Wallet</h3>
-        <p
-          style={{
-            color: 'var(--text-secondary)',
-            maxWidth: 400,
-            margin: '0 auto',
-          }}
-        >
-          Choose how to fund your agent treasury. Agents request spend but policy rules control
-          what gets approved.
-        </p>
-      </div>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: designTokens.spacing[4],
-          marginBottom: designTokens.spacing[6],
-        }}
-      >
-        <Card variant="outlined">
-          <CardContent style={{ textAlign: 'center', padding: designTokens.spacing[4] }}>
-            <Key size={24} color={designTokens.colors.primary[500]} />
-            <h4
-              style={{
-                margin: `${designTokens.spacing[2]} 0`,
-                fontSize: designTokens.typography.fontSize.sm,
-                color: 'var(--card-text)',
-              }}
-            >
-              Scoped API Keys
-            </h4>
-            <p
-              style={{
-                fontSize: designTokens.typography.fontSize.xs,
-                color: 'var(--text-secondary)',
-              }}
-            >
-              Agents get limited access, not full wallet control
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card variant="outlined">
-          <CardContent style={{ textAlign: 'center', padding: designTokens.spacing[4] }}>
-            <Shield size={24} color={designTokens.colors.primary[500]} />
-            <h4
-              style={{
-                margin: `${designTokens.spacing[2]} 0`,
-                fontSize: designTokens.typography.fontSize.sm,
-                color: 'var(--card-text)',
-              }}
-            >
-              Policy Enforcement
-            </h4>
-            <p
-              style={{
-                fontSize: designTokens.typography.fontSize.xs,
-                color: 'var(--text-secondary)',
-              }}
-            >
-              Every spend checked against your rules before signing
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Dual-path wallet options */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: designTokens.spacing[3], alignItems: 'center' }}>
-        <Button variant="primary" onClick={handleBootstrap} disabled={isLoading}>
-          {isLoading ? 'Setting up...' : 'Bootstrap New Wallet'}
-        </Button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: designTokens.spacing[2], color: designTokens.colors.neutral[400], fontSize: designTokens.typography.fontSize.sm }}>
-          <span style={{ width: 40, height: 1, background: designTokens.colors.neutral[300], display: 'inline-block' }} />
-          or
-          <span style={{ width: 40, height: 1, background: designTokens.colors.neutral[300], display: 'inline-block' }} />
-        </div>
-
-        <button
-          onClick={handleConnectBrowserWallet}
-          disabled={isLoading}
-          style={{
-            background: 'none',
-            border: `1px solid ${designTokens.colors.neutral[300]}`,
-            borderRadius: designTokens.borderRadius.md,
-            padding: `${designTokens.spacing[2]} ${designTokens.spacing[4]}`,
-            cursor: 'pointer',
-            fontSize: designTokens.typography.fontSize.sm,
-            color: 'var(--text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: designTokens.spacing[2],
-          }}
-        >
-          <Wallet size={16} />
-          Connect Existing Wallet (MetaMask)
-        </button>
-
-        {/* Tooltip explaining the difference */}
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-          <button
-            onClick={() => setShowTooltip(!showTooltip)}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: designTokens.typography.fontSize.xs,
-              color: designTokens.colors.primary[500],
-              textDecoration: 'underline',
-              padding: 0,
-            }}
-          >
-            What's the difference?
-          </button>
-          {showTooltip && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '100%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 320,
-                background: 'var(--surface-bg, white)',
-                border: `1px solid ${designTokens.colors.neutral[200]}`,
-                borderRadius: designTokens.borderRadius.lg,
-                padding: designTokens.spacing[4],
-                boxShadow: designTokens.shadows.lg,
-                zIndex: 10,
-                textAlign: 'left',
-                marginBottom: designTokens.spacing[2],
-              }}
-            >
-              <p style={{ fontSize: designTokens.typography.fontSize.xs, color: 'var(--text-secondary)', margin: `0 0 ${designTokens.spacing[2]}` }}>
-                <strong>Bootstrap</strong> creates a new wallet stored locally on this machine — great for getting started quickly.
-              </p>
-              <p style={{ fontSize: designTokens.typography.fontSize.xs, color: 'var(--text-secondary)', margin: 0 }}>
-                <strong>Connect Wallet</strong> links your existing browser wallet (e.g. MetaMask) so agents can request spend from funds you already control.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
+/**
+ * SmartOnboarding - Unified onboarding flow
+ *
+ * Single source of truth for initial setup experience.
+ * Uses ConnectionModal for wallet setup (DRY principle).
+ * Clean step-based state machine, no dual-flow confusion.
+ */
 export const SmartOnboarding: React.FC = () => {
-  const { preferences, user, completeOnboarding, updatePreferences } = useAppStore();
+  const { preferences, user, completeOnboarding } = useAppStore();
   const { isMobile } = useBreakpoint();
+
+  // Single state machine: currentStep drives everything
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedUserType, setSelectedUserType] = useState<string>('');
-  const [exploreMode, setExploreMode] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
 
-  // Handlers moved up to avoid hoisting issues
-  const handleSkip = () => {
-    updatePreferences({ onboardingCompleted: true });
-    setShowOnboarding(false);
-    setIsWizardOpen(false);
-  };
+  // Onboarding steps - single source of truth
+  const steps = [
+    { id: 'welcome', label: 'Welcome' },
+    { id: 'user-type', label: 'Profile' },
+    { id: 'wallet', label: 'Connect' },
+    { id: 'complete', label: 'Done' },
+  ];
 
-  const handleComplete = () => {
-    completeOnboarding(selectedUserType || 'explorer');
-    setShowOnboarding(false);
-    setIsWizardOpen(false);
-  };
+  // Check if onboarding should be shown
+  useEffect(() => {
+    const isOnboardingRoute = window.location.pathname === '/onboarding';
+    // Start at step 0 (welcome) if on onboarding route
+    if (isOnboardingRoute && !preferences.onboardingCompleted) {
+      setCurrentStep(0);
+    }
+  }, [preferences.onboardingCompleted]);
 
-  const handleStartOnboarding = () => {
-    setCurrentStep(0);
-    setIsWizardOpen(true);
+  const handleNext = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
   };
 
   const handlePrevious = () => {
@@ -438,20 +61,11 @@ export const SmartOnboarding: React.FC = () => {
     }
   };
 
+  const handleComplete = () => {
+    completeOnboarding(selectedUserType || 'explorer');
+  };
 
-  // Check if onboarding should be shown
-  useEffect(() => {
-    // When directly navigating to /onboarding route, always show the wizard
-    const isOnboardingRoute = window.location.pathname === '/onboarding';
-    const shouldShow = isOnboardingRoute || (!preferences.onboardingCompleted && !user.isConnected);
-    setShowOnboarding(shouldShow);
-
-    // Auto-open wizard when on onboarding route
-    if (isOnboardingRoute && !preferences.onboardingCompleted) {
-      setIsWizardOpen(true);
-    }
-  }, [preferences.onboardingCompleted, user.isConnected]);
-
+  // User type options
   const userTypes = [
     {
       id: 'operator',
@@ -495,515 +109,356 @@ export const SmartOnboarding: React.FC = () => {
     },
   ];
 
-  const steps: OnboardingStep[] = [
-    {
-      id: 'welcome',
-      title: 'Welcome to Cognivern',
-      description: 'Spend governance for autonomous agents',
-      component: (
-        <div style={{ textAlign: 'center', padding: designTokens.spacing[6] }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              marginBottom: designTokens.spacing[4],
-            }}
-          >
-            <Brain size={64} color={designTokens.colors.primary[500]} />
-          </div>
-          <h2
-            style={{
+  // Progress indicator component
+  const ProgressIndicator = () => (
+    <div css={css`
+      display: flex;
+      align-items: center;
+      gap: ${designTokens.spacing[2]};
+      padding: ${designTokens.spacing[3]} ${designTokens.spacing[4]};
+      background: ${designTokens.colors.neutral[50]};
+      border-radius: ${designTokens.borderRadius.lg};
+      margin-bottom: ${designTokens.spacing[4]};
+    `}>
+      {steps.map((step, index) => {
+        const isCompleted = index < currentStep;
+        const isCurrent = index === currentStep;
+
+        return (
+          <React.Fragment key={step.id}>
+            <div css={css`
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: ${designTokens.spacing[1]};
+            `}>
+              <div css={css`
+                width: ${isMobile ? 28 : 32}px;
+                height: ${isMobile ? 28 : 32}px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: ${designTokens.typography.fontSize.sm};
+                font-weight: ${designTokens.typography.fontWeight.semibold};
+                transition: ${designTokens.transitions.fast};
+                background: ${isCompleted
+                  ? designTokens.colors.semantic.success[500]
+                  : isCurrent
+                    ? designTokens.colors.primary[500]
+                    : designTokens.colors.neutral[200]};
+                color: ${isCompleted || isCurrent
+                  ? 'white'
+                  : designTokens.colors.neutral[500]};
+              `}>
+                {isCompleted ? <CheckCircle2 size={16} /> : index + 1}
+              </div>
+              <span css={css`
+                font-size: ${designTokens.typography.fontSize.xs};
+                color: ${isCurrent
+                  ? designTokens.colors.primary[600]
+                  : designTokens.colors.neutral[400]};
+                font-weight: ${isCurrent ? designTokens.typography.fontWeight.medium : 'normal'};
+              `}>
+                {step.label}
+              </span>
+            </div>
+            {index < steps.length - 1 && (
+              <div css={css`
+                flex: 1;
+                height: 2px;
+                background: ${isCompleted
+                  ? designTokens.colors.semantic.success[200]
+                  : designTokens.colors.neutral[200]};
+                border-radius: 1px;
+                min-width: ${designTokens.spacing[4]};
+              `} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+
+  // Step components
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0: // Welcome
+        return (
+          <div style={{ textAlign: 'center', padding: designTokens.spacing[6] }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: designTokens.spacing[4] }}>
+              <Brain size={64} color={designTokens.colors.primary[500]} />
+            </div>
+            <h2 style={{
               fontSize: designTokens.typography.fontSize['3xl'],
               fontWeight: designTokens.typography.fontWeight.bold,
               margin: `0 0 ${designTokens.spacing[4]} 0`,
               color: 'var(--text-primary)',
-            }}
-          >
-            Welcome to Cognivern
-          </h2>
-          <p
-            style={{
+            }}>
+              Welcome to Cognivern
+            </h2>
+            <p style={{
               fontSize: designTokens.typography.fontSize.lg,
               color: 'var(--text-secondary)',
               maxWidth: '500px',
               margin: '0 auto',
               lineHeight: designTokens.typography.lineHeight.relaxed,
-            }}
-          >
-            Give agents real execution power with clear budgets, approval boundaries, and an
-            evidence trail your team can actually operate.
-          </p>
-        </div>
-      ),
-    },
-    {
-      id: 'user-type',
-      title: 'What brings you here?',
-      description: 'Help us personalize your experience',
-      component: (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: designTokens.spacing[4],
-            padding: designTokens.spacing[4],
-          }}
-        >
-          {userTypes.map((type) => (
-            <Card
-              key={type.id}
-              interactive
-              variant={selectedUserType === type.id ? 'elevated' : 'outlined'}
-              css={css`
-                cursor: pointer;
-                border: ${selectedUserType === type.id
-                  ? `2px solid ${designTokens.colors.primary[500]}`
-                  : `1px solid ${designTokens.colors.neutral[200]}`};
-                transition: all 0.3s ease;
-                &:hover {
-                  transform: scale(1.02);
-                  box-shadow: 0 10px 25px -5px ${designTokens.colors.primary[500]}20;
-                  border-color: ${designTokens.colors.primary[400]};
-                }
-              `}
-              onClick={() => setSelectedUserType(type.id)}
-            >
-              <CardContent>
-                <div
-                  style={{
-                    textAlign: 'center',
-                    marginBottom: designTokens.spacing[3],
-                  }}
+            }}>
+              Give agents real execution power with clear budgets, approval boundaries, and an
+              evidence trail your team can actually operate.
+            </p>
+          </div>
+        );
+
+      case 1: // User Type Selection
+        return (
+          <div style={{ padding: designTokens.spacing[4] }}>
+            <h3 css={css`
+              text-align: center;
+              margin-bottom: ${designTokens.spacing[4]};
+              font-size: ${designTokens.typography.fontSize.xl};
+              color: var(--text-primary);
+            `}>
+              What brings you here?
+            </h3>
+            <div css={css`
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+              gap: ${designTokens.spacing[4]};
+            `}>
+              {userTypes.map((type) => (
+                <Card
+                  key={type.id}
+                  interactive
+                  variant={selectedUserType === type.id ? 'elevated' : 'outlined'}
+                  css={css`
+                    cursor: pointer;
+                    border: ${selectedUserType === type.id
+                      ? `2px solid ${designTokens.colors.primary[500]}`
+                      : `1px solid ${designTokens.colors.neutral[200]}`};
+                    transition: all 0.3s ease;
+                    &:hover {
+                      transform: scale(1.02);
+                      box-shadow: 0 10px 25px -5px ${designTokens.colors.primary[500]}20;
+                      border-color: ${designTokens.colors.primary[400]};
+                    }
+                  `}
+                  onClick={() => setSelectedUserType(type.id)}
                 >
-                  <div
-                    style={{
-                      fontSize: '24px',
-                      marginBottom: designTokens.spacing[2],
-                    }}
-                  >
-                    {type.icon}
-                  </div>
-                  <h3
-                    style={{
+                  <CardContent>
+                    <div style={{ textAlign: 'center', marginBottom: designTokens.spacing[3] }}>
+                      <div style={{ fontSize: '24px', marginBottom: designTokens.spacing[2] }}>
+                        {type.icon}
+                      </div>
+                      <h3 style={{
+                        margin: 0,
+                        fontSize: designTokens.typography.fontSize.lg,
+                        fontWeight: designTokens.typography.fontWeight.semibold,
+                        color: 'var(--card-text)',
+                      }}>
+                        {type.title}
+                      </h3>
+                      <p style={{
+                        margin: `${designTokens.spacing[2]} 0`,
+                        fontSize: designTokens.typography.fontSize.sm,
+                        color: 'var(--text-secondary)',
+                      }}>
+                        {type.description}
+                      </p>
+                    </div>
+                    <ul style={{
+                      listStyle: 'none',
+                      padding: 0,
                       margin: 0,
-                      fontSize: designTokens.typography.fontSize.lg,
-                      fontWeight: designTokens.typography.fontWeight.semibold,
-                      color: 'var(--card-text)',
-                    }}
-                  >
-                    {type.title}
-                  </h3>
-                  <p
-                    style={{
-                      margin: `${designTokens.spacing[2]} 0`,
-                      fontSize: designTokens.typography.fontSize.sm,
+                      fontSize: designTokens.typography.fontSize.xs,
                       color: 'var(--text-secondary)',
-                    }}
-                  >
-                    {type.description}
-                  </p>
-                </div>
-                <ul
-                  style={{
-                    listStyle: 'none',
-                    padding: 0,
-                    margin: 0,
-                    fontSize: designTokens.typography.fontSize.xs,
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  {type.features.map((feature, index) => (
-                    <li
-                      key={index}
-                      style={{
-                        padding: `${designTokens.spacing[1]} 0`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: designTokens.spacing[2],
-                      }}
-                    >
-                      <span
-                        style={{
-                          color: designTokens.colors.semantic.success[500],
-                        }}
-                      >
-                        ✓
-                      </span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ),
-    },
-    {
-      id: 'ows-setup',
-      title: 'Connect Your Wallet',
-      description: 'Set up OWS wallet for agent spend governance',
-      component: <OwsSetupStep />,
-    },
-    {
-      id: 'complete',
-      title: exploreMode ? 'Ready to Explore!' : "You're all set!",
-      description: exploreMode ? 'Choose how you want to get started' : 'Ready to explore Cognivern',
-      component: exploreMode ? (
-        <div style={{ textAlign: 'center', padding: designTokens.spacing[6] }}>
-          <div style={{ fontSize: '48px', marginBottom: designTokens.spacing[4] }}>🚀</div>
-          <h2
-            style={{
+                    }}>
+                      {type.features.map((feature, index) => (
+                        <li key={index} style={{
+                          padding: `${designTokens.spacing[1]} 0`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: designTokens.spacing[2],
+                        }}>
+                          <span style={{ color: designTokens.colors.semantic.success[500] }}>✓</span>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 2: // Wallet Connection - use ConnectionModal in embedded mode
+        return (
+          <div style={{ padding: designTokens.spacing[4] }}>
+            <h3 css={css`
+              text-align: center;
+              margin-bottom: ${designTokens.spacing[4]};
+              font-size: ${designTokens.typography.fontSize.xl};
+              color: var(--text-primary);
+            `}>
+              Connect Your Wallet
+            </h3>
+            <p css={css`
+              text-align: center;
+              margin-bottom: ${designTokens.spacing[4]};
+              color: var(--text-secondary);
+            `}>
+              Set up your governance treasury. Agents request spend but policy rules control what gets approved.
+            </p>
+            {/* Use ConnectionModal in embedded mode - DRY */}
+            <ConnectionModal
+              mode="embedded"
+              connectionsToShow={['wallet', 'treasury']}
+            />
+          </div>
+        );
+
+      case 3: // Complete
+        return (
+          <div style={{ textAlign: 'center', padding: designTokens.spacing[6] }}>
+            <div css={css`
+              width: 80px;
+              height: 80px;
+              border-radius: '50%';
+              background: ${designTokens.colors.semantic.success[100]};
+              display: flex;
+              align-items: 'center;
+              justify-content: 'center';
+              margin: `0 auto ${designTokens.spacing[4]}`;
+            `}>
+              <CheckCircle2 size={40} color={designTokens.colors.semantic.success[500]} />
+            </div>
+            <h2 style={{
               fontSize: designTokens.typography.fontSize['2xl'],
               fontWeight: designTokens.typography.fontWeight.bold,
               margin: `0 0 ${designTokens.spacing[2]} 0`,
               color: 'var(--text-primary)',
-            }}
-          >
-            Ready to Explore!
-          </h2>
-          <p
-            style={{
-              fontSize: designTokens.typography.fontSize.base,
+            }}>
+              You're all set!
+            </h2>
+            <p style={{
+              fontSize: designTokens.typography.fontSize.lg,
               color: 'var(--text-secondary)',
               marginBottom: designTokens.spacing[6],
-              maxWidth: 400,
-              margin: `0 auto ${designTokens.spacing[6]} auto`,
-            }}
-          >
-            Try the demo to see how agent spend governance works, or come back later to connect your wallet.
-          </p>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: designTokens.spacing[3],
-              maxWidth: 320,
-              margin: '0 auto',
-            }}
-          >
-            <Button variant="primary" onClick={() => handleComplete()}>
-              ▶ Explore Demo Agents
-            </Button>
-            <p style={{ fontSize: designTokens.typography.fontSize.xs, color: designTokens.colors.neutral[500], margin: 0 }}>
-              Sample data with demo agents
+            }}>
+              Ready to explore Cognivern and take control of your agent spend.
             </p>
-            <div style={{ height: designTokens.spacing[4] }} />
-            <Button variant="outline" onClick={handleSkip}>
-              Skip — Connect Wallet Later
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div style={{ textAlign: 'center', padding: designTokens.spacing[6] }}>
-          <div style={{ fontSize: '48px', marginBottom: designTokens.spacing[4] }}>🎉</div>
-          <h2
-            style={{
-              fontSize: designTokens.typography.fontSize['2xl'],
-              fontWeight: designTokens.typography.fontWeight.bold,
-              margin: `0 0 ${designTokens.spacing[4]} 0`,
-              color: 'var(--text-primary)',
-            }}
-          >
-            Welcome aboard!
-          </h2>
-          <p
-            style={{
-              fontSize: designTokens.typography.fontSize.base,
-              color: 'var(--text-secondary)',
-              marginBottom: designTokens.spacing[6],
-            }}
-          >
-            Your personalized dashboard is ready. You can always change your preferences later.
-          </p>
-          <div
-            style={{
-              display: 'flex',
-              gap: designTokens.spacing[3],
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
-            <Button variant="primary" onClick={() => handleComplete()}>
-              Enter Dashboard
-            </Button>
-          </div>
-        </div>
-      ),
-    },
-  ];
 
-  const handleNext = () => {
-    const currentStepId = steps[currentStep].id;
-
-    // Skip OWS setup for explorer mode - go straight to demo ready
-    if (currentStepId === 'user-type' && selectedUserType === 'explorer') {
-      setExploreMode(true);
-      // Skip to the demo-ready completion step
-      const completionIndex = steps.findIndex((s) => s.id === 'complete');
-      if (completionIndex !== -1) {
-        setCurrentStep(completionIndex);
-      }
-      return;
-    }
-
-    // Normal flow: skip OWS setup if in explore mode
-    if (exploreMode && currentStepId === 'ows-setup') {
-      const completionIndex = steps.findIndex((s) => s.id === 'complete');
-      if (completionIndex !== -1) {
-        setCurrentStep(completionIndex);
-      }
-      return;
-    }
-
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const canProceed = () => {
-    if (steps[currentStep].id === 'user-type') {
-      return selectedUserType !== '';
-    }
-    return true;
-  };
-
-  if (!showOnboarding) {
-    // If navigated directly to /onboarding but already completed, show a message
-    if (window.location.pathname === '/onboarding' && preferences.onboardingCompleted) {
-      return (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '100vh',
-            padding: designTokens.spacing[6],
-            textAlign: 'center',
-          }}
-        >
-          <div>
-            <Brain
-              size={64}
-              color={designTokens.colors.primary[500]}
-              style={{ margin: '0 auto' }}
-            />
-            <h2 style={{ marginTop: designTokens.spacing[4] }}>You're already set up!</h2>
-            <p
-              style={{
-                color: designTokens.colors.neutral[600],
-                marginTop: designTokens.spacing[2],
-              }}
-            >
-              Redirecting to dashboard...
-            </p>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  }
-
-  if (!isWizardOpen) {
-    return (
-      <div
-        style={{
-          position: 'fixed',
-          right: designTokens.spacing[4],
-          bottom: designTokens.spacing[4],
-          zIndex: designTokens.zIndex.toast,
-          width: 'min(420px, calc(100vw - 32px))',
-        }}
-      >
-        <Card variant="elevated">
-          <CardHeader>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-              }}
-            >
-              <div style={{ flex: 1 }}>
-                <CardTitle style={{ fontSize: '16px' }}>Experience the Agentic Era</CardTitle>
-                <CardDescription style={{ fontSize: '13px' }}>
-                  Explore the dashboard with live agents and verifiable audit trails.
-                </CardDescription>
+            {/* Show connection status summary */}
+            <div css={css`
+              display: flex;
+              justify-content: center;
+              gap: ${designTokens.spacing[4]};
+              margin-bottom: ${designTokens.spacing[6]};
+            `}>
+              <div css={css`
+                display: flex;
+                align-items: center;
+                gap: ${designTokens.spacing[2]};
+                padding: ${designTokens.spacing[2]} ${designTokens.spacing[3]};
+                background: ${user.isConnected ? designTokens.colors.semantic.success[50] : designTokens.colors.neutral[100]};
+                border-radius: ${designTokens.borderRadius.md};
+                color: ${user.isConnected ? designTokens.colors.semantic.success[700] : designTokens.colors.neutral[500]};
+                font-size: ${designTokens.typography.fontSize.sm};
+              `}>
+                {user.isConnected ? <CheckCircle2 size={16} /> : null}
+                {user.isConnected ? 'Wallet Connected' : 'Wallet Not Connected'}
               </div>
-              <div
-                style={{
-                  background: 'var(--surface-bg-alt, #f1f5f9)',
-                  padding: '8px',
-                  borderRadius: '12px',
-                  display: isMobile ? 'none' : 'flex',
-                }}
-              >
-                <Brain size={24} color={designTokens.colors.primary[500]} />
+              <div css={css`
+                display: flex;
+                align-items: center;
+                gap: ${designTokens.spacing[2]};
+                padding: ${designTokens.spacing[2]} ${designTokens.spacing[3]};
+                background: ${user.owsWalletConnected ? designTokens.colors.semantic.success[50] : designTokens.colors.neutral[100]};
+                border-radius: ${designTokens.borderRadius.md};
+                color: ${user.owsWalletConnected ? designTokens.colors.semantic.success[700] : designTokens.colors.neutral[500]};
+                font-size: ${designTokens.typography.fontSize.sm};
+              `}>
+                {user.owsWalletConnected ? <CheckCircle2 size={16} /> : null}
+                {user.owsWalletConnected ? 'Treasury Ready' : 'Treasury Not Set'}
               </div>
             </div>
-          </CardHeader>
-          <CardContent style={{ paddingTop: 0 }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: designTokens.spacing[2],
-                marginTop: designTokens.spacing[2],
-              }}
-            >
-              <Button variant="ghost" size="sm" onClick={handleSkip}>
-                Maybe Later
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleStartOnboarding}>
-                Quick Start
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+          </div>
+        );
 
-  const overlayStyle = css`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--overlay-bg, rgba(15, 23, 42, 0.6));
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: ${designTokens.zIndex.modal};
-    padding: ${designTokens.spacing[4]};
-    animation: fadeIn 0.3s ease-out;
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
+      default:
+        return null;
     }
-  `;
-
-  const modalStyle = css`
-    background-color: var(--card-bg, ${designTokens.colors.neutral[0]});
-    border-radius: ${designTokens.borderRadius.xl};
-    box-shadow: ${designTokens.shadows['2xl']};
-    max-width: 800px;
-    width: 100%;
-    max-height: 90vh;
-    overflow: auto;
-    position: relative;
-    color: var(--text-primary, ${designTokens.colors.neutral[900]});
-    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px) scale(0.95);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-  `;
-
-  const progressStyle: React.CSSProperties = {
-    height: '4px',
-    backgroundColor: 'var(--divider, #e2e8f0)',
-    borderRadius: designTokens.borderRadius.full,
-    overflow: 'hidden',
   };
 
-  const progressFillStyle: React.CSSProperties = {
-    height: '100%',
-    backgroundColor: designTokens.colors.primary[500],
-    width: `${((currentStep + 1) / steps.length) * 100}%`,
-    transition: `width ${designTokens.animation.duration.normal} ${designTokens.animation.easing.easeInOut}`,
-  };
+  // Navigation buttons
+  const canProceed = currentStep === 0 ||
+    (currentStep === 1 && selectedUserType) ||
+    currentStep === 2 || // Can proceed without connecting wallet (optional)
+    currentStep === 3;
 
-  const footerStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: designTokens.spacing[6],
-    borderTop: `1px solid var(--divider, ${designTokens.colors.neutral[200]})`,
-  };
+  const isLastStep = currentStep === steps.length - 1;
 
   return (
-    <div css={overlayStyle}>
-      <div css={modalStyle}>
-        {/* Progress Bar */}
-        <div style={progressStyle}>
-          <div style={progressFillStyle} />
-        </div>
+    <div css={css`
+      max-width: 800px;
+      margin: 0 auto;
+      padding: ${designTokens.spacing[4]};
+    `}>
+      {/* Progress Indicator */}
+      <ProgressIndicator />
 
-        {/* Content */}
-        <div style={{ padding: designTokens.spacing[6] }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              marginBottom: designTokens.spacing[2],
-            }}
+      {/* Step Content */}
+      <div css={css`
+        background: var(--surface-bg, white);
+        border-radius: ${designTokens.borderRadius.xl};
+        box-shadow: ${designTokens.shadows.lg};
+        padding: ${isMobile ? designTokens.spacing[4] : designTokens.spacing[6]};
+        margin-bottom: ${designTokens.spacing[4]};
+      `}>
+        {renderStepContent()}
+      </div>
+
+      {/* Navigation */}
+      <div css={css`
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      `}>
+        <Button
+          variant="ghost"
+          onClick={handlePrevious}
+          disabled={currentStep === 0}
+        >
+          Back
+        </Button>
+
+        <div css={css`display: flex; gap: ${designTokens.spacing[3]};`}>
+          <Button
+            variant="secondary"
+            onClick={() => window.location.href = '/dashboard'}
           >
-            <Button variant="ghost" size="sm" onClick={() => setIsWizardOpen(false)}>
-              Close
-            </Button>
-          </div>
-          <CardHeader>
-            <CardTitle style={{ color: 'var(--card-text)' }}>{steps[currentStep].title}</CardTitle>
-            <CardDescription style={{ color: 'var(--text-secondary)' }}>{steps[currentStep].description}</CardDescription>
-          </CardHeader>
-          <CardContent
-            key={currentStep} // Key forces a re-mount for simple CSS animation
-            css={css`
-              animation: slideFadeIn 0.3s ease-out;
-              @keyframes slideFadeIn {
-                from {
-                  opacity: 0;
-                  transform: translateX(10px);
-                }
-                to {
-                  opacity: 1;
-                  transform: translateX(0);
-                }
-              }
-            `}
-          >
-            {steps[currentStep].component}
-          </CardContent>
-        </div>
+            Skip for Now
+          </Button>
 
-        {/* Footer */}
-        <div style={footerStyle}>
-          <div style={{ display: 'flex', gap: designTokens.spacing[2] }}>
-            <Button variant="ghost" onClick={handleSkip}>
-              Skip for now
+          {isLastStep ? (
+            <Button
+              variant="primary"
+              onClick={handleComplete}
+            >
+              Get Started
+              <ChevronRight size={16} />
             </Button>
-          </div>
-
-          <div style={{ display: 'flex', gap: designTokens.spacing[2] }}>
-            <Button variant="outline" onClick={handlePrevious} disabled={currentStep === 0}>
-              Previous
+          ) : (
+            <Button
+              variant="primary"
+              onClick={handleNext}
+              disabled={!canProceed}
+            >
+              Continue
+              <ChevronRight size={16} />
             </Button>
-
-            {currentStep === steps.length - 1 ? (
-              <Button variant="primary" onClick={handleComplete}>
-                Get Started
-              </Button>
-            ) : (
-              <Button variant="primary" onClick={handleNext} disabled={!canProceed()}>
-                Next
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>
