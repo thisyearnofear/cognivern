@@ -87,7 +87,7 @@ The spend control plane is live: policy evaluation, signed approvals, held actio
 - **Compact UI** — Reduced visual density across dashboard, cards, and navigation with smooth transitions
 - **Responsive Improvements** — Better mobile/tablet layouts with minimal agent display variants
 
-### Production Readiness: ~90%
+### Production Readiness: ~93%
 
 See [Developer Guide](./docs/DEVELOPER.md) for full checklist.
 
