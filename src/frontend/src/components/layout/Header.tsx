@@ -335,11 +335,53 @@ export const Header: React.FC = () => {
             color: ${connectedCount > 0
               ? (effectiveTheme === 'dark' ? designTokens.colors.neutral[100] : designTokens.colors.neutral[900])
               : designTokens.colors.neutral[700]};
+            padding: ${isMobile
+              ? `${designTokens.spacing[2]} ${designTokens.spacing[3]}`
+              : `${designTokens.spacing[2]} ${designTokens.spacing[4]}`};
           `}
-          title="Connection Center"
+          title="Connection Center - Connect wallets and services"
         >
           <Vault size={16} />
-          {!isMobile && <span>{connectedCount > 0 ? `${connectedCount}/3 Connected` : 'Connect'}</span>}
+          {!isMobile && (
+            <span>
+              {connectedCount > 0
+                ? `${connectedCount}/3 Connected`
+                : 'Connect Wallet'}
+            </span>
+          )}
+          {/* Connection status dots */}
+          {isMobile && (
+            <span css={css`
+              display: flex;
+              gap: 2px;
+              margin-left: ${designTokens.spacing[1]};
+            `}>
+              {user.isConnected && (
+                <span css={css`
+                  width: 6px;
+                  height: 6px;
+                  border-radius: 50%;
+                  background: ${designTokens.colors.semantic.success[500]};
+                `} />
+              )}
+              {user.owsWalletConnected && (
+                <span css={css`
+                  width: 6px;
+                  height: 6px;
+                  border-radius: 50%;
+                  background: ${designTokens.colors.semantic.success[500]};
+                `} />
+              )}
+              {user.fhenixConnected && (
+                <span css={css`
+                  width: 6px;
+                  height: 6px;
+                  border-radius: 50%;
+                  background: ${designTokens.colors.semantic.success[500]};
+                `} />
+              )}
+            </span>
+          )}
         </button>
 
         {/* User Menu */}
