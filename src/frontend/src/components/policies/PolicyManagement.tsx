@@ -123,24 +123,39 @@ function PolicyManagementContent() {
 
   const tabsContainerStyles = css`
     display: flex;
-    gap: ${designTokens.spacing[8]};
-    border-bottom: 1px solid ${designTokens.colors.neutral[200]};
-    margin-bottom: ${designTokens.spacing[8]};
+    gap: ${designTokens.spacing[1]};
+    border-bottom: 1px solid ${designTokens.colors.border.primary};
+    margin-bottom: ${designTokens.spacing[6]};
   `;
 
   const tabButtonStyles = (active: boolean) => css`
     background: none;
     border: none;
-    padding: ${designTokens.spacing[4]} 0;
-    font-size: ${designTokens.typography.fontSize.base};
-    font-weight: ${designTokens.typography.fontWeight.semibold};
-    color: ${active ? designTokens.colors.primary[600] : designTokens.colors.neutral[500]};
-    border-bottom: 2px solid ${active ? designTokens.colors.primary[600] : 'transparent'};
+    padding: ${designTokens.spacing[3]} ${designTokens.spacing[4]};
+    font-size: ${designTokens.typography.fontSize.sm};
+    font-weight: ${designTokens.typography.fontWeight.medium};
+    color: ${active ? designTokens.colors.text.primary : designTokens.colors.text.secondary};
+    border-bottom: 2px solid ${active ? designTokens.colors.primary[500] : 'transparent'};
+    margin-bottom: -1px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 150ms ease-out;
+    display: inline-flex;
+    align-items: center;
+    gap: ${designTokens.spacing[2]};
+
+    svg {
+      width: 14px;
+      height: 14px;
+      opacity: 0.7;
+      transition: opacity 150ms ease-out;
+    }
 
     &:hover {
-      color: ${designTokens.colors.primary[500]};
+      color: ${designTokens.colors.text.primary};
+
+      svg {
+        opacity: 1;
+      }
     }
   `;
 
@@ -196,28 +211,28 @@ function PolicyManagementContent() {
           css={tabButtonStyles(activeTab === 'templates')}
           onClick={() => setActiveTab('templates')}
         >
-          <FileText size={16} style={{ marginRight: '8px' }} />
+          <FileText size={14} />
           Templates
         </button>
         <button
           css={tabButtonStyles(activeTab === 'policies')}
           onClick={() => setActiveTab('policies')}
         >
-          <Shield size={16} style={{ marginRight: '8px' }} />
+          <Shield size={14} />
           My Policies ({policies.length})
         </button>
         <button
           css={tabButtonStyles(activeTab === 'agents')}
           onClick={() => setActiveTab('agents')}
         >
-          <Users size={16} style={{ marginRight: '8px' }} />
+          <Users size={14} />
           Connected Agents
         </button>
         <button
           css={tabButtonStyles(activeTab === 'simulation')}
           onClick={() => setActiveTab('simulation')}
         >
-          <PlayCircle size={16} style={{ marginRight: '8px' }} />
+          <PlayCircle size={14} />
           Simulation Mode
         </button>
       </nav>
