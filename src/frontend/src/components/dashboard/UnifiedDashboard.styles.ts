@@ -11,7 +11,11 @@ export const containerStyles = (isMobile: boolean) => css`
   position: relative;
   overflow-y: auto;
   height: 100%;
-  background: ${designTokens.colors.secondary[50]};
+  background: var(--dashboard-bg, ${designTokens.colors.secondary[50]});
+
+  [data-theme='dark'] & {
+    --dashboard-bg: ${designTokens.colors.neutral[900]};
+  }
 
   @keyframes slideIn {
     from {
@@ -398,4 +402,89 @@ export const jsonDisplayStyles = css`
   margin: 0;
   white-space: pre-wrap;
   word-break: break-all;
+`;
+
+// Content-specific loading skeletons
+const shimmer = `
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+`;
+
+const skeletonBlock = `
+  background: linear-gradient(90deg, ${designTokens.colors.neutral[100]} 25%, ${designTokens.colors.neutral[200]} 50%, ${designTokens.colors.neutral[100]} 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: ${designTokens.borderRadius.md};
+`;
+
+export const dashboardSkeletonStyles = css`
+  ${shimmer}
+  display: flex;
+  flex-direction: column;
+  gap: ${designTokens.spacing[6]};
+  padding: ${designTokens.spacing[8]};
+  max-width: 1440px;
+  margin: 0 auto;
+`;
+
+export const skeletonStatGridStyles = css`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: ${designTokens.spacing[6]};
+
+  @media (max-width: ${designTokens.breakpoints.md}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+export const skeletonStatCardStyles = css`
+  ${shimmer}
+  height: 100px;
+  ${skeletonBlock}
+  border-radius: ${designTokens.borderRadius.lg};
+`;
+
+export const skeletonBannerStyles = css`
+  ${shimmer}
+  height: 72px;
+  ${skeletonBlock}
+  border-radius: ${designTokens.borderRadius.lg};
+`;
+
+export const skeletonChartStyles = css`
+  ${shimmer}
+  height: 240px;
+  ${skeletonBlock}
+  border-radius: ${designTokens.borderRadius.lg};
+`;
+
+export const skeletonAgentGridStyles = css`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: ${designTokens.spacing[4]};
+
+  @media (max-width: ${designTokens.breakpoints.md}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const skeletonAgentCardStyles = css`
+  ${shimmer}
+  height: 140px;
+  ${skeletonBlock}
+  border-radius: ${designTokens.borderRadius.lg};
+`;
+
+export const skeletonActivityStyles = css`
+  display: flex;
+  flex-direction: column;
+  gap: ${designTokens.spacing[3]};
+`;
+
+export const skeletonActivityRowStyles = css`
+  ${shimmer}
+  height: 48px;
+  ${skeletonBlock}
 `;

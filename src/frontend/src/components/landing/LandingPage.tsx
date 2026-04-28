@@ -58,12 +58,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
     <div
       css={css`
         min-height: 100vh;
-        background: linear-gradient(
-          135deg,
-          ${designTokens.colors.neutral[50]} 0%,
-          ${designTokens.colors.primary[50]} 50%,
-          ${designTokens.colors.neutral[100]} 100%
-        );
+        background: #f8fafc;
         padding: ${designTokens.spacing[8]};
         display: flex;
         flex-direction: column;
@@ -154,97 +149,82 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
       {/* Hero */}
       <main
         css={css`
-          max-width: 800px;
+          position: relative;
+          max-width: 720px;
           text-align: center;
           margin-top: ${designTokens.spacing[32]};
+          padding: ${designTokens.spacing[12]} ${designTokens.spacing[8]};
+          background: #ffffff;
+          border-radius: ${designTokens.borderRadius['2xl']};
+          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
           opacity: ${isVisible ? 1 : 0};
           transform: translateY(${isVisible ? 0 : 20}px);
           transition: all 0.6s ease-out 0.2s;
-          /* Dark overlay on gradient for better text contrast */
-          &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(
-              180deg,
-              rgba(248, 250, 252, 0.3) 0%,
-              rgba(14, 165, 233, 0.1) 100%
-            );
-            pointer-events: none;
-          }
         `}
       >
+        {/* Badge */}
         <div
           css={css`
-            margin-bottom: ${designTokens.spacing[4]};
+            margin-bottom: ${designTokens.spacing[6]};
           `}
         >
           <span
             css={css`
               display: inline-block;
-              padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
-              background: ${designTokens.colors.primary[600]};
-              color: white;
+              padding: ${designTokens.spacing[2]} ${designTokens.spacing[4]};
+              background: #0f172a;
+              color: #00d4ff;
               border-radius: ${designTokens.borderRadius.full};
               font-size: ${designTokens.typography.fontSize.sm};
-              font-weight: ${designTokens.typography.fontWeight.medium};
-              box-shadow: 0 2px 8px ${designTokens.colors.primary[400]}40;
+              font-weight: ${designTokens.typography.fontWeight.semibold};
+              letter-spacing: 0.02em;
             `}
           >
             SpendOS for Autonomous Agents
           </span>
         </div>
 
+        {/* Headline */}
         <h1
           css={css`
-            font-size: ${designTokens.typography.fontSize['5xl']};
-            font-weight: ${designTokens.typography.fontWeight.bold};
-            color: var(--text-primary, ${designTokens.colors.neutral[900]});
-            margin-bottom: ${designTokens.spacing[6]};
-            line-height: 1.1;
-            letter-spacing: -0.02em;
-            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+            font-size: ${designTokens.typography.fontSize['4xl']};
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: ${designTokens.spacing[4]};
+            line-height: 1.15;
+            letter-spacing: -0.03em;
 
-            @media (min-width: 1024px) {
-              font-size: 4.5rem;
+            @media (min-width: 768px) {
+              font-size: 3rem;
             }
 
-            @media (max-width: 640px) {
-              font-size: ${designTokens.typography.fontSize['4xl']};
+            @media (max-width: 480px) {
+              font-size: 2rem;
             }
           `}
         >
-          Give Agents Spending Power
-          <br />
+          Give Agents Spending Power{' '}
           <span
             css={css`
-              background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
-              /* Subtle shadow for better contrast on light backgrounds */
-              filter: drop-shadow(0 1px 1px rgba(2, 132, 199, 0.3));
+              color: #0ea5e9;
             `}
           >
-            Without Giving Them a Blank Check
+            Without Blank Checks
           </span>
         </h1>
 
+        {/* Subheadline */}
         <p
           css={css`
             font-size: ${designTokens.typography.fontSize.lg};
-            color: var(--text-secondary, ${designTokens.colors.neutral[700]});
-            max-width: 600px;
+            color: #475569;
+            max-width: 480px;
             margin: 0 auto ${designTokens.spacing[8]};
-            line-height: ${designTokens.typography.lineHeight.relaxed};
+            line-height: 1.6;
           `}
         >
-          Cognivern connects to OWS wallets and lets you set policy guardrails. Agents can request
-          spend - you decide what gets approved. Every decision is logged with evidence for your
-          audit trail.
+          Cognivern connects to OWS wallets. Set policy guardrails. Agents request spend—you
+          approve. Every decision logged.
         </p>
 
         <div
@@ -630,29 +610,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
         <div
           css={css`
             margin-top: ${designTokens.spacing[12]};
-            padding: ${designTokens.spacing[8]};
-            background: ${designTokens.colors.neutral[0]};
-            border-radius: ${designTokens.borderRadius.xl};
-            border: 1px solid ${designTokens.colors.neutral[200]};
+            margin-top: ${designTokens.spacing[16]};
+            text-align: center;
           `}
         >
           <h2
             css={css`
               font-size: ${designTokens.typography.fontSize.xl};
-              font-weight: ${designTokens.typography.fontWeight.semibold};
-              margin-bottom: ${designTokens.spacing[4]};
+              font-weight: 700;
+              color: #1e293b;
+              margin-bottom: ${designTokens.spacing[3]};
             `}
           >
             Ready to try it?
           </h2>
           <p
             css={css`
-              color: ${designTokens.colors.neutral[600]};
+              color: #64748b;
               margin-bottom: ${designTokens.spacing[6]};
+              max-width: 400px;
+              margin-left: auto;
+              margin-right: auto;
             `}
           >
-            Our guided setup walks you through connecting a wallet and setting your first policy in
-            under 2 minutes.
+            Guided setup walks you through connecting a wallet in under 2 minutes.
           </p>
           <Button variant="primary" size="lg" onClick={handleGetStarted}>
             Start Setup Wizard →

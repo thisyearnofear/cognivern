@@ -657,12 +657,39 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                 background: linear-gradient(
                   135deg,
                   ${designTokens.colors.primary[50]} 0%,
+                  ${designTokens.colors.primary[100]} 40%,
                   ${designTokens.colors.semantic.success[50]} 100%
                 );
-                border-radius: ${designTokens.borderRadius.lg};
-                padding: ${designTokens.spacing[6]};
+                border-radius: ${designTokens.borderRadius.xl};
+                padding: ${isMobile ? designTokens.spacing[5] : designTokens.spacing[8]};
                 margin-bottom: ${designTokens.spacing[6]};
                 border: 1px solid ${designTokens.colors.primary[200]};
+                position: relative;
+                overflow: hidden;
+
+                &::before {
+                  content: '';
+                  position: absolute;
+                  top: -40px;
+                  right: -40px;
+                  width: 200px;
+                  height: 200px;
+                  border-radius: 50%;
+                  background: ${designTokens.colors.primary[200]}33;
+                  pointer-events: none;
+                }
+
+                &::after {
+                  content: '';
+                  position: absolute;
+                  bottom: -60px;
+                  left: 30%;
+                  width: 160px;
+                  height: 160px;
+                  border-radius: 50%;
+                  background: ${designTokens.colors.semantic.success[200]}22;
+                  pointer-events: none;
+                }
               `}
             >
               <div
@@ -670,21 +697,30 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                   display: "flex",
                   alignItems: "flex-start",
                   gap: designTokens.spacing[4],
+                  position: "relative",
+                  zIndex: 1,
                 }}
               >
                 <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: "50%",
-                    background: designTokens.colors.primary[100],
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
+                  css={css`
+                    width: 56px;
+                    height: 56px;
+                    border-radius: 50%;
+                    background: ${designTokens.colorSystem.gradients.primary};
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    box-shadow: ${designTokens.shadows.lg};
+                    animation: pulse-glow 2s ease-in-out infinite;
+
+                    @keyframes pulse-glow {
+                      0%, 100% { box-shadow: ${designTokens.shadows.lg}; }
+                      50% { box-shadow: 0 0 20px ${designTokens.colors.primary[300]}80; }
+                    }
+                  `}
                 >
-                  <Zap size={24} color={designTokens.colors.primary[600]} />
+                  <Zap size={28} color="white" />
                 </div>
                 <div style={{ flex: 1 }}>
                   <h3
@@ -703,12 +739,65 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                       margin: `0 0 ${designTokens.spacing[4]} 0`,
                       color: designTokens.colors.neutral[600],
                       fontSize: "14px",
+                      lineHeight: 1.6,
                     }}
                   >
                     {stats?.activeAgents === 0
                       ? "Connect an agent to enable governed spend. We'll walk you through the setup."
                       : "Set spend limits and rules to control what your agents can approve."}
                   </p>
+
+                  {/* Progressive onboarding checklist */}
+                  <div
+                    css={css`
+                      display: flex;
+                      flex-direction: column;
+                      gap: ${designTokens.spacing[2]};
+                      margin-bottom: ${designTokens.spacing[5]};
+                      padding: ${designTokens.spacing[3]} ${designTokens.spacing[4]};
+                      background: rgba(255, 255, 255, 0.6);
+                      border-radius: ${designTokens.borderRadius.md};
+                      backdrop-filter: blur(4px);
+                    `}
+                  >
+                    {[
+                      { label: "Connect wallet", done: true },
+                      { label: "Deploy your first agent", done: (stats?.totalAgents || 0) > 0 },
+                      { label: "Create a governance policy", done: (stats?.totalPolicies || 0) > 0 },
+                      { label: "Run first governed action", done: (stats?.totalTrades || 0) > 0 },
+                    ].map((step, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: designTokens.spacing[2],
+                          fontSize: designTokens.typography.fontSize.sm,
+                          color: step.done
+                            ? designTokens.colors.semantic.success[600]
+                            : designTokens.colors.neutral[600],
+                        }}
+                      >
+                        {step.done ? (
+                          <CheckCircle2 size={16} color={designTokens.colors.semantic.success[500]} />
+                        ) : (
+                          <div
+                            style={{
+                              width: 16,
+                              height: 16,
+                              borderRadius: "50%",
+                              border: `2px solid ${designTokens.colors.neutral[300]}`,
+                              flexShrink: 0,
+                            }}
+                          />
+                        )}
+                        <span style={{ textDecoration: step.done ? "line-through" : "none", opacity: step.done ? 0.7 : 1 }}>
+                          {step.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
                   <div
                     style={{
                       display: "flex",
@@ -794,6 +883,115 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
             }}
           />
         </div>
+      </section>
+
+      {/* Governance Health Banner - Elevated Trust Signal */}
+      <section css={styles.sectionStyles}>
+        <Card
+          css={css`
+            overflow: hidden;
+            border: 1px solid ${designTokens.colors.semantic.success[200]};
+            background: linear-gradient(
+              135deg,
+              ${designTokens.colors.semantic.success[50]} 0%,
+              ${designTokens.colors.neutral[0]} 60%,
+              ${designTokens.colors.primary[50]} 100%
+            );
+          `}
+        >
+          <CardContent>
+            <div
+              css={css`
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: ${designTokens.spacing[4]};
+              `}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: designTokens.spacing[3] }}>
+                <div
+                  css={css`
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 50%;
+                    background: ${designTokens.colors.semantic.success[100]};
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                  `}
+                >
+                  <ShieldCheck size={24} color={designTokens.colors.semantic.success[600]} />
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: designTokens.typography.fontSize.lg,
+                      fontWeight: designTokens.typography.fontWeight.bold,
+                      color: designTokens.colors.text.primary,
+                    }}
+                  >
+                    Governance Health
+                  </div>
+                  <div
+                    style={{
+                      fontSize: designTokens.typography.fontSize.sm,
+                      color: designTokens.colors.text.secondary,
+                    }}
+                  >
+                    {stats?.totalPolicies || 0} policies active · {stats?.activeAgents || 0} agents governed · {((stats?.avgWinRate || 0) * 100).toFixed(0)}% approval rate
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: designTokens.spacing[3] }}>
+                {/* Governance score indicator */}
+                {(() => {
+                  const score = Math.min(100, Math.round(
+                    ((stats?.totalPolicies || 0) > 0 ? 30 : 0) +
+                    ((stats?.activeAgents || 0) > 0 ? 30 : 0) +
+                    ((stats?.avgWinRate || 0) * 40)
+                  ));
+                  const color = score >= 70
+                    ? designTokens.colors.semantic.success[500]
+                    : score >= 40
+                      ? designTokens.colors.semantic.warning[500]
+                      : designTokens.colors.semantic.error[500];
+                  return (
+                    <div style={{ display: "flex", alignItems: "center", gap: designTokens.spacing[2] }}>
+                      <div
+                        css={css`
+                          width: 48px;
+                          height: 48px;
+                          border-radius: 50%;
+                          border: 3px solid ${color};
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          font-size: ${designTokens.typography.fontSize.lg};
+                          font-weight: ${designTokens.typography.fontWeight.bold};
+                          color: ${color};
+                        `}
+                      >
+                        {score}
+                      </div>
+                      <div style={{ fontSize: designTokens.typography.fontSize.xs, color: designTokens.colors.text.secondary }}>
+                        Governance<br />Score
+                      </div>
+                    </div>
+                  );
+                })()}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/audit")}
+                >
+                  View Audit Trail
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </section>
 
       {/* Live Ecosystem - Collapsible, shown by default */}
@@ -887,34 +1085,73 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
           </div>
 
           {isLoading ? (
-            <div css={styles.loadingStyles}>Loading agents...</div>
+            <div css={styles.skeletonAgentGridStyles}>
+              <div css={styles.skeletonAgentCardStyles} />
+              <div css={styles.skeletonAgentCardStyles} />
+              <div css={styles.skeletonAgentCardStyles} />
+            </div>
           ) : agents.length === 0 ? (
             <div
-              style={{
-                textAlign: "center",
-                padding: designTokens.spacing[8],
-                background: designTokens.colors.neutral[50],
-                borderRadius: designTokens.borderRadius.md,
-              }}
+              css={css`
+                text-align: center;
+                padding: ${designTokens.spacing[10]} ${designTokens.spacing[6]};
+                background: linear-gradient(180deg, ${designTokens.colors.neutral[50]} 0%, ${designTokens.colors.primary[50]}44 100%);
+                border-radius: ${designTokens.borderRadius.lg};
+                border: 2px dashed ${designTokens.colors.neutral[200]};
+                transition: border-color 0.2s ease, background 0.2s ease;
+
+                &:hover {
+                  border-color: ${designTokens.colors.primary[300]};
+                  background: linear-gradient(180deg, ${designTokens.colors.neutral[50]} 0%, ${designTokens.colors.primary[50]}88 100%);
+                }
+              `}
             >
-              <Users
-                size={40}
-                color={designTokens.colors.neutral[400]}
-                style={{ marginBottom: designTokens.spacing[3] }}
-              />
-              <p
+              <div
+                css={css`
+                  width: 72px;
+                  height: 72px;
+                  border-radius: 50%;
+                  background: ${designTokens.colors.primary[100]};
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin: 0 auto ${designTokens.spacing[4]};
+                `}
+              >
+                <Users
+                  size={32}
+                  color={designTokens.colors.primary[500]}
+                />
+              </div>
+              <h3
                 style={{
-                  margin: `0 0 ${designTokens.spacing[3]} 0`,
-                  color: designTokens.colors.neutral[600],
+                  margin: `0 0 ${designTokens.spacing[2]} 0`,
+                  fontSize: designTokens.typography.fontSize.lg,
+                  fontWeight: designTokens.typography.fontWeight.semibold,
+                  color: designTokens.colors.text.primary,
                 }}
               >
                 No agents connected yet
+              </h3>
+              <p
+                style={{
+                  margin: `0 0 ${designTokens.spacing[5]} 0`,
+                  color: designTokens.colors.neutral[500],
+                  fontSize: designTokens.typography.fontSize.sm,
+                  maxWidth: "360px",
+                  marginLeft: "auto",
+                  marginRight: "auto",
+                  lineHeight: 1.6,
+                }}
+              >
+                Connect your first autonomous agent to start monitoring performance, enforcing policies, and tracking governance decisions.
               </p>
               <Button
                 variant="primary"
                 size="sm"
                 onClick={() => navigate("/agents/connect")}
               >
+                <PlusCircle size={16} style={{ marginRight: "6px" }} />
                 Connect Your First Agent
               </Button>
             </div>
@@ -958,26 +1195,53 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
           </div>
           {recentActivity.length === 0 ? (
             <div
-              style={{
-                textAlign: "center",
-                padding: designTokens.spacing[8],
-                background: designTokens.colors.neutral[50],
-                borderRadius: designTokens.borderRadius.md,
-              }}
+              css={css`
+                text-align: center;
+                padding: ${designTokens.spacing[10]} ${designTokens.spacing[6]};
+                background: linear-gradient(180deg, ${designTokens.colors.neutral[50]} 0%, ${designTokens.colors.semantic.success[50]}33 100%);
+                border-radius: ${designTokens.borderRadius.lg};
+                border: 2px dashed ${designTokens.colors.neutral[200]};
+              `}
             >
-              <FileSearch
-                size={40}
-                color={designTokens.colors.neutral[400]}
-                style={{ marginBottom: designTokens.spacing[3] }}
-              />
-              <p
+              <div
+                css={css`
+                  width: 72px;
+                  height: 72px;
+                  border-radius: 50%;
+                  background: ${designTokens.colors.semantic.success[100]};
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin: 0 auto ${designTokens.spacing[4]};
+                `}
+              >
+                <FileSearch
+                  size={32}
+                  color={designTokens.colors.semantic.success[500]}
+                />
+              </div>
+              <h3
                 style={{
-                  margin: `0 0 ${designTokens.spacing[3]} 0`,
-                  color: designTokens.colors.neutral[600],
+                  margin: `0 0 ${designTokens.spacing[2]} 0`,
+                  fontSize: designTokens.typography.fontSize.lg,
+                  fontWeight: designTokens.typography.fontWeight.semibold,
+                  color: designTokens.colors.text.primary,
                 }}
               >
-                No activity yet - actions will appear here once agents start
-                making decisions
+                No activity yet
+              </h3>
+              <p
+                style={{
+                  margin: 0,
+                  color: designTokens.colors.neutral[500],
+                  fontSize: designTokens.typography.fontSize.sm,
+                  maxWidth: "360px",
+                  marginLeft: "auto",
+                  marginRight: "auto",
+                  lineHeight: 1.6,
+                }}
+              >
+                Governance decisions, policy evaluations, and agent actions will appear here in real time once your agents start operating.
               </p>
             </div>
           ) : (
@@ -1059,7 +1323,11 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
           </div>
 
           {isThoughtsLoading ? (
-            <div css={styles.loadingStyles}>Loading agent trace...</div>
+            <div css={styles.skeletonActivityStyles}>
+              <div css={styles.skeletonActivityRowStyles} />
+              <div css={styles.skeletonActivityRowStyles} />
+              <div css={styles.skeletonActivityRowStyles} />
+            </div>
           ) : (
             <GenerativeReveal active={!isThoughtsLoading} duration={800}>
               <div
