@@ -14,9 +14,12 @@ export interface AgentCardProps {
     winRate?: number;
     totalReturn?: number;
     description?: string;
+    type?: string;
   };
   compact?: boolean;
   interactive?: boolean;
+  /** Display variant: default, compact (narrow), minimal (single line) */
+  variant?: 'default' | 'compact' | 'minimal';
 }
 
 /**
@@ -29,19 +32,27 @@ export interface AgentCardProps {
  * - PERFORMANT: Uses lean CSS-in-JS and design tokens for optimal rendering.
  */
 
-const cardWrapperStyles = (compact: boolean) => css`
-  ${compact ? 'width: 240px; flex-shrink: 0;' : 'width: 100%; max-width: 320px;'}
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  transition:
-    transform 0.2s ease-in-out,
-    box-shadow 0.2s ease-in-out;
+const cardWrapperStyles = (compact: boolean, variant: string) => {
+  const variantStyles = {
+    default: 'width: 100%; max-width: 320px;',
+    compact: 'width: 240px; flex-shrink: 0;',
+    minimal: 'width: 100%; flex-shrink: 1;',
+  };
 
-  &:hover {
-    transform: translateY(-2px);
-  }
-`;
+  return css`
+    ${variantStyles[variant as keyof typeof variantStyles] || variantStyles.default}
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    transition:
+      transform 0.15s ease-in-out,
+      box-shadow 0.15s ease-in-out;
+
+    &:hover {
+      transform: translateY(-1px);
+    }
+  `;
+};
 
 const headerStyles = css`
   display: flex;
@@ -102,10 +113,31 @@ const metricValueStyles = (isPositive: boolean) => css`
   margin-top: 2px;
 `;
 
+// Minimal variant styles - single line metrics strip
+const minimalContainerStyles = css`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${designTokens.spacing[3]};
+  padding: ${designTokens.spacing[2]} 0;
+`;
+
+const minimalMetricStyles = css`
+  display: flex;
+  align-items: center;
+  gap: ${designTokens.spacing[2]};
+`;
+
+const minimalLabelStyles = css`
+  font-size: ${designTokens.typography.fontSize.xs};
+  color: ${designTokens.colors.neutral[500]};
+`;
+
 export const AgentCard: React.FC<AgentCardProps> = ({
   agent,
   compact = false,
   interactive = true,
+  variant = 'default',
 }) => {
   const navigate = useNavigate();
 
@@ -115,12 +147,44 @@ export const AgentCard: React.FC<AgentCardProps> = ({
     }
   };
 
+  // Minimal variant - single line with inline metrics
+  if (variant === 'minimal') {
+    return (
+      <Card
+        css={cardWrapperStyles(compact, variant)}
+        interactive={interactive}
+        onClick={handleClick}
+        padding="sm"
+      >
+        <div css={minimalContainerStyles}>
+          <div css={minimalMetricStyles}>
+            <span css={nameStyles}>{agent.name}</span>
+            <Badge variant={agent.status === 'active' ? 'success' : 'secondary'} size="sm">
+              {agent.status}
+            </Badge>
+          </div>
+          <div css={minimalMetricStyles}>
+            {agent.winRate !== undefined && (
+              <span css={minimalLabelStyles}>WR: {(agent.winRate * 100).toFixed(0)}%</span>
+            )}
+            {agent.totalReturn !== undefined && (
+              <span css={metricValueStyles(agent.totalReturn >= 0)}>
+                {agent.totalReturn >= 0 ? '+' : ''}
+                {(agent.totalReturn * 100).toFixed(1)}%
+              </span>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card
-      css={cardWrapperStyles(compact)}
+      css={cardWrapperStyles(compact, variant)}
       interactive={interactive}
       onClick={handleClick}
-      padding="md"
+      padding={variant === 'compact' ? 'sm' : 'md'}
     >
       <CardContent
         css={css`
@@ -133,12 +197,17 @@ export const AgentCard: React.FC<AgentCardProps> = ({
           <h3 css={nameStyles} title={agent.name}>
             {agent.name}
           </h3>
-          <Badge variant={agent.status === 'active' ? 'success' : 'secondary'}>
+          <Badge
+            variant={agent.status === 'active' ? 'success' : 'secondary'}
+            size={variant === 'compact' ? 'sm' : 'md'}
+          >
             {agent.status}
           </Badge>
         </div>
 
-        {!compact && agent.description && <p css={descriptionStyles}>{agent.description}</p>}
+        {variant !== 'compact' && agent.description && (
+          <p css={descriptionStyles}>{agent.description}</p>
+        )}
 
         <div css={metricsContainerStyles}>
           <div css={metricBlockStyles}>
