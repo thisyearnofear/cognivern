@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import apiService from '../services/apiService';
 
 /**
  * Represents a dynamically generated UI component from the agent.
@@ -232,247 +233,56 @@ export const useIntentStore = create<IntentState>((set, get) => ({
     try {
       const { conversationalContext } = get();
 
-      // Simulate network/thinking latency
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Call real backend API for intent processing
+      const response = await apiService.post<{
+        success: boolean;
+        data: {
+          type: string;
+          response: string;
+          component?: {
+            type: string;
+            props?: Record<string, any>;
+            data?: any;
+          };
+          context?: Record<string, any>;
+          suggestions?: string[];
+        };
+      }>('/intent', {
+        query,
+        context: conversationalContext,
+      });
 
-      // Mock response logic for early implementation
-      const mockResponse = {
-        response: "I've analyzed your request. Here's what I found.",
-        component: null as GeneratedUIComponent | null,
-        newContext: {} as Record<string, any>,
-      };
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to process intent');
+      }
 
-      const lowercaseQuery = query.toLowerCase();
+      const { data } = response;
 
-      // Forensic Memory Logic:
-      if (
-        lowercaseQuery.includes('forensic') ||
-        lowercaseQuery.includes('trace') ||
-        lowercaseQuery.includes('explain') ||
-        lowercaseQuery.includes('why')
-      ) {
-        mockResponse.component = {
+      // Convert API response to UI component
+      let component: GeneratedUIComponent | null = null;
+      if (data.component) {
+        component = {
           id: `comp-${interactionId}`,
-          type: 'forensic-timeline',
-          props: {
-            agentName: conversationalContext.lastAgentName || 'Alpha Arbitrage',
-            events: [
-              {
-                id: '1',
-                timestamp: Date.now() - 5000,
-                type: 'observation',
-                title: 'Liquidity Imbalance Detected',
-                description:
-                  'Detected 2.4% price delta between Uniswap V3 and SushiSwap for WETH/USDC.',
-              },
-              {
-                id: '2',
-                timestamp: Date.now() - 4000,
-                type: 'thought',
-                title: 'Evaluating Arbitrage Route',
-                description: 'Calculating gas costs and slippage. Estimated net profit: 0.042 ETH.',
-              },
-              {
-                id: '3',
-                timestamp: Date.now() - 3000,
-                type: 'validation',
-                title: 'Governance Check Passed',
-                description:
-                  "Trade size (10 ETH) is within the 15 ETH limit defined in 'Standard Guardrails'.",
-                metadata: { policyId: 'pol-standard-1' },
-              },
-              {
-                id: '4',
-                timestamp: Date.now() - 2000,
-                type: 'action',
-                title: 'Execution Triggered',
-                description: 'Flash swap initiated via multi-hop router.',
-                metadata: { txHash: '0x742d...44e' },
-              },
-            ],
-          },
-        };
-      } else if (
-        (lowercaseQuery.includes('start') || lowercaseQuery.includes('run')) &&
-        conversationalContext.lastAgentId
-      ) {
-        mockResponse.response = `Starting the agent ${conversationalContext.lastAgentName}...`;
-        mockResponse.component = {
-          id: `comp-${interactionId}`,
-          type: 'status',
-          props: {
-            title: 'Agent Deployment',
-            status: 'success',
-            message: `${conversationalContext.lastAgentName} is now live.`,
-          },
-        };
-      } else if (
-        lowercaseQuery.includes('risk') ||
-        lowercaseQuery.includes('safety') ||
-        lowercaseQuery.includes('health') ||
-        lowercaseQuery.includes('score')
-      ) {
-        mockResponse.component = {
-          id: `comp-${interactionId}`,
-          type: 'governance-score',
-          props: {
-            score: 85,
-            label: 'Safety Health',
-            details: [
-              { label: 'Active Rules', value: '12' },
-              { label: 'High Risk Triggers', value: '0' },
-              { label: 'Audit Coverage', value: '98%' },
-              { label: 'Human Approvals', value: 'Enabled' },
-            ],
-          },
-        };
-      } else if (
-        lowercaseQuery.includes('policy') ||
-        lowercaseQuery.includes('governance') ||
-        lowercaseQuery.includes('rules')
-      ) {
-        mockResponse.component = {
-          id: `comp-${interactionId}`,
-          type: 'policy',
-          props: {},
-          data: {
-            id: 'pol-standard-1',
-            name: 'Standard Guardrails',
-            description: 'Balanced safety policy with real-time audit logging and rate limiting.',
-            status: 'active',
-            rules: [
-              { id: '1', name: 'Audit', enabled: true, strictness: 'medium' },
-              {
-                id: '2',
-                name: 'Rate Limit',
-                enabled: true,
-                strictness: 'high',
-              },
-            ],
-          },
-        };
-      } else if (lowercaseQuery.includes('stats') || lowercaseQuery.includes('performance')) {
-        mockResponse.component = {
-          id: `comp-${interactionId}`,
-          type: 'stat',
-          props: {
-            title: 'Global Win Rate',
-            value: '68.2%',
-            icon: '📈',
-            color: 'success',
-            trend: { value: '4.2% since yesterday', isPositive: true },
-          },
-        };
-      } else if (
-        lowercaseQuery.includes('create') &&
-        (lowercaseQuery.includes('agent') || lowercaseQuery.includes('bot'))
-      ) {
-        mockResponse.component = {
-          id: `comp-${interactionId}`,
-          type: 'action-form',
-          props: {
-            title: 'Create New Agent',
-            submitText: 'Deploy Agent',
-            fields: [
-              {
-                name: 'name',
-                label: 'Agent Name',
-                placeholder: 'e.g. Gamma Trend Follower',
-                required: true,
-              },
-              {
-                name: 'type',
-                label: 'Strategy Type',
-                type: 'select',
-                options: [
-                  { value: 'arbitrage', label: 'Arbitrage' },
-                  { value: 'trend', label: 'Trend Following' },
-                  { value: 'market-making', label: 'Market Making' },
-                ],
-                required: true,
-              },
-              {
-                name: 'risk',
-                label: 'Risk Profile',
-                type: 'select',
-                options: [
-                  { value: 'low', label: 'Conservative' },
-                  { value: 'medium', label: 'Balanced' },
-                  { value: 'high', label: 'Aggressive' },
-                ],
-                required: true,
-              },
-            ],
-          },
-        };
-      } else if (lowercaseQuery.includes('risk') || lowercaseQuery.includes('security baseline')) {
-        mockResponse.response = "Excellent choice. I'll help you configure that governance policy.";
-        mockResponse.component = {
-          id: `comp-${interactionId}`,
-          type: 'action-form',
-          props: {
-            title: lowercaseQuery.includes('risk')
-              ? 'Configure Trading Risk Management'
-              : 'Configure Security Foundation',
-            submitText: 'Apply Policy',
-            fields: [
-              {
-                name: 'policy_name',
-                label: 'Policy Name',
-                placeholder: 'e.g. Production Guardrails',
-                required: true,
-              },
-              {
-                name: 'mode',
-                label: 'Enforcement Mode',
-                type: 'select',
-                options: [
-                  { value: 'monitor', label: 'Monitoring Only' },
-                  { value: 'enforce', label: 'Strict Enforcement' },
-                ],
-                required: true,
-              },
-            ],
-          },
-        };
-      } else if (lowercaseQuery.includes('agent') || lowercaseQuery.includes('bot')) {
-        const agentData = {
-          id: 'alpha-1',
-          name: 'Alpha Arbitrage',
-          status: 'active',
-          winRate: 0.72,
-          totalReturn: 0.154,
-          description: 'High-frequency arbitrage agent monitoring top tier liquidity pools.',
-        };
-
-        mockResponse.component = {
-          id: `comp-${interactionId}`,
-          type: 'agent',
-          props: {},
-          data: agentData,
-        };
-
-        // Store context for conversational memory
-        mockResponse.newContext = {
-          lastAgentId: agentData.id,
-          lastAgentName: agentData.name,
+          type: data.component.type as GeneratedUIComponent['type'],
+          props: data.component.props || {},
+          data: data.component.data,
         };
       }
 
       set((state) => ({
         isThinking: false,
-        activeComponent: mockResponse.component,
+        activeComponent: component,
         conversationalContext: {
           ...state.conversationalContext,
-          ...mockResponse.newContext,
+          ...data.context,
         },
         history: state.history.map((h) =>
           h.id === interactionId
             ? {
                 ...h,
                 status: 'completed' as const,
-                response: mockResponse.response,
-                component: mockResponse.component || undefined,
+                response: data.response,
+                component: component || undefined,
               }
             : h,
         ),

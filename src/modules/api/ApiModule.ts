@@ -36,6 +36,7 @@ import { OwsWalletController } from "./controllers/OwsWalletController.js";
 import { OwsApiKeyController } from "./controllers/OwsApiKeyController.js";
 import { OwsPermissionsController } from "./controllers/OwsPermissionsController.js";
 import { FhenixController } from "./controllers/FhenixController.js";
+import { IntentController } from "./controllers/IntentController.js";
 import type { Server } from "node:http";
 
 /** Typed controller registry */
@@ -55,6 +56,7 @@ interface ControllerRegistry {
   owsApiKey: OwsApiKeyController;
   owsPermissions: OwsPermissionsController;
   fhenix: FhenixController;
+  intent: IntentController;
 }
 
 /** Typed error with optional HTTP status code */
@@ -252,6 +254,7 @@ export class ApiModule extends BaseService {
       "/projects",
       "/fhenix/status",
       "/fhenix/decrypt",
+      "/intent",
     ];
     if (publicEndpoints.some((endpoint) => req.path === endpoint)) {
       return next();
@@ -323,6 +326,7 @@ export class ApiModule extends BaseService {
     this.controllers.owsApiKey = new OwsApiKeyController();
     this.controllers.owsPermissions = new OwsPermissionsController();
     this.controllers.fhenix = new FhenixController();
+    this.controllers.intent = new IntentController();
 
     // Initialize all controllers that have an initialize method
     for (const [name, controller] of Object.entries(this.controllers)) {
@@ -731,6 +735,11 @@ export class ApiModule extends BaseService {
 
     apiRouter.get("/dashboard/events/stream", (req, res) => {
       this.ctrl("agents").streamDashboardEvents(req, res);
+    });
+
+    // Intent / Natural Language Processing routes
+    apiRouter.post("/intent", (req, res) => {
+      this.ctrl("intent").processIntent(req, res);
     });
 
     // Mount API router
