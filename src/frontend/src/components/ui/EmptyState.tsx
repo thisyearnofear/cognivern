@@ -30,7 +30,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   compact = false,
 }) => {
   // Default configs by type
-  const configs: Record<EmptyStateType, { defaultIcon: React.ReactNode; defaultTitle: string; defaultDescription: string; defaultAction: string }> = {
+  const configs: Record<
+    EmptyStateType,
+    {
+      defaultIcon: React.ReactNode;
+      defaultTitle: string;
+      defaultDescription: string;
+      defaultAction: string;
+    }
+  > = {
     agents: {
       defaultIcon: <Users size={compact ? 32 : 48} />,
       defaultTitle: 'No agents yet',
@@ -66,46 +74,52 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   const config = configs[type];
 
   return (
-    <div css={css`
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: ${compact ? designTokens.spacing[4] : designTokens.spacing[8]};
-      text-align: center;
-      min-height: ${compact ? 120 : 200}px;
-    `}>
-      <div css={css`
-        color: ${designTokens.colors.neutral[300]};
-        margin-bottom: ${designTokens.spacing[3]};
-      `}>
+    <div
+      css={css`
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: ${compact ? designTokens.spacing[4] : designTokens.spacing[8]};
+        text-align: center;
+        min-height: ${compact ? 120 : 200}px;
+      `}
+    >
+      <div
+        css={css`
+          color: ${designTokens.colors.neutral[300]};
+          margin-bottom: ${designTokens.spacing[3]};
+        `}
+      >
         {icon || config.defaultIcon}
       </div>
 
-      <h3 css={css`
-        margin: 0 0 ${designTokens.spacing[2]} 0;
-        font-size: ${compact ? designTokens.typography.fontSize.md : designTokens.typography.fontSize.lg};
-        font-weight: ${designTokens.typography.fontWeight.semibold};
-        color: var(--text-primary);
-      `}>
+      <h3
+        css={css`
+          margin: 0 0 ${designTokens.spacing[2]} 0;
+          font-size: ${compact
+            ? designTokens.typography.fontSize.md
+            : designTokens.typography.fontSize.lg};
+          font-weight: ${designTokens.typography.fontWeight.semibold};
+          color: var(--text-primary);
+        `}
+      >
         {title || config.defaultTitle}
       </h3>
 
-      <p css={css`
-        margin: 0 0 ${designTokens.spacing[4]} 0;
-        font-size: ${designTokens.typography.fontSize.sm};
-        color: var(--text-secondary);
-        max-width: ${compact ? 240 : 320}px;
-      `}>
+      <p
+        css={css`
+          margin: 0 0 ${designTokens.spacing[4]} 0;
+          font-size: ${designTokens.typography.fontSize.sm};
+          color: var(--text-secondary);
+          max-width: ${compact ? 240 : 320}px;
+        `}
+      >
         {description || config.defaultDescription}
       </p>
 
       {onAction && (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onAction}
-        >
+        <Button variant="secondary" size="sm" onClick={onAction}>
           <Plus size={14} />
           {actionLabel || config.defaultAction}
         </Button>

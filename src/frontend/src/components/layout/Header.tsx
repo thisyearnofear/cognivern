@@ -316,10 +316,7 @@ export const Header: React.FC = () => {
         )}
 
         {/* Connection Status Badge - shared component */}
-        <ConnectionStatusBadge
-          interactive
-          onClick={() => setIsConnectionModalOpen(true)}
-        />
+        <ConnectionStatusBadge interactive onClick={() => setIsConnectionModalOpen(true)} />
 
         {/* User Menu */}
         {user.isConnected && (
