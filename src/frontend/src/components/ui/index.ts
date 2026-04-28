@@ -25,6 +25,7 @@ export { Confetti } from './Confetti';
 export { PageTransition } from './PageTransition';
 export { Tooltip } from './Tooltip';
 export { ErrorBoundary, useErrorBoundary } from './ErrorBoundary';
+export { Tabs, TabList, Tab, TabContent } from './Tabs';
 
 // Re-export types
 export type { ButtonProps } from './Button';
