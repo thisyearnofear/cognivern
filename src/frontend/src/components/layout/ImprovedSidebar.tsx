@@ -194,8 +194,19 @@ export const ImprovedSidebar: React.FC = () => {
   `;
 
   const logoIconStyles = css`
-    font-size: ${designTokens.typography.fontSize['2xl']};
+    font-size: ${designTokens.typography.fontSize.lg};
+    font-weight: ${designTokens.typography.fontWeight.bold};
     flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: ${designTokens.borderRadius.lg};
+    background: ${designTokens.colorSystem.gradients.primary};
+    color: white;
+    letter-spacing: -0.5px;
+    box-shadow: ${designTokens.shadows.md};
   `;
 
   const logoTextStyles = css`

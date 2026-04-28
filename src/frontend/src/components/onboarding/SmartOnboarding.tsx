@@ -291,7 +291,7 @@ export const SmartOnboarding: React.FC = () => {
               fontSize: designTokens.typography.fontSize['3xl'],
               fontWeight: designTokens.typography.fontWeight.bold,
               margin: `0 0 ${designTokens.spacing[4]} 0`,
-              color: designTokens.colors.neutral[900],
+              color: 'var(--text-primary)',
             }}
           >
             Welcome to Cognivern
@@ -698,8 +698,8 @@ export const SmartOnboarding: React.FC = () => {
             </Button>
           </div>
           <CardHeader>
-            <CardTitle style={{ color: designTokens.colors.neutral[900] }}>{steps[currentStep].title}</CardTitle>
-            <CardDescription style={{ color: designTokens.colors.neutral[700] }}>{steps[currentStep].description}</CardDescription>
+            <CardTitle style={{ color: 'var(--card-text)' }}>{steps[currentStep].title}</CardTitle>
+            <CardDescription style={{ color: 'var(--text-secondary)' }}>{steps[currentStep].description}</CardDescription>
           </CardHeader>
           <CardContent
             key={currentStep} // Key forces a re-mount for simple CSS animation

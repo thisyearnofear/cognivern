@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { designTokens, chartColors } from '../../styles/design-system';
+import { designTokens, chartColors, chartStyles } from '../../styles/design-system';
 
 export interface ChartDataPoint {
   x: number | string;
