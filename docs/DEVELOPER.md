@@ -27,10 +27,15 @@ FILECOIN_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf
 GOVERNANCE_CONTRACT_ADDRESS=
 STORAGE_CONTRACT_ADDRESS=
 RECALL_API_KEY=
+
+# AI Provider Keys (optional - for intent processing)
 OPENAI_API_KEY=
+FIREWORKS_API_KEY=      # Primary AI provider (recommended)
+GEMINI_API_KEY=         # Alternative provider
+KILOCODE_API_KEY=       # Free models fallback
 ```
 
-Contract addresses (`GOVERNANCE_CONTRACT_ADDRESS`, `STORAGE_CONTRACT_ADDRESS`) and `RECALL_API_KEY` can be left empty for local dev — they default to empty strings. `OPENAI_API_KEY` is required if using OpenAI models.
+Contract addresses (`GOVERNANCE_CONTRACT_ADDRESS`, `STORAGE_CONTRACT_ADDRESS`) and `RECALL_API_KEY` can be left empty for local dev — they default to empty strings. AI provider keys enable the natural language intent system; without them, keyword-based fallback responses are used.
 
 ### Smart Contracts
 
@@ -70,6 +75,8 @@ This is a pnpm monorepo with three packages:
 | `CreController` | Exposes run ledger, event streams, retries, approvals |
 | `OwsLocalVaultService` | Encrypted local wallet storage, API-key issuance |
 | `OwsWalletService` | Spend execution, policy enforcement, signed authorizations |
+| `IntentController` | Natural language intent processing via AI with multi-provider routing |
+| `MultiModelRouter` | Routes AI requests across 6 providers with fallback logic and circuit breakers |
 
 ### Product framing for contributors
 
@@ -144,6 +151,24 @@ Related: `GET/POST /api/governance/policies`, `GET /api/governance/health`
 | `/api/cre/runs/:runId` | GET | Run details |
 | `/api/cre/runs/:runId/events/stream` | GET | SSE event stream |
 
+### AI Intent Processing
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/intent` | POST | Process natural language commands |
+| `/api/intent/metrics` | GET | Intent system metrics |
+
+**`POST /api/intent`**
+
+```json
+{
+  "query": "Show my spending",
+  "context": { "currentPath": "/dashboard" }
+}
+```
+
+Returns intent classification, component routing, and agent actions. Falls back to keyword-based classification when AI providers are unavailable.
+
 ## Testing
 
 ```bash
@@ -157,13 +182,16 @@ pnpm lint
 ### Completed
 
 - [x] Error boundaries for frontend resilience
-- [x] Circuit breakers for external services (Recall, Sapience, Contract)
+- [x] Circuit breakers for external services (Recall, Sapience, Contract, AI providers)
 - [x] Code splitting and adaptive loading
 - [x] Sensitive data redaction in public proofs
 - [x] Unit tests for core services (PolicyEnforcement, TradingHistory, Sapience)
 - [x] Integration tests for CRE controller
 - [x] CI pipeline for backend and frontend builds
 - [x] `.env.example` synced with required keys
+- [x] Multi-provider AI routing (6 providers: Fireworks, Kilocode, Workers AI, OpenAI, Gemini, Anthropic)
+- [x] Natural language intent processing with fallback classification
+- [x] Compact UI with responsive improvements
 
 ### Remaining
 
@@ -173,7 +201,7 @@ pnpm lint
 - [ ] Automated versioning and changelog
 - [ ] Staging environment
 
-### Progress: ~82%
+### Progress: ~90%
 
 See the full checklist in [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md) (archived).
 
