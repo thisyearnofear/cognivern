@@ -323,7 +323,7 @@ const designTokensInternal = {
 
   // Shared layout constants
   layout: {
-    headerHeight: '70px',
+    headerHeight: '56px',
     sidebarCollapsedWidth: '80px',
   },
 
