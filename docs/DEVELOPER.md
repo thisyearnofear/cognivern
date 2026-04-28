@@ -33,6 +33,13 @@ OPENAI_API_KEY=
 FIREWORKS_API_KEY=      # Primary AI provider (recommended)
 GEMINI_API_KEY=         # Alternative provider
 KILOCODE_API_KEY=       # Free models fallback
+
+# Rate Limits (optional - defaults in code)
+RATE_LIMIT_WINDOW_MS=900000      # 15 min window for general endpoints
+RATE_LIMIT_MAX_REQUESTS=100       # 100 requests per window
+INGEST_RATE_LIMIT_PER_MINUTE=120  # 120 requests/min for ingest
+INTENT_RATE_LIMIT_PER_MINUTE=30   # 30 requests/min for AI intent (expensive)
+GOVERNANCE_RATE_LIMIT_PER_MINUTE=60  # 60 requests/min for governance
 ```
 
 Contract addresses (`GOVERNANCE_CONTRACT_ADDRESS`, `STORAGE_CONTRACT_ADDRESS`) and `RECALL_API_KEY` can be left empty for local dev — they default to empty strings. AI provider keys enable the natural language intent system; without them, keyword-based fallback responses are used.
@@ -192,16 +199,16 @@ pnpm lint
 - [x] Multi-provider AI routing (6 providers: Fireworks, Kilocode, Workers AI, OpenAI, Gemini, Anthropic)
 - [x] Natural language intent processing with fallback classification
 - [x] Compact UI with responsive improvements
+- [x] Rate limiting on public endpoints (configurable per-endpoint)
 
 ### Remaining
 
-- [ ] Rate limiting on public endpoints
 - [ ] Sentry integration for frontend error tracking
 - [ ] 80%+ test coverage for core business logic
 - [ ] Automated versioning and changelog
 - [ ] Staging environment
 
-### Progress: ~90%
+### Progress: ~93%
 
 See the full checklist in [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md) (archived).
 

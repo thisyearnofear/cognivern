@@ -205,6 +205,33 @@ export class ApiModule extends BaseService {
     });
     this.app.use("/ingest/", ingestLimiter);
 
+    // Strict rate limit for AI/intent endpoints (expensive operations)
+    const intentLimiter = rateLimit({
+      windowMs: 60_000, // 1 min
+      max: Number(process.env.INTENT_RATE_LIMIT_PER_MINUTE || 30),
+      message: {
+        error: "Too many intent requests, please slow down.",
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      validate: { trustProxy: false },
+    });
+    this.app.use("/api/intent", intentLimiter);
+
+    // Strict rate limit for governance/spend endpoints
+    const governanceLimiter = rateLimit({
+      windowMs: 60_000, // 1 min
+      max: Number(process.env.GOVERNANCE_RATE_LIMIT_PER_MINUTE || 60),
+      message: {
+        error: "Too many governance requests, please slow down.",
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      validate: { trustProxy: false },
+    });
+    this.app.use("/api/governance", governanceLimiter);
+    this.app.use("/api/spend", governanceLimiter);
+
     // Request logging
     this.app.use((req, res, next) => {
       const start = Date.now();
