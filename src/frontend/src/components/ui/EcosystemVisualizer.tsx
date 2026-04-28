@@ -212,12 +212,12 @@ export const EcosystemVisualizer: React.FC<EcosystemVisualizerProps> = ({
       case 'connected':
         return designTokens.colors.primary[500];
       case 'warning':
-        return designTokens.colors.semantic.warning;
+        return designTokens.colors.semantic.warning.main;
       case 'idle':
       case 'disconnected':
         return designTokens.colors.neutral[500];
       case 'error':
-        return designTokens.colors.semantic.error;
+        return designTokens.colors.semantic.error.main;
       default:
         return designTokens.colors.primary[500];
     }

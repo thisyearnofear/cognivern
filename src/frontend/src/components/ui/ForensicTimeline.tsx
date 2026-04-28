@@ -110,8 +110,8 @@ const Node = styled.div<{ type: TimelineEventType; status?: string }>`
         `;
       case 'action':
         return css`
-          border-color: ${designTokens.colors.semantic.success};
-          color: ${designTokens.colors.semantic.success};
+          border-color: ${designTokens.colors.semantic.success.main};
+          color: ${designTokens.colors.semantic.success.main};
           animation: ${pulseGlow} 2s infinite;
         `;
       case 'privacy_redacted':
@@ -124,9 +124,9 @@ const Node = styled.div<{ type: TimelineEventType; status?: string }>`
       case 'block':
       case 'error':
         return css`
-          border-color: ${designTokens.colors.semantic.error};
-          color: ${designTokens.colors.semantic.error};
-          background: ${designTokens.colors.semantic.errorBg};
+          border-color: ${designTokens.colors.semantic.error.main};
+          color: ${designTokens.colors.semantic.error.main};
+          background: ${designTokens.colors.semantic.error.bg};
         `;
       case 'validation':
         return css`
@@ -347,7 +347,7 @@ export const ForensicTimeline: React.FC<ForensicTimelineProps> = ({
                           <span style={{ fontWeight: 'bold' }}>Raw Trace</span>
                           <span
                             style={{
-                              color: designTokens.colors.semantic.success,
+                              color: designTokens.colors.semantic.success.main,
                               fontSize: '10px',
                             }}
                           >

@@ -107,6 +107,11 @@ export const carouselStyles = css`
   }
 `;
 
+export const carouselItemStyles = css`
+  flex: 0 0 85%;
+  scroll-snap-align: center;
+`;
+
 export const activityFeedStyles = (_compact?: boolean) => css`
   display: flex;
   flex-direction: column;

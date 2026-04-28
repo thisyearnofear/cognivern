@@ -1,12 +1,12 @@
 // Shared hooks to eliminate useState/useEffect duplication across components
 import { useState, useEffect, useCallback } from 'react';
-import { AgentType, AgentStatus, TradingDecision, UseAgentState, UseTradingData } from '../types';
+import { Agent, AgentType, AgentStatus, AgentState, TradingDecision, UseAgentState, UseTradingData } from '../types';
 import { getApiUrl, getApiKey } from '../utils/api';
 
 // Generic agent data hook - replaces repeated patterns
 export const useAgentData = (agentType: AgentType): UseAgentState => {
-  const [agent, setAgent] = useState(null);
-  const [status, setStatus] = useState<AgentStatus>({
+  const [agent, setAgent] = useState<Agent | null>(null);
+  const [status, setStatus] = useState<AgentState>({
     isActive: false,
     lastActivity: '',
     lastUpdate: '',
@@ -20,6 +20,7 @@ export const useAgentData = (agentType: AgentType): UseAgentState => {
       riskProfile: 'low',
     },
     metrics: {
+      avgResponseTime: 0,
       responseTime: 0,
       successRate: 0,
       errorRate: 0,

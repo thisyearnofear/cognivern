@@ -86,9 +86,9 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
     }
 
     try {
-      const accounts = await window.ethereum.request({
+      const accounts = (await window.ethereum.request({
         method: 'eth_accounts',
-      });
+      })) as string[];
       const chainId = await window.ethereum.request({ method: 'eth_chainId' });
 
       if (accounts.length > 0) {
@@ -146,9 +146,9 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
 
     try {
       // Request account access
-      const accounts = await window.ethereum.request({
+      const accounts = (await window.ethereum.request({
         method: 'eth_requestAccounts',
-      });
+      })) as string[];
 
       if (accounts.length > 0) {
         // Switch to Arbitrum

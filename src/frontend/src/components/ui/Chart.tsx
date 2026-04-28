@@ -76,15 +76,20 @@ export const Chart: React.FC<ChartProps> = ({
     ctx.textBaseline = 'middle';
 
     // Calculate data ranges
-    const xValues = data.map((d) => (typeof d.x === 'number' ? d.x : 0));
+    const xValues = data.map((d) => d.x).filter((v): v is number => typeof v === 'number');
     const yValues = data.map((d) => d.y);
-    const xMin = Math.min(...xValues);
-    const xMax = Math.max(...xValues);
+    const xMin = xValues.length > 0 ? Math.min(...xValues) : 0;
+    const xMax = xValues.length > 0 ? Math.max(...xValues) : 1;
     const yMin = Math.min(0, Math.min(...yValues));
     const yMax = Math.max(...yValues);
 
     // Scale functions
-    const scaleX = (x: number) => padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth;
+    const scaleX = (x: number | string) => {
+      if (typeof x === 'number') {
+        return padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth;
+      }
+      return padding.left + (x / (data.length - 1)) * chartWidth;
+    };
     const scaleY = (y: number) =>
       padding.top + chartHeight - ((y - yMin) / (yMax - yMin)) * chartHeight;
 
@@ -202,7 +207,7 @@ export const Chart: React.FC<ChartProps> = ({
   const drawLineChart = (
     ctx: CanvasRenderingContext2D,
     data: ChartDataPoint[],
-    scaleX: (x: number) => number,
+    scaleX: (x: number | string) => number,
     scaleY: (y: number) => number,
     color: string,
   ) => {
@@ -215,7 +220,7 @@ export const Chart: React.FC<ChartProps> = ({
 
     ctx.beginPath();
     data.forEach((point, index) => {
-      const x = scaleX(typeof point.x === 'number' ? point.x : index);
+      const x = scaleX(point.x);
       const y = scaleY(point.y);
 
       if (index === 0) {
@@ -229,7 +234,7 @@ export const Chart: React.FC<ChartProps> = ({
     // Draw points
     ctx.fillStyle = color;
     data.forEach((point, index) => {
-      const x = scaleX(typeof point.x === 'number' ? point.x : index);
+      const x = scaleX(point.x);
       const y = scaleY(point.y);
 
       ctx.beginPath();
@@ -241,14 +246,14 @@ export const Chart: React.FC<ChartProps> = ({
   const drawBarChart = (
     ctx: CanvasRenderingContext2D,
     data: ChartDataPoint[],
-    scaleX: (x: number) => number,
+    scaleX: (x: number | string) => number,
     scaleY: (y: number) => number,
     colors: string[],
   ) => {
     const barWidth = (chartWidth / data.length) * 0.8;
 
     data.forEach((point, index) => {
-      const x = scaleX(typeof point.x === 'number' ? point.x : index) - barWidth / 2;
+      const x = scaleX(point.x) - barWidth / 2;
       const y = scaleY(point.y);
       const height = scaleY(0) - y;
 
@@ -265,7 +270,7 @@ export const Chart: React.FC<ChartProps> = ({
   const drawAreaChart = (
     ctx: CanvasRenderingContext2D,
     data: ChartDataPoint[],
-    scaleX: (x: number) => number,
+    scaleX: (x: number | string) => number,
     scaleY: (y: number) => number,
     color: string,
   ) => {
@@ -281,7 +286,7 @@ export const Chart: React.FC<ChartProps> = ({
     ctx.beginPath();
 
     // Start from bottom-left
-    const firstX = scaleX(typeof data[0].x === 'number' ? data[0].x : 0);
+    const firstX = scaleX(data[0].x);
     ctx.moveTo(firstX, scaleY(0));
 
     // Draw to first point
@@ -289,15 +294,13 @@ export const Chart: React.FC<ChartProps> = ({
 
     // Draw line through all points
     data.forEach((point, index) => {
-      const x = scaleX(typeof point.x === 'number' ? point.x : index);
+      const x = scaleX(point.x);
       const y = scaleY(point.y);
       ctx.lineTo(x, y);
     });
 
     // Close area to bottom
-    const lastX = scaleX(
-      typeof data[data.length - 1].x === 'number' ? data[data.length - 1].x : data.length - 1,
-    );
+    const lastX = scaleX(data[data.length - 1].x);
     ctx.lineTo(lastX, scaleY(0));
     ctx.closePath();
     ctx.fill();

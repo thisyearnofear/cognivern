@@ -139,10 +139,10 @@ export const GovernanceScore: React.FC<GovernanceScoreProps> = ({
 
   const color =
     normalizedScore >= 80
-      ? designTokens.colors.semantic.success
+      ? designTokens.colors.semantic.success.main
       : normalizedScore >= 60
-        ? designTokens.colors.semantic.warning
-        : designTokens.colors.semantic.error;
+        ? designTokens.colors.semantic.warning.main
+        : designTokens.colors.semantic.error.main;
 
   return (
     <Container>
