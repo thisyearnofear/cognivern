@@ -358,23 +358,36 @@ export class AgentsController {
         const mockDecisions = [
           {
             id: `${agentType}-decision-1`,
-            type: agentType === "governance" ? "policy_check" : "portfolio_rebalance",
-            action: agentType === "governance" ? "Evaluated spend request" : "Reviewed portfolio allocation",
-            result: "approved",
+            action: "buy" as const,
+            symbol: "ETH",
+            quantity: 2.5,
+            price: 1850.0,
+            confidence: 0.87,
+            reasoning: "Strong support level with positive momentum.",
+            riskScore: 0.35,
             timestamp: new Date(Date.now() - 60000).toISOString(),
-            details: agentType === "governance"
-              ? { policy: "spend-limit", outcome: "within limits" }
-              : { asset: "ETH", action: "hold" },
           },
           {
             id: `${agentType}-decision-2`,
-            type: agentType === "governance" ? "audit_log" : "risk_assessment",
-            action: agentType === "governance" ? "Logged governance event" : "Assessed risk exposure",
-            result: "completed",
+            action: "hold" as const,
+            symbol: "ETH",
+            quantity: 2.5,
+            price: 1842.5,
+            confidence: 0.92,
+            reasoning: "Maintaining position while market consolidates.",
+            riskScore: 0.15,
             timestamp: new Date(Date.now() - 120000).toISOString(),
-            details: agentType === "governance"
-              ? { event: "policy_enforcement", status: "active" }
-              : { riskScore: 0.3, status: "low" },
+          },
+          {
+            id: `${agentType}-decision-3`,
+            action: "sell" as const,
+            symbol: "BTC",
+            quantity: 0.15,
+            price: 42500.0,
+            confidence: 0.78,
+            reasoning: "Taking profit at resistance level.",
+            riskScore: 0.45,
+            timestamp: new Date(Date.now() - 300000).toISOString(),
           },
         ];
         res.json({
