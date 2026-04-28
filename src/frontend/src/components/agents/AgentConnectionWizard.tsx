@@ -304,7 +304,7 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({
         setIsLoadingPolicies(true);
         try {
           const response = await policyApi.getPolicies();
-          if (response.success && response.data) {
+          if (response.success && Array.isArray(response.data)) {
             setPolicies(response.data);
           }
         } catch (err) {

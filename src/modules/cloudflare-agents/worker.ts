@@ -325,7 +325,7 @@ async function triggerHourlyAudit(env: Env) {
   // Run audit for each agent
   for (const agent of agents) {
     try {
-      const governanceAgent = await getGovernanceAgent(agent.id, env);
+      const governanceAgent = await getGovernanceAgent(agent.id as string, env);
       // Trigger audit (implementation depends on audit logic)
     } catch (error) {
       console.error(`Audit failed for agent ${agent.id}:`, error);

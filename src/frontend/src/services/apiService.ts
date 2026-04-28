@@ -358,8 +358,8 @@ export class MCPApiService extends ApiService {
 // Policy-specific API service
 export class PolicyApiService extends ApiService {
   // Get all policies
-  async getPolicies() {
-    return this.get('/api/policies');
+  async getPolicies(): Promise<ApiResponse<any[]>> {
+    return this.get<any[]>('/api/policies');
   }
 
   // Create policy
