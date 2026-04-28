@@ -14,13 +14,16 @@ interface CofheClient {
   disconnect?: () => Promise<void>;
 }
 
-// Try to import from @cofhe/react, fallback gracefully
-let useCofheContext: any = null;
+// CoFHE context - handled gracefully if module unavailable
+type CofheHook = () => { client?: CofheClient };
+let useCofheContext: CofheHook | null = null;
+
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const cofheModule = require('@cofhe/react');
   useCofheContext = cofheModule.useCofheContext;
-} catch (e) {
-  console.warn('CoFHE module not available:', e);
+} catch {
+  // Module not available
 }
 
 export type ConnectionModalMode = 'modal' | 'embedded';
@@ -69,7 +72,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
   const client = cofheContext.client;
 
   // Check if all required connections are complete
-  const allRequiredConnected = connectionsToShow.every(type => {
+  const allRequiredConnected = connectionsToShow.every((type) => {
     if (type === 'wallet') return user.isConnected;
     if (type === 'treasury') return user.owsWalletConnected;
     if (type === 'fhenix') return user.fhenixConnected;
@@ -184,7 +187,9 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         (altButtons[0] as HTMLElement).click();
         setUser({ fhenixConnected: true });
       } else {
-        setFhenixError('CoFHE portal not found. Ensure you\'re on a page with FhenixProvider active.');
+        setFhenixError(
+          "CoFHE portal not found. Ensure you're on a page with FhenixProvider active.",
+        );
         setTimeout(() => setFhenixError(null), 3000);
       }
     }
@@ -267,40 +272,101 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
     onConnect: () => void,
     onDisconnect: () => void,
     isConnecting: boolean,
-    connectedLabel?: string
+    connectedLabel?: string,
   ) => {
     if (!connectionsToShow.includes(type)) return null;
 
     return (
-      <div css={css`margin-bottom: ${designTokens.spacing[5]};`} key={type}>
-        <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+      <div
+        css={css`
+          margin-bottom: ${designTokens.spacing[5]};
+        `}
+        key={type}
+      >
+        <div
+          css={css`
+            display: flex;
+            align-items: center;
+            gap: ${designTokens.spacing[2]};
+            margin-bottom: ${designTokens.spacing[2]};
+          `}
+        >
           {icon}
-          <h4 css={css`margin: 0; font-size: ${designTokens.typography.fontSize.md}; color: var(--text-primary);`}>{title}</h4>
+          <h4
+            css={css`
+              margin: 0;
+              font-size: ${designTokens.typography.fontSize.md};
+              color: var(--text-primary);
+            `}
+          >
+            {title}
+          </h4>
         </div>
-        <p css={css`margin: 0 0 ${designTokens.spacing[3]} 0; font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>
+        <p
+          css={css`
+            margin: 0 0 ${designTokens.spacing[3]} 0;
+            font-size: ${designTokens.typography.fontSize.sm};
+            color: var(--text-secondary);
+          `}
+        >
           {description}
         </p>
 
         {isConnected ? (
           <div css={connectedCardStyle}>
-            <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
+            <div
+              css={css`
+                display: flex;
+                align-items: center;
+                gap: ${designTokens.spacing[3]};
+              `}
+            >
               <div>
-                <div css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary);`}>
+                <div
+                  css={css`
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    color: var(--text-primary);
+                  `}
+                >
                   {connectedLabel || title}
                 </div>
                 {type === 'wallet' && user.address && (
-                  <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>
+                  <div
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      color: var(--text-secondary);
+                    `}
+                  >
                     {formatAddress(user.address)}
-                    {user.network && <span css={css`margin-left: ${designTokens.spacing[2]}; color: ${designTokens.colors.neutral[400]};`}>• {user.network}</span>}
+                    {user.network && (
+                      <span
+                        css={css`
+                          margin-left: ${designTokens.spacing[2]};
+                          color: ${designTokens.colors.neutral[400]};
+                        `}
+                      >
+                        • {user.network}
+                      </span>
+                    )}
                   </div>
                 )}
                 {type === 'treasury' && user.owsWalletAddress && (
-                  <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>
+                  <div
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      color: var(--text-secondary);
+                    `}
+                  >
                     {formatAddress(user.owsWalletAddress)}
                   </div>
                 )}
                 {type === 'fhenix' && (
-                  <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>
+                  <div
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      color: var(--text-secondary);
+                    `}
+                  >
                     Confidential Network Ready
                   </div>
                 )}
@@ -308,11 +374,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
               <CheckCircle2 size={20} color={designTokens.colors.semantic.success[500]} />
             </div>
             {!isEmbedded && (
-              <button
-                css={disconnectButtonStyle}
-                onClick={onDisconnect}
-                title="Disconnect"
-              >
+              <button css={disconnectButtonStyle} onClick={onDisconnect} title="Disconnect">
                 <Unlink size={16} />
               </button>
             )}
@@ -320,10 +382,33 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         ) : (
           <div css={optionCardStyle} onClick={onConnect}>
             <div>
-              <div css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary);`}>{title}</div>
-              <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>{description}</div>
+              <div
+                css={css`
+                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                  color: var(--text-primary);
+                `}
+              >
+                {title}
+              </div>
+              <div
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  color: var(--text-secondary);
+                `}
+              >
+                {description}
+              </div>
             </div>
-            {isConnecting ? <Activity size={20} css={css`animation: spin 2s linear infinite;`} /> : <ChevronRight size={20} color={designTokens.colors.neutral[400]} />}
+            {isConnecting ? (
+              <Activity
+                size={20}
+                css={css`
+                  animation: spin 2s linear infinite;
+                `}
+              />
+            ) : (
+              <ChevronRight size={20} color={designTokens.colors.neutral[400]} />
+            )}
           </div>
         )}
       </div>
@@ -331,7 +416,11 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
   };
 
   const content = (
-    <div css={css`padding: ${designTokens.spacing[2]} 0;`}>
+    <div
+      css={css`
+        padding: ${designTokens.spacing[2]} 0;
+      `}
+    >
       {renderConnectionCard(
         'wallet',
         'User Identity',
@@ -341,7 +430,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         handleConnectBrowserWallet,
         handleDisconnectBrowserWallet,
         isConnectingIdentity,
-        'Browser Wallet'
+        'Browser Wallet',
       )}
 
       {renderConnectionCard(
@@ -353,7 +442,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         handleBootstrapTreasury,
         handleDisconnectTreasury,
         isConnectingTreasury,
-        user.owsWalletName || 'Local Vault (OWS)'
+        user.owsWalletName || 'Local Vault (OWS)',
       )}
 
       {renderConnectionCard(
@@ -364,38 +453,42 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         user.fhenixConnected,
         handleConnectFhenix,
         handleDisconnectFhenix,
-        false
+        false,
       )}
 
       {/* Error message for Fhenix connection */}
       {fhenixError && (
-        <div css={css`
-          margin-top: ${designTokens.spacing[2]};
-          padding: ${designTokens.spacing[2]} ${designTokens.spacing[3]};
-          background: ${designTokens.colors.semantic.error[50]};
-          border: 1px solid ${designTokens.colors.semantic.error[200]};
-          border-radius: ${designTokens.borderRadius.md};
-          color: ${designTokens.colors.semantic.error[700]};
-          font-size: ${designTokens.typography.fontSize.sm};
-        `}>
+        <div
+          css={css`
+            margin-top: ${designTokens.spacing[2]};
+            padding: ${designTokens.spacing[2]} ${designTokens.spacing[3]};
+            background: ${designTokens.colors.semantic.error[50]};
+            border: 1px solid ${designTokens.colors.semantic.error[200]};
+            border-radius: ${designTokens.borderRadius.md};
+            color: ${designTokens.colors.semantic.error[700]};
+            font-size: ${designTokens.typography.fontSize.sm};
+          `}
+        >
           {fhenixError}
         </div>
       )}
 
       {/* Complete indicator */}
       {allRequiredConnected && (
-        <div css={css`
-          margin-top: ${designTokens.spacing[4]};
-          padding: ${designTokens.spacing[3]};
-          background: ${designTokens.colors.semantic.success[50]};
-          border: 1px solid ${designTokens.colors.semantic.success[200]};
-          border-radius: ${designTokens.borderRadius.md};
-          display: flex;
-          align-items: center;
-          gap: ${designTokens.spacing[2]};
-          color: ${designTokens.colors.semantic.success[700]};
-          font-size: ${designTokens.typography.fontSize.sm};
-        `}>
+        <div
+          css={css`
+            margin-top: ${designTokens.spacing[4]};
+            padding: ${designTokens.spacing[3]};
+            background: ${designTokens.colors.semantic.success[50]};
+            border: 1px solid ${designTokens.colors.semantic.success[200]};
+            border-radius: ${designTokens.borderRadius.md};
+            display: flex;
+            align-items: center;
+            gap: ${designTokens.spacing[2]};
+            color: ${designTokens.colors.semantic.success[700]};
+            font-size: ${designTokens.typography.fontSize.sm};
+          `}
+        >
           <CheckCircle2 size={18} />
           All connections established!
         </div>

@@ -50,16 +50,14 @@ export const ConnectionStatusBadge: React.FC<ConnectionStatusBadgeProps> = ({
       : designTokens.typography.fontSize.sm};
     font-weight: ${designTokens.typography.fontWeight.medium};
     transition: ${easings.smooth};
-    background: ${connectedCount > 0
-      ? designTokens.colors.neutral[100]
-      : 'transparent'};
-    border: 1px solid ${connectedCount > 0
-      ? designTokens.colors.neutral[200]
-      : designTokens.colors.neutral[300]};
+    background: ${connectedCount > 0 ? designTokens.colors.neutral[100] : 'transparent'};
+    border: 1px solid
+      ${connectedCount > 0 ? designTokens.colors.neutral[200] : designTokens.colors.neutral[300]};
     color: ${connectedCount > 0
       ? designTokens.colors.neutral[800]
       : designTokens.colors.neutral[600]};
-    ${interactive ? `
+    ${interactive
+      ? `
       cursor: pointer;
       &:hover {
         background: ${designTokens.colors.neutral[50]};
@@ -68,7 +66,8 @@ export const ConnectionStatusBadge: React.FC<ConnectionStatusBadgeProps> = ({
       &:active {
         transform: scale(0.98);
       }
-    ` : ''}
+    `
+      : ''}
   `;
 
   const iconSize = size === 'sm' ? 14 : 16;
@@ -79,25 +78,41 @@ export const ConnectionStatusBadge: React.FC<ConnectionStatusBadgeProps> = ({
     return (
       <div css={badgeStyles} onClick={onClick} className={className}>
         <Vault size={iconSize} />
-        <span css={css`
-          display: flex;
-          gap: 2px;
-          align-items: center;
-        `}>
+        <span
+          css={css`
+            display: flex;
+            gap: 2px;
+            align-items: center;
+          `}
+        >
           {connections.wallet && (
-            <Circle size={dotSize} fill={designTokens.colors.semantic.success[500]} color={designTokens.colors.semantic.success[500]} />
+            <Circle
+              size={dotSize}
+              fill={designTokens.colors.semantic.success[500]}
+              color={designTokens.colors.semantic.success[500]}
+            />
           )}
           {connections.treasury && (
-            <Circle size={dotSize} fill={designTokens.colors.semantic.success[500]} color={designTokens.colors.semantic.success[500]} />
+            <Circle
+              size={dotSize}
+              fill={designTokens.colors.semantic.success[500]}
+              color={designTokens.colors.semantic.success[500]}
+            />
           )}
           {connections.fhenix && (
-            <Circle size={dotSize} fill={designTokens.colors.semantic.success[500]} color={designTokens.colors.semantic.success[500]} />
+            <Circle
+              size={dotSize}
+              fill={designTokens.colors.semantic.success[500]}
+              color={designTokens.colors.semantic.success[500]}
+            />
           )}
           {!connections.wallet && !connections.treasury && !connections.fhenix && (
-            <span css={css`
-              font-size: ${designTokens.typography.fontSize.xs};
-              color: ${designTokens.colors.neutral[400]};
-            `}>
+            <span
+              css={css`
+                font-size: ${designTokens.typography.fontSize.xs};
+                color: ${designTokens.colors.neutral[400]};
+              `}
+            >
               0/3
             </span>
           )}
@@ -122,9 +137,11 @@ export const ConnectionStatusBadge: React.FC<ConnectionStatusBadgeProps> = ({
       {connectedCount > 0 && (
         <CheckCircle2
           size={iconSize}
-          color={isFullyConnected
-            ? designTokens.colors.semantic.success[500]
-            : designTokens.colors.neutral[400]}
+          color={
+            isFullyConnected
+              ? designTokens.colors.semantic.success[500]
+              : designTokens.colors.neutral[400]
+          }
         />
       )}
     </div>

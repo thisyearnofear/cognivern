@@ -18,6 +18,7 @@ export { CommandPalette } from './CommandPalette';
 export { NotificationCenter } from './NotificationCenter';
 export { PerformanceDashboard } from './PerformanceDashboard';
 export { LoadingSpinner } from './LoadingSpinner'; // Consolidated loading components
+export { EmptyState } from './EmptyState';
 export { UserFriendlyError, useErrorTranslation } from './UserFriendlyError';
 export { Breadcrumbs } from './Breadcrumbs';
 export { Confetti } from './Confetti';
