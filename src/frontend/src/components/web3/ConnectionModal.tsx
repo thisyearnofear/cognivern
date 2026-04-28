@@ -3,13 +3,11 @@ import { css } from '@emotion/react';
 import { useAppStore } from '../../stores/appStore';
 import { designTokens, easings } from '../../styles/design-system';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
-import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { Wallet, Shield, Lock, ChevronRight, CheckCircle2, Activity, Unlink } from 'lucide-react';
 import { owsApi } from '../../services/apiService';
 
-// CoFHE types - these may vary based on @cofhe/react version
-// Using dynamic import or optional chaining to handle various versions
+// CoFHE types
 interface CofheClient {
   isConnected?: boolean;
   account?: string;
@@ -25,14 +23,34 @@ try {
   console.warn('CoFHE module not available:', e);
 }
 
-interface ConnectionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+export type ConnectionModalMode = 'modal' | 'embedded';
+
+export interface ConnectionModalProps {
+  /** Display mode: 'modal' for header trigger, 'embedded' for onboarding */
+  mode?: ConnectionModalMode;
+  /** Whether modal is open (only used when mode='modal') */
+  isOpen?: boolean;
+  /** Close handler (only used when mode='modal') */
+  onClose?: () => void;
+  /** Callback when all connections are established */
+  onComplete?: () => void;
+  /** Show only specific connection types (default: all) */
+  connectionsToShow?: ('wallet' | 'treasury' | 'fhenix')[];
 }
 
-export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClose }) => {
+export const ConnectionModal: React.FC<ConnectionModalProps> = ({
+  mode = 'modal',
+  isOpen: externalIsOpen,
+  onClose,
+  onComplete,
+  connectionsToShow = ['wallet', 'treasury', 'fhenix'],
+}) => {
   const { user, setUser } = useAppStore();
   const { isMobile } = useBreakpoint();
+
+  // For embedded mode, always show; for modal mode, use external isOpen
+  const isEmbedded = mode === 'embedded';
+  const isOpen = isEmbedded || externalIsOpen;
 
   const [isConnectingIdentity, setIsConnectingIdentity] = useState(false);
   const [isConnectingTreasury, setIsConnectingTreasury] = useState(false);
@@ -50,12 +68,27 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
 
   const client = cofheContext.client;
 
+  // Check if all required connections are complete
+  const allRequiredConnected = connectionsToShow.every(type => {
+    if (type === 'wallet') return user.isConnected;
+    if (type === 'treasury') return user.owsWalletConnected;
+    if (type === 'fhenix') return user.fhenixConnected;
+    return false;
+  });
+
   // Sync Fhenix connection state with actual CoFHE client state
   useEffect(() => {
     if (client?.isConnected && !user.fhenixConnected) {
       setUser({ fhenixConnected: true });
     }
   }, [client?.isConnected]);
+
+  // Call onComplete when all connections are established
+  useEffect(() => {
+    if (allRequiredConnected && onComplete) {
+      onComplete();
+    }
+  }, [allRequiredConnected, onComplete]);
 
   const handleConnectBrowserWallet = async () => {
     if (typeof window.ethereum === 'undefined') {
@@ -139,28 +172,19 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
   const handleConnectFhenix = async () => {
     setFhenixError(null);
 
-    // Try to trigger the CoFHE portal via its CSS class
-    // The CoFHE SDK adds a floating button when CofheProvider is active
     const cofheButton = document.querySelector('.cofhe-floating-button') as HTMLElement;
 
     if (cofheButton) {
       cofheButton.click();
-      // The actual connection happens in the CoFHE portal
-      // We'll optimistically set it and let the useEffect sync if needed
       setUser({ fhenixConnected: true });
     } else {
-      // If CoFHE portal button isn't found, try alternative methods
-      // Some versions may use different selectors
       const altButtons = document.querySelectorAll('[class*="cofhe"], [data-cofhe]');
 
       if (altButtons.length > 0) {
         (altButtons[0] as HTMLElement).click();
         setUser({ fhenixConnected: true });
       } else {
-        // Show clear messaging to user
         setFhenixError('CoFHE portal not found. Ensure you\'re on a page with FhenixProvider active.');
-
-        // Auto-dismiss error after 3 seconds
         setTimeout(() => setFhenixError(null), 3000);
       }
     }
@@ -233,143 +257,161 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
 
   const formatAddress = (addr: string) => `${addr?.slice(0, 6)}...${addr?.slice(-4) || ''}`;
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Connect to Cognivern" size="md">
-      <div css={css`padding: ${designTokens.spacing[2]} 0;`}>
+  // Render connection card for a given type
+  const renderConnectionCard = (
+    type: 'wallet' | 'treasury' | 'fhenix',
+    title: string,
+    description: string,
+    icon: React.ReactNode,
+    isConnected: boolean,
+    onConnect: () => void,
+    onDisconnect: () => void,
+    isConnecting: boolean,
+    connectedLabel?: string
+  ) => {
+    if (!connectionsToShow.includes(type)) return null;
 
-        {/* User Identity */}
-        <div css={css`margin-bottom: ${designTokens.spacing[5]};`}>
-          <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
-            <Wallet size={18} color={designTokens.colors.primary[600]} />
-            <h4 css={css`margin: 0; font-size: ${designTokens.typography.fontSize.md}; color: var(--text-primary);`}>User Identity</h4>
-          </div>
-          <p css={css`margin: 0 0 ${designTokens.spacing[3]} 0; font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>
-            Connect your personal wallet to sign approvals.
-          </p>
+    return (
+      <div css={css`margin-bottom: ${designTokens.spacing[5]};`} key={type}>
+        <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+          {icon}
+          <h4 css={css`margin: 0; font-size: ${designTokens.typography.fontSize.md}; color: var(--text-primary);`}>{title}</h4>
+        </div>
+        <p css={css`margin: 0 0 ${designTokens.spacing[3]} 0; font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>
+          {description}
+        </p>
 
-          {user.isConnected ? (
-            <div css={connectedCardStyle}>
-              <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
-                <div>
-                  <div css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary);`}>Browser Wallet</div>
+        {isConnected ? (
+          <div css={connectedCardStyle}>
+            <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
+              <div>
+                <div css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary);`}>
+                  {connectedLabel || title}
+                </div>
+                {type === 'wallet' && user.address && (
                   <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>
-                    {formatAddress(user.address || '')}
+                    {formatAddress(user.address)}
                     {user.network && <span css={css`margin-left: ${designTokens.spacing[2]}; color: ${designTokens.colors.neutral[400]};`}>• {user.network}</span>}
                   </div>
-                </div>
-                <CheckCircle2 size={20} color={designTokens.colors.semantic.success[500]} />
+                )}
+                {type === 'treasury' && user.owsWalletAddress && (
+                  <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>
+                    {formatAddress(user.owsWalletAddress)}
+                  </div>
+                )}
+                {type === 'fhenix' && (
+                  <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>
+                    Confidential Network Ready
+                  </div>
+                )}
               </div>
+              <CheckCircle2 size={20} color={designTokens.colors.semantic.success[500]} />
+            </div>
+            {!isEmbedded && (
               <button
                 css={disconnectButtonStyle}
-                onClick={handleDisconnectBrowserWallet}
-                title="Disconnect wallet"
+                onClick={onDisconnect}
+                title="Disconnect"
               >
                 <Unlink size={16} />
               </button>
-            </div>
-          ) : (
-            <div css={optionCardStyle} onClick={handleConnectBrowserWallet}>
-              <div>
-                <div css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary);`}>MetaMask / Browser Wallet</div>
-                <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>Connect via window.ethereum</div>
-              </div>
-              {isConnectingIdentity ? <Activity size={20} css={css`animation: spin 2s linear infinite;`} /> : <ChevronRight size={20} color={designTokens.colors.neutral[400]} />}
-            </div>
-          )}
-        </div>
-
-        {/* Governance Treasury */}
-        <div css={css`margin-bottom: ${designTokens.spacing[5]};`}>
-          <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
-            <Shield size={18} color={designTokens.colors.primary[600]} />
-            <h4 css={css`margin: 0; font-size: ${designTokens.typography.fontSize.md}; color: var(--text-primary);`}>Governance Treasury</h4>
+            )}
           </div>
-          <p css={css`margin: 0 0 ${designTokens.spacing[3]} 0; font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>
-            The vault your agents use to execute trades.
-          </p>
-
-          {user.owsWalletConnected ? (
-            <div css={connectedCardStyle}>
-              <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
-                <div>
-                  <div css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary);`}>{user.owsWalletName || 'Local Vault (OWS)'}</div>
-                  <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>{formatAddress(user.owsWalletAddress || '')}</div>
-                </div>
-                <CheckCircle2 size={20} color={designTokens.colors.semantic.success[500]} />
-              </div>
-              <button
-                css={disconnectButtonStyle}
-                onClick={handleDisconnectTreasury}
-                title="Disconnect treasury"
-              >
-                <Unlink size={16} />
-              </button>
+        ) : (
+          <div css={optionCardStyle} onClick={onConnect}>
+            <div>
+              <div css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary);`}>{title}</div>
+              <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>{description}</div>
             </div>
-          ) : (
-            <div css={optionCardStyle} onClick={handleBootstrapTreasury}>
-              <div>
-                <div css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary);`}>Create New Treasury</div>
-                <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>Bootstrap a local OWS Vault</div>
-              </div>
-              {isConnectingTreasury ? <Activity size={20} css={css`animation: spin 2s linear infinite;`} /> : <ChevronRight size={20} color={designTokens.colors.neutral[400]} />}
-            </div>
-          )}
-        </div>
-
-        {/* Confidential Compute */}
-        <div css={css`margin-bottom: ${designTokens.spacing[2]};`}>
-          <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
-            <Lock size={18} color={designTokens.colors.primary[600]} />
-            <h4 css={css`margin: 0; font-size: ${designTokens.typography.fontSize.md}; color: var(--text-primary);`}>Confidential Compute</h4>
+            {isConnecting ? <Activity size={20} css={css`animation: spin 2s linear infinite;`} /> : <ChevronRight size={20} color={designTokens.colors.neutral[400]} />}
           </div>
-          <p css={css`margin: 0 0 ${designTokens.spacing[3]} 0; font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>
-            Enable encrypted policy execution via Fhenix CoFHE.
-          </p>
-
-          {user.fhenixConnected ? (
-            <div css={connectedCardStyle}>
-              <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
-                <div>
-                  <div css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary);`}>Fhenix CoFHE Connected</div>
-                  <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>Confidential Network Ready</div>
-                </div>
-                <CheckCircle2 size={20} color={designTokens.colors.semantic.success[500]} />
-              </div>
-              <button
-                css={disconnectButtonStyle}
-                onClick={handleDisconnectFhenix}
-                title="Disconnect Fhenix"
-              >
-                <Unlink size={16} />
-              </button>
-            </div>
-          ) : (
-            <div css={optionCardStyle} onClick={handleConnectFhenix}>
-              <div>
-                <div css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary);`}>Connect Fhenix CoFHE</div>
-                <div css={css`font-size: ${designTokens.typography.fontSize.sm}; color: var(--text-secondary);`}>Required for encrypted spend limits</div>
-              </div>
-              <ChevronRight size={20} color={designTokens.colors.neutral[400]} />
-            </div>
-          )}
-
-          {/* Error message for Fhenix connection */}
-          {fhenixError && (
-            <div css={css`
-              margin-top: ${designTokens.spacing[2]};
-              padding: ${designTokens.spacing[2]} ${designTokens.spacing[3]};
-              background: ${designTokens.colors.semantic.error[50]};
-              border: 1px solid ${designTokens.colors.semantic.error[200]};
-              border-radius: ${designTokens.borderRadius.md};
-              color: ${designTokens.colors.semantic.error[700]};
-              font-size: ${designTokens.typography.fontSize.sm};
-            `}>
-              {fhenixError}
-            </div>
-          )}
-        </div>
-
+        )}
       </div>
-    </Modal>
+    );
+  };
+
+  const content = (
+    <div css={css`padding: ${designTokens.spacing[2]} 0;`}>
+      {renderConnectionCard(
+        'wallet',
+        'User Identity',
+        'Connect your personal wallet to sign approvals.',
+        <Wallet size={18} color={designTokens.colors.primary[600]} />,
+        user.isConnected,
+        handleConnectBrowserWallet,
+        handleDisconnectBrowserWallet,
+        isConnectingIdentity,
+        'Browser Wallet'
+      )}
+
+      {renderConnectionCard(
+        'treasury',
+        'Governance Treasury',
+        'The vault your agents use to execute trades.',
+        <Shield size={18} color={designTokens.colors.primary[600]} />,
+        user.owsWalletConnected,
+        handleBootstrapTreasury,
+        handleDisconnectTreasury,
+        isConnectingTreasury,
+        user.owsWalletName || 'Local Vault (OWS)'
+      )}
+
+      {renderConnectionCard(
+        'fhenix',
+        'Confidential Compute',
+        'Enable encrypted policy execution via Fhenix CoFHE.',
+        <Lock size={18} color={designTokens.colors.primary[600]} />,
+        user.fhenixConnected,
+        handleConnectFhenix,
+        handleDisconnectFhenix,
+        false
+      )}
+
+      {/* Error message for Fhenix connection */}
+      {fhenixError && (
+        <div css={css`
+          margin-top: ${designTokens.spacing[2]};
+          padding: ${designTokens.spacing[2]} ${designTokens.spacing[3]};
+          background: ${designTokens.colors.semantic.error[50]};
+          border: 1px solid ${designTokens.colors.semantic.error[200]};
+          border-radius: ${designTokens.borderRadius.md};
+          color: ${designTokens.colors.semantic.error[700]};
+          font-size: ${designTokens.typography.fontSize.sm};
+        `}>
+          {fhenixError}
+        </div>
+      )}
+
+      {/* Complete indicator */}
+      {allRequiredConnected && (
+        <div css={css`
+          margin-top: ${designTokens.spacing[4]};
+          padding: ${designTokens.spacing[3]};
+          background: ${designTokens.colors.semantic.success[50]};
+          border: 1px solid ${designTokens.colors.semantic.success[200]};
+          border-radius: ${designTokens.borderRadius.md};
+          display: flex;
+          align-items: center;
+          gap: ${designTokens.spacing[2]};
+          color: ${designTokens.colors.semantic.success[700]};
+          font-size: ${designTokens.typography.fontSize.sm};
+        `}>
+          <CheckCircle2 size={18} />
+          All connections established!
+        </div>
+      )}
+    </div>
   );
+
+  // Modal mode: wrap in Modal component
+  if (!isEmbedded) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose!} title="Connect to Cognivern" size="md">
+        {content}
+      </Modal>
+    );
+  }
+
+  // Embedded mode: return content directly
+  return content;
 };

@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   ShieldAlert,
   Plus,
-  Vault,
 } from 'lucide-react';
 import { useAppStore, useTheme } from '../../stores/appStore';
 import { agentApi } from '../../services/apiService';
@@ -23,6 +22,7 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useSidebarState } from '../../hooks/useSidebarState';
 import CommandPalette from '../ui/CommandPalette';
 import { ConnectionModal } from '../web3/ConnectionModal';
+import { ConnectionStatusBadge } from '../web3/ConnectionStatusBadge';
 
 export const Header: React.FC = () => {
   const { user, setUser, updatePreferences } = useAppStore();
@@ -53,9 +53,6 @@ export const Header: React.FC = () => {
     const newTheme = effectiveTheme === 'dark' ? 'light' : 'dark';
     updatePreferences({ theme: newTheme });
   };
-
-  // Calculate connected count
-  const connectedCount = [user.isConnected, user.owsWalletConnected, user.fhenixConnected].filter(Boolean).length;
 
   // Modern header styles
   const headerStyles = css`
@@ -318,71 +315,11 @@ export const Header: React.FC = () => {
           </button>
         )}
 
-        {/* Connection Center Toggle */}
-        <button
+        {/* Connection Status Badge - shared component */}
+        <ConnectionStatusBadge
+          interactive
           onClick={() => setIsConnectionModalOpen(true)}
-          css={css`
-            ${modernButtonStyle}
-            display: flex;
-            align-items: center;
-            gap: ${designTokens.spacing[2]};
-            background: ${connectedCount > 0
-              ? (effectiveTheme === 'dark' ? designTokens.colors.neutral[800] : designTokens.colors.neutral[100])
-              : 'transparent'};
-            border: 1px solid ${connectedCount > 0
-              ? (effectiveTheme === 'dark' ? designTokens.colors.neutral[700] : designTokens.colors.neutral[200])
-              : designTokens.colors.neutral[300]};
-            color: ${connectedCount > 0
-              ? (effectiveTheme === 'dark' ? designTokens.colors.neutral[100] : designTokens.colors.neutral[900])
-              : designTokens.colors.neutral[700]};
-            padding: ${isMobile
-              ? `${designTokens.spacing[2]} ${designTokens.spacing[3]}`
-              : `${designTokens.spacing[2]} ${designTokens.spacing[4]}`};
-          `}
-          title="Connection Center - Connect wallets and services"
-        >
-          <Vault size={16} />
-          {!isMobile && (
-            <span>
-              {connectedCount > 0
-                ? `${connectedCount}/3 Connected`
-                : 'Connect Wallet'}
-            </span>
-          )}
-          {/* Connection status dots */}
-          {isMobile && (
-            <span css={css`
-              display: flex;
-              gap: 2px;
-              margin-left: ${designTokens.spacing[1]};
-            `}>
-              {user.isConnected && (
-                <span css={css`
-                  width: 6px;
-                  height: 6px;
-                  border-radius: 50%;
-                  background: ${designTokens.colors.semantic.success[500]};
-                `} />
-              )}
-              {user.owsWalletConnected && (
-                <span css={css`
-                  width: 6px;
-                  height: 6px;
-                  border-radius: 50%;
-                  background: ${designTokens.colors.semantic.success[500]};
-                `} />
-              )}
-              {user.fhenixConnected && (
-                <span css={css`
-                  width: 6px;
-                  height: 6px;
-                  border-radius: 50%;
-                  background: ${designTokens.colors.semantic.success[500]};
-                `} />
-              )}
-            </span>
-          )}
-        </button>
+        />
 
         {/* User Menu */}
         {user.isConnected && (
