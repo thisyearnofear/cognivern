@@ -473,7 +473,7 @@ Be strict but fair. When in doubt, lean toward caution.`;
   /**
    * Get AI instance (for testing/mock)
    */
-  private getAIInstance(): Ai | null {
+  private getAIInstance(): any | null {
     // In production, this comes from the Worker environment
     // @ts-ignore
     return globalThis.ai || null;
@@ -487,7 +487,7 @@ Be strict but fair. When in doubt, lean toward caution.`;
 
     for (const provider of this.config.fallbackOrder) {
       try {
-        await this.executeWithProvider("test", provider);
+        await this.executeWithProvider("test", provider, "governance");
         results[provider] = true;
       } catch {
         results[provider] = false;

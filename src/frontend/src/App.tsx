@@ -169,7 +169,7 @@ function App() {
                 element={
                   <PageTransition type="slide">
                     <Suspense fallback={<PageSkeleton />}>
-                      <AgentConnectionWizard />
+                      <AgentConnectionWizard onCancel={() => window.history.back()} />
                     </Suspense>
                   </PageTransition>
                 }

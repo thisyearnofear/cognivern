@@ -5,13 +5,15 @@
  * and scheduled policy enforcement. Runs on Cloudflare Workers edge.
  */
 
-import { Agent, callable } from "agents";
+import { Agent, callable, type AgentContext } from "agents";
 import type { GovernanceAgentState, GovernanceAction, PolicyDecision } from "./types";
 import { MultiModelRouter } from "./MultiModelRouter";
 import { ElevenLabsService } from "./ElevenLabsService";
 import type { Env } from "./worker";
 
 export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
+  declare ctx: AgentContext;
+  declare env: Env;
   private modelRouter: MultiModelRouter;
 
   /**
@@ -43,8 +45,8 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
     briefingCount: 0,
   };
 
-  constructor() {
-    super();
+  constructor(ctx: AgentContext, env: Env) {
+    super(ctx, env);
     this.modelRouter = new MultiModelRouter();
   }
 
@@ -107,6 +109,16 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
         aiAnalysis
       );
 
+      // 4. Store action in memory log
+      this.state.actionLog.push({
+        ...action,
+        timestamp: new Date().toISOString(),
+        decision
+      });
+      if (this.state.actionLog.length > 100) {
+        this.state.actionLog.shift();
+      }
+
       // 4. Update metrics
       this.updateMetrics(approved, Date.now() - startTime);
 
@@ -117,7 +129,7 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
 
       return decision;
     } catch (error) {
-      this.logger.error("Governance evaluation failed", error);
+      console.error("Governance evaluation failed", error);
 
       // Fail-safe: reject on error in strict mode
       const failSafe = this.state.enforcementMode === "strict";
@@ -166,10 +178,7 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
         actions = actions.filter(a => a.actionType === filters.actionType);
       }
       if (filters.approved !== undefined) {
-        actions = actions.filter(a => {
-          const decision = this.state.actionLog.find(d => d.actionType === a.actionType);
-          return decision?.metadata?.approved === filters.approved;
-        });
+        actions = actions.filter(a => a.decision?.approved === filters.approved);
       }
     }
 
@@ -243,10 +252,10 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
   }
 
   /**
-   * Scheduled cleanup task (runs periodically via alarm)
+   * Scheduled cleanup task
    */
-  async alarm(): Promise<void> {
-    this.logger.info("Running scheduled governance cleanup");
+  async scheduledCleanup(): Promise<void> {
+    console.info("Running scheduled governance cleanup");
 
     // 1. Trim thought history if exceeds max
     if (this.state.thoughtHistory.length > this.state.configuration.maxThoughtHistory) {
@@ -262,7 +271,7 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
     await this.updateMetricsSummary();
 
     // Schedule next alarm (1 hour from now)
-    this.ctx.storage.setAlarm(Date.now() + 60 * 60 * 1000);
+    this.schedule(60 * 60, "scheduledCleanup");
   }
 
   // ========== Private Helper Methods ==========
@@ -360,7 +369,7 @@ Respond in JSON format:
         };
       }
     } catch (e) {
-      this.logger.warn("Failed to parse AI response as JSON", e);
+      console.warn("Failed to parse AI response as JSON", e);
     }
 
     // Fallback: simple heuristic

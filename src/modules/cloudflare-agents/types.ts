@@ -46,6 +46,7 @@ export interface GovernanceAction {
   data: Record<string, unknown>;
   context?: Record<string, unknown>;
   timestamp?: string;
+  decision?: PolicyDecision;
 }
 
 export interface PolicyDecision {

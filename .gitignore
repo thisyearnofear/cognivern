@@ -8,6 +8,7 @@ node_modules
 dist
 src/frontend/dist
 build
+contracts/build
 *.tsbuildinfo
 .next
 out
@@ -60,33 +61,19 @@ coverage
 .junie/
 
 # AI/IDE assistant artifacts
-# Claude Code
 .claude/
-
-# Cursor
 .cursor/
-
-# Windsurf
 .windsurf/
-
-# Aider
 .aider*
-
-# Blackbox
 .blackbox/
 .blackboxcli/
-
-# Zed AI
 .zeav/
-
-# Zencoder
 .zencoder/
-
-# Zenflow
 .zenflow/
-
-# Juno
 .junie/
+.letta/
+.qwen/
+.artifacts/
 
 # Volta (tool version manager)
 .volta/
