@@ -32,6 +32,7 @@ export interface IntentInteraction {
   response?: string;
   component?: GeneratedUIComponent;
   status: 'processing' | 'completed' | 'error';
+  isFallback?: boolean;
 }
 
 /**
@@ -269,6 +270,8 @@ export const useIntentStore = create<IntentState>((set, get) => ({
         };
       }
 
+      const isFallback = (data as any)._fallback === true;
+
       set((state) => ({
         isThinking: false,
         activeComponent: component,
@@ -283,10 +286,16 @@ export const useIntentStore = create<IntentState>((set, get) => ({
                 status: 'completed' as const,
                 response: data.response,
                 component: component || undefined,
+                isFallback,
               }
             : h,
         ),
       }));
+
+      // Log fallback usage for monitoring
+      if (isFallback) {
+        console.warn('Intent processing using fallback - AI service may be unavailable');
+      }
     } catch (error) {
       console.error('Intent execution failed:', error);
       set((state) => ({
@@ -296,7 +305,8 @@ export const useIntentStore = create<IntentState>((set, get) => ({
             ? {
                 ...h,
                 status: 'error' as const,
-                response: 'Sorry, I encountered an error processing that intent.',
+                response:
+                  'Sorry, I encountered an error. The AI service may be temporarily unavailable. Please try again.',
               }
             : h,
         ),

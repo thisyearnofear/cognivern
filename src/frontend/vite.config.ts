@@ -19,10 +19,25 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
 
-    // Simplified build configuration
+    // Optimized build configuration
     build: {
       minify: 'esbuild',
       sourcemap: false,
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            // Vendor chunk for node_modules
+            if (id.includes('node_modules')) {
+              if (id.includes('@tanstack')) return 'vendor-tanstack';
+              if (id.includes('recharts') || id.includes('lucide')) return 'vendor-charts';
+              if (id.includes('wagmi') || id.includes('viem')) return 'vendor-web3';
+              if (id.includes('@emotion')) return 'vendor-emotion';
+              return 'vendor';
+            }
+          },
+        },
+      },
     },
     worker: {
       format: 'es',
