@@ -14,11 +14,11 @@ export {
   Spacer,
 } from './ResponsiveLayout';
 
-// Layout helpers (inline to avoid deleted ContentWrapper)
+import React from 'react';
 import { css } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
 
-export const DashboardWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+export const DashboardWrapper = ({ children }: { children: React.ReactNode }) => (
   <div
     css={css`
       width: 100%;
@@ -39,7 +39,7 @@ interface PageWrapperProps {
   actions?: React.ReactNode;
 }
 
-export const PageWrapper: React.FC<PageWrapperProps> = ({ children, title, subtitle, actions }) => (
+export const PageWrapper = ({ children, title, subtitle, actions }: PageWrapperProps) => (
   <div
     css={css`
       min-height: 100%;

@@ -20,7 +20,7 @@ export const PageTransition: React.FC<PageTransitionProps> = ({
     'entered',
   );
 
-  const entranceAnimation = useEntranceAnimation(
+  const entranceAnimation = useEntranceAnimation<HTMLDivElement>(
     type === 'fade' ? 'fadeIn' : type === 'scale' ? 'scaleIn' : 'slideInRight',
     { duration },
   );

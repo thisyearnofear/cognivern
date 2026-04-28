@@ -328,6 +328,7 @@ function PolicyManagementContent() {
                     key={agent.id}
                     agent={{
                       ...agent,
+                      status: agent.status ?? 'disconnected',
                       totalReturn: agent.totalReturn ?? 0,
                       winRate: agent.winRate ?? 0,
                     }}

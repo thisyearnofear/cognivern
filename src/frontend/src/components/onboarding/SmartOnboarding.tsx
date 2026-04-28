@@ -60,9 +60,9 @@ function OwsSetupStep() {
       const res = await owsApi.listWallets();
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         const wallet = res.data[0];
-        const address = wallet.accounts?.[0]?.address || wallet.address || '';
-        const name = wallet.name || 'Cognivern Treasury';
-        const chain = wallet.accounts?.[0]?.chainId || wallet.chainType || '';
+        const address = (wallet as any).accounts?.[0]?.address || (wallet as any).address || '';
+        const name = (wallet as any).name || 'Cognivern Treasury';
+        const chain = (wallet as any).accounts?.[0]?.chainId || (wallet as any).chainType || '';
         storeWalletInAppState(address, name, chain);
         setWalletStatus('connected');
       } else {
@@ -77,7 +77,7 @@ function OwsSetupStep() {
     setIsLoading(true);
     try {
       const res = await owsApi.bootstrap();
-      const data = res?.data;
+      const data = res?.data as any;
       const address = data?.accounts?.[0]?.address || data?.address || '';
       const name = data?.name || 'Cognivern Treasury';
       const chain = data?.accounts?.[0]?.chainId || data?.chainType || 'eip155:314159';
@@ -97,7 +97,9 @@ function OwsSetupStep() {
     }
     setIsLoading(true);
     try {
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = (await window.ethereum.request({
+        method: 'eth_requestAccounts',
+      })) as string[];
       if (accounts.length > 0) {
         const address = accounts[0];
         const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
@@ -412,6 +414,31 @@ export const SmartOnboarding: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
+  // Handlers moved up to avoid hoisting issues
+  const handleSkip = () => {
+    updatePreferences({ onboardingCompleted: true });
+    setShowOnboarding(false);
+    setIsWizardOpen(false);
+  };
+
+  const handleComplete = () => {
+    completeOnboarding(selectedUserType || 'explorer');
+    setShowOnboarding(false);
+    setIsWizardOpen(false);
+  };
+
+  const handleStartOnboarding = () => {
+    setCurrentStep(0);
+    setIsWizardOpen(true);
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+
   // Check if onboarding should be shown
   useEffect(() => {
     // When directly navigating to /onboarding route, always show the wizard
@@ -713,7 +740,7 @@ export const SmartOnboarding: React.FC = () => {
     if (currentStepId === 'user-type' && selectedUserType === 'explorer') {
       setExploreMode(true);
       // Skip to the demo-ready completion step
-      const completionIndex = steps.findIndex(s => s.id === 'complete');
+      const completionIndex = steps.findIndex((s) => s.id === 'complete');
       if (completionIndex !== -1) {
         setCurrentStep(completionIndex);
       }
@@ -722,7 +749,7 @@ export const SmartOnboarding: React.FC = () => {
 
     // Normal flow: skip OWS setup if in explore mode
     if (exploreMode && currentStepId === 'ows-setup') {
-      const completionIndex = steps.findIndex(s => s.id === 'complete');
+      const completionIndex = steps.findIndex((s) => s.id === 'complete');
       if (completionIndex !== -1) {
         setCurrentStep(completionIndex);
       }
@@ -732,29 +759,6 @@ export const SmartOnboarding: React.FC = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
-  };
-
-  const handlePrevious = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleSkip = () => {
-    updatePreferences({ onboardingCompleted: true });
-    setShowOnboarding(false);
-    setIsWizardOpen(false);
-  };
-
-  const handleComplete = () => {
-    completeOnboarding(selectedUserType || 'explorer');
-    setShowOnboarding(false);
-    setIsWizardOpen(false);
-  };
-
-  const handleStartOnboarding = () => {
-    setCurrentStep(0);
-    setIsWizardOpen(true);
   };
 
   const canProceed = () => {

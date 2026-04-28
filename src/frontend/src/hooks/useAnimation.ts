@@ -10,11 +10,11 @@ export interface AnimationOptions {
   direction?: 'normal' | 'reverse' | 'alternate' | 'alternate-reverse';
 }
 
-export const useAnimation = (
+export const useAnimation = <T extends HTMLElement = HTMLElement>(
   keyframes: Keyframe[] | PropertyIndexedKeyframes,
   options: AnimationOptions = {},
 ) => {
-  const elementRef = useRef<HTMLElement>(null);
+  const elementRef = useRef<T>(null);
   const animationRef = useRef<Animation | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const prefersReducedMotion = useReducedMotion();
@@ -101,7 +101,7 @@ export const useAnimation = (
 };
 
 // Hook for entrance animations
-export const useEntranceAnimation = (
+export const useEntranceAnimation = <T extends HTMLElement = HTMLElement>(
   type:
     | 'fadeIn'
     | 'slideInUp'
@@ -135,7 +135,7 @@ export const useEntranceAnimation = (
     ],
   };
 
-  return useAnimation(keyframesMap[type], {
+  return useAnimation<T>(keyframesMap[type], {
     duration: 300,
     easing: 'ease-out',
     ...options,
@@ -143,12 +143,12 @@ export const useEntranceAnimation = (
 };
 
 // Hook for hover animations
-export const useHoverAnimation = (
+export const useHoverAnimation = <T extends HTMLElement = HTMLElement>(
   hoverKeyframes: Keyframe[] | PropertyIndexedKeyframes,
   restKeyframes: Keyframe[] | PropertyIndexedKeyframes,
   options: AnimationOptions = {},
 ) => {
-  const elementRef = useRef<HTMLElement>(null);
+  const elementRef = useRef<T>(null);
   const [isHovered, setIsHovered] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
@@ -230,11 +230,11 @@ export const useStaggeredAnimation = (
 };
 
 // Hook for scroll-triggered animations
-export const useScrollAnimation = (
+export const useScrollAnimation = <T extends HTMLElement = HTMLElement>(
   keyframes: Keyframe[] | PropertyIndexedKeyframes,
   options: AnimationOptions & { threshold?: number } = {},
 ) => {
-  const elementRef = useRef<HTMLElement>(null);
+  const elementRef = useRef<T>(null);
   const [hasAnimated, setHasAnimated] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
@@ -280,8 +280,13 @@ export const useScrollAnimation = (
 };
 
 // Hook for loading animations
-export const useLoadingAnimation = (isLoading: boolean) => {
-  const skeletonAnimation = useAnimation(
+export const useLoadingAnimation = <
+  T1 extends HTMLElement = HTMLElement,
+  T2 extends HTMLElement = HTMLElement,
+>(
+  isLoading: boolean,
+) => {
+  const skeletonAnimation = useAnimation<T1>(
     [{ backgroundPosition: '-200px 0' }, { backgroundPosition: 'calc(200px + 100%) 0' }],
     {
       duration: 2000,
@@ -290,7 +295,7 @@ export const useLoadingAnimation = (isLoading: boolean) => {
     },
   );
 
-  const spinnerAnimation = useAnimation(
+  const spinnerAnimation = useAnimation<T2>(
     [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
     {
       duration: 1000,

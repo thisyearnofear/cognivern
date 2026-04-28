@@ -143,15 +143,15 @@ export const AgentCard: React.FC<AgentCardProps> = ({
         <div css={metricsContainerStyles}>
           <div css={metricBlockStyles}>
             <span css={metricLabelStyles}>Win Rate</span>
-            <span css={metricValueStyles(agent.winRate >= 0.5)}>
-              {(agent.winRate * 100).toFixed(1)}%
+            <span css={metricValueStyles((agent.winRate ?? 0) >= 0.5)}>
+              {((agent.winRate ?? 0) * 100).toFixed(1)}%
             </span>
           </div>
           <div css={metricBlockStyles}>
             <span css={metricLabelStyles}>Total Return</span>
-            <span css={metricValueStyles(agent.totalReturn >= 0)}>
-              {agent.totalReturn >= 0 ? '+' : ''}
-              {(agent.totalReturn * 100).toFixed(2)}%
+            <span css={metricValueStyles((agent.totalReturn ?? 0) >= 0)}>
+              {(agent.totalReturn ?? 0) >= 0 ? '+' : ''}
+              {((agent.totalReturn ?? 0) * 100).toFixed(2)}%
             </span>
           </div>
         </div>
