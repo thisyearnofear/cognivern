@@ -31,6 +31,7 @@ import {
   PlusCircle,
   Zap,
   Brain,
+  Users,
 } from 'lucide-react';
 import { designTokens } from '../../styles/design-system';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
