@@ -1,196 +1,32 @@
-/* Core reset and design system foundation */
-
-/* Light mode CSS custom properties */
-:root {
-  --card-bg: #ffffff;
-  --card-bg-elevated: #f8fafc;
-  --card-text: #0f172a;
-  --card-border: #e2e8f0;
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-muted: #94a3b8;
-  --surface-bg: #f8fafc;
-  --surface-bg-alt: #f1f5f9;
-  --input-bg: #ffffff;
-  --input-border: #e2e8f0;
-  --scrollbar-thumb: #e2e8f0;
-  --scrollbar-thumb-hover: #cbd5e1;
-  --stat-label: #475569;
-  --stat-value: #0f172a;
-  --section-title: #1f2937;
-  --divider: #e2e8f0;
-  --overlay-bg: rgba(15, 23, 42, 0.6);
-}
-
-/* Dark mode CSS custom properties */
-.dark {
-  --card-bg: #1e293b;
-  --card-bg-elevated: #263348;
-  --card-text: #f1f5f9;
-  --card-border: #334155;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --surface-bg: #0f172a;
-  --surface-bg-alt: #1e293b;
-  --input-bg: #1e293b;
-  --input-border: #334155;
-  --scrollbar-thumb: #334155;
-  --scrollbar-thumb-hover: #475569;
-  --stat-label: #94a3b8;
-  --stat-value: #f1f5f9;
-  --section-title: #f1f5f9;
-  --divider: #334155;
-  --overlay-bg: rgba(0, 0, 0, 0.7);
-}
-
-:root {
-  font-family:
-    "Inter",
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  /* Primary background and text colors — use CSS vars for theme support */
-  background-color: var(--surface-bg, #f8fafc);
-  color: var(--text-primary, #1f2937);
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Prevent overscroll bounce on iOS for the app shell */
-html,
-body {
-  overscroll-behavior: none;
-}
-
-/* Mobile: prevent text size adjustment on orientation change */
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-.app {
-  min-height: 100vh;
-  font-family:
-    "Inter",
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
-}
-
-/* Base link styles */
-a {
-  font-weight: 500;
-  color: #0ea5e9; /* Primary 500 */
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-a:hover {
-  color: #0284c7; /* Primary 600 */
-}
-
-/* Base typography */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  margin: 0;
-  line-height: 1.25;
-  font-weight: 700;
-}
-
-/* Global scrollbar styling for a cleaner dashboard look */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb, #e2e8f0);
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover, #cbd5e1);
-}
-
-/* Accessibility: Hide elements but keep them for screen readers */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-/* Focus states for accessibility */
 :focus-visible {
-  outline: 2px solid #0ea5e9;
-  outline-offset: 2px;
+  outline: 3px solid #0ea5e9;
+  outline-offset: 3px;
 }
 
-/* Global animations used in the design system */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
+/* Enhanced focus for keyboard navigation */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid #0ea5e9;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.3);
+}
+
+/* High contrast focus for better visibility */
+@media (prefers-contrast: high) {
+  :focus-visible {
+    outline: 4px solid #000;
+    outline-offset: 4px;
   }
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(0.98);
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

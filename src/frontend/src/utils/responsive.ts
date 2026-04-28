@@ -1,4 +1,11 @@
+/**
+ * Responsive Utilities
+ * Consolidated viewport, performance, and accessibility utilities
+ * DRY principle: Single source of truth for all responsive behavior
+ */
+
 import { designTokens } from '../styles/design-system';
+import { useBreakpoint as useBreakpointHook } from '../hooks/useMediaQuery';
 
 // Viewport utilities for consistent responsive behavior
 export const viewport = {
@@ -30,20 +37,20 @@ export const viewport = {
     if (width >= parseInt(designTokens.breakpoints.lg)) return 'lg';
     if (width >= parseInt(designTokens.breakpoints.md)) return 'md';
     if (width >= parseInt(designTokens.breakpoints.sm)) return 'sm';
-    return 'sm'; // Default to sm for xs
+    return 'xs'; // Default to xs for smallest screens
   },
 
-  // Check if device is mobile
+  // Check if device is mobile (smaller than sm breakpoint)
   isMobile: (): boolean => {
-    return !viewport.matches('lg');
+    return !viewport.matches('sm');
   },
 
-  // Check if device is tablet
+  // Check if device is tablet (sm to lg)
   isTablet: (): boolean => {
-    return viewport.matches('md') && !viewport.matches('lg');
+    return viewport.matches('sm') && !viewport.matches('lg');
   },
 
-  // Check if device is desktop
+  // Check if device is desktop (lg and above)
   isDesktop: (): boolean => {
     return viewport.matches('lg');
   },
@@ -63,6 +70,7 @@ export const viewport = {
 
     // Expanded widths based on breakpoint
     const widths = {
+      xs: 240,
       sm: 240,
       md: 260,
       lg: 280,
@@ -78,6 +86,7 @@ export const viewport = {
     const breakpoint = viewport.getCurrentBreakpoint();
 
     const maxWidths = {
+      xs: '100%',
       sm: '100%',
       md: '100%',
       lg: '1200px',
@@ -93,6 +102,7 @@ export const viewport = {
     const breakpoint = viewport.getCurrentBreakpoint();
 
     const paddings = {
+      xs: designTokens.spacing[3],
       sm: designTokens.spacing[4],
       md: designTokens.spacing[6],
       lg: designTokens.spacing[8],
@@ -100,143 +110,7 @@ export const viewport = {
       '2xl': designTokens.spacing[12],
     };
 
-    return paddings[breakpoint] || designTokens.spacing[6];
-  },
-};
-
-// Responsive value utilities
-export const responsive = {
-  // Get value based on current breakpoint
-  getValue: <T>(
-    values: Partial<Record<keyof typeof designTokens.breakpoints, T>>,
-  ): T | undefined => {
-    const breakpoint = viewport.getCurrentBreakpoint();
-    const breakpointOrder: (keyof typeof designTokens.breakpoints)[] = [
-      '2xl',
-      'xl',
-      'lg',
-      'md',
-      'sm',
-    ];
-
-    // Find the appropriate value starting from current breakpoint and going down
-    const currentIndex = breakpointOrder.indexOf(breakpoint);
-    for (let i = currentIndex; i < breakpointOrder.length; i++) {
-      const bp = breakpointOrder[i];
-      if (values[bp] !== undefined) {
-        return values[bp];
-      }
-    }
-
-    return undefined;
-  },
-
-  // Generate responsive CSS for different breakpoints
-  css: (
-    property: string,
-    values: Partial<Record<keyof typeof designTokens.breakpoints, string>>,
-  ): string => {
-    let css = '';
-
-    // Base value (mobile first)
-    if (values.sm) {
-      css += `${property}: ${values.sm};\n`;
-    }
-
-    // Add media queries for larger breakpoints
-    const breakpoints: (keyof typeof designTokens.breakpoints)[] = ['md', 'lg', 'xl', '2xl'];
-
-    breakpoints.forEach((bp) => {
-      if (values[bp]) {
-        css += `@media (min-width: ${designTokens.breakpoints[bp]}) {\n`;
-        css += `  ${property}: ${values[bp]};\n`;
-        css += `}\n`;
-      }
-    });
-
-    return css;
-  },
-
-  // Generate responsive grid columns
-  gridColumns: (
-    columns: Partial<Record<keyof typeof designTokens.breakpoints, number>>,
-  ): string => {
-    return responsive.css(
-      'grid-template-columns',
-      Object.fromEntries(Object.entries(columns).map(([bp, cols]) => [bp, `repeat(${cols}, 1fr)`])),
-    );
-  },
-
-  // Generate responsive spacing
-  spacing: (
-    property: string,
-    values: Partial<
-      Record<keyof typeof designTokens.breakpoints, keyof typeof designTokens.spacing>
-    >,
-  ): string => {
-    return responsive.css(
-      property,
-      Object.fromEntries(
-        Object.entries(values).map(([bp, space]) => [
-          bp,
-          designTokens.spacing[space as keyof typeof designTokens.spacing],
-        ]),
-      ),
-    );
-  },
-};
-
-// Layout calculation utilities
-export const layout = {
-  // Calculate available content width
-  getContentWidth: (sidebarWidth: number, containerPadding: string): string => {
-    const paddingValue = parseInt(containerPadding) * 2; // Left and right padding
-    return `calc(100vw - ${sidebarWidth}px - ${paddingValue}px)`;
-  },
-
-  // Calculate optimal grid columns for content
-  getOptimalColumns: (itemMinWidth: number, containerWidth: number, gap: number): number => {
-    const availableWidth = containerWidth - gap;
-    const itemWidthWithGap = itemMinWidth + gap;
-    const columns = Math.floor(availableWidth / itemWidthWithGap);
-    return Math.max(1, columns);
-  },
-
-  // Calculate if sidebar should be collapsed based on content needs
-  shouldCollapseSidebar: (contentMinWidth: number, sidebarWidth: number): boolean => {
-    const viewportWidth = viewport.getWidth();
-    const availableWidth = viewportWidth - sidebarWidth;
-    return availableWidth < contentMinWidth;
-  },
-
-  // Get optimal layout configuration
-  getOptimalLayout: (contentMinWidth: number = 800) => {
-    const viewportWidth = viewport.getWidth();
-    const breakpoint = viewport.getCurrentBreakpoint();
-    const isMobile = viewport.isMobile();
-    const isTouch = viewport.isTouch();
-
-    let sidebarState: 'expanded' | 'collapsed' | 'hidden' | 'overlay' = 'expanded';
-
-    if (isMobile) {
-      sidebarState = 'hidden';
-    } else if (isTouch && viewport.isTablet()) {
-      sidebarState = 'overlay';
-    } else if (
-      layout.shouldCollapseSidebar(contentMinWidth, viewport.getOptimalSidebarWidth('expanded'))
-    ) {
-      sidebarState = 'collapsed';
-    }
-
-    return {
-      sidebarState,
-      sidebarWidth: viewport.getOptimalSidebarWidth(sidebarState),
-      contentMaxWidth: viewport.getOptimalContentWidth(),
-      containerPadding: viewport.getOptimalPadding(),
-      breakpoint,
-      isMobile,
-      isTouch,
-    };
+    return paddings[breakpoint] || designTokens.spacing[4];
   },
 };
 
@@ -288,6 +162,18 @@ export const performance = {
       img.classList.add('loaded');
     }
   },
+
+  // Check if user prefers reduced motion for accessibility
+  prefersReducedMotion: (): boolean => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  },
+
+  // Get animation duration based on reduced motion preference
+  getAnimationDuration: (duration: number): number => {
+    if (performance.prefersReducedMotion()) return 0;
+    return duration;
+  },
 };
 
 // Accessibility utilities for responsive design
@@ -313,19 +199,10 @@ export const a11y = {
   getTouchTargetSize: (): string => {
     return viewport.isTouch() ? '44px' : '32px';
   },
-
-  // Check if keyboard navigation is likely being used
-  isKeyboardUser: (): boolean => {
-    // This would need to be implemented with focus tracking
-    // For now, return false as default
-    return false;
-  },
 };
 
 export default {
   viewport,
-  responsive,
-  layout,
   performance,
   a11y,
 };
