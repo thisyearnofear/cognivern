@@ -32,14 +32,92 @@ export const DashboardWrapper: React.FC<{ children: React.ReactNode }> = ({ chil
   </div>
 );
 
-export const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+interface PageWrapperProps {
+  children: React.ReactNode;
+  title?: string;
+  subtitle?: string;
+  actions?: React.ReactNode;
+}
+
+export const PageWrapper: React.FC<PageWrapperProps> = ({ children, title, subtitle, actions }) => (
   <div
     css={css`
       min-height: 100%;
       background: transparent;
+      padding-bottom: ${designTokens.spacing[12]};
     `}
   >
-    {children}
+    {(title || subtitle || actions) && (
+      <header
+        css={css`
+          margin-bottom: ${designTokens.spacing[10]};
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          gap: ${designTokens.spacing[6]};
+          flex-wrap: wrap;
+          padding: 0 ${designTokens.spacing[2]};
+
+          @media (max-width: ${designTokens.breakpoints.md}) {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+        `}
+      >
+        <div
+          css={css`
+            max-width: 800px;
+          `}
+        >
+          {title && (
+            <h1
+              css={css`
+                font-size: ${designTokens.typography.fontSize['5xl']};
+                font-weight: ${designTokens.typography.fontWeight.extrabold};
+                margin: 0 0 ${designTokens.spacing[3]} 0;
+                color: ${designTokens.colors.neutral[900]};
+                letter-spacing: -0.04em;
+                line-height: 1.1;
+                background: linear-gradient(
+                  to bottom right,
+                  ${designTokens.colors.neutral[900]},
+                  ${designTokens.colors.neutral[600]}
+                );
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+              `}
+            >
+              {title}
+            </h1>
+          )}
+          {subtitle && (
+            <p
+              css={css`
+                font-size: ${designTokens.typography.fontSize.lg};
+                color: ${designTokens.colors.neutral[600]};
+                margin: 0;
+                line-height: 1.6;
+                max-width: 60ch;
+              `}
+            >
+              {subtitle}
+            </p>
+          )}
+        </div>
+        {actions && (
+          <div
+            css={css`
+              display: flex;
+              gap: ${designTokens.spacing[3]};
+              margin-bottom: ${designTokens.spacing[1]};
+            `}
+          >
+            {actions}
+          </div>
+        )}
+      </header>
+    )}
+    <main>{children}</main>
   </div>
 );
 
@@ -54,7 +132,7 @@ export type {
 } from './ResponsiveLayout';
 
 // Re-export responsive utilities
-export { viewport, responsive, layout, performance, a11y } from '../../utils/responsive';
+export { viewport, performance, a11y } from '../../utils/responsive';
 
 // Re-export viewport optimization utilities
 export * from '../../utils/viewportOptimization';

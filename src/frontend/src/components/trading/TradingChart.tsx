@@ -1,23 +1,6 @@
-import { AgentType } from './TradingAgentDashboard';
+import { AgentType, TradingDecision } from '../../types';
 import { css } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
-
-interface TradingDecision {
-  action: 'buy' | 'sell' | 'hold';
-  symbol: string;
-  quantity: number;
-  price: number;
-  confidence: number;
-  reasoning: string;
-  riskScore: number;
-  timestamp: string;
-  agentType: AgentType;
-  sentimentData?: {
-    sentiment: number;
-    confidence: number;
-    sources: string[];
-  };
-}
 
 interface TradingChartProps {
   decisions: TradingDecision[];

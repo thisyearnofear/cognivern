@@ -233,4 +233,5 @@ export const easings = {
   smooth: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   bounce: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
   spring: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+  out: 'cubic-bezier(0.0, 0, 0.2, 1)',
 } as const;

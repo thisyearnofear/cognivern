@@ -1,4 +1,4 @@
-import { css } from '@emotion/react';
+import { css, SerializedStyles } from '@emotion/react';
 import { designTokens } from '../tokens/designTokens';
 
 // Reusable layout utilities
@@ -53,6 +53,19 @@ export const layoutUtils = {
     left: 50%;
     transform: translate(-50%, -50%);
   `,
+
+  responsive: {
+    mobile: (styles: SerializedStyles) => css`
+      @media (max-width: ${designTokens.breakpoints.md}) {
+        ${styles}
+      }
+    `,
+    tablet: (styles: SerializedStyles) => css`
+      @media (max-width: ${designTokens.breakpoints.lg}) {
+        ${styles}
+      }
+    `,
+  },
 } as const;
 
 // Responsive utilities

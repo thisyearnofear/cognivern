@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { css } from '@emotion/react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { designTokens, keyframeAnimations } from '../../styles/design-system';
+import { designTokens, keyframeAnimations, easings } from '../../styles/design-system';
 import { Card, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -13,7 +13,7 @@ const profileContainerStyles = css`
   max-width: 1400px;
   margin: 0 auto;
   padding: ${designTokens.spacing[8]} ${designTokens.spacing[6]};
-  ${keyframeAnimations.fadeInUp};
+  animation: ${keyframeAnimations.fadeInUp} 0.8s ${easings.out};
   --scroll-y: 0;
 `;
 
@@ -32,39 +32,73 @@ const headerCardStyles = css`
   grid-column: span 12;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: ${designTokens.spacing[10]};
+  gap: ${designTokens.spacing[12]};
   align-items: center;
-  padding: ${designTokens.spacing[12]};
-  background: ${designTokens.colors.neutral[50]};
+  padding: ${designTokens.spacing[16]};
+  background: radial-gradient(
+    circle at 0% 0%,
+    ${designTokens.colors.primary[50]} 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  backdrop-filter: blur(20px);
   border-radius: ${designTokens.borderRadius['3xl']};
-  border: 1px solid ${designTokens.colors.neutral[100]};
+  border: 1px solid ${designTokens.colors.neutral[200]};
   position: relative;
   overflow: hidden;
   margin-bottom: ${designTokens.spacing[12]};
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.08);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+      linear-gradient(${designTokens.colors.neutral[200]} 1px, transparent 1px),
+      linear-gradient(90deg, ${designTokens.colors.neutral[200]} 1px, transparent 1px);
+    background-size: 32px 32px;
+    opacity: 0.05;
+    pointer-events: none;
+  }
 
   @media (max-width: ${designTokens.breakpoints.md}) {
     grid-template-columns: 1fr;
     text-align: center;
-    padding: ${designTokens.spacing[8]};
+    padding: ${designTokens.spacing[10]};
+    gap: ${designTokens.spacing[8]};
   }
 `;
 
 const avatarContainerStyles = css`
-  width: 200px;
-  height: 200px;
+  width: 240px;
+  height: 240px;
   border-radius: ${designTokens.borderRadius['2xl']};
   background: linear-gradient(
     135deg,
-    ${designTokens.colors.primary[500]},
-    ${designTokens.colors.primary[800]}
+    ${designTokens.colors.primary[600]} 0%,
+    ${designTokens.colors.primary[900]} 100%
   );
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 5rem;
-  box-shadow: ${designTokens.shadows.xl};
-  ${keyframeAnimations.parallax(-0.2)};
-  transition: transform 0.1s linear;
+  font-size: 6rem;
+  font-weight: 800;
+  color: white;
+  box-shadow: 0 30px 60px -12px rgba(15, 23, 42, 0.3);
+  position: relative;
+  z-index: 1;
+  border: 4px solid white;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    border: 1px solid ${designTokens.colors.primary[200]};
+    border-radius: inherit;
+    opacity: 0.5;
+  }
 
   @media (max-width: ${designTokens.breakpoints.md}) {
     margin: 0 auto;
@@ -98,20 +132,21 @@ const infoSectionStyles = css`
 `;
 
 const sectionTitleStyles = css`
-  font-size: ${designTokens.typography.fontSize['2xl']};
+  font-size: ${designTokens.typography.fontSize['xl']};
   font-weight: ${designTokens.typography.fontWeight.bold};
-  color: ${designTokens.colors.neutral[900]};
-  margin-bottom: ${designTokens.spacing[6]};
+  color: ${designTokens.colors.primary[700]};
+  margin-bottom: ${designTokens.spacing[8]};
   display: flex;
   align-items: center;
   gap: ${designTokens.spacing[4]};
-  ${keyframeAnimations.revealUp};
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
 
   &::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: ${designTokens.colors.neutral[200]};
+    background: linear-gradient(90deg, ${designTokens.colors.primary[100]}, transparent);
   }
 `;
 
@@ -122,33 +157,35 @@ const dataGridStyles = css`
 `;
 
 const dataItemStyles = css`
-  padding: ${designTokens.spacing[6]};
-  background: white;
+  padding: ${designTokens.spacing[8]};
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
   border-radius: ${designTokens.borderRadius.xl};
   border: 1px solid ${designTokens.colors.neutral[100]};
-  box-shadow: ${designTokens.shadows.sm};
-  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+  transition: all 0.4s ${easings.out};
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: ${designTokens.shadows.md};
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.1);
     border-color: ${designTokens.colors.primary[200]};
   }
 `;
 
 const dataLabelStyles = css`
   font-size: ${designTokens.typography.fontSize.xs};
-  color: ${designTokens.colors.neutral[500]};
+  color: ${designTokens.colors.neutral[400]};
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: bold;
-  margin-bottom: ${designTokens.spacing[2]};
+  margin-bottom: ${designTokens.spacing[3]};
 `;
 
 const dataValueStyles = css`
   font-size: ${designTokens.typography.fontSize.lg};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
+  font-weight: ${designTokens.typography.fontWeight.bold};
   color: ${designTokens.colors.neutral[900]};
+  letter-spacing: -0.01em;
 `;
 
 const techBadgeStyles = css`
@@ -193,48 +230,77 @@ const AgentProfile: React.FC = () => {
         onClick={() => navigate(-1)}
         css={css`
           margin-bottom: ${designTokens.spacing[10]};
+          color: ${designTokens.colors.neutral[500]};
+          &:hover {
+            color: ${designTokens.colors.primary[600]};
+          }
         `}
       >
-        Back to Dashboard
+        ← Return to Operations Dashboard
       </Button>
 
       <div css={headerCardStyles}>
         <div css={avatarContainerStyles}>{agentType === 'recall' ? 'RC' : 'VC'}</div>
         <div
           css={css`
-            ${keyframeAnimations.parallax(-0.05)};
+            padding: 0 ${designTokens.spacing[4]};
           `}
         >
           <div
             css={css`
               display: flex;
               align-items: center;
-              gap: ${designTokens.spacing[4]};
-              margin-bottom: ${designTokens.spacing[4]};
+              gap: ${designTokens.spacing[3]};
+              margin-bottom: ${designTokens.spacing[6]};
             `}
           >
-            <Badge variant={status.isActive ? 'success' : 'secondary'}>
-              {status.isActive ? 'Active' : 'Standby'}
-            </Badge>
-            <span
+            <Badge
+              variant={status.isActive ? 'success' : 'secondary'}
               css={css`
-                font-size: ${designTokens.typography.fontSize.sm};
-                color: ${designTokens.colors.neutral[500]};
-                font-family: monospace;
+                padding: ${designTokens.spacing[1]} ${designTokens.spacing[4]};
+                font-weight: 800;
+                letter-spacing: 0.05em;
+                box-shadow: 0 4px 12px ${status.isActive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(0,0,0,0.1)'};
               `}
             >
-              ERC-8004: {extendedData.erc8004.substring(0, 10)}...
+              {status.isActive ? 'LIVE OPERATIONAL' : 'STANDBY MODE'}
+            </Badge>
+            <div
+              css={css`
+                height: 4px;
+                width: 4px;
+                border-radius: 50%;
+                background: ${designTokens.colors.neutral[300]};
+              `}
+            />
+            <span
+              css={css`
+                font-size: ${designTokens.typography.fontSize.xs};
+                color: ${designTokens.colors.neutral[500]};
+                font-family: ${designTokens.typography.fontFamily.mono};
+                font-weight: 600;
+                letter-spacing: 0.1em;
+              `}
+            >
+              REGISTRY: {extendedData.erc8004.substring(0, 14).toUpperCase()}
             </span>
           </div>
           <h1
             css={css`
               font-size: ${designTokens.typography.fontSize['5xl']};
-              font-weight: bold;
+              font-weight: 800;
               margin: 0 0 ${designTokens.spacing[4]} 0;
               letter-spacing: -0.04em;
+              background: linear-gradient(
+                135deg,
+                ${designTokens.colors.neutral[900]} 0%,
+                ${designTokens.colors.primary[800]} 100%
+              );
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
             `}
           >
-            {agentType === 'recall' ? 'Research Agent' : 'Procurement Agent'}
+            {agentType === 'recall' ? 'Recall Intelligence' : 'Vincent Procurement'}
           </h1>
           <p
             css={css`
@@ -242,11 +308,12 @@ const AgentProfile: React.FC = () => {
               font-size: ${designTokens.typography.fontSize.xl};
               max-width: 800px;
               line-height: 1.6;
+              font-weight: 400;
             `}
           >
             {agentType === 'recall'
-              ? 'Investigation-focused agent that gathers context, summarizes findings, and requests bounded spend through policy-aware execution controls.'
-              : 'Execution-focused agent that handles supplier interactions and requests budget-scoped wallet actions under approval-first governance.'}
+              ? 'Multi-agent coordination specialist for deep context gathering and policy-aware findings synthesis.'
+              : 'Autonomous execution specialist focused on supplier negotiation and budget-scoped transactional governance.'}
           </p>
         </div>
         <div
@@ -254,12 +321,13 @@ const AgentProfile: React.FC = () => {
             display: flex;
             flex-direction: column;
             gap: ${designTokens.spacing[4]};
+            min-width: 200px;
           `}
         >
-          <Button variant="primary" size="lg">
-            Connect Agent
+          <Button variant="primary" size="lg" css={css`height: 56px; font-weight: 700;`}>
+            Manage Deployment
           </Button>
-          <Button variant="outline" size="lg">
+          <Button variant="outline" size="lg" css={css`height: 56px; background: white;`}>
             Review Governance
           </Button>
         </div>
@@ -283,7 +351,7 @@ const AgentProfile: React.FC = () => {
                   letter-spacing: -0.05em;
                 `}
               >
-                +{(status.performance.totalReturn * 100).toFixed(2)}%
+                +{((status.performance?.totalReturn ?? 0) * 100).toFixed(2)}%
               </div>
             </CardContent>
           </Card>
@@ -304,7 +372,7 @@ const AgentProfile: React.FC = () => {
                     font-weight: bold;
                   `}
                 >
-                  {(status.performance.winRate * 100).toFixed(1)}%
+                  {((status.performance?.winRate ?? 0) * 100).toFixed(1)}%
                 </div>
               </div>
               <div>
@@ -327,7 +395,7 @@ const AgentProfile: React.FC = () => {
                   margin-bottom: ${designTokens.spacing[2]};
                 `}
               >
-                {status.performance.complianceScore}%
+                {status.performance?.complianceScore ?? 0}%
               </div>
               <div
                 css={css`
@@ -340,7 +408,7 @@ const AgentProfile: React.FC = () => {
                 <div
                   css={css`
                     height: 100%;
-                    width: ${status.performance.complianceScore}%;
+                    width: ${status.performance?.complianceScore ?? 0}%;
                     background: ${designTokens.colors.primary[500]};
                   `}
                 />
@@ -377,7 +445,7 @@ const AgentProfile: React.FC = () => {
           <div css={infoSectionStyles}>
             <h2 css={sectionTitleStyles}>Technical Foundation</h2>
             <Card
-              variant="outline"
+              variant="outlined"
               css={css`
                 padding: ${designTokens.spacing[8]};
                 background: white;
@@ -444,7 +512,7 @@ const AgentProfile: React.FC = () => {
 
           <div css={infoSectionStyles}>
             <h2 css={sectionTitleStyles}>Security Audit</h2>
-            <Card variant="outline" css={keyframeAnimations.shimmer}>
+            <Card variant="outlined" css={keyframeAnimations.shimmer}>
               <CardContent
                 css={css`
                   display: flex;

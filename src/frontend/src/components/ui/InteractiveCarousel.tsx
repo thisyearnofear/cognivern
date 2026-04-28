@@ -114,7 +114,7 @@ export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({ items,
           >
             <Card
               padding="lg"
-              variant={index === activeIndex ? 'elevated' : 'outline'}
+              variant={index === activeIndex ? 'elevated' : 'outlined'}
               css={css`
                 height: 100%;
                 background: ${index === activeIndex

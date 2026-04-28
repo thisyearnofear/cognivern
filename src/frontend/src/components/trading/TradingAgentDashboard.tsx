@@ -461,7 +461,7 @@ function TradingAgentDashboardContent() {
         <Button
           variant="primary"
           onClick={() => navigate('/agents/workshop')}
-          icon={<Plus size={18} />}
+          leftIcon={<Plus size={18} />}
         >
           Add Governed Agent
         </Button>

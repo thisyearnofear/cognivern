@@ -35,7 +35,7 @@ export const field = {
     serialize: (value) => (value ? 'true' : 'false'),
   }),
 
-  array: <T>(innerField: FilterField<T>, delimiter = ','): FilterField<T[]> => ({
+  array: <T>(innerField: FilterField<T>, delimiter = ','): FilterField<NonNullable<T>[]> => ({
     type: 'array',
     defaultValue: [],
     parse: (value) => {
@@ -43,7 +43,7 @@ export const field = {
       return value
         .split(delimiter)
         .map((v) => innerField.parse(v))
-        .filter((v) => v !== null) as T[];
+        .filter((v): v is NonNullable<T> => v !== null);
     },
     serialize: (value) => {
       if (!value || value.length === 0) return null;
