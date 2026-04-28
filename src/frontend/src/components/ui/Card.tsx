@@ -188,15 +188,32 @@ export const CardDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement
   </p>
 );
 
-export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
+export interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {
+  padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+}
+
+export const CardContent: React.FC<CardContentProps> = ({
   children,
   className = '',
+  padding,
   ...props
-}) => (
-  <div css={cardContentStyles} className={`cognivern-card-content ${className}`} {...props}>
-    {children}
-  </div>
-);
+}) => {
+  const contentPaddingStyles = padding ? css`
+    padding: ${
+      padding === 'none' ? '0' :
+      padding === 'sm' ? designTokens.spacing[3] :
+      padding === 'md' ? designTokens.spacing[6] :
+      padding === 'lg' ? designTokens.spacing[8] :
+      padding === 'xl' ? designTokens.spacing[12] : '0'
+    };
+  ` : '';
+
+  return (
+    <div css={[cardContentStyles, contentPaddingStyles]} className={`cognivern-card-content ${className}`} {...props}>
+      {children}
+    </div>
+  );
+};
 
 export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   children,

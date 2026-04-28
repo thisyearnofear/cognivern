@@ -127,17 +127,17 @@ export const UserFriendlyError: React.FC<UserFriendlyErrorProps> = ({
 
       <div css={actionsStyles}>
         {showRetry && (
-          <Button variant="primary" onClick={onRetry} icon={<RefreshCw size={16} />}>
+          <Button variant="primary" onClick={onRetry} leftIcon={<RefreshCw size={16} />}>
             Try Again
           </Button>
         )}
         {showBack && (
-          <Button variant="outline" onClick={onBack} icon={<ArrowLeft size={16} />}>
+          <Button variant="outline" onClick={onBack} leftIcon={<ArrowLeft size={16} />}>
             Go Back
           </Button>
         )}
         {showHome && (
-          <Button variant="ghost" onClick={onHome} icon={<Home size={16} />}>
+          <Button variant="ghost" onClick={onHome} leftIcon={<Home size={16} />}>
             Home
           </Button>
         )}

@@ -1,25 +1,8 @@
 import { useState } from 'react';
-import { AgentType } from './TradingAgentDashboard';
 import { css } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
 import { Badge } from '../ui/Badge';
-
-interface TradingDecision {
-  action: 'buy' | 'sell' | 'hold';
-  symbol: string;
-  quantity: number;
-  price: number;
-  confidence: number;
-  reasoning: string;
-  riskScore: number;
-  timestamp: string;
-  agentType: AgentType;
-  sentimentData?: {
-    sentiment: number;
-    confidence: number;
-    sources: string[];
-  };
-}
+import { AgentType, TradingDecision } from '../../types';
 
 interface TradeHistoryProps {
   decisions: TradingDecision[];
@@ -49,7 +32,7 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
       }
     });
 
-  const formatTime = (timestamp: string) => {
+  const formatTime = (timestamp: string | Date) => {
     const date = new Date(timestamp);
     return date.toLocaleString();
   };

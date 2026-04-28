@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { css } from '@emotion/react';
 import {
-  designTokens,
   designTokens,
   keyframeAnimations,
   easings,
@@ -17,6 +16,7 @@ import { Badge } from '../ui/Badge';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import {
   formStyles,
+  getFormFieldGroupStyles,
   getFormInputStyles,
   getFormLabelStyles,
 } from '../../styles/design-system/components/form';
@@ -968,7 +968,7 @@ export default function AgentMarketplace() {
                   gap: ${designTokens.spacing[6]};
                 `}
               >
-                <div css={formStyles.fieldGroup}>
+                <div css={getFormFieldGroupStyles()}>
                   <label css={getFormLabelStyles()}>Agent Name</label>
                   <input
                     type="text"
@@ -977,7 +977,7 @@ export default function AgentMarketplace() {
                   />
                 </div>
 
-                <div css={formStyles.fieldGroup}>
+                <div css={getFormFieldGroupStyles()}>
                   <label css={getFormLabelStyles()}>Environment</label>
                   <select css={getFormInputStyles()}>
                     <option value="development">Development</option>
@@ -986,7 +986,7 @@ export default function AgentMarketplace() {
                   </select>
                 </div>
 
-                <div css={formStyles.fieldGroup}>
+                <div css={getFormFieldGroupStyles()}>
                   <label css={getFormLabelStyles()}>Governance Policy</label>
                   <select css={getFormInputStyles()}>
                     <option value="standard">Standard Policy</option>

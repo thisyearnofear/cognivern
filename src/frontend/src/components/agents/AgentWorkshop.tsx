@@ -48,6 +48,9 @@ export default function AgentWorkshop() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
   const [logs, setLogs] = useState<LogMessage[]>([]);
+  const addLog = (message: string, type: LogMessage['type'] = 'info') => {
+    setLogs((prev) => [...prev, { message, type, timestamp: new Date() }]);
+  };
   const [currentStep, setCurrentStep] = useState(1);
   const [showIntro, setShowIntro] = useState(true);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -58,9 +61,32 @@ export default function AgentWorkshop() {
     }
   }, [logs]);
 
-  const addLog = (message: string, type: 'info' | 'error' | 'success' | 'loading' = 'info') => {
-    setLogs((prev) => [...prev, { message, type, timestamp: new Date() }]);
-  };
+  const containerStyles = css`
+    min-height: 100vh;
+    padding: ${designTokens.spacing[12]} ${designTokens.spacing[6]};
+    background: radial-gradient(
+      circle at 50% 0%,
+      ${designTokens.colors.primary[50]} 0%,
+      ${designTokens.colors.background.secondary} 100%
+    );
+    position: relative;
+    overflow-x: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image:
+        linear-gradient(${designTokens.colors.neutral[200]} 1px, transparent 1px),
+        linear-gradient(90deg, ${designTokens.colors.neutral[200]} 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.1;
+      pointer-events: none;
+    }
+  `;
 
   const agentTemplates: AgentTemplate[] = [
     {
@@ -349,40 +375,52 @@ export default function AgentWorkshop() {
   const renderIntroduction = () => (
     <div
       css={css`
-        max-width: 800px;
+        max-width: 900px;
         margin: 0 auto;
         padding: ${designTokens.spacing[12]} ${designTokens.spacing[6]};
         animation: ${keyframeAnimations.revealUp} 0.8s ${easings.out};
       `}
     >
-      <h2
+      <div
         css={css`
-          font-size: ${designTokens.typography.fontSize['4xl']};
-          font-weight: ${designTokens.typography.fontWeight.bold};
-          color: ${designTokens.colors.neutral[900]};
-          margin-bottom: ${designTokens.spacing[4]};
-          text-align: center;
-        `}
-      >
-        Agent Workshop
-      </h2>
-      <p
-        css={css`
-          font-size: ${designTokens.typography.fontSize.xl};
-          color: ${designTokens.colors.neutral[600]};
           text-align: center;
           margin-bottom: ${designTokens.spacing[12]};
-          line-height: 1.6;
         `}
       >
-        Build, test, and deploy AI agents with built-in governance and accountability. Our agents
-        help automate complex business decisions while maintaining complete visibility and control.
-      </p>
+        <h2
+          css={css`
+            font-size: ${designTokens.typography.fontSize['5xl']};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            background: linear-gradient(
+              135deg,
+              ${designTokens.colors.neutral[900]} 0%,
+              ${designTokens.colors.primary[800]} 100%
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: ${designTokens.spacing[4]};
+            letter-spacing: -0.04em;
+          `}
+        >
+          Agent Workshop
+        </h2>
+        <p
+          css={css`
+            font-size: ${designTokens.typography.fontSize.xl};
+            color: ${designTokens.colors.neutral[600]};
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+          `}
+        >
+          The manufacturing floor for Governed Agents. Design, test, and validate technical agents with built-in policy enforcement and cryptographic accountability.
+        </p>
+      </div>
 
       <div
         css={css`
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
           gap: ${designTokens.spacing[6]};
           margin-bottom: ${designTokens.spacing[12]};
         `}
@@ -391,38 +429,35 @@ export default function AgentWorkshop() {
           {
             icon: '🔍',
             title: 'Complete Transparency',
-            desc: 'Every agent action is logged with detailed reasoning and policy checks',
+            desc: 'Every decision trace is cryptographically logged for full retroactive auditability.',
           },
           {
             icon: '🛡️',
-            title: 'Policy Enforcement',
-            desc: 'Ensure all agent actions comply with your business rules and regulations',
+            title: 'Policy Guardrails',
+            desc: 'Define strict boundaries that agents cannot cross, regardless of their autonomy level.',
           },
           {
             icon: '📊',
-            title: 'Performance Metrics',
-            desc: 'Track agent performance and compliance with real-time metrics',
+            title: 'Validated Scenarios',
+            desc: 'Run rigorous simulation tests to ensure agent behavior aligns with business intent.',
           },
         ].map((benefit, i) => (
           <Card
             key={i}
-            variant="glass"
+            variant="elevated"
             css={css`
+              background: rgba(255, 255, 255, 0.7);
+              backdrop-filter: blur(12px);
+              border: 1px solid ${designTokens.colors.neutral[200]};
               animation: ${keyframeAnimations.revealUp} 0.8s ${easings.out} ${0.2 + i * 0.1}s both;
+              text-align: center;
+              padding: ${designTokens.spacing[8]};
             `}
           >
-            <CardContent
-              css={css`
-                padding: ${designTokens.spacing[6]};
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-              `}
-            >
+            <CardContent>
               <div
                 css={css`
-                  font-size: ${designTokens.typography.fontSize['3xl']};
+                  font-size: 3rem;
                   margin-bottom: ${designTokens.spacing[4]};
                 `}
               >
@@ -430,16 +465,19 @@ export default function AgentWorkshop() {
               </div>
               <h4
                 css={css`
-                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                  font-size: ${designTokens.typography.fontSize.lg};
+                  font-weight: ${designTokens.typography.fontWeight.bold};
                   margin-bottom: ${designTokens.spacing[2]};
+                  color: ${designTokens.colors.neutral[900]};
                 `}
               >
                 {benefit.title}
               </h4>
               <p
                 css={css`
-                  color: ${designTokens.colors.neutral[500]};
+                  color: ${designTokens.colors.neutral[600]};
                   font-size: ${designTokens.typography.fontSize.sm};
+                  line-height: 1.5;
                 `}
               >
                 {benefit.desc}
@@ -455,8 +493,8 @@ export default function AgentWorkshop() {
           justify-content: center;
         `}
       >
-        <Button size="lg" onClick={() => setShowIntro(false)}>
-          Get Started with Agent Workshop
+        <Button size="lg" onClick={() => setShowIntro(false)} css={css`padding: 0 ${designTokens.spacing[12]}; height: 56px; font-size: ${designTokens.typography.fontSize.base};`}>
+          Enter the Workshop
         </Button>
       </div>
     </div>
@@ -470,48 +508,56 @@ export default function AgentWorkshop() {
     >
       <div
         css={css`
-          margin-bottom: ${designTokens.spacing[8]};
+          margin-bottom: ${designTokens.spacing[12]};
           text-align: center;
         `}
       >
         <h3
           css={css`
-            font-size: ${designTokens.typography.fontSize['2xl']};
+            font-size: ${designTokens.typography.fontSize['3xl']};
             font-weight: ${designTokens.typography.fontWeight.bold};
-            margin-bottom: ${designTokens.spacing[2]};
+            margin-bottom: ${designTokens.spacing[3]};
+            letter-spacing: -0.02em;
           `}
         >
-          Step 1: Select an Agent Template
+          Phase 1: Blueprint Selection
         </h3>
         <p
           css={css`
             color: ${designTokens.colors.neutral[500]};
+            font-size: ${designTokens.typography.fontSize.lg};
           `}
         >
-          Choose a pre-configured agent template designed to solve specific business challenges
+          Select an agent architecture to begin the governance configuration
         </p>
       </div>
 
       <div
         css={css`
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
           gap: ${designTokens.spacing[6]};
         `}
       >
         {agentTemplates.map((template, idx) => (
           <Card
             key={template.id}
-            variant={selectedTemplate === template.id ? 'elevated' : 'default'}
+            variant={selectedTemplate === template.id ? 'elevated' : 'outlined'}
             onClick={() => handleTemplateSelect(template.id)}
             css={css`
               cursor: pointer;
-              border-color: ${selectedTemplate === template.id
+              background: ${selectedTemplate === template.id ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.6)'};
+              backdrop-filter: blur(8px);
+              border: 2px solid ${selectedTemplate === template.id
                 ? designTokens.colors.primary[500]
-                : 'transparent'};
+                : designTokens.colors.neutral[200]};
+              transition: all 0.4s ${easings.out};
               animation: ${keyframeAnimations.revealUp} 0.5s ${easings.out} ${idx * 0.05}s both;
+
               &:hover {
+                transform: translateY(-4px);
                 border-color: ${designTokens.colors.primary[300]};
+                box-shadow: ${designTokens.shadows.lg};
               }
             `}
           >
@@ -520,23 +566,26 @@ export default function AgentWorkshop() {
                 display: flex;
                 align-items: center;
                 gap: ${designTokens.spacing[4]};
+                padding: ${designTokens.spacing[6]};
               `}
             >
               <div
                 css={css`
-                  font-size: ${designTokens.typography.fontSize['2xl']};
-                  background: ${designTokens.colors.primary[50]};
-                  width: 48px;
-                  height: 48px;
+                  font-size: 1.5rem;
+                  background: ${selectedTemplate === template.id ? designTokens.colors.primary[600] : designTokens.colors.primary[100]};
+                  color: ${selectedTemplate === template.id ? 'white' : designTokens.colors.primary[600]};
+                  width: 56px;
+                  height: 56px;
                   display: flex;
                   align-items: center;
                   justify-content: center;
-                  border-radius: ${designTokens.borderRadius.lg};
+                  border-radius: ${designTokens.borderRadius.xl};
+                  transition: all 0.3s ease;
                 `}
               >
                 {template.icon}
               </div>
-              <CardTitle>{template.name}</CardTitle>
+              <CardTitle css={css`font-size: ${designTokens.typography.fontSize.xl};`}>{template.name}</CardTitle>
             </CardHeader>
             <CardContent>
               <p
@@ -739,27 +788,34 @@ export default function AgentWorkshop() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: ${designTokens.spacing[8]};
+          margin-bottom: ${designTokens.spacing[10]};
         `}
       >
-        <Button variant="outline" onClick={() => setCurrentStep(2)}>
-          ← Back to Scenarios
+        <Button variant="ghost" onClick={() => setCurrentStep(2)}>
+          ← Previous Step
         </Button>
-        <h3
-          css={css`
-            font-size: ${designTokens.typography.fontSize['2xl']};
-            font-weight: ${designTokens.typography.fontWeight.bold};
-          `}
-        >
-          Step 3: Agent Results
-        </h3>
-        <div style={{ width: 100 }} />
+        <div css={css`text-align: center;`}>
+          <h3
+            css={css`
+              font-size: ${designTokens.typography.fontSize['3xl']};
+              font-weight: ${designTokens.typography.fontWeight.bold};
+              letter-spacing: -0.02em;
+              margin-bottom: ${designTokens.spacing[1]};
+            `}
+          >
+            Phase 3: Diagnostic Results
+          </h3>
+          <Badge variant="default">Simulation Mode</Badge>
+        </div>
+        <Button variant="ghost" onClick={resetWorkflow}>
+          Reset Workshop
+        </Button>
       </div>
 
       <div
         css={css`
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1.2fr 0.8fr;
           gap: ${designTokens.spacing[8]};
           margin-bottom: ${designTokens.spacing[12]};
           ${layoutUtils.responsive.mobile(css`
@@ -767,30 +823,39 @@ export default function AgentWorkshop() {
           `)}
         `}
       >
-        {/* Execution Logs */}
-        <Card variant="default">
-          <CardHeader
-            css={css`
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              border-bottom: 1px solid ${designTokens.colors.neutral[100]};
-            `}
-          >
-            <CardTitle>Execution Logs</CardTitle>
-            <Button variant="outline" size="sm" onClick={clearLogs}>
+        {/* Execution Logs / Terminal */}
+        <div css={css`display: flex; flex-direction: column;`}>
+          <div css={terminalHeaderStyles}>
+            <div css={terminalDotStyles}>
+              <div css={terminalDot('#ff5f56')} />
+              <div css={terminalDot('#ffbd2e')} />
+              <div css={terminalDot('#27c93f')} />
+            </div>
+            <div css={css`font-size: 10px; color: ${designTokens.colors.neutral[400]}; font-family: ${designTokens.typography.fontFamily.mono}; text-transform: uppercase; letter-spacing: 0.1em;`}>
+              Agent Trace Monitor
+            </div>
+            <Button variant="ghost" size="sm" onClick={clearLogs} css={css`color: ${designTokens.colors.neutral[400]}; font-size: 10px; height: 20px;`}>
               Clear
             </Button>
-          </CardHeader>
-          <CardContent
+          </div>
+          <div
             css={css`
-              background: ${designTokens.colors.neutral[900]};
+              background: #0f172a;
               color: ${designTokens.colors.neutral[300]};
               font-family: ${designTokens.typography.fontFamily.mono};
               font-size: ${designTokens.typography.fontSize.xs};
-              height: 400px;
+              height: 500px;
               overflow-y: auto;
-              padding: ${designTokens.spacing[4]};
+              padding: ${designTokens.spacing[6]};
+              border-radius: 0 0 ${designTokens.borderRadius.lg} ${designTokens.borderRadius.lg};
+              border: 1px solid ${designTokens.colors.neutral[800]};
+              border-top: none;
+              box-shadow: ${designTokens.shadows.xl};
+
+              /* Custom scrollbar for terminal */
+              &::-webkit-scrollbar { width: 8px; }
+              &::-webkit-scrollbar-track { background: transparent; }
+              &::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
             `}
             ref={terminalRef}
           >
@@ -801,44 +866,54 @@ export default function AgentWorkshop() {
                   display: flex;
                   align-items: center;
                   justify-content: center;
-                  opacity: 0.5;
+                  opacity: 0.3;
+                  font-style: italic;
                 `}
               >
-                No logs available
+                Waiting for agent execution...
               </div>
             ) : (
               logs.map((log, index) => (
                 <div
                   key={index}
                   css={css`
-                    margin-bottom: ${designTokens.spacing[2]};
-                    line-height: 1.5;
+                    margin-bottom: ${designTokens.spacing[3]};
+                    line-height: 1.6;
                     animation: ${keyframeAnimations.reveal} 0.3s ${easings.out} both;
-                    color: ${log.type === 'error'
-                      ? designTokens.colors.semantic.error[400]
-                      : log.type === 'success'
-                        ? designTokens.colors.semantic.success[400]
-                        : log.type === 'loading'
-                          ? designTokens.colors.primary[400]
-                          : 'inherit'};
+                    display: flex;
+                    gap: ${designTokens.spacing[3]};
                   `}
                 >
                   <span
                     css={css`
-                      opacity: 0.5;
-                      margin-right: ${designTokens.spacing[2]};
+                      color: ${designTokens.colors.neutral[600]};
+                      user-select: none;
+                      min-width: 80px;
                     `}
                   >
-                    {`[${log.timestamp.toLocaleTimeString()}]`}
+                    {log.timestamp.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
-                  <span>{log.message}</span>
+                  <span
+                    css={css`
+                      color: ${log.type === 'error'
+                        ? '#f87171'
+                        : log.type === 'success'
+                          ? '#4ade80'
+                          : log.type === 'loading'
+                            ? '#60a5fa'
+                            : '#94a3b8'};
+                    `}
+                  >
+                    {log.type === 'loading' && '➤ '}
+                    {log.message}
+                  </span>
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Agent Actions */}
+        {/* Agent Actions / Diagnostics */}
         <div
           css={css`
             display: flex;
@@ -855,18 +930,22 @@ export default function AgentWorkshop() {
           >
             <h4
               css={css`
-                font-weight: ${designTokens.typography.fontWeight.semibold};
+                font-size: ${designTokens.typography.fontSize.lg};
+                font-weight: ${designTokens.typography.fontWeight.bold};
+                color: ${designTokens.colors.neutral[900]};
+                letter-spacing: -0.01em;
               `}
             >
-              Agent Actions
+              Action Audit
             </h4>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={clearResults}
               disabled={results.length === 0}
+              css={css`font-size: ${designTokens.typography.fontSize.xs};`}
             >
-              Clear Results
+              Clear Records
             </Button>
           </div>
 
@@ -874,35 +953,44 @@ export default function AgentWorkshop() {
             css={css`
               flex: 1;
               overflow-y: auto;
-              max-height: 500px;
+              max-height: 540px;
               padding-right: ${designTokens.spacing[2]};
+              display: flex;
+              flex-direction: column;
+              gap: ${designTokens.spacing[4]};
             `}
           >
             {results.length === 0 ? (
-              <Card
-                variant="outlined"
+              <div
                 css={css`
                   height: 200px;
                   display: flex;
+                  flex-direction: column;
                   align-items: center;
                   justify-content: center;
-                  opacity: 0.5;
+                  background: rgba(255, 255, 255, 0.4);
+                  border: 1px dashed ${designTokens.colors.neutral[300]};
+                  border-radius: ${designTokens.borderRadius.xl};
+                  color: ${designTokens.colors.neutral[400]};
+                  font-size: ${designTokens.typography.fontSize.sm};
                 `}
               >
-                No results available
-              </Card>
+                No actions recorded in this session.
+              </div>
             ) : (
               results.map((result, index) => (
                 <Card
                   key={index}
-                  variant="default"
+                  variant="elevated"
                   css={css`
-                    margin-bottom: ${designTokens.spacing[4]};
+                    background: white;
+                    border: 1px solid ${designTokens.colors.neutral[200]};
                     border-left: 4px solid
                       ${result.success
                         ? designTokens.colors.semantic.success[500]
                         : designTokens.colors.semantic.error[500]};
                     animation: ${keyframeAnimations.revealUp} 0.5s ${easings.out} both;
+                    box-shadow: ${designTokens.shadows.md};
                   `}
                 >
                   <CardContent padding="md">
@@ -910,19 +998,21 @@ export default function AgentWorkshop() {
                       css={css`
                         display: flex;
                         justify-content: space-between;
+                        align-items: center;
                         margin-bottom: ${designTokens.spacing[4]};
                       `}
                     >
                       <Badge variant={result.success ? 'success' : 'error'}>
-                        {result.success ? 'Success' : 'Error'}
+                        {result.success ? 'COMPLETED' : 'FAILED'}
                       </Badge>
                       <span
                         css={css`
-                          font-size: ${designTokens.typography.fontSize.xs};
+                          font-size: 10px;
+                          font-family: ${designTokens.typography.fontFamily.mono};
                           color: ${designTokens.colors.neutral[400]};
                         `}
                       >
-                        {new Date().toLocaleString()}
+                        ID: {Math.random().toString(36).substring(7).toUpperCase()}
                       </span>
                     </div>
 
@@ -934,6 +1024,7 @@ export default function AgentWorkshop() {
                           background: ${designTokens.colors.semantic.error[50]};
                           padding: ${designTokens.spacing[3]};
                           border-radius: ${designTokens.borderRadius.md};
+                          border: 1px solid ${designTokens.colors.semantic.error[100]};
                         `}
                       >
                         {result.error}
@@ -946,79 +1037,50 @@ export default function AgentWorkshop() {
                           margin-top: ${designTokens.spacing[4]};
                         `}
                       >
-                        <h5
+                        <div
                           css={css`
-                            font-size: ${designTokens.typography.fontSize.xs};
-                            text-transform: uppercase;
-                            color: ${designTokens.colors.neutral[400]};
+                            display: flex;
+                            align-items: center;
+                            gap: ${designTokens.spacing[2]};
                             margin-bottom: ${designTokens.spacing[2]};
                           `}
                         >
-                          Agent Action Details
-                        </h5>
-                        <pre
-                          css={css`
-                            background: ${designTokens.colors.neutral[50]};
-                            padding: ${designTokens.spacing[3]};
-                            border-radius: ${designTokens.borderRadius.md};
-                            font-size: 10px;
-                            overflow-x: auto;
-                          `}
-                        >
-                          {JSON.stringify(result.action, null, 2)}
-                        </pre>
+                           <Badge variant="secondary" size="sm">POLICY AUDIT</Badge>
+                        </div>
 
                         {result.action.policyChecks && result.action.policyChecks.length > 0 && (
                           <div
                             css={css`
-                              margin-top: ${designTokens.spacing[4]};
+                              display: flex;
+                              flex-direction: column;
+                              gap: ${designTokens.spacing[2]};
+                              margin-top: ${designTokens.spacing[3]};
                             `}
                           >
-                            <h5
-                              css={css`
-                                font-size: ${designTokens.typography.fontSize.xs};
-                                text-transform: uppercase;
-                                color: ${designTokens.colors.neutral[400]};
-                                margin-bottom: ${designTokens.spacing[2]};
-                              `}
-                            >
-                              Policy Checks
-                            </h5>
-                            <div
-                              css={css`
-                                display: flex;
-                                flex-direction: column;
-                                gap: ${designTokens.spacing[2]};
-                              `}
-                            >
-                              {result.action.policyChecks.map((check, idx) => (
-                                <div
-                                  key={idx}
-                                  css={css`
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: space-between;
-                                    padding: ${designTokens.spacing[2]};
-                                    background: ${check.result
-                                      ? designTokens.colors.semantic.success[50]
-                                      : designTokens.colors.semantic.error[50]};
-                                    border-radius: ${designTokens.borderRadius.sm};
-                                    font-size: ${designTokens.typography.fontSize.xs};
-                                  `}
-                                >
-                                  <span
-                                    css={css`
-                                      font-weight: 500;
-                                    `}
-                                  >
-                                    {check.policyId}
-                                  </span>
-                                  <Badge variant={check.result ? 'success' : 'error'} size="sm">
-                                    {check.result ? 'Passed' : 'Failed'}
-                                  </Badge>
-                                </div>
-                              ))}
-                            </div>
+                            {result.action.policyChecks.map((check, idx) => (
+                              <div
+                                key={idx}
+                                css={css`
+                                  display: flex;
+                                  align-items: center;
+                                  justify-content: space-between;
+                                  padding: ${designTokens.spacing[2]} ${designTokens.spacing[3]};
+                                  background: ${check.result
+                                    ? 'rgba(34, 197, 94, 0.05)'
+                                    : 'rgba(239, 68, 68, 0.05)'};
+                                  border: 1px solid ${check.result ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)'};
+                                  border-radius: ${designTokens.borderRadius.md};
+                                  font-size: ${designTokens.typography.fontSize.xs};
+                                `}
+                              >
+                                <span css={css`font-weight: 600; color: ${designTokens.colors.neutral[700]};`}>
+                                  {check.policyId}
+                                </span>
+                                <span css={css`color: ${check.result ? '#16a34a' : '#dc2626'}; font-weight: bold;`}>
+                                  {check.result ? 'PASSED' : 'DENIED'}
+                                </span>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -1032,20 +1094,36 @@ export default function AgentWorkshop() {
       </div>
 
       <Card
-        variant="glass"
+        variant="elevated"
         css={css`
-          background: ${designTokens.colors.primary[50]};
+          background: linear-gradient(90deg, ${designTokens.colors.primary[600]} 0%, ${designTokens.colors.primary[800]} 100%);
+          border: none;
+          color: white;
+          overflow: hidden;
+          position: relative;
+
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+          }
         `}
       >
         <CardContent
-          padding="lg"
+          padding="xl"
           css={css`
             display: flex;
             align-items: center;
             justify-content: space-between;
+            position: relative;
+            z-index: 1;
             ${layoutUtils.responsive.mobile(css`
               flex-direction: column;
-              gap: ${designTokens.spacing[6]};
+              gap: ${designTokens.spacing[8]};
               text-align: center;
             `)}
           `}
@@ -1053,19 +1131,22 @@ export default function AgentWorkshop() {
           <div>
             <h4
               css={css`
+                font-size: ${designTokens.typography.fontSize.xl};
                 font-weight: ${designTokens.typography.fontWeight.bold};
-                margin-bottom: ${designTokens.spacing[1]};
+                margin-bottom: ${designTokens.spacing[2]};
+                letter-spacing: -0.01em;
               `}
             >
-              Ready to go live?
+              Diagnostic Verification Complete
             </h4>
             <p
               css={css`
-                font-size: ${designTokens.typography.fontSize.sm};
-                color: ${designTokens.colors.neutral[500]};
+                font-size: ${designTokens.typography.fontSize.base};
+                opacity: 0.8;
+                max-width: 600px;
               `}
             >
-              Deploy this agent to your production governance system.
+              The agent has successfully cleared simulation guardrails. You may now deploy this configuration to the main governance ledger.
             </p>
           </div>
           <div
@@ -1074,132 +1155,56 @@ export default function AgentWorkshop() {
               gap: ${designTokens.spacing[4]};
             `}
           >
-            <Button variant="outline" onClick={resetWorkflow}>
-              Try Another
+            <Button variant="outline" onClick={resetWorkflow} css={css`background: transparent; color: white; border-color: rgba(255,255,255,0.4); &:hover { background: rgba(255,255,255,0.1); }`}>
+              Reset Workshop
             </Button>
-            <Button>Deploy to Production</Button>
+            <Button css={css`background: white; color: ${designTokens.colors.primary[700]}; &:hover { background: ${designTokens.colors.neutral[50]}; }`}>
+              Deploy to Production
+            </Button>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 
-  if (showIntro) {
-    return (
-      <div
-        css={css`
-          max-width: 800px;
-          margin: 0 auto;
-          padding: ${designTokens.spacing[12]} ${designTokens.spacing[6]};
-          text-align: center;
-        `}
-      >
-        <div
-          css={css`
-            font-size: 64px;
-            margin-bottom: ${designTokens.spacing[6]};
-          `}
-        >
-          🏗️
-        </div>
-        <h1
-          css={css`
-            font-size: ${designTokens.typography.fontSize['4xl']};
-            font-weight: ${designTokens.typography.fontWeight.bold};
-            margin-bottom: ${designTokens.spacing[4]};
-            background: linear-gradient(
-              135deg,
-              ${designTokens.colors.primary[600]},
-              ${designTokens.colors.primary[400]}
-            );
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-          `}
-        >
-          Agent Workshop
-        </h1>
-        <p
-          css={css`
-            font-size: ${designTokens.typography.fontSize.lg};
-            color: ${designTokens.colors.neutral[600]};
-            margin-bottom: ${designTokens.spacing[10]};
-            line-height: 1.6;
-          `}
-        >
-          Welcome to the lab. Here you can prototype, simulate, and stress-test your AI agents
-          before they touch production capital or governance.
-        </p>
-        <div
-          css={css`
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: ${designTokens.spacing[6]};
-            margin-bottom: ${designTokens.spacing[12]};
-            text-align: left;
-          `}
-        >
-          {[
-            {
-              title: 'Rapid Prototyping',
-              desc: 'Choose from industry-standard templates.',
-              icon: '⚡',
-            },
-            {
-              title: 'Scenario Stress-Testing',
-              desc: 'Run agents through adversarial edge cases.',
-              icon: '🧪',
-            },
-            {
-              title: 'Policy Validation',
-              desc: 'Verify alignment with governance guardrails.',
-              icon: '🛡️',
-            },
-          ].map((item, i) => (
-            <Card key={i} variant="outline" padding="md">
-              <div style={{ fontSize: '24px', marginBottom: '8px' }}>{item.icon}</div>
-              <h3 style={{ fontWeight: 600, marginBottom: '4px' }}>{item.title}</h3>
-              <p
-                style={{
-                  fontSize: '14px',
-                  color: designTokens.colors.neutral[500],
-                }}
-              >
-                {item.desc}
-              </p>
-            </Card>
-          ))}
-        </div>
-        <Button size="lg" onClick={() => setShowIntro(false)}>
-          Start Building <ArrowRight size={20} style={{ marginLeft: '8px' }} />
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <div className="agent-workshop">
-      <div className="workshop-progress">
-        <div className={`progress-step ${currentStep >= 1 ? 'active' : ''}`}>
-          <div className="step-number">1</div>
-          <div className="step-label">Select Template</div>
+    <div css={containerStyles}>
+      {showIntro ? (
+        renderIntroduction()
+      ) : (
+        <div
+          css={css`
+            max-width: 1200px;
+            margin: 0 auto;
+          `}
+        >
+          {currentStep === 1 && renderTemplateSelection()}
+          {currentStep === 2 && renderScenarioSelection()}
+          {currentStep === 3 && renderResults()}
         </div>
-        <div className="progress-connector"></div>
-        <div className={`progress-step ${currentStep >= 2 ? 'active' : ''}`}>
-          <div className="step-number">2</div>
-          <div className="step-label">Choose Scenario</div>
-        </div>
-        <div className="progress-connector"></div>
-        <div className={`progress-step ${currentStep >= 3 ? 'active' : ''}`}>
-          <div className="step-number">3</div>
-          <div className="step-label">View Results</div>
-        </div>
-      </div>
-
-      <div className="workshop-content">
-        {currentStep === 1 && renderTemplateSelection()}
-        {currentStep === 2 && renderScenarioSelection()}
-        {currentStep === 3 && renderResults()}
-      </div>
+      )}
     </div>
   );
 }
+
+const terminalHeaderStyles = css`
+  display: flex;
+  align-items: center;
+  padding: ${designTokens.spacing[3]} ${designTokens.spacing[4]};
+  background: ${designTokens.colors.neutral[800]};
+  border-bottom: 1px solid ${designTokens.colors.neutral[700]};
+  border-radius: ${designTokens.borderRadius.md} ${designTokens.borderRadius.md} 0 0;
+`;
+
+const terminalDotStyles = css`
+  display: flex;
+  gap: 6px;
+  margin-right: ${designTokens.spacing[4]};
+`;
+
+const terminalDot = (color: string) => css`
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: ${color};
+`;

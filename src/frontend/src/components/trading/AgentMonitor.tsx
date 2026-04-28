@@ -12,7 +12,7 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-import { designTokens } from '../../styles/design-system';
+import { designTokens, keyframeAnimations, easings } from '../../styles/design-system';
 import { AgentType } from '../../types';
 import { isDemoAgent } from '../../utils/demoAgents';
 import { useAgentData, useTradingData } from '../../hooks/useAgentData';
@@ -89,18 +89,7 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
     display: flex;
     flex-direction: column;
     gap: ${designTokens.spacing[6]};
-    animation: fadeIn 0.5s ease-out;
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
+    animation: ${keyframeAnimations.fadeInUp} 0.5s ${easings.out};
   `;
 
   const headerStyles = css`
@@ -141,6 +130,8 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
       <Card
         css={css`
           border-color: ${designTokens.colors.semantic.error[200]};
+          background: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(10px);
         `}
       >
         <CardContent
@@ -159,6 +150,7 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
           <h3
             css={css`
               margin-bottom: ${designTokens.spacing[2]};
+              font-weight: ${designTokens.typography.fontWeight.bold};
             `}
           >
             Connection Error
@@ -187,7 +179,13 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
 
   return (
     <div css={containerStyles}>
-      <Card>
+      <Card
+        css={css`
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(12px);
+          border: 1px solid ${designTokens.colors.neutral[200]};
+        `}
+      >
         <CardHeader>
           <div css={headerStyles}>
             <div>
@@ -195,25 +193,48 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
                 css={css`
                   display: flex;
                   align-items: center;
-                  gap: ${designTokens.spacing[2]};
+                  gap: ${designTokens.spacing[3]};
+                  margin-bottom: ${designTokens.spacing[1]};
                 `}
               >
-                <CardTitle>{title}</CardTitle>
-                {(isShowcase || isDemo) && <Badge variant="default">Demo</Badge>}
-                <Badge variant={status.isActive ? 'success' : 'secondary'}>
-                  {status.isActive ? 'Live' : 'Standby'}
+                <CardTitle
+                  css={css`
+                    font-size: ${designTokens.typography.fontSize['xl']};
+                    letter-spacing: -0.01em;
+                    font-weight: ${designTokens.typography.fontWeight.bold};
+                  `}
+                >
+                  {title}
+                </CardTitle>
+                {(isShowcase || isDemo) && (
+                  <Badge variant="default" size="sm">
+                    DEMO
+                  </Badge>
+                )}
+                <Badge variant={status.isActive ? 'success' : 'secondary'} size="sm">
+                  {status.isActive ? 'LIVE' : 'STANDBY'}
                 </Badge>
               </div>
-              <CardDescription>{description}</CardDescription>
+              <CardDescription
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  color: ${designTokens.colors.neutral[500]};
+                `}
+              >
+                {description}
+              </CardDescription>
               {isDemo && (
                 <div
                   css={css`
                     margin-top: ${designTokens.spacing[2]};
-                    font-size: ${designTokens.typography.fontSize.xs};
-                    color: ${designTokens.colors.neutral[500]};
+                    font-size: 10px;
+                    font-family: ${designTokens.typography.fontFamily.mono};
+                    color: ${designTokens.colors.neutral[400]};
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
                   `}
                 >
-                  Sample data — connect your agent for real performance
+                  Simulation Data Stream
                 </div>
               )}
             </div>
@@ -222,47 +243,70 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
                 onClick={toggleShadow}
                 variant={isShadowed ? 'primary' : 'outline'}
                 size="sm"
-                title={isShadowed ? 'Watching' : 'Watch Agent'}
+                css={css`
+                  height: 32px;
+                  background: ${isShadowed ? designTokens.colors.primary[600] : 'white'};
+                `}
               >
-                {isShadowed ? (
-                  <EyeOff
-                    size={14}
-                    css={css`
-                      margin-right: ${designTokens.spacing[1]};
-                    `}
-                  />
-                ) : (
-                  <Eye
-                    size={14}
-                    css={css`
-                      margin-right: ${designTokens.spacing[1]};
-                    `}
-                  />
-                )}
-                {isShadowed ? 'Unwatch' : 'Watch'}
+                {isShadowed ? <EyeOff size={14} /> : <Eye size={14} />}
+                <span
+                  css={css`
+                    margin-left: 6px;
+                  `}
+                >
+                  {isShadowed ? 'Watching' : 'Watch'}
+                </span>
               </Button>
               {!status.isActive ? (
-                <Button onClick={startAgent} disabled={isLoading} size="sm">
-                  <Play
-                    size={14}
+                <Button
+                  onClick={startAgent}
+                  disabled={isLoading}
+                  size="sm"
+                  css={css`
+                    height: 32px;
+                  `}
+                >
+                  <Play size={14} />
+                  <span
                     css={css`
-                      margin-right: ${designTokens.spacing[1]};
+                      margin-left: 6px;
                     `}
-                  />
-                  Start
+                  >
+                    Start
+                  </span>
                 </Button>
               ) : (
-                <Button onClick={stopAgent} disabled={isLoading} variant="outline" size="sm">
-                  <Square
-                    size={14}
+                <Button
+                  onClick={stopAgent}
+                  disabled={isLoading}
+                  variant="outline"
+                  size="sm"
+                  css={css`
+                    height: 32px;
+                    background: white;
+                  `}
+                >
+                  <Square size={14} />
+                  <span
                     css={css`
-                      margin-right: ${designTokens.spacing[1]};
+                      margin-left: 6px;
                     `}
-                  />
-                  Stop
+                  >
+                    Stop
+                  </span>
                 </Button>
               )}
-              <Button onClick={() => refreshData()} variant="ghost" size="sm" disabled={isLoading}>
+              <Button
+                onClick={() => refreshData()}
+                variant="ghost"
+                size="sm"
+                disabled={isLoading}
+                css={css`
+                  width: 32px;
+                  height: 32px;
+                  padding: 0;
+                `}
+              >
                 <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
               </Button>
             </div>
@@ -271,21 +315,57 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
         <CardContent>
           <div css={statsGridStyles}>
             <div css={statItemStyles}>
-              <Activity size={16} color={designTokens.colors.primary[500]} />
+              <div
+                css={css`
+                  background: ${designTokens.colors.primary[50]};
+                  width: 40px;
+                  height: 40px;
+                  border-radius: ${designTokens.borderRadius.lg};
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                `}
+              >
+                <Activity size={20} color={designTokens.colors.primary[600]} />
+              </div>
               <div>
                 <div css={statLabelStyles}>Compliance</div>
                 <div css={statValueStyles}>{status.performance?.complianceScore ?? 100}%</div>
               </div>
             </div>
             <div css={statItemStyles}>
-              <Brain size={16} color={designTokens.colors.secondary[500]} />
+              <div
+                css={css`
+                  background: ${designTokens.colors.secondary[50]};
+                  width: 40px;
+                  height: 40px;
+                  border-radius: ${designTokens.borderRadius.lg};
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                `}
+              >
+                <Brain size={20} color={designTokens.colors.secondary[600]} />
+              </div>
               <div>
                 <div css={statLabelStyles}>Autonomy</div>
-                <div css={statValueStyles}>Lvl {status.performance?.autonomyLevel ?? 1}</div>
+                <div css={statValueStyles}>Level {status.performance?.autonomyLevel ?? 1}</div>
               </div>
             </div>
             <div css={statItemStyles}>
-              <ShieldCheck size={16} color={designTokens.colors.semantic.success[500]} />
+              <div
+                css={css`
+                  background: ${designTokens.colors.semantic.success[50]};
+                  width: 40px;
+                  height: 40px;
+                  border-radius: ${designTokens.borderRadius.lg};
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                `}
+              >
+                <ShieldCheck size={20} color={designTokens.colors.semantic.success[600]} />
+              </div>
               <div>
                 <div css={statLabelStyles}>Risk Profile</div>
                 <div
@@ -305,14 +385,20 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
       </Card>
 
       <div css={monitorGridStyles}>
-        <Card>
+        <Card
+          css={css`
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+          `}
+        >
           <CardHeader>
             <CardTitle
               css={css`
                 font-size: ${designTokens.typography.fontSize.base};
+                font-weight: ${designTokens.typography.fontWeight.bold};
               `}
             >
-              Decision Activity
+              Intelligence Activity Stream
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -324,6 +410,7 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    opacity: 0.5;
                   `}
                 >
                   Loading activity...
@@ -335,14 +422,20 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          css={css`
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+          `}
+        >
           <CardHeader>
             <CardTitle
               css={css`
                 font-size: ${designTokens.typography.fontSize.base};
+                font-weight: ${designTokens.typography.fontWeight.bold};
               `}
             >
-              Activity Audit Trail
+              Governance Audit Trail
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -354,6 +447,7 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    opacity: 0.5;
                   `}
                 >
                   Loading audit trail...
@@ -372,21 +466,33 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
 const statItemStyles = css`
   display: flex;
   align-items: center;
-  gap: ${designTokens.spacing[3]};
-  padding: ${designTokens.spacing[3]};
-  background: ${designTokens.colors.neutral[50]};
-  border-radius: ${designTokens.borderRadius.md};
+  gap: ${designTokens.spacing[4]};
+  padding: ${designTokens.spacing[4]};
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid ${designTokens.colors.neutral[100]};
+  border-radius: ${designTokens.borderRadius.xl};
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: white;
+    box-shadow: ${designTokens.shadows.sm};
+    transform: translateY(-2px);
+  }
 `;
 
 const statLabelStyles = css`
-  font-size: ${designTokens.typography.fontSize.xs};
+  font-size: 10px;
   color: ${designTokens.colors.neutral[500]};
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
+  font-weight: ${designTokens.typography.fontWeight.bold};
+  margin-bottom: 2px;
 `;
 
 const statValueStyles = css`
   font-size: ${designTokens.typography.fontSize.lg};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: ${designTokens.colors.neutral[900]};
+  letter-spacing: -0.01em;
 `;
+;

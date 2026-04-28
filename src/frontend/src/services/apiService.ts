@@ -145,32 +145,32 @@ class ApiService {
 // Agent-specific API service
 export class AgentApiService extends ApiService {
   // Get agent status
-  async getAgentStatus(agentType: string) {
+  async getAgentStatus(agentType: string): Promise<ApiResponse<any>> {
     return this.get(`/api/agents/${agentType}/status`);
   }
 
   // Start agent
-  async startAgent(agentType: string) {
+  async startAgent(agentType: string): Promise<ApiResponse<any>> {
     return this.post(`/api/agents/${agentType}/start`);
   }
 
   // Stop agent
-  async stopAgent(agentType: string) {
+  async stopAgent(agentType: string): Promise<ApiResponse<any>> {
     return this.post(`/api/agents/${agentType}/stop`);
   }
 
   // Get trading decisions
-  async getTradingDecisions(agentType: string) {
-    return this.get(`/api/agents/${agentType}/decisions`);
+  async getTradingDecisions(agentType: string): Promise<ApiResponse<any[]>> {
+    return this.get<any[]>(`/api/agents/${agentType}/decisions`);
   }
 
   // Get agent metrics
-  async getAgentMetrics(agentType: string) {
+  async getAgentMetrics(agentType: string): Promise<ApiResponse<any>> {
     return this.get(`/api/agents/${agentType}/metrics`);
   }
 
   // Get voice briefing for an agent
-  async getAgentBriefing(agentId: string) {
+  async getAgentBriefing(agentId: string): Promise<ApiResponse<any>> {
     try {
       const response = await fetch(getApiUrl(`/api/agents/${agentId}/briefing`), {
         headers: {
@@ -211,7 +211,7 @@ export class AgentApiService extends ApiService {
     timeRange?: { start: string; end: string };
     sortBy?: string;
     sortDirection?: 'asc' | 'desc';
-  }) {
+  }): Promise<ApiResponse<any[]>> {
     const queryParams = new URLSearchParams();
 
     if (params.agentIds) queryParams.set('agentIds', params.agentIds.join(','));
@@ -226,7 +226,7 @@ export class AgentApiService extends ApiService {
     if (params.sortDirection) queryParams.set('sortDirection', params.sortDirection);
 
     const query = queryParams.toString();
-    return this.get(`/api/agents/compare${query ? `?${query}` : ''}`);
+    return this.get<any[]>(`/api/agents/compare${query ? `?${query}` : ''}`);
   }
 
   // Get leaderboard across ecosystems
@@ -234,7 +234,7 @@ export class AgentApiService extends ApiService {
     ecosystem?: string;
     metric?: 'winRate' | 'totalReturn' | 'sharpeRatio';
     limit?: number;
-  }) {
+  }): Promise<ApiResponse<any[]>> {
     const queryParams = new URLSearchParams();
 
     if (params?.ecosystem) queryParams.set('ecosystem', params.ecosystem);
@@ -242,7 +242,7 @@ export class AgentApiService extends ApiService {
     if (params?.limit) queryParams.set('limit', params.limit.toString());
 
     const query = queryParams.toString();
-    return this.get(`/api/agents/leaderboard${query ? `?${query}` : ''}`);
+    return this.get<any[]>(`/api/agents/leaderboard${query ? `?${query}` : ''}`);
   }
 
   // Get aggregate statistics
@@ -250,7 +250,7 @@ export class AgentApiService extends ApiService {
     agentTypes?: string[];
     ecosystems?: string[];
     timeRange?: { start: string; end: string };
-  }) {
+  }): Promise<ApiResponse<any>> {
     const queryParams = new URLSearchParams();
 
     if (params?.agentTypes) queryParams.set('agentTypes', params.agentTypes.join(','));
@@ -265,7 +265,11 @@ export class AgentApiService extends ApiService {
   }
 
   // Get all agents with basic info (for filtering)
-  async listAgents(params?: { status?: string[]; types?: string[]; ecosystems?: string[] }) {
+  async listAgents(params?: {
+    status?: string[];
+    types?: string[];
+    ecosystems?: string[];
+  }): Promise<ApiResponse<any[]>> {
     const queryParams = new URLSearchParams();
 
     if (params?.status) queryParams.set('status', params.status.join(','));
@@ -273,7 +277,7 @@ export class AgentApiService extends ApiService {
     if (params?.ecosystems) queryParams.set('ecosystems', params.ecosystems.join(','));
 
     const query = queryParams.toString();
-    return this.get(`/api/agents${query ? `?${query}` : ''}`);
+    return this.get<any[]>(`/api/agents${query ? `?${query}` : ''}`);
   }
 
   // Get connected agents and governance links
