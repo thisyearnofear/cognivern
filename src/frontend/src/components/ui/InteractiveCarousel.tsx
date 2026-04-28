@@ -37,27 +37,26 @@ const carouselTrackStyles = (activeIndex: number) => css`
 
 const carouselItemStyles = (isActive: boolean, index: number, activeIndex: number) => {
   const distance = Math.abs(index - activeIndex);
-  const scale = isActive ? 1.2 : 0.8 / (1 + distance * 0.1);
-  const rotateY = isActive ? 0 : index < activeIndex ? 30 : -30;
-  const translateZ = isActive ? 100 : -100 * distance;
-  const blur = isActive ? 0 : distance * 2;
+  const scale = isActive ? 1.25 : 0.85 / (1 + distance * 0.12);
+  const rotateY = isActive ? 0 : index < activeIndex ? 35 : -35;
+  const translateZ = isActive ? 150 : -120 * distance;
+  const blur = isActive ? 0 : distance * 1.5;
 
   return css`
-    min-width: 300px;
-    max-width: 300px;
-    transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
-    transform: perspective(1000px) rotateY(${rotateY}deg) scale(${scale})
+    min-width: 320px;
+    max-width: 320px;
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: perspective(1200px) rotateY(${rotateY}deg) scale(${scale})
       translateZ(${translateZ}px);
-    opacity: ${isActive ? 1 : 0.4 / (1 + distance * 0.2)};
+    opacity: ${isActive ? 1 : 0.5 / (1 + distance * 0.25)};
     cursor: pointer;
-    filter: blur(${blur}px) ${isActive ? 'none' : 'grayscale(0.8)'};
-    z-index: ${10 - distance};
+    filter: blur(${blur}px);
+    z-index: ${100 - distance};
 
     &:hover {
-      transform: perspective(1000px) rotateY(${rotateY * 0.5}deg) scale(${scale * 1.05})
-        translateZ(${translateZ + 20}px);
-      opacity: ${isActive ? 1 : 0.7};
-      filter: blur(${blur * 0.5}px) ${isActive ? 'none' : 'grayscale(0.3)'};
+      transform: perspective(1200px) rotateY(${rotateY * 0.3}deg) scale(${scale * 1.05})
+        translateZ(${translateZ + 30}px);
+      opacity: ${isActive ? 1 : 0.8};
     }
   `;
 };
@@ -113,15 +112,51 @@ export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({ items,
               }
             }}
           >
-            <Card padding="lg" variant={index === activeIndex ? 'elevated' : 'outline'}>
+            <Card
+              padding="lg"
+              variant={index === activeIndex ? 'elevated' : 'outline'}
+              css={css`
+                height: 100%;
+                background: ${index === activeIndex
+                  ? 'rgba(255, 255, 255, 0.9)'
+                  : 'rgba(255, 255, 255, 0.6)'};
+                backdrop-filter: blur(12px);
+                border: 1px solid
+                  ${index === activeIndex
+                    ? designTokens.colors.primary[300]
+                    : designTokens.colors.neutral[200]};
+                box-shadow: ${index === activeIndex
+                  ? '0 20px 40px -10px rgba(0, 0, 0, 0.1)'
+                  : '0 4px 12px rgba(0, 0, 0, 0.05)'};
+                transition: all 0.5s ease;
+              `}
+            >
               <CardContent>
                 <div css={cardHeaderStyles}>
-                  {item.icon && <div css={iconWrapperStyles}>{item.icon}</div>}
+                  {item.icon && (
+                    <div
+                      css={css`
+                        ${iconWrapperStyles}
+                        background: ${index === activeIndex
+                          ? designTokens.colors.primary[600]
+                          : designTokens.colors.primary[100]};
+                        color: ${index === activeIndex ? 'white' : designTokens.colors.primary[600]};
+                        box-shadow: ${index === activeIndex
+                          ? '0 8px 16px -4px rgba(37, 99, 235, 0.4)'
+                          : 'none'};
+                        transition: all 0.5s ease;
+                      `}
+                    >
+                      {item.icon}
+                    </div>
+                  )}
                   <div>
                     <h3
                       css={css`
                         margin: 0;
-                        font-size: ${designTokens.typography.fontSize.lg};
+                        font-size: ${designTokens.typography.fontSize.xl};
+                        font-weight: ${designTokens.typography.fontWeight.bold};
+                        color: ${designTokens.colors.neutral[900]};
                       `}
                     >
                       {item.title}
@@ -130,8 +165,9 @@ export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({ items,
                       <p
                         css={css`
                           margin: 0;
-                          font-size: ${designTokens.typography.fontSize.xs};
+                          font-size: ${designTokens.typography.fontSize.sm};
                           color: ${designTokens.colors.neutral[500]};
+                          font-weight: ${designTokens.typography.fontWeight.medium};
                         `}
                       >
                         {item.subtitle}
@@ -139,15 +175,22 @@ export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({ items,
                     )}
                   </div>
                 </div>
-                {item.content}
                 <div
                   css={css`
-                    margin-top: ${designTokens.spacing[4]};
+                    color: ${designTokens.colors.neutral[600]};
+                    line-height: 1.5;
+                  `}
+                >
+                  {item.content}
+                </div>
+                <div
+                  css={css`
+                    margin-top: ${designTokens.spacing[6]};
                     display: flex;
                     justify-content: flex-end;
                   `}
                 >
-                  <Button variant="ghost" size="sm">
+                  <Button variant={index === activeIndex ? 'primary' : 'ghost'} size="sm">
                     View Profile →
                   </Button>
                 </div>

@@ -585,7 +585,7 @@ export const AgentConnectionWizard: React.FC<AgentConnectionWizardProps> = ({
                 >
                   Type
                 </span>
-                <Badge variant="primary">{config.type}</Badge>
+                <Badge variant="default">{config.type}</Badge>
               </div>
               <div css={summaryRowStyles}>
                 <span

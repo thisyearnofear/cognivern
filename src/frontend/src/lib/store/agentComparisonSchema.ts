@@ -121,6 +121,7 @@ export const agentComparisonSchema = {
     'totalTrades',
     'avgLatency',
     'agentName',
+    'agentType',
   ]),
   sortDirection: field.stringLiteral(['asc', 'desc']),
 

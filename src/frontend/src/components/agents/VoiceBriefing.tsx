@@ -57,15 +57,39 @@ const VoiceBriefing: React.FC<{ agentId: string }> = ({ agentId }) => {
   return (
     <div css={briefingContainerStyles}>
       <Card
-        variant="outline"
+        variant="elevated"
         css={css`
-          border-color: ${designTokens.colors.primary[200]};
-          background: ${designTokens.colors.primary[50]};
+          border: 1px solid ${designTokens.colors.primary[200]};
+          background: linear-gradient(
+            135deg,
+            ${designTokens.colors.primary[50]} 0%,
+            white 100%
+          );
+          position: relative;
+          overflow: hidden;
+
+          &::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(
+              circle at center,
+              ${designTokens.colors.primary[100]} 0%,
+              transparent 70%
+            );
+            opacity: 0.4;
+            pointer-events: none;
+          }
         `}
       >
         <CardContent
           css={css`
-            padding: ${designTokens.spacing[6]};
+            padding: ${designTokens.spacing[8]};
+            position: relative;
+            z-index: 1;
           `}
         >
           <div
@@ -73,47 +97,79 @@ const VoiceBriefing: React.FC<{ agentId: string }> = ({ agentId }) => {
               display: flex;
               align-items: center;
               justify-content: space-between;
-              margin-bottom: ${designTokens.spacing[4]};
+              margin-bottom: ${designTokens.spacing[6]};
             `}
           >
             <div>
               <h3
                 css={css`
-                  font-weight: bold;
+                  font-size: ${designTokens.typography.fontSize.xl};
+                  font-weight: ${designTokens.typography.fontWeight.bold};
                   margin: 0;
                   color: ${designTokens.colors.primary[900]};
+                  letter-spacing: -0.02em;
+                  display: flex;
+                  align-items: center;
+                  gap: ${designTokens.spacing[2]};
                 `}
               >
                 Voice of Governance
+                {loading && (
+                  <div
+                    css={css`
+                      width: 12px;
+                      height: 12px;
+                      background: ${designTokens.colors.primary[500]};
+                      border-radius: 50%;
+                      animation: pulse 1.5s infinite;
+
+                      @keyframes pulse {
+                        0% { transform: scale(1); opacity: 1; }
+                        50% { transform: scale(1.5); opacity: 0.5; }
+                        100% { transform: scale(1); opacity: 1; }
+                      }
+                    `}
+                  />
+                )}
               </h3>
               <p
                 css={css`
-                  font-size: ${designTokens.typography.fontSize.xs};
+                  font-size: ${designTokens.typography.fontSize.sm};
                   color: ${designTokens.colors.primary[700]};
-                  margin: 2px 0 0 0;
+                  margin: 4px 0 0 0;
+                  font-weight: ${designTokens.typography.fontWeight.medium};
                 `}
               >
-                AI-generated audio summary of recent activity
+                AI-generated intelligence summary synthesized by ElevenLabs
               </p>
             </div>
-            <Badge variant="primary">ElevenLabs AI</Badge>
+            <Badge variant="default" size="lg">
+              AI Powered
+            </Badge>
           </div>
 
           {!briefing ? (
             <Button
               variant="primary"
-              size="sm"
+              size="lg"
               onClick={handleGenerateBriefing}
               disabled={loading}
               css={css`
                 width: 100%;
+                height: 56px;
                 background: ${designTokens.colors.primary[600]};
+                box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.3);
+                font-size: ${designTokens.typography.fontSize.base};
               `}
             >
-              {loading ? 'Synthesizing Audio...' : 'Listen to Governance Briefing'}
+              {loading ? 'Synthesizing Intelligence...' : 'Listen to Governance Briefing'}
             </Button>
           ) : (
-            <div>
+            <div
+              css={css`
+                ${keyframeAnimations.fadeIn}
+              `}
+            >
               <audio
                 ref={audioRef}
                 src={briefing.audioUrl}
@@ -121,28 +177,45 @@ const VoiceBriefing: React.FC<{ agentId: string }> = ({ agentId }) => {
                 autoPlay
                 css={audioPlayerStyles}
               />
-              <div css={scriptContainerStyles}>{briefing.script}</div>
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={() => setBriefing(null)}
+              <div
                 css={css`
-                  margin-top: ${designTokens.spacing[4]};
-                  color: ${designTokens.colors.neutral[500]};
+                  ${scriptContainerStyles}
+                  background: white;
+                  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
                 `}
               >
-                Clear Briefing
-              </Button>
+                "{briefing.script}"
+              </div>
+              <div
+                css={css`
+                  display: flex;
+                  justify-content: center;
+                  margin-top: ${designTokens.spacing[6]};
+                `}
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setBriefing(null)}
+                  css={css`
+                    color: ${designTokens.colors.neutral[500]};
+                    &:hover { color: ${designTokens.colors.neutral[900]}; }
+                  `}
+                >
+                  Clear Audio Briefing
+                </Button>
+              </div>
             </div>
           )}
 
           {error && (
             <div
               css={css`
-                color: ${designTokens.colors.semantic.error};
-                font-size: ${designTokens.typography.fontSize.xs};
-                margin-top: ${designTokens.spacing[2]};
+                color: ${designTokens.colors.semantic.error[600]};
+                font-size: ${designTokens.typography.fontSize.sm};
+                margin-top: ${designTokens.spacing[4]};
                 text-align: center;
+                font-weight: ${designTokens.typography.fontWeight.medium};
               `}
             >
               {error}

@@ -199,7 +199,7 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
                 `}
               >
                 <CardTitle>{title}</CardTitle>
-                {(isShowcase || isDemo) && <Badge variant="primary">Demo</Badge>}
+                {(isShowcase || isDemo) && <Badge variant="default">Demo</Badge>}
                 <Badge variant={status.isActive ? 'success' : 'secondary'}>
                   {status.isActive ? 'Live' : 'Standby'}
                 </Badge>

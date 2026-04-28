@@ -1,3 +1,39 @@
+import { css } from '@emotion/react';
+import { designTokens } from '../tokens/designTokens';
+
+/**
+ * Form Design System Components
+ *
+ * CORE PRINCIPLES:
+ * - MODULAR: Clear separation between container, groups, and inputs
+ * - PERFORMANT: Lean CSS-in-JS using design tokens
+ * - DRY: Single source of truth for all form-related styles
+ */
+
+export const formStyles = css`
+  display: flex;
+  flex-direction: column;
+  gap: ${designTokens.spacing[6]};
+  width: 100%;
+`;
+
+export const getFormFieldGroupStyles = (layout: 'vertical' | 'horizontal' = 'vertical') => css`
+  display: flex;
+  flex-direction: ${layout === 'vertical' ? 'column' : 'row'};
+  gap: ${layout === 'vertical' ? designTokens.spacing[2] : designTokens.spacing[4]};
+  align-items: ${layout === 'vertical' ? 'flex-start' : 'center'};
+  width: 100%;
+`;
+
+export const getFormLabelStyles = (layout: 'vertical' | 'horizontal' = 'vertical') => css`
+  font-size: ${designTokens.typography.fontSize.sm};
+  font-weight: ${designTokens.typography.fontWeight.semibold};
+  color: ${designTokens.colors.neutral[700]};
+  min-width: ${layout === 'horizontal' ? '120px' : 'auto'};
+  cursor: pointer;
+  user-select: none;
+`;
+
 export const getFormInputStyles = (hasError: boolean = false) => css`
   width: 100%;
   padding: ${designTokens.spacing[3]} ${designTokens.spacing[4]};
@@ -92,10 +128,4 @@ export const formSubmitContainerStyles = css`
   justify-content: flex-end;
   gap: ${designTokens.spacing[3]};
   margin-top: ${designTokens.spacing[4]};
-`;
-
-/* Mobile-optimized form field wrapper */
-export const getFormFieldWrapperStyles = () => css`
-  width: 100%;
-  position: relative;
 `;
