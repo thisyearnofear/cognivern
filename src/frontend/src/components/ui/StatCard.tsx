@@ -39,7 +39,7 @@ const statCardStyles = css`
 const statCardContentStyles = css`
   display: flex;
   align-items: center;
-  gap: ${designTokens.spacing[4]};
+  gap: ${designTokens.spacing[3]};
 `;
 
 const statIconStyles = (color: 'primary' | 'success' | 'error' | 'info') => {
@@ -51,7 +51,7 @@ const statIconStyles = (color: 'primary' | 'success' | 'error' | 'info') => {
   };
 
   const bgMap = {
-    primary: `${designTokens.colors.primary[500]}15`, // 15% opacity hex variant if supported or rgba
+    primary: `${designTokens.colors.primary[500]}15`,
     success: `${designTokens.colors.semantic.success[500]}15`,
     error: `${designTokens.colors.semantic.error[500]}15`,
     info: `${designTokens.colors.primary[400]}15`,
@@ -61,12 +61,12 @@ const statIconStyles = (color: 'primary' | 'success' | 'error' | 'info') => {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     background: ${bgMap[color]};
     color: ${colorMap[color]};
-    border-radius: ${designTokens.borderRadius.lg};
-    font-size: 1.5rem;
+    border-radius: ${designTokens.borderRadius.md};
+    font-size: 1.25rem;
     flex-shrink: 0;
   `;
 };
@@ -75,6 +75,7 @@ const statDetailsStyles = css`
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
 `;
 
 const statValueContainerStyles = css`
@@ -84,7 +85,7 @@ const statValueContainerStyles = css`
 `;
 
 const statValueStyles = css`
-  font-size: ${designTokens.typography.fontSize.xl};
+  font-size: ${designTokens.typography.fontSize.lg};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: var(--stat-value, ${designTokens.colors.neutral[900]});
   line-height: 1.2;

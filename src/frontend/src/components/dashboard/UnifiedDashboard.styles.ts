@@ -2,10 +2,10 @@ import { css } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
 
 export const containerStyles = (isMobile: boolean) => css`
-  padding: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[8]};
+  padding: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[4]};
   padding-bottom: ${isMobile
-    ? 'calc(72px + env(safe-area-inset-bottom))'
-    : designTokens.spacing[8]};
+    ? 'calc(60px + env(safe-area-inset-bottom))'
+    : designTokens.spacing[4]};
   max-width: 1440px;
   margin: 0 auto;
   position: relative;
@@ -49,33 +49,33 @@ export const statsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
     : isTablet
       ? 'repeat(2, 1fr)'
       : 'repeat(4, 1fr)'};
-  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[6]};
-  margin-bottom: ${isMobile ? designTokens.spacing[4] : designTokens.spacing[8]};
+  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[4]};
+  margin-bottom: ${isMobile ? designTokens.spacing[3] : designTokens.spacing[4]};
 `;
 
 export const mainGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   display: grid;
   grid-template-columns: ${isMobile ? '1fr' : isTablet ? '1fr' : '3fr 2fr'};
-  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[8]};
+  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[4]};
   align-items: start;
 `;
 
 export const chartsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   display: grid;
   grid-template-columns: ${isMobile ? '1fr' : isTablet ? '1fr' : 'repeat(2, 1fr)'};
-  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[6]};
-  margin-bottom: ${isMobile ? designTokens.spacing[4] : designTokens.spacing[8]};
+  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[4]};
+  margin-bottom: ${isMobile ? designTokens.spacing[3] : designTokens.spacing[4]};
 `;
 
 export const sectionStyles = css`
-  margin-bottom: ${designTokens.spacing[4]};
+  margin-bottom: ${designTokens.spacing[3]};
 `;
 
 export const sectionHeaderStyles = css`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${designTokens.spacing[4]};
+  margin-bottom: ${designTokens.spacing[3]};
 `;
 
 export const sectionTitleStyles = css`
