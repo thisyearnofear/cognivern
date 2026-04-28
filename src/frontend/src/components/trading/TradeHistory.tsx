@@ -502,18 +502,20 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
                   <div css={detailsGridStyles}>
                     <div css={detailItemStyles}>
                       <span css={detailLabelStyles}>Quantity</span>
-                      <span css={detailValueStyles}>{decision.quantity}</span>
+                      <span css={detailValueStyles}>{decision.quantity ?? 'N/A'}</span>
                     </div>
                     <div css={detailItemStyles}>
                       <span css={detailLabelStyles}>Price</span>
-                      <span css={detailValueStyles}>${decision.price.toFixed(2)}</span>
+                      <span css={detailValueStyles}>
+                        {decision.price != null ? `${decision.price.toFixed(2)}` : 'N/A'}
+                      </span>
                     </div>
                     <div css={detailItemStyles}>
                       <span css={detailLabelStyles}>Confidence</span>
                       <div css={confidenceBarStyles}>
-                        <div css={confidenceFillStyles(decision.confidence)}></div>
+                        <div css={confidenceFillStyles(decision.confidence ?? 0)}></div>
                         <span css={confidenceTextStyles}>
-                          {(decision.confidence * 100).toFixed(1)}%
+                          {((decision.confidence ?? 0) * 100).toFixed(1)}%
                         </span>
                       </div>
                     </div>
@@ -523,15 +525,15 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
                         css={[
                           detailValueStyles,
                           css`
-                            color: ${decision.riskScore > 0.7
+                            color: ${(decision.riskScore ?? 0) > 0.7
                               ? designTokens.colors.semantic.error[600]
-                              : decision.riskScore > 0.4
+                              : (decision.riskScore ?? 0) > 0.4
                                 ? designTokens.colors.semantic.warning[600]
                                 : designTokens.colors.semantic.success[600]};
                           `,
                         ]}
                       >
-                        {(decision.riskScore * 100).toFixed(0)}%
+                        {((decision.riskScore ?? 0) * 100).toFixed(0)}%
                       </span>
                     </div>
                   </div>
@@ -578,19 +580,19 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
                             css={[
                               detailValueStyles,
                               css`
-                                color: ${decision.sentimentData.sentiment > 0
+                                color: ${(decision.sentimentData.sentiment ?? 0) > 0
                                   ? designTokens.colors.semantic.success[600]
                                   : designTokens.colors.semantic.error[600]};
                               `,
                             ]}
                           >
-                            {(decision.sentimentData.sentiment * 100).toFixed(1)}%
+                            {((decision.sentimentData.sentiment ?? 0) * 100).toFixed(1)}%
                           </span>
                         </div>
                         <div css={detailItemStyles}>
                           <span css={detailLabelStyles}>Confidence</span>
                           <span css={detailValueStyles}>
-                            {(decision.sentimentData.confidence * 100).toFixed(1)}%
+                            {((decision.sentimentData.confidence ?? 0) * 100).toFixed(1)}%
                           </span>
                         </div>
                         <div css={detailItemStyles}>

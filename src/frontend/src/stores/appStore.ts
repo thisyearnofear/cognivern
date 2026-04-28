@@ -17,6 +17,11 @@ export interface User {
   userType?: string;
   isConnected: boolean;
   network?: 'filecoin' | 'xlayer';
+  // OWS governance wallet (single source of truth)
+  owsWalletConnected: boolean;
+  owsWalletAddress?: string;
+  owsWalletName?: string;
+  owsWalletChain?: string;
 }
 
 interface AppState {
@@ -51,6 +56,7 @@ const defaultPreferences: UserPreferences = {
 
 const defaultUser: User = {
   isConnected: false,
+  owsWalletConnected: false,
 };
 
 // Simple persist implementation without middleware
