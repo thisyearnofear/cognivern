@@ -14,6 +14,7 @@ import {
   LoadingSpinner,
   ErrorBoundary,
 } from '../ui';
+import { PageWrapper } from '../layout';
 import AgentSimulation from '../agents/AgentSimulation';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { agentApi } from '../../services/apiService';
@@ -96,16 +97,6 @@ function PolicyManagementContent() {
       .toUpperCase();
 
   // Layout Styles
-  const containerStyles = css`
-    padding: ${designTokens.spacing[8]};
-    max-width: 1200px;
-    margin: 0 auto;
-
-    ${isMobile &&
-    css`
-      padding: ${designTokens.spacing[4]};
-    `}
-  `;
 
   const headerStyles = css`
     margin-bottom: ${designTokens.spacing[10]};
@@ -173,13 +164,10 @@ function PolicyManagementContent() {
   `;
 
   return (
-    <div css={containerStyles}>
-      <header css={headerStyles}>
-        <h1 css={titleStyles}>Governance & Policies</h1>
-        <p css={subtitleStyles}>
-          Define guardrails and safety protocols for your autonomous agent ecosystem.
-        </p>
-      </header>
+    <PageWrapper
+      title="Governance & Policies"
+      subtitle="Define guardrails and safety protocols for your autonomous agent ecosystem."
+    >
 
       {/* High-Level Overview Stats */}
       <div css={statsGridStyles}>
@@ -365,6 +353,6 @@ function PolicyManagementContent() {
           </div>
         )}
       </main>
-    </div>
+    </PageWrapper>
   );
 }

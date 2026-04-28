@@ -23,6 +23,8 @@ export interface User {
   owsWalletAddress?: string;
   owsWalletName?: string;
   owsWalletChain?: string;
+  // Fhenix Confidential Compute
+  fhenixConnected: boolean;
 }
 
 interface AppState {
@@ -59,6 +61,7 @@ const defaultPreferences: UserPreferences = {
 const defaultUser: User = {
   isConnected: false,
   owsWalletConnected: false,
+  fhenixConnected: false,
 };
 
 // Simple persist implementation without middleware

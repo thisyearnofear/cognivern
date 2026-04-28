@@ -1,15 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { css } from '@emotion/react';
 import { useCofheEncrypt } from '@cofhe/react';
 import { FheTypes } from '@cofhe/sdk';
 import { designTokens, easings, keyframeAnimations } from '../../styles/design-system';
 import { Card, CardContent, CardHeader, CardTitle, Button, LoadingSpinner } from '../ui';
 import { spendApi } from '../../services/apiService';
-import { Shield, Lock, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
+import { Shield, Lock, ArrowRight, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { parseUnits } from 'viem';
 
 export default function ConfidentialSpendForm() {
   const [amount, setAmount] = useState('');
+
+  useEffect(() => {
+    document.body.classList.add('show-cofhe-portal');
+    return () => {
+      document.body.classList.remove('show-cofhe-portal');
+    };
+  }, []);
   const [recipient, setRecipient] = useState('');
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -148,12 +155,31 @@ export default function ConfidentialSpendForm() {
               gap: ${designTokens.spacing[3]};
               font-size: ${designTokens.typography.fontSize.sm};
               color: ${designTokens.colors.neutral[600]};
-              margin-bottom: ${designTokens.spacing[6]};
+              margin-bottom: ${designTokens.spacing[3]};
             `}
           >
             <AlertCircle size={16} css={css`flex-shrink: 0; margin-top: 2px;`} />
             <span>
               <strong>Note on Gas:</strong> The platform does not sponsor gas via a relayer for confidential operations. Your wallet will bear the Fhenix network gas costs for this encrypted policy evaluation.
+            </span>
+          </div>
+          <div
+            css={css`
+              padding: ${designTokens.spacing[3]};
+              background: ${designTokens.colors.primary[50]};
+              border-radius: ${designTokens.borderRadius.md};
+              border: 1px solid ${designTokens.colors.primary[200]};
+              display: flex;
+              align-items: flex-start;
+              gap: ${designTokens.spacing[3]};
+              font-size: ${designTokens.typography.fontSize.sm};
+              color: ${designTokens.colors.primary[700]};
+              margin-bottom: ${designTokens.spacing[6]};
+            `}
+          >
+            <Info size={16} css={css`flex-shrink: 0; margin-top: 2px;`} />
+            <span>
+              <strong>Connect Fhenix FHE:</strong> To deploy this encrypted policy, please connect your wallet via the <strong>Enable Confidential Governance</strong> widget in the bottom right corner.
             </span>
           </div>
         </CardHeader>

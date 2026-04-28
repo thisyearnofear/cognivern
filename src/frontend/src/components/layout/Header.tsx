@@ -22,7 +22,7 @@ import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useSidebarState } from '../../hooks/useSidebarState';
 import CommandPalette from '../ui/CommandPalette';
-import WalletConnect from '../web3/WalletConnect';
+import { ConnectionModal } from '../web3/ConnectionModal';
 
 export const Header: React.FC = () => {
   const { user, setUser, updatePreferences } = useAppStore();
@@ -33,6 +33,7 @@ export const Header: React.FC = () => {
   const { setIsOpen } = useIntentStore();
   const { toggleSidebar } = useSidebarState();
   const [isSystemOnline, setIsSystemOnline] = useState<boolean | null>(null);
+  const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
 
   useEffect(() => {
     const checkSystemStatus = async () => {
@@ -53,13 +54,8 @@ export const Header: React.FC = () => {
     updatePreferences({ theme: newTheme });
   };
 
-  const handleWalletConnect = (address: string, network: 'filecoin' | 'xlayer') => {
-    setUser({ address, isConnected: true, network });
-  };
-
-  const handleWalletDisconnect = () => {
-    setUser({ address: undefined, isConnected: false, network: undefined });
-  };
+  // Calculate connected count
+  const connectedCount = [user.isConnected, user.owsWalletConnected, user.fhenixConnected].filter(Boolean).length;
 
   // Modern header styles
   const headerStyles = css`
@@ -322,40 +318,29 @@ export const Header: React.FC = () => {
           </button>
         )}
 
-        {/* Governance Treasury Pill */}
-        {user.owsWalletConnected && user.owsWalletAddress && (
-          <div
-            css={css`
-              display: flex;
-              align-items: center;
-              gap: ${designTokens.spacing[2]};
-              padding: ${isMobile
-                ? `${designTokens.spacing[1]} ${designTokens.spacing[2]}`
-                : `${designTokens.spacing[1]} ${designTokens.spacing[3]}`};
-              border-radius: ${designTokens.borderRadius.md};
-              font-size: ${designTokens.typography.fontSize.xs};
-              background: ${effectiveTheme === 'dark'
-                ? designTokens.colors.neutral[800]
-                : designTokens.colors.neutral[100]};
-              color: ${effectiveTheme === 'dark'
-                ? designTokens.colors.neutral[300]
-                : designTokens.colors.neutral[600]};
-              border: 1px solid ${effectiveTheme === 'dark'
-                ? designTokens.colors.neutral[700]
-                : designTokens.colors.neutral[200]};
-            `}
-            title={`Governance Treasury: ${user.owsWalletAddress}`}
-          >
-            <Vault size={14} />
-            <span>{isMobile
-              ? `${user.owsWalletAddress.slice(0, 4)}...${user.owsWalletAddress.slice(-2)}`
-              : `Treasury: ${user.owsWalletAddress.slice(0, 6)}...${user.owsWalletAddress.slice(-4)}`
-            }</span>
-          </div>
-        )}
-
-        {/* Browser Wallet Connection */}
-        <WalletConnect onConnect={handleWalletConnect} onDisconnect={handleWalletDisconnect} />
+        {/* Connection Center Toggle */}
+        <button
+          onClick={() => setIsConnectionModalOpen(true)}
+          css={css`
+            ${modernButtonStyle}
+            display: flex;
+            align-items: center;
+            gap: ${designTokens.spacing[2]};
+            background: ${connectedCount > 0
+              ? (effectiveTheme === 'dark' ? designTokens.colors.neutral[800] : designTokens.colors.neutral[100])
+              : 'transparent'};
+            border: 1px solid ${connectedCount > 0
+              ? (effectiveTheme === 'dark' ? designTokens.colors.neutral[700] : designTokens.colors.neutral[200])
+              : designTokens.colors.neutral[300]};
+            color: ${connectedCount > 0
+              ? (effectiveTheme === 'dark' ? designTokens.colors.neutral[100] : designTokens.colors.neutral[900])
+              : designTokens.colors.neutral[700]};
+          `}
+          title="Connection Center"
+        >
+          <Vault size={16} />
+          {!isMobile && <span>{connectedCount > 0 ? `${connectedCount}/3 Connected` : 'Connect'}</span>}
+        </button>
 
         {/* User Menu */}
         {user.isConnected && (
@@ -371,6 +356,12 @@ export const Header: React.FC = () => {
 
       {/* Command Palette */}
       <CommandPalette />
+
+      {/* Connection Modal */}
+      <ConnectionModal
+        isOpen={isConnectionModalOpen}
+        onClose={() => setIsConnectionModalOpen(false)}
+      />
     </header>
   );
 };

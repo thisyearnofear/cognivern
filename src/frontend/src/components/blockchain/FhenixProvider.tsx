@@ -35,8 +35,8 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
         },
       ],
       react: {
-        projectName: 'Cognivern SpendOS',
-        position: 'bottom-left',
+        projectName: 'Enable Confidential Governance',
+        position: 'bottom-right',
       },
     });
   }, []);
@@ -64,6 +64,10 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
       <CofheProvider config={cofheConfig} publicClient={publicClient as any} walletClient={walletClient as any}>
         <Global
           styles={css`
+            /* Hide the CoFHE Portal widget by default, only show when .show-cofhe-portal class is present */
+            body:not(.show-cofhe-portal) .cofhe-floating-button {
+              display: none !important;
+            }
             /* Tame the CoFHE Portal widget */
             .cofhe-floating-button {
               z-index: 50 !important;

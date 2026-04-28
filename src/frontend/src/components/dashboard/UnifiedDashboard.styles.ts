@@ -10,6 +10,7 @@ export const containerStyles = (isMobile: boolean) => css`
   margin: 0 auto;
   position: relative;
   overflow-y: auto;
+  overflow-x: hidden;
   height: 100%;
   background: var(--dashboard-bg, ${designTokens.colors.secondary[50]});
 

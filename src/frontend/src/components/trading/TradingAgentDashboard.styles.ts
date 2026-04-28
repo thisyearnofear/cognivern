@@ -28,7 +28,7 @@ export const subtitleStyles = css`
 
 export const agentSelectorStyles = css`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: ${designTokens.spacing[4]};
   margin-bottom: ${designTokens.spacing[8]};
 `;
