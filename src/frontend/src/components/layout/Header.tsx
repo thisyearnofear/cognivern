@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   Plus,
+  Vault,
 } from 'lucide-react';
 import { useAppStore, useTheme } from '../../stores/appStore';
 import { agentApi } from '../../services/apiService';
@@ -321,7 +322,39 @@ export const Header: React.FC = () => {
           </button>
         )}
 
-        {/* Wallet Connection */}
+        {/* Governance Treasury Pill */}
+        {user.owsWalletConnected && user.owsWalletAddress && (
+          <div
+            css={css`
+              display: flex;
+              align-items: center;
+              gap: ${designTokens.spacing[2]};
+              padding: ${isMobile
+                ? `${designTokens.spacing[1]} ${designTokens.spacing[2]}`
+                : `${designTokens.spacing[1]} ${designTokens.spacing[3]}`};
+              border-radius: ${designTokens.borderRadius.md};
+              font-size: ${designTokens.typography.fontSize.xs};
+              background: ${effectiveTheme === 'dark'
+                ? designTokens.colors.neutral[800]
+                : designTokens.colors.neutral[100]};
+              color: ${effectiveTheme === 'dark'
+                ? designTokens.colors.neutral[300]
+                : designTokens.colors.neutral[600]};
+              border: 1px solid ${effectiveTheme === 'dark'
+                ? designTokens.colors.neutral[700]
+                : designTokens.colors.neutral[200]};
+            `}
+            title={`Governance Treasury: ${user.owsWalletAddress}`}
+          >
+            <Vault size={14} />
+            <span>{isMobile
+              ? `${user.owsWalletAddress.slice(0, 4)}...${user.owsWalletAddress.slice(-2)}`
+              : `Treasury: ${user.owsWalletAddress.slice(0, 6)}...${user.owsWalletAddress.slice(-4)}`
+            }</span>
+          </div>
+        )}
+
+        {/* Browser Wallet Connection */}
         <WalletConnect onConnect={handleWalletConnect} onDisconnect={handleWalletDisconnect} />
 
         {/* User Menu */}

@@ -250,7 +250,7 @@ export default function TradingChart({ decisions, agentType, isLoading }: Tradin
   const buyCount = chartData.filter((d) => d.action === 'buy').length;
   const sellCount = chartData.filter((d) => d.action === 'sell').length;
   const holdCount = chartData.filter((d) => d.action === 'hold').length;
-  const avgConfidence = chartData.reduce((sum, d) => sum + d.confidence, 0) / chartData.length;
+  const avgConfidence = chartData.reduce((sum, d) => sum + (d.confidence ?? 0), 0) / (chartData.length || 1);
 
   return (
     <div css={containerStyles}>
@@ -262,9 +262,9 @@ export default function TradingChart({ decisions, agentType, isLoading }: Tradin
               key={index}
               css={chartPointStyles(point.action, index, chartData.length)}
               style={{
-                bottom: `${point.confidence * 70 + 20}%`,
+                bottom: `${(point.confidence ?? 0) * 70 + 20}%`,
               }}
-              title={`${point.action.toUpperCase()} at ${point.time} - Confidence: ${(point.confidence * 100).toFixed(1)}%`}
+              title={`${point.action.toUpperCase()} at ${point.time} - Confidence: ${((point.confidence ?? 0) * 100).toFixed(1)}%`}
             >
               <div css={pointMarkerStyles(point.action)}></div>
               <div css={pointLabelStyles}>{point.action}</div>
@@ -304,7 +304,7 @@ export default function TradingChart({ decisions, agentType, isLoading }: Tradin
           <div css={summaryLabelStyles}>Hold Decisions</div>
         </div>
         <div css={summaryCardStyles}>
-          <div css={summaryValueStyles}>{(avgConfidence * 100).toFixed(0)}%</div>
+          <div css={summaryValueStyles}>{isNaN(avgConfidence) ? 'N/A' : `${(avgConfidence * 100).toFixed(0)}%`}</div>
           <div css={summaryLabelStyles}>Avg Confidence</div>
         </div>
       </div>
@@ -346,12 +346,12 @@ export default function TradingChart({ decisions, agentType, isLoading }: Tradin
                     <div
                       css={css`
                         font-weight: ${designTokens.typography.fontWeight.bold};
-                        color: ${decision.sentiment > 0
+                        color: ${(decision.sentiment ?? 0) > 0
                           ? designTokens.colors.semantic.success[600]
                           : designTokens.colors.semantic.error[600]};
                       `}
                     >
-                      {(decision.sentiment * 100).toFixed(0)}%
+                      {((decision.sentiment ?? 0) * 100).toFixed(0)}%
                     </div>
                     <div
                       css={css`

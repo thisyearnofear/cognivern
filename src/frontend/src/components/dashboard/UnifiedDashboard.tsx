@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { designTokens } from "../../styles/design-system";
 import { useBreakpoint } from "../../hooks/useMediaQuery";
+import { useAppStore } from "../../stores/appStore";
 import { agentApi, owsApi } from "../../services/apiService";
 import { getApiKey, getApiUrl } from "../../utils/api";
 import { copyTextToClipboard } from "../../utils/clipboard";
@@ -87,10 +88,10 @@ import {
 } from "./utils/types";
 
 // OWS Status Indicator - Shows wallet, API key, and agent status
+// Reads wallet state from appStore (single source of truth) and enriches with API data
 function OwsStatusIndicator() {
+  const { user, setUser } = useAppStore();
   const [owsStatus, setOwsStatus] = useState<{
-    walletConnected: boolean;
-    walletName?: string;
     apiKeysCount: number;
     agentsCount: number;
     activeAgents: number;
@@ -108,16 +109,24 @@ function OwsStatusIndicator() {
             (a: AgentSummary) => a.status === "active",
           ).length;
 
+          // Sync wallet state to appStore if API reports a wallet
+          if (dashboardRes.data.hasWallet && !user.owsWalletConnected) {
+            const wallet = dashboardRes.data.wallet;
+            setUser({
+              owsWalletConnected: true,
+              owsWalletAddress: wallet?.accounts?.[0]?.address || wallet?.address || '',
+              owsWalletName: wallet?.name || 'Cognivern Treasury',
+              owsWalletChain: wallet?.accounts?.[0]?.chainId || wallet?.chainType || '',
+            });
+          }
+
           setOwsStatus({
-            walletConnected: dashboardRes.data.hasWallet || false,
-            walletName: dashboardRes.data.wallet?.name,
             apiKeysCount: (dashboardRes.data.apiKeys || []).length,
             agentsCount: agents.length,
             activeAgents,
           });
         } else {
           setOwsStatus({
-            walletConnected: false,
             apiKeysCount: 0,
             agentsCount: 0,
             activeAgents: 0,
@@ -125,7 +134,6 @@ function OwsStatusIndicator() {
         }
       } catch (error) {
         setOwsStatus({
-          walletConnected: false,
           apiKeysCount: 0,
           agentsCount: 0,
           activeAgents: 0,
@@ -181,10 +189,10 @@ function OwsStatusIndicator() {
         font-size: ${designTokens.typography.fontSize.xs};
         padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
         border-radius: ${designTokens.borderRadius.md};
-        background: ${owsStatus?.walletConnected
+        background: ${user.owsWalletConnected
           ? designTokens.colors.semantic.success[100]
           : designTokens.colors.neutral[100]};
-        color: ${owsStatus?.walletConnected
+        color: ${user.owsWalletConnected
           ? designTokens.colors.semantic.success[700]
           : designTokens.colors.neutral[600]};
       `}
@@ -194,14 +202,14 @@ function OwsStatusIndicator() {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: ${owsStatus?.walletConnected
+          background: ${user.owsWalletConnected
             ? designTokens.colors.semantic.success[500]
             : designTokens.colors.neutral[400]};
         `}
       />
       <span>
-        {owsStatus?.walletConnected
-          ? `OWS: ${owsStatus.walletName || "Connected"}`
+        {user.owsWalletConnected
+          ? `Treasury: ${user.owsWalletName || "Connected"}`
           : "OWS: No Wallet"}
         {owsStatus?.apiKeysCount ? ` · ${owsStatus.apiKeysCount} keys` : ""}
         {owsStatus?.agentsCount
@@ -222,6 +230,7 @@ const EcosystemVisualizer = lazy(() =>
 export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
   const navigate = useNavigate();
   const { isMobile, isTablet } = useBreakpoint();
+  const { user } = useAppStore();
 
   const [stats, setStats] = useState<QuickStats | null>(null);
   const [agents, setAgents] = useState<AgentSummary[]>([]);
@@ -761,7 +770,7 @@ export default function UnifiedDashboard({ mode = "full" }: DashboardProps) {
                     `}
                   >
                     {[
-                      { label: "Connect wallet", done: true },
+                      { label: "Connect wallet", done: user.owsWalletConnected || user.isConnected },
                       { label: "Deploy your first agent", done: (stats?.totalAgents || 0) > 0 },
                       { label: "Create a governance policy", done: (stats?.totalPolicies || 0) > 0 },
                       { label: "Run first governed action", done: (stats?.totalTrades || 0) > 0 },

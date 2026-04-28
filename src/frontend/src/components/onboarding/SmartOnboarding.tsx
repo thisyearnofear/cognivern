@@ -28,19 +28,42 @@ interface OnboardingStep {
   component: React.ReactNode;
 }
 
-// OWS Wallet Setup Step - Guided wallet connection
+// OWS Wallet Setup Step - Guided wallet connection with dual-path UX
 function OwsSetupStep() {
+  const { user, setUser } = useAppStore();
   const [walletStatus, setWalletStatus] = useState<'checking' | 'connected' | 'none'>('checking');
   const [isLoading, setIsLoading] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [walletDetails, setWalletDetails] = useState<{
+    address?: string;
+    name?: string;
+    chain?: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     checkWalletStatus();
   }, []);
 
+  const storeWalletInAppState = (address: string, name: string, chain: string) => {
+    setUser({
+      owsWalletConnected: true,
+      owsWalletAddress: address,
+      owsWalletName: name,
+      owsWalletChain: chain,
+    });
+    setWalletDetails({ address, name, chain });
+  };
+
   const checkWalletStatus = async () => {
     try {
       const res = await owsApi.listWallets();
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const wallet = res.data[0];
+        const address = wallet.accounts?.[0]?.address || wallet.address || '';
+        const name = wallet.name || 'Cognivern Treasury';
+        const chain = wallet.accounts?.[0]?.chainId || wallet.chainType || '';
+        storeWalletInAppState(address, name, chain);
         setWalletStatus('connected');
       } else {
         setWalletStatus('none');
@@ -53,7 +76,12 @@ function OwsSetupStep() {
   const handleBootstrap = async () => {
     setIsLoading(true);
     try {
-      await owsApi.bootstrap();
+      const res = await owsApi.bootstrap();
+      const data = res?.data;
+      const address = data?.accounts?.[0]?.address || data?.address || '';
+      const name = data?.name || 'Cognivern Treasury';
+      const chain = data?.accounts?.[0]?.chainId || data?.chainType || 'eip155:314159';
+      storeWalletInAppState(address, name, chain);
       setWalletStatus('connected');
     } catch (error) {
       console.error('Failed to bootstrap wallet:', error);
@@ -61,6 +89,52 @@ function OwsSetupStep() {
       setIsLoading(false);
     }
   };
+
+  const handleConnectBrowserWallet = async () => {
+    if (typeof window.ethereum === 'undefined') {
+      alert('MetaMask is not installed. Please install MetaMask to connect your own wallet.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      if (accounts.length > 0) {
+        const address = accounts[0];
+        const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+        const chainId = parseInt(chainIdHex, 16);
+        const chainLabel = chainId === 314159 ? 'Filecoin Calibration'
+          : (chainId === 196 || chainId === 1952) ? 'X Layer'
+          : `Chain ${chainId}`;
+        const network: 'filecoin' | 'xlayer' = (chainId === 196 || chainId === 1952) ? 'xlayer' : 'filecoin';
+        setUser({
+          address,
+          isConnected: true,
+          network,
+          owsWalletConnected: true,
+          owsWalletAddress: address,
+          owsWalletName: 'Your Wallet',
+          owsWalletChain: chainLabel,
+        });
+        setWalletDetails({ address, name: 'Your Wallet', chain: chainLabel });
+        setWalletStatus('connected');
+      }
+    } catch (error) {
+      console.error('Failed to connect browser wallet:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const copyAddress = () => {
+    const addr = walletDetails?.address || user.owsWalletAddress;
+    if (addr) {
+      navigator.clipboard.writeText(addr).catch(() => {});
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
   if (walletStatus === 'checking') {
     return (
@@ -74,6 +148,9 @@ function OwsSetupStep() {
   }
 
   if (walletStatus === 'connected') {
+    const addr = walletDetails?.address || user.owsWalletAddress || '';
+    const name = walletDetails?.name || user.owsWalletName || 'Governance Wallet';
+    const chain = walletDetails?.chain || user.owsWalletChain || '';
     return (
       <div style={{ textAlign: 'center', padding: designTokens.spacing[6] }}>
         <div
@@ -91,8 +168,66 @@ function OwsSetupStep() {
           <CheckCircle2 size={32} color={designTokens.colors.semantic.success[500]} />
         </div>
         <h3 style={{ marginBottom: designTokens.spacing[2] }}>Wallet Connected!</h3>
-        <p style={{ color: designTokens.colors.neutral[600] }}>
-          Your OWS wallet is ready for agent spend governance.
+        <p style={{ color: designTokens.colors.neutral[500], marginBottom: designTokens.spacing[4], fontSize: designTokens.typography.fontSize.sm }}>
+          This is your governance treasury — agents request spend from this wallet.
+        </p>
+
+        {/* Wallet details card */}
+        <div
+          style={{
+            background: 'var(--surface-bg-alt, #f8fafc)',
+            border: `1px solid ${designTokens.colors.neutral[200]}`,
+            borderRadius: designTokens.borderRadius.lg,
+            padding: designTokens.spacing[4],
+            maxWidth: 360,
+            margin: '0 auto',
+            textAlign: 'left',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: designTokens.spacing[2] }}>
+            <span style={{ fontSize: designTokens.typography.fontSize.xs, color: designTokens.colors.neutral[500], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Wallet Name
+            </span>
+            <span style={{ fontSize: designTokens.typography.fontSize.sm, fontWeight: designTokens.typography.fontWeight.semibold, color: 'var(--text-primary)' }}>
+              {name}
+            </span>
+          </div>
+          {addr && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: designTokens.spacing[2] }}>
+              <span style={{ fontSize: designTokens.typography.fontSize.xs, color: designTokens.colors.neutral[500], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Address
+              </span>
+              <button
+                onClick={copyAddress}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: designTokens.typography.fontSize.sm,
+                  fontFamily: 'monospace',
+                  color: designTokens.colors.primary[600],
+                  padding: 0,
+                }}
+                title="Click to copy full address"
+              >
+                {copied ? '✓ Copied!' : formatAddress(addr)}
+              </button>
+            </div>
+          )}
+          {chain && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: designTokens.typography.fontSize.xs, color: designTokens.colors.neutral[500], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Chain
+              </span>
+              <span style={{ fontSize: designTokens.typography.fontSize.sm, color: 'var(--text-primary)' }}>
+                {chain}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <p style={{ marginTop: designTokens.spacing[3], fontSize: designTokens.typography.fontSize.xs, color: designTokens.colors.neutral[400] }}>
+          Your wallet is stored locally on this machine.
         </p>
       </div>
     );
@@ -120,7 +255,7 @@ function OwsSetupStep() {
         >
           <Wallet size={32} color={designTokens.colors.primary[500]} />
         </div>
-        <h3 style={{ marginBottom: designTokens.spacing[2], color: 'var(--text-primary)' }}>Connect OWS Wallet</h3>
+        <h3 style={{ marginBottom: designTokens.spacing[2], color: 'var(--text-primary)' }}>Set Up Governance Wallet</h3>
         <p
           style={{
             color: 'var(--text-secondary)',
@@ -128,7 +263,7 @@ function OwsSetupStep() {
             margin: '0 auto',
           }}
         >
-          Your wallet will be encrypted locally. Agents can request spend but policy rules control
+          Choose how to fund your agent treasury. Agents request spend but policy rules control
           what gets approved.
         </p>
       </div>
@@ -188,19 +323,81 @@ function OwsSetupStep() {
         </Card>
       </div>
 
-      <div style={{ textAlign: 'center' }}>
+      {/* Dual-path wallet options */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: designTokens.spacing[3], alignItems: 'center' }}>
         <Button variant="primary" onClick={handleBootstrap} disabled={isLoading}>
-          {isLoading ? 'Connecting...' : 'Bootstrap Wallet'}
+          {isLoading ? 'Setting up...' : 'Bootstrap New Wallet'}
         </Button>
-        <p
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: designTokens.spacing[2], color: designTokens.colors.neutral[400], fontSize: designTokens.typography.fontSize.sm }}>
+          <span style={{ width: 40, height: 1, background: designTokens.colors.neutral[300], display: 'inline-block' }} />
+          or
+          <span style={{ width: 40, height: 1, background: designTokens.colors.neutral[300], display: 'inline-block' }} />
+        </div>
+
+        <button
+          onClick={handleConnectBrowserWallet}
+          disabled={isLoading}
           style={{
-            marginTop: designTokens.spacing[3],
+            background: 'none',
+            border: `1px solid ${designTokens.colors.neutral[300]}`,
+            borderRadius: designTokens.borderRadius.md,
+            padding: `${designTokens.spacing[2]} ${designTokens.spacing[4]}`,
+            cursor: 'pointer',
             fontSize: designTokens.typography.fontSize.sm,
-            color: 'var(--text-muted)',
+            color: 'var(--text-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: designTokens.spacing[2],
           }}
         >
-          Creates an encrypted local vault with derived wallet keys
-        </p>
+          <Wallet size={16} />
+          Connect Existing Wallet (MetaMask)
+        </button>
+
+        {/* Tooltip explaining the difference */}
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <button
+            onClick={() => setShowTooltip(!showTooltip)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: designTokens.typography.fontSize.xs,
+              color: designTokens.colors.primary[500],
+              textDecoration: 'underline',
+              padding: 0,
+            }}
+          >
+            What's the difference?
+          </button>
+          {showTooltip && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 320,
+                background: 'var(--surface-bg, white)',
+                border: `1px solid ${designTokens.colors.neutral[200]}`,
+                borderRadius: designTokens.borderRadius.lg,
+                padding: designTokens.spacing[4],
+                boxShadow: designTokens.shadows.lg,
+                zIndex: 10,
+                textAlign: 'left',
+                marginBottom: designTokens.spacing[2],
+              }}
+            >
+              <p style={{ fontSize: designTokens.typography.fontSize.xs, color: 'var(--text-secondary)', margin: `0 0 ${designTokens.spacing[2]}` }}>
+                <strong>Bootstrap</strong> creates a new wallet stored locally on this machine — great for getting started quickly.
+              </p>
+              <p style={{ fontSize: designTokens.typography.fontSize.xs, color: 'var(--text-secondary)', margin: 0 }}>
+                <strong>Connect Wallet</strong> links your existing browser wallet (e.g. MetaMask) so agents can request spend from funds you already control.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
