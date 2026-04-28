@@ -22,6 +22,8 @@ export const DashboardWrapper = ({ children }: { children: React.ReactNode }) =>
   <div
     css={css`
       width: 100%;
+      max-width: 1440px;
+      margin: 0 auto;
       padding: ${designTokens.spacing[6]};
       @media (max-width: ${designTokens.breakpoints.sm}) {
         padding: ${designTokens.spacing[4]};
@@ -44,80 +46,101 @@ export const PageWrapper = ({ children, title, subtitle, actions }: PageWrapperP
     css={css`
       min-height: 100%;
       background: transparent;
+      padding: 0 ${designTokens.spacing[8]};
       padding-bottom: ${designTokens.spacing[12]};
+      max-width: 100%;
+      overflow-x: hidden;
+
+      @media (max-width: ${designTokens.breakpoints.md}) {
+        padding: 0 ${designTokens.spacing[6]};
+      }
+
+      @media (max-width: ${designTokens.breakpoints.sm}) {
+        padding: 0 ${designTokens.spacing[4]};
+      }
     `}
   >
-    {(title || subtitle || actions) && (
-      <header
-        css={css`
-          margin-bottom: ${designTokens.spacing[10]};
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-          gap: ${designTokens.spacing[6]};
-          flex-wrap: wrap;
-          padding: 0 ${designTokens.spacing[2]};
-
-          @media (max-width: ${designTokens.breakpoints.md}) {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-        `}
-      >
-        <div
+    <div
+      css={css`
+        max-width: 1440px;
+        margin: 0 auto;
+        width: 100%;
+      `}
+    >
+      {(title || subtitle || actions) && (
+        <header
           css={css`
-            max-width: 800px;
+            margin-bottom: ${designTokens.spacing[10]};
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: ${designTokens.spacing[6]};
+            flex-wrap: wrap;
+            padding: 0 ${designTokens.spacing[2]};
+
+            @media (max-width: ${designTokens.breakpoints.md}) {
+              flex-direction: column;
+              align-items: flex-start;
+            }
           `}
         >
-          {title && (
-            <h1
-              css={css`
-                font-size: ${designTokens.typography.fontSize['5xl']};
-                font-weight: ${designTokens.typography.fontWeight.extrabold};
-                margin: 0 0 ${designTokens.spacing[3]} 0;
-                color: ${designTokens.colors.neutral[900]};
-                letter-spacing: -0.04em;
-                line-height: 1.1;
-                background: linear-gradient(
-                  to bottom right,
-                  ${designTokens.colors.neutral[900]},
-                  ${designTokens.colors.neutral[600]}
-                );
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-              `}
-            >
-              {title}
-            </h1>
-          )}
-          {subtitle && (
-            <p
-              css={css`
-                font-size: ${designTokens.typography.fontSize.lg};
-                color: ${designTokens.colors.neutral[600]};
-                margin: 0;
-                line-height: 1.6;
-                max-width: 60ch;
-              `}
-            >
-              {subtitle}
-            </p>
-          )}
-        </div>
-        {actions && (
           <div
             css={css`
-              display: flex;
-              gap: ${designTokens.spacing[3]};
-              margin-bottom: ${designTokens.spacing[1]};
+              max-width: 800px;
+              flex: 1;
+              min-width: 0;
             `}
           >
-            {actions}
+            {title && (
+              <h1
+                css={css`
+                  font-size: ${designTokens.typography.fontSize['5xl']};
+                  font-weight: ${designTokens.typography.fontWeight.extrabold};
+                  margin: 0 0 ${designTokens.spacing[3]} 0;
+                  color: ${designTokens.colors.neutral[900]};
+                  letter-spacing: -0.04em;
+                  line-height: 1.1;
+                  background: linear-gradient(
+                    to bottom right,
+                    ${designTokens.colors.neutral[900]},
+                    ${designTokens.colors.neutral[600]}
+                  );
+                  -webkit-background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                `}
+              >
+                {title}
+              </h1>
+            )}
+            {subtitle && (
+              <p
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.lg};
+                  color: ${designTokens.colors.neutral[600]};
+                  margin: 0;
+                  line-height: 1.6;
+                  max-width: 60ch;
+                `}
+              >
+                {subtitle}
+              </p>
+            )}
           </div>
-        )}
-      </header>
-    )}
-    <main>{children}</main>
+          {actions && (
+            <div
+              css={css`
+                display: flex;
+                gap: ${designTokens.spacing[3]};
+                margin-bottom: ${designTokens.spacing[1]};
+              `}
+            >
+              {actions}
+            </div>
+          )}
+        </header>
+      )}
+      <main>{children}</main>
+    </div>
   </div>
 );
 

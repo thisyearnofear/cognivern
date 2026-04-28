@@ -535,7 +535,7 @@ export default function AgentWorkshop() {
       <div
         css={css`
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
           gap: ${designTokens.spacing[6]};
         `}
       >
