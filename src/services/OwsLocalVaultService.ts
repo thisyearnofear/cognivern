@@ -102,7 +102,7 @@ export class OwsLocalVaultService {
     this.encryptionSecret =
       process.env.OWS_VAULT_SECRET ||
       process.env.OWS_API_KEY ||
-      process.env.API_KEY ||
+      process.env.COGNIVERN_API_KEY ||
       "development-ows-vault-secret";
   }
 

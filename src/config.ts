@@ -28,7 +28,7 @@ const envSchema = z.object({
   OWS_EXTERNAL_WALLET_PRIVATE_KEY: z.string().optional(),
 
   // API Security and Authentication
-  API_KEY: z.string().default(""),
+  COGNIVERN_API_KEY: z.string().min(1),
 
   // Filecoin Configuration
   FILECOIN_PRIVATE_KEY: z.string().min(1),

@@ -31,7 +31,7 @@ const sapienceConfigSchema = z.object({
 });
 // API configuration
 const apiConfigSchema = z.object({
-    API_KEY: z.string().default(""),
+    COGNIVERN_API_KEY: z.string().min(1),
     CORS_ORIGIN: z.string().default("*"),
     RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000), // 15 minutes
     RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
@@ -72,7 +72,7 @@ export const config = parseConfig();
 // Modular access objects (keeping same structure for DRY but pointing to new variables)
 export const apiConfig = {
     port: config.PORT || 3000,
-    apiKey: config.API_KEY || "",
+    apiKey: config.COGNIVERN_API_KEY || "",
     corsOrigin: config.CORS_ORIGIN || "*",
     rateLimit: {
         windowMs: config.RATE_LIMIT_WINDOW_MS || 900000,
