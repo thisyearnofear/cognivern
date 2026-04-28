@@ -19,6 +19,7 @@
   --stat-value: #0f172a;
   --section-title: #1f2937;
   --divider: #e2e8f0;
+  --overlay-bg: rgba(15, 23, 42, 0.6);
 }
 
 /* Dark mode CSS custom properties */
@@ -40,6 +41,7 @@
   --stat-value: #f1f5f9;
   --section-title: #f1f5f9;
   --divider: #334155;
+  --overlay-bg: rgba(0, 0, 0, 0.7);
 }
 
 :root {

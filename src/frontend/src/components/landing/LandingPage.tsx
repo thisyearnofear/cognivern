@@ -160,6 +160,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           opacity: ${isVisible ? 1 : 0};
           transform: translateY(${isVisible ? 0 : 20}px);
           transition: all 0.6s ease-out 0.2s;
+          /* Dark overlay on gradient for better text contrast */
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+              180deg,
+              rgba(248, 250, 252, 0.3) 0%,
+              rgba(14, 165, 233, 0.1) 100%
+            );
+            pointer-events: none;
+          }
         `}
       >
         <div
@@ -171,11 +186,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             css={css`
               display: inline-block;
               padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
-              background: ${designTokens.colors.primary[100]};
-              color: ${designTokens.colors.primary[700]};
+              background: ${designTokens.colors.primary[600]};
+              color: white;
               border-radius: ${designTokens.borderRadius.full};
               font-size: ${designTokens.typography.fontSize.sm};
               font-weight: ${designTokens.typography.fontWeight.medium};
+              box-shadow: 0 2px 8px ${designTokens.colors.primary[400]}40;
             `}
           >
             SpendOS for Autonomous Agents
@@ -190,6 +206,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             margin-bottom: ${designTokens.spacing[6]};
             line-height: 1.1;
             letter-spacing: -0.02em;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 
             @media (min-width: 1024px) {
               font-size: 4.5rem;
@@ -204,10 +221,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           <br />
           <span
             css={css`
-              background: ${designTokens.colorSystem.gradients.accent};
+              background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
+              /* Subtle shadow for better contrast on light backgrounds */
+              filter: drop-shadow(0 1px 1px rgba(2, 132, 199, 0.3));
             `}
           >
             Without Giving Them a Blank Check
@@ -458,7 +477,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               </div>
               <p
                 css={css`
-                  color: rgba(255, 255, 255, 0.6);
+                  color: rgba(255, 255, 255, 0.85);
                   font-size: ${designTokens.typography.fontSize.sm};
                   margin: 0 0 ${designTokens.spacing[2]} 0;
                 `}
@@ -514,7 +533,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               </div>
               <p
                 css={css`
-                  color: rgba(255, 255, 255, 0.6);
+                  color: rgba(255, 255, 255, 0.85);
                   font-size: ${designTokens.typography.fontSize.sm};
                   margin: 0 0 ${designTokens.spacing[2]} 0;
                 `}
@@ -570,7 +589,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               </div>
               <p
                 css={css`
-                  color: rgba(255, 255, 255, 0.6);
+                  color: rgba(255, 255, 255, 0.85);
                   font-size: ${designTokens.typography.fontSize.sm};
                   margin: 0 0 ${designTokens.spacing[2]} 0;
                 `}
