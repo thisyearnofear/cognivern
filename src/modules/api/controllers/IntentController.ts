@@ -88,13 +88,120 @@ Respond ONLY with a JSON object:
 
 Suggestions should be relevant follow-up actions based on the intent type.`;
 
+/** Performance metrics for monitoring */
+interface IntentMetrics {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  averageLatencyMs: number;
+  aiProviderFailures: Record<string, number>;
+  fallbackCount: number;
+  lastReset: number;
+}
+
 export class IntentController {
   private aiRouter: MultiModelRouter;
   private auditLogService: AuditLogService;
+  private metrics: IntentMetrics;
+  private circuitBreaker: {
+    failures: number;
+    lastFailure: number;
+    state: "closed" | "open" | "half-open";
+  };
 
   constructor() {
     this.aiRouter = new MultiModelRouter();
     this.auditLogService = new AuditLogService();
+    this.metrics = {
+      totalRequests: 0,
+      successfulRequests: 0,
+      failedRequests: 0,
+      averageLatencyMs: 0,
+      aiProviderFailures: {},
+      fallbackCount: 0,
+      lastReset: Date.now(),
+    };
+    this.circuitBreaker = {
+      failures: 0,
+      lastFailure: 0,
+      state: "closed",
+    };
+  }
+
+  /**
+   * GET /api/intent/metrics
+   * Get performance metrics for monitoring
+   */
+  getMetrics(): IntentMetrics {
+    return { ...this.metrics };
+  }
+
+  /**
+   * Reset metrics (for testing/admin)
+   */
+  resetMetrics(): void {
+    this.metrics = {
+      totalRequests: 0,
+      successfulRequests: 0,
+      failedRequests: 0,
+      averageLatencyMs: 0,
+      aiProviderFailures: {},
+      fallbackCount: 0,
+      lastReset: Date.now(),
+    };
+    this.circuitBreaker = { failures: 0, lastFailure: 0, state: "closed" };
+  }
+
+  /**
+   * Update running average latency
+   */
+  private updateLatency(latencyMs: number): void {
+    const { averageLatencyMs, totalRequests } = this.metrics;
+    this.metrics.averageLatencyMs =
+      (averageLatencyMs * (totalRequests - 1) + latencyMs) / totalRequests;
+  }
+
+  /**
+   * Check circuit breaker state
+   */
+  private shouldUseFallback(): boolean {
+    const now = Date.now();
+    const { failures, lastFailure, state } = this.circuitBreaker;
+
+    // If circuit is open and enough time has passed, try half-open
+    if (state === "open" && now - lastFailure > 60000) {
+      this.circuitBreaker.state = "half-open";
+      logger.info("Circuit breaker entering half-open state");
+    }
+
+    return state === "open" || state === "half-open";
+  }
+
+  /**
+   * Record AI provider failure
+   */
+  private recordFailure(provider: string): void {
+    this.metrics.failedRequests++;
+    this.metrics.aiProviderFailures[provider] =
+      (this.metrics.aiProviderFailures[provider] || 0) + 1;
+    this.circuitBreaker.failures++;
+    this.circuitBreaker.lastFailure = Date.now();
+
+    // Open circuit after 5 consecutive failures
+    if (this.circuitBreaker.failures >= 5) {
+      this.circuitBreaker.state = "open";
+      logger.warn(
+        `Circuit breaker opened after ${this.circuitBreaker.failures} failures`
+      );
+    }
+  }
+
+  /**
+   * Record successful AI request
+   */
+  private recordSuccess(): void {
+    this.circuitBreaker.failures = 0;
+    this.circuitBreaker.state = "closed";
   }
 
   /**
@@ -102,6 +209,9 @@ export class IntentController {
    * Process natural language intent
    */
   async processIntent(req: Request, res: Response): Promise<void> {
+    const startTime = Date.now();
+    this.metrics.totalRequests++;
+
     try {
       const { query, context } = req.body as IntentRequest;
 
@@ -113,11 +223,23 @@ export class IntentController {
         return;
       }
 
+      // Use fallback if circuit breaker is open
+      if (this.shouldUseFallback()) {
+        this.metrics.fallbackCount++;
+        logger.info("Using fallback due to circuit breaker state");
+        await this.handleFallback(req, res, query, context);
+        return;
+      }
+
       // Classify intent using AI
       const classification = await this.classifyIntent(query);
 
       // Generate response using AI
-      const response = await this.generateResponse(query, classification.type, context);
+      const response = await this.generateResponse(
+        query,
+        classification.type,
+        context
+      );
 
       // Log the intent for audit trail
       await this.auditLogService.logEvent({
@@ -126,6 +248,10 @@ export class IntentController {
         timestamp: new Date(),
         details: { query, intentType: classification.type },
       });
+
+      this.recordSuccess();
+      this.updateLatency(Date.now() - startTime);
+      this.metrics.successfulRequests++;
 
       res.json({
         success: true,
@@ -138,13 +264,104 @@ export class IntentController {
         },
       });
     } catch (error) {
+      this.recordFailure("multi-model-router");
       logger.error("Intent processing failed:", error);
-      res.status(500).json({
-        success: false,
-        error: "Failed to process intent",
-        message: error instanceof Error ? error.message : "Unknown error",
-      });
+      this.metrics.fallbackCount++;
+
+      // Handle with fallback on error
+      await this.handleFallback(req, res, req.body.query, req.body.context);
     }
+  }
+
+  /**
+   * Handle fallback when AI fails
+   */
+  private async handleFallback(
+    req: Request,
+    res: Response,
+    query: string,
+    context?: Record<string, any>
+  ): Promise<void> {
+    this.metrics.fallbackCount++;
+    const classification = this.fallbackClassification(query || "");
+    const fallbackResponse = this.getFallbackResponse(classification.type);
+
+    // Log fallback usage
+    try {
+      await this.auditLogService.logEvent({
+        eventType: "intent_fallback",
+        agentType: "system",
+        timestamp: new Date(),
+        details: {
+          query,
+          intentType: classification.type,
+          reason: "ai_provider_unavailable",
+        },
+      });
+    } catch (e) {
+      // Non-blocking
+    }
+
+    res.json({
+      success: true,
+      data: {
+        type: classification.type,
+        response: fallbackResponse.text,
+        component: this.buildComponent(classification.type, context),
+        context: {},
+        suggestions: fallbackResponse.suggestions,
+        _fallback: true, // Signal to frontend that this is fallback data
+      },
+    });
+  }
+
+  /**
+   * Get fallback response based on intent type
+   */
+  private getFallbackResponse(
+    intentType: IntentType
+  ): { text: string; suggestions: string[] } {
+    const responses: Record<IntentType, { text: string; suggestions: string[] }> = {
+      forensic: {
+        text: "I'm having trouble accessing the execution history right now. The AI analysis service is temporarily unavailable. Please try again in a moment.",
+        suggestions: ["Show recent activity", "Check system status"],
+      },
+      governance: {
+        text: "I'm unable to retrieve governance metrics at the moment. The AI service is temporarily unavailable. Please try again shortly.",
+        suggestions: ["Check policy status", "View audit logs"],
+      },
+      agent: {
+        text: "I'm having trouble accessing agent information right now. The AI analysis service is temporarily unavailable. Please try again in a moment.",
+        suggestions: ["Browse agent marketplace", "View active agents"],
+      },
+      risk: {
+        text: "Risk analysis is temporarily unavailable. The AI service is down. Please try again or check the audit logs for recent risk events.",
+        suggestions: ["View audit logs", "Check recent transactions"],
+      },
+      policy: {
+        text: "I'm unable to retrieve policy information right now. The AI governance service is temporarily unavailable. Please try again shortly.",
+        suggestions: ["Browse policies", "View governance rules"],
+      },
+      stats: {
+        text: "Statistics are temporarily unavailable. The AI analysis service is down. Please check back in a moment.",
+        suggestions: ["View dashboard", "Check recent activity"],
+      },
+      create: {
+        text: "I can help you create new agents and policies. The AI service is temporarily unavailable, but you can use the direct forms to create items.",
+        suggestions: ["Create new agent", "Create new policy"],
+      },
+      unknown: {
+        text: "I'm having trouble understanding your request right now due to a temporary service issue. Please try rephrasing or try again in a moment.",
+        suggestions: ["Show dashboard", "View agents", "Check policies"],
+      },
+    };
+
+    return (
+      responses[intentType] || {
+        text: "I'm temporarily unavailable. Please try again shortly.",
+        suggestions: ["View dashboard", "Check status"],
+      }
+    );
   }
 
   /**

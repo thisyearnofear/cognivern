@@ -742,6 +742,14 @@ export class ApiModule extends BaseService {
       this.ctrl("intent").processIntent(req, res);
     });
 
+    // Intent metrics for monitoring
+    apiRouter.get("/intent/metrics", (_req, res) => {
+      res.json({
+        success: true,
+        data: this.ctrl("intent").getMetrics(),
+      });
+    });
+
     // Mount API router
     this.app.use("/api", apiRouter);
 
