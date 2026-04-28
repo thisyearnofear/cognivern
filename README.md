@@ -39,6 +39,8 @@ Cognivern solves a common agentic scaling problem: teams can ship quickly, but s
 | Audit permits (confidential) | `POST /api/audit/permits` |
 | Run ledger | `GET /api/cre/runs` |
 | Run ingestion | `POST /ingest/runs` |
+| Natural language intent | `POST /api/intent` |
+| Intent metrics | `GET /api/intent/metrics` |
 
 ### Product Primitives
 
@@ -78,6 +80,16 @@ pnpm demo:live
 ## Status
 
 The spend control plane is live: policy evaluation, signed approvals, held actions, denials, and persisted run evidence. Contracts deployed on X Layer testnet and Filecoin Calibration. Fhenix integration live for privacy-native operations.
+
+### Recent Updates (2026-04)
+
+- **AI Intent System** — Natural language command processing via multi-provider AI routing (6 providers: Fireworks, Kilocode, Workers AI, OpenAI, Gemini, Anthropic) with circuit breaker protection and graceful fallback
+- **Compact UI** — Reduced visual density across dashboard, cards, and navigation with smooth transitions
+- **Responsive Improvements** — Better mobile/tablet layouts with minimal agent display variants
+
+### Production Readiness: ~90%
+
+See [Developer Guide](./docs/DEVELOPER.md) for full checklist.
 
 ## License
 
