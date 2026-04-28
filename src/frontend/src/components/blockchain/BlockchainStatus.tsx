@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { css } from '@emotion/react';
-import { designTokens } from '../../styles/design-system';
+import { designTokens, keyframeAnimations } from '../../styles/design-system';
 import { Card, CardContent } from '../ui/Card';
 import {
   checkXLayerConnection,

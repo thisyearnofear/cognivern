@@ -268,7 +268,7 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
           </div>
           <button
             css={css`
-              background: ${designTokens.colors.semantic.error};
+              background: ${designTokens.colors.semantic.error.main};
               color: white;
               border: none;
               padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
@@ -277,7 +277,7 @@ export default function Web3Auth({ onConnect, onDisconnect }: Web3AuthProps) {
               font-size: ${designTokens.typography.fontSize.xs};
 
               &:hover {
-                background: ${designTokens.colors.semantic.errorHover};
+                background: ${designTokens.colors.semantic.error.hover};
               }
 
               @media (max-width: ${designTokens.breakpoints.md}) {
