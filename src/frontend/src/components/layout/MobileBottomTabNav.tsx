@@ -1,49 +1,9 @@
 import React from 'react';
 import { css } from '@emotion/react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ShieldCheck, FileSearch, Activity } from 'lucide-react';
 import { useTheme } from '../../stores/appStore';
 import { designTokens, easings } from '../../styles/design-system';
-
-interface TabItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  path: string;
-}
-
-const tabItems: TabItem[] = [
-  {
-    id: 'dashboard',
-    label: 'Home',
-    icon: <LayoutDashboard size={20} />,
-    path: '/',
-  },
-  {
-    id: 'agents',
-    label: 'Agents',
-    icon: <Users size={20} />,
-    path: '/agents',
-  },
-  {
-    id: 'policies',
-    label: 'Policies',
-    icon: <ShieldCheck size={20} />,
-    path: '/policies',
-  },
-  {
-    id: 'audit',
-    label: 'Audit',
-    icon: <FileSearch size={20} />,
-    path: '/audit',
-  },
-  {
-    id: 'runs',
-    label: 'Runs',
-    icon: <Activity size={20} />,
-    path: '/runs',
-  },
-];
+import { mobileNavItems } from './routeMeta';
 
 export const MobileBottomTabNav: React.FC = () => {
   const navigate = useNavigate();
@@ -117,7 +77,7 @@ export const MobileBottomTabNav: React.FC = () => {
 
   return (
     <nav css={navStyles} aria-label="Main navigation">
-      {tabItems.map((tab) => {
+      {mobileNavItems.map((tab) => {
         const isActive = location.pathname === tab.path;
         return (
           <button
@@ -137,7 +97,7 @@ export const MobileBottomTabNav: React.FC = () => {
                 textAlign: 'center',
               }}
             >
-              {tab.label}
+              {tab.shortLabel || tab.label}
             </span>
           </button>
         );

@@ -1,5 +1,5 @@
 /**
- * QuestHUD - Displays governance quests and alerts
+ * QuestHUD - Displays governance alerts and recommendations
  * Extracted from UnifiedDashboard for better modularity
  */
 
@@ -21,7 +21,7 @@ export const QuestHUD = ({ quests, onResolve }: QuestHUDProps) => {
       <Card>
         <CardContent css={styles.emptyStateStyles}>
           <ShieldCheck size={48} opacity={0.3} />
-          <div>All governance systems compliant.</div>
+          <div>No active governance alerts.</div>
         </CardContent>
       </Card>
     );
@@ -59,7 +59,7 @@ export const QuestHUD = ({ quests, onResolve }: QuestHUDProps) => {
                 <div css={styles.activityTextStyles}>{quest.title}</div>
                 {quest.actionRequired && (
                   <div css={styles.systemBadgeStyles(mapQuestSeverity(quest.severity))}>
-                    ACTION REQUIRED
+                    REVIEW NEEDED
                   </div>
                 )}
               </div>
@@ -82,18 +82,7 @@ export const QuestHUD = ({ quests, onResolve }: QuestHUDProps) => {
                     }}
                     onClick={() => onResolve(quest.id)}
                   >
-                    Resolve
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    style={{
-                      fontSize: '10px',
-                      padding: '2px 8px',
-                      height: 'auto',
-                    }}
-                  >
-                    Dismiss
+                    Mark Reviewed
                   </Button>
                 </div>
               )}

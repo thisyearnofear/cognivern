@@ -298,7 +298,7 @@ function TradingAgentDashboardContent() {
             margin-top: ${designTokens.spacing[4]};
           `}
         >
-          Double click active agent to view detailed profile
+          Select an agent to inspect its operational profile and evidence trail.
         </p>
       </div>
 
@@ -316,7 +316,7 @@ function TradingAgentDashboardContent() {
         `}
       >
         <Button variant="secondary" size="sm" onClick={() => setShowComparison(!showComparison)}>
-          {showComparison ? 'Hide' : 'Show'} Agent Comparison
+          {showComparison ? 'Hide' : 'Show'} Agent Coverage Comparison
         </Button>
         {showComparison && (
           <Button variant="ghost" size="sm" onClick={() => setShowFilters(!showFilters)}>

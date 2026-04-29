@@ -139,18 +139,4 @@ export const AgentGrid = ({ agents, columns }: AgentGridProps) => (
   </div>
 );
 
-interface AgentCarouselProps {
-  agents: AgentSummary[];
-}
-
-export const AgentCarousel = ({ agents }: AgentCarouselProps) => (
-  <div css={styles.carouselStyles}>
-    {agents.map((agent) => (
-      <div key={agent.id} css={styles.carouselItemStyles}>
-        <AgentCard key={agent.id} agent={agent} compact />
-      </div>
-    ))}
-  </div>
-);
-
 export default Leaderboard;

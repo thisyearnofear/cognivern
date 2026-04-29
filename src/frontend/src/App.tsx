@@ -20,7 +20,6 @@ const RunLedger = lazy(() => import('./components/cre/RunLedger'));
 const RunDetails = lazy(() => import('./components/cre/RunDetails'));
 const AgentProfile = lazy(() => import('./components/agents/AgentProfile'));
 const AgentWorkshop = lazy(() => import('./components/agents/AgentWorkshop'));
-const AgentConnectionWizard = lazy(() => import('./components/agents/AgentConnectionWizard'));
 
 // Enhanced loading component with animations
 const PageSkeleton: React.FC = () => (
@@ -146,13 +145,7 @@ function App() {
 
               <Route
                 path="agents/connect"
-                element={
-                  <PageTransition type="slide">
-                    <Suspense fallback={<PageSkeleton />}>
-                      <AgentConnectionWizard onCancel={() => window.history.back()} />
-                    </Suspense>
-                  </PageTransition>
-                }
+                element={<Navigate to="/agents/workshop" replace />}
               />
 
               {/* Legacy trading route - redirect to agents */}

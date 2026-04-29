@@ -8,7 +8,6 @@ export interface UserPreferences {
   onboardingCompleted: boolean;
   demoExplored: boolean; // User has seen the demo
   lastVisited: string;
-  dashboardLayout: 'simplified' | 'advanced';
   notifications: boolean;
   shadowedAgents: string[];
 }
@@ -53,7 +52,6 @@ const defaultPreferences: UserPreferences = {
   onboardingCompleted: false,
   demoExplored: false,
   lastVisited: '/',
-  dashboardLayout: 'simplified',
   notifications: true,
   shadowedAgents: [],
 };

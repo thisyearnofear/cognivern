@@ -1,74 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { css } from '@emotion/react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Users,
-  ShieldCheck,
-  FileSearch,
-  Activity,
-  PlusCircle,
-} from 'lucide-react';
 import { useAppStore, useTheme } from '../../stores/appStore';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { designTokens } from '../../styles/design-system';
 import { useLayout } from './ResponsiveLayout';
 import { useSidebarState } from '../../hooks/useSidebarState';
 import { Button } from '../ui/Button';
-
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  path: string;
-  description?: string;
-  badge?: string | number;
-}
-
-const navigationItems: NavItem[] = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: <LayoutDashboard size={20} />,
-    path: '/',
-    description: 'Unified overview',
-  },
-  {
-    id: 'agents',
-    label: 'Agents',
-    icon: <Users size={20} />,
-    path: '/agents',
-    description: 'Governed operations',
-  },
-  {
-    id: 'policies',
-    label: 'Policies',
-    icon: <ShieldCheck size={20} />,
-    path: '/policies',
-    description: 'Spend rules',
-  },
-  {
-    id: 'audit',
-    label: 'Audit',
-    icon: <FileSearch size={20} />,
-    path: '/audit',
-    description: 'Activity logs',
-  },
-  {
-    id: 'runs',
-    label: 'Runs',
-    icon: <Activity size={20} />,
-    path: '/runs',
-    description: 'Verifiable traces',
-  },
-  {
-    id: 'add-agent',
-    label: 'Add Agent',
-    icon: <PlusCircle size={20} />,
-    path: '/agents/workshop',
-    badge: 'NEW',
-  },
-];
+import { primaryNavItems } from './routeMeta';
 
 export const ImprovedSidebar: React.FC = () => {
   const navigate = useNavigate();
@@ -454,7 +393,8 @@ export const ImprovedSidebar: React.FC = () => {
 
         {/* Navigation */}
         <nav css={navStyles}>
-          {navigationItems.map((item) => {
+          {primaryNavItems.map((item) => {
+
             const isActive = location.pathname === item.path;
             return (
               <div

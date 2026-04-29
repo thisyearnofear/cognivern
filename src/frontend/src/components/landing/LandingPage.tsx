@@ -36,27 +36,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
   const features = [
     {
       icon: <Wallet size={24} />,
-      title: 'OWS Wallet Control',
+      title: 'Governed Wallet Access',
       description:
-        'Connect encrypted wallets powered by Fhenix FHE — agents request spend but you control approval, with budgets verified under encryption',
+        'Connect your treasury and let agents request spend within a controlled approval flow.',
       accent: designTokens.colors.accent[500],
     },
     {
       icon: <Shield size={24} />,
       title: 'Policy Guardrails',
-      description: 'Set limits, require approvals, deny high-risk transactions automatically',
+      description: 'Set limits, require approvals, and automatically block risky actions before money moves.',
       accent: designTokens.colors.semantic.success[500],
     },
     {
       icon: <Key size={24} />,
-      title: 'Scoped API Keys',
-      description: 'Give agents limited access - not full wallet control - with revocable keys',
+      title: 'Scoped Agent Permissions',
+      description: 'Grant agents limited access with revocable keys instead of handing over full wallet control.',
       accent: designTokens.colors.semantic.info[500],
     },
     {
       icon: <BarChart3 size={24} />,
-      title: 'Audit Trail',
-      description: 'Every decision logged with evidence - know exactly what agents did and why',
+      title: 'Audit Evidence',
+      description: 'Review every governed decision with the evidence needed to explain what happened and why.',
       accent: designTokens.colors.semantic.warning[500],
     },
   ];
@@ -199,7 +199,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               letter-spacing: 0.02em;
             `}
           >
-            SpendOS for Autonomous Agents
+            Spend Control for Autonomous Agents
           </span>
         </div>
 
@@ -222,13 +222,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             }
           `}
         >
-          Give Agents Spending Power{' '}
+          Let Agents Execute{' '}
           <span
             css={css`
               color: #0ea5e9;
             `}
           >
-            Without Blank Checks
+            Without Losing Control
           </span>
         </h1>
 
@@ -237,13 +237,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           css={css`
             font-size: ${designTokens.typography.fontSize.lg};
             color: #475569;
-            max-width: 480px;
+            max-width: 540px;
             margin: 0 auto ${designTokens.spacing[8]};
             line-height: 1.6;
           `}
         >
-          Cognivern connects to OWS wallets. Set policy guardrails. Agents request spend—you
-          approve. Every decision logged.
+          Cognivern is the control plane for governed agent spend. Connect your treasury, define
+          approval rules, and review every decision with audit-ready evidence.
         </p>
 
         <div

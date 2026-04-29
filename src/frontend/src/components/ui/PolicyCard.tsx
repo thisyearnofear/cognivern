@@ -91,6 +91,8 @@ export const PolicyCard: React.FC<PolicyCardProps> = ({ policy, onClick, interac
   const highStrictnessCount = policy.rules.filter(
     (r) => r.enabled && r.strictness === 'high',
   ).length;
+  const reviewState =
+    policy.status === 'active' ? 'Enforcing' : policy.status === 'draft' ? 'Needs Review' : 'Archived';
 
   return (
     <Card
@@ -102,7 +104,7 @@ export const PolicyCard: React.FC<PolicyCardProps> = ({ policy, onClick, interac
         <div css={headerStyles}>
           <h3 css={nameStyles}>{policy.name}</h3>
           <Badge variant={policy.status === 'active' ? 'success' : 'secondary'}>
-            {policy.status}
+            {reviewState}
           </Badge>
         </div>
 
@@ -110,14 +112,18 @@ export const PolicyCard: React.FC<PolicyCardProps> = ({ policy, onClick, interac
 
         <div css={ruleSummaryStyles}>
           <div css={statStyles}>
-            <span css={statLabelStyles}>Rules</span>
+            <span css={statLabelStyles}>Rule Coverage</span>
             <span css={statValueStyles}>
               {activeRules} / {policy.rules.length}
             </span>
           </div>
           <div css={statStyles}>
             <span css={statLabelStyles}>Strictness</span>
-            <span css={statValueStyles}>{highStrictnessCount > 0 ? 'High' : 'Standard'}</span>
+            <span css={statValueStyles}>{highStrictnessCount > 0 ? 'High Control' : 'Standard'}</span>
+          </div>
+          <div css={statStyles}>
+            <span css={statLabelStyles}>Policy State</span>
+            <span css={statValueStyles}>{reviewState}</span>
           </div>
         </div>
       </CardContent>
