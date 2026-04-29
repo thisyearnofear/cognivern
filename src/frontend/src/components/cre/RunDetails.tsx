@@ -14,10 +14,10 @@ import Tooltip from '../ui/Tooltip';
 
 const containerStyles = css`
   width: 100%;
-  padding: ${designTokens.spacing[8]};
+  padding: ${designTokens.spacing[4]};
   display: flex;
   flex-direction: column;
-  gap: ${designTokens.spacing[6]};
+  gap: ${designTokens.spacing[4]};
   max-width: 1100px;
   margin: 0 auto;
 `;
@@ -26,14 +26,14 @@ const topBarStyles = css`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: ${designTokens.spacing[4]};
+  gap: ${designTokens.spacing[3]};
   flex-wrap: wrap;
 `;
 
 const metricGridStyles = css`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: ${designTokens.spacing[4]};
+  gap: ${designTokens.spacing[3]};
 `;
 
 const trustBadgeRowStyles = css`
@@ -211,8 +211,19 @@ export default function RunDetails() {
           <h1
             css={css`
               margin: 0;
-              font-size: ${designTokens.typography.fontSize['4xl']};
+              font-size: ${designTokens.typography.fontSize['2xl']};
               font-weight: ${designTokens.typography.fontWeight.bold};
+            `}
+          >
+            Agent Run Console
+          </h1>
+          <div
+            css={css`
+              margin-top: ${designTokens.spacing[1]};
+              display: flex;
+              gap: ${designTokens.spacing[2]};
+              align-items: center;
+              flex-wrap: wrap;
             `}
           >
             Agent Run Console
@@ -321,14 +332,14 @@ export default function RunDetails() {
       </div>
 
       {error && (
-        <Card variant="outlined">
+        <Card variant="outlined" compact>
           <CardContent>{error}</CardContent>
         </Card>
       )}
 
       {vm.controls.canApprove && (
-        <Card variant="outlined">
-          <CardHeader>Human Approval Required</CardHeader>
+        <Card variant="outlined" compact>
+          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>Human Approval Required</CardHeader>
           <CardContent>
             <div
               css={css`
@@ -396,8 +407,8 @@ export default function RunDetails() {
       )}
 
       {run.plan && (
-        <Card variant="outlined">
-          <CardHeader>
+        <Card variant="outlined" compact>
+          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
             <div
               css={css`
                 display: flex;
@@ -407,7 +418,7 @@ export default function RunDetails() {
                 flex-wrap: wrap;
               `}
             >
-              <span>Execution Plan</span>
+              <span css={css`font-size: ${designTokens.typography.fontSize.sm}; font-weight: ${designTokens.typography.fontWeight.semibold};`}>Execution Plan</span>
               <Button
                 size="sm"
                 variant="outline"
@@ -524,20 +535,28 @@ export default function RunDetails() {
       )}
 
       <div css={metricGridStyles}>
-        <Card variant="outlined">
-          <CardHeader>Latency</CardHeader>
+        <Card variant="outlined" compact>
+          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+            <span css={css`font-size: ${designTokens.typography.fontSize.xs}; text-transform: uppercase; letter-spacing: 0.05em; color: ${designTokens.colors.neutral[500]};`}>Latency</span>
+          </CardHeader>
           <CardContent>{vm.metrics.latencyMs ?? 'N/A'} ms</CardContent>
         </Card>
-        <Card variant="outlined">
-          <CardHeader>Steps</CardHeader>
+        <Card variant="outlined" compact>
+          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+            <span css={css`font-size: ${designTokens.typography.fontSize.xs}; text-transform: uppercase; letter-spacing: 0.05em; color: ${designTokens.colors.neutral[500]};`}>Steps</span>
+          </CardHeader>
           <CardContent>{vm.metrics.stepCount}</CardContent>
         </Card>
-        <Card variant="outlined">
-          <CardHeader>Artifacts</CardHeader>
+        <Card variant="outlined" compact>
+          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+            <span css={css`font-size: ${designTokens.typography.fontSize.xs}; text-transform: uppercase; letter-spacing: 0.05em; color: ${designTokens.colors.neutral[500]};`}>Artifacts</span>
+          </CardHeader>
           <CardContent>{vm.metrics.artifactCount}</CardContent>
         </Card>
-        <Card variant="outlined">
-          <CardHeader>Estimated Tokens / Cost</CardHeader>
+        <Card variant="outlined" compact>
+          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+            <span css={css`font-size: ${designTokens.typography.fontSize.xs}; text-transform: uppercase; letter-spacing: 0.05em; color: ${designTokens.colors.neutral[500]};`}>Estimated Tokens / Cost</span>
+          </CardHeader>
           <CardContent>
             {vm.metrics.estimatedTokens ?? 'N/A'} / $
             {vm.metrics.estimatedCostUsd?.toFixed(6) ?? 'N/A'}
@@ -545,8 +564,10 @@ export default function RunDetails() {
         </Card>
       </div>
 
-      <Card variant="outlined">
-        <CardHeader>Provenance</CardHeader>
+      <Card variant="outlined" compact>
+        <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+          <span css={css`font-size: ${designTokens.typography.fontSize.sm}; font-weight: ${designTokens.typography.fontWeight.semibold};`}>Provenance</span>
+        </CardHeader>
         <CardContent>
           <div
             css={css`

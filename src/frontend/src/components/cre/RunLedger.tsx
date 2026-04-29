@@ -12,10 +12,57 @@ import { Badge } from '../ui/Badge';
 
 const containerStyles = css`
   width: 100%;
-  padding: ${designTokens.spacing[6]};
+  padding: ${designTokens.spacing[4]};
   display: grid;
-  gap: ${designTokens.spacing[6]};
+  gap: ${designTokens.spacing[4]};
   background: ${designTokens.colors.background.secondary};
+`;
+
+const headerRowStyles = css`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: ${designTokens.spacing[3]};
+  flex-wrap: wrap;
+`;
+
+const titleBlockStyles = css`
+  display: grid;
+  gap: ${designTokens.spacing[1]};
+`;
+
+const titleStyles = css`
+  margin: 0;
+  font-size: ${designTokens.typography.fontSize['2xl']};
+  font-weight: ${designTokens.typography.fontWeight.bold};
+`;
+
+const subtitleStyles = css`
+  margin: 0;
+  color: ${designTokens.colors.neutral[600]};
+  font-size: ${designTokens.typography.fontSize.base};
+`;
+
+const actionsStyles = css`
+  display: flex;
+  gap: ${designTokens.spacing[2]};
+  align-items: center;
+`;
+
+const runRowStyles = css`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: ${designTokens.spacing[3]};
+  align-items: center;
+
+  @media (max-width: ${designTokens.breakpoints.md}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const runMetaStyles = css`
+  display: grid;
+  gap: ${designTokens.spacing[1]};
 `;
 
 const headerRowStyles = css`
@@ -316,9 +363,9 @@ export default function RunLedger() {
       </div>
 
       {error && (
-        <Card>
+        <Card compact>
           <CardHeader>
-            <CardTitle>API Error</CardTitle>
+            <CardTitle css={css`font-size: ${designTokens.typography.fontSize.sm};`}>API Error</CardTitle>
           </CardHeader>
           <CardContent>
             <div css={smallText}>{error}</div>
@@ -328,13 +375,14 @@ export default function RunLedger() {
 
       {uxSummary && (
         <Card
+          compact
           css={css`
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(226, 232, 240, 0.8);
           `}
         >
-          <CardHeader>
-            <CardTitle>UX Outcome Metrics</CardTitle>
+          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+            <CardTitle css={css`font-size: ${designTokens.typography.fontSize.sm};`}>UX Outcome Metrics</CardTitle>
           </CardHeader>
           <CardContent>
             <div css={smallText}>
@@ -347,6 +395,7 @@ export default function RunLedger() {
       )}
 
       <Card
+        compact
         css={css`
           background: rgba(255, 255, 255, 0.7);
           backdrop-filter: blur(10px);
@@ -354,8 +403,8 @@ export default function RunLedger() {
           box-shadow: ${designTokens.shadows.sm};
         `}
       >
-        <CardHeader>
-          <CardTitle>Recent Verifiable Traces</CardTitle>
+        <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+          <CardTitle css={css`font-size: ${designTokens.typography.fontSize.sm};`}>Recent Verifiable Traces</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -368,7 +417,7 @@ export default function RunLedger() {
             <div
               css={css`
                 display: grid;
-                gap: ${designTokens.spacing[4]};
+                gap: ${designTokens.spacing[3]};
               `}
             >
               {runs.map((r) => (
