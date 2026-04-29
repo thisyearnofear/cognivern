@@ -75,19 +75,6 @@ export const sectionHeaderStyles = css`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${designTokens.spacing[2]};
-`;
-
-export const sectionTitleStyles = css`
-  font-size: ${designTokens.typography.fontSize.base};
-  font-weight: ${designTokens.typography.fontWeight.semibold};
-  color: var(--section-title, ${designTokens.colors.text.primary});
-`;
-
-export const sectionHeaderStyles = css`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: ${designTokens.spacing[3]};
 `;
 
