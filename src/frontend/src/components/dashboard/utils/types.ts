@@ -98,19 +98,6 @@ export interface UnifiedDashboardPayload {
   workerThoughts?: string[];
 }
 
-export interface LiveFeedItem {
-  id: string;
-  sourceLabel: string;
-  body: string;
-  timestampLabel: string;
-  agentId?: string;
-  targetPath?: string;
-  evidenceLabel?: string;
-  evidenceFacts?: string[];
-  evidenceHash?: string;
-  cid?: string;
-}
-
 export interface DashboardProps {
   mode?: 'full' | 'minimal';
 }
