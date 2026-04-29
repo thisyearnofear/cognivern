@@ -34,6 +34,6 @@
     "@vitejs/plugin-react": "^4.1.1",
     "terser": "^5.43.1",
     "typescript": "~5.2.2",
-    "vite": "^5.0.8"
+    "vite": "^8.0.10"
   }
 }
