@@ -146,7 +146,7 @@ export const SmartOnboarding: React.FC = () => {
                   justify-content: center;
                   font-size: ${designTokens.typography.fontSize.sm};
                   font-weight: ${designTokens.typography.fontWeight.semibold};
-                  transition: ${designTokens.transitions.fast};
+                  transition: all ${designTokens.animation.duration.fast} ${designTokens.animation.easing.easeInOut};
                   background: ${isCompleted
                     ? designTokens.colors.semantic.success[500]
                     : isCurrent

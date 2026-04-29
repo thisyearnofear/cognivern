@@ -31,10 +31,10 @@ This bridge is powered by the **Hyperlane Messaging Protocol**, selected for its
 
 | Cognivern Concept | Today (plaintext) | With Fhenix (encrypted) |
 |-------------------|-------------------|--------------------------|
-| Per-agent daily budget | `uint256 dailyLimit` in policy JSON | `euint256 dailyLimit` on Fhenix |
-| Spend counter | `uint256 spentToday` in service memory | `euint256 spentToday` on Fhenix |
+| Per-agent daily budget | `uint256 dailyLimit` in policy JSON | `euint128 dailyLimit` on Fhenix |
+| Spend counter | `uint256 spentToday` in service memory | `euint128 spentToday` on Fhenix |
 | Vendor allowlist | `string[] allowedVendors` | `ebool isAllowed = vendorHash ∈ encryptedSet` |
-| Approval threshold | `uint256 approvalThreshold` | `euint256 approvalThreshold` |
+| Approval threshold | `uint256 approvalThreshold` | `euint128 approvalThreshold` |
 | Spend amount in `/api/spend` | Plaintext in request body | Client-side encrypted via `@cofhe/sdk` before submission |
 | Approval ciphertext | N/A | Sealed approval — only signer + auditor permits can decrypt |
 
@@ -44,25 +44,25 @@ The **decision** (approve / hold / deny) is revealed publicly. The **inputs and 
 
 ## 3. New Smart Contract — `ConfidentialSpendPolicy.sol`
 
-Deployed on Fhenix. Mirrors the rule semantics of `PolicyEnforcementService` but operates on `euint256` / `ebool`.
+Deployed on Fhenix. Mirrors the rule semantics of `PolicyEnforcementService` but operates on `euint128` / `ebool`.
 
 ```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {FHE, euint256, ebool, InEuint256} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
+import {FHE, euint128, ebool, InEuint128} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 
 contract ConfidentialSpendPolicy {
     struct EncryptedPolicy {
-        euint256 dailyLimit;        // encrypted per-agent daily cap
-        euint256 perTxLimit;        // encrypted per-tx cap
-        euint256 approvalThreshold; // encrypted hold threshold
+        euint128 dailyLimit;        // encrypted per-agent daily cap
+        euint128 perTxLimit;        // encrypted per-tx cap
+        euint128 approvalThreshold; // encrypted hold threshold
         bytes32 vendorSetRoot;      // commitment to encrypted vendor allowlist
         address operator;
     }
 
     struct EncryptedCounter {
-        euint256 spentToday;
+        euint128 spentToday;
         uint256  windowStart;       // plaintext window boundary (UTC day)
     }
 
@@ -80,14 +80,14 @@ contract ConfidentialSpendPolicy {
     function evaluateSpend(
         bytes32 agentId,
         bytes32 policyId,
-        InEuint256 calldata amountCt,
+        InEuint128 calldata amountCt,
         bytes32 vendorHash
     ) external returns (bytes32 decisionId) {
         EncryptedPolicy storage p = policies[policyId];
         EncryptedCounter storage c = counters[agentId];
 
-        euint256 amount   = FHE.asEuint256(amountCt);
-        euint256 newSpent = FHE.add(c.spentToday, amount);
+        euint128 amount   = FHE.asEuint128(amountCt);
+        euint128 newSpent = FHE.add(c.spentToday, amount);
 
         ebool underDaily   = FHE.lte(newSpent, p.dailyLimit);
         ebool underPerTx   = FHE.lte(amount,   p.perTxLimit);
@@ -132,7 +132,7 @@ export class FhenixPolicyService {
     amountWei: bigint;
     vendorHash: string;
   }): Promise<{ decisionId: string; outcome: "approve" | "hold" | "deny" }> {
-    const amountCt = await this.cofhe.encrypt_uint256(input.amountWei);
+    const amountCt = await this.cofhe.encrypt_uint128(input.amountWei);
     // call ConfidentialSpendPolicy.evaluateSpend(...)
     // wait for SpendEvaluated event, return decisionId + outcome
   }
@@ -244,7 +244,7 @@ FhenixPolicyService.evaluateEncrypted     │
         │                                 │
         ▼                                 │
 [Fhenix] ConfidentialSpendPolicy          │
-   • FHE.lte / FHE.gt over euint256       │
+   • FHE.lte / FHE.gt over euint128       │
    • emits SpendEvaluated(decisionId,…)   │
         │                                 │
         ▼                                 │
