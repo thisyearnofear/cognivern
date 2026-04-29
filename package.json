@@ -64,7 +64,7 @@
     "@sapience/sdk": "0.2.0",
     "@vercel/node": "^3.0.0",
     "@zondax/filecoin-signing-tools": "^0.20.0",
-    "agents": "^0.2.5",
+    "agents": "^0.11.9",
     "ai": "6.0.141",
     "axios": "1.13.6",
     "compression": "^1.7.4",
