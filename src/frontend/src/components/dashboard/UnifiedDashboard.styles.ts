@@ -49,26 +49,39 @@ export const statsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
     : isTablet
       ? 'repeat(2, 1fr)'
       : 'repeat(4, 1fr)'};
-  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[4]};
-  margin-bottom: ${isMobile ? designTokens.spacing[3] : designTokens.spacing[4]};
+  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[3]};
+  margin-bottom: ${isMobile ? designTokens.spacing[3] : designTokens.spacing[3]};
 `;
 
 export const mainGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   display: grid;
   grid-template-columns: ${isMobile ? '1fr' : isTablet ? '1fr' : '3fr 2fr'};
-  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[4]};
+  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[3]};
   align-items: start;
 `;
 
 export const chartsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   display: grid;
   grid-template-columns: ${isMobile ? '1fr' : isTablet ? '1fr' : 'repeat(2, 1fr)'};
-  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[4]};
-  margin-bottom: ${isMobile ? designTokens.spacing[3] : designTokens.spacing[4]};
+  gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[3]};
+  margin-bottom: ${isMobile ? designTokens.spacing[3] : designTokens.spacing[3]};
 `;
 
 export const sectionStyles = css`
-  margin-bottom: ${designTokens.spacing[3]};
+  margin-bottom: ${designTokens.spacing[4]};
+`;
+
+export const sectionHeaderStyles = css`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${designTokens.spacing[2]};
+`;
+
+export const sectionTitleStyles = css`
+  font-size: ${designTokens.typography.fontSize.base};
+  font-weight: ${designTokens.typography.fontWeight.semibold};
+  color: var(--section-title, ${designTokens.colors.text.primary});
 `;
 
 export const sectionHeaderStyles = css`
@@ -87,14 +100,14 @@ export const sectionTitleStyles = css`
 export const agentGridStyles = (columns: number) => css`
   display: grid;
   grid-template-columns: repeat(${columns}, 1fr);
-  gap: ${designTokens.spacing[3]};
+  gap: ${designTokens.spacing[2]};
 `;
 
 export const carouselStyles = css`
   display: flex;
   overflow-x: auto;
-  gap: ${designTokens.spacing[4]};
-  padding-bottom: ${designTokens.spacing[4]};
+  gap: ${designTokens.spacing[3]};
+  padding-bottom: ${designTokens.spacing[3]};
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
 
@@ -152,15 +165,15 @@ export const activityIconStyles = (type?: string) => {
   const statusType = (type || 'info') as keyof typeof colorMap;
 
   return css`
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     border-radius: ${designTokens.borderRadius.md};
     background: ${bgMap[statusType] || bgMap.info};
     color: ${colorMap[statusType] || colorMap.info};
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 16px;
     flex-shrink: 0;
   `;
 };
@@ -203,7 +216,7 @@ export const emptyStateStyles = css`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: ${designTokens.spacing[12]};
+  padding: ${designTokens.spacing[6]};
   color: var(--text-secondary, ${designTokens.colors.text.secondary});
   text-align: center;
   gap: ${designTokens.spacing[2]};
@@ -218,7 +231,7 @@ export const loadingStyles = css`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${designTokens.spacing[12]};
+  padding: ${designTokens.spacing[6]};
   color: var(--text-secondary, ${designTokens.colors.text.secondary});
 `;
 

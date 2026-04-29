@@ -384,11 +384,11 @@ export default function AgentMarketplace() {
             background: ${designTokens.colors.primary[50]};
           `}
         >
-          <CardContent padding="lg">
+          <CardContent padding="sm">
             <h3
               css={css`
                 font-weight: ${designTokens.typography.fontWeight.bold};
-                margin-bottom: ${designTokens.spacing[6]};
+                margin-bottom: ${designTokens.spacing[3]};
               `}
             >
               Getting Started
@@ -397,7 +397,7 @@ export default function AgentMarketplace() {
               css={css`
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: ${designTokens.spacing[8]};
+                gap: ${designTokens.spacing[4]};
               `}
             >
               {[
@@ -517,12 +517,12 @@ export default function AgentMarketplace() {
               animation: ${keyframeAnimations.reveal} 0.4s ${easings.out};
             `}
           >
-            <CardContent padding="md">
+            <CardContent padding="sm">
               <div
                 css={css`
                   display: flex;
                   align-items: center;
-                  gap: ${designTokens.spacing[4]};
+                  gap: ${designTokens.spacing[3]};
                   flex-wrap: wrap;
                 `}
               >
@@ -1025,12 +1025,12 @@ export default function AgentMarketplace() {
                   <CardHeader>
                     <CardTitle>Deployment Summary</CardTitle>
                   </CardHeader>
-                  <CardContent padding="lg">
+                  <CardContent padding="sm">
                     <div
                       css={css`
                         display: flex;
                         flex-direction: column;
-                        gap: ${designTokens.spacing[4]};
+                        gap: ${designTokens.spacing[3]};
                       `}
                     >
                       {[
@@ -1195,7 +1195,7 @@ export default function AgentMarketplace() {
                   font-size: ${designTokens.typography.fontSize.xs};
                 `}
               >
-                <CardContent padding="md">
+                <CardContent padding="sm">
                   <div
                     css={css`
                       display: flex;

@@ -76,18 +76,18 @@ export default function ConfidentialSpendForm() {
     }
   };
 
-  const formStyles = css`
-    max-width: 600px;
-    margin: 2rem auto;
-    animation: ${keyframeAnimations.revealUp} 0.5s ${easings.smooth};
-  `;
+   const formStyles = css`
+     max-width: 600px;
+     margin: 1.5rem auto;
+     animation: ${keyframeAnimations.revealUp} 0.5s ${easings.smooth};
+   `;
 
-  const fieldStyles = css`
-    margin-bottom: ${designTokens.spacing[6]};
-    display: flex;
-    flex-direction: column;
-    gap: ${designTokens.spacing[2]};
-  `;
+   const fieldStyles = css`
+     margin-bottom: ${designTokens.spacing[4]};
+     display: flex;
+     flex-direction: column;
+     gap: ${designTokens.spacing[2]};
+   `;
 
   const labelStyles = css`
     font-weight: ${designTokens.typography.fontWeight.semibold};
@@ -129,18 +129,20 @@ export default function ConfidentialSpendForm() {
 
   return (
     <div css={formStyles}>
-      <Card variant="glass">
+      <Card variant="glass" compact padding="sm">
         <CardHeader>
           <div css={shieldBadgeStyles}>
             <Shield size={14} />
             FHE CONFIDENTIAL SPEND
           </div>
-          <CardTitle>Confidential Spend Request</CardTitle>
+          <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base];`}>
+            Confidential Spend Request
+          </CardTitle>
           <p
             css={css`
               color: ${designTokens.colors.neutral[500]};
               font-size: ${designTokens.typography.fontSize.sm};
-              margin-bottom: ${designTokens.spacing[4]};
+              margin-bottom: ${designTokens.spacing[3]};
             `}
           >
             Your spend amount is encrypted on-chain using Fully Homomorphic Encryption. Only the

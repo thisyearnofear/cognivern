@@ -756,7 +756,7 @@ export default function AgentWorkshop() {
                 }
               `}
             >
-              <CardContent padding="lg">
+              <CardContent padding="sm">
                 <h4
                   css={css`
                     font-weight: ${designTokens.typography.fontWeight.semibold};
@@ -1055,7 +1055,7 @@ export default function AgentWorkshop() {
                     box-shadow: ${designTokens.shadows.md};
                   `}
                 >
-                  <CardContent padding="md">
+                  <CardContent padding="sm">
                     <div
                       css={css`
                         display: flex;

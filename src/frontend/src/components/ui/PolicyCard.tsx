@@ -53,7 +53,7 @@ const nameStyles = css`
 const descriptionStyles = css`
   font-size: ${designTokens.typography.fontSize.sm};
   color: ${designTokens.colors.neutral[600]};
-  margin: ${designTokens.spacing[2]} 0 ${designTokens.spacing[4]};
+  margin: ${designTokens.spacing[2]} 0 ${designTokens.spacing[3]};
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -63,7 +63,7 @@ const descriptionStyles = css`
 
 const ruleSummaryStyles = css`
   display: flex;
-  gap: ${designTokens.spacing[4]};
+  gap: ${designTokens.spacing[3]};
   padding-top: ${designTokens.spacing[3]};
   border-top: 1px solid ${designTokens.colors.neutral[100]};
 `;
