@@ -406,7 +406,9 @@ export const ImprovedSidebar: React.FC = () => {
                 <span css={navIconStyles}>{item.icon}</span>
                 <div css={navContentStyles}>
                   <div css={navLabelStyles}>{item.label}</div>
-                  {item.description && <div css={navDescriptionStyles}>{item.description}</div>}
+                  {!isMobile && !isTablet && item.description && (
+                    <div css={navDescriptionStyles}>{item.description}</div>
+                  )}
                 </div>
                 {item.badge && <span css={badgeStyles}>{item.badge}</span>}
               </div>
