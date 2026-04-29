@@ -75,7 +75,7 @@
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
     "graphql-request": "7.4.0",
-    "helmet": "^7.1.0",
+    "helmet": "^8.1.0",
     "morgan": "^1.10.0",
     "openai": "^4.93.0",
     "socket.io": "^4.8.1",
