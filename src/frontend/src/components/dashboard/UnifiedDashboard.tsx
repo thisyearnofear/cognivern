@@ -14,7 +14,6 @@ import { designTokens } from '../../styles/design-system';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { agentApi, owsApi } from '../../services/apiService';
 import { getApiKey, getApiUrl } from '../../utils/api';
-import { copyTextToClipboard } from '../../utils/clipboard';
 import {
   Card,
   CardContent,
@@ -35,15 +34,12 @@ import {
   AgentSummary,
   DashboardBundlePayload,
   DashboardProps,
-  LiveFeedItem,
   PolicySummary,
   QuestItem,
   QuickStats,
   UnifiedDashboardPayload,
 } from './utils/types';
 import {
-  buildEvidenceFacts,
-  buildTrustSignals,
   normalizeActivity,
   normalizeRunStreamActivity,
   unwrapApiPayload,
