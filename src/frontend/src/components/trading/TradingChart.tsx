@@ -23,11 +23,11 @@ export default function TradingChart({ decisions, agentType, isLoading }: Tradin
 
   const chartData = getChartData();
 
-  const containerStyles = css`
-    min-height: 300px;
-    display: flex;
-    flex-direction: column;
-  `;
+   const containerStyles = css`
+     min-height: 250px;
+     display: flex;
+     flex-direction: column;
+   `;
 
   const loadingStyles = css`
     display: flex;
@@ -58,20 +58,20 @@ export default function TradingChart({ decisions, agentType, isLoading }: Tradin
     }
   `;
 
-  const emptyStateStyles = css`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    text-align: center;
-    padding: ${designTokens.spacing[8]};
-  `;
+   const emptyStateStyles = css`
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     justify-content: center;
+     flex: 1;
+     text-align: center;
+     padding: ${designTokens.spacing[4]};
+   `;
 
-  const emptyIconStyles = css`
-    font-size: 3rem;
-    margin-bottom: ${designTokens.spacing[4]};
-  `;
+   const emptyIconStyles = css`
+     font-size: 2.5rem;
+     margin-bottom: ${designTokens.spacing[3]};
+   `;
 
   const chartAreaStyles = css`
     position: relative;

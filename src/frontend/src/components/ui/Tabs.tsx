@@ -172,7 +172,7 @@ const styles = {
   `,
 
   tabListSm: css`
-    gap: ${designTokens[1]};
+    gap: ${designTokens.spacing[1]};
   `,
 
   tabBase: css`
@@ -272,7 +272,7 @@ const styles = {
   `,
 
   tabContent: css`
-    padding-top: ${designTokens.spacing[4]};
+    padding-top: ${designTokens.spacing[3]};
     animation: ${fadeIn} 200ms ease-out;
   `,
 };
