@@ -41,6 +41,7 @@ import {
   UnifiedDashboardPayload,
 } from './utils/types';
 import {
+  buildTrustSignals,
   normalizeActivity,
   normalizeRunStreamActivity,
   unwrapApiPayload,
