@@ -14,7 +14,14 @@ const root = path.resolve(__dirname, "..", "..");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: "0.8.25", // Match contract version
+  solidity: {
+    version: "0.8.25",
+    settings: {
+      evmVersion: "cancun",
+      viaIR: true,
+      optimizer: { enabled: true, runs: 200 }
+    }
+  }, // Match contract version
   networks: {
     fhenixSepolia: {
       url: process.env.FHENIX_SEPOLIA_RPC || "https://api.testnet.fhenix.zone",

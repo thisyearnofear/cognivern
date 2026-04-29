@@ -20,7 +20,7 @@ Compliance teams reject autonomous agent deployments on transparent rails becaus
 
 ### Fhenix Stack Usage
 
-- **Solidity library** — `ConfidentialSpendPolicy.sol` uses `euint256` / `ebool` for budgets, counters, and decisions
+- **Solidity library** — `ConfidentialSpendPolicy.sol` uses `euint128` / `ebool` for budgets, counters, and decisions
 - **CoFHE SDK** — `FhenixPolicyService` wraps `@cofhe/sdk` for client-side encryption + permits
 - **React hooks** — frontend uses `useEncrypt`, `useWrite`, `useDecrypt` for confidential policy editor and auditor views
 - **Hardhat plugin** — `contracts/fhenix/` workspace for local FHE development
@@ -32,9 +32,9 @@ Compliance teams reject autonomous agent deployments on transparent rails becaus
 
 | Today (plaintext) | With Fhenix (encrypted) |
 |-------------------|--------------------------|
-| Per-agent daily budget | `euint256 dailyLimit` on Fhenix |
-| Spend counter | `euint256 spentToday` on Fhenix |
-| Approval threshold | `euint256 approvalThreshold` |
+| Per-agent daily budget | `euint128 dailyLimit` on Fhenix |
+| Spend counter | `euint128 spentToday` on Fhenix |
+| Approval threshold | `euint128 approvalThreshold` |
 | Spend amount in `/api/spend` | Client-encrypted via `useEncrypt` |
 | Audit row amounts | Sealed; revealed only via auditor permits |
 
@@ -47,8 +47,8 @@ The decision (approve / hold / deny) is publicly verifiable. The inputs and thre
 | Wave 1 | [x] Integration plan + `ConfidentialSpendPolicy.sol` skeleton + Hardhat scaffold |
 | Wave 2 | [x] `FhenixPolicyService` end-to-end on Fhenix testnet; `/api/spend/encrypted` |
 | Wave 3 | [x] Frontend `useEncrypt` flow; auditor permits; X Layer cross-chain attestation |
-| Wave 4 | [x] Privara SDK confidential payroll; sealed-bid vendor selection |
-| Wave 5 | [x] Production demo: institutional treasury agent with fully encrypted budgets, MEV-protected execution, selective auditor disclosure |
+| Wave 4 | [ ] Privara SDK confidential payroll; sealed-bid vendor selection *(starts May 11)* |
+| Wave 5 | [ ] Production demo: institutional treasury agent with fully encrypted budgets, MEV-protected execution, selective auditor disclosure *(starts May 23)* |
 
 ### Submission Package (Fhenix Buildathon)
 

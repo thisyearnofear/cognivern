@@ -100,7 +100,7 @@ External Agents / Services
 
 A fourth layer has been added for **privacy-by-design** policy evaluation using Fully Homomorphic Encryption on Fhenix (CoFHE):
 
-- **`ConfidentialSpendPolicy.sol`** on Fhenix holds encrypted budgets (`euint256`), encrypted spend counters, and encrypted approval thresholds.
+- **`ConfidentialSpendPolicy.sol`** on Fhenix holds encrypted budgets (`euint128`), encrypted spend counters, and encrypted approval thresholds.
 - **`FhenixPolicyService.ts`** wraps `@cofhe/sdk` to evaluate encrypted amounts, submit to Fhenix, and unseal data for auditors.
 - **Cross-chain flow (via Hyperlane):** Fhenix emits a decision attestation → **Hyperlane Mailbox** dispatches it → X Layer **`GovernanceContract.handle()`** consumes it for execution and public anchoring.
 - **Hyperlane Relayer Service:** A dedicated backend service (`HyperlaneRelayerService.ts`) facilitates the delivery of these cross-chain messages, ensuring sub-second execution on X Layer after a Fhenix policy check.
