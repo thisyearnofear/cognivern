@@ -217,18 +217,7 @@ export default function RunDetails() {
           >
             Agent Run Console
           </h1>
-          <div
-            css={css`
-              margin-top: ${designTokens.spacing[1]};
-              display: flex;
-              gap: ${designTokens.spacing[2]};
-              align-items: center;
-              flex-wrap: wrap;
-            `}
-          >
-            Agent Run Console
-          </h1>
-          <div
+                    <div
             css={css`
               margin-top: ${designTokens.spacing[2]};
               display: flex;
