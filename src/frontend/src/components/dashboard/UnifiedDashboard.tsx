@@ -14,6 +14,7 @@ import { designTokens } from '../../styles/design-system';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { agentApi, owsApi } from '../../services/apiService';
 import { getApiKey, getApiUrl } from '../../utils/api';
+import { copyTextToClipboard } from '../../utils/clipboard';
 import {
   Card,
   CardContent,
@@ -420,6 +421,25 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
   }
 
   const openAlerts = quests.filter((quest) => quest.actionRequired);
+
+  const liveFeedItems = recentActivity.map((activity) => ({
+    id: activity.id,
+    agentId: activity.agentId,
+    sourceLabel: activity.agentName || activity.type || 'System',
+    timestampLabel: activity.timestamp
+      ? new Date(activity.timestamp).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+      : 'just now',
+    body: activity.description || 'Activity observed',
+    evidenceHash: activity.evidenceHash,
+    cid: activity.cid,
+    evidenceFacts: activity.citations || [],
+    targetPath: activity.targetPath,
+    evidenceLabel: activity.evidenceLabel,
+  }));
 
   return (
     <div ref={containerRef} css={styles.containerStyles(isMobile)}>
