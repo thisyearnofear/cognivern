@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
+import { Tabs, TabList, Tab, TabContent } from '../ui/Tabs';
 const TradingChart = React.lazy(() => import('./TradingChart'));
 const TradeHistory = React.lazy(() => import('./TradeHistory'));
 
@@ -88,7 +89,7 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
   const containerStyles = css`
     display: flex;
     flex-direction: column;
-    gap: ${designTokens.spacing[6]};
+    gap: ${designTokens.spacing[4]};
     animation: ${keyframeAnimations.fadeInUp} 0.5s ${easings.out};
   `;
 
@@ -112,17 +113,7 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
   const statsGridStyles = css`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: ${designTokens.spacing[4]};
-  `;
-
-  const monitorGridStyles = css`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: ${designTokens.spacing[6]};
-
-    @media (min-width: 1280px) {
-      grid-template-columns: 2fr 1fr;
-    }
+    gap: ${designTokens.spacing[3]};
   `;
 
   if (error) {
@@ -180,13 +171,15 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
   return (
     <div css={containerStyles}>
       <Card
+        compact
+        padding="sm"
         css={css`
           background: rgba(255, 255, 255, 0.8);
           backdrop-filter: blur(12px);
           border: 1px solid ${designTokens.colors.neutral[200]};
         `}
       >
-        <CardHeader>
+        <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
           <div css={headerStyles}>
             <div>
               <div
@@ -318,15 +311,15 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
               <div
                 css={css`
                   background: ${designTokens.colors.primary[50]};
-                  width: 40px;
-                  height: 40px;
-                  border-radius: ${designTokens.borderRadius.lg};
+                  width: 32px;
+                  height: 32px;
+                  border-radius: ${designTokens.borderRadius.md};
                   display: flex;
                   align-items: center;
                   justify-content: center;
                 `}
               >
-                <Activity size={20} color={designTokens.colors.primary[600]} />
+                <Activity size={16} color={designTokens.colors.primary[600]} />
               </div>
               <div>
                 <div css={statLabelStyles}>Compliance</div>
@@ -337,15 +330,15 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
               <div
                 css={css`
                   background: ${designTokens.colors.secondary[50]};
-                  width: 40px;
-                  height: 40px;
-                  border-radius: ${designTokens.borderRadius.lg};
+                  width: 32px;
+                  height: 32px;
+                  border-radius: ${designTokens.borderRadius.md};
                   display: flex;
                   align-items: center;
                   justify-content: center;
                 `}
               >
-                <Brain size={20} color={designTokens.colors.secondary[600]} />
+                <Brain size={16} color={designTokens.colors.secondary[600]} />
               </div>
               <div>
                 <div css={statLabelStyles}>Autonomy</div>
@@ -356,15 +349,15 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
               <div
                 css={css`
                   background: ${designTokens.colors.semantic.success[50]};
-                  width: 40px;
-                  height: 40px;
-                  border-radius: ${designTokens.borderRadius.lg};
+                  width: 32px;
+                  height: 32px;
+                  border-radius: ${designTokens.borderRadius.md};
                   display: flex;
                   align-items: center;
                   justify-content: center;
                 `}
               >
-                <ShieldCheck size={20} color={designTokens.colors.semantic.success[600]} />
+                <ShieldCheck size={16} color={designTokens.colors.semantic.success[600]} />
               </div>
               <div>
                 <div css={statLabelStyles}>Risk Profile</div>
@@ -384,81 +377,82 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
         </CardContent>
       </Card>
 
-      <div css={monitorGridStyles}>
-        <Card
-          css={css`
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-          `}
-        >
-          <CardHeader>
-            <CardTitle
-              css={css`
-                font-size: ${designTokens.typography.fontSize.base};
-                font-weight: ${designTokens.typography.fontWeight.bold};
-              `}
-            >
-              Intelligence Activity Stream
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <React.Suspense
-              fallback={
-                <div
-                  css={css`
-                    height: 300px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    opacity: 0.5;
-                  `}
-                >
-                  Loading activity...
-                </div>
-              }
-            >
-              <TradingChart decisions={decisions} agentType={agentType} isLoading={isLoading} />
-            </React.Suspense>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="activity" size="sm" variant="underline">
+        <TabList>
+          <Tab value="activity" icon={<Activity size={14} />}>Activity</Tab>
+          <Tab value="audit" icon={<ShieldCheck size={14} />}>Audit</Tab>
+        </TabList>
 
-        <Card
-          css={css`
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-          `}
-        >
-          <CardHeader>
-            <CardTitle
-              css={css`
-                font-size: ${designTokens.typography.fontSize.base};
-                font-weight: ${designTokens.typography.fontWeight.bold};
-              `}
-            >
-              Governance Audit Trail
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <React.Suspense
-              fallback={
-                <div
-                  css={css`
-                    height: 300px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    opacity: 0.5;
-                  `}
-                >
-                  Loading audit trail...
-                </div>
-              }
-            >
-              <TradeHistory decisions={decisions} agentType={agentType} isLoading={isLoading} />
-            </React.Suspense>
-          </CardContent>
-        </Card>
-      </div>
+        <TabContent value="activity">
+          <Card compact padding="sm">
+            <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+              <CardTitle
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                  color: ${designTokens.colors.neutral[700]};
+                `}
+              >
+                Intelligence Activity Stream
+              </CardTitle>
+            </CardHeader>
+            <CardContent padding="none" css={css`padding: 0 ${designTokens.spacing[3]} ${designTokens.spacing[3]} ${designTokens.spacing[3]};`}>
+              <React.Suspense
+                fallback={
+                  <div
+                    css={css`
+                      height: 220px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      opacity: 0.5;
+                    `}
+                  >
+                    Loading activity...
+                  </div>
+                }
+              >
+                <TradingChart decisions={decisions} agentType={agentType} isLoading={isLoading} />
+              </React.Suspense>
+            </CardContent>
+          </Card>
+        </TabContent>
+
+        <TabContent value="audit">
+          <Card compact padding="sm">
+            <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+              <CardTitle
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                  color: ${designTokens.colors.neutral[700]};
+                `}
+              >
+                Governance Audit Trail
+              </CardTitle>
+            </CardHeader>
+            <CardContent padding="none" css={css`padding: 0 ${designTokens.spacing[3]} ${designTokens.spacing[3]} ${designTokens.spacing[3]};`}>
+              <React.Suspense
+                fallback={
+                  <div
+                    css={css`
+                      height: 220px;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      opacity: 0.5;
+                    `}
+                  >
+                    Loading audit trail...
+                  </div>
+                }
+              >
+                <TradeHistory decisions={decisions} agentType={agentType} isLoading={isLoading} />
+              </React.Suspense>
+            </CardContent>
+          </Card>
+        </TabContent>
+      </Tabs>
     </div>
   );
 };
@@ -466,8 +460,8 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
 const statItemStyles = css`
   display: flex;
   align-items: center;
-  gap: ${designTokens.spacing[4]};
-  padding: ${designTokens.spacing[4]};
+  gap: ${designTokens.spacing[3]};
+  padding: ${designTokens.spacing[3]};
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid ${designTokens.colors.neutral[100]};
   border-radius: ${designTokens.borderRadius.xl};
@@ -490,7 +484,7 @@ const statLabelStyles = css`
 `;
 
 const statValueStyles = css`
-  font-size: ${designTokens.typography.fontSize.lg};
+  font-size: ${designTokens.typography.fontSize.base};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: ${designTokens.colors.neutral[900]};
   letter-spacing: -0.01em;
