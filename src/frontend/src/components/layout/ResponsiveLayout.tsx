@@ -57,7 +57,7 @@ const getLayoutConfig = (breakpoint: string, isTouch: boolean, viewportWidth: nu
       contentMaxWidth: '100%',
       containerPadding: designTokens.spacing[4],
       isCompactMode: true,
-      defaultSidebarState: isTouch ? 'overlay' : ('collapsed' as const),
+      defaultSidebarState: isTouch ? 'hidden' : ('collapsed' as const),
     },
     md: {
       sidebarWidth: getSidebarWidth(viewportWidth < 900 ? 'collapsed' : 'expanded'),
