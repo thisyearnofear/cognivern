@@ -23,6 +23,7 @@ import { useSidebarState } from '../../hooks/useSidebarState';
 import CommandPalette from '../ui/CommandPalette';
 import { ConnectionModal } from '../web3/ConnectionModal';
 import { ConnectionStatusBadge } from '../web3/ConnectionStatusBadge';
+import { getRouteMetaByPath } from './routeMeta';
 
 export const Header: React.FC = () => {
   const { user, setUser, updatePreferences } = useAppStore();
@@ -168,20 +169,12 @@ export const Header: React.FC = () => {
   `;
 
   const getPageTitle = () => {
-    switch (pathname) {
-      case '/':
-        return 'Dashboard';
-      case '/agents':
-        return isMobile ? 'Agents' : 'Governed Agents';
-      case '/policies':
-        return isMobile ? 'Policies' : 'Spend Policies';
-      case '/audit':
-        return isMobile ? 'Audit' : 'Audit Logs';
-      case '/runs':
-        return isMobile ? 'Runs' : 'Run Ledger';
-      default:
-        return 'Cognivern';
+    const routeMeta = getRouteMetaByPath(pathname);
+    if (!routeMeta) {
+      return 'Cognivern';
     }
+
+    return isMobile && routeMeta.shortLabel ? routeMeta.shortLabel : routeMeta.title;
   };
 
   return (

@@ -1,10 +1,10 @@
 /**
- * QuickActions - Mobile bottom navigation bar
+ * QuickActions - Mobile operator workflow shortcuts
  * Extracted from UnifiedDashboard for better modularity
  */
 
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, ShieldCheck, FileSearch } from 'lucide-react';
+import { PlusCircle, ShieldCheck, FileSearch, Activity } from 'lucide-react';
 import { designTokens } from '../../styles/design-system';
 import * as styles from './UnifiedDashboard.styles';
 
@@ -17,11 +17,6 @@ export const QuickActions = ({ isMobile }: QuickActionsProps) => {
 
   const actions = [
     {
-      label: 'Dashboard',
-      icon: <LayoutDashboard size={20} />,
-      path: '/',
-    },
-    {
       label: 'Add Agent',
       icon: <PlusCircle size={20} color={designTokens.colors.primary[500]} />,
       path: '/agents/workshop',
@@ -32,13 +27,18 @@ export const QuickActions = ({ isMobile }: QuickActionsProps) => {
       path: '/policies',
     },
     {
-      label: 'Logs',
+      label: 'Audit',
       icon: <FileSearch size={20} />,
       path: '/audit',
     },
+    {
+      label: 'Runs',
+      icon: <Activity size={20} />,
+      path: '/runs',
+    },
   ];
 
-  // Desktop: sidebar handles navigation — only render mobile bottom bar
+  // Desktop: sidebar handles navigation — only render mobile quick actions
   if (!isMobile) return null;
 
   return (

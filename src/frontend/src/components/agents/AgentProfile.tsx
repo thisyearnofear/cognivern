@@ -236,7 +236,7 @@ const AgentProfile: React.FC = () => {
           }
         `}
       >
-        ← Return to Operations Dashboard
+        ← Return to Governed Agents
       </Button>
 
       <div css={headerCardStyles}>
@@ -264,7 +264,7 @@ const AgentProfile: React.FC = () => {
                   ${status.isActive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(0,0,0,0.1)'};
               `}
             >
-              {status.isActive ? 'LIVE OPERATIONAL' : 'STANDBY MODE'}
+              {status.isActive ? 'GOVERNED & ACTIVE' : 'STANDBY MODE'}
             </Badge>
             <div
               css={css`
@@ -313,8 +313,8 @@ const AgentProfile: React.FC = () => {
             `}
           >
             {agentType === 'recall'
-              ? 'Multi-agent coordination specialist for deep context gathering and policy-aware findings synthesis.'
-              : 'Autonomous execution specialist focused on supplier negotiation and budget-scoped transactional governance.'}
+              ? 'Policy-aware research agent focused on context gathering, bounded recommendations, and evidence-backed findings.'
+              : 'Governed execution agent focused on procurement workflows, budget-scoped actions, and approval-ready evidence.'}
           </p>
         </div>
         <div

@@ -1,4 +1,4 @@
-import { FileText, Users, Shield, Plus, PlayCircle } from 'lucide-react';
+import { FileText, Users, Shield, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { css } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
@@ -15,7 +15,6 @@ import {
   ErrorBoundary,
 } from '../ui';
 import { PageWrapper } from '../layout';
-import AgentSimulation from '../agents/AgentSimulation';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { agentApi } from '../../services/apiService';
 
@@ -48,9 +47,7 @@ export default function PolicyManagement() {
 
 function PolicyManagementContent() {
   const { isMobile, isTablet } = useBreakpoint();
-  const [activeTab, setActiveTab] = useState<'templates' | 'policies' | 'agents' | 'simulation'>(
-    'templates',
-  );
+  const [activeTab, setActiveTab] = useState<'templates' | 'policies' | 'agents'>('templates');
 
   // Global Governance State
   const { policies, templates, isLoading, fetchPolicies, applyTemplate } = useGovernanceStore();
@@ -181,7 +178,7 @@ function PolicyManagementContent() {
   return (
     <PageWrapper
       title="Governance & Policies"
-      subtitle="Define guardrails and safety protocols for your autonomous agent ecosystem."
+      subtitle="Create spend guardrails, review active approvals, and manage which agents operate under governance."
     >
       {/* High-Level Overview Stats */}
       <div css={statsGridStyles}>
@@ -192,13 +189,13 @@ function PolicyManagementContent() {
           color="primary"
         />
         <StatCard
-          label="Active Guards"
+          label="Active Policies"
           value={policies.filter((p) => p.status === 'active').length}
           icon={<Shield size={20} />}
           color="success"
         />
         <StatCard
-          label="Managed Agents"
+          label="Governed Agents"
           value={agentConnections.length}
           icon={<Users size={20} />}
           color="info"
@@ -219,21 +216,14 @@ function PolicyManagementContent() {
           onClick={() => setActiveTab('policies')}
         >
           <Shield size={14} />
-          My Policies ({policies.length})
+          Active Policies ({policies.length})
         </button>
         <button
           css={tabButtonStyles(activeTab === 'agents')}
           onClick={() => setActiveTab('agents')}
         >
           <Users size={14} />
-          Connected Agents
-        </button>
-        <button
-          css={tabButtonStyles(activeTab === 'simulation')}
-          onClick={() => setActiveTab('simulation')}
-        >
-          <PlayCircle size={14} />
-          Simulation Mode
+          Agent Coverage
         </button>
       </nav>
 
@@ -293,7 +283,7 @@ function PolicyManagementContent() {
             ) : policies.length === 0 ? (
               <div css={emptyStateStyles}>
                 <h3>No policies created yet</h3>
-                <p>Browse templates to get started with governance.</p>
+                <p>Start with a template to apply clear spend guardrails to your agents.</p>
                 <Button style={{ marginTop: '16px' }} onClick={() => setActiveTab('templates')}>
                   View Templates
                 </Button>
@@ -320,8 +310,8 @@ function PolicyManagementContent() {
               </div>
             ) : agentConnections.length === 0 ? (
               <div css={emptyStateStyles}>
-                <h3>No agents connected</h3>
-                <p>Connect your first agent to apply governance policies.</p>
+                <h3>No governed agents yet</h3>
+                <p>Connect your first agent to apply policies and enforce spend controls.</p>
               </div>
             ) : (
               <div css={gridLayoutStyles}>
@@ -339,32 +329,6 @@ function PolicyManagementContent() {
               </div>
             )}
           </>
-        )}
-
-        {activeTab === 'simulation' && (
-          <div
-            css={css`
-              animation: fadeIn 0.3s ease-out;
-            `}
-          >
-            <div
-              css={css`
-                margin-bottom: ${designTokens.spacing[6]};
-              `}
-            >
-              <h2 css={sectionTitleStyles}>Policy Simulation</h2>
-              <p
-                css={css`
-                  color: ${designTokens.colors.neutral[400]};
-                  font-size: ${designTokens.typography.fontSize.sm};
-                `}
-              >
-                Test your governance policies against historical data or edge-case scenarios before
-                applying them to live agents.
-              </p>
-            </div>
-            <AgentSimulation />
-          </div>
         )}
       </main>
     </PageWrapper>

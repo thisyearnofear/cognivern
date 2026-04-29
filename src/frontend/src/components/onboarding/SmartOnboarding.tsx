@@ -70,7 +70,7 @@ export const SmartOnboarding: React.FC = () => {
     {
       id: 'operator',
       title: 'Operator',
-      description: 'Control how autonomous agents spend from shared wallets.',
+      description: 'Control what autonomous agents can spend from shared wallets.',
       icon: <TrendingUp size={32} color={designTokens.colors.primary[500]} />,
       features: [
         'Per-agent budget controls',
@@ -81,7 +81,7 @@ export const SmartOnboarding: React.FC = () => {
     {
       id: 'developer',
       title: 'Builder',
-      description: 'Integrate policy checks and audit evidence into your agent stack.',
+      description: 'Integrate governed spend checks and audit evidence into your agent stack.',
       icon: <Code size={32} color={designTokens.colors.primary[500]} />,
       features: [
         'BYO-agent ingestion API',
@@ -92,7 +92,7 @@ export const SmartOnboarding: React.FC = () => {
     {
       id: 'guardian',
       title: 'Guardian',
-      description: 'Enforce wallet restrictions and review risky agent actions.',
+      description: 'Review risky actions, enforce guardrails, and protect treasury operations.',
       icon: <ShieldCheck size={32} color={designTokens.colors.primary[500]} />,
       features: [
         'Real-time policy guardrails',
@@ -102,10 +102,14 @@ export const SmartOnboarding: React.FC = () => {
     },
     {
       id: 'explorer',
-      title: 'Curious',
-      description: 'See how teams can give agents wallets without giving them a blank check.',
+      title: 'Explorer',
+      description: 'See how teams can govern agent execution without slowing builders down.',
       icon: <Search size={32} color={designTokens.colors.primary[500]} />,
-      features: ['Interactive audit views', 'Approval and denial examples', 'Hackathon demo mode'],
+      features: [
+        'Interactive audit views',
+        'Approval and denial examples',
+        'Guided product walkthrough',
+      ],
     },
   ];
 
@@ -217,13 +221,13 @@ export const SmartOnboarding: React.FC = () => {
               style={{
                 fontSize: designTokens.typography.fontSize.lg,
                 color: 'var(--text-secondary)',
-                maxWidth: '500px',
+                maxWidth: '560px',
                 margin: '0 auto',
                 lineHeight: designTokens.typography.lineHeight.relaxed,
               }}
             >
-              Give agents real execution power with clear budgets, approval boundaries, and an
-              evidence trail your team can actually operate.
+              Set clear budgets, approval boundaries, and evidence trails before autonomous agents
+              move money on your behalf.
             </p>
           </div>
         );
@@ -336,7 +340,7 @@ export const SmartOnboarding: React.FC = () => {
                 color: var(--text-primary);
               `}
             >
-              Connect Your Wallet
+              Connect Your Treasury
             </h3>
             <p
               css={css`
@@ -345,8 +349,8 @@ export const SmartOnboarding: React.FC = () => {
                 color: var(--text-secondary);
               `}
             >
-              Set up your governance treasury. Agents request spend but policy rules control what
-              gets approved.
+              Set up the wallet and treasury context your policies will govern. Agents can request
+              spend, but approvals and limits stay under your control.
             </p>
             {/* Use ConnectionModal in embedded mode - DRY */}
             <ConnectionModal mode="embedded" connectionsToShow={['wallet', 'treasury']} />
@@ -387,7 +391,8 @@ export const SmartOnboarding: React.FC = () => {
                 marginBottom: designTokens.spacing[6],
               }}
             >
-              Ready to explore Cognivern and take control of your agent spend.
+              Ready to review governed agent activity, apply policies, and manage spend with
+              confidence.
             </p>
 
             {/* Show connection status summary */}
