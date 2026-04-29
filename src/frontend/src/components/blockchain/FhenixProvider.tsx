@@ -35,7 +35,7 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
         },
       ],
       react: {
-        projectName: 'Enable Confidential Governance',
+        projectName: 'Cognivern',
         position: 'bottom-right',
       },
     });
@@ -72,8 +72,12 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
             body:not(.show-cofhe-portal) .cofhe-floating-button {
               display: none !important;
             }
-            /* Tame the CoFHE Portal widget */
+
+            /* Floating button positioning & styling */
             .cofhe-floating-button {
+              position: fixed !important;
+              bottom: 28px !important;
+              right: 28px !important;
               z-index: 50 !important;
               transition: all 0.3s ease !important;
             }
@@ -81,13 +85,38 @@ export function FhenixProvider({ children }: { children: React.ReactNode }) {
               transform: translateY(-2px) !important;
               box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.4) !important;
             }
-            /* Fix massive logo and negative space inside the CoFHE modal/portal */
+
+            /* Fix logo sizing inside the portal components */
             div[class*='cofhe-'] img {
               max-width: 48px !important;
               max-height: 48px !important;
               object-fit: contain !important;
             }
-            div[class*='cofhe-'] {
+
+            /* Ensure any direct child portal overlay (not the floating button) is centered and within viewport */
+            body > div[class*='cofhe-']:not(.cofhe-floating-button) {
+              position: fixed !important;
+              inset: 0 !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              z-index: 99999 !important;
+              padding: 24px !important;
+              box-sizing: border-box !important;
+            }
+
+            /* Modal content container constraints (within the overlay) */
+            body > div[class*='cofhe-']:not(.cofhe-floating-button) > div {
+              max-height: 90vh !important;
+              max-width: 480px !important;
+              width: 100% !important;
+              overflow-y: auto !important;
+              border-radius: 20px !important;
+              box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+            }
+
+            /* Rounded corners for any other cofhe containers */
+            div[class*='cofhe-']:not(.cofhe-floating-button) {
               border-radius: 16px !important;
             }
           `}
