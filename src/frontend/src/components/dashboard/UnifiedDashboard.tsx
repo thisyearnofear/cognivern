@@ -216,38 +216,6 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
   const [isPulling, setIsPulling] = useState(false);
   const touchStartY = useRef(0);
 
-  const liveFeedItems: LiveFeedItem[] = [
-    ...workerThoughts.slice(0, 5).map((thought, index) => ({
-      id: `worker-thought-${index}`,
-      sourceLabel: 'Governance Kernel',
-      body: thought,
-      timestampLabel: 'live',
-      targetPath: '/audit',
-      evidenceLabel: 'Worker thought',
-      evidenceFacts: ['Worker telemetry'],
-      evidenceHash: undefined,
-      cid: undefined,
-    })),
-    ...recentActivity.slice(0, 5).map((activity) => ({
-      id: `activity-${activity.id}`,
-      sourceLabel: activity.agentName || activity.agentId || 'Agent Event',
-      body: activity.description || 'Activity observed',
-      timestampLabel: activity.timestamp
-        ? new Date(activity.timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          })
-        : 'recent',
-      agentId: activity.agentId,
-      targetPath: activity.targetPath,
-      evidenceLabel: activity.evidenceLabel,
-      evidenceFacts: buildEvidenceFacts(activity),
-      evidenceHash: activity.evidenceHash,
-      cid: activity.cid,
-    })),
-  ].slice(0, 10);
-
   useEffect(() => {
     void fetchDashboardData();
     const intervalId = window.setInterval(() => {
