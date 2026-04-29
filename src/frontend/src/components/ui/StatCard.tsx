@@ -39,7 +39,7 @@ const statCardStyles = css`
 const statCardContentStyles = css`
   display: flex;
   align-items: center;
-  gap: ${designTokens.spacing[3]};
+  gap: ${designTokens.spacing[2]};
 `;
 
 const statIconStyles = (color: 'primary' | 'success' | 'error' | 'info') => {
@@ -61,12 +61,12 @@ const statIconStyles = (color: 'primary' | 'success' | 'error' | 'info') => {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     background: ${bgMap[color]};
     color: ${colorMap[color]};
     border-radius: ${designTokens.borderRadius.md};
-    font-size: 1.25rem;
+    font-size: 1rem;
     flex-shrink: 0;
   `;
 };
@@ -85,7 +85,7 @@ const statValueContainerStyles = css`
 `;
 
 const statValueStyles = css`
-  font-size: ${designTokens.typography.fontSize.lg};
+  font-size: ${designTokens.typography.fontSize.base};
   font-weight: ${designTokens.typography.fontWeight.bold};
   color: var(--stat-value, ${designTokens.colors.neutral[900]});
   line-height: 1.2;

@@ -24,7 +24,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Card: React.FC<CardProps> = ({
   variant = 'default',
-  padding = 'md',
+  padding = 'sm',
   interactive = false,
   compact = false,
   collapsible = false,
@@ -127,13 +127,13 @@ const collapseContentStyles = css`
 `;
 
 const cardHeaderStyles = css`
-  padding-bottom: ${designTokens.spacing[4]};
+  padding-bottom: ${designTokens.spacing[2]};
   border-bottom: 1px solid var(--divider, ${designTokens.colors.neutral[200]});
-  margin-bottom: ${designTokens.spacing[4]};
+  margin-bottom: ${designTokens.spacing[2]};
 `;
 
 const cardTitleStyles = css`
-  font-size: ${designTokens.typography.fontSize.lg};
+  font-size: ${designTokens.typography.fontSize.base};
   font-weight: ${designTokens.typography.fontWeight.semibold};
   color: var(--card-text, ${designTokens.colors.neutral[900]});
   margin: 0;
@@ -143,7 +143,7 @@ const cardDescriptionStyles = css`
   font-size: ${designTokens.typography.fontSize.sm};
   color: var(--text-secondary, ${designTokens.colors.neutral[600]});
   line-height: ${designTokens.typography.lineHeight.relaxed};
-  margin: ${designTokens.spacing[2]} 0 0 0;
+  margin: ${designTokens.spacing[1]} 0 0 0;
 `;
 
 const cardContentStyles = css`
@@ -151,13 +151,13 @@ const cardContentStyles = css`
 `;
 
 const cardFooterStyles = css`
-  padding-top: ${designTokens.spacing[4]};
+  padding-top: ${designTokens.spacing[2]};
   border-top: 1px solid var(--divider, ${designTokens.colors.neutral[200]});
-  margin-top: ${designTokens.spacing[4]};
+  margin-top: ${designTokens.spacing[2]};
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: ${designTokens.spacing[3]};
+  gap: ${designTokens.spacing[2]};
 `;
 
 export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({

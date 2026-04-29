@@ -49,7 +49,7 @@ export const GovernedDeFiForm: React.FC<GovernedDeFiFormProps> = ({ agentId, pol
   };
 
   return (
-    <Card>
+    <Card compact padding="sm">
       <CardHeader>
         <div
           css={css`
@@ -58,13 +58,16 @@ export const GovernedDeFiForm: React.FC<GovernedDeFiFormProps> = ({ agentId, pol
             gap: 0.5rem;
           `}
         >
-          <Shield color={designTokens.colors.primary[500]} size={20} />
-          <CardTitle>Governed DeFi Execution</CardTitle>
+          <Shield color={designTokens.colors.primary[500]} size={18} />
+          <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base];`}>
+            Governed DeFi Execution
+          </CardTitle>
         </div>
         <p
           css={css`
-            font-size: 0.875rem;
+            font-size: ${designTokens.typography.fontSize.sm};
             color: ${designTokens.colors.neutral[500]};
+            margin-bottom: 0;
           `}
         >
           Execute DeFi actions on X Layer gated by Fhenix Confidential Policies.
@@ -76,7 +79,7 @@ export const GovernedDeFiForm: React.FC<GovernedDeFiFormProps> = ({ agentId, pol
           css={css`
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: ${designTokens.spacing[3]};
           `}
         >
           <div>

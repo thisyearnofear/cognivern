@@ -50,27 +50,27 @@ export const MobileBottomTabNav: React.FC = () => {
   const location = useLocation();
   const { effectiveTheme } = useTheme();
 
-  const navStyles = css`
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 56px;
-    background: ${effectiveTheme === 'dark'
-      ? 'rgba(15, 23, 42, 0.85)'
-      : 'rgba(255, 255, 255, 0.9)'};
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid
-      ${effectiveTheme === 'dark'
-        ? designTokens.colors.neutral[800]
-        : designTokens.colors.neutral[200]};
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding: 0 ${designTokens.spacing[2]};
-    z-index: ${designTokens.zIndex.sticky};
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+   const navStyles = css`
+     position: fixed;
+     bottom: 0;
+     left: 0;
+     right: 0;
+     height: 64px;
+     background: ${effectiveTheme === 'dark'
+       ? 'rgba(15, 23, 42, 0.85)'
+       : 'rgba(255, 255, 255, 0.9)'};
+     backdrop-filter: blur(16px);
+     -webkit-backdrop-filter: blur(16px);
+     border-top: 1px solid
+       ${effectiveTheme === 'dark'
+         ? designTokens.colors.neutral[800]
+         : designTokens.colors.neutral[200]};
+     display: flex;
+     align-items: center;
+     justify-content: space-around;
+     padding: 0 ${designTokens.spacing[2]};
+     z-index: ${designTokens.zIndex.sticky};
+     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
 
     @media (min-width: ${designTokens.breakpoints.md}) {
       display: none;
