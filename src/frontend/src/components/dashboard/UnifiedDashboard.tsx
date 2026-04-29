@@ -277,6 +277,8 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
       });
     };
 
+    let hasWarnedAboutStream = false;
+
     source.addEventListener('audit_log', (event) => {
       try {
         const payload = JSON.parse((event as MessageEvent).data) as Record<string, unknown>;
@@ -296,7 +298,10 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
     });
 
     source.onerror = () => {
-      console.warn('Dashboard event stream temporarily unavailable');
+      if (!hasWarnedAboutStream) {
+        console.warn('Dashboard event stream temporarily unavailable');
+        hasWarnedAboutStream = true;
+      }
     };
 
     return () => {
@@ -353,13 +358,8 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
     }
 
     try {
-      const [bundleResult, unifiedResult] = await Promise.all([
-        agentApi.getDashboardBundle(),
-        agentApi.getUnifiedDashboard(),
-      ]);
-
+      const bundleResult = await agentApi.getDashboardBundle();
       const bundle = unwrapApiPayload<DashboardBundlePayload>(bundleResult);
-      const unified = unwrapApiPayload<UnifiedDashboardPayload>(unifiedResult);
 
       if (!bundle) {
         throw new Error('Failed to fetch dashboard bundle');
@@ -380,7 +380,14 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
       setRecentActivity((bundle.activity || []).map((entry) => normalizeActivity(entry)));
       setPolicies(bundle.policies || []);
       setQuests(bundle.quests || []);
-      setWorkerThoughts(unified?.workerThoughts || []);
+
+      try {
+        const unifiedResult = await agentApi.getUnifiedDashboard();
+        const unified = unwrapApiPayload<UnifiedDashboardPayload>(unifiedResult);
+        setWorkerThoughts(unified?.workerThoughts || []);
+      } catch {
+        setWorkerThoughts([]);
+      }
     } catch (error) {
       console.error('Failed to fetch dashboard bundle:', error);
     } finally {

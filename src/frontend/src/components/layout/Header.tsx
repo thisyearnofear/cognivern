@@ -11,7 +11,6 @@ import {
   ChevronRight,
   ShieldCheck,
   ShieldAlert,
-  Plus,
 } from 'lucide-react';
 import { useAppStore, useTheme } from '../../stores/appStore';
 import { agentApi } from '../../services/apiService';
@@ -189,36 +188,35 @@ export const Header: React.FC = () => {
       >
         <h1 css={titleStyles}>{getPageTitle()}</h1>
 
-        {/* Status Indicators */}
-        <div
-          css={statusIndicatorStyles}
-          title={
-            isSystemOnline === false
-              ? 'System Offline'
-              : isSystemOnline === true
-                ? 'System Online'
-                : 'Checking Status...'
-          }
-        >
-          <span
-            css={css`
-              width: 8px;
-              height: 8px;
-              border-radius: 50%;
-              background: ${isSystemOnline === false
-                ? designTokens.colors.semantic.error[500]
+        {!isMobile && (
+          <div
+            css={statusIndicatorStyles}
+            title={
+              isSystemOnline === false
+                ? 'System Offline'
                 : isSystemOnline === true
-                  ? designTokens.colors.semantic.success[500]
-                  : designTokens.colors.neutral[400]};
-              box-shadow: 0 0 8px
-                ${isSystemOnline === false
-                  ? designTokens.colors.semantic.error[300]
+                  ? 'System Online'
+                  : 'Checking Status...'
+            }
+          >
+            <span
+              css={css`
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: ${isSystemOnline === false
+                  ? designTokens.colors.semantic.error[500]
                   : isSystemOnline === true
-                    ? designTokens.colors.semantic.success[300]
-                    : 'transparent'};
-            `}
-          />
-          {!isMobile && (
+                    ? designTokens.colors.semantic.success[500]
+                    : designTokens.colors.neutral[400]};
+                box-shadow: 0 0 8px
+                  ${isSystemOnline === false
+                    ? designTokens.colors.semantic.error[300]
+                    : isSystemOnline === true
+                      ? designTokens.colors.semantic.success[300]
+                      : 'transparent'};
+              `}
+            />
             <span
               style={{
                 color:
@@ -231,27 +229,26 @@ export const Header: React.FC = () => {
                   ? 'System Online'
                   : 'Checking Status...'}
             </span>
-          )}
-          {isSystemOnline === false ? (
-            <ShieldAlert size={14} color={designTokens.colors.semantic.error[500]} />
-          ) : isSystemOnline === true ? (
-            <ShieldCheck size={14} color={designTokens.colors.semantic.success[500]} />
-          ) : null}
-        </div>
+            {isSystemOnline === false ? (
+              <ShieldAlert size={14} color={designTokens.colors.semantic.error[500]} />
+            ) : isSystemOnline === true ? (
+              <ShieldCheck size={14} color={designTokens.colors.semantic.success[500]} />
+            ) : null}
+          </div>
+        )}
       </div>
 
       <div css={actionsStyles}>
-        {/* Add Agent Button */}
-        <button
-          css={addAgentButtonStyle}
-          onClick={() => navigate('/agents/connect')}
-          title="Connect a new agent"
-        >
-          <Plus size={18} />
-          {!isMobile && <span>Add Agent</span>}
-        </button>
+        {!isMobile && (
+          <button
+            css={addAgentButtonStyle}
+            onClick={() => navigate('/agents/connect')}
+            title="Connect a new agent"
+          >
+            <span>Add Agent</span>
+          </button>
+        )}
 
-        {/* Command Palette Trigger */}
         {!isMobile && (
           <button
             css={css`
@@ -270,14 +267,12 @@ export const Header: React.FC = () => {
           </button>
         )}
 
-        {/* Mobile Menu Toggle */}
         {isMobile && (
           <button css={modernButtonStyle} onClick={toggleSidebar} title="Toggle menu">
             <Menu size={20} />
           </button>
         )}
 
-        {/* Theme Toggle */}
         <button
           css={modernButtonStyle}
           onClick={handleThemeToggle}
@@ -286,14 +281,12 @@ export const Header: React.FC = () => {
           {effectiveTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
-        {/* Search on Mobile */}
         {isMobile && (
           <button css={modernButtonStyle} onClick={() => setIsOpen(true)} title="Search">
             <Search size={20} />
           </button>
         )}
 
-        {/* Notifications */}
         {!isMobile && (
           <button
             css={css`
@@ -303,15 +296,11 @@ export const Header: React.FC = () => {
             title="Notifications"
           >
             <Bell size={20} />
-            {/* Notification badge - only show if there are actual notifications */}
-            {/* For now, we follow the instruction to remove fake pulsing dots */}
           </button>
         )}
 
-        {/* Connection Status Badge - shared component */}
         <ConnectionStatusBadge interactive onClick={() => setIsConnectionModalOpen(true)} />
 
-        {/* User Menu */}
         {user.isConnected && (
           <button
             css={modernButtonStyle}
@@ -323,10 +312,8 @@ export const Header: React.FC = () => {
         )}
       </div>
 
-      {/* Command Palette */}
       <CommandPalette />
 
-      {/* Connection Modal */}
       <ConnectionModal
         isOpen={isConnectionModalOpen}
         onClose={() => setIsConnectionModalOpen(false)}
