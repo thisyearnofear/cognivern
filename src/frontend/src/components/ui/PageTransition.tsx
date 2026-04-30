@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useEntranceAnimation } from '../../hooks/useAnimation';
+import { useAnimation } from '../../hooks/useAnimation';
 import { pageTransitionStyles } from '../../styles/design-system';
 
 export interface PageTransitionProps {
@@ -20,10 +20,14 @@ export const PageTransition: React.FC<PageTransitionProps> = ({
     'entered',
   );
 
-  const entranceAnimation = useEntranceAnimation<HTMLDivElement>(
-    type === 'fade' ? 'fadeIn' : type === 'scale' ? 'scaleIn' : 'slideInRight',
-    { duration },
-  );
+  const entranceKeyframes =
+    type === 'fade'
+      ? [{ opacity: 0 }, { opacity: 1 }]
+      : type === 'scale'
+        ? [{ opacity: 0, transform: 'scale(0.95)' }, { opacity: 1, transform: 'scale(1)' }]
+        : [{ opacity: 0, transform: 'translateX(20px)' }, { opacity: 1, transform: 'translateX(0)' }];
+
+  const entranceAnimation = useAnimation<HTMLDivElement>(entranceKeyframes, { duration });
 
   useEffect(() => {
     if (location !== displayLocation) {
