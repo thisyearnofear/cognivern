@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { css } from '@emotion/react';
 import { Link } from 'react-router-dom';
 import {
@@ -13,11 +13,13 @@ import { creApi, CreRun } from '../../services/creApi';
 import { toAgentRunViewModel } from '../../services/agentRunAdapter';
 import { uxAnalytics } from '../../services/uxAnalytics';
 import { getApiUrl, getApiKey } from '../../utils/api';
-import { designTokens } from '../../styles/design-system';
+import { designTokens, loadingStyles } from '../../styles/design-system';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
+import { useEntranceAnimation } from '../../hooks/useAnimation';
 import { Card, CardContent, CardHeader, CardTitle, StatCard, EmptyState } from '../ui';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { useNotificationStore } from '../../stores/notificationStore';
 
 const containerStyles = (isMobile: boolean) => css`
   padding: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[4]};
@@ -187,6 +189,38 @@ const outcomesRowStyles = css`
   color: ${designTokens.colors.neutral[500]};
 `;
 
+const liveIndicatorStyles = css`
+  display: inline-flex;
+  align-items: center;
+  gap: ${designTokens.spacing[1]};
+  font-size: ${designTokens.typography.fontSize.xs};
+  color: ${designTokens.colors.neutral[500]};
+`;
+
+const pulseDotStyles = css`
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: ${designTokens.colors.semantic.success[500]};
+  flex-shrink: 0;
+`;
+
+const runListSkeletonStyles = css`
+  display: flex;
+  flex-direction: column;
+  gap: ${designTokens.spacing[2]};
+`;
+
+const runCardSkeletonStyles = css`
+  display: flex;
+  flex-direction: column;
+  gap: ${designTokens.spacing[2]};
+  padding: ${designTokens.spacing[3]};
+  border-radius: ${designTokens.borderRadius.lg};
+  border: 1px solid ${designTokens.colors.neutral[200]};
+  background: rgba(255, 255, 255, 0.92);
+`;
+
 function formatDuration(run: CreRun) {
   if (!run.finishedAt) return 'In progress';
   const start = new Date(run.startedAt).getTime();
@@ -214,6 +248,7 @@ function getStatusTone(status: string) {
 
 export default function RunLedger() {
   const { isMobile } = useBreakpoint();
+  const { addNotification } = useNotificationStore();
   const [runs, setRuns] = useState<CreRun[]>([]);
   const [projects, setProjects] = useState<Array<{ projectId: string; name: string }>>([]);
   const [projectId, setProjectId] = useState<string>('default');
@@ -228,6 +263,10 @@ export default function RunLedger() {
     completionRate: number;
     retryRate: number;
   } | null>(null);
+
+  // Animation state: true once initial data loads, used to trigger entrance animations
+  const [hasEntered, setHasEntered] = useState(false);
+  const prevRunsRef = useRef<string[]>([]);
 
   const loadProjects = async () => {
     try {
@@ -308,9 +347,19 @@ export default function RunLedger() {
     });
     if (!res.success) {
       setError(res.error || 'Failed to trigger forecast');
+      addNotification({
+        type: 'error',
+        title: 'Trigger failed',
+        message: res.error || 'Unable to start forecast.',
+      });
       setIsTriggering(false);
       return;
     }
+    addNotification({
+      type: 'success',
+      title: 'Forecast started',
+      message: writeAttestation ? 'Run + Attest initiated.' : 'Forecast is running.',
+    });
     await uxAnalytics.track('run_console_view', { source: 'ledger_trigger' });
     await refresh();
     setIsTriggering(false);
@@ -321,6 +370,17 @@ export default function RunLedger() {
     const res = await creApi.cancelRun(runId);
     if (!res.success) {
       setError(res.error || 'Failed to cancel run');
+      addNotification({
+        type: 'error',
+        title: 'Cancel failed',
+        message: res.error || 'Unable to cancel the run.',
+      });
+    } else {
+      addNotification({
+        type: 'info',
+        title: 'Run cancelled',
+        message: 'The run has been stopped.',
+      });
     }
     await uxAnalytics.track('run_cancel', { runId, source: 'ledger' });
     await refresh();
@@ -332,6 +392,17 @@ export default function RunLedger() {
     const res = await creApi.retryRun(runId);
     if (!res.success) {
       setError(res.error || 'Failed to retry run');
+      addNotification({
+        type: 'error',
+        title: 'Retry failed',
+        message: res.error || 'Unable to retry the run.',
+      });
+    } else {
+      addNotification({
+        type: 'success',
+        title: 'Run restarted',
+        message: 'The run has been re-queued.',
+      });
     }
     await uxAnalytics.track('run_retry', { runId, source: 'ledger' });
     await refresh();
@@ -382,7 +453,10 @@ export default function RunLedger() {
             </select>
           </div>
           <div css={projectControlStyles}>
-            <span>Live</span>
+            <span css={css`display: flex; align-items: center; gap: ${designTokens.spacing[1]};`}>
+              {autoRefresh && <span css={pulseDotStyles} />}
+              <span>Live</span>
+            </span>
             <input
               type="checkbox"
               checked={autoRefresh}
@@ -487,7 +561,23 @@ export default function RunLedger() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div css={panelTextStyles}>Loading…</div>
+            <div css={runListSkeletonStyles}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} css={runCardSkeletonStyles}>
+                  <div css={css`display: flex; gap: ${designTokens.spacing[2]}; align-items: center;`}>
+                    <div css={loadingStyles.skeleton('rectangular', 60, 22)} />
+                    <div css={loadingStyles.skeleton('rectangular', 160, 16)} />
+                    <div css={loadingStyles.skeleton('rectangular', 120, 12)} style={{ marginLeft: 'auto' }} />
+                  </div>
+                  <div css={css`display: flex; gap: ${designTokens.spacing[3]};`}>
+                    <div css={loadingStyles.skeleton('text', 48, 10)} />
+                    <div css={loadingStyles.skeleton('text', 48, 10)} />
+                    <div css={loadingStyles.skeleton('text', 64, 10)} />
+                    <div css={loadingStyles.skeleton('text', 80, 10)} />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : runs.length === 0 ? (
             <EmptyState
               type="runs"
@@ -500,10 +590,16 @@ export default function RunLedger() {
             />
           ) : (
             <div css={runListStyles}>
-              {runs.map((run) => {
+              {runs.map((run, index) => {
                 const vm = toAgentRunViewModel(run);
                 return (
-                  <article key={run.runId} css={runCardStyles(isMobile)}>
+                  <article
+                    key={run.runId}
+                    css={[
+                      runCardStyles(isMobile),
+                      useEntranceAnimation({ delay: index * 60, mode: 'slideInUp' }),
+                    ]}
+                  >
                     <div css={runTopRowStyles}>
                       <div css={runHeadingStyles}>
                         <Badge variant={getStatusTone(vm.status)} size="sm">
