@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { css } from '@emotion/react';
 import { Link } from 'react-router-dom';
 import {
@@ -15,7 +15,7 @@ import { uxAnalytics } from '../../services/uxAnalytics';
 import { getApiUrl, getApiKey } from '../../utils/api';
 import { designTokens, loadingStyles } from '../../styles/design-system';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
-import { useEntranceAnimation } from '../../hooks/useAnimation';
+import { getEntranceAnimationCSS, useCountUpAnimation } from '../../hooks/useAnimation';
 import { Card, CardContent, CardHeader, CardTitle, StatCard, EmptyState } from '../ui';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -74,9 +74,9 @@ const selectStyles = css`
   font-size: ${designTokens.typography.fontSize.xs};
 `;
 
-const statsGridStyles = (isMobile: boolean) => css`
+const statsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   display: grid;
-  grid-template-columns: ${isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)'};
+  grid-template-columns: ${isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)'};
   gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[3]};
 `;
 
@@ -247,7 +247,7 @@ function getStatusTone(status: string) {
 }
 
 export default function RunLedger() {
-  const { isMobile } = useBreakpoint();
+  const { isMobile, isTablet } = useBreakpoint();
   const { addNotification } = useNotificationStore();
   const [runs, setRuns] = useState<CreRun[]>([]);
   const [projects, setProjects] = useState<Array<{ projectId: string; name: string }>>([]);
@@ -263,10 +263,6 @@ export default function RunLedger() {
     completionRate: number;
     retryRate: number;
   } | null>(null);
-
-  // Animation state: true once initial data loads, used to trigger entrance animations
-  const [hasEntered, setHasEntered] = useState(false);
-  const prevRunsRef = useRef<string[]>([]);
 
   const loadProjects = async () => {
     try {
@@ -480,28 +476,28 @@ export default function RunLedger() {
       </div>
 
       {/* Stats grid — matches dashboard's 4-col layout */}
-      <div css={statsGridStyles(isMobile)}>
+      <div css={statsGridStyles(isMobile, isTablet)}>
         <StatCard
           label="Active"
-          value={summary.active}
+          value={useCountUpAnimation(summary.active, { delay: 0 })}
           icon={<Activity size={isMobile ? 18 : 24} />}
           color="primary"
         />
         <StatCard
           label="Completed"
-          value={summary.completed}
+          value={useCountUpAnimation(summary.completed, { delay: 80 })}
           icon={<CheckCircle2 size={isMobile ? 18 : 24} />}
           color="success"
         />
         <StatCard
           label="Awaiting"
-          value={summary.approvals}
+          value={useCountUpAnimation(summary.approvals, { delay: 160 })}
           icon={<Clock3 size={isMobile ? 18 : 24} />}
           color="info"
         />
         <StatCard
           label="Failed"
-          value={summary.failed}
+          value={useCountUpAnimation(summary.failed, { delay: 240 })}
           icon={<AlertTriangle size={isMobile ? 18 : 24} />}
           color="error"
         />
@@ -597,7 +593,7 @@ export default function RunLedger() {
                     key={run.runId}
                     css={[
                       runCardStyles(isMobile),
-                      useEntranceAnimation({ delay: index * 60, mode: 'slideInUp' }),
+                      getEntranceAnimationCSS({ delay: index * 60 }),
                     ]}
                   >
                     <div css={runTopRowStyles}>
