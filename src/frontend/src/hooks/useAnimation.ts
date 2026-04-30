@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { css } from '@emotion/react';
 import { useReducedMotion } from './useMediaQuery';
 
 export interface AnimationOptions {
@@ -100,17 +101,10 @@ export const useAnimation = <T extends HTMLElement = HTMLElement>(
   };
 };
 
-// Hook for entrance animations
-export const useEntranceAnimation = <T extends HTMLElement = HTMLElement>(
-  type:
-    | 'fadeIn'
-    | 'slideInUp'
-    | 'slideInDown'
-    | 'slideInLeft'
-    | 'slideInRight'
-    | 'scaleIn' = 'fadeIn',
-  options: AnimationOptions = {},
-) => {
+// Entrance animation CSS helper — returns an Emotion CSS object
+// for use in arrays: css={[baseStyles, getEntranceAnimationCSS({ delay, mode })]}
+export const getEntranceAnimationCSS = (options: AnimationOptions & { mode?: AnimationType } = {}) => {
+  const { delay = 0, mode = 'slideInUp', ...rest } = options;
   const keyframesMap = {
     fadeIn: [{ opacity: 0 }, { opacity: 1 }],
     slideInUp: [
@@ -135,12 +129,23 @@ export const useEntranceAnimation = <T extends HTMLElement = HTMLElement>(
     ],
   };
 
-  return useAnimation<T>(keyframesMap[type], {
-    duration: 300,
-    easing: 'ease-out',
-    ...options,
-  });
+  const keyframes = keyframesMap[mode as AnimationType] ?? keyframesMap.slideInUp;
+  const duration = rest.duration ?? 300;
+
+  // Build @keyframes rule for this animation
+  const animName = `entrance_${mode}_${delay}`;
+  const easing = rest.easing ?? 'ease-out';
+
+  return css`
+    @keyframes ${animName} {
+      from { opacity: 0; transform: ${(keyframes[0] as { transform?: string }).transform ?? 'translateY(20px)'}; }
+      to   { opacity: 1; transform: ${(keyframes[1] as { transform?: string }).transform ?? 'translateY(0)'}; }
+    }
+    animation: ${animName} ${duration}ms ${easing} ${delay}ms forwards;
+  `;
 };
+
+type AnimationType = 'fadeIn' | 'slideInUp' | 'slideInDown' | 'slideInLeft' | 'slideInRight' | 'scaleIn';
 
 // Hook for hover animations
 export const useHoverAnimation = <T extends HTMLElement = HTMLElement>(
@@ -279,43 +284,36 @@ export const useScrollAnimation = <T extends HTMLElement = HTMLElement>(
   };
 };
 
-// Hook for loading animations
-export const useLoadingAnimation = <
-  T1 extends HTMLElement = HTMLElement,
-  T2 extends HTMLElement = HTMLElement,
->(
-  isLoading: boolean,
-) => {
-  const skeletonAnimation = useAnimation<T1>(
-    [{ backgroundPosition: '-200px 0' }, { backgroundPosition: 'calc(200px + 100%) 0' }],
-    {
-      duration: 2000,
-      iterationCount: Infinity,
-      easing: 'ease-in-out',
-    },
-  );
-
-  const spinnerAnimation = useAnimation<T2>(
-    [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
-    {
-      duration: 1000,
-      iterationCount: Infinity,
-      easing: 'linear',
-    },
-  );
+// Count-up animation for numeric values
+export const useCountUpAnimation = (target: number, options: AnimationOptions & { trigger?: boolean } = {}) => {
+  const { duration = 600, delay = 0, trigger = true } = options;
+  const [current, setCurrent] = useState(0);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (isLoading) {
-      skeletonAnimation.play();
-      spinnerAnimation.play();
-    } else {
-      skeletonAnimation.cancel();
-      spinnerAnimation.cancel();
-    }
-  }, [isLoading, skeletonAnimation, spinnerAnimation]);
+    if (!trigger) return;
 
-  return {
-    skeletonRef: skeletonAnimation.ref,
-    spinnerRef: spinnerAnimation.ref,
-  };
+    const start = Date.now();
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out curve
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCurrent(Math.round(eased * target));
+
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      }
+    };
+
+    if (prefersReducedMotion) {
+      setCurrent(target);
+      return;
+    }
+
+    const timer = setTimeout(() => requestAnimationFrame(tick), delay);
+    return () => clearTimeout(timer);
+  }, [target, duration, delay, trigger, prefersReducedMotion]);
+
+  return current;
 };
