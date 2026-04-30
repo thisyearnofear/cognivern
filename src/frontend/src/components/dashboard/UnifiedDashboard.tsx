@@ -423,25 +423,6 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
 
   const openAlerts = quests.filter((quest) => quest.actionRequired);
 
-  const liveFeedItems = recentActivity.map((activity) => ({
-    id: activity.id,
-    agentId: activity.agentId,
-    sourceLabel: activity.agentName || activity.type || 'System',
-    timestampLabel: activity.timestamp
-      ? new Date(activity.timestamp).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        })
-      : 'just now',
-    body: activity.description || 'Activity observed',
-    evidenceHash: activity.evidenceHash,
-    cid: activity.cid,
-    evidenceFacts: activity.citations || [],
-    targetPath: activity.targetPath,
-    evidenceLabel: activity.evidenceLabel,
-  }));
-
   return (
     <div ref={containerRef} css={styles.containerStyles(isMobile)}>
       {isMobile && isPulling && (
@@ -645,7 +626,13 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
 
         <section css={styles.sectionStyles}>
           <div css={styles.sectionHeaderStyles}>
-            <h2 css={styles.sectionTitleStyles}>Recent Activity</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: designTokens.spacing[2] }}>
+              <h2 css={styles.sectionTitleStyles}>Recent Activity</h2>
+              <div css={styles.liveIndicatorStyles}>
+                <div css={styles.pulseDotStyles} />
+                LIVE
+              </div>
+            </div>
             <Button variant="ghost" size="sm" onClick={() => navigate('/audit')}>
               View All <ArrowRight size={16} />
             </Button>
@@ -682,6 +669,8 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
             />
           )}
         </section>
+
+        <QuickActions isMobile={isMobile} />
 
         <section css={styles.sectionStyles}>
           <div css={styles.sectionHeaderStyles}>
@@ -789,206 +778,6 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
       </Modal>
 
       <QuickActions isMobile={isMobile} />
-
-      <div
-        css={css`
-          position: fixed;
-          bottom: ${isMobile ? '80px' : '40px'};
-          right: 40px;
-          width: 320px;
-          max-height: 400px;
-          background: ${designTokens.colors.background.primary};
-          border: 1px solid ${designTokens.colors.neutral[200]};
-          border-radius: ${designTokens.borderRadius.xl};
-          box-shadow: ${designTokens.shadows.xl};
-          z-index: 100;
-          display: ${isMobile ? 'none' : 'flex'};
-          flex-direction: column;
-          overflow: hidden;
-          animation: fadeIn 0.5s ease-out;
-
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: translateY(20px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-        `}
-      >
-        <div
-          style={{
-            padding: designTokens.spacing[3],
-            background: designTokens.colors.primary[500],
-            color: 'white',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Zap size={16} />
-            <span style={{ fontWeight: 700, fontSize: '14px' }}>Live Governance Feed</span>
-          </div>
-          <Badge
-            variant="secondary"
-            size="sm"
-            style={{ background: 'rgba(255,255,255,0.2)', border: 'none' }}
-          >
-            {liveFeedItems.length} ACTIVE
-          </Badge>
-        </div>
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: designTokens.spacing[3],
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-          }}
-        >
-          {liveFeedItems.length === 0 ? (
-            <div
-              style={{
-                textAlign: 'center',
-                color: designTokens.colors.text.secondary,
-                padding: '20px',
-                fontSize: '13px',
-              }}
-            >
-              Waiting for live governance events...
-            </div>
-          ) : (
-            liveFeedItems.map((t) => (
-              <div
-                key={t.id}
-                style={{
-                  fontSize: '12px',
-                  borderLeft: `2px solid ${designTokens.colors.primary[300]}`,
-                  paddingLeft: '8px',
-                  paddingBottom: '4px',
-                  animation: 'slideInRight 0.3s ease-out',
-                  position: 'relative',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '2px',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      color: designTokens.colors.primary[600],
-                    }}
-                  >
-                    {t.sourceLabel}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '10px',
-                      color: designTokens.colors.text.secondary,
-                    }}
-                  >
-                    {t.timestampLabel}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    color: designTokens.colors.text.primary,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {t.body}
-                </div>
-                {t.evidenceHash || t.cid ? (
-                  <TrustSignals
-                    activity={{
-                      id: t.id,
-                      sourceType: t.agentId ? 'run' : 'audit',
-                      runId: t.agentId,
-                      evidenceHash: t.evidenceHash,
-                      cid: t.cid,
-                    }}
-                  />
-                ) : null}
-                {t.evidenceFacts && t.evidenceFacts.length > 0 && (
-                  <div
-                    style={{
-                      marginTop: '6px',
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '6px',
-                    }}
-                  >
-                    {t.evidenceFacts.slice(0, 3).map((fact) => (
-                      <span
-                        key={fact}
-                        style={{
-                          fontSize: '10px',
-                          padding: '2px 6px',
-                          borderRadius: '999px',
-                          background: designTokens.colors.neutral[100],
-                          color: designTokens.colors.text.secondary,
-                        }}
-                      >
-                        {fact}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {(t.agentId || t.targetPath) && (
-                  <div style={{ marginTop: '4px', display: 'flex', gap: '8px' }}>
-                    <span
-                      onClick={() => {
-                        if (t.targetPath) {
-                          navigate(t.targetPath);
-                          return;
-                        }
-                        if (t.agentId) {
-                          void handleViewThoughts(t.agentId);
-                        }
-                      }}
-                      style={{
-                        cursor: 'pointer',
-                        color: designTokens.colors.primary[500],
-                        fontSize: '10px',
-                        textDecoration: 'underline',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {t.evidenceLabel || 'Inspect Trace'}
-                    </span>
-                    {t.evidenceHash && (
-                      <span
-                        onClick={() => {
-                          void copyTextToClipboard(t.evidenceHash as string);
-                        }}
-                        style={{
-                          cursor: 'pointer',
-                          color: designTokens.colors.text.secondary,
-                          fontSize: '10px',
-                          textDecoration: 'underline',
-                          fontWeight: 600,
-                        }}
-                      >
-                        Copy Hash
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      </div>
     </div>
   );
 }
