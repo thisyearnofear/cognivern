@@ -8,6 +8,70 @@
 import { designTokens } from '../tokens/designTokens';
 
 // ===========================================
+// COLOR CONTRAST UTILITIES
+// ===========================================
+
+/**
+ * WCAG Color Contrast Checker
+ * Returns contrast ratio between two colors
+ */
+export function getContrastRatio(color1: string, color2: string): number {
+  const lum1 = getLuminance(color1);
+  const lum2 = getLuminance(color2);
+  const brightest = Math.max(lum1, lum2);
+  const darkest = Math.min(lum1, lum2);
+  return (brightest + 0.05) / (darkest + 0.05);
+}
+
+/**
+ * Calculate relative luminance of a color
+ */
+function getLuminance(hex: string): number {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return 0;
+
+  const [r, g, b] = rgb.map((c) => {
+    c = c / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/**
+ * Convert hex color to RGB array
+ */
+function hexToRgb(hex: string): [number, number, number] | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
+    : null;
+}
+
+/**
+ * Check if contrast meets WCAG AA standards (4.5:1 for normal text)
+ */
+export function meetsWCAGAA(foreground: string, background: string): boolean {
+  return getContrastRatio(foreground, background) >= 4.5;
+}
+
+/**
+ * Check if contrast meets WCAG AAA standards (7:1 for enhanced)
+ */
+export function meetsWCAGAAA(foreground: string, background: string): boolean {
+  return getContrastRatio(foreground, background) >= 7;
+}
+
+/**
+ * Get optimal text color for a given background
+ */
+export function getOptimalTextColor(bgColor: string): string {
+  const ratio = getContrastRatio(bgColor, designTokens.colors.text.primary);
+  return ratio >= 4.5
+    ? designTokens.colors.text.primary
+    : designTokens.colors.text.inverse;
+}
+
+// ===========================================
 // ARIA PROPS HELPERS
 // ===========================================
 

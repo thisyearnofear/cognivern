@@ -3,8 +3,6 @@ import { css } from '@emotion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Menu,
-  Sun,
-  Moon,
   Search,
   Bell,
   Settings,
@@ -23,6 +21,7 @@ import CommandPalette from '../ui/CommandPalette';
 import { ConnectionModal } from '../web3/ConnectionModal';
 import { ConnectionStatusBadge } from '../web3/ConnectionStatusBadge';
 import { getRouteMetaByPath } from './routeMeta';
+import { ThemeToggle } from '../../styles/theme';
 
 export const Header: React.FC = () => {
   const { user, setUser, updatePreferences } = useAppStore();
@@ -273,13 +272,7 @@ export const Header: React.FC = () => {
           </button>
         )}
 
-        <button
-          css={modernButtonStyle}
-          onClick={handleThemeToggle}
-          aria-label={`Switch to ${effectiveTheme === 'dark' ? 'light' : 'dark'} mode`}
-        >
-          {effectiveTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
+        <ThemeToggle />
 
         {isMobile && (
           <button css={modernButtonStyle} onClick={() => setIsOpen(true)} aria-label="Search">
