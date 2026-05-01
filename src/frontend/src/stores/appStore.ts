@@ -131,6 +131,11 @@ export const useAppStore = create<AppState>((set, get) => {
       };
       set(newState);
       setStoredState(newState);
+
+      // Sync theme changes with ThemeProvider
+      if (prefs.theme !== undefined) {
+        window.dispatchEvent(new CustomEvent('themechange', { detail: prefs.theme }));
+      }
     },
 
     setActiveTab: (tab) => {
