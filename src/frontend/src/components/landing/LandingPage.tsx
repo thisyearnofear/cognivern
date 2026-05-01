@@ -1,9 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { css } from '@emotion/react';
+import { css, keyframes } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
 import { Button } from '../ui/Button';
+import { Logo } from '../ui/Logo';
+import { HeroIllustration } from './HeroIllustration';
 import { Card, CardContent } from '../ui/Card';
 import {
   Shield,
@@ -20,6 +22,27 @@ import {
   Clock,
   Eye,
 } from 'lucide-react';
+
+// Stagger animation for elements
+const fadeInUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+const shimmer = keyframes`
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+`;
 
 interface LandingPageProps {
   onComplete?: () => void; // Kept for backward compatibility - now uses routing instead
@@ -101,36 +124,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           transition: all 0.5s ease-out;
         `}
       >
-        <div
-          css={css`
-            display: flex;
-            align-items: center;
-            gap: ${designTokens.spacing[3]};
-          `}
-        >
-          <div
-            css={css`
-              width: 48px;
-              height: 48px;
-              border-radius: ${designTokens.borderRadius.lg};
-              background: ${designTokens.colors.primary[600]};
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            `}
-          >
-            <Brain size={28} color="white" />
-          </div>
-          <span
-            css={css`
-              font-size: ${designTokens.typography.fontSize.xl};
-              font-weight: ${designTokens.typography.fontWeight.bold};
-              color: ${designTokens.colors.neutral[900]};
-            `}
-          >
-            Cognivern
-          </span>
-        </div>
+        {/* Logo */}
+        <Logo size="md" />
+
         <div
           css={css`
             display: flex;
@@ -169,7 +165,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
       <main
         css={css`
           position: relative;
-          max-width: 720px;
+          max-width: 800px;
           text-align: center;
           margin-top: ${designTokens.spacing[32]};
           padding: ${designTokens.spacing[12]} ${designTokens.spacing[8]};
@@ -181,10 +177,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           transition: all 0.6s ease-out 0.2s;
         `}
       >
+        {/* Hero Illustration */}
+        <HeroIllustration />
+
         {/* Badge */}
         <div
           css={css`
             margin-bottom: ${designTokens.spacing[6]};
+            animation: ${fadeInUp} 0.6s ease-out 0.4s both;
           `}
         >
           <span
@@ -212,6 +212,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             margin-bottom: ${designTokens.spacing[4]};
             line-height: 1.15;
             letter-spacing: -0.03em;
+            animation: ${fadeInUp} 0.6s ease-out 0.5s both;
 
             @media (min-width: 768px) {
               font-size: 3rem;
@@ -240,6 +241,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             max-width: 540px;
             margin: 0 auto ${designTokens.spacing[8]};
             line-height: 1.6;
+            animation: ${fadeInUp} 0.6s ease-out 0.6s both;
           `}
         >
           Cognivern is the control plane for governed agent spend. Connect your treasury, define
@@ -253,6 +255,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             justify-content: center;
             flex-wrap: wrap;
             margin-bottom: ${designTokens.spacing[12]};
+            animation: ${fadeInUp} 0.6s ease-out 0.7s both;
           `}
         >
           <Button
@@ -289,6 +292,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             gap: ${designTokens.spacing[8]};
             margin-bottom: ${designTokens.spacing[12]};
             flex-wrap: wrap;
+            animation: ${fadeInUp} 0.6s ease-out 0.8s both;
           `}
         >
           {[
@@ -330,6 +334,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: ${designTokens.spacing[6]};
             text-align: left;
+            animation: ${fadeInUp} 0.6s ease-out 0.9s both;
           `}
         >
           {features.map((feature, index) => (
@@ -411,6 +416,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             text-align: left;
             position: relative;
             overflow: hidden;
+            animation: ${fadeInUp} 0.6s ease-out 1s both;
 
             &::before {
               content: '';
@@ -689,6 +695,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: ${designTokens.spacing[4]};
+            animation: ${fadeInUp} 0.6s ease-out 1.1s both;
             @media (max-width: 640px) {
               grid-template-columns: 1fr;
             }
@@ -752,6 +759,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           css={css`
             margin-top: ${designTokens.spacing[16]};
             text-align: center;
+            animation: ${fadeInUp} 0.6s ease-out 1.2s both;
           `}
         >
           <h2
