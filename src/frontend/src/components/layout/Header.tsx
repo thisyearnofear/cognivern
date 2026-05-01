@@ -243,7 +243,7 @@ export const Header: React.FC = () => {
           <button
             css={addAgentButtonStyle}
             onClick={() => navigate('/agents/connect')}
-            title="Connect a new agent"
+            aria-label="Connect a new agent"
           >
             <span>Add Agent</span>
           </button>
@@ -260,7 +260,7 @@ export const Header: React.FC = () => {
               font-size: ${designTokens.typography.fontSize.xs};
             `}
             onClick={() => setIsOpen(true)}
-            title="Open command palette (Ctrl+K)"
+            aria-label="Open command palette (Ctrl+K)"
           >
             <ChevronRight size={14} />
             <span>Search</span>
@@ -268,7 +268,7 @@ export const Header: React.FC = () => {
         )}
 
         {isMobile && (
-          <button css={modernButtonStyle} onClick={toggleSidebar} title="Toggle menu">
+          <button css={modernButtonStyle} onClick={toggleSidebar} aria-label="Toggle menu">
             <Menu size={20} />
           </button>
         )}
@@ -276,13 +276,13 @@ export const Header: React.FC = () => {
         <button
           css={modernButtonStyle}
           onClick={handleThemeToggle}
-          title={`Switch to ${effectiveTheme === 'dark' ? 'light' : 'dark'} mode`}
+          aria-label={`Switch to ${effectiveTheme === 'dark' ? 'light' : 'dark'} mode`}
         >
           {effectiveTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
         {isMobile && (
-          <button css={modernButtonStyle} onClick={() => setIsOpen(true)} title="Search">
+          <button css={modernButtonStyle} onClick={() => setIsOpen(true)} aria-label="Search">
             <Search size={20} />
           </button>
         )}
@@ -293,7 +293,7 @@ export const Header: React.FC = () => {
               ${modernButtonStyle}
               position: relative;
             `}
-            title="Notifications"
+            aria-label="Notifications"
           >
             <Bell size={20} />
           </button>
@@ -305,7 +305,7 @@ export const Header: React.FC = () => {
           <button
             css={modernButtonStyle}
             onClick={() => setIsOpen(true)}
-            title="User Settings (Search commands)"
+            aria-label="User Settings (Search commands)"
           >
             <Settings size={20} />
           </button>

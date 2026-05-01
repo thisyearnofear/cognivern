@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React from 'react';
 import { css } from '@emotion/react';
-import { getButtonStyles, type ButtonVariant, type ButtonSize } from '../../styles/design-system';
+import { getButtonStyles, designTokens, type ButtonVariant, type ButtonSize } from '../../styles/design-system';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -43,7 +43,7 @@ export const Button: React.FC<ButtonProps> = ({
         border: 2px solid transparent;
         border-top: 2px solid currentColor;
         border-radius: 50%;
-        animation: spin 1s linear infinite;
+        animation: spin ${designTokens.animation.duration.normal} linear infinite;
 
         @keyframes spin {
           0% {
