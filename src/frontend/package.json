@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test": "vitest",
     "lint": "eslint . --config ./.eslintrc.cjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@cofhe/react": "0.5.1",
@@ -27,11 +29,17 @@
     "zustand": "^4.4.1"
   },
   "devDependencies": {
+    "@storybook/addon-a11y": "^8.0.0",
+    "@storybook/addon-essentials": "^8.0.0",
+    "@storybook/blocks": "^8.0.0",
+    "@storybook/react": "^8.0.0",
+    "@storybook/react-vite": "^8.0.0",
     "@types/node": "^20.11.30",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.1.1",
+    "storybook": "^8.0.0",
     "terser": "^5.43.1",
     "typescript": "~5.2.2",
     "vite": "^5.0.8"

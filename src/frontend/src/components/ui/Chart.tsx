@@ -1,113 +1,280 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { designTokens, chartColors, chartStyles } from '../../styles/design-system';
+import {
+  TrendingUp, TrendingDown, Minus, Maximize2, Minimize2,
+  Download, Info, ChevronDown
+} from 'lucide-react';
+import { Button } from './Button';
+import { Badge } from './Badge';
 
 export interface ChartDataPoint {
   x: number | string;
   y: number;
   label?: string;
   color?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ChartSeries {
+  id: string;
+  name: string;
+  data: ChartDataPoint[];
+  color?: string;
+  visible?: boolean;
+}
+
+export interface DrilldownConfig {
+  enabled: boolean;
+  onDrilldown?: (point: ChartDataPoint, series: ChartSeries) => void;
+  drilldownLabel?: string;
 }
 
 export interface ChartProps {
-  data: ChartDataPoint[];
-  type: 'line' | 'bar' | 'area' | 'pie';
+  data?: ChartDataPoint[];
+  series?: ChartSeries[];
+  type?: 'line' | 'bar' | 'area' | 'pie' | 'donut' | 'stacked-bar';
   width?: number;
   height?: number;
   title?: string;
+  subtitle?: string;
   xAxisLabel?: string;
   yAxisLabel?: string;
   showGrid?: boolean;
   showTooltip?: boolean;
+  showLegend?: boolean;
   interactive?: boolean;
+  enableZoom?: boolean;
+  enablePan?: boolean;
   colors?: string[];
   animate?: boolean;
+  drilldown?: DrilldownConfig;
+  compact?: boolean;
+  showValues?: boolean;
+  comparisonMode?: boolean;
+  comparisonLabel?: string;
+  onExport?: () => void;
+  trend?: number;
 }
 
+const fadeIn = keyframes`
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+`;
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+`;
+
+// Trend indicator component
+const TrendIndicator: React.FC<{ value: number; unit?: string }> = ({ value, unit = '%' }) => {
+  const isPositive = value > 0;
+  const isNeutral = value === 0;
+
+  return (
+    <div
+      css={css`
+        display: inline-flex;
+        align-items: center;
+        gap: ${designTokens.spacing[1]};
+        padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+        border-radius: ${designTokens.borderRadius.sm};
+        font-size: ${designTokens.typography.fontSize.xs};
+        font-weight: ${designTokens.typography.fontWeight.medium};
+        background: ${isNeutral
+          ? 'var(--bg-secondary)'
+          : isPositive
+            ? designTokens.colors.semantic.success[100]
+            : designTokens.colors.semantic.error[100]};
+        color: ${isNeutral
+          ? 'var(--text-muted)'
+          : isPositive
+            ? designTokens.colors.semantic.success[700]
+            : designTokens.colors.semantic.error[700]};
+      `}
+    >
+      {isNeutral ? <Minus size={12} /> : isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+      {Math.abs(value).toFixed(1)}{unit}
+    </div>
+  );
+};
+
+// Sparkline for inline display
+export const Sparkline: React.FC<{
+  data: number[];
+  width?: number;
+  height?: number;
+  color?: string;
+  trend?: 'up' | 'down' | 'neutral';
+}> = ({ data, width = 60, height = 24, color, trend = 'neutral' }) => {
+  const strokeColor = color || (trend === 'up'
+    ? designTokens.colors.semantic.success[500]
+    : trend === 'down'
+      ? designTokens.colors.semantic.error[500]
+      : designTokens.colors.neutral[500]);
+
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+
+  const points = data.map((value, index) => {
+    const x = (index / (data.length - 1)) * width;
+    const y = height - ((value - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <polyline
+        points={points}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+};
+
+// Chart tooltip
+const ChartTooltip: React.FC<{
+  point: ChartDataPoint;
+  series?: ChartSeries;
+  position: { x: number; y: number };
+}> = ({ point, series, position }) => (
+  <div
+    css={css`
+      position: fixed;
+      left: ${position.x + 12}px;
+      top: ${position.y - 12}px;
+      z-index: ${designTokens.zIndex.tooltip};
+      padding: ${designTokens.spacing[3]};
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: ${designTokens.borderRadius.md};
+      box-shadow: ${designTokens.shadows.lg};
+      min-width: 140px;
+      animation: ${fadeIn} 0.15s ease-out;
+    `}
+  >
+    {series && (
+      <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]}; padding-bottom: ${designTokens.spacing[2]}; border-bottom: 1px solid var(--border-subtle);`}>
+        <div css={css`width: 8px; height: 8px; border-radius: 2px; background: ${series.color};`} />
+        <span css={css`font-size: ${designTokens.typography.fontSize.xs}; color: var(--text-muted);`}>{series.name}</span>
+      </div>
+    )}
+    <div css={css`font-size: ${designTokens.typography.fontSize.xs}; color: var(--text-secondary); margin-bottom: ${designTokens.spacing[1]};`}>
+      {point.label || point.x}
+    </div>
+    <div css={css`font-size: ${designTokens.typography.fontSize.base}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary);`}>
+      {typeof point.y === 'number' ? point.y.toLocaleString() : point.y}
+    </div>
+  </div>
+);
+
+// Chart legend
+const ChartLegend: React.FC<{
+  series: ChartSeries[];
+  colors: string[];
+  onToggleSeries?: (id: string) => void;
+}> = ({ series, colors, onToggleSeries }) => (
+  <div css={css`display: flex; flex-wrap: wrap; gap: ${designTokens.spacing[4]}; padding: ${designTokens.spacing[3]} 0; border-top: 1px solid var(--border-subtle); margin-top: ${designTokens.spacing[4]};`}>
+    {series.map((s, index) => (
+      <button
+        key={s.id}
+        onClick={() => onToggleSeries?.(s.id)}
+        css={css`
+          display: flex;
+          align-items: center;
+          gap: ${designTokens.spacing[2]};
+          padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+          background: ${s.visible === false ? 'transparent' : 'var(--bg-secondary)'};
+          border: 1px solid ${s.visible === false ? 'var(--border-subtle)' : 'transparent'};
+          border-radius: ${designTokens.borderRadius.sm};
+          cursor: pointer;
+          opacity: ${s.visible === false ? 0.5 : 1};
+          transition: all 0.15s;
+          &:hover { background: var(--bg-tertiary); }
+        `}
+      >
+        <div css={css`width: 12px; height: 12px; border-radius: 2px; background: ${s.color || colors[index % colors.length]};`} />
+        <span css={css`font-size: ${designTokens.typography.fontSize.xs}; color: var(--text-secondary);`}>{s.name}</span>
+      </button>
+    ))}
+  </div>
+);
+
 export const Chart: React.FC<ChartProps> = ({
-  data,
-  type,
+  data = [],
+  series = [],
+  type = 'line',
   width,
   height = 300,
   title,
+  subtitle,
   xAxisLabel,
   yAxisLabel,
   showGrid = true,
   showTooltip = true,
+  showLegend = false,
   interactive = true,
   colors = chartColors,
   animate = true,
+  drilldown,
+  compact = false,
+  showValues = false,
+  comparisonMode = false,
+  comparisonLabel,
+  onExport,
+  trend,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [hoveredPoint, setHoveredPoint] = useState<ChartDataPoint | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<{ point: ChartDataPoint; series?: ChartSeries; position: { x: number; y: number } } | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [visibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
 
   const actualWidth = width || containerRef.current?.clientWidth || 400;
-  const actualHeight = height;
+  const actualHeight = isExpanded ? height * 1.5 : height;
 
-  // Chart dimensions with padding
-  const padding = {
-    top: 40,
-    right: 40,
-    bottom: 60,
-    left: 60,
-  };
-
+  // Chart dimensions
+  const padding = { top: 40, right: 40, bottom: 60, left: 60 };
   const chartWidth = actualWidth - padding.left - padding.right;
   const chartHeight = actualHeight - padding.top - padding.bottom;
 
+  // Merge data into series format
+  const chartSeries: ChartSeries[] = useMemo(() => {
+    if (series.length > 0) {
+      return series.map(s => ({ ...s, visible: visibleSeries[s.id] !== false }));
+    }
+    if (data.length > 0) {
+      return [{ id: 'primary', name: 'Value', data, color: colors[0], visible: visibleSeries['primary'] !== false }];
+    }
+    return [];
+  }, [series, data, colors, visibleSeries]);
+
+  const handleToggleSeries = (id: string) => {
+    setVisibleSeries(prev => ({ ...prev, [id]: prev[id] === false }));
+  };
+
+  // Canvas rendering logic (simplified from original)
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !data.length) return;
+    if (!canvas || chartSeries.length === 0) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size
     canvas.width = actualWidth;
     canvas.height = actualHeight;
-
-    // Clear canvas
     ctx.clearRect(0, 0, actualWidth, actualHeight);
-
-    // Set up drawing context
-    ctx.font = `${designTokens.typography.fontSize.xs} ${designTokens.typography.fontFamily.sans[0]}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    // Calculate data ranges
-    const xValues = data.map((d) => d.x).filter((v): v is number => typeof v === 'number');
-    const yValues = data.map((d) => d.y);
-    const xMin = xValues.length > 0 ? Math.min(...xValues) : 0;
-    const xMax = xValues.length > 0 ? Math.max(...xValues) : 1;
-    const yMin = Math.min(0, Math.min(...yValues));
-    const yMax = Math.max(...yValues);
-
-    // Scale functions
-    const scaleX = (x: number | string) => {
-      if (typeof x === 'number') {
-        return padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth;
-      }
-      return padding.left + (x / (data.length - 1)) * chartWidth;
-    };
-    const scaleY = (y: number) =>
-      padding.top + chartHeight - ((y - yMin) / (yMax - yMin)) * chartHeight;
 
     // Draw grid
     if (showGrid) {
       ctx.strokeStyle = designTokens.colors.neutral[100];
       ctx.lineWidth = 1;
-
-      // Vertical grid lines
-      for (let i = 0; i <= 5; i++) {
-        const x = padding.left + (i / 5) * chartWidth;
-        ctx.beginPath();
-        ctx.moveTo(x, padding.top);
-        ctx.lineTo(x, padding.top + chartHeight);
-        ctx.stroke();
-      }
-
-      // Horizontal grid lines
       for (let i = 0; i <= 5; i++) {
         const y = padding.top + (i / 5) * chartHeight;
         ctx.beginPath();
@@ -117,294 +284,131 @@ export const Chart: React.FC<ChartProps> = ({
       }
     }
 
-    // Draw axes
-    ctx.strokeStyle = designTokens.colors.accent[400];
-    ctx.lineWidth = 2;
+    // Draw series
+    chartSeries.filter(s => s.visible !== false).forEach((s, seriesIndex) => {
+      const seriesColor = s.color || colors[seriesIndex % colors.length];
+      const points = s.data.map((point, i) => ({
+        x: padding.left + (i / Math.max(s.data.length - 1, 1)) * chartWidth,
+        y: padding.top + chartHeight - (point.y / Math.max(...chartSeries.flatMap(s => s.data.map(d => Math.abs(d.y))), 1)) * chartHeight,
+      }));
 
-    // X-axis
+      // Draw line
+      ctx.strokeStyle = seriesColor;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+
+      // Draw points
+      ctx.fillStyle = seriesColor;
+      points.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    });
+
+    // Draw axes
+    ctx.strokeStyle = designTokens.colors.neutral[300];
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(padding.left, padding.top + chartHeight);
     ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
-    ctx.stroke();
-
-    // Y-axis
-    ctx.beginPath();
     ctx.moveTo(padding.left, padding.top);
     ctx.lineTo(padding.left, padding.top + chartHeight);
     ctx.stroke();
 
-    // Draw axis labels
-    ctx.fillStyle = designTokens.colors.neutral[600];
-    ctx.font = `${designTokens.typography.fontSize.sm} ${designTokens.typography.fontFamily.sans[0]}`;
-
-    // Y-axis labels
-    for (let i = 0; i <= 5; i++) {
-      const value = yMin + (i / 5) * (yMax - yMin);
-      const y = padding.top + chartHeight - (i / 5) * chartHeight;
-      ctx.textAlign = 'right';
-      ctx.fillText(value.toFixed(1), padding.left - 10, y);
-    }
-
-    // X-axis labels
-    for (let i = 0; i <= 5; i++) {
-      const value = xMin + (i / 5) * (xMax - xMin);
-      const x = padding.left + (i / 5) * chartWidth;
-      ctx.textAlign = 'center';
-      ctx.fillText(value.toFixed(1), x, padding.top + chartHeight + 20);
-    }
-
-    // Draw chart based on type
-    switch (type) {
-      case 'line':
-        drawLineChart(ctx, data, scaleX, scaleY, colors[0]);
-        break;
-      case 'bar':
-        drawBarChart(ctx, data, scaleX, scaleY, colors);
-        break;
-      case 'area':
-        drawAreaChart(ctx, data, scaleX, scaleY, colors[0]);
-        break;
-      case 'pie':
-        drawPieChart(
-          ctx,
-          data,
-          actualWidth / 2,
-          actualHeight / 2,
-          Math.min(chartWidth, chartHeight) / 3,
-          colors,
-        );
-        break;
-    }
-
-    // Draw title
-    if (title) {
-      ctx.fillStyle = designTokens.colors.neutral[900];
-      ctx.font = `${designTokens.typography.fontWeight.semibold} ${designTokens.typography.fontSize.lg} ${designTokens.typography.fontFamily.sans[0]}`;
-      ctx.textAlign = 'center';
-      ctx.fillText(title, actualWidth / 2, 20);
-    }
-
-    // Draw axis labels
-    if (xAxisLabel) {
-      ctx.fillStyle = designTokens.colors.neutral[600];
-      ctx.font = `${designTokens.typography.fontSize.sm} ${designTokens.typography.fontFamily.sans[0]}`;
-      ctx.textAlign = 'center';
-      ctx.fillText(xAxisLabel, actualWidth / 2, actualHeight - 10);
-    }
-
-    if (yAxisLabel) {
-      ctx.save();
-      ctx.translate(15, actualHeight / 2);
-      ctx.rotate(-Math.PI / 2);
-      ctx.fillStyle = designTokens.colors.neutral[600];
-      ctx.font = `${designTokens.typography.fontSize.sm} ${designTokens.typography.fontFamily.sans[0]}`;
-      ctx.textAlign = 'center';
-      ctx.fillText(yAxisLabel, 0, 0);
-      ctx.restore();
-    }
-  }, [data, actualWidth, actualHeight, type, colors, showGrid, title, xAxisLabel, yAxisLabel]);
-
-  const drawLineChart = (
-    ctx: CanvasRenderingContext2D,
-    data: ChartDataPoint[],
-    scaleX: (x: number | string) => number,
-    scaleY: (y: number) => number,
-    color: string,
-  ) => {
-    if (data.length < 2) return;
-
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    ctx.beginPath();
-    data.forEach((point, index) => {
-      const x = scaleX(point.x);
-      const y = scaleY(point.y);
-
-      if (index === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-    });
-    ctx.stroke();
-
-    // Draw points
-    ctx.fillStyle = color;
-    data.forEach((point, index) => {
-      const x = scaleX(point.x);
-      const y = scaleY(point.y);
-
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, 2 * Math.PI);
-      ctx.fill();
-    });
-  };
-
-  const drawBarChart = (
-    ctx: CanvasRenderingContext2D,
-    data: ChartDataPoint[],
-    scaleX: (x: number | string) => number,
-    scaleY: (y: number) => number,
-    colors: string[],
-  ) => {
-    const barWidth = (chartWidth / data.length) * 0.8;
-
-    data.forEach((point, index) => {
-      const x = scaleX(point.x) - barWidth / 2;
-      const y = scaleY(point.y);
-      const height = scaleY(0) - y;
-
-      ctx.fillStyle = point.color || colors[index % colors.length];
-      ctx.fillRect(x, y, barWidth, height);
-
-      // Add border
-      ctx.strokeStyle = designTokens.colors.neutral[300];
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x, y, barWidth, height);
-    });
-  };
-
-  const drawAreaChart = (
-    ctx: CanvasRenderingContext2D,
-    data: ChartDataPoint[],
-    scaleX: (x: number | string) => number,
-    scaleY: (y: number) => number,
-    color: string,
-  ) => {
-    if (data.length < 2) return;
-
-    // Create gradient
-    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
-    gradient.addColorStop(0, color + '40'); // 25% opacity
-    gradient.addColorStop(1, color + '10'); // 6% opacity
-
-    // Draw area
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-
-    // Start from bottom-left
-    const firstX = scaleX(data[0].x);
-    ctx.moveTo(firstX, scaleY(0));
-
-    // Draw to first point
-    ctx.lineTo(firstX, scaleY(data[0].y));
-
-    // Draw line through all points
-    data.forEach((point, index) => {
-      const x = scaleX(point.x);
-      const y = scaleY(point.y);
-      ctx.lineTo(x, y);
-    });
-
-    // Close area to bottom
-    const lastX = scaleX(data[data.length - 1].x);
-    ctx.lineTo(lastX, scaleY(0));
-    ctx.closePath();
-    ctx.fill();
-
-    // Draw line on top
-    drawLineChart(ctx, data, scaleX, scaleY, color);
-  };
-
-  const drawPieChart = (
-    ctx: CanvasRenderingContext2D,
-    data: ChartDataPoint[],
-    centerX: number,
-    centerY: number,
-    radius: number,
-    colors: string[],
-  ) => {
-    const total = data.reduce((sum, point) => sum + point.y, 0);
-    let currentAngle = -Math.PI / 2; // Start from top
-
-    data.forEach((point, index) => {
-      const sliceAngle = (point.y / total) * 2 * Math.PI;
-      const color = point.color || colors[index % colors.length];
-
-      // Draw slice
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-      ctx.closePath();
-      ctx.fill();
-
-      // Draw border
-      ctx.strokeStyle = designTokens.colors.neutral[0];
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Draw label
-      const labelAngle = currentAngle + sliceAngle / 2;
-      const labelX = centerX + Math.cos(labelAngle) * (radius * 0.7);
-      const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
-
-      ctx.fillStyle = designTokens.colors.neutral[0];
-      ctx.font = `${designTokens.typography.fontWeight.semibold} ${designTokens.typography.fontSize.sm} ${designTokens.typography.fontFamily.sans[0]}`;
-      ctx.textAlign = 'center';
-      ctx.fillText(`${((point.y / total) * 100).toFixed(1)}%`, labelX, labelY);
-
-      currentAngle += sliceAngle;
-    });
-  };
+  }, [chartSeries, actualWidth, actualHeight, colors, showGrid]);
 
   const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!interactive || !showTooltip) return;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-
     setMousePosition({ x: event.clientX, y: event.clientY });
 
-    // Find closest data point
-    let closestPoint: ChartDataPoint | null = null;
-    let minDistance = Infinity;
-
-    data.forEach((point, index) => {
-      const pointX =
-        padding.left +
-        ((typeof point.x === 'number' ? point.x : index) / (data.length - 1)) * chartWidth;
-      const pointY =
-        padding.top + chartHeight - (point.y / Math.max(...data.map((d) => d.y))) * chartHeight;
-
-      const distance = Math.sqrt((x - pointX) ** 2 + (y - pointY) ** 2);
-      if (distance < minDistance && distance < 20) {
-        minDistance = distance;
-        closestPoint = point;
-      }
+    // Find closest point
+    chartSeries.filter(s => s.visible !== false).forEach((s) => {
+      s.data.forEach((point, index) => {
+        const pointX = padding.left + (index / Math.max(s.data.length - 1, 1)) * chartWidth;
+        const maxY = Math.max(...chartSeries.flatMap(s => s.data.map(d => Math.abs(d.y))), 1);
+        const pointY = padding.top + chartHeight - (point.y / maxY) * chartHeight;
+        const distance = Math.sqrt((x - pointX) ** 2 + (y - pointY) ** 2);
+        if (distance < 20) {
+          setHoveredPoint({ point, series: s, position: { x: event.clientX, y: event.clientY } });
+        }
+      });
     });
-
-    setHoveredPoint(closestPoint);
   };
 
-  const handleMouseLeave = () => {
-    setHoveredPoint(null);
-  };
+  const handleMouseLeave = () => setHoveredPoint(null);
+
+  if (chartSeries.length === 0 || chartSeries.every(s => !s.visible && s.data.length === 0)) {
+    return (
+      <div css={css`display: flex; align-items: center; justify-content: center; height: ${height}px; background: var(--bg-secondary); border-radius: ${designTokens.borderRadius.lg}; color: var(--text-muted); font-size: ${designTokens.typography.fontSize.sm};`}>
+        No data available
+      </div>
+    );
+  }
 
   return (
-    <div ref={containerRef} css={chartStyles.container}>
-      <canvas
-        ref={canvasRef}
-        css={chartStyles.canvas}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-      />
-
-      {hoveredPoint && showTooltip && (
-        <div css={chartStyles.tooltip(mousePosition.x, mousePosition.y)}>
-          <div css={chartStyles.tooltipLabel}>{hoveredPoint.label || 'Value'}</div>
-          <div css={chartStyles.tooltipValue}>
-            {typeof hoveredPoint.x === 'number' ? hoveredPoint.x.toFixed(2) : hoveredPoint.x}:{' '}
-            {hoveredPoint.y.toFixed(2)}
+    <div css={css`position: relative; width: ${width || '100%'}; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: ${designTokens.borderRadius.lg}; padding: ${compact ? designTokens.spacing[4] : designTokens.spacing[6]}; animation: ${animate ? fadeIn : 'none'} 0.3s ease-out;`}>
+      {/* Header */}
+      {(title || subtitle || onExport) && (
+        <div css={css`display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: ${designTokens.spacing[4]};`}>
+          <div css={css`flex: 1;`}>
+            {title && <h3 css={css`font-size: ${compact ? designTokens.typography.fontSize.sm : designTokens.typography.fontSize.base}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary); margin: 0;`}>{title}</h3>}
+            {subtitle && <p css={css`font-size: ${designTokens.typography.fontSize.xs}; color: var(--text-muted); margin: ${designTokens.spacing[1]} 0 0 0;`}>{subtitle}</p>}
           </div>
+          {trend !== undefined && <TrendIndicator value={trend} />}
+          {!compact && (
+            <div css={css`display: flex; gap: ${designTokens.spacing[1]};`}>
+              {onExport && <button onClick={onExport} css={css`padding: ${designTokens.spacing[1]}; color: var(--text-muted); background: transparent; border: none; border-radius: ${designTokens.borderRadius.sm}; cursor: pointer; &:hover { color: var(--text-primary); background: var(--bg-secondary); }`}><Download size={16} /></button>}
+              <button onClick={() => setIsExpanded(!isExpanded)} css={css`padding: ${designTokens.spacing[1]}; color: var(--text-muted); background: transparent; border: none; border-radius: ${designTokens.borderRadius.sm}; cursor: pointer; &:hover { color: var(--text-primary); background: var(--bg-secondary); }`}>
+                {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+            </div>
+          )}
         </div>
+      )}
+
+      {comparisonMode && comparisonLabel && (
+        <Badge variant="info" css={css`margin-bottom: ${designTokens.spacing[3]};`}>{comparisonLabel}</Badge>
+      )}
+
+      {/* Canvas chart */}
+      <div ref={containerRef} css={chartStyles.container}>
+        <canvas
+          ref={canvasRef}
+          css={chartStyles.canvas}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+        />
+      </div>
+
+      {/* Axis labels */}
+      {xAxisLabel && <div css={css`text-align: center; font-size: ${designTokens.typography.fontSize.xs}; color: var(--text-muted); margin-top: ${designTokens.spacing[2]};`}>{xAxisLabel}</div>}
+      {yAxisLabel && <div css={css`position: absolute; left: 4px; top: 50%; transform: rotate(-90deg) translateX(-50%); font-size: ${designTokens.typography.fontSize.xs}; color: var(--text-muted);`}>{yAxisLabel}</div>}
+
+      {/* Legend */}
+      {showLegend && chartSeries.length > 1 && (
+        <ChartLegend series={chartSeries} colors={colors} onToggleSeries={handleToggleSeries} />
+      )}
+
+      {/* Tooltip */}
+      {hoveredPoint && showTooltip && (
+        <ChartTooltip point={hoveredPoint.point} series={hoveredPoint.series} position={hoveredPoint.position} />
+      )}
+
+      {/* Drilldown */}
+      {drilldown?.enabled && (
+        <button css={css`position: absolute; top: ${designTokens.spacing[2]}; right: ${designTokens.spacing[2]}; padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]}; font-size: ${designTokens.typography.fontSize.xs}; color: ${designTokens.colors.primary[600]}; background: ${designTokens.colors.primary[50]}; border: 1px solid ${designTokens.colors.primary[200]}; border-radius: ${designTokens.borderRadius.sm}; cursor: pointer; display: flex; align-items: center; gap: ${designTokens.spacing[1]}; &:hover { background: ${designTokens.colors.primary[100]}; }`}>
+          <Info size={12} />
+          {drilldown.drilldownLabel || 'View details'}
+        </button>
       )}
     </div>
   );
