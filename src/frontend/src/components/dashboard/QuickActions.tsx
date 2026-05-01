@@ -3,7 +3,9 @@
  * Extracted from UnifiedDashboard for better modularity
  */
 
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { css, keyframes } from '@emotion/react';
 import { PlusCircle, ShieldCheck, FileSearch, Activity } from 'lucide-react';
 import { designTokens } from '../../styles/design-system';
 import * as styles from './UnifiedDashboard.styles';
@@ -11,6 +13,24 @@ import * as styles from './UnifiedDashboard.styles';
 interface QuickActionsProps {
   isMobile: boolean;
 }
+
+// Bounce animation for button press feedback
+const bounce = keyframes`
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.92); }
+`;
+
+// Ripple effect for click
+const ripple = keyframes`
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+`;
 
 export const QuickActions = ({ isMobile }: QuickActionsProps) => {
   const navigate = useNavigate();
@@ -44,16 +64,44 @@ export const QuickActions = ({ isMobile }: QuickActionsProps) => {
   return (
     <div css={styles.mobileActionsStyles}>
       {actions.map((action) => (
-        <button
-          key={action.path}
-          css={styles.mobileActionButtonStyles}
-          onClick={() => navigate(action.path)}
-        >
-          <div css={styles.mobileActionIconStyles}>{action.icon}</div>
-          <span>{action.label}</span>
-        </button>
+        <QuickActionButton key={action.path} action={action} onNavigate={navigate} />
       ))}
     </div>
+  );
+};
+
+interface QuickActionButtonProps {
+  action: { label: string; icon: React.ReactNode; path: string };
+  onNavigate: (path: string) => void;
+}
+
+const QuickActionButton: React.FC<QuickActionButtonProps> = ({ action, onNavigate }) => {
+  const [isPressed, setIsPressed] = useState(false);
+
+  return (
+    <button
+      css={css`
+        ${styles.mobileActionButtonStyles}
+        position: relative;
+        overflow: hidden;
+
+        &:hover {
+          background: var(--surface-bg-alt, ${designTokens.colors.background.secondary});
+        }
+
+        &:active {
+          animation: ${bounce} 0.2s ease-out;
+        }
+      `}
+      onClick={() => {
+        setIsPressed(true);
+        setTimeout(() => setIsPressed(false), 300);
+        onNavigate(action.path);
+      }}
+    >
+      <div css={styles.mobileActionIconStyles}>{action.icon}</div>
+      <span>{action.label}</span>
+    </button>
   );
 };
 

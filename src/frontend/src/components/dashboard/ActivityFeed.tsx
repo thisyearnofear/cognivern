@@ -4,7 +4,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
-import { css } from '@emotion/react';
+import { css, keyframes } from '@emotion/react';
 import { CheckCircle2, AlertTriangle, XCircle, Info, FileSearch } from 'lucide-react';
 import { designTokens } from '../../styles/design-system';
 import { Card, CardContent } from '../ui';
@@ -19,6 +19,18 @@ interface ActivityFeedProps {
   showMore?: boolean;
   onToggleMore?: () => void;
 }
+
+// Fade-in animation for activity items
+const fadeSlideIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+`;
 
 export const TrustSignals = ({ activity }: { activity: ActivityItem }) => {
   const signals = buildTrustSignals(activity);
@@ -77,7 +89,15 @@ export const ActivityFeed = ({
         ) : (
           <>
             {displayActivities.map((activity, idx) => (
-              <div key={idx} css={styles.activityItemStyles}>
+              <div
+                key={idx}
+                css={css`
+                  ${styles.activityItemStyles}
+                  animation: ${fadeSlideIn} 0.3s ease-out forwards;
+                  animation-delay: ${idx * 40}ms;
+                  opacity: 0;
+                `}
+              >
                 <div
                   css={styles.activityIconStyles(
                     activity.severity || (activity.type === 'trade' ? 'success' : 'info'),
