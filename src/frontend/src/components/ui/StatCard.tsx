@@ -61,13 +61,24 @@ const statIconStyles = (color: 'primary' | 'success' | 'error' | 'info') => {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     background: ${bgMap[color]};
     color: ${colorMap[color]};
     border-radius: ${designTokens.borderRadius.md};
     font-size: 1rem;
     flex-shrink: 0;
+    touch-action: manipulation;
+    user-select: none;
+
+    /* Ensure minimum touch target */
+    min-width: 44px;
+    min-height: 44px;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
   `;
 };
 

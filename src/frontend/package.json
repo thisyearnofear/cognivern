@@ -14,8 +14,8 @@
   "dependencies": {
     "@cofhe/react": "0.5.1",
     "@cofhe/sdk": "0.5.1",
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@recallnet/chains": "^0.0.8",
     "@recallnet/sdk": "^0.0.9",
     "@tanstack/react-query": "5.100.5",
