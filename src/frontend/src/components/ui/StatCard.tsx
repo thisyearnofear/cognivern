@@ -3,6 +3,7 @@ import React from 'react';
 import { css } from '@emotion/react';
 import { Card, CardContent } from './Card';
 import { designTokens } from '../../styles/design-system';
+import { AnimatedCounter } from './Animations';
 
 export interface StatCardProps {
   label: string;
@@ -32,7 +33,12 @@ const statCardStyles = css`
     box-shadow 0.2s ease-in-out;
 
   &:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    box-shadow: ${designTokens.shadows.md};
+  }
+
+  &:active {
+    transform: translateY(-1px);
   }
 `;
 
@@ -137,14 +143,25 @@ export const StatCard: React.FC<StatCardProps> = ({
   color = 'primary',
   trend,
 }) => {
+  // Convert to number if possible for animation
+  const numericValue = typeof value === 'number' ? value : parseFloat(value as string);
+
   return (
     <Card css={statCardStyles} interactive>
       <CardContent css={statCardContentStyles}>
         <div css={statIconStyles(color)}>{icon}</div>
         <div css={statDetailsStyles}>
           <div css={statValueContainerStyles}>
-            <span css={statValueStyles}>{value}</span>
-            {total !== undefined && <span css={statTotalStyles}>/ {total}</span>}
+            {typeof value === 'number' ? (
+              <AnimatedCounter value={value} format={(v) => v.toLocaleString()} />
+            ) : (
+              <span css={statValueStyles}>{value}</span>
+            )}
+            {total !== undefined && (
+              <span css={statTotalStyles}>
+                / {typeof total === 'number' ? total.toLocaleString() : total}
+              </span>
+            )}
           </div>
           <span css={statLabelStyles}>{label}</span>
           {trend && (
