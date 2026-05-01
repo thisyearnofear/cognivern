@@ -4,7 +4,8 @@ export { Badge } from './Badge';
 export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './Card';
 export { Modal } from './Modal';
 export { Dialog, ConfirmDialog, PromptDialog, MultiFieldDialog } from './Dialog';
-export { Toast } from './Toast';
+export { Toast, ToastProvider, useToast } from './Toast';
+export { ConfirmationDialog, useConfirmation } from './ConfirmationDialog';
 export { DataTable } from './DataTable';
 export { Form, FormField } from './Form';
 export { Chart } from './Chart';
@@ -27,6 +28,9 @@ export { PageTransition } from './PageTransition';
 export { Tooltip } from './Tooltip';
 export { ErrorBoundary, useErrorBoundary } from './ErrorBoundary';
 export { Tabs, TabList, Tab, TabContent } from './Tabs';
+export { OnboardingGuide, OnboardingChecklist } from './OnboardingGuide';
+export { ProgressBar, StepProgress, CircularProgress } from './Progress';
+export { SearchBar } from './SearchBar';
 
 // Re-export types
 export type { ButtonProps } from './Button';
@@ -39,7 +43,8 @@ export type {
   PromptDialogProps,
   MultiFieldDialogProps,
 } from './Dialog';
-export type { ToastProps } from './Toast';
+export type { ToastProps, ToastType, ToastItem } from './Toast';
+export type { ConfirmationDialogProps, ConfirmType } from './ConfirmationDialog';
 export type { DataTableProps, Column } from './DataTable';
 export type { FormProps, FormFieldProps } from './Form';
 export type { ChartProps, ChartDataPoint } from './Chart';
@@ -49,3 +54,6 @@ export type { PolicyCardProps } from './PolicyCard';
 export type { GovernanceScoreProps } from './GovernanceScore';
 export type { LoadingSpinnerProps } from './LoadingSpinner';
 export type { SkeletonProps, SkeletonTextProps, SkeletonChartProps, SkeletonTableRowProps, AsyncSkeletonProps } from './Skeleton';
+export type { TourStep, OnboardingGuideProps } from './OnboardingGuide';
+export type { ProgressBarProps, ProgressStep, StepProgressProps } from './Progress';
+export type { SearchFilter, SearchSortOption, SearchBarProps } from './SearchBar';
