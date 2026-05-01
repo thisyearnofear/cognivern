@@ -10,6 +10,7 @@ import {
   formErrorStyles,
   formDescriptionStyles,
   formSubmitContainerStyles,
+  designTokens,
 } from '../../styles/design-system';
 
 export interface FormFieldProps {
@@ -158,7 +159,7 @@ export const Form: React.FC<FormProps> = ({
           {field.required && (
             <span
               css={css`
-                color: #ef4444;
+                color: ${designTokens.colors.semantic.error[500]};
                 margin-left: 2px;
               `}
             >
@@ -220,7 +221,7 @@ export const FormField: React.FC<{
         {field.required && (
           <span
             css={css`
-              color: #ef4444;
+              color: ${designTokens.colors.semantic.error[500]};
               margin-left: 2px;
             `}
           >

@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React, { useEffect, useState } from 'react';
-import { toastStyles } from '../../styles/design-system';
-import { css } from '@emotion/react';
-import { keyframes } from '@emotion/react';
+import { toastStyles, designTokens } from '../../styles/design-system';
+import { css, keyframes } from '@emotion/react';
+import { CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 
 const slideIn = keyframes`
   from { transform: translateX(100%); opacity: 0; }
@@ -13,6 +13,13 @@ const slideOut = keyframes`
   from { transform: translateX(0); opacity: 1; }
   to { transform: translateX(100%); opacity: 0; }
 `;
+
+const iconConfig = {
+  success: { Icon: CheckCircle, color: designTokens.colors.semantic.success[600] },
+  error: { Icon: XCircle, color: designTokens.colors.semantic.error[600] },
+  warning: { Icon: AlertTriangle, color: designTokens.colors.semantic.warning[600] },
+  info: { Icon: Info, color: designTokens.colors.semantic.info[600] },
+};
 
 export interface ToastProps {
   type: 'success' | 'error' | 'warning' | 'info';
@@ -35,18 +42,16 @@ export const Toast: React.FC<ToastProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const toastRef = React.useRef<HTMLDivElement>(null);
+  const { Icon, color } = iconConfig[type];
 
   useEffect(() => {
-    // Trigger entrance animation
     const timer = setTimeout(() => setIsVisible(true), 10);
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
     if (duration > 0) {
-      const timer = setTimeout(() => {
-        handleClose();
-      }, duration);
+      const timer = setTimeout(() => handleClose(), duration);
       return () => clearTimeout(timer);
     }
   }, [duration]);
@@ -64,8 +69,11 @@ export const Toast: React.FC<ToastProps> = ({
         animation: ${isVisible && !isExiting ? slideIn : slideOut} 0.3s ease-out forwards;
       `}
       role="alert"
+      aria-live="polite"
     >
-      <span css={toastStyles.icon(type)}>{toastVariants[type].icon}</span>
+      <span css={toastStyles.icon(type)}>
+        <Icon size={20} color={color} />
+      </span>
 
       <div css={toastStyles.content}>
         <p css={toastStyles.message}>{message}</p>
@@ -79,26 +87,11 @@ export const Toast: React.FC<ToastProps> = ({
         )}
       </div>
 
-      <button css={toastStyles.closeButton} onClick={handleClose} title="Close notification">
-        ×
+      <button css={toastStyles.closeButton} onClick={handleClose} aria-label="Close notification">
+        <X size={16} />
       </button>
     </div>
   );
-};
-
-const toastVariants = {
-  success: {
-    icon: '✅',
-  },
-  error: {
-    icon: '❌',
-  },
-  warning: {
-    icon: '⚠️',
-  },
-  info: {
-    icon: 'ℹ️',
-  },
 };
 
 export default Toast;

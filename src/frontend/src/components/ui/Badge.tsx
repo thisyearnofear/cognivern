@@ -19,7 +19,17 @@ const badgeBaseStyles = css`
   font-weight: ${designTokens.typography.fontWeight.medium};
   text-transform: uppercase;
   letter-spacing: 0.025em;
-  transition: all 0.2s ease;
+  transition: all ${designTokens.animation.duration.fast} ${designTokens.animation.easing.easeOut};
+  cursor: default;
+
+  &:hover {
+    filter: brightness(0.95);
+    transform: scale(1.02);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
 `;
 
 const badgeVariantStyles = {
