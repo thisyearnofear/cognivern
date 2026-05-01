@@ -28,13 +28,10 @@ export const buttonStyles = {
       transform: none !important;
     }
 
-    &:focus {
+    /* Focus styles only for keyboard navigation */
+    &:focus-visible {
       outline: 2px solid ${designTokens.colors.primary[500]};
       outline-offset: 2px;
-    }
-
-    &:focus:not(:focus-visible) {
-      outline: none;
     }
 
     // Shimmer effect

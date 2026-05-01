@@ -122,7 +122,8 @@ export const loadingStyles = {
       : size === 'lg'
         ? designTokens.typography.fontSize.lg
         : designTokens.typography.fontSize.base};
-    color: ${designTokens.colors.neutral[600]};
+    /* Theme-aware text color */
+    color: var(--text-secondary);
     text-align: center;
   `,
   skeleton: (
@@ -130,7 +131,8 @@ export const loadingStyles = {
     width?: string | number,
     height?: string | number,
   ) => css`
-    background-color: ${designTokens.colors.neutral[200]};
+    /* Theme-aware skeleton background */
+    background-color: var(--card-bg-elevated);
     position: relative;
     overflow: hidden;
     width: ${typeof width === 'number' ? `${width}px` : width || '100%'};
@@ -161,6 +163,7 @@ export const loadingStyles = {
       height: 200px;
     `}
 
+    /* Dark mode shimmer uses lighter gradient */
     &::after {
       content: '';
       position: absolute;
@@ -168,8 +171,13 @@ export const loadingStyles = {
       left: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
       animation: skeleton-shimmer 1.5s infinite;
+    }
+
+    /* Dark mode: darker shimmer for better contrast */
+    .dark &::after {
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
     }
 
     @keyframes skeleton-shimmer {

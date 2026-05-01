@@ -30,6 +30,12 @@ const badgeBaseStyles = css`
   &:active {
     transform: scale(0.98);
   }
+
+  /* Keyboard navigation focus indicator */
+  &:focus-visible {
+    outline: 2px solid ${designTokens.colors.primary[500]};
+    outline-offset: 2px;
+  }
 `;
 
 const badgeVariantStyles = {

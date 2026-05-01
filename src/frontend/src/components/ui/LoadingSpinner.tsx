@@ -65,7 +65,11 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   };
 
   return (
-    <div css={type === 'skeleton' ? undefined : loadingStyles.container}>
+    <div
+      css={type === 'skeleton' ? undefined : loadingStyles.container}
+      role="status"
+      aria-label={text || 'Loading'}
+    >
       {renderContent()}
       {text && type !== 'skeleton' && <span css={loadingStyles.text(size)}>{text}</span>}
     </div>
