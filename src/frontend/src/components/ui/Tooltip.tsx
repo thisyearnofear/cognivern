@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { css } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
 
@@ -6,10 +6,45 @@ interface TooltipProps {
   content: string;
   children: React.ReactNode;
   position?: 'top' | 'bottom' | 'left' | 'right';
+  /** Delay before showing tooltip (ms) - higher for touch devices */
+  showDelay?: number;
 }
 
-export const Tooltip: React.FC<TooltipProps> = ({ content, children, position = 'top' }) => {
+export const Tooltip: React.FC<TooltipProps> = ({
+  content,
+  children,
+  position = 'top',
+  showDelay = 200,
+}) => {
   const [isVisible, setIsVisible] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTouchDevice = useRef(false);
+
+  const showTooltip = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    // Longer delay for touch devices to avoid accidental triggers
+    const delay = isTouchDevice.current ? showDelay * 3 : showDelay;
+    timeoutRef.current = setTimeout(() => setIsVisible(true), delay);
+  };
+
+  const hideTooltip = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setIsVisible(false);
+  };
+
+  const handleTouchStart = () => {
+    isTouchDevice.current = true;
+    // On touch, toggle visibility for mobile
+    setIsVisible(true);
+  };
+
+  const handleTouchEnd = () => {
+    // Keep visible briefly after touch for reading
+    setTimeout(() => setIsVisible(false), 2000);
+  };
 
   const containerStyles = css`
     display: inline-block;
@@ -115,11 +150,19 @@ export const Tooltip: React.FC<TooltipProps> = ({ content, children, position = 
   return (
     <div
       css={containerStyles}
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
+      onMouseEnter={showTooltip}
+      onMouseLeave={hideTooltip}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       {children}
-      <div css={tooltipStyles}>{content}</div>
+      <div
+        css={tooltipStyles}
+        role="tooltip"
+        aria-hidden={!isVisible}
+      >
+        {content}
+      </div>
     </div>
   );
 };
