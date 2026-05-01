@@ -60,7 +60,8 @@ export const getFormInputStyles = (hasError: boolean = false) => css`
     color: ${designTokens.colors.neutral[400]};
   }
 
-  &:focus {
+  /* Only show focus styles for keyboard navigation (accessibility) */
+  &:focus-visible {
     border-color: ${hasError
       ? designTokens.colors.semantic.error
       : designTokens.colors.primary[500]};

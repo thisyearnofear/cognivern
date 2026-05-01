@@ -1,5 +1,5 @@
-import React from 'react';
-import { css } from '@emotion/react';
+import React, { useState } from 'react';
+import { css, keyframes } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
 import { Button } from './Button';
 import { Plus, Search, Shield, Users } from 'lucide-react';
@@ -14,6 +14,7 @@ interface EmptyStateProps {
   onAction?: () => void;
   icon?: React.ReactNode;
   compact?: boolean;
+  isLoading?: boolean;
 }
 
 /**
@@ -28,7 +29,15 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onAction,
   icon,
   compact = false,
+  isLoading = false,
 }) => {
+  const [mounted, setMounted] = useState(false);
+
+  // Entrance animation
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Default configs by type
   const configs: Record<
     EmptyStateType,
@@ -75,6 +84,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
   return (
     <div
+      role="status"
+      aria-live="polite"
       css={css`
         display: flex;
         flex-direction: column;
@@ -83,11 +94,17 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         padding: ${compact ? designTokens.spacing[4] : designTokens.spacing[8]};
         text-align: center;
         min-height: ${compact ? 120 : 200}px;
+
+        /* Entrance animation */
+        opacity: ${mounted ? 1 : 0};
+        transform: translateY(${mounted ? 0 : 16}px);
+        transition: all ${designTokens.animation.duration.slow} ${designTokens.animation.easing.easeOut};
       `}
     >
       <div
         css={css`
-          color: ${designTokens.colors.neutral[300]};
+          /* Theme-aware icon color */
+          color: var(--text-muted);
           margin-bottom: ${designTokens.spacing[3]};
         `}
       >
