@@ -1,5 +1,6 @@
 import { createCofheClient, createCofheConfig } from "@cofhe/sdk/node";
-import { CofheClient, Encryptable } from "@cofhe/sdk";
+import { CofheClient, Encryptable, FheTypes } from "@cofhe/sdk";
+import { PermitUtils } from "@cofhe/sdk/permits";
 import { createPublicClient, createWalletClient, http, parseAbi, Hex, decodeEventLog } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
@@ -331,7 +332,17 @@ export class FhenixPolicyService {
   }
 
   /**
-   * Decrypt a value for viewing (for auditor use)
+   * Decrypt a value for viewing (for auditor use).
+   *
+   * Uses the CoFHE SDK's decryptForView builder:
+   *   client.decryptForView(ctHash, utype)
+   *     .setChainId(chainId)
+   *     .withPermit(permit)
+   *     .execute()
+   *
+   * @param contractAddress - The Fhenix contract address (used for chain context)
+   * @param encryptedValue  - JSON string with { ctHash, utype, chainId? } or a plain hex ctHash
+   * @param permit          - Serialized CoFHE Permit (JSON string)
    */
   async unsealValue(
     contractAddress: string,
@@ -347,21 +358,44 @@ export class FhenixPolicyService {
     try {
       parsedPermit = JSON.parse(permit);
     } catch (e) {
-      throw new Error("Invalid permit format");
+      throw new Error("Invalid permit format — must be a JSON-serialized CoFHE Permit");
     }
 
-    // For now, return a placeholder - actual implementation would use
-    // client.decryptForView or client.decryptForTx
+    // Parse the encrypted value — accept either a JSON envelope or a bare ctHash hex/bigint
+    let ctHash: bigint;
+    let utype: number = FheTypes.Uint128; // default to uint128 (our spend amounts)
+    let chainId: number = 84532; // default to Fhenix Base Sepolia
+
+    try {
+      const parsed = JSON.parse(encryptedValue);
+      ctHash = BigInt(parsed.ctHash);
+      if (parsed.utype !== undefined) utype = Number(parsed.utype);
+      if (parsed.chainId !== undefined) chainId = Number(parsed.chainId);
+    } catch {
+      // Treat as a bare hex/decimal ctHash string
+      ctHash = BigInt(encryptedValue);
+    }
+
     logger.info(
-      `Unsealing value for contract ${contractAddress} with permit`
+      `Unsealing ctHash=${ctHash} utype=${utype} chainId=${chainId} contract=${contractAddress}`
     );
 
-    // This is a simplified implementation - in production, you'd:
-    // 1. Parse the encrypted value to get ctHash and utype
-    // 2. Use client.decryptForView or client.decryptForTx with the permit
-    // 3. Return the decrypted value
+    const unsealedItem = await this.withTimeout(
+      this.client
+        .decryptForView(ctHash, utype as FheTypes)
+        .setChainId(chainId)
+        .withPermit(parsedPermit)
+        .execute(),
+      this.config.evaluateTimeoutMs || 30000
+    );
 
-    return "0"; // Placeholder
+    // unsealedItem is typed as UnsealedItem — extract the numeric value
+    const value =
+      unsealedItem != null && typeof unsealedItem === "object" && "value" in (unsealedItem as object)
+        ? (unsealedItem as any).value
+        : unsealedItem;
+
+    return String(value);
   }
 
   /**
