@@ -11,6 +11,7 @@ import Header from './Header';
 import MobileBottomTabNav from './MobileBottomTabNav';
 import Toast from '../ui/Toast';
 import NotificationCenter from '../ui/NotificationCenter';
+import DemoBanner from '../onboarding/DemoBanner';
 
 // Main layout component with responsive behavior
 const AppLayoutContent: React.FC = () => {
@@ -162,6 +163,7 @@ const AppLayoutContent: React.FC = () => {
       <ImprovedSidebar />
       <Header />
       <main css={mainStyles}>
+        <DemoBanner />
         <div css={contentWrapperStyles}>
           <Outlet />
         </div>

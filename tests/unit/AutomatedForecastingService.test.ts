@@ -12,7 +12,7 @@ const mockSapienceService = {
 test("AutomatedForecastingService - Horizon Sorting Logic", async (t) => {
   const service = new AutomatedForecastingService({
     sapienceService: mockSapienceService,
-    llmApiKey: "test-key",
+    llmApiKey: "test-key", // pragma: allowlist secret
   });
 
   await t.test("it should sort markets by horizon descending", async () => {

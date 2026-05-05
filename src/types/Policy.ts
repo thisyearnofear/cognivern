@@ -19,7 +19,7 @@ export interface Policy {
 
 export interface PolicyRule {
   id: string;
-  type: "allow" | "deny" | "require" | "rate_limit";
+  type: "allow" | "deny" | "require" | "rate_limit" | "contract_audit";
   condition: string;
   action: PolicyAction;
   metadata: Record<string, any>;
@@ -30,5 +30,5 @@ export interface PolicyAction {
   parameters: Record<string, any>;
 }
 
-export type PolicyRuleType = "allow" | "deny" | "require" | "rate_limit";
+export type PolicyRuleType = "allow" | "deny" | "require" | "rate_limit" | "contract_audit";
 export type PolicyActionType = "block" | "log" | "notify" | "escalate";
