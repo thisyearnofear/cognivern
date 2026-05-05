@@ -189,27 +189,38 @@ Respond with JSON: { "hasExploitRisk": boolean, "patterns": string[] }`;
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
     try {
-      const requestBody: Record<string, unknown> = {
-        address: contractAddress,
-        blockchain: "ethereum", // Default, could be configurable
-        audit_type: "full",
-      };
+      // Build the audit prompt
+      let auditPrompt = `Audit the following smart contract for security vulnerabilities:
+Contract Address: ${contractAddress}
+Blockchain: Ethereum
+
+Please analyze for:
+- Reentrancy vulnerabilities
+- Flash loan attack vectors
+- Price oracle manipulation
+- Access control issues
+- Unchecked external calls
+- Integer overflow/underflow
+- Gas optimization issues
+
+Provide a security score (0-100), list findings with severity (critical/high/medium/low/informational), and a summary.`;
 
       if (options?.sourceCode) {
-        requestBody.source_code = options.sourceCode;
-      }
-      if (options?.bytecode) {
-        requestBody.bytecode = options.bytecode;
+        auditPrompt += `\n\nSource Code:\n${options.sourceCode}`;
       }
 
-      const response = await fetch(`${this.config.baseUrl}/v1/audit/smart-contract`, {
+      const response = await fetch(`${this.config.baseUrl}/chat/stream`, {
         method: "POST",
         signal: controller.signal,
         headers: {
           "Authorization": `Bearer ${this.config.apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          model: "smart_contract_auditor",
+          question: auditPrompt,
+          chatHistory: "off"
+        }),
       });
 
       if (!response.ok) {
@@ -217,8 +228,20 @@ Respond with JSON: { "hasExploitRisk": boolean, "patterns": string[] }`;
         throw new Error(`ChainGPT Audit API error: ${response.status} - ${error}`);
       }
 
-      const data = await response.json();
-      return this.normalizeAuditResponse(data);
+      // Read streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          fullResponse += decoder.decode(value, { stream: true });
+        }
+      }
+
+      return this.parseAuditText(fullResponse, contractAddress);
 
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
@@ -230,12 +253,80 @@ Respond with JSON: { "hasExploitRisk": boolean, "patterns": string[] }`;
     }
   }
 
+  /**
+   * Parse the text response from ChainGPT auditor into structured AuditResult
+   */
+  private parseAuditText(text: string, contractAddress: string): AuditResult {
+    // Extract score from response (look for patterns like "Score: 85" or "85/100")
+    const scoreMatch = text.match(/(?:score|rating|security score)[:\s]*(\d+)(?:\/100)?/i);
+    const score = scoreMatch ? parseInt(scoreMatch[1], 10) : this.estimateScore(text);
+
+    // Extract findings with severity
+    const findings: AuditFinding[] = [];
+    const severityPattern = /(?:critical|high|medium|low|informational)/gi;
+    const severityMatches = text.match(severityPattern) || [];
+
+    // Look for bullet points or numbered findings
+    const findingPattern = /(?:[-•*]|\d+\.)\s*([^\n]+?)(?:\s*\(?(critical|high|medium|low|informational)\)?)?/gi;
+    let match;
+    while ((match = findingPattern.exec(text)) !== null) {
+      const title = match[1].trim();
+      const severity = (match[2]?.toLowerCase() || "informational") as AuditFinding["severity"];
+
+      if (title.length > 10 && title.length < 200) {
+        findings.push({
+          title,
+          description: "",
+          severity,
+        });
+      }
+    }
+
+    // If no findings extracted, create a summary finding
+    if (findings.length === 0) {
+      const hasIssues = /vulnerability|issue|warning|risk|exploit/i.test(text);
+      if (hasIssues) {
+        findings.push({
+          title: "Potential issues detected",
+          description: text.substring(0, 500),
+          severity: score < 70 ? "medium" : "low",
+        });
+      }
+    }
+
+    const hasCritical = findings.some(f => f.severity === "critical");
+    const hasHigh = findings.some(f => f.severity === "high");
+
+    return {
+      safe: score >= 70 && !hasCritical && !hasHigh,
+      score,
+      severity: hasCritical ? "critical" : hasHigh ? "high" : score < 50 ? "medium" : "low",
+      findings,
+      summary: text.substring(0, 300),
+      auditedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Estimate score from text content
+   */
+  private estimateScore(text: string): number {
+    const lowerText = text.toLowerCase();
+
+    if (/critical|severe|major vulnerability|high risk/i.test(text)) return 30;
+    if (/high.*risk|significant|serious/i.test(text)) return 45;
+    if (/medium.*risk|moderate|warning/i.test(text)) return 60;
+    if (/low.*risk|minor|informational|no.*issues|secure|safe|well.*written/i.test(text)) return 85;
+
+    return 70; // Default moderate score
+  }
+
   private async callGovernanceAPI(prompt: string): Promise<string> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
     try {
-      const response = await fetch(`${this.config.baseUrl}/v1/chat/completions`, {
+      const response = await fetch(`${this.config.baseUrl}/chat/stream`, {
         method: "POST",
         signal: controller.signal,
         headers: {
@@ -243,16 +334,9 @@ Respond with JSON: { "hasExploitRisk": boolean, "patterns": string[] }`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "cgpt-standard",
-          messages: [
-            {
-              role: "system",
-              content: "You are a Web3 security auditor. Return only valid JSON."
-            },
-            { role: "user", content: prompt }
-          ],
-          temperature: 0.1,
-          max_tokens: 1024,
+          model: "smart_contract_auditor",
+          question: prompt,
+          chatHistory: "off"
         }),
       });
 
@@ -260,8 +344,20 @@ Respond with JSON: { "hasExploitRisk": boolean, "patterns": string[] }`;
         throw new Error(`ChainGPT API error: ${response.status}`);
       }
 
-      const data = await response.json();
-      return data.choices?.[0]?.message?.content || "{}";
+      // Read streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          fullResponse += decoder.decode(value, { stream: true });
+        }
+      }
+
+      return fullResponse || "{}";
 
     } finally {
       clearTimeout(timeoutId);
