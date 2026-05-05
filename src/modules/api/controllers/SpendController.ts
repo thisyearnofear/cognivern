@@ -5,7 +5,7 @@ import {
   SpendIntent,
   SpendExecutionContext,
 } from "../../../services/OwsWalletService.js";
-import { getChainGPTAuditService } from "../../../services/ChainGPTAuditService.js";
+import { getChainGPTAuditService, AuditResult } from "../../../services/ChainGPTAuditService.js";
 import crypto from "node:crypto";
 import { Logger } from "../../../shared/logging/Logger.js";
 
@@ -39,6 +39,41 @@ export class SpendController {
     };
   }
 
+  /**
+   * Run ChainGPT audit on contract address if available
+   * Returns audit result or null if not applicable
+   */
+  private async auditContract(recipient: string): Promise<{
+    decision: "approve" | "hold" | "deny";
+    audit: AuditResult;
+  } | null> {
+    const auditService = getChainGPTAuditService();
+    const isContractAddress = /^0x[a-fA-F0-9]{40}$/.test(recipient);
+
+    if (!auditService || !isContractAddress) {
+      return null;
+    }
+
+    logger.info(`Running ChainGPT audit for contract: ${recipient}`);
+    return auditService.auditContract(recipient);
+  }
+
+  /**
+   * Apply audit decision to override spend status if needed
+   */
+  private applyAuditDecision(
+    auditResult: { decision: "approve" | "hold" | "deny" },
+    currentStatus: "approved" | "held" | "denied",
+  ): { status: "approved" | "held" | "denied"; override: boolean } {
+    if (auditResult.decision === "deny" && currentStatus === "approved") {
+      return { status: "denied", override: true };
+    }
+    if (auditResult.decision === "hold" && currentStatus === "approved") {
+      return { status: "held", override: true };
+    }
+    return { status: currentStatus, override: false };
+  }
+
   private async executeIntent(
     req: Request,
     res: Response,
@@ -56,14 +91,55 @@ export class SpendController {
         ? intent.metadata.walletId
         : undefined;
 
+    // Run ChainGPT audit before execution
+    let contractAudit = null;
+    try {
+      const auditResult = await this.auditContract(intent.recipient);
+      if (auditResult) {
+        const auditService = getChainGPTAuditService();
+        contractAudit = {
+          address: intent.recipient,
+          decision: auditResult.decision,
+          score: auditResult.audit.score,
+          safe: auditResult.audit.safe,
+          severity: auditResult.audit.severity,
+          findingsCount: auditResult.audit.findings.length,
+          summary: auditService?.getAuditSummary(auditResult.audit) || "",
+          findings: auditResult.audit.findings.slice(0, 5),
+        };
+
+        // Block execution if audit denies
+        if (auditResult.decision === "deny") {
+          logger.warn(`Spend blocked by ChainGPT audit: ${intent.recipient}`);
+          res.status(403).json({
+            success: false,
+            error: "Spend blocked by security audit",
+            data: {
+              intentId: intent.id,
+              status: "denied",
+              contractAudit,
+            },
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+      }
+    } catch (auditError) {
+      logger.warn("ChainGPT audit failed, continuing with spend:", auditError);
+    }
+
     const result = await owsWalletService.executeSpend(intent, {
       apiKeyToken: owsScopedAccess,
       walletId,
       ...context,
     });
+
     res.json({
       success: true,
-      data: result,
+      data: {
+        ...result,
+        contractAudit,
+      },
       timestamp: new Date().toISOString(),
     });
   }
@@ -192,15 +268,12 @@ export class SpendController {
       // Run policy preview
       const preview = await owsWalletService.previewSpend(intent);
 
-      // ChainGPT contract audit for contract addresses
+      // ChainGPT contract audit
       let contractAudit = null;
-      const auditService = getChainGPTAuditService();
-      const isContractAddress = /^0x[a-fA-F0-9]{40}$/.test(parse.data.recipient);
-
-      if (auditService && isContractAddress) {
-        logger.info(`Running ChainGPT audit for contract: ${parse.data.recipient}`);
-        try {
-          const auditResult = await auditService.auditContract(parse.data.recipient);
+      try {
+        const auditResult = await this.auditContract(parse.data.recipient);
+        if (auditResult) {
+          const auditService = getChainGPTAuditService();
           contractAudit = {
             address: parse.data.recipient,
             decision: auditResult.decision,
@@ -208,33 +281,27 @@ export class SpendController {
             safe: auditResult.audit.safe,
             severity: auditResult.audit.severity,
             findingsCount: auditResult.audit.findings.length,
-            summary: auditService.getAuditSummary(auditResult.audit),
-            findings: auditResult.audit.findings.slice(0, 5), // Top 5 findings
+            summary: auditService?.getAuditSummary(auditResult.audit) || "",
+            findings: auditResult.audit.findings.slice(0, 5),
           };
 
-          // Override policy decision if audit finds critical issues
-          if (auditResult.decision === "deny" && preview.status === "approved") {
-            preview.status = "denied";
+          // Override policy decision if audit finds issues
+          const override = this.applyAuditDecision(auditResult, preview.status);
+          if (override.override) {
+            preview.status = override.status;
             preview.reason = `ChainGPT Audit: ${contractAudit.summary}`;
             preview.simulation.wouldExecute = false;
             preview.simulation.warnings.push(
-              `Contract audit failed: ${contractAudit.summary}`
-            );
-          } else if (auditResult.decision === "hold" && preview.status === "approved") {
-            preview.status = "held";
-            preview.reason = `ChainGPT Audit: ${contractAudit.summary}`;
-            preview.simulation.wouldExecute = false;
-            preview.simulation.warnings.push(
-              `Contract audit requires review: ${contractAudit.summary}`
+              `Contract audit ${override.status === "denied" ? "failed" : "requires review"}: ${contractAudit.summary}`
             );
           }
-        } catch (auditError) {
-          logger.warn("ChainGPT audit failed, continuing without audit:", auditError);
-          contractAudit = {
-            address: parse.data.recipient,
-            error: "Audit service unavailable",
-          };
         }
+      } catch (auditError) {
+        logger.warn("ChainGPT audit failed, continuing without audit:", auditError);
+        contractAudit = {
+          address: parse.data.recipient,
+          error: "Audit service unavailable",
+        };
       }
 
       res.json({
