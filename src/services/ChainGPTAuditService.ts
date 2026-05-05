@@ -189,21 +189,23 @@ Respond with JSON: { "hasExploitRisk": boolean, "patterns": string[] }`;
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
 
     try {
-      // Build the audit prompt
-      let auditPrompt = `Audit the following smart contract for security vulnerabilities:
+      // Build the audit prompt with strict output format
+      let auditPrompt = `Audit the following smart contract for security vulnerabilities.
 Contract Address: ${contractAddress}
 Blockchain: Ethereum
 
-Please analyze for:
-- Reentrancy vulnerabilities
-- Flash loan attack vectors
-- Price oracle manipulation
-- Access control issues
-- Unchecked external calls
-- Integer overflow/underflow
-- Gas optimization issues
+REQUIRED OUTPUT FORMAT (follow exactly):
+SCORE: [number 0-100]
+SAFE: [true/false]
+SEVERITY: [critical/high/medium/low/informational]
 
-Provide a security score (0-100), list findings with severity (critical/high/medium/low/informational), and a summary.`;
+FINDINGS:
+- [severity] | [title] | [brief description]
+- [severity] | [title] | [brief description]
+
+SUMMARY: [one paragraph summary]
+
+Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control, unchecked calls, overflow/underflow.`;
 
       if (options?.sourceCode) {
         auditPrompt += `\n\nSource Code:\n${options.sourceCode}`;
@@ -255,70 +257,141 @@ Provide a security score (0-100), list findings with severity (critical/high/med
 
   /**
    * Parse the text response from ChainGPT auditor into structured AuditResult
+   * Handles both structured format (from our prompt) and freeform responses
    */
   private parseAuditText(text: string, contractAddress: string): AuditResult {
-    // Extract score from response (look for patterns like "Score: 85" or "85/100")
-    const scoreMatch = text.match(/(?:score|rating|security score)[:\s]*(\d+)(?:\/100)?/i);
-    const score = scoreMatch ? parseInt(scoreMatch[1], 10) : this.estimateScore(text);
+    // Try structured format first (from our prompted output)
+    const structuredScore = text.match(/SCORE:\s*(\d+)/i);
+    const structuredSafe = text.match(/SAFE:\s*(true|false)/i);
+    const structuredSeverity = text.match(/SEVERITY:\s*(critical|high|medium|low|informational)/i);
+    const structuredSummary = text.match(/SUMMARY:\s*(.+?)(?:\n|$)/i);
 
-    // Extract findings with severity
+    // Extract findings from structured format: "- [severity] | [title] | [description]"
     const findings: AuditFinding[] = [];
-    const severityPattern = /(?:critical|high|medium|low|informational)/gi;
-    const severityMatches = text.match(severityPattern) || [];
-
-    // Look for bullet points or numbered findings
-    const findingPattern = /(?:[-•*]|\d+\.)\s*([^\n]+?)(?:\s*\(?(critical|high|medium|low|informational)\)?)?/gi;
+    const structuredFindingPattern = /-\s*(critical|high|medium|low|informational)\s*\|\s*([^|]+)\|\s*([^\n]+)/gi;
     let match;
-    while ((match = findingPattern.exec(text)) !== null) {
-      const title = match[1].trim();
-      const severity = (match[2]?.toLowerCase() || "informational") as AuditFinding["severity"];
 
-      if (title.length > 10 && title.length < 200) {
-        findings.push({
-          title,
-          description: "",
-          severity,
-        });
-      }
+    while ((match = structuredFindingPattern.exec(text)) !== null) {
+      findings.push({
+        severity: match[1].toLowerCase() as AuditFinding["severity"],
+        title: match[2].trim(),
+        description: match[3].trim(),
+      });
     }
 
-    // If no findings extracted, create a summary finding
+    // Fallback: extract from markdown-style headers if structured format failed
     if (findings.length === 0) {
-      const hasIssues = /vulnerability|issue|warning|risk|exploit/i.test(text);
-      if (hasIssues) {
-        findings.push({
-          title: "Potential issues detected",
-          description: text.substring(0, 500),
-          severity: score < 70 ? "medium" : "low",
-        });
+      const markdownPattern = /(?:^|\n)#{1,3}\s*(?:\d+\.\s*)?([^\n]+?)(?:\n|$)/g;
+      const severityInTitle = /(critical|high|medium|low|informational)/i;
+
+      while ((match = markdownPattern.exec(text)) !== null) {
+        const title = match[1].trim();
+        const severityMatch = title.match(severityInTitle);
+
+        if (severityMatch) {
+          findings.push({
+            severity: severityMatch[1].toLowerCase() as AuditFinding["severity"],
+            title: title.replace(severityMatch[0], '').replace(/[:\-]$/, '').trim(),
+            description: "",
+          });
+        }
       }
     }
 
+    // Fallback: look for bullet points with severity keywords
+    if (findings.length === 0) {
+      const bulletPattern = /(?:[-•*]|\d+\.)\s*([^\n]*?(?:critical|high|medium|low|informational)[^\n]*)/gi;
+
+      while ((match = bulletPattern.exec(text)) !== null) {
+        const line = match[1].trim();
+        const sevMatch = line.match(/(critical|high|medium|low|informational)/i);
+
+        if (sevMatch && line.length > 10) {
+          findings.push({
+            severity: sevMatch[1].toLowerCase() as AuditFinding["severity"],
+            title: line.substring(0, 100),
+            description: "",
+          });
+        }
+      }
+    }
+
+    // Determine score
+    const score = structuredScore
+      ? parseInt(structuredScore[1], 10)
+      : this.estimateScoreFromFindings(findings, text);
+
+    // Determine overall severity
     const hasCritical = findings.some(f => f.severity === "critical");
     const hasHigh = findings.some(f => f.severity === "high");
+    const hasMedium = findings.some(f => f.severity === "medium");
+
+    const severity = structuredSeverity
+      ? structuredSeverity[1].toLowerCase() as AuditResult["severity"]
+      : hasCritical ? "critical"
+      : hasHigh ? "high"
+      : hasMedium ? "medium"
+      : "low";
+
+    // Determine safety
+    const safe = structuredSafe
+      ? structuredSafe[1].toLowerCase() === "true"
+      : score >= 70 && !hasCritical && !hasHigh;
+
+    // Extract summary
+    const summary = structuredSummary
+      ? structuredSummary[1].trim()
+      : this.extractSummary(text);
 
     return {
-      safe: score >= 70 && !hasCritical && !hasHigh,
+      safe,
       score,
-      severity: hasCritical ? "critical" : hasHigh ? "high" : score < 50 ? "medium" : "low",
+      severity,
       findings,
-      summary: text.substring(0, 300),
+      summary,
       auditedAt: new Date().toISOString(),
     };
   }
 
   /**
-   * Estimate score from text content
+   * Estimate score based on findings severity
    */
-  private estimateScore(text: string): number {
-    const lowerText = text.toLowerCase();
+  private estimateScoreFromFindings(findings: AuditFinding[], text: string): number {
+    if (findings.length === 0) {
+      // No findings - check if text suggests it's safe
+      if (/no.*(?:issues|vulnerabilities|findings)|secure|safe|well.*written/i.test(text)) {
+        return 85;
+      }
+      return 70; // Default moderate
+    }
 
-    if (/critical|severe|major vulnerability|high risk/i.test(text)) return 30;
-    if (/high.*risk|significant|serious/i.test(text)) return 45;
-    if (/medium.*risk|moderate|warning/i.test(text)) return 60;
-    if (/low.*risk|minor|informational|no.*issues|secure|safe|well.*written/i.test(text)) return 85;
+    const hasCritical = findings.some(f => f.severity === "critical");
+    const hasHigh = findings.some(f => f.severity === "high");
+    const hasMedium = findings.some(f => f.severity === "medium");
 
-    return 70; // Default moderate score
+    if (hasCritical) return 25;
+    if (hasHigh) return 40;
+    if (hasMedium) return 60;
+    return 75;
+  }
+
+  /**
+   * Extract summary from text
+   */
+  private extractSummary(text: string): string {
+    // Look for summary section
+    const summaryMatch = text.match(/(?:summary|conclusion|overview):\s*([^\n]+(?:\n[^\n]+)?)/i);
+    if (summaryMatch) {
+      return summaryMatch[1].trim().substring(0, 300);
+    }
+
+    // Fallback: first substantial paragraph
+    const paragraphs = text.split('\n\n').filter(p => p.trim().length > 50);
+    if (paragraphs.length > 0) {
+      return paragraphs[0].trim().substring(0, 300);
+    }
+
+    return text.substring(0, 300);
   }
 
   private async callGovernanceAPI(prompt: string): Promise<string> {
