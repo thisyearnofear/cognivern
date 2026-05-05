@@ -6,6 +6,7 @@ import { useAppStore } from '../../stores/appStore';
 import { designTokens } from '../../styles/design-system';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { Button } from '../ui/Button';
+import { ConnectionModal } from '../web3/ConnectionModal';
 import {
   Brain, ChevronRight, CheckCircle2, Wallet, Zap,
   Shield, Play, Target, Rocket, Eye, Star, Share2,

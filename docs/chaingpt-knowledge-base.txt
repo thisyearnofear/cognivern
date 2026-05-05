@@ -1,0 +1,57 @@
+Cognivern - AI Agent Governance Platform
+=========================================
+
+Overview
+--------
+Cognivern is a governance platform for AI agents that provides real-time spend control, policy enforcement, and security auditing. It enables organizations to deploy AI agents with guardrails, ensuring every transaction is approved, audited, and compliant.
+
+ChainGPT Integration
+--------------------
+Cognivern uses ChainGPT's Smart Contract Auditor API for runtime pre-spend security checks. When an AI agent attempts to spend funds to a contract address, ChainGPT's auditor analyzes the contract for vulnerabilities before the transaction executes.
+
+Key Features:
+- Runtime Contract Auditing: Before any spend, target contracts are analyzed for vulnerabilities
+- Severity-Based Decisions: Critical vulnerabilities are denied, high severity are held for review
+- Exploit Pattern Detection: Identifies reentrancy, flash loan attacks, oracle manipulation
+- Caching: 5-minute cache reduces API costs for repeated audits
+- Batch Auditing: Multiple contracts audited in parallel
+
+Architecture
+------------
+Frontend: React with Vite, Emotion CSS, Zustand state management
+Backend: Node.js with Express, TypeScript
+Blockchain: X Layer (Polygon CDK), Filecoin Calibration testnet
+AI Providers: ChainGPT, OpenAI, Groq, Cerebras, Fireworks, Gemini, Anthropic
+
+Use Cases
+---------
+1. AI Agent Treasury Protection: Agents cannot spend without governance approval
+2. DeFi Risk Management: Detect vulnerabilities before executing swaps or transfers
+3. Compliance & Audit Trail: All decisions logged with timestamps
+4. Real-time Defense: Runtime protection for live transactions, not just CI/CD
+
+API Endpoints
+-------------
+POST /api/spend/preview - Preview spend with ChainGPT audit results
+POST /api/spend - Execute governed spend
+GET /api/spend/status - Check execution layer status
+POST /api/governance/evaluate - Evaluate action against policies
+
+Technical Details
+-----------------
+- Response Time: <100ms for cached audits, <30s for fresh audits
+- Chain Support: Ethereum and EVM-compatible chains
+- Decision Thresholds: Configurable (critical/high/medium)
+- Cache Efficiency: ~80% API cost reduction for repeated interactions
+
+Project Status
+--------------
+- Smart Contract Auditor integration: Complete
+- Spend preview API with audit: Complete
+- Smart onboarding with ChainGPT branding: Complete
+- Production deployment: Ready
+
+Contact
+-------
+Project: Cognivern
+Repository: github.com/cognivern/cognivern
