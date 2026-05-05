@@ -11,7 +11,7 @@ describe('IntentController', () => {
   describe('getMetrics', () => {
     it('should return initial metrics with zero values', () => {
       const metrics = controller.getMetrics();
-      
+
       expect(metrics.totalRequests).toBe(0);
       expect(metrics.successfulRequests).toBe(0);
       expect(metrics.failedRequests).toBe(0);

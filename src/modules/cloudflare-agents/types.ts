@@ -28,7 +28,15 @@ export interface AgentMetrics {
 export interface AgentConfiguration {
   maxThoughtHistory: number;
   enableAuditLogging: boolean;
-  modelPreference: "auto" | "workers-ai" | "fireworks" | "kilocode" | "openai" | "gemini" | "anthropic";
+  modelPreference:
+    | "auto"
+    | "workers-ai"
+    | "fireworks"
+    | "kilocode"
+    | "openai"
+    | "gemini"
+    | "anthropic"
+    | "chaingpt";
   enableVoiceBriefing?: boolean;
   userApiKeys?: {
     fireworks?: string;
@@ -36,6 +44,7 @@ export interface AgentConfiguration {
     openai?: string;
     gemini?: string;
     anthropic?: string;
+    chaingpt?: string;
   };
 }
 
@@ -131,6 +140,10 @@ export interface MultiModelConfig {
       enabled: boolean;
       model: string;
     };
+    chaingpt?: {
+      enabled: boolean;
+      model: string;
+    };
   };
   fallbackOrder: string[];
   timeoutMs: number;
@@ -141,6 +154,7 @@ export interface MultiModelConfig {
     openai?: string;
     gemini?: string;
     anthropic?: string;
+    chaingpt?: string;
   };
 }
 
@@ -153,5 +167,6 @@ export interface ProviderPreference {
     openai?: string;
     gemini?: string;
     anthropic?: string;
+    chaingpt?: string;
   };
 }

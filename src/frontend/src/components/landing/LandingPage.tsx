@@ -7,6 +7,7 @@ import { Button } from '../ui/Button';
 import { Logo } from '../ui/Logo';
 import { HeroIllustration } from './HeroIllustration';
 import { Card, CardContent } from '../ui/Card';
+import { useAppStore } from '../../stores/appStore';
 import {
   Shield,
   Wallet,
@@ -21,6 +22,7 @@ import {
   Users,
   Clock,
   Eye,
+  Activity,
 } from 'lucide-react';
 
 // Stagger animation for elements
@@ -51,6 +53,7 @@ interface LandingPageProps {
 export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
+  const enterDemoMode = useAppStore((state) => state.enterDemoMode);
 
   useEffect(() => {
     setIsVisible(true);
@@ -88,7 +91,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
     navigate('/onboarding');
   };
 
+  // Primary conversion path: visitors get to see a working product
+  // immediately, with a sticky DemoBanner nudging them toward setup.
+  const handleTryDemo = () => {
+    enterDemoMode();
+    navigate('/dashboard');
+  };
+
   const handleExplore = () => {
+    enterDemoMode();
     navigate('/dashboard');
   };
 
@@ -156,7 +167,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             Open Wallet Standard
           </span>
           <Button variant="ghost" onClick={handleExplore}>
-            Go to Dashboard →
+            Try Demo →
           </Button>
         </div>
       </header>
@@ -199,7 +210,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               letter-spacing: 0.02em;
             `}
           >
-            Spend Control for Autonomous Agents
+            For teams running AI agents that move money
           </span>
         </div>
 
@@ -223,13 +234,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             }
           `}
         >
-          Let Agents Execute{' '}
+          Govern every agent transaction.{' '}
           <span
             css={css`
               color: #0ea5e9;
             `}
           >
-            Without Losing Control
+            Without slowing builders down.
           </span>
         </h1>
 
@@ -238,14 +249,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           css={css`
             font-size: ${designTokens.typography.fontSize.lg};
             color: #475569;
-            max-width: 540px;
+            max-width: 580px;
             margin: 0 auto ${designTokens.spacing[8]};
             line-height: 1.6;
             animation: ${fadeInUp} 0.6s ease-out 0.6s both;
           `}
         >
-          Cognivern is the control plane for governed agent spend. Connect your treasury, define
-          approval rules, and review every decision with audit-ready evidence.
+          Cognivern checks every spend against your policy, holds risky moves for review, and
+          gives you cryptographic audit evidence — in under 100&nbsp;ms. No wallet required to
+          look around.
         </p>
 
         <div
@@ -254,12 +266,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             gap: ${designTokens.spacing[4]};
             justify-content: center;
             flex-wrap: wrap;
-            margin-bottom: ${designTokens.spacing[12]};
+            margin-bottom: ${designTokens.spacing[6]};
             animation: ${fadeInUp} 0.6s ease-out 0.7s both;
           `}
         >
           <Button
             variant="primary"
+            size="lg"
+            onClick={handleTryDemo}
+            css={css`
+              display: flex;
+              align-items: center;
+              gap: ${designTokens.spacing[2]};
+              background: linear-gradient(135deg, ${designTokens.colors.primary[600]}, ${designTokens.colors.primary[700]});
+              box-shadow: 0 4px 12px ${designTokens.colors.primary[500]}40;
+              &:hover {
+                box-shadow: 0 6px 16px ${designTokens.colors.primary[500]}60;
+                transform: translateY(-1px);
+              }
+            `}
+          >
+            Try Live Demo <ArrowRight size={20} />
+          </Button>
+          <Button
+            variant="outline"
             size="lg"
             onClick={handleGetStarted}
             css={css`
@@ -268,20 +298,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               gap: ${designTokens.spacing[2]};
             `}
           >
-            Get Started <ArrowRight size={20} />
+            Set Up My Treasury <Zap size={18} />
           </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={handleExplore}
-            css={css`
-              display: flex;
-              align-items: center;
-              gap: ${designTokens.spacing[2]};
-            `}
-          >
-            View Dashboard <Zap size={18} />
-          </Button>
+        </div>
+
+        {/* Trust micro-line under CTAs reduces hesitation to click */}
+        <div
+          css={css`
+            margin-bottom: ${designTokens.spacing[12]};
+            font-size: ${designTokens.typography.fontSize.sm};
+            color: ${designTokens.colors.neutral[500]};
+            animation: ${fadeInUp} 0.6s ease-out 0.75s both;
+          `}
+        >
+          <span css={css`color: ${designTokens.colors.semantic.success[500]};`}>✓</span> Demo opens instantly.
+          <span css={css`font-weight: 600; color: ${designTokens.colors.primary[600]};`}>No signup, no wallet</span> — sample data to explore the flow.
         </div>
 
         {/* Social Proof */}
@@ -325,6 +356,144 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Live Activity Preview - Show product value before signup */}
+        <div
+          css={css`
+            margin: ${designTokens.spacing[10]} 0;
+            padding: ${designTokens.spacing[6]};
+            background: ${designTokens.colors.neutral[900]};
+            border-radius: ${designTokens.borderRadius.xl};
+            border: 1px solid ${designTokens.colors.neutral[800]};
+            position: relative;
+            overflow: hidden;
+            animation: ${fadeInUp} 0.6s ease-out 0.85s both;
+
+            &::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              height: 2px;
+              background: linear-gradient(90deg, #00d4ff, #34d399, #f59e0b);
+            }
+          `}
+        >
+          <div
+            css={css`
+              display: flex;
+              align-items: center;
+              gap: ${designTokens.spacing[2]};
+              margin-bottom: ${designTokens.spacing[4]};
+            `}
+          >
+            <div
+              css={css`
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #34d399;
+                animation: pulse 2s ease-in-out infinite;
+              `}
+            />
+            <span
+              css={css`
+                font-size: ${designTokens.typography.fontSize.xs};
+                font-weight: ${designTokens.typography.fontWeight.semibold};
+                color: #34d399;
+                letter-spacing: 0.1em;
+              `}
+            >
+              LIVE GOVERNANCE
+            </span>
+          </div>
+
+          {/* Simulated activity feed */}
+          <div
+            css={css`
+              display: flex;
+              flex-direction: column;
+              gap: ${designTokens.spacing[3]};
+            `}
+          >
+            {[
+              {
+                agent: 'arb-strategy-alpha',
+                action: 'Spend request: 500 USDC → Uniswap',
+                status: 'APPROVED',
+                color: '#34d399',
+                time: '2s ago',
+                provider: 'ChainGPT',
+              },
+              {
+                agent: 'nft-flipper-v2',
+                action: 'Spend request: 2.5 ETH → OpenSea',
+                status: 'HELD',
+                color: '#f59e0b',
+                time: '14s ago',
+                provider: 'Policy Rule',
+              },
+              {
+                agent: 'yield-optimizer',
+                action: 'Contract call: 0x742...d35',
+                status: 'AUDITED',
+                color: '#00d4ff',
+                time: '28s ago',
+                provider: 'ChainGPT',
+              },
+            ].map((event, i) => (
+              <div
+                key={i}
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  gap: ${designTokens.spacing[3]};
+                  padding: ${designTokens.spacing[3]};
+                  background: rgba(255, 255, 255, 0.05);
+                  border-radius: ${designTokens.borderRadius.md};
+                  font-family: ${designTokens.typography.fontFamily.mono.join(',')};
+                  font-size: ${designTokens.typography.fontSize.xs};
+                  animation: ${fadeInUp} 0.4s ease-out ${0.9 + i * 0.1}s both;
+                `}
+              >
+                <Activity size={14} color="#64748b" />
+                <span css={css`color: rgba(255,255,255,0.6); min-width: 140px;`}>
+                  {event.agent}
+                </span>
+                <span css={css`color: rgba(255,255,255,0.8); flex: 1;`}>
+                  {event.action}
+                </span>
+                <span
+                  css={css`
+                    padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+                    background: ${event.color}20;
+                    color: ${event.color};
+                    border-radius: ${designTokens.borderRadius.sm};
+                    font-weight: ${designTokens.typography.fontWeight.medium};
+                  `}
+                >
+                  {event.status}
+                </span>
+                <span
+                  css={css`
+                    padding: 2px ${designTokens.spacing[2]};
+                    background: rgba(255,255,255,0.1);
+                    color: rgba(255,255,255,0.5);
+                    border-radius: ${designTokens.borderRadius.sm};
+                    font-size: ${designTokens.typography.fontSize.xxs};
+                    border: 1px solid rgba(255,255,255,0.1);
+                  `}
+                >
+                  {event.provider}
+                </span>
+                <span css={css`color: rgba(255,255,255,0.4);`}>
+                  {event.time}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Features Grid */}
@@ -770,23 +939,35 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               margin-bottom: ${designTokens.spacing[3]};
             `}
           >
-            Ready to take control?
+            See it before you set it up.
           </h2>
           <p
             css={css`
               color: #64748b;
               margin-bottom: ${designTokens.spacing[6]};
-              max-width: 400px;
+              max-width: 440px;
               margin-left: auto;
               margin-right: auto;
             `}
           >
-            Guided setup walks you through connecting a wallet and deploying your first policy in
-            under 2 minutes.
+            Open the dashboard with sample data — explore policies, audit trail, and run ledger.
+            When you're ready, the same screens will work with your own treasury.
           </p>
-          <Button variant="primary" size="lg" onClick={handleGetStarted}>
-            Start Setup Wizard →
-          </Button>
+          <div
+            css={css`
+              display: flex;
+              gap: ${designTokens.spacing[3]};
+              justify-content: center;
+              flex-wrap: wrap;
+            `}
+          >
+            <Button variant="primary" size="lg" onClick={handleTryDemo}>
+              Open Demo Dashboard →
+            </Button>
+            <Button variant="outline" size="lg" onClick={handleGetStarted}>
+              Run Setup Wizard
+            </Button>
+          </div>
         </div>
       </main>
 
@@ -798,7 +979,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           font-size: ${designTokens.typography.fontSize.sm};
         `}
       >
-        Multi-Chain: X Layer + Filecoin + 0G + Fhenix · Open Wallet Standard Compliant · Built with
+        Multi-Chain: X Layer + Filecoin + 0G + Fhenix · Open Wallet Standard Compliant ·
+          <span css={css`color: ${designTokens.colors.primary[600]}; font-weight: 600;`}>
+            Powered by ChainGPT AI
+          </span> · Built with
         ❤️ for autonomous agent governance
       </footer>
     </div>

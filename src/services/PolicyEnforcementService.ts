@@ -2,6 +2,7 @@ import { Policy, PolicyRule, PolicyRuleType } from "../types/Policy.js";
 import { AgentAction, PolicyCheck } from "../types/Agent.js";
 import { PolicyService } from "./PolicyService.js";
 import { FhenixPolicyService } from "./FhenixPolicyService.js";
+import { ChainGPTAuditService } from "./ChainGPTAuditService.js";
 import logger from "../utils/logger.js";
 import { Script } from "node:vm";
 
@@ -15,22 +16,27 @@ export class PolicyEnforcementService {
   private currentPolicy: Policy | null = null;
   private policyService: PolicyService | null = null;
   private fhenixPolicyService: FhenixPolicyService | null = null;
+  private chainGPTAuditService: ChainGPTAuditService | null = null;
   private rateLimitCounters: Map<string, { count: number; resetTime: number }> =
     new Map();
 
-  constructor(policyService?: PolicyService, fhenixPolicyService?: FhenixPolicyService) {
+  constructor(policyService?: PolicyService, fhenixPolicyService?: FhenixPolicyService, chainGPTAuditService?: ChainGPTAuditService) {
     this.policyService = policyService || null;
     this.fhenixPolicyService = fhenixPolicyService || null;
+    this.chainGPTAuditService = chainGPTAuditService || null;
     logger.info("PolicyEnforcementService initialized");
   }
 
   /**
    * Initialize with PolicyService instance (for dependency injection)
    */
-  initialize(policyService: PolicyService, fhenixPolicyService?: FhenixPolicyService): void {
+  initialize(policyService: PolicyService, fhenixPolicyService?: FhenixPolicyService, chainGPTAuditService?: ChainGPTAuditService): void {
     this.policyService = policyService;
     if (fhenixPolicyService) {
       this.fhenixPolicyService = fhenixPolicyService;
+    }
+    if (chainGPTAuditService) {
+      this.chainGPTAuditService = chainGPTAuditService;
     }
     logger.info("PolicyEnforcementService initialized with PolicyService");
   }
@@ -171,8 +177,92 @@ export class PolicyEnforcementService {
         return { allowed: this.evaluateRequireRule(rule, action) };
       case "rate_limit":
         return { allowed: this.evaluateRateLimitRule(rule, action) };
+      case "contract_audit":
+        return await this.evaluateContractAuditRule(rule, action);
       default:
         throw new Error(`Unknown rule type: ${rule.type}`);
+    }
+  }
+
+  /**
+   * Evaluate a contract audit rule using ChainGPT's Smart Contract Auditor.
+   * This is a runtime defense mechanism that blocks/holds spend if critical/high
+   * vulnerabilities are found in the target contract.
+   */
+  private async evaluateContractAuditRule(
+    rule: PolicyRule,
+    action: AgentAction,
+  ): Promise<{ allowed: boolean; reason?: string; metadata?: any }> {
+    if (!this.chainGPTAuditService) {
+      logger.warn("ChainGPT Audit service not configured - skipping contract audit");
+      return { allowed: true, reason: "Contract audit skipped (service not configured)" };
+    }
+
+    // Extract target contract address from the action
+    const targetContract = action.metadata?.targetContract as string || undefined;
+
+    if (!targetContract) {
+      logger.debug("No target contract found in action - skipping audit");
+      return { allowed: true, reason: "No contract target to audit" };
+    }
+
+    try {
+      logger.info(`Running contract audit for ${targetContract}`, {
+        ruleId: rule.id,
+        agentId: action.metadata?.agentId || action.id || "unknown",
+      });
+
+      const auditResponse = await this.chainGPTAuditService.auditContract(targetContract);
+      const { decision, audit } = auditResponse;
+
+      const metadata = {
+        auditScore: audit.score,
+        severity: audit.severity,
+        findings: audit.findings,
+        auditedAt: audit.auditedAt,
+        chaingptAudit: true, // Mark as ChainGPT-powered
+      };
+
+      switch (decision) {
+        case "deny":
+          return {
+            allowed: false,
+            reason: `Contract audit DENIED: ${audit.summary}. Score: ${audit.score}/100`,
+            metadata,
+          };
+        case "hold":
+          return {
+            allowed: false,
+            reason: `Contract audit HOLD: ${audit.summary}. Requires operator review. Score: ${audit.score}/100`,
+            metadata: {
+              ...metadata,
+              requiresReview: true,
+              reviewReason: "contract_audit_flagged",
+            },
+          };
+        default: // "approve"
+          return {
+            allowed: true,
+            reason: `Contract audit PASSED: ${audit.summary}. Score: ${audit.score}/100`,
+            metadata,
+          };
+      }
+    } catch (error) {
+      logger.error("Contract audit evaluation failed", {
+        ruleId: rule.id,
+        contract: targetContract,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+
+      // On error, default to hold for safety
+      return {
+        allowed: false,
+        reason: `Contract audit failed: ${error instanceof Error ? error.message : "Unknown error"}. Defaulting to hold for safety.`,
+        metadata: {
+          error: true,
+          originalError: error instanceof Error ? error.message : "Unknown error",
+        },
+      };
     }
   }
 

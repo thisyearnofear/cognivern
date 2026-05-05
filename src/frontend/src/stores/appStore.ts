@@ -7,6 +7,7 @@ export interface UserPreferences {
   sidebarState: SidebarState;
   onboardingCompleted: boolean;
   demoExplored: boolean; // User has seen the demo
+  demoValueSeen: boolean; // User reached an "aha moment" (e.g., saw policy enforcement in action)
   lastVisited: string;
   notifications: boolean;
   shadowedAgents: string[];
@@ -43,6 +44,9 @@ interface AppState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   completeOnboarding: (userType: string) => void;
+  enterDemoMode: () => void;
+  exitDemoMode: () => void;
+  markDemoValueSeen: () => void;
   reset: () => void;
 }
 
@@ -51,6 +55,7 @@ const defaultPreferences: UserPreferences = {
   sidebarState: 'expanded',
   onboardingCompleted: false,
   demoExplored: false,
+  demoValueSeen: false,
   lastVisited: '/',
   notifications: true,
   shadowedAgents: [],
@@ -155,6 +160,40 @@ export const useAppStore = create<AppState>((set, get) => {
         user: { ...get().user, userType },
         preferences: { ...get().preferences, onboardingCompleted: true },
         activeTab: 'dashboard',
+      };
+      set(newState);
+      setStoredState(newState);
+    },
+
+    enterDemoMode: () => {
+      // Demo mode lets visitors explore the dashboard immediately without
+      // committing to wallet setup. We mark `demoExplored` so the dashboard
+      // can render an informative banner, but DO NOT mark onboarding as
+      // completed — that way the user is still nudged to set up their
+      // own treasury when they're ready.
+      const newState = {
+        ...get(),
+        user: { ...get().user, userType: get().user.userType || 'explorer' },
+        preferences: { ...get().preferences, demoExplored: true },
+        activeTab: 'dashboard',
+      };
+      set(newState);
+      setStoredState(newState);
+    },
+
+    exitDemoMode: () => {
+      const newState = {
+        ...get(),
+        preferences: { ...get().preferences, demoExplored: false },
+      };
+      set(newState);
+      setStoredState(newState);
+    },
+
+    markDemoValueSeen: () => {
+      const newState = {
+        ...get(),
+        preferences: { ...get().preferences, demoValueSeen: true },
       };
       set(newState);
       setStoredState(newState);

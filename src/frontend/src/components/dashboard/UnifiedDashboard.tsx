@@ -46,6 +46,8 @@ import {
   normalizeRunStreamActivity,
   unwrapApiPayload,
 } from './utils/activity';
+import { useAppStore } from '../../stores/appStore';
+import { Wallet, Sparkles } from 'lucide-react';
 
 function OwsStatusIndicator() {
   const [owsStatus, setOwsStatus] = useState<{
@@ -197,6 +199,8 @@ const TrustSignals = ({ activity }: { activity: ActivityItem }) => {
 export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
   const navigate = useNavigate();
   const { isMobile, isTablet } = useBreakpoint();
+  const { preferences, enterDemoMode } = useAppStore();
+  const isInDemoMode = preferences.demoExplored && !preferences.onboardingCompleted;
 
   const [stats, setStats] = useState<QuickStats | null>(null);
   const [agents, setAgents] = useState<AgentSummary[]>([]);
@@ -434,6 +438,90 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
       {isRefreshing && <div css={styles.refreshingIndicatorStyles}>Refreshing...</div>}
 
       <section css={styles.statsHeaderStyles}>
+        {/* Demo-to-Real Conversion Banner */}
+        {isInDemoMode && !preferences.onboardingCompleted && (
+          <div
+            css={css`
+              background: linear-gradient(135deg, ${designTokens.colors.primary[500]} 0%, ${designTokens.colors.primary[600]} 100%);
+              border-radius: ${designTokens.borderRadius.lg};
+              padding: ${designTokens.spacing[4]} ${designTokens.spacing[6]};
+              margin-bottom: ${designTokens.spacing[6]};
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: ${designTokens.spacing[4]};
+              flex-wrap: wrap;
+              box-shadow: 0 4px 16px ${designTokens.colors.primary[500]}40;
+            `}
+          >
+            <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
+              <div
+                css={css`
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 50%;
+                  background: rgba(255,255,255,0.2);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                `}
+              >
+                <Sparkles size={20} color="white" />
+              </div>
+              <div>
+                <h3
+                  css={css`
+                    margin: 0;
+                    font-size: ${designTokens.typography.fontSize.md};
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    color: white;
+                  `}
+                >
+                  {preferences.demoValueSeen
+                    ? "You've seen how governance works"
+                    : "Explore the control plane"}
+                </h3>
+                <p
+                  css={css`
+                    margin: 0;
+                    font-size: ${designTokens.typography.fontSize.sm};
+                    color: rgba(255,255,255,0.9);
+                  `}
+                >
+                  {preferences.demoValueSeen
+                    ? "Connect your wallet to enable real agent governance with your own policies."
+                    : "Check out the activity feed above to see governed decisions in action."}
+                </p>
+              </div>
+            </div>
+            <div css={css`display: flex; gap: ${designTokens.spacing[2]};`}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate('/onboarding')}
+                css={css`
+                  background: white;
+                  color: ${designTokens.colors.primary[600]};
+                  &:hover {
+                    background: rgba(255,255,255,0.9);
+                  }
+                `}
+              >
+                <Wallet size={16} />
+                Connect Wallet
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/onboarding')}
+                css={css`color: rgba(255,255,255,0.9);`}
+              >
+                Set Up Policies →
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div
           style={{
             display: 'flex',
