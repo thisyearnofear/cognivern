@@ -1,11 +1,16 @@
 /**
  * Contract Security Fallback Service
  *
- * Provides basic contract security checks when ChainGPT is unavailable.
- * Uses heuristic analysis + optional LLM fallback.
+ * Provides contract security checks using multiple sources:
+ * - Etherscan API (verification, source code, transactions)
+ * - OpenZeppelin Defender (runtime monitoring, alerts)
+ * - Bytecode analysis (pattern detection)
+ * - Known safe contracts list
  */
 
 import logger from "../utils/logger.js";
+import { getEtherscanService, EtherscanAnalysis } from "./EtherscanService.js";
+import { getDefenderService } from "./OpenZeppelinDefenderService.js";
 
 export interface FallbackAuditResult {
   safe: boolean;
@@ -17,94 +22,114 @@ export interface FallbackAuditResult {
     severity: "critical" | "high" | "medium" | "low" | "informational";
   }>;
   summary: string;
-  source: "heuristic" | "llm-fallback" | "cache";
+  source: "etherscan" | "defender" | "heuristic" | "combined";
   auditedAt: string;
+  etherscan?: EtherscanAnalysis;
+  monitorAlerts?: Array<{
+    severity: string;
+    message: string;
+  }>;
 }
 
 // Known safe contracts (major protocols)
-const KNOWN_SAFE_CONTRACTS = new Set([
-  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", // USDC
-  "0xdac17f958d2ee523a2206206994597c13d831ec7", // USDT
-  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // WETH
-  "0x6b175474e89094c44da98b954eedeac495271d0f", // DAI
-  "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0", // MATIC
-  "0x514910771af9ca656af840dff83e8264ecf986ca", // LINK
-  "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", // UNI
-  "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", // AAVE
-  "0xc00e94cb662c3520282e6f5717214004a7f26888", // COMP
-  "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", // MKR
+const KNOWN_SAFE_CONTRACTS = new Map<string, { name: string; score: number }>([
+  ["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", { name: "USDC", score: 95 }],
+  ["0xdac17f958d2ee523a2206206994597c13d831ec7", { name: "USDT", score: 90 }],
+  ["0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", { name: "WETH", score: 95 }],
+  ["0x6b175474e89094c44da98b954eedeac495271d0f", { name: "DAI", score: 95 }],
+  ["0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0", { name: "MATIC", score: 90 }],
+  ["0x514910771af9ca656af840dff83e8264ecf986ca", { name: "LINK", score: 90 }],
+  ["0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", { name: "UNI", score: 90 }],
+  ["0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9", { name: "AAVE", score: 92 }],
+  ["0xc00e94cb662c3520282e6f5717214004a7f26888", { name: "COMP", score: 92 }],
+  ["0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", { name: "MKR", score: 92 }],
+  ["0x2260fac5e5542a773aa44fbcfedf7c193bc2c599", { name: "WBTC", score: 90 }],
+  ["0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", { name: "wstETH", score: 92 }],
 ]);
 
-// Known risky patterns in bytecode
-const RISKY_BYTECODE_PATTERNS = [
-  { pattern: "ff", label: "SELFDESTRUCT opcode", severity: "high" as const },
-  { pattern: "f1", label: "CALL opcode (check for reentrancy)", severity: "medium" as const },
-];
-
 export class ContractSecurityFallback {
-  private etherscanApiKey?: string;
   private rpcUrl?: string;
 
-  constructor(config?: { etherscanApiKey?: string; rpcUrl?: string }) {
-    this.etherscanApiKey = config?.etherscanApiKey || process.env.ETHERSCAN_API_KEY;
+  constructor(config?: { rpcUrl?: string }) {
     this.rpcUrl = config?.rpcUrl || process.env.ETHEREUM_RPC_URL;
   }
 
   /**
-   * Perform heuristic-based security check
+   * Perform comprehensive security check using all available sources
    */
   async analyzeContract(address: string): Promise<FallbackAuditResult> {
     const normalizedAddress = address.toLowerCase();
     const findings: FallbackAuditResult["findings"] = [];
     let score = 70; // Default moderate score
+    let source: FallbackAuditResult["source"] = "heuristic";
+    let etherscanAnalysis: EtherscanAnalysis | undefined;
+    let monitorAlerts: Array<{ severity: string; message: string }> = [];
 
     // Check if it's a known safe contract
-    if (KNOWN_SAFE_CONTRACTS.has(normalizedAddress)) {
+    const knownContract = KNOWN_SAFE_CONTRACTS.get(normalizedAddress);
+    if (knownContract) {
       return {
         safe: true,
-        score: 95,
+        score: knownContract.score,
         severity: "informational",
         findings: [{
-          title: "Verified Protocol Contract",
-          description: "This is a well-known contract from a major protocol with extensive usage and audits.",
+          title: `Known Protocol: ${knownContract.name}`,
+          description: `This is the ${knownContract.name} contract from a major protocol with extensive usage and audits.`,
           severity: "informational",
         }],
-        summary: "Known safe contract from established protocol",
+        summary: `Known safe contract (${knownContract.name})`,
         source: "heuristic",
         auditedAt: new Date().toISOString(),
       };
     }
 
-    // Try Etherscan verification check
-    if (this.etherscanApiKey) {
-      try {
-        const verificationResult = await this.checkEtherscanVerification(address);
-        if (!verificationResult.verified) {
-          findings.push({
-            title: "Unverified Contract",
-            description: "Contract source code is not verified on Etherscan. Exercise caution.",
-            severity: "medium",
-          });
-          score -= 20;
-        } else {
-          findings.push({
-            title: "Verified Source Code",
-            description: `Contract verified on Etherscan. Compiler: ${verificationResult.compiler || "unknown"}`,
-            severity: "informational",
-          });
-          score += 10;
-        }
-      } catch (error) {
-        logger.warn("Etherscan verification check failed:", error);
-      }
+    // Layer 1: Etherscan Analysis
+    try {
+      const etherscan = getEtherscanService();
+      etherscanAnalysis = await etherscan.analyzeContract(address);
+      const etherscanScore = etherscan.calculateSecurityScore(etherscanAnalysis);
+
+      findings.push(...etherscanScore.findings);
+      score = etherscanScore.score;
+      source = "etherscan";
+    } catch (error) {
+      logger.warn("Etherscan analysis failed:", error);
     }
 
-    // Try basic bytecode analysis
+    // Layer 2: OpenZeppelin Defender Monitoring
+    try {
+      const defender = getDefenderService();
+      if (defender.isConfigured()) {
+        const monitorResult = await defender.monitorContract(address);
+
+        if (monitorResult.alerts.length > 0) {
+          monitorAlerts = monitorResult.alerts.map(a => ({
+            severity: a.severity,
+            message: `${a.type}: Alert at ${a.timestamp}`,
+          }));
+
+          // Adjust score based on alerts
+          score -= monitorResult.riskScore * 0.3; // 30% weight for monitoring
+
+          findings.push({
+            title: "Monitoring Alerts",
+            description: `${monitorResult.alerts.length} alert(s) found from runtime monitoring.`,
+            severity: monitorResult.riskScore > 50 ? "high" : "medium",
+          });
+
+          source = "combined";
+        }
+      }
+    } catch (error) {
+      logger.warn("Defender monitoring check failed:", error);
+    }
+
+    // Layer 3: Bytecode Analysis (if RPC available)
     if (this.rpcUrl) {
       try {
-        const bytecodeAnalysis = await this.analyzeBytecode(address);
-        findings.push(...bytecodeAnalysis.findings);
-        score += bytecodeAnalysis.scoreAdjustment;
+        const bytecodeResult = await this.analyzeBytecode(address);
+        findings.push(...bytecodeResult.findings);
+        score += bytecodeResult.scoreAdjustment;
       } catch (error) {
         logger.warn("Bytecode analysis failed:", error);
       }
@@ -126,39 +151,11 @@ export class ContractSecurityFallback {
       score,
       severity,
       findings,
-      summary: findings.length > 0
-        ? `Heuristic analysis found ${findings.length} item(s)`
-        : "Basic heuristic analysis - no issues detected",
-      source: "heuristic",
+      summary: this.generateSummary(findings, score, source),
+      source,
       auditedAt: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * Check if contract is verified on Etherscan
-   */
-  private async checkEtherscanVerification(address: string): Promise<{
-    verified: boolean;
-    compiler?: string;
-  }> {
-    if (!this.etherscanApiKey) {
-      return { verified: false };
-    }
-
-    const response = await fetch(
-      `https://api.etherscan.io/api?module=contract&action=getsourcecode&address=${address}&apikey=${this.etherscanApiKey}`
-    );
-
-    if (!response.ok) {
-      throw new Error(`Etherscan API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const result = data.result?.[0];
-
-    return {
-      verified: result?.SourceCode !== "",
-      compiler: result?.CompilerVersion,
+      etherscan: etherscanAnalysis,
+      monitorAlerts,
     };
   }
 
@@ -194,7 +191,7 @@ export class ContractSecurityFallback {
       if (!bytecode || bytecode === "0x") {
         findings.push({
           title: "EOA Address",
-          description: "This is an externally owned account (EOA), not a contract.",
+          description: "This is an externally owned account (EOA), not a smart contract.",
           severity: "informational",
         });
         scoreAdjustment = 20;
@@ -205,25 +202,25 @@ export class ContractSecurityFallback {
       if (bytecode.includes("ff")) {
         findings.push({
           title: "Self-Destruct Capability",
-          description: "Contract contains SELFDESTRUCT opcode. Funds may be at risk if contract is destroyed.",
+          description: "Contract contains SELFDESTRUCT opcode. Funds may be permanently lost if triggered.",
           severity: "high",
         });
         scoreAdjustment -= 25;
       }
 
-      // Check contract size (small contracts are often simpler/safer)
-      const codeSize = (bytecode.length - 2) / 2; // bytes
+      // Check contract size
+      const codeSize = (bytecode.length - 2) / 2;
       if (codeSize < 100) {
         findings.push({
           title: "Minimal Contract",
           description: `Very small contract (${codeSize} bytes). Likely simple functionality.`,
           severity: "informational",
         });
-        scoreAdjustment += 10;
+        scoreAdjustment += 5;
       } else if (codeSize > 24000) {
         findings.push({
           title: "Large Contract",
-          description: `Large contract (${codeSize} bytes). More complex code = more attack surface.`,
+          description: `Large contract (${codeSize} bytes). Increased complexity may mean more attack surface.`,
           severity: "low",
         });
         scoreAdjustment -= 5;
@@ -234,6 +231,40 @@ export class ContractSecurityFallback {
     }
 
     return { findings, scoreAdjustment };
+  }
+
+  /**
+   * Generate human-readable summary
+   */
+  private generateSummary(
+    findings: FallbackAuditResult["findings"],
+    score: number,
+    source: FallbackAuditResult["source"]
+  ): string {
+    const criticalCount = findings.filter(f => f.severity === "critical").length;
+    const highCount = findings.filter(f => f.severity === "high").length;
+    const mediumCount = findings.filter(f => f.severity === "medium").length;
+
+    const sourceLabel = {
+      etherscan: "Etherscan",
+      defender: "OpenZeppelin Defender",
+      combined: "Etherscan + Defender",
+      heuristic: "Heuristic",
+    }[source];
+
+    if (criticalCount > 0) {
+      return `${sourceLabel}: CRITICAL - ${criticalCount} critical issue(s) found. Do not interact.`;
+    }
+    if (highCount > 0) {
+      return `${sourceLabel}: HIGH RISK - ${highCount} high severity issue(s). Proceed with extreme caution.`;
+    }
+    if (mediumCount > 0) {
+      return `${sourceLabel}: MEDIUM RISK - ${mediumCount} medium severity item(s). Review before proceeding.`;
+    }
+    if (score >= 80) {
+      return `${sourceLabel}: Good security profile. Score: ${score}/100.`;
+    }
+    return `${sourceLabel}: Analysis complete. Score: ${score}/100. ${findings.length} finding(s).`;
   }
 
   /**
