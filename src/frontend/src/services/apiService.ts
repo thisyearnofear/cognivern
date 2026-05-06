@@ -434,6 +434,14 @@ export class SpendApiService extends ApiService {
   }
 
   /**
+   * Scan a contract address for security vulnerabilities
+   * No authentication required
+   */
+  async scanContract(address: string) {
+    return this.get(`/api/spend/scan?address=${encodeURIComponent(address)}`);
+  }
+
+  /**
    * Decrypt confidential data using a permit (Auditor only)
    */
   async decrypt(data: { permit: any; encryptedValue: any; contractAddress: string }) {
