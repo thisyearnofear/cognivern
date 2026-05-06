@@ -7,6 +7,7 @@ import { Button } from '../ui/Button';
 import { Logo } from '../ui/Logo';
 import { HeroIllustration } from './HeroIllustration';
 import { Card, CardContent } from '../ui/Card';
+import { ContractScanner } from '../trading/ContractScanner';
 import { useAppStore } from '../../stores/appStore';
 import {
   Shield,
@@ -23,6 +24,7 @@ import {
   Clock,
   Eye,
   Activity,
+  Search,
 } from 'lucide-react';
 
 // Stagger animation for elements
@@ -356,6 +358,59 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Contract Scanner - Try before you connect */}
+        <div
+          css={css`
+            margin: ${designTokens.spacing[10]} 0;
+            animation: ${fadeInUp} 0.6s ease-out 0.9s both;
+          `}
+        >
+          <div
+            css={css`
+              text-align: center;
+              margin-bottom: ${designTokens.spacing[4]};
+            `}
+          >
+            <div
+              css={css`
+                display: inline-flex;
+                align-items: center;
+                gap: ${designTokens.spacing[2]};
+                padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
+                background: ${designTokens.colors.primary[50]};
+                border-radius: ${designTokens.borderRadius.full};
+                font-size: ${designTokens.typography.fontSize.xs};
+                font-weight: ${designTokens.typography.fontWeight.semibold};
+                color: ${designTokens.colors.primary[700]};
+                margin-bottom: ${designTokens.spacing[3]};
+              `}
+            >
+              <Search size={12} />
+              TRY IT NOW
+            </div>
+            <h3
+              css={css`
+                font-size: ${designTokens.typography.fontSize.xl};
+                font-weight: ${designTokens.typography.fontWeight.bold};
+                color: ${designTokens.colors.neutral[900]};
+                margin: 0 0 ${designTokens.spacing[2]};
+              `}
+            >
+              Scan Any Contract
+            </h3>
+            <p
+              css={css`
+                font-size: ${designTokens.typography.fontSize.sm};
+                color: ${designTokens.colors.neutral[500]};
+                margin: 0;
+              `}
+            >
+              Powered by ChainGPT AI • No wallet or signup required
+            </p>
+          </div>
+          <ContractScanner />
         </div>
 
         {/* Live Activity Preview - Show product value before signup */}

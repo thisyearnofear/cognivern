@@ -278,6 +278,7 @@ export class ApiModule extends BaseService {
       "/cre/runs/:runId/approval",
       "/spend",
       "/spend/status",
+      "/spend/scan",
       "/projects",
       "/fhenix/status",
       "/fhenix/decrypt",
@@ -621,6 +622,10 @@ export class ApiModule extends BaseService {
 
     apiRouter.get("/spend/status", (req, res) => {
       this.ctrl("spend").getStatus(req, res);
+    });
+
+    apiRouter.get("/spend/scan", (req, res) => {
+      this.ctrl("spend").scanContract(req, res);
     });
 
     apiRouter.get("/ows/status", (req, res) => {

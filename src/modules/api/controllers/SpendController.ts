@@ -239,6 +239,73 @@ export class SpendController {
   }
 
   /**
+   * Scan a contract address for security vulnerabilities
+   * No authentication required - public endpoint for landing page
+   */
+  async scanContract(req: Request, res: Response) {
+    try {
+      const { address } = req.query;
+
+      if (!address || typeof address !== "string") {
+        res.status(400).json({
+          success: false,
+          error: "Missing required parameter: address",
+        });
+        return;
+      }
+
+      // Validate Ethereum address format
+      if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+        res.status(400).json({
+          success: false,
+          error: "Invalid Ethereum address format",
+        });
+        return;
+      }
+
+      const auditService = getChainGPTAuditService();
+      if (!auditService) {
+        res.status(503).json({
+          success: false,
+          error: "Audit service unavailable",
+        });
+        return;
+      }
+
+      const auditResult = await auditService.auditContract(address);
+
+      res.json({
+        success: true,
+        data: {
+          address,
+          decision: auditResult.decision,
+          score: auditResult.audit.score,
+          safe: auditResult.audit.safe,
+          severity: auditResult.audit.severity,
+          findingsCount: auditResult.audit.findings.length,
+          summary: auditService.getAuditSummary(auditResult.audit),
+          findings: auditResult.audit.findings.slice(0, 5),
+          auditedAt: auditResult.audit.auditedAt,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error(
+        "Contract scan failed",
+        error instanceof Error ? error : undefined,
+      );
+      res.status(500).json({
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Contract scan failed",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
    * Preview/simulate a spend without executing it
    * Now includes ChainGPT contract audit for contract addresses
    */
