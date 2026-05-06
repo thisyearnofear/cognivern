@@ -5,10 +5,11 @@
  * When an agent's spend targets a contract address, this service calls the auditor
  * and denies/holds the spend if Critical/High vulnerabilities are found.
  *
- * This is the first product to use ChainGPT's auditor for runtime defense, not just CI.
+ * Includes fallback to heuristic analysis when ChainGPT is unavailable.
  */
 
 import logger from "../utils/logger.js";
+import { ContractSecurityFallback, getContractSecurityFallback } from "./ContractSecurityFallback.js";
 
 export interface AuditResult {
   safe: boolean;
@@ -17,6 +18,7 @@ export interface AuditResult {
   findings: AuditFinding[];
   summary: string;
   auditedAt: string;
+  source?: "chaingpt" | "fallback" | "cache";
 }
 
 export interface AuditFinding {
@@ -55,6 +57,7 @@ export class ChainGPTAuditService {
   /**
    * Audit a contract address before allowing spend
    * Returns audit result with decision (approve/hold/deny)
+   * Falls back to heuristic analysis if ChainGPT fails
    */
   async auditContract(
     contractAddress: string,
@@ -75,8 +78,28 @@ export class ChainGPTAuditService {
       }
     }
 
-    // Call ChainGPT Auditor API
-    const audit = await this.callAuditor(contractAddress, options);
+    // Try ChainGPT first
+    let audit: AuditResult;
+    try {
+      audit = await this.callAuditor(contractAddress, options);
+      audit.source = "chaingpt";
+    } catch (chainGptError) {
+      logger.warn("ChainGPT audit failed, falling back to heuristic analysis:", chainGptError);
+
+      // Fallback to heuristic analysis
+      try {
+        const fallback = getContractSecurityFallback();
+        const fallbackResult = await fallback.analyzeContract(contractAddress);
+        audit = {
+          ...fallbackResult,
+          source: "fallback",
+        };
+        logger.info(`Fallback audit completed for ${contractAddress}: score=${audit.score}`);
+      } catch (fallbackError) {
+        logger.error("Fallback audit also failed:", fallbackError);
+        throw chainGptError; // Throw original error if both fail
+      }
+    }
 
     // Cache the result
     this.cache.set(contractAddress.toLowerCase(), {

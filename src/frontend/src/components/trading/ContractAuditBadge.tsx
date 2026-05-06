@@ -18,6 +18,7 @@ export interface ContractAuditResult {
     severity: string;
   }>;
   error?: string;
+  source?: 'chaingpt' | 'fallback' | 'cache';
 }
 
 interface ContractAuditBadgeProps {
@@ -116,8 +117,20 @@ export const ContractAuditBadge: React.FC<ContractAuditBadgeProps> = ({ audit, c
             font-weight: ${designTokens.typography.fontWeight.semibold};
             color: ${decision.color};
           `}>
-            ChainGPT Security Audit
+            {audit.source === 'fallback' ? 'Security Analysis' : 'ChainGPT Security Audit'}
           </span>
+          {audit.source === 'fallback' && (
+            <span css={css`
+              padding: 2px 6px;
+              background: ${designTokens.colors.neutral[200]};
+              color: ${designTokens.colors.neutral[600]};
+              border-radius: ${designTokens.borderRadius.sm};
+              font-size: 10px;
+              font-weight: ${designTokens.typography.fontWeight.medium};
+            `}>
+              HEURISTIC
+            </span>
+          )}
         </div>
         <div css={css`
           display: flex;
