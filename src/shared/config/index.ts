@@ -8,8 +8,13 @@
 import { z } from "zod";
 import dotenv from "dotenv";
 
-// Load environment variables
-dotenv.config();
+const dotenvPath = process.env.DOTENV_CONFIG_PATH;
+
+if (dotenvPath) {
+  dotenv.config({ path: dotenvPath });
+} else {
+  dotenv.config();
+}
 
 // Base configuration schema
 const baseConfigSchema = z.object({

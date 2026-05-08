@@ -16,7 +16,12 @@ pnpm run build:backend
 
 echo "🔄 Restarting service..."
 if command -v pm2 &> /dev/null; then
-    pm2 restart cognivern
+    if lsof -ti:10000 >/dev/null 2>&1; then
+        kill $(lsof -ti:10000) || true
+        sleep 2
+    fi
+    pm2 restart cognivern-backend --update-env || pm2 start config/ecosystem.config.cjs
+    pm2 save
     pm2 status
 elif command -v systemctl &> /dev/null; then
     sudo systemctl restart cognivern

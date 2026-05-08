@@ -52,7 +52,7 @@ ssh ${SERVER_USER}@${SERVER_HOST} << 'REMOTE_EOF'
 
     echo "[1/6] Stopping PM2 process..."
     cd $DEPLOY_PATH
-    pm2 stop cognivern || true
+    pm2 stop cognivern-backend || true
 
     echo "[2/6] Backing up current deployment..."
     if [ -d "$DEPLOY_PATH/dist" ]; then
@@ -84,7 +84,13 @@ ssh ${SERVER_USER}@${SERVER_HOST} << 'REMOTE_EOF'
     rm -f /tmp/cognivern-deploy.tar.gz /tmp/cognivern.env
 
     echo "[6/6] Restarting PM2 process..."
-    pm2 reload cognivern || pm2 start config/ecosystem.config.cjs
+    mkdir -p logs
+    if lsof -ti:10000 >/dev/null 2>&1; then
+        kill $(lsof -ti:10000) || true
+        sleep 2
+    fi
+    pm2 reload cognivern-backend || pm2 start config/ecosystem.config.cjs
+    pm2 save
 
     echo ""
     echo "Deployment status:"

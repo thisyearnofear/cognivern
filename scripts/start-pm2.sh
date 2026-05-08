@@ -12,8 +12,15 @@ mkdir -p logs
 
 # Stop any existing processes
 echo "🛑 Stopping existing processes..."
-pm2 stop cognivern-api || true
-pm2 delete cognivern-api || true
+pm2 stop cognivern-backend || true
+pm2 delete cognivern-backend || true
+
+# Ensure no orphaned direct node process still owns the API port
+if lsof -ti:10000 >/dev/null 2>&1; then
+  echo "🧹 Killing orphaned process on port 10000..."
+  kill $(lsof -ti:10000) || true
+  sleep 2
+fi
 
 # Start with PM2
 echo "🌐 Starting with PM2..."
