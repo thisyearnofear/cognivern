@@ -7,6 +7,34 @@ process.setMaxListeners(20);
 // Initialize our modular API system
 const PORT = process.env.PORT || 3000;
 let apiModule: ApiModule;
+let shutdownHandlersInstalled = false;
+
+function installShutdownHandlers() {
+  if (shutdownHandlersInstalled) {
+    return;
+  }
+
+  shutdownHandlersInstalled = true;
+
+  const gracefulShutdown = async (signal: string) => {
+    logger.info(`📡 Received ${signal}, shutting down gracefully...`);
+
+    if (apiModule) {
+      await apiModule.shutdown();
+      logger.info("🛑 API module shut down");
+    }
+
+    logger.info("✅ Graceful shutdown complete");
+    process.exit(0);
+  };
+
+  process.once("SIGTERM", () => {
+    void gracefulShutdown("SIGTERM");
+  });
+  process.once("SIGINT", () => {
+    void gracefulShutdown("SIGINT");
+  });
+}
 
 export async function startServer(): Promise<void> {
   try {
@@ -25,21 +53,7 @@ export async function startServer(): Promise<void> {
     logger.info(`🤖 Showcase agents: http://localhost:${PORT}/api/agents`);
     logger.info("🎯 AI Agent Governance Platform ready for showcase!");
 
-    // Graceful shutdown
-    const gracefulShutdown = async (signal: string) => {
-      logger.info(`📡 Received ${signal}, shutting down gracefully...`);
-
-      if (apiModule) {
-        await apiModule.shutdown();
-        logger.info("🛑 API module shut down");
-      }
-
-      logger.info("✅ Graceful shutdown complete");
-      process.exit(0);
-    };
-
-    process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-    process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+    installShutdownHandlers();
 
     // Keep the process alive until a shutdown signal is received
     return new Promise(() => {});

@@ -27,7 +27,7 @@ ssh $SERVER_HOST "cd $SERVER_PATH && pnpm install --frozen-lockfile --prod=false
 
 # Restart with PM2 using the ecosystem config
 echo "🌐 Restarting server with PM2..."
-ssh $SERVER_HOST "cd $SERVER_PATH && pm2 restart config/ecosystem.config.cjs --update-env || pm2 start config/ecosystem.config.cjs"
+ssh $SERVER_HOST "cd $SERVER_PATH && mkdir -p logs && if lsof -ti:10000 >/dev/null 2>&1; then kill \$(lsof -ti:10000) || true; sleep 2; fi && pm2 restart cognivern-backend --update-env || pm2 start config/ecosystem.config.cjs && pm2 save"
 
 echo "✅ Deployment complete!"
 echo "🌐 Server running at: http://api.thisyearnofear.com"

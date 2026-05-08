@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Cognivern AI Agent Governance Platform - Production Server Startup
-# Direct execution approach for reliable deployment
+# Use PM2 for long-running production processes; this script is for foreground runs.
 
 set -e
 
