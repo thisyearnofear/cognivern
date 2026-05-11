@@ -175,14 +175,14 @@ export default function GovernancePlayground() {
 
   const errorTextStyles = css`
     font-size: ${designTokens.typography.fontSize.xs};
-    color: ${designTokens.colors.error[600]};
+    color: ${designTokens.colors.semantic.error[600]};
   `;
 
   const resultCardStyles = (allowed: boolean) => css`
-    border: 2px solid ${allowed ? designTokens.colors.success[400] : designTokens.colors.error[400]};
+    border: 2px solid ${allowed ? designTokens.colors.semantic.success[400] : designTokens.colors.semantic.error[400]};
     border-radius: ${designTokens.borderRadius.xl};
     padding: ${designTokens.spacing[6]};
-    background: ${allowed ? designTokens.colors.success[50] : designTokens.colors.error[50]};
+    background: ${allowed ? designTokens.colors.semantic.success[50] : designTokens.colors.semantic.error[50]};
   `;
 
   const fhirToggleStyles = css`
@@ -448,7 +448,7 @@ export default function GovernancePlayground() {
                     display: flex;
                     align-items: flex-start;
                     gap: ${designTokens.spacing[3]};
-                    color: ${designTokens.colors.error[700]};
+                    color: ${designTokens.colors.semantic.error[700]};
                   `}
                 >
                   <XCircle size={20} style={{ flexShrink: 0, marginTop: 2 }} />
@@ -485,9 +485,9 @@ export default function GovernancePlayground() {
                 `}
               >
                 {result.allowed ? (
-                  <CheckCircle2 size={28} color={designTokens.colors.success[600]} />
+                  <CheckCircle2 size={28} color={designTokens.colors.semantic.success[600]} />
                 ) : (
-                  <XCircle size={28} color={designTokens.colors.error[600]} />
+                  <XCircle size={28} color={designTokens.colors.semantic.error[600]} />
                 )}
                 <div>
                   <p
@@ -495,8 +495,8 @@ export default function GovernancePlayground() {
                       font-size: ${designTokens.typography.fontSize.xl};
                       font-weight: ${designTokens.typography.fontWeight.bold};
                       color: ${result.allowed
-                        ? designTokens.colors.success[700]
-                        : designTokens.colors.error[700]};
+                        ? designTokens.colors.semantic.success[700]
+                        : designTokens.colors.semantic.error[700]};
                     `}
                   >
                     {result.allowed ? 'Action Allowed' : 'Action Denied'}
@@ -596,8 +596,8 @@ export default function GovernancePlayground() {
                             height: 100%;
                             width: ${Math.round(result.confidence * 100)}%;
                             background: ${result.allowed
-                              ? designTokens.colors.success[500]
-                              : designTokens.colors.error[500]};
+                              ? designTokens.colors.semantic.success[500]
+                              : designTokens.colors.semantic.error[500]};
                             border-radius: 9999px;
                           `}
                         />
