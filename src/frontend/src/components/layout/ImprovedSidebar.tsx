@@ -7,7 +7,7 @@ import { designTokens } from '../../styles/design-system';
 import { useLayout } from './ResponsiveLayout';
 import { useSidebarState } from '../../hooks/useSidebarState';
 import { Button } from '../ui/Button';
-import { primaryNavItems } from './routeMeta';
+import { primaryNavItems, getNavItemsForPersona } from './routeMeta';
 
 export const ImprovedSidebar: React.FC = () => {
   const navigate = useNavigate();
@@ -393,8 +393,7 @@ export const ImprovedSidebar: React.FC = () => {
 
         {/* Navigation */}
         <nav css={navStyles}>
-          {primaryNavItems.map((item) => {
-
+          {getNavItemsForPersona(primaryNavItems, user?.userType).map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <div

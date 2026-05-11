@@ -192,7 +192,7 @@ export class AsyncValidator {
   async validateAsync(
     fieldName: string,
     value: string,
-    validator: (value: string) => Promise<string | null>,
+    validator: (value: string) => Promise<string | null>
   ): Promise<string | null> {
     // Cancel previous validation for this field
     if (this.pendingValidations.has(fieldName)) {
@@ -274,7 +274,7 @@ export const useFormValidation = (schema: ValidationSchema) => {
     validateAsync: (
       fieldName: string,
       value: string,
-      validatorFn: (value: string) => Promise<string | null>,
+      validatorFn: (value: string) => Promise<string | null>
     ) => asyncValidator.validateAsync(fieldName, value, validatorFn),
 
     cancelAsyncValidations: () => asyncValidator.cancelAll(),

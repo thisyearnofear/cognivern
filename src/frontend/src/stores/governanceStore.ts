@@ -69,7 +69,7 @@ interface GovernanceState {
   setError: (error: string | null) => void;
   fetchPolicies: () => Promise<void>;
   createPolicy: (
-    policy: Omit<GovernancePolicy, 'id' | 'createdAt' | 'updatedAt'>,
+    policy: Omit<GovernancePolicy, 'id' | 'createdAt' | 'updatedAt'>
   ) => Promise<GovernancePolicy>;
   updatePolicy: (id: string, updates: Partial<GovernancePolicy>) => Promise<void>;
   deletePolicy: (id: string) => Promise<void>;
@@ -268,7 +268,7 @@ export const useGovernanceStore = create<GovernanceState>((set, get) => ({
   updatePolicy: async (id, updates) => {
     set((state) => {
       const nextPolicies = state.policies.map((p) =>
-        p.id === id ? { ...p, ...updates, updatedAt: Date.now() } : p,
+        p.id === id ? { ...p, ...updates, updatedAt: Date.now() } : p
       );
       localStorage.setItem('cognivern-policies', JSON.stringify(nextPolicies));
       return { policies: nextPolicies };

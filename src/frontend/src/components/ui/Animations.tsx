@@ -211,11 +211,7 @@ interface TooltipProps {
   position?: 'top' | 'bottom' | 'left' | 'right';
 }
 
-export const Tooltip: React.FC<TooltipProps> = ({
-  children,
-  content,
-  position = 'top',
-}) => {
+export const Tooltip: React.FC<TooltipProps> = ({ children, content, position = 'top' }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   const positionStyles = {
@@ -283,11 +279,7 @@ interface StatusBadgeProps {
   pulse?: boolean;
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({
-  status,
-  label,
-  pulse = false,
-}) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, pulse = false }) => {
   const statusColors = {
     online: designTokens.colors.semantic.success[500],
     offline: designTokens.colors.neutral[400],

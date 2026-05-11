@@ -66,9 +66,7 @@ export function meetsWCAGAAA(foreground: string, background: string): boolean {
  */
 export function getOptimalTextColor(bgColor: string): string {
   const ratio = getContrastRatio(bgColor, designTokens.colors.text.primary);
-  return ratio >= 4.5
-    ? designTokens.colors.text.primary
-    : designTokens.colors.text.inverse;
+  return ratio >= 4.5 ? designTokens.colors.text.primary : designTokens.colors.text.inverse;
 }
 
 // ===========================================

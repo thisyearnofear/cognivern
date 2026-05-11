@@ -52,7 +52,7 @@ export default function ConfidentialAuditViewer({
       console.error('Decryption error:', err);
       setError(
         err.message ||
-          'Failed to sign permit or decrypt. Ensure your wallet has auditor permissions.',
+          'Failed to sign permit or decrypt. Ensure your wallet has auditor permissions.'
       );
     } finally {
       setIsDecrypting(false);

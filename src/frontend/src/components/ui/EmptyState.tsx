@@ -2,7 +2,17 @@ import React, { useState } from 'react';
 import { css, keyframes } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
 import { Button } from './Button';
-import { Plus, Search, Shield, Users, Activity, TrendingUp, FileX, BookOpen, Inbox } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Shield,
+  Users,
+  Activity,
+  TrendingUp,
+  FileX,
+  BookOpen,
+  Inbox,
+} from 'lucide-react';
 
 export type EmptyStateType =
   | 'agents'
@@ -40,11 +50,14 @@ const iconMap: Record<EmptyStateType, React.ReactNode> = {
 };
 
 // Configuration map
-const configMap: Record<EmptyStateType, {
-  defaultTitle: string;
-  defaultDescription: string;
-  defaultAction: string;
-}> = {
+const configMap: Record<
+  EmptyStateType,
+  {
+    defaultTitle: string;
+    defaultDescription: string;
+    defaultAction: string;
+  }
+> = {
   agents: {
     defaultTitle: 'No agents yet',
     defaultDescription: 'Connect your first agent to start governing spend and policies.',

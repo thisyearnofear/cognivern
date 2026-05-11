@@ -80,7 +80,7 @@ export async function fetchActiveConditions(limit = 20): Promise<SapienceConditi
     const { conditions } = await request<{ conditions: SapienceCondition[] }>(
       SAPIENCE_GRAPHQL_ENDPOINT,
       query,
-      { nowSec, limit },
+      { nowSec, limit }
     );
     return conditions;
   } catch (error) {
@@ -111,7 +111,7 @@ export async function fetchCondition(conditionId: string): Promise<SapienceCondi
     const { condition } = await request<{ condition: SapienceCondition }>(
       SAPIENCE_GRAPHQL_ENDPOINT,
       query,
-      { id: conditionId },
+      { id: conditionId }
     );
     return condition;
   } catch (error) {
@@ -146,7 +146,7 @@ export async function fetchForecastsForCondition(conditionId: string): Promise<S
     const { forecasts } = await request<{ forecasts: SapienceForecast[] }>(
       SAPIENCE_GRAPHQL_ENDPOINT,
       query,
-      { conditionId },
+      { conditionId }
     );
     return forecasts;
   } catch (error) {
@@ -181,7 +181,7 @@ export async function fetchForecastsByAddress(address: string): Promise<Sapience
     const { forecasts } = await request<{ forecasts: SapienceForecast[] }>(
       SAPIENCE_GRAPHQL_ENDPOINT,
       query,
-      { address: address.toLowerCase() },
+      { address: address.toLowerCase() }
     );
     return forecasts;
   } catch (error) {

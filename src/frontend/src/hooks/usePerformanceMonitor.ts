@@ -115,7 +115,7 @@ export const usePerformanceMonitor = () => {
   const measureNavigationTiming = useCallback(() => {
     if ('performance' in window && 'getEntriesByType' in performance) {
       const navigationEntries = performance.getEntriesByType(
-        'navigation',
+        'navigation'
       ) as PerformanceNavigationTiming[];
       if (navigationEntries.length > 0) {
         const navigation = navigationEntries[0];
@@ -132,17 +132,17 @@ export const usePerformanceMonitor = () => {
   const measureResourceTiming = useCallback(() => {
     if ('performance' in window && 'getEntriesByType' in performance) {
       const resourceEntries = performance.getEntriesByType(
-        'resource',
+        'resource'
       ) as PerformanceResourceTiming[];
       setMetrics((prev) => ({ ...prev, resourceTiming: resourceEntries }));
 
       // Calculate bundle size from resource entries
       const jsResources = resourceEntries.filter(
-        (entry) => entry.name.includes('.js') && entry.transferSize,
+        (entry) => entry.name.includes('.js') && entry.transferSize
       );
       const totalBundleSize = jsResources.reduce(
         (total, entry) => total + (entry.transferSize || 0),
-        0,
+        0
       );
       setMetrics((prev) => ({ ...prev, bundleSize: totalBundleSize }));
     }
@@ -213,7 +213,7 @@ export const usePerformanceMonitor = () => {
         setAlerts([newAlerts[0]]); // Replace all alerts with just the first new one
       }
     },
-    [alerts],
+    [alerts]
   );
 
   // Start monitoring
@@ -261,7 +261,7 @@ export const usePerformanceMonitor = () => {
           ? 100
           : metrics.lcp <= PERFORMANCE_THRESHOLDS.lcp.poor
             ? 50
-            : 0,
+            : 0
       );
     }
 
@@ -271,7 +271,7 @@ export const usePerformanceMonitor = () => {
           ? 100
           : metrics.fid <= PERFORMANCE_THRESHOLDS.fid.poor
             ? 50
-            : 0,
+            : 0
       );
     }
 
@@ -281,7 +281,7 @@ export const usePerformanceMonitor = () => {
           ? 100
           : metrics.cls <= PERFORMANCE_THRESHOLDS.cls.poor
             ? 50
-            : 0,
+            : 0
       );
     }
 

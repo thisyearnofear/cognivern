@@ -144,10 +144,7 @@ function App() {
                 }
               />
 
-              <Route
-                path="agents/connect"
-                element={<Navigate to="/agents/workshop" replace />}
-              />
+              <Route path="agents/connect" element={<Navigate to="/agents/workshop" replace />} />
 
               {/* Legacy trading route - redirect to agents */}
               <Route path="trading" element={<Navigate to="/agents" replace />} />

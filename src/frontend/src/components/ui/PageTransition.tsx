@@ -17,15 +17,21 @@ export const PageTransition: React.FC<PageTransitionProps> = ({
   const location = useLocation();
   const [displayLocation, setDisplayLocation] = useState(location);
   const [transitionStage, setTransitionStage] = useState<'entering' | 'entered' | 'exiting'>(
-    'entered',
+    'entered'
   );
 
   const entranceKeyframes =
     type === 'fade'
       ? [{ opacity: 0 }, { opacity: 1 }]
       : type === 'scale'
-        ? [{ opacity: 0, transform: 'scale(0.95)' }, { opacity: 1, transform: 'scale(1)' }]
-        : [{ opacity: 0, transform: 'translateX(20px)' }, { opacity: 1, transform: 'translateX(0)' }];
+        ? [
+            { opacity: 0, transform: 'scale(0.95)' },
+            { opacity: 1, transform: 'scale(1)' },
+          ]
+        : [
+            { opacity: 0, transform: 'translateX(20px)' },
+            { opacity: 1, transform: 'translateX(0)' },
+          ];
 
   const entranceAnimation = useAnimation<HTMLDivElement>(entranceKeyframes, { duration });
 

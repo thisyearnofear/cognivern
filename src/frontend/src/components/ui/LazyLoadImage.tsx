@@ -51,7 +51,7 @@ export const LazyLoadImage: React.FC<LazyLoadImageProps> = ({
           }
         });
       },
-      { rootMargin },
+      { rootMargin }
     );
 
     if (imgRef.current) {

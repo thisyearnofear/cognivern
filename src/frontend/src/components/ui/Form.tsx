@@ -74,95 +74,107 @@ export const Form: React.FC<FormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const handleChange = useCallback((name: string, value: string) => {
-    setValues((prev) => ({ ...prev, [name]: value }));
+  const handleChange = useCallback(
+    (name: string, value: string) => {
+      setValues((prev) => ({ ...prev, [name]: value }));
 
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
-
-    // Real-time validation feedback (debounced)
-    if (isValid[name] === false) {
-      validateField(name, value);
-    }
-  }, [errors, isValid]);
-
-  const handleBlur = useCallback((name: string) => {
-    setTouched((prev) => ({ ...prev, [name]: true }));
-    validateField(name, values[name] || '');
-  }, [values]);
-
-  const validateField = useCallback((name: string, value: string) => {
-    const field = fields.find((f) => f.name === name);
-    if (!field) return '';
-
-    let error = '';
-
-    // Required validation
-    if (field.required && !value.trim()) {
-      error = `${field.label} is required`;
-    }
-
-    // Min length validation
-    if (!error && field.minLength && value.length < field.minLength) {
-      error = `${field.label} must be at least ${field.minLength} characters`;
-    }
-
-    // Pattern validation
-    if (!error && field.pattern && value && !new RegExp(field.pattern).test(value)) {
-      error = `${field.label} format is invalid`;
-    }
-
-    // Custom validation
-    if (!error && field.validation && value) {
-      const validationError = field.validation(value);
-      if (validationError) {
-        error = validationError;
+      // Clear error when user starts typing
+      if (errors[name]) {
+        setErrors((prev) => ({ ...prev, [name]: '' }));
       }
-    }
 
-    setErrors((prev) => ({ ...prev, [name]: error }));
-    setIsValid((prev) => ({ ...prev, [name]: !error && value.length > 0 }));
-    return error;
-  }, [fields]);
-
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitSuccess(false);
-
-    // Validate all fields
-    const newErrors: Record<string, string> = {};
-    const newValid: Record<string, boolean> = {};
-    let hasErrors = false;
-
-    fields.forEach((field) => {
-      const error = validateField(field.name, values[field.name] || '');
-      newValid[field.name] = !error && !!values[field.name];
-      if (error) {
-        newErrors[field.name] = error;
-        hasErrors = true;
+      // Real-time validation feedback (debounced)
+      if (isValid[name] === false) {
+        validateField(name, value);
       }
-    });
+    },
+    [errors, isValid]
+  );
 
-    setErrors(newErrors);
-    setIsValid(newValid);
-    setTouched(fields.reduce((acc, field) => ({ ...acc, [field.name]: true }), {}));
+  const handleBlur = useCallback(
+    (name: string) => {
+      setTouched((prev) => ({ ...prev, [name]: true }));
+      validateField(name, values[name] || '');
+    },
+    [values]
+  );
 
-    if (!hasErrors) {
-      setIsSubmitting(true);
-      try {
-        await onSubmit(values);
-        setSubmitSuccess(true);
-        // Reset form after successful submission
-        setTimeout(() => {
-          setSubmitSuccess(false);
-        }, 3000);
-      } finally {
-        setIsSubmitting(false);
+  const validateField = useCallback(
+    (name: string, value: string) => {
+      const field = fields.find((f) => f.name === name);
+      if (!field) return '';
+
+      let error = '';
+
+      // Required validation
+      if (field.required && !value.trim()) {
+        error = `${field.label} is required`;
       }
-    }
-  }, [fields, values, onSubmit, validateField]);
+
+      // Min length validation
+      if (!error && field.minLength && value.length < field.minLength) {
+        error = `${field.label} must be at least ${field.minLength} characters`;
+      }
+
+      // Pattern validation
+      if (!error && field.pattern && value && !new RegExp(field.pattern).test(value)) {
+        error = `${field.label} format is invalid`;
+      }
+
+      // Custom validation
+      if (!error && field.validation && value) {
+        const validationError = field.validation(value);
+        if (validationError) {
+          error = validationError;
+        }
+      }
+
+      setErrors((prev) => ({ ...prev, [name]: error }));
+      setIsValid((prev) => ({ ...prev, [name]: !error && value.length > 0 }));
+      return error;
+    },
+    [fields]
+  );
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setSubmitSuccess(false);
+
+      // Validate all fields
+      const newErrors: Record<string, string> = {};
+      const newValid: Record<string, boolean> = {};
+      let hasErrors = false;
+
+      fields.forEach((field) => {
+        const error = validateField(field.name, values[field.name] || '');
+        newValid[field.name] = !error && !!values[field.name];
+        if (error) {
+          newErrors[field.name] = error;
+          hasErrors = true;
+        }
+      });
+
+      setErrors(newErrors);
+      setIsValid(newValid);
+      setTouched(fields.reduce((acc, field) => ({ ...acc, [field.name]: true }), {}));
+
+      if (!hasErrors) {
+        setIsSubmitting(true);
+        try {
+          await onSubmit(values);
+          setSubmitSuccess(true);
+          // Reset form after successful submission
+          setTimeout(() => {
+            setSubmitSuccess(false);
+          }, 3000);
+        } finally {
+          setIsSubmitting(false);
+        }
+      }
+    },
+    [fields, values, onSubmit, validateField]
+  );
 
   const renderField = (field: FormFieldProps) => {
     const value = values[field.name] || '';
@@ -177,13 +189,12 @@ export const Form: React.FC<FormProps> = ({
       font-size: ${designTokens.typography.fontSize.base};
       font-family: ${designTokens.typography.fontFamily.sans};
       background: var(--input-bg, ${designTokens.colors.neutral[0]});
-      border: 2px solid ${
-        showError
+      border: 2px solid
+        ${showError
           ? designTokens.colors.semantic.error[500]
           : showSuccess
             ? designTokens.colors.semantic.success[500]
-            : `var(--border-subtle, ${designTokens.colors.neutral[300]})`
-      };
+            : `var(--border-subtle, ${designTokens.colors.neutral[300]})`};
       border-radius: ${designTokens.borderRadius.md};
       color: var(--text-primary);
       transition: all ${designTokens.animation.duration.fast} ease-out;
@@ -194,16 +205,13 @@ export const Form: React.FC<FormProps> = ({
       }
 
       &:focus {
-        border-color: ${
-          showError
-            ? designTokens.colors.semantic.error[500]
-            : designTokens.colors.primary[500]
-        };
-        box-shadow: 0 0 0 3px ${
-          showError
+        border-color: ${showError
+          ? designTokens.colors.semantic.error[500]
+          : designTokens.colors.primary[500]};
+        box-shadow: 0 0 0 3px
+          ${showError
             ? `${designTokens.colors.semantic.error[100]}`
-            : `${designTokens.colors.primary[100]}`
-        };
+            : `${designTokens.colors.primary[100]}`};
       }
 
       &:disabled {
@@ -216,7 +224,7 @@ export const Form: React.FC<FormProps> = ({
     const commonProps = {
       value,
       onChange: (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
       ) => handleChange(field.name, e.target.value),
       onBlur: () => handleBlur(field.name),
       placeholder: field.placeholder,
@@ -249,13 +257,7 @@ export const Form: React.FC<FormProps> = ({
         break;
 
       default:
-        input = (
-          <input
-            {...commonProps}
-            type={field.type || 'text'}
-            css={inputStyles}
-          />
-        );
+        input = <input {...commonProps} type={field.type || 'text'} css={inputStyles} />;
     }
 
     return (
@@ -288,7 +290,11 @@ export const Form: React.FC<FormProps> = ({
           )}
         </label>
 
-        <div css={css`position: relative;`}>
+        <div
+          css={css`
+            position: relative;
+          `}
+        >
           {input}
 
           {/* Status icons */}
@@ -399,10 +405,17 @@ export const Form: React.FC<FormProps> = ({
         >
           {isSubmitting ? (
             <>
-              <Loader2 size={16} css={css`animation: ${spin} 1s linear infinite;`} />
+              <Loader2
+                size={16}
+                css={css`
+                  animation: ${spin} 1s linear infinite;
+                `}
+              />
               Submitting...
             </>
-          ) : submitText}
+          ) : (
+            submitText
+          )}
         </Button>
       </div>
     </form>

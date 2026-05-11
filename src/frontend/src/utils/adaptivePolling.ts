@@ -153,7 +153,7 @@ export const calculateOptimalInterval = async (options: PollingOptions): Promise
  */
 export const createAdaptivePoller = (
   callback: () => Promise<void> | void,
-  options: PollingOptions,
+  options: PollingOptions
 ) => {
   let timeoutId: NodeJS.Timeout | null = null;
   let isPolling = false;
@@ -216,7 +216,7 @@ export const createAdaptivePoller = (
 export const useAdaptivePolling = (
   callback: () => Promise<void> | void,
   options: PollingOptions,
-  dependencies: any[] = [],
+  dependencies: any[] = []
 ) => {
   const [pollingState, setPollingState] = useState<PollingState | null>(null);
   const callbackRef = useRef(callback);

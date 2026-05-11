@@ -77,7 +77,7 @@ const AppLayoutContent: React.FC = () => {
     position: relative;
     width: 100%;
     height: 100%;
-     padding-bottom: ${isMobile ? '64px' : '0'};
+    padding-bottom: ${isMobile ? '64px' : '0'};
 
     /* Smooth scrolling */
     scroll-behavior: smooth;

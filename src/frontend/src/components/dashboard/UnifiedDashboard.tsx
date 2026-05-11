@@ -393,7 +393,7 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
       const selectedAgent = agents.find((agent) => agent.id === agentId);
       const traceLines = recentActivity
         .filter(
-          (activity) => activity.agentId === agentId || activity.agentName === selectedAgent?.name,
+          (activity) => activity.agentId === agentId || activity.agentName === selectedAgent?.name
         )
         .map((activity) => {
           const timestamp = activity.timestamp
@@ -408,7 +408,7 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
         });
 
       setAgentThoughts(
-        traceLines.length > 0 ? traceLines : ['No recorded trace events for this agent yet.'],
+        traceLines.length > 0 ? traceLines : ['No recorded trace events for this agent yet.']
       );
     } finally {
       setIsThoughtsLoading(false);
@@ -442,7 +442,11 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
         {isInDemoMode && !preferences.onboardingCompleted && (
           <div
             css={css`
-              background: linear-gradient(135deg, ${designTokens.colors.primary[500]} 0%, ${designTokens.colors.primary[600]} 100%);
+              background: linear-gradient(
+                135deg,
+                ${designTokens.colors.primary[500]} 0%,
+                ${designTokens.colors.primary[600]} 100%
+              );
               border-radius: ${designTokens.borderRadius.lg};
               padding: ${designTokens.spacing[4]} ${designTokens.spacing[6]};
               margin-bottom: ${designTokens.spacing[6]};
@@ -454,13 +458,19 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
               box-shadow: 0 4px 16px ${designTokens.colors.primary[500]}40;
             `}
           >
-            <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
+            <div
+              css={css`
+                display: flex;
+                align-items: center;
+                gap: ${designTokens.spacing[3]};
+              `}
+            >
               <div
                 css={css`
                   width: 40px;
                   height: 40px;
                   border-radius: 50%;
-                  background: rgba(255,255,255,0.2);
+                  background: rgba(255, 255, 255, 0.2);
                   display: flex;
                   align-items: center;
                   justify-content: center;
@@ -479,22 +489,27 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
                 >
                   {preferences.demoValueSeen
                     ? "You've seen how governance works"
-                    : "Explore the control plane"}
+                    : 'Explore the control plane'}
                 </h3>
                 <p
                   css={css`
                     margin: 0;
                     font-size: ${designTokens.typography.fontSize.sm};
-                    color: rgba(255,255,255,0.9);
+                    color: rgba(255, 255, 255, 0.9);
                   `}
                 >
                   {preferences.demoValueSeen
-                    ? "Connect your wallet to enable real agent governance with your own policies."
-                    : "Check out the activity feed above to see governed decisions in action."}
+                    ? 'Connect your wallet to enable real agent governance with your own policies.'
+                    : 'Check out the activity feed above to see governed decisions in action.'}
                 </p>
               </div>
             </div>
-            <div css={css`display: flex; gap: ${designTokens.spacing[2]};`}>
+            <div
+              css={css`
+                display: flex;
+                gap: ${designTokens.spacing[2]};
+              `}
+            >
               <Button
                 variant="secondary"
                 size="sm"
@@ -503,7 +518,7 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
                   background: white;
                   color: ${designTokens.colors.primary[600]};
                   &:hover {
-                    background: rgba(255,255,255,0.9);
+                    background: rgba(255, 255, 255, 0.9);
                   }
                 `}
               >
@@ -514,7 +529,9 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/onboarding')}
-                css={css`color: rgba(255,255,255,0.9);`}
+                css={css`
+                  color: rgba(255, 255, 255, 0.9);
+                `}
               >
                 Set Up Policies →
               </Button>
@@ -745,7 +762,8 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
                   color: designTokens.colors.neutral[600],
                 }}
               >
-                No activity yet — governed decisions and evidence will appear here as agents begin to operate.
+                No activity yet — governed decisions and evidence will appear here as agents begin
+                to operate.
               </p>
             </div>
           ) : (
@@ -766,25 +784,57 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
             justify-content: space-between;
             gap: ${designTokens.spacing[4]};
             padding: ${designTokens.spacing[4]} ${designTokens.spacing[5]};
-            background: linear-gradient(135deg, ${designTokens.colors.primary[50]}, ${designTokens.colors.primary[100]});
+            background: linear-gradient(
+              135deg,
+              ${designTokens.colors.primary[50]},
+              ${designTokens.colors.primary[100]}
+            );
             border: 1px solid ${designTokens.colors.primary[200]};
             border-radius: ${designTokens.borderRadius.xl};
             flex-wrap: wrap;
           `}
         >
-          <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
-            <ShieldCheck size={22} color={designTokens.colors.primary[600]} style={{ flexShrink: 0 }} />
+          <div
+            css={css`
+              display: flex;
+              align-items: center;
+              gap: ${designTokens.spacing[3]};
+            `}
+          >
+            <ShieldCheck
+              size={22}
+              color={designTokens.colors.primary[600]}
+              style={{ flexShrink: 0 }}
+            />
             <div>
-              <p css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.primary[800]}; font-size: ${designTokens.typography.fontSize.sm};`}>
+              <p
+                css={css`
+                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                  color: ${designTokens.colors.primary[800]};
+                  font-size: ${designTokens.typography.fontSize.sm};
+                `}
+              >
                 Try a live governance check
               </p>
-              <p css={css`font-size: ${designTokens.typography.fontSize.xs}; color: ${designTokens.colors.primary[600]};`}>
-                Evaluate any agent action against your policies — with Together AI reasoning and audit trail.
+              <p
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.xs};
+                  color: ${designTokens.colors.primary[600]};
+                `}
+              >
+                Evaluate any agent action against your policies — with Together AI reasoning and
+                audit trail.
               </p>
             </div>
           </div>
           <Button size="sm" variant="primary" onClick={() => navigate('/governance/check')}>
-            Open Playground <ArrowRight size={14} css={css`margin-left: 6px;`} />
+            Open Playground{' '}
+            <ArrowRight
+              size={14}
+              css={css`
+                margin-left: 6px;
+              `}
+            />
           </Button>
         </div>
 

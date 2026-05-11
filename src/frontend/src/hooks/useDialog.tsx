@@ -70,7 +70,7 @@ export const useDialog = () => {
     (
       title: string,
       message: string,
-      variant: 'info' | 'warning' | 'success' | 'error' = 'info',
+      variant: 'info' | 'warning' | 'success' | 'error' = 'info'
     ): Promise<void> => {
       return new Promise((resolve) => {
         setDialogState({
@@ -86,7 +86,7 @@ export const useDialog = () => {
         });
       });
     },
-    [closeDialog],
+    [closeDialog]
   );
 
   /**
@@ -96,7 +96,7 @@ export const useDialog = () => {
     (
       title: string,
       message: string,
-      variant: 'info' | 'warning' | 'error' = 'info',
+      variant: 'info' | 'warning' | 'error' = 'info'
     ): Promise<boolean> => {
       return new Promise((resolve) => {
         setDialogState({
@@ -116,7 +116,7 @@ export const useDialog = () => {
         });
       });
     },
-    [closeDialog],
+    [closeDialog]
   );
 
   /**
@@ -128,7 +128,7 @@ export const useDialog = () => {
       message: string,
       placeholder?: string,
       defaultValue?: string,
-      inputType: 'text' | 'number' | 'email' | 'password' = 'text', // pragma: allowlist secret
+      inputType: 'text' | 'number' | 'email' | 'password' = 'text' // pragma: allowlist secret
     ): Promise<string | null> => {
       return new Promise((resolve) => {
         setDialogState({
@@ -150,7 +150,7 @@ export const useDialog = () => {
         });
       });
     },
-    [closeDialog],
+    [closeDialog]
   );
 
   /**
@@ -176,7 +176,7 @@ export const useDialog = () => {
         });
       });
     },
-    [closeDialog],
+    [closeDialog]
   );
 
   return {

@@ -104,7 +104,7 @@ function TradingAgentDashboardContent() {
 
   const updateFilter = <K extends keyof AgentComparisonFilters>(
     key: K,
-    value: AgentComparisonFilters[K],
+    value: AgentComparisonFilters[K]
   ) => {
     setComparisonFilters((prev) => ({ ...prev, [key]: value }));
   };
@@ -123,7 +123,7 @@ function TradingAgentDashboardContent() {
       filtered = filtered.filter(
         (agent) =>
           agent.agentName?.toLowerCase().includes(search) ||
-          agent.agentType?.toLowerCase().includes(search),
+          agent.agentType?.toLowerCase().includes(search)
       );
     }
 
@@ -131,20 +131,20 @@ function TradingAgentDashboardContent() {
     if (comparisonFilters.complianceScore) {
       const [min, max] = comparisonFilters.complianceScore;
       filtered = filtered.filter(
-        (agent) => (agent.complianceScore ?? 100) >= min && (agent.complianceScore ?? 100) <= max,
+        (agent) => (agent.complianceScore ?? 100) >= min && (agent.complianceScore ?? 100) <= max
       );
     }
 
     if (comparisonFilters.autonomyLevel) {
       const [min, max] = comparisonFilters.autonomyLevel;
       filtered = filtered.filter(
-        (agent) => (agent.autonomyLevel ?? 1) >= min && (agent.autonomyLevel ?? 1) <= max,
+        (agent) => (agent.autonomyLevel ?? 1) >= min && (agent.autonomyLevel ?? 1) <= max
       );
     }
 
     if (comparisonFilters.riskProfile && (comparisonFilters.riskProfile as any[]).length > 0) {
       filtered = filtered.filter((agent) =>
-        (comparisonFilters.riskProfile as any[]).includes(agent.riskProfile ?? 'low'),
+        (comparisonFilters.riskProfile as any[]).includes(agent.riskProfile ?? 'low')
       );
     }
 

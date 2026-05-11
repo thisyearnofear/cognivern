@@ -1,36 +1,37 @@
 import React from 'react';
 import { css } from '@emotion/react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useTheme } from '../../stores/appStore';
+import { useAppStore, useTheme } from '../../stores/appStore';
 import { designTokens, easings } from '../../styles/design-system';
-import { mobileNavItems } from './routeMeta';
+import { mobileNavItems, getNavItemsForPersona } from './routeMeta';
 
 export const MobileBottomTabNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAppStore();
   const { effectiveTheme } = useTheme();
 
-   const navStyles = css`
-     position: fixed;
-     bottom: 0;
-     left: 0;
-     right: 0;
-     height: 64px;
-     background: ${effectiveTheme === 'dark'
-       ? 'rgba(15, 23, 42, 0.85)'
-       : 'rgba(255, 255, 255, 0.9)'};
-     backdrop-filter: blur(16px);
-     -webkit-backdrop-filter: blur(16px);
-     border-top: 1px solid
-       ${effectiveTheme === 'dark'
-         ? designTokens.colors.neutral[800]
-         : designTokens.colors.neutral[200]};
-     display: flex;
-     align-items: center;
-     justify-content: space-around;
-     padding: 0 ${designTokens.spacing[2]};
-     z-index: ${designTokens.zIndex.sticky};
-     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+  const navStyles = css`
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: ${effectiveTheme === 'dark'
+      ? 'rgba(15, 23, 42, 0.85)'
+      : 'rgba(255, 255, 255, 0.9)'};
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid
+      ${effectiveTheme === 'dark'
+        ? designTokens.colors.neutral[800]
+        : designTokens.colors.neutral[200]};
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 ${designTokens.spacing[2]};
+    z-index: ${designTokens.zIndex.sticky};
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
 
     @media (min-width: ${designTokens.breakpoints.md}) {
       display: none;
@@ -77,7 +78,7 @@ export const MobileBottomTabNav: React.FC = () => {
 
   return (
     <nav css={navStyles} aria-label="Main navigation">
-      {mobileNavItems.map((tab) => {
+      {getNavItemsForPersona(mobileNavItems, user?.userType).map((tab) => {
         const isActive = location.pathname === tab.path;
         return (
           <button

@@ -82,7 +82,7 @@ export default function RunDetails() {
           title: step.title,
           description: step.description,
           enabled: Boolean(step.enabled),
-        })),
+        }))
       );
     }
     if (resetEventState) {
@@ -107,7 +107,7 @@ export default function RunDetails() {
     if (!runId) return;
     const apiKey = getApiKey();
     const streamUrl = getApiUrl(
-      `/api/cre/runs/${encodeURIComponent(runId)}/events/stream?apiKey=${encodeURIComponent(apiKey)}`,
+      `/api/cre/runs/${encodeURIComponent(runId)}/events/stream?apiKey=${encodeURIComponent(apiKey)}`
     );
     const source = new EventSource(streamUrl);
 
@@ -150,11 +150,11 @@ export default function RunDetails() {
   const vm = useMemo(() => (run ? toAgentRunViewModel(run) : null), [run]);
   const timelineEvents = useMemo(
     () => (run ? toForensicEvents(run, liveEvents) : []),
-    [run, liveEvents],
+    [run, liveEvents]
   );
   const agUiStream = useMemo(
     () => toAgUiStream([...(run?.events || []), ...liveEvents]),
-    [run, liveEvents],
+    [run, liveEvents]
   );
   const lastFailedStepIndex = useMemo(() => {
     if (!run) return -1;
@@ -217,7 +217,7 @@ export default function RunDetails() {
           >
             Agent Run Console
           </h1>
-                    <div
+          <div
             css={css`
               margin-top: ${designTokens.spacing[2]};
               display: flex;
@@ -328,7 +328,14 @@ export default function RunDetails() {
 
       {vm.controls.canApprove && (
         <Card variant="outlined" compact>
-          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>Human Approval Required</CardHeader>
+          <CardHeader
+            css={css`
+              padding-bottom: ${designTokens.spacing[2]};
+              margin-bottom: ${designTokens.spacing[2]};
+            `}
+          >
+            Human Approval Required
+          </CardHeader>
           <CardContent>
             <div
               css={css`
@@ -397,7 +404,12 @@ export default function RunDetails() {
 
       {run.plan && (
         <Card variant="outlined" compact>
-          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+          <CardHeader
+            css={css`
+              padding-bottom: ${designTokens.spacing[2]};
+              margin-bottom: ${designTokens.spacing[2]};
+            `}
+          >
             <div
               css={css`
                 display: flex;
@@ -407,7 +419,14 @@ export default function RunDetails() {
                 flex-wrap: wrap;
               `}
             >
-              <span css={css`font-size: ${designTokens.typography.fontSize.sm}; font-weight: ${designTokens.typography.fontWeight.semibold};`}>Execution Plan</span>
+              <span
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                `}
+              >
+                Execution Plan
+              </span>
               <Button
                 size="sm"
                 variant="outline"
@@ -525,26 +544,82 @@ export default function RunDetails() {
 
       <div css={metricGridStyles}>
         <Card variant="outlined" compact>
-          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
-            <span css={css`font-size: ${designTokens.typography.fontSize.xs}; text-transform: uppercase; letter-spacing: 0.05em; color: ${designTokens.colors.neutral[500]};`}>Latency</span>
+          <CardHeader
+            css={css`
+              padding-bottom: ${designTokens.spacing[2]};
+              margin-bottom: ${designTokens.spacing[2]};
+            `}
+          >
+            <span
+              css={css`
+                font-size: ${designTokens.typography.fontSize.xs};
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: ${designTokens.colors.neutral[500]};
+              `}
+            >
+              Latency
+            </span>
           </CardHeader>
           <CardContent>{vm.metrics.latencyMs ?? 'N/A'} ms</CardContent>
         </Card>
         <Card variant="outlined" compact>
-          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
-            <span css={css`font-size: ${designTokens.typography.fontSize.xs}; text-transform: uppercase; letter-spacing: 0.05em; color: ${designTokens.colors.neutral[500]};`}>Steps</span>
+          <CardHeader
+            css={css`
+              padding-bottom: ${designTokens.spacing[2]};
+              margin-bottom: ${designTokens.spacing[2]};
+            `}
+          >
+            <span
+              css={css`
+                font-size: ${designTokens.typography.fontSize.xs};
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: ${designTokens.colors.neutral[500]};
+              `}
+            >
+              Steps
+            </span>
           </CardHeader>
           <CardContent>{vm.metrics.stepCount}</CardContent>
         </Card>
         <Card variant="outlined" compact>
-          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
-            <span css={css`font-size: ${designTokens.typography.fontSize.xs}; text-transform: uppercase; letter-spacing: 0.05em; color: ${designTokens.colors.neutral[500]};`}>Artifacts</span>
+          <CardHeader
+            css={css`
+              padding-bottom: ${designTokens.spacing[2]};
+              margin-bottom: ${designTokens.spacing[2]};
+            `}
+          >
+            <span
+              css={css`
+                font-size: ${designTokens.typography.fontSize.xs};
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: ${designTokens.colors.neutral[500]};
+              `}
+            >
+              Artifacts
+            </span>
           </CardHeader>
           <CardContent>{vm.metrics.artifactCount}</CardContent>
         </Card>
         <Card variant="outlined" compact>
-          <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
-            <span css={css`font-size: ${designTokens.typography.fontSize.xs}; text-transform: uppercase; letter-spacing: 0.05em; color: ${designTokens.colors.neutral[500]};`}>Estimated Tokens / Cost</span>
+          <CardHeader
+            css={css`
+              padding-bottom: ${designTokens.spacing[2]};
+              margin-bottom: ${designTokens.spacing[2]};
+            `}
+          >
+            <span
+              css={css`
+                font-size: ${designTokens.typography.fontSize.xs};
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: ${designTokens.colors.neutral[500]};
+              `}
+            >
+              Estimated Tokens / Cost
+            </span>
           </CardHeader>
           <CardContent>
             {vm.metrics.estimatedTokens ?? 'N/A'} / $
@@ -554,8 +629,20 @@ export default function RunDetails() {
       </div>
 
       <Card variant="outlined" compact>
-        <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
-          <span css={css`font-size: ${designTokens.typography.fontSize.sm}; font-weight: ${designTokens.typography.fontWeight.semibold};`}>Provenance</span>
+        <CardHeader
+          css={css`
+            padding-bottom: ${designTokens.spacing[2]};
+            margin-bottom: ${designTokens.spacing[2]};
+          `}
+        >
+          <span
+            css={css`
+              font-size: ${designTokens.typography.fontSize.sm};
+              font-weight: ${designTokens.typography.fontWeight.semibold};
+            `}
+          >
+            Provenance
+          </span>
         </CardHeader>
         <CardContent>
           <div
@@ -766,7 +853,7 @@ export default function RunDetails() {
                 `}
                 onClick={() => {
                   void copyTextToClipboard(
-                    run.events?.[run.events.length - 1].evidence?.hash || '',
+                    run.events?.[run.events.length - 1].evidence?.hash || ''
                   );
                 }}
               >

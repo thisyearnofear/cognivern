@@ -62,7 +62,8 @@ const toggleButtonStyles = css`
   color: ${designTokens.colors.text.secondary};
   cursor: pointer;
   transition:
-    background-color ${designTokens.animation.duration.fast} ${designTokens.animation.easing.easeOut},
+    background-color ${designTokens.animation.duration.fast}
+      ${designTokens.animation.easing.easeOut},
     color ${designTokens.animation.duration.fast} ${designTokens.animation.easing.easeOut};
 
   &:hover {

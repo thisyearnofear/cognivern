@@ -156,11 +156,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       onTouchEnd={handleTouchEnd}
     >
       {children}
-      <div
-        css={tooltipStyles}
-        role="tooltip"
-        aria-hidden={!isVisible}
-      >
+      <div css={tooltipStyles} role="tooltip" aria-hidden={!isVisible}>
         {content}
       </div>
     </div>

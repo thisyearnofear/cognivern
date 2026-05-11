@@ -368,7 +368,7 @@ export default function AgentWorkshop() {
     setSelectedScenario(scenarioId);
     addLog(
       `Selected scenario: ${scenariosByTemplate[selectedTemplate!].find((s) => s.id === scenarioId)?.name}`,
-      'info',
+      'info'
     );
   };
 

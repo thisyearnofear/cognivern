@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { css } from '@emotion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  Menu,
-  Search,
-  Bell,
-  Settings,
-  ChevronRight,
-  ShieldCheck,
-  ShieldAlert,
-} from 'lucide-react';
+import { Menu, Search, Bell, Settings, ChevronRight, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { useAppStore, useTheme } from '../../stores/appStore';
 import { agentApi } from '../../services/apiService';
 import { useIntentStore } from '../../stores/intentStore';

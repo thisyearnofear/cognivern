@@ -109,7 +109,7 @@ export const useKeyboardShortcuts = () => {
         matchingShortcut.action();
       }
     },
-    [shortcuts, navigate, toggleSidebar, setIsOpen],
+    [shortcuts, navigate, toggleSidebar, setIsOpen]
   );
 
   useEffect(() => {

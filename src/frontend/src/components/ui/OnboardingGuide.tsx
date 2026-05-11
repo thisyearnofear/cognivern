@@ -4,8 +4,15 @@ import { css, keyframes } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
 import { Button } from './Button';
 import {
-  ChevronLeft, ChevronRight, X, CheckCircle, MapPin,
-  PlayCircle, Settings, Users, BarChart3
+  ChevronLeft,
+  ChevronRight,
+  X,
+  CheckCircle,
+  MapPin,
+  PlayCircle,
+  Settings,
+  Users,
+  BarChart3,
 } from 'lucide-react';
 
 export interface TourStep {
@@ -130,7 +137,7 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({
 
     const positions: Record<string, ReturnType<typeof css>> = {
       top: css`
-        bottom: calc(${window.innerHeight - (targetRect.top)}px + ${offset}px);
+        bottom: calc(${window.innerHeight - targetRect.top}px + ${offset}px);
         left: calc(${targetRect.left + targetRect.width / 2}px);
         transform: translateX(-50%);
       `,
@@ -155,17 +162,19 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({
   };
 
   // Spotlight effect
-  const spotlightStyle = targetRect ? css`
-    position: fixed;
-    top: ${targetRect.top - 8}px;
-    left: ${targetRect.left - 8}px;
-    width: ${targetRect.width + 16}px;
-    height: ${targetRect.height + 16}px;
-    border-radius: ${designTokens.borderRadius.md};
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
-    animation: ${pulse} 2s ease-in-out infinite;
-    z-index: 9996;
-  ` : null;
+  const spotlightStyle = targetRect
+    ? css`
+        position: fixed;
+        top: ${targetRect.top - 8}px;
+        left: ${targetRect.left - 8}px;
+        width: ${targetRect.width + 16}px;
+        height: ${targetRect.height + 16}px;
+        border-radius: ${designTokens.borderRadius.md};
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+        animation: ${pulse} 2s ease-in-out infinite;
+        z-index: 9996;
+      `
+    : null;
 
   if (!isActive) {
     // Floating start button
@@ -277,7 +286,12 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({
           >
             {step?.icon || iconMap[step?.id] || iconMap.default}
           </div>
-          <div css={css`flex: 1; min-width: 0;`}>
+          <div
+            css={css`
+              flex: 1;
+              min-width: 0;
+            `}
+          >
             <div
               css={css`
                 display: flex;
@@ -345,7 +359,11 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({
         </div>
 
         {/* Content */}
-        <div css={css`padding: ${designTokens.spacing[4]};`}>
+        <div
+          css={css`
+            padding: ${designTokens.spacing[4]};
+          `}
+        >
           <p
             css={css`
               font-size: ${designTokens.typography.fontSize.sm};
@@ -394,10 +412,20 @@ export const OnboardingGuide: React.FC<OnboardingGuideProps> = ({
             border-top: 1px solid var(--border-subtle);
           `}
         >
-          <div css={css`font-size: ${designTokens.typography.fontSize.xs}; color: var(--text-muted);`}>
+          <div
+            css={css`
+              font-size: ${designTokens.typography.fontSize.xs};
+              color: var(--text-muted);
+            `}
+          >
             Step {currentStep + 1} of {steps.length}
           </div>
-          <div css={css`display: flex; gap: ${designTokens.spacing[2]};`}>
+          <div
+            css={css`
+              display: flex;
+              gap: ${designTokens.spacing[2]};
+            `}
+          >
             {currentStep > 0 && (
               <Button
                 size="sm"
@@ -491,7 +519,13 @@ export const OnboardingChecklist: React.FC<{
       </div>
 
       {/* Items */}
-      <div css={css`display: flex; flex-direction: column; gap: ${designTokens.spacing[2]};`}>
+      <div
+        css={css`
+          display: flex;
+          flex-direction: column;
+          gap: ${designTokens.spacing[2]};
+        `}
+      >
         {items.map((item) => (
           <button
             key={item.id}
@@ -518,8 +552,13 @@ export const OnboardingChecklist: React.FC<{
                 width: 20px;
                 height: 20px;
                 border-radius: 50%;
-                border: 2px solid ${item.completed ? designTokens.colors.semantic.success[500] : 'var(--border-subtle)'};
-                background: ${item.completed ? designTokens.colors.semantic.success[500] : 'transparent'};
+                border: 2px solid
+                  ${item.completed
+                    ? designTokens.colors.semantic.success[500]
+                    : 'var(--border-subtle)'};
+                background: ${item.completed
+                  ? designTokens.colors.semantic.success[500]
+                  : 'transparent'};
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -529,7 +568,12 @@ export const OnboardingChecklist: React.FC<{
             >
               {item.completed && <CheckCircle size={12} color="white" />}
             </div>
-            <div css={css`flex: 1; min-width: 0;`}>
+            <div
+              css={css`
+                flex: 1;
+                min-width: 0;
+              `}
+            >
               <div
                 css={css`
                   font-size: ${designTokens.typography.fontSize.sm};

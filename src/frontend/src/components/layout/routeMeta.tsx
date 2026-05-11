@@ -9,6 +9,8 @@ import {
   Users,
 } from 'lucide-react';
 
+export type UserPersona = 'healthcare' | 'defi' | 'enterprise' | 'developer';
+
 export interface AppRouteMeta {
   id: string;
   label: string;
@@ -20,6 +22,8 @@ export interface AppRouteMeta {
   showInNav?: boolean;
   showInMobileNav?: boolean;
   badge?: string | number;
+  /** When set, this route is only shown for the listed personas. Omit = always shown. */
+  personas?: UserPersona[];
 }
 
 export const appRouteMeta: AppRouteMeta[] = [
@@ -88,6 +92,7 @@ export const appRouteMeta: AppRouteMeta[] = [
     icon: <PlayCircle size={20} />,
     showInNav: true,
     showInMobileNav: true,
+    personas: ['healthcare', 'developer'],
   },
   {
     id: 'add-agent',
@@ -103,6 +108,15 @@ export const appRouteMeta: AppRouteMeta[] = [
 
 export const primaryNavItems = appRouteMeta.filter((route) => route.showInNav);
 export const mobileNavItems = appRouteMeta.filter((route) => route.showInMobileNav);
+
+/** Filter nav items by persona. Items without a `personas` list are always shown. */
+export const getNavItemsForPersona = (
+  items: AppRouteMeta[],
+  userType?: string
+): AppRouteMeta[] => {
+  if (!userType) return items;
+  return items.filter((r) => !r.personas || r.personas.includes(userType as UserPersona));
+};
 
 export const getRouteMetaByPath = (pathname: string): AppRouteMeta | undefined => {
   if (pathname === '/') {

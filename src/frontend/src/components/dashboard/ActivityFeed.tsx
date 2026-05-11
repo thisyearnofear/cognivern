@@ -100,7 +100,7 @@ export const ActivityFeed = ({
               >
                 <div
                   css={styles.activityIconStyles(
-                    activity.severity || (activity.type === 'trade' ? 'success' : 'info'),
+                    activity.severity || (activity.type === 'trade' ? 'success' : 'info')
                   )}
                 >
                   {getActivityIcon(activity.severity, activity.type)}

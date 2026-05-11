@@ -309,7 +309,7 @@ export const MultiFieldDialog: React.FC<MultiFieldDialogProps> = ({
   isLoading = false,
 }) => {
   const [values, setValues] = useState<Record<string, string>>(
-    fields.reduce((acc, field) => ({ ...acc, [field.name]: field.defaultValue || '' }), {}),
+    fields.reduce((acc, field) => ({ ...acc, [field.name]: field.defaultValue || '' }), {})
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -342,7 +342,7 @@ export const MultiFieldDialog: React.FC<MultiFieldDialogProps> = ({
 
   const handleClose = () => {
     setValues(
-      fields.reduce((acc, field) => ({ ...acc, [field.name]: field.defaultValue || '' }), {}),
+      fields.reduce((acc, field) => ({ ...acc, [field.name]: field.defaultValue || '' }), {})
     );
     setErrors({});
     onClose();

@@ -145,7 +145,7 @@ export const PerformanceDashboard: React.FC = () => {
               <span css={performanceStyles.metricLabel}>Largest Contentful Paint (LCP)</span>
               <span
                 css={performanceStyles.metricValue(
-                  getStatusColor(getMetricStatus(metrics.lcp, 'lcp')),
+                  getStatusColor(getMetricStatus(metrics.lcp, 'lcp'))
                 )}
               >
                 {formatMetricValue(metrics.lcp)}
@@ -155,7 +155,7 @@ export const PerformanceDashboard: React.FC = () => {
               <span css={performanceStyles.metricLabel}>First Input Delay (FID)</span>
               <span
                 css={performanceStyles.metricValue(
-                  getStatusColor(getMetricStatus(metrics.fid, 'fid')),
+                  getStatusColor(getMetricStatus(metrics.fid, 'fid'))
                 )}
               >
                 {formatMetricValue(metrics.fid)}
@@ -165,7 +165,7 @@ export const PerformanceDashboard: React.FC = () => {
               <span css={performanceStyles.metricLabel}>Cumulative Layout Shift (CLS)</span>
               <span
                 css={performanceStyles.metricValue(
-                  getStatusColor(getMetricStatus(metrics.cls, 'cls')),
+                  getStatusColor(getMetricStatus(metrics.cls, 'cls'))
                 )}
               >
                 {formatMetricValue(metrics.cls, '')}
@@ -175,7 +175,7 @@ export const PerformanceDashboard: React.FC = () => {
               <span css={performanceStyles.metricLabel}>First Contentful Paint (FCP)</span>
               <span
                 css={performanceStyles.metricValue(
-                  getStatusColor(getMetricStatus(metrics.fcp, 'fcp')),
+                  getStatusColor(getMetricStatus(metrics.fcp, 'fcp'))
                 )}
               >
                 {formatMetricValue(metrics.fcp)}
@@ -194,7 +194,7 @@ export const PerformanceDashboard: React.FC = () => {
               <span css={performanceStyles.metricLabel}>Memory Usage</span>
               <span
                 css={performanceStyles.metricValue(
-                  getStatusColor(getMetricStatus(metrics.memoryUsage, 'memoryUsage')),
+                  getStatusColor(getMetricStatus(metrics.memoryUsage, 'memoryUsage'))
                 )}
               >
                 {formatMetricValue(metrics.memoryUsage, 'MB')}
@@ -204,7 +204,7 @@ export const PerformanceDashboard: React.FC = () => {
               <span css={performanceStyles.metricLabel}>Render Time</span>
               <span
                 css={performanceStyles.metricValue(
-                  getStatusColor(getMetricStatus(metrics.renderTime, 'renderTime')),
+                  getStatusColor(getMetricStatus(metrics.renderTime, 'renderTime'))
                 )}
               >
                 {formatMetricValue(metrics.renderTime)}
@@ -220,7 +220,7 @@ export const PerformanceDashboard: React.FC = () => {
               <span css={performanceStyles.metricLabel}>TTFB</span>
               <span
                 css={performanceStyles.metricValue(
-                  getStatusColor(getMetricStatus(metrics.ttfb, 'ttfb')),
+                  getStatusColor(getMetricStatus(metrics.ttfb, 'ttfb'))
                 )}
               >
                 {formatMetricValue(metrics.ttfb)}

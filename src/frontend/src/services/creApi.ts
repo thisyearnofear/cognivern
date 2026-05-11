@@ -123,7 +123,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}) {
 export const creApi = {
   listRuns: async (projectId: string = 'default') =>
     request<{ success: boolean; runs: CreRun[] }>(
-      `/api/cre/runs?projectId=${encodeURIComponent(projectId)}`,
+      `/api/cre/runs?projectId=${encodeURIComponent(projectId)}`
     ),
   getRun: async (runId: string) =>
     request<{ success: boolean; run: CreRun }>(`/api/cre/runs/${runId}`),
@@ -144,12 +144,12 @@ export const creApi = {
     }>(
       `/api/cre/runs/${encodeURIComponent(runId)}/events${
         since ? `?since=${encodeURIComponent(String(since))}` : ''
-      }`,
+      }`
     ),
   cancelRun: async (runId: string) =>
     request<{ success: boolean; run: CreRun }>(
       `/api/cre/runs/${encodeURIComponent(runId)}/cancel`,
-      { method: 'POST', body: JSON.stringify({}) },
+      { method: 'POST', body: JSON.stringify({}) }
     ),
   retryRun: async (runId: string, params: { writeAttestation?: boolean; fromStep?: number } = {}) =>
     request<{
@@ -170,7 +170,7 @@ export const creApi = {
       {
         method: 'POST',
         body: JSON.stringify(params),
-      },
+      }
     ),
   updateRunPlan: async (
     runId: string,
@@ -184,7 +184,7 @@ export const creApi = {
         enabled: boolean;
         status?: 'pending' | 'approved' | 'rejected';
       }>;
-    },
+    }
   ) =>
     request<{ success: boolean; run: CreRun }>(`/api/cre/runs/${encodeURIComponent(runId)}/plan`, {
       method: 'POST',

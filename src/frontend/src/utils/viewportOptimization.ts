@@ -50,7 +50,7 @@ export const getViewportDimensions = (): ViewportDimensions => {
  */
 export const calculateOptimalLayout = (
   viewportDims: ViewportDimensions,
-  contentType: 'dashboard' | 'form' | 'table' | 'chart' | 'list' = 'dashboard',
+  contentType: 'dashboard' | 'form' | 'table' | 'chart' | 'list' = 'dashboard'
 ): LayoutOptimization => {
   const { availableWidth } = viewportDims;
 
@@ -138,7 +138,7 @@ export const calculateOptimalLayout = (
  */
 export const createViewportChangeHandler = (
   callback: (dimensions: ViewportDimensions) => void,
-  delay: number = 150,
+  delay: number = 150
 ) => {
   let timeoutId: NodeJS.Timeout;
 
@@ -156,7 +156,7 @@ export const createViewportChangeHandler = (
 export const isLayoutOptimal = (
   currentSidebarState: string,
   contentType: string,
-  viewportDims: ViewportDimensions,
+  viewportDims: ViewportDimensions
 ): boolean => {
   const optimal = calculateOptimalLayout(viewportDims, contentType as any);
   return optimal.recommendedSidebarState === currentSidebarState;

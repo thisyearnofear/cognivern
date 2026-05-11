@@ -67,7 +67,11 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   };
 
   return (
-    <div css={css`width: 100%;`}>
+    <div
+      css={css`
+        width: 100%;
+      `}
+    >
       {(showLabel || label) && (
         <div
           css={css`
@@ -80,7 +84,11 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
           `}
         >
           <span>{label || 'Progress'}</span>
-          <span css={css`font-weight: ${designTokens.typography.fontWeight.medium};`}>
+          <span
+            css={css`
+              font-weight: ${designTokens.typography.fontWeight.medium};
+            `}
+          >
             {Math.round(percentage)}%
           </span>
         </div>
@@ -107,7 +115,8 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
             position: relative;
             overflow: hidden;
 
-            ${striped && css`
+            ${striped &&
+            css`
               background-image: linear-gradient(
                 45deg,
                 rgba(255, 255, 255, 0.15) 25%,
@@ -121,7 +130,8 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
               background-size: 20px 20px;
             `}
 
-            ${animated && css`
+            ${animated &&
+            css`
               background-image: linear-gradient(
                 45deg,
                 rgba(255, 255, 255, 0.2) 25%,
@@ -185,7 +195,9 @@ export const StepProgress: React.FC<StepProgressProps> = ({
               flex: 1;
               position: relative;
 
-              ${!isVertical && index < steps.length - 1 && css`
+              ${!isVertical &&
+              index < steps.length - 1 &&
+              css`
                 &::after {
                   content: '';
                   position: absolute;
@@ -199,7 +211,9 @@ export const StepProgress: React.FC<StepProgressProps> = ({
                 }
               `}
 
-              ${isVertical && index < steps.length - 1 && css`
+              ${isVertical &&
+              index < steps.length - 1 &&
+              css`
                 &::after {
                   content: '';
                   position: absolute;
@@ -237,7 +251,20 @@ export const StepProgress: React.FC<StepProgressProps> = ({
               ) : isError ? (
                 <AlertCircle size={18} />
               ) : isActive ? (
-                <Loader2 size={16} css={css`animation: spin 1s linear infinite; @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`} />
+                <Loader2
+                  size={16}
+                  css={css`
+                    animation: spin 1s linear infinite;
+                    @keyframes spin {
+                      from {
+                        transform: rotate(0deg);
+                      }
+                      to {
+                        transform: rotate(360deg);
+                      }
+                    }
+                  `}
+                />
               ) : (
                 index + 1
               )}
@@ -245,7 +272,12 @@ export const StepProgress: React.FC<StepProgressProps> = ({
 
             {/* Label */}
             {showLabels && (
-              <div css={css`flex: 1; min-width: 0;`}>
+              <div
+                css={css`
+                  flex: 1;
+                  min-width: 0;
+                `}
+              >
                 <div
                   css={css`
                     font-size: ${designTokens.typography.fontSize.sm};
@@ -282,13 +314,7 @@ export const CircularProgress: React.FC<{
   strokeWidth?: number;
   showValue?: boolean;
   variant?: 'default' | 'success' | 'warning' | 'error';
-}> = ({
-  value,
-  size = 64,
-  strokeWidth = 6,
-  showValue = true,
-  variant = 'default',
-}) => {
+}> = ({ value, size = 64, strokeWidth = 6, showValue = true, variant = 'default' }) => {
   const percentage = Math.min(100, Math.max(0, value));
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -336,7 +362,9 @@ export const CircularProgress: React.FC<{
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          css={css`transition: stroke-dashoffset 0.3s ease;`}
+          css={css`
+            transition: stroke-dashoffset 0.3s ease;
+          `}
         />
       </svg>
       {showValue && (

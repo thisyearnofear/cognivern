@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getApiUrl, getRequestHeaders } from '../../utils/api';
 import { copyTextToClipboard } from '../../utils/clipboard';
 import { css } from '@emotion/react';
@@ -424,6 +424,7 @@ const severityBadgeStyles = css`
 
 export default function EnhancedAuditLogs() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -513,7 +514,7 @@ export default function EnhancedAuditLogs() {
   const calculateMetrics = (logs: AuditLog[]) => {
     const totalLogs = logs.length;
     const compliantLogs = logs.filter(
-      (log) => log.metadata.complianceStatus === 'compliant',
+      (log) => log.metadata.complianceStatus === 'compliant'
     ).length;
     const complianceRate = totalLogs > 0 ? (compliantLogs / totalLogs) * 100 : 0;
     const avgResponseTime =
@@ -824,15 +825,25 @@ export default function EnhancedAuditLogs() {
         >
           {viewMode === 'timeline' ? 'Audit Timeline' : 'Audit Table'}
         </h3>
-        <div css={css`display: flex; gap: ${designTokens.spacing[2]};`}>
+        <div
+          css={css`
+            display: flex;
+            gap: ${designTokens.spacing[2]};
+          `}
+        >
           <button
             onClick={() => setViewMode('timeline')}
             css={css`
               padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
               border-radius: ${designTokens.borderRadius.md};
-              border: 1px solid ${viewMode === 'timeline' ? designTokens.colors.primary[500] : designTokens.colors.neutral[300]};
+              border: 1px solid
+                ${viewMode === 'timeline'
+                  ? designTokens.colors.primary[500]
+                  : designTokens.colors.neutral[300]};
               background: ${viewMode === 'timeline' ? designTokens.colors.primary[50] : 'white'};
-              color: ${viewMode === 'timeline' ? designTokens.colors.primary[700] : designTokens.colors.neutral[600]};
+              color: ${viewMode === 'timeline'
+                ? designTokens.colors.primary[700]
+                : designTokens.colors.neutral[600]};
               font-size: ${designTokens.typography.fontSize.xs};
               font-weight: ${designTokens.typography.fontWeight.medium};
               cursor: pointer;
@@ -845,9 +856,14 @@ export default function EnhancedAuditLogs() {
             css={css`
               padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
               border-radius: ${designTokens.borderRadius.md};
-              border: 1px solid ${viewMode === 'table' ? designTokens.colors.primary[500] : designTokens.colors.neutral[300]};
+              border: 1px solid
+                ${viewMode === 'table'
+                  ? designTokens.colors.primary[500]
+                  : designTokens.colors.neutral[300]};
               background: ${viewMode === 'table' ? designTokens.colors.primary[50] : 'white'};
-              color: ${viewMode === 'table' ? designTokens.colors.primary[700] : designTokens.colors.neutral[600]};
+              color: ${viewMode === 'table'
+                ? designTokens.colors.primary[700]
+                : designTokens.colors.neutral[600]};
               font-size: ${designTokens.typography.fontSize.xs};
               font-weight: ${designTokens.typography.fontWeight.medium};
               cursor: pointer;
@@ -859,17 +875,91 @@ export default function EnhancedAuditLogs() {
       </div>
 
       {viewMode === 'table' ? (
-        <div css={css`overflow-x: auto;`}>
-          <table css={css`width: 100%; border-collapse: collapse; font-size: ${designTokens.typography.fontSize.sm};`}>
+        <div
+          css={css`
+            overflow-x: auto;
+          `}
+        >
+          <table
+            css={css`
+              width: 100%;
+              border-collapse: collapse;
+              font-size: ${designTokens.typography.fontSize.sm};
+            `}
+          >
             <thead>
-              <tr css={css`background: ${designTokens.colors.neutral[50]}; text-align: left;`}>
-                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[700]};`}>Time</th>
-                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[700]};`}>Agent</th>
-                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[700]};`}>Action</th>
-                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[700]};`}>Decision</th>
-                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[700]};`}>Status</th>
-                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[700]};`}>Severity</th>
-                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]};`}></th>
+              <tr
+                css={css`
+                  background: ${designTokens.colors.neutral[50]};
+                  text-align: left;
+                `}
+              >
+                <th
+                  css={css`
+                    padding: ${designTokens.spacing[3]};
+                    border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    color: ${designTokens.colors.neutral[700]};
+                  `}
+                >
+                  Time
+                </th>
+                <th
+                  css={css`
+                    padding: ${designTokens.spacing[3]};
+                    border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    color: ${designTokens.colors.neutral[700]};
+                  `}
+                >
+                  Agent
+                </th>
+                <th
+                  css={css`
+                    padding: ${designTokens.spacing[3]};
+                    border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    color: ${designTokens.colors.neutral[700]};
+                  `}
+                >
+                  Action
+                </th>
+                <th
+                  css={css`
+                    padding: ${designTokens.spacing[3]};
+                    border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    color: ${designTokens.colors.neutral[700]};
+                  `}
+                >
+                  Decision
+                </th>
+                <th
+                  css={css`
+                    padding: ${designTokens.spacing[3]};
+                    border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    color: ${designTokens.colors.neutral[700]};
+                  `}
+                >
+                  Status
+                </th>
+                <th
+                  css={css`
+                    padding: ${designTokens.spacing[3]};
+                    border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+                    font-weight: ${designTokens.typography.fontWeight.semibold};
+                    color: ${designTokens.colors.neutral[700]};
+                  `}
+                >
+                  Severity
+                </th>
+                <th
+                  css={css`
+                    padding: ${designTokens.spacing[3]};
+                    border-bottom: 1px solid ${designTokens.colors.neutral[200]};
+                  `}
+                ></th>
               </tr>
             </thead>
             <tbody>
@@ -878,30 +968,84 @@ export default function EnhancedAuditLogs() {
                   key={log.id}
                   css={css`
                     border-bottom: 1px solid ${designTokens.colors.neutral[100]};
-                    background: ${highlightedEventId === log.id ? designTokens.colors.primary[50] : 'white'};
-                    &:hover { background: ${designTokens.colors.neutral[50]}; }
+                    background: ${highlightedEventId === log.id
+                      ? designTokens.colors.primary[50]
+                      : 'white'};
+                    &:hover {
+                      background: ${designTokens.colors.neutral[50]};
+                    }
                   `}
                 >
-                  <td css={css`padding: ${designTokens.spacing[3]}; color: ${designTokens.colors.neutral[500]}; white-space: nowrap;`}>{new Date(log.timestamp).toLocaleString()}</td>
-                  <td css={css`padding: ${designTokens.spacing[3]}; font-weight: ${designTokens.typography.fontWeight.medium};`}>{log.agentName}</td>
-                  <td css={css`padding: ${designTokens.spacing[3]}; color: ${designTokens.colors.neutral[700]};`}>{log.action.type}</td>
-                  <td css={css`padding: ${designTokens.spacing[3]};`}>
-                    <span css={css`
-                      padding: 2px 8px;
-                      border-radius: ${designTokens.borderRadius.full};
-                      font-size: ${designTokens.typography.fontSize.xs};
-                      font-weight: ${designTokens.typography.fontWeight.semibold};
-                      background: ${log.action.decision === 'allowed' ? designTokens.colors.semantic.success[100] : designTokens.colors.semantic.error[100]};
-                      color: ${log.action.decision === 'allowed' ? designTokens.colors.semantic.success[700] : designTokens.colors.semantic.error[700]};
-                    `}>{log.action.decision}</span>
+                  <td
+                    css={css`
+                      padding: ${designTokens.spacing[3]};
+                      color: ${designTokens.colors.neutral[500]};
+                      white-space: nowrap;
+                    `}
+                  >
+                    {new Date(log.timestamp).toLocaleString()}
                   </td>
-                  <td css={css`padding: ${designTokens.spacing[3]};`}>
-                    <span css={css`${statusBadgeStyles}; &.${log.metadata.complianceStatus}`}>{log.metadata.complianceStatus}</span>
+                  <td
+                    css={css`
+                      padding: ${designTokens.spacing[3]};
+                      font-weight: ${designTokens.typography.fontWeight.medium};
+                    `}
+                  >
+                    {log.agentName}
                   </td>
-                  <td css={css`padding: ${designTokens.spacing[3]};`}>
-                    <span css={css`${severityBadgeStyles}; &.${log.impact.severity}`}>{log.impact.severity}</span>
+                  <td
+                    css={css`
+                      padding: ${designTokens.spacing[3]};
+                      color: ${designTokens.colors.neutral[700]};
+                    `}
+                  >
+                    {log.action.type}
                   </td>
-                  <td css={css`padding: ${designTokens.spacing[3]};`}>
+                  <td
+                    css={css`
+                      padding: ${designTokens.spacing[3]};
+                    `}
+                  >
+                    <span
+                      css={css`
+                        padding: 2px 8px;
+                        border-radius: ${designTokens.borderRadius.full};
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        font-weight: ${designTokens.typography.fontWeight.semibold};
+                        background: ${log.action.decision === 'allowed'
+                          ? designTokens.colors.semantic.success[100]
+                          : designTokens.colors.semantic.error[100]};
+                        color: ${log.action.decision === 'allowed'
+                          ? designTokens.colors.semantic.success[700]
+                          : designTokens.colors.semantic.error[700]};
+                      `}
+                    >
+                      {log.action.decision}
+                    </span>
+                  </td>
+                  <td
+                    css={css`
+                      padding: ${designTokens.spacing[3]};
+                    `}
+                  >
+                    <span css={css`${statusBadgeStyles}; &.${log.metadata.complianceStatus}`}>
+                      {log.metadata.complianceStatus}
+                    </span>
+                  </td>
+                  <td
+                    css={css`
+                      padding: ${designTokens.spacing[3]};
+                    `}
+                  >
+                    <span css={css`${severityBadgeStyles}; &.${log.impact.severity}`}>
+                      {log.impact.severity}
+                    </span>
+                  </td>
+                  <td
+                    css={css`
+                      padding: ${designTokens.spacing[3]};
+                    `}
+                  >
                     <button
                       title="Copy permalink"
                       onClick={() => {
@@ -915,14 +1059,43 @@ export default function EnhancedAuditLogs() {
                         background: none;
                         border: none;
                         cursor: pointer;
-                        color: ${copiedId === log.id ? designTokens.colors.semantic.success[600] : designTokens.colors.neutral[400]};
+                        color: ${copiedId === log.id
+                          ? designTokens.colors.semantic.success[600]
+                          : designTokens.colors.neutral[400]};
                         font-size: ${designTokens.typography.fontSize.xs};
                         padding: ${designTokens.spacing[1]};
-                        &:hover { color: ${designTokens.colors.primary[600]}; }
+                        &:hover {
+                          color: ${designTokens.colors.primary[600]};
+                        }
                       `}
                     >
                       {copiedId === log.id ? '✓ Copied' : '🔗 Share'}
                     </button>
+                    {log.policyChecks.length > 0 && (
+                      <button
+                        title="Re-test this policy in the Governance Playground"
+                        onClick={() =>
+                          navigate(
+                            `/governance/check?policyId=${encodeURIComponent(log.policyChecks[0].policyId)}`
+                          )
+                        }
+                        css={css`
+                          background: none;
+                          border: none;
+                          cursor: pointer;
+                          color: ${designTokens.colors.primary[500]};
+                          font-size: ${designTokens.typography.fontSize.xs};
+                          padding: ${designTokens.spacing[1]};
+                          margin-left: ${designTokens.spacing[1]};
+                          &:hover {
+                            color: ${designTokens.colors.primary[700]};
+                            text-decoration: underline;
+                          }
+                        `}
+                      >
+                        ▶ Re-test
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -930,11 +1103,11 @@ export default function EnhancedAuditLogs() {
           </table>
         </div>
       ) : (
-      <div css={logTimelineStyles}>
-        {logs.map((log) => (
-          <div
-            key={log.id}
-            css={css`
+        <div css={logTimelineStyles}>
+          {logs.map((log) => (
+            <div
+              key={log.id}
+              css={css`
               ${logItemStyles};
               &.${log.metadata.complianceStatus}
               ${
@@ -946,334 +1119,366 @@ export default function EnhancedAuditLogs() {
                   : ''
               }
             `}
-          >
-            <Card variant="default">
-              <CardContent>
-                <div
-                  css={css`
-                    display: flex;
-                    justify-content: between;
-                    align-items: start;
-                    margin-bottom: ${designTokens.spacing[3]};
-                  `}
-                >
-                  <div>
-                    <CardTitle
-                      css={css`
-                        margin-bottom: ${designTokens.spacing[1]};
-                      `}
-                    >
-                      {log.agentName}
-                    </CardTitle>
-                    <div css={trustBadgeRowStyles}>
-                      {log.evidence?.hash && (
-                        <Tooltip content="This audit event is backed by a stable evidence hash.">
-                          <span>
-                            <Badge variant="success" size="sm">
-                              hash-backed
-                            </Badge>
-                          </span>
-                        </Tooltip>
-                      )}
-                      {log.evidence?.cid && (
-                        <Tooltip content="This audit event references content-addressed evidence.">
-                          <span>
-                            <Badge variant="secondary" size="sm">
-                              cid-linked
-                            </Badge>
-                          </span>
-                        </Tooltip>
-                      )}
-                      {log.evidence?.policyIds?.length ? (
-                        <Tooltip content="Policy checks were recorded for this audit event.">
-                          <span>
-                            <Badge variant="warning" size="sm">
-                              policy-enforced
-                            </Badge>
-                          </span>
-                        </Tooltip>
-                      ) : null}
-                    </div>
-                    <div
-                      css={css`
-                        font-size: ${designTokens.typography.fontSize.sm};
-                        color: ${designTokens.colors.neutral[500]};
-                      `}
-                    >
-                      {new Date(log.timestamp).toLocaleString()}
-                    </div>
-                  </div>
+            >
+              <Card variant="default">
+                <CardContent>
                   <div
                     css={css`
                       display: flex;
-                      align-items: center;
-                    `}
-                  >
-                    <span css={css`${statusBadgeStyles}; &.${log.metadata.complianceStatus}`}>
-                      {log.metadata.complianceStatus}
-                    </span>
-                    <span css={css`${severityBadgeStyles}; &.${log.impact.severity}`}>
-                      {log.impact.severity}
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  css={css`
-                    margin-bottom: ${designTokens.spacing[4]};
-                  `}
-                >
-                  <h4
-                    css={css`
-                      font-size: ${designTokens.typography.fontSize.sm};
-                      font-weight: ${designTokens.typography.fontWeight.semibold};
-                      margin-bottom: ${designTokens.spacing[2]};
-                    `}
-                  >
-                    Action: {log.action.type}
-                  </h4>
-                  <p
-                    css={css`
-                      font-size: ${designTokens.typography.fontSize.sm};
-                      color: ${designTokens.colors.neutral[600]};
-                      margin-bottom: ${designTokens.spacing[2]};
-                    `}
-                  >
-                    {log.action.description}
-                  </p>
-                  <div
-                    css={css`
-                      display: grid;
-                      grid-template-columns: 1fr 1fr;
-                      gap: ${designTokens.spacing[4]};
+                      justify-content: between;
+                      align-items: start;
+                      margin-bottom: ${designTokens.spacing[3]};
                     `}
                   >
                     <div>
-                      <strong>Input:</strong> {log.action.input}
+                      <CardTitle
+                        css={css`
+                          margin-bottom: ${designTokens.spacing[1]};
+                        `}
+                      >
+                        {log.agentName}
+                      </CardTitle>
+                      <div css={trustBadgeRowStyles}>
+                        {log.evidence?.hash && (
+                          <Tooltip content="This audit event is backed by a stable evidence hash.">
+                            <span>
+                              <Badge variant="success" size="sm">
+                                hash-backed
+                              </Badge>
+                            </span>
+                          </Tooltip>
+                        )}
+                        {log.evidence?.cid && (
+                          <Tooltip content="This audit event references content-addressed evidence.">
+                            <span>
+                              <Badge variant="secondary" size="sm">
+                                cid-linked
+                              </Badge>
+                            </span>
+                          </Tooltip>
+                        )}
+                        {log.evidence?.policyIds?.length ? (
+                          <Tooltip content="Policy checks were recorded for this audit event.">
+                            <span>
+                              <Badge variant="warning" size="sm">
+                                policy-enforced
+                              </Badge>
+                            </span>
+                          </Tooltip>
+                        ) : null}
+                      </div>
+                      <div
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.sm};
+                          color: ${designTokens.colors.neutral[500]};
+                        `}
+                      >
+                        {new Date(log.timestamp).toLocaleString()}
+                      </div>
                     </div>
-                    <div>
-                      <strong>Decision:</strong> {log.action.decision}
-                    </div>
-                  </div>
-                  {log.action.confidence && (
                     <div
                       css={css`
-                        margin-top: ${designTokens.spacing[2]};
+                        display: flex;
+                        align-items: center;
                       `}
                     >
-                      <strong>Confidence:</strong> {(log.action.confidence * 100).toFixed(1)}%
-                      {log.action.riskScore && (
+                      <span css={css`${statusBadgeStyles}; &.${log.metadata.complianceStatus}`}>
+                        {log.metadata.complianceStatus}
+                      </span>
+                      <span css={css`${severityBadgeStyles}; &.${log.impact.severity}`}>
+                        {log.impact.severity}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    css={css`
+                      margin-bottom: ${designTokens.spacing[4]};
+                    `}
+                  >
+                    <h4
+                      css={css`
+                        font-size: ${designTokens.typography.fontSize.sm};
+                        font-weight: ${designTokens.typography.fontWeight.semibold};
+                        margin-bottom: ${designTokens.spacing[2]};
+                      `}
+                    >
+                      Action: {log.action.type}
+                    </h4>
+                    <p
+                      css={css`
+                        font-size: ${designTokens.typography.fontSize.sm};
+                        color: ${designTokens.colors.neutral[600]};
+                        margin-bottom: ${designTokens.spacing[2]};
+                      `}
+                    >
+                      {log.action.description}
+                    </p>
+                    <div
+                      css={css`
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: ${designTokens.spacing[4]};
+                      `}
+                    >
+                      <div>
+                        <strong>Input:</strong> {log.action.input}
+                      </div>
+                      <div>
+                        <strong>Decision:</strong> {log.action.decision}
+                      </div>
+                    </div>
+                    {log.action.confidence && (
+                      <div
+                        css={css`
+                          margin-top: ${designTokens.spacing[2]};
+                        `}
+                      >
+                        <strong>Confidence:</strong> {(log.action.confidence * 100).toFixed(1)}%
+                        {log.action.riskScore && (
+                          <span
+                            css={css`
+                              margin-left: ${designTokens.spacing[4]};
+                            `}
+                          >
+                            <strong>Risk Score:</strong> {(log.action.riskScore * 100).toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    css={css`
+                      margin-bottom: ${designTokens.spacing[4]};
+                    `}
+                  >
+                    <h4
+                      css={css`
+                        font-size: ${designTokens.typography.fontSize.sm};
+                        font-weight: ${designTokens.typography.fontWeight.semibold};
+                        margin-bottom: ${designTokens.spacing[2]};
+                      `}
+                    >
+                      Policy Checks ({log.policyChecks.length})
+                    </h4>
+                    {log.policyChecks.map((check, index) => (
+                      <div
+                        key={index}
+                        css={css`
+                          padding: ${designTokens.spacing[3]};
+                          background: ${check.result
+                            ? designTokens.colors.semantic.success[50]
+                            : designTokens.colors.semantic.error[50]};
+                          border-radius: ${designTokens.borderRadius.md};
+                          border-left: 4px solid
+                            ${check.result
+                              ? designTokens.colors.semantic.success[500]
+                              : designTokens.colors.semantic.error[500]};
+                          margin-bottom: ${designTokens.spacing[2]};
+                        `}
+                      >
+                        <div
+                          css={css`
+                            display: flex;
+                            justify-content: between;
+                            align-items: center;
+                            margin-bottom: ${designTokens.spacing[1]};
+                          `}
+                        >
+                          <strong>{check.policyName}</strong>
+                          <div
+                            css={css`
+                              display: flex;
+                              align-items: center;
+                              gap: ${designTokens.spacing[2]};
+                            `}
+                          >
+                            <span
+                              css={css`
+                                padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+                                background: ${check.result
+                                  ? designTokens.colors.semantic.success[100]
+                                  : designTokens.colors.semantic.error[100]};
+                                color: ${check.result
+                                  ? designTokens.colors.semantic.success[700]
+                                  : designTokens.colors.semantic.error[700]};
+                                border-radius: ${designTokens.borderRadius.full};
+                                font-size: ${designTokens.typography.fontSize.xs};
+                                font-weight: ${designTokens.typography.fontWeight.semibold};
+                              `}
+                            >
+                              {check.result ? 'PASSED' : 'FAILED'}
+                            </span>
+                            <button
+                              title="Re-test this policy in the Governance Playground"
+                              onClick={() =>
+                                navigate(
+                                  `/governance/check?policyId=${encodeURIComponent(check.policyId)}`
+                                )
+                              }
+                              css={css`
+                                background: none;
+                                border: none;
+                                cursor: pointer;
+                                color: ${designTokens.colors.primary[500]};
+                                font-size: ${designTokens.typography.fontSize.xs};
+                                font-weight: ${designTokens.typography.fontWeight.medium};
+                                padding: 0;
+                                &:hover {
+                                  color: ${designTokens.colors.primary[700]};
+                                  text-decoration: underline;
+                                }
+                              `}
+                            >
+                              ▶ Re-test
+                            </button>
+                          </div>
+                        </div>
+                        <div
+                          css={css`
+                            font-size: ${designTokens.typography.fontSize.sm};
+                            color: ${designTokens.colors.neutral[600]};
+                          `}
+                        >
+                          {check.reason}
+                        </div>
+                        {check.ruleTriggered && (
+                          <div
+                            css={css`
+                              font-size: ${designTokens.typography.fontSize.xs};
+                              color: ${designTokens.colors.neutral[500]};
+                              margin-top: ${designTokens.spacing[1]};
+                            `}
+                          >
+                            Rule: {check.ruleTriggered}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div
+                    css={css`
+                      display: flex;
+                      justify-content: between;
+                      align-items: center;
+                      padding-top: ${designTokens.spacing[3]};
+                      border-top: 1px solid ${designTokens.colors.neutral[200]};
+                    `}
+                  >
+                    <div
+                      css={css`
+                        font-size: ${designTokens.typography.fontSize.sm};
+                        color: ${designTokens.colors.neutral[600]};
+                      `}
+                    >
+                      Response Time: {log.metadata.latencyMs}ms
+                      {log.impact.financialImpact && (
                         <span
                           css={css`
                             margin-left: ${designTokens.spacing[4]};
                           `}
                         >
-                          <strong>Risk Score:</strong> {(log.action.riskScore * 100).toFixed(1)}%
+                          Impact: {log.impact.financialImpact > 0 ? '+' : ''}
+                          {log.impact.financialImpact.toLocaleString('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                          })}
                         </span>
                       )}
+                    </div>
+                    <div
+                      css={css`
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        color: ${designTokens.colors.neutral[500]};
+                      `}
+                    >
+                      {log.metadata.executionContext}
+                    </div>
+                  </div>
+
+                  {log.metadata.confidential && log.metadata.amountCiphertext && (
+                    <ConfidentialAuditViewer
+                      encryptedAmount={log.metadata.amountCiphertext}
+                      decisionId={log.id}
+                    />
+                  )}
+
+                  {!log.evidence && (
+                    <div
+                      css={css`
+                        margin-top: ${designTokens.spacing[3]};
+                      `}
+                    >
+                      <button
+                        css={css`
+                          background: ${copiedId === log.id
+                            ? designTokens.colors.semantic.success[100]
+                            : designTokens.colors.primary[50]};
+                          color: ${copiedId === log.id
+                            ? designTokens.colors.semantic.success[700]
+                            : designTokens.colors.primary[700]};
+                          padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+                          border-radius: ${designTokens.borderRadius.full};
+                          border: 1px solid
+                            ${copiedId === log.id
+                              ? designTokens.colors.semantic.success[200]
+                              : designTokens.colors.primary[200]};
+                          cursor: pointer;
+                          font-size: ${designTokens.typography.fontSize.xs};
+                          font-weight: ${designTokens.typography.fontWeight.medium};
+                        `}
+                        onClick={() => {
+                          const url = `${window.location.origin}${window.location.pathname}?eventId=${log.id}`;
+                          void copyTextToClipboard(url).then(() => {
+                            setCopiedId(log.id);
+                            setTimeout(() => setCopiedId(null), 2000);
+                          });
+                        }}
+                      >
+                        {copiedId === log.id ? '✓ Link copied!' : '🔗 Share audit trail'}
+                      </button>
                     </div>
                   )}
-                </div>
 
-                <div
-                  css={css`
-                    margin-bottom: ${designTokens.spacing[4]};
-                  `}
-                >
-                  <h4
-                    css={css`
-                      font-size: ${designTokens.typography.fontSize.sm};
-                      font-weight: ${designTokens.typography.fontWeight.semibold};
-                      margin-bottom: ${designTokens.spacing[2]};
-                    `}
-                  >
-                    Policy Checks ({log.policyChecks.length})
-                  </h4>
-                  {log.policyChecks.map((check, index) => (
+                  {log.evidence && (
                     <div
-                      key={index}
                       css={css`
-                        padding: ${designTokens.spacing[3]};
-                        background: ${check.result
-                          ? designTokens.colors.semantic.success[50]
-                          : designTokens.colors.semantic.error[50]};
-                        border-radius: ${designTokens.borderRadius.md};
-                        border-left: 4px solid
-                          ${check.result
-                            ? designTokens.colors.semantic.success[500]
-                            : designTokens.colors.semantic.error[500]};
-                        margin-bottom: ${designTokens.spacing[2]};
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: ${designTokens.spacing[2]};
+                        margin-top: ${designTokens.spacing[3]};
                       `}
                     >
-                      <div
+                      <button
                         css={css`
-                          display: flex;
-                          justify-content: between;
-                          align-items: center;
-                          margin-bottom: ${designTokens.spacing[1]};
+                          background: ${copiedId === log.id
+                            ? designTokens.colors.semantic.success[100]
+                            : designTokens.colors.primary[50]};
+                          color: ${copiedId === log.id
+                            ? designTokens.colors.semantic.success[700]
+                            : designTokens.colors.primary[700]};
+                          padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+                          border-radius: ${designTokens.borderRadius.full};
+                          border: 1px solid
+                            ${copiedId === log.id
+                              ? designTokens.colors.semantic.success[200]
+                              : designTokens.colors.primary[200]};
+                          cursor: pointer;
+                          font-size: ${designTokens.typography.fontSize.xs};
+                          font-weight: ${designTokens.typography.fontWeight.medium};
                         `}
+                        onClick={() => {
+                          const url = `${window.location.origin}${window.location.pathname}?eventId=${log.id}`;
+                          void copyTextToClipboard(url).then(() => {
+                            setCopiedId(log.id);
+                            setTimeout(() => setCopiedId(null), 2000);
+                          });
+                        }}
                       >
-                        <strong>{check.policyName}</strong>
-                        <span
-                          css={css`
-                            padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
-                            background: ${check.result
-                              ? designTokens.colors.semantic.success[100]
-                              : designTokens.colors.semantic.error[100]};
-                            color: ${check.result
-                              ? designTokens.colors.semantic.success[700]
-                              : designTokens.colors.semantic.error[700]};
-                            border-radius: ${designTokens.borderRadius.full};
-                            font-size: ${designTokens.typography.fontSize.xs};
-                            font-weight: ${designTokens.typography.fontWeight.semibold};
-                          `}
-                        >
-                          {check.result ? 'PASSED' : 'FAILED'}
-                        </span>
-                      </div>
-                      <div
-                        css={css`
-                          font-size: ${designTokens.typography.fontSize.sm};
-                          color: ${designTokens.colors.neutral[600]};
-                        `}
-                      >
-                        {check.reason}
-                      </div>
-                      {check.ruleTriggered && (
-                        <div
-                          css={css`
-                            font-size: ${designTokens.typography.fontSize.xs};
-                            color: ${designTokens.colors.neutral[500]};
-                            margin-top: ${designTokens.spacing[1]};
-                          `}
-                        >
-                          Rule: {check.ruleTriggered}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div
-                  css={css`
-                    display: flex;
-                    justify-content: between;
-                    align-items: center;
-                    padding-top: ${designTokens.spacing[3]};
-                    border-top: 1px solid ${designTokens.colors.neutral[200]};
-                  `}
-                >
-                  <div
-                    css={css`
-                      font-size: ${designTokens.typography.fontSize.sm};
-                      color: ${designTokens.colors.neutral[600]};
-                    `}
-                  >
-                    Response Time: {log.metadata.latencyMs}ms
-                    {log.impact.financialImpact && (
-                      <span
-                        css={css`
-                          margin-left: ${designTokens.spacing[4]};
-                        `}
-                      >
-                        Impact: {log.impact.financialImpact > 0 ? '+' : ''}
-                        {log.impact.financialImpact.toLocaleString('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <div
-                    css={css`
-                      font-size: ${designTokens.typography.fontSize.xs};
-                      color: ${designTokens.colors.neutral[500]};
-                    `}
-                  >
-                    {log.metadata.executionContext}
-                  </div>
-                </div>
-
-                {log.metadata.confidential && log.metadata.amountCiphertext && (
-                  <ConfidentialAuditViewer
-                    encryptedAmount={log.metadata.amountCiphertext}
-                    decisionId={log.id}
-                  />
-                )}
-
-                {!log.evidence && (
-                  <div css={css`margin-top: ${designTokens.spacing[3]};`}>
-                    <button
-                      css={css`
-                        background: ${copiedId === log.id ? designTokens.colors.semantic.success[100] : designTokens.colors.primary[50]};
-                        color: ${copiedId === log.id ? designTokens.colors.semantic.success[700] : designTokens.colors.primary[700]};
-                        padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
-                        border-radius: ${designTokens.borderRadius.full};
-                        border: 1px solid ${copiedId === log.id ? designTokens.colors.semantic.success[200] : designTokens.colors.primary[200]};
-                        cursor: pointer;
-                        font-size: ${designTokens.typography.fontSize.xs};
-                        font-weight: ${designTokens.typography.fontWeight.medium};
-                      `}
-                      onClick={() => {
-                        const url = `${window.location.origin}${window.location.pathname}?eventId=${log.id}`;
-                        void copyTextToClipboard(url).then(() => {
-                          setCopiedId(log.id);
-                          setTimeout(() => setCopiedId(null), 2000);
-                        });
-                      }}
-                    >
-                      {copiedId === log.id ? '✓ Link copied!' : '🔗 Share audit trail'}
-                    </button>
-                  </div>
-                )}
-
-                {log.evidence && (
-                  <div
-                    css={css`
-                      display: flex;
-                      flex-wrap: wrap;
-                      gap: ${designTokens.spacing[2]};
-                      margin-top: ${designTokens.spacing[3]};
-                    `}
-                  >
-                    <button
-                      css={css`
-                        background: ${copiedId === log.id ? designTokens.colors.semantic.success[100] : designTokens.colors.primary[50]};
-                        color: ${copiedId === log.id ? designTokens.colors.semantic.success[700] : designTokens.colors.primary[700]};
-                        padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
-                        border-radius: ${designTokens.borderRadius.full};
-                        border: 1px solid ${copiedId === log.id ? designTokens.colors.semantic.success[200] : designTokens.colors.primary[200]};
-                        cursor: pointer;
-                        font-size: ${designTokens.typography.fontSize.xs};
-                        font-weight: ${designTokens.typography.fontWeight.medium};
-                      `}
-                      onClick={() => {
-                        const url = `${window.location.origin}${window.location.pathname}?eventId=${log.id}`;
-                        void copyTextToClipboard(url).then(() => {
-                          setCopiedId(log.id);
-                          setTimeout(() => setCopiedId(null), 2000);
-                        });
-                      }}
-                    >
-                      {copiedId === log.id ? '✓ Link copied!' : '🔗 Share audit trail'}
-                    </button>
-                    <button
-                      css={css`
-                        background: ${designTokens.colors.neutral[100]};
-                        color: ${designTokens.colors.neutral[700]};
-                        padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
-                        border-radius: ${designTokens.borderRadius.full};
-                        border: none;
-                        cursor: pointer;
-                        font-size: ${designTokens.typography.fontSize.xs};
-                      `}
-                      onClick={() => {
-                        void copyTextToClipboard(log.evidence?.hash || '');
-                      }}
-                    >
-                      Hash {log.evidence.hash.slice(0, 12)}…
-                    </button>
-                    {log.evidence.cid && (
+                        {copiedId === log.id ? '✓ Link copied!' : '🔗 Share audit trail'}
+                      </button>
                       <button
                         css={css`
                           background: ${designTokens.colors.neutral[100]};
@@ -1285,29 +1490,46 @@ export default function EnhancedAuditLogs() {
                           font-size: ${designTokens.typography.fontSize.xs};
                         `}
                         onClick={() => {
-                          void copyTextToClipboard(log.evidence?.cid || '');
+                          void copyTextToClipboard(log.evidence?.hash || '');
                         }}
                       >
-                        CID {log.evidence.cid.slice(0, 12)}…
+                        Hash {log.evidence.hash.slice(0, 12)}…
                       </button>
-                    )}
-                    {log.evidence.artifactIds?.length ? (
-                      <span css={statusBadgeStyles}>
-                        Artifacts {log.evidence.artifactIds.slice(0, 2).join(', ')}
-                      </span>
-                    ) : null}
-                    {log.evidence.policyIds?.length ? (
-                      <span css={statusBadgeStyles}>
-                        Policies {log.evidence.policyIds.slice(0, 2).join(', ')}
-                      </span>
-                    ) : null}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        ))}
-      </div>
+                      {log.evidence.cid && (
+                        <button
+                          css={css`
+                            background: ${designTokens.colors.neutral[100]};
+                            color: ${designTokens.colors.neutral[700]};
+                            padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+                            border-radius: ${designTokens.borderRadius.full};
+                            border: none;
+                            cursor: pointer;
+                            font-size: ${designTokens.typography.fontSize.xs};
+                          `}
+                          onClick={() => {
+                            void copyTextToClipboard(log.evidence?.cid || '');
+                          }}
+                        >
+                          CID {log.evidence.cid.slice(0, 12)}…
+                        </button>
+                      )}
+                      {log.evidence.artifactIds?.length ? (
+                        <span css={statusBadgeStyles}>
+                          Artifacts {log.evidence.artifactIds.slice(0, 2).join(', ')}
+                        </span>
+                      ) : null}
+                      {log.evidence.policyIds?.length ? (
+                        <span css={statusBadgeStyles}>
+                          Policies {log.evidence.policyIds.slice(0, 2).join(', ')}
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -1461,7 +1683,7 @@ export default function EnhancedAuditLogs() {
                     </div>
                   ))}
                 {logs.filter(
-                  (l) => l.impact.severity === 'critical' || l.impact.severity === 'high',
+                  (l) => l.impact.severity === 'critical' || l.impact.severity === 'high'
                 ).length === 0 && (
                   <div
                     style={{

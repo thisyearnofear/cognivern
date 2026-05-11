@@ -62,7 +62,7 @@ export const getGovernanceContract = (signerOrProvider: ethers.Provider | ethers
   return new ethers.Contract(
     CONTRACT_ADDRESSES.GOVERNANCE_CONTRACT,
     GOVERNANCE_ABI,
-    signerOrProvider,
+    signerOrProvider
   );
 };
 
@@ -80,7 +80,7 @@ export const getAIGovernanceContract = (signerOrProvider: ethers.Provider | ethe
   return new ethers.Contract(
     CONTRACT_ADDRESSES.AI_GOVERNANCE_STORAGE,
     AI_GOVERNANCE_ABI,
-    signerOrProvider,
+    signerOrProvider
   );
 };
 

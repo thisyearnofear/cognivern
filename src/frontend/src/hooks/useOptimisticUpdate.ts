@@ -25,9 +25,7 @@ export interface UseOptimisticOptions<T> {
 /**
  * Hook for optimistic updates with rollback support
  */
-export function useOptimisticUpdate<T>(
-  options: UseOptimisticOptions<T> = {}
-) {
+export function useOptimisticUpdate<T>(options: UseOptimisticOptions<T> = {}) {
   const { initialData, onSuccess, onError, rollbackDelay = 3000 } = options;
 
   const [state, setState] = useState<OptimisticState<T>>({
@@ -50,7 +48,7 @@ export function useOptimisticUpdate<T>(
       previousDataRef.current = state.data;
 
       // Optimistically update UI immediately
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isPending: true,
         error: null,
@@ -69,12 +67,11 @@ export function useOptimisticUpdate<T>(
 
         onSuccess?.(result);
         return result;
-
       } catch (error) {
         const err = error instanceof Error ? error : new Error('Update failed');
 
         // Set error state
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isPending: false,
           error: err,
@@ -120,7 +117,7 @@ export function useOptimisticUpdate<T>(
   }, [initialData]);
 
   const clearError = useCallback(() => {
-    setState(prev => ({ ...prev, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
   }, []);
 
   return {
@@ -140,60 +137,66 @@ export function useOptimisticList<T extends { id: string | number }>() {
 
   const addItem = useCallback(async (item: T, apiCall: () => Promise<T>) => {
     // Optimistically add
-    setItems(prev => [...prev, item]);
+    setItems((prev) => [...prev, item]);
 
     try {
       const result = await apiCall();
       // Replace temp item with real data
-      setItems(prev => prev.map(i => i.id === item.id ? result : i));
+      setItems((prev) => prev.map((i) => (i.id === item.id ? result : i)));
       return result;
     } catch {
       // Rollback
-      setItems(prev => prev.filter(i => i.id !== item.id));
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
       throw new Error('Failed to add item');
     }
   }, []);
 
-  const removeItem = useCallback(async (id: string | number, apiCall: () => Promise<void>) => {
-    // Store for rollback
-    const removedItem = items.find(i => i.id === id);
+  const removeItem = useCallback(
+    async (id: string | number, apiCall: () => Promise<void>) => {
+      // Store for rollback
+      const removedItem = items.find((i) => i.id === id);
 
-    // Optimistically remove
-    setItems(prev => prev.filter(i => i.id !== id));
-    setIsPending(true);
+      // Optimistically remove
+      setItems((prev) => prev.filter((i) => i.id !== id));
+      setIsPending(true);
 
-    try {
-      await apiCall();
-    } catch {
-      // Rollback
-      if (removedItem) {
-        setItems(prev => [removedItem, ...prev]);
+      try {
+        await apiCall();
+      } catch {
+        // Rollback
+        if (removedItem) {
+          setItems((prev) => [removedItem, ...prev]);
+        }
+        throw new Error('Failed to remove item');
+      } finally {
+        setIsPending(false);
       }
-      throw new Error('Failed to remove item');
-    } finally {
-      setIsPending(false);
-    }
-  }, [items]);
+    },
+    [items]
+  );
 
-  const updateItem = useCallback(async (id: string | number, updates: Partial<T>, apiCall: () => Promise<T>) => {
-    // Store original for rollback
-    const originalItem = items.find(i => i.id === id);
+  const updateItem = useCallback(
+    async (id: string | number, updates: Partial<T>, apiCall: () => Promise<T>) => {
+      // Store original for rollback
+      const originalItem = items.find((i) => i.id === id);
 
-    // Optimistically update
-    setItems(prev => prev.map(i => i.id === id ? { ...i, ...updates } : i));
+      // Optimistically update
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...updates } : i)));
 
-    try {
-      const result = await apiCall();
-      setItems(prev => prev.map(i => i.id === id ? result : i));
-      return result;
-    } catch {
-      // Rollback
-      if (originalItem) {
-        setItems(prev => prev.map(i => i.id === id ? originalItem : i));
+      try {
+        const result = await apiCall();
+        setItems((prev) => prev.map((i) => (i.id === id ? result : i)));
+        return result;
+      } catch {
+        // Rollback
+        if (originalItem) {
+          setItems((prev) => prev.map((i) => (i.id === id ? originalItem : i)));
+        }
+        throw new Error('Failed to update item');
       }
-      throw new Error('Failed to update item');
-    }
-  }, [items]);
+    },
+    [items]
+  );
 
   const setList = useCallback((newItems: T[]) => {
     setItems(newItems);
@@ -217,26 +220,29 @@ export function useOptimisticToggle(initialValue = false) {
   const [isPending, setIsPending] = useState(false);
   const previousValueRef = useRef(initialValue);
 
-  const toggle = useCallback(async (apiCall: () => Promise<boolean>) => {
-    const previousValue = value;
-    previousValueRef.current = value;
+  const toggle = useCallback(
+    async (apiCall: () => Promise<boolean>) => {
+      const previousValue = value;
+      previousValueRef.current = value;
 
-    // Optimistically toggle
-    setValue(!value);
-    setIsPending(true);
+      // Optimistically toggle
+      setValue(!value);
+      setIsPending(true);
 
-    try {
-      const result = await apiCall();
-      setValue(result);
-      return result;
-    } catch {
-      // Rollback
-      setValue(previousValue);
-      throw new Error('Toggle failed');
-    } finally {
-      setIsPending(false);
-    }
-  }, [value]);
+      try {
+        const result = await apiCall();
+        setValue(result);
+        return result;
+      } catch {
+        // Rollback
+        setValue(previousValue);
+        throw new Error('Toggle failed');
+      } finally {
+        setIsPending(false);
+      }
+    },
+    [value]
+  );
 
   return { value, isPending, toggle, setValue };
 }

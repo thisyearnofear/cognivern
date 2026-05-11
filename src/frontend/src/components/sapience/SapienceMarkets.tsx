@@ -387,7 +387,7 @@ export default function SapienceMarkets() {
         acc[category] = (acc[category] || 0) + 1;
         return acc;
       },
-      {} as Record<string, number>,
+      {} as Record<string, number>
     );
 
     // Sort by count and return categories with at least 1 market
