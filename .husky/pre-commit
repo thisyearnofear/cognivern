@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# Run type-check and lint on the frontend before every commit.
+# Catches broken imports (e.g. missing named exports) before they reach the server.
+
+echo "▶ typecheck (frontend)..."
+pnpm --filter ./src/frontend run typecheck
+
+echo "▶ lint (frontend)..."
+pnpm --filter ./src/frontend run lint
+
+echo "✓ pre-commit checks passed"

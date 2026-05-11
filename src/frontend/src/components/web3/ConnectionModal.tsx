@@ -59,15 +59,11 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
   const [isConnectingTreasury, setIsConnectingTreasury] = useState(false);
   const [fhenixError, setFhenixError] = useState<string | null>(null);
 
-  // Try to get CoFHE context if available
-  let cofheContext: { client?: CofheClient } = {};
-  try {
-    if (useCofheContext) {
-      cofheContext = useCofheContext() || {};
-    }
-  } catch (e) {
-    // CoFHE context not available in this context
-  }
+  // useCofheContext is null when the optional @cofhe/react module is absent at runtime.
+  // Use a stable no-op fallback so the hook is always called unconditionally.
+  const safeUseCofheContext = useCofheContext ?? (() => undefined);
+  const cofheResult = safeUseCofheContext();
+  const cofheContext: { client?: CofheClient } = cofheResult || {};
 
   const client = cofheContext.client;
 
@@ -188,7 +184,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         setUser({ fhenixConnected: true });
       } else {
         setFhenixError(
-          "CoFHE portal not found. Ensure you're on a page with FhenixProvider active.",
+          "CoFHE portal not found. Ensure you're on a page with FhenixProvider active."
         );
         setTimeout(() => setFhenixError(null), 3000);
       }
@@ -272,7 +268,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
     onConnect: () => void,
     onDisconnect: () => void,
     isConnecting: boolean,
-    connectedLabel?: string,
+    connectedLabel?: string
   ) => {
     if (!connectionsToShow.includes(type)) return null;
 
@@ -430,7 +426,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         handleConnectBrowserWallet,
         handleDisconnectBrowserWallet,
         isConnectingIdentity,
-        'Browser Wallet',
+        'Browser Wallet'
       )}
 
       {renderConnectionCard(
@@ -442,7 +438,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         handleBootstrapTreasury,
         handleDisconnectTreasury,
         isConnectingTreasury,
-        user.owsWalletName || 'Local Vault (OWS)',
+        user.owsWalletName || 'Local Vault (OWS)'
       )}
 
       {renderConnectionCard(
@@ -453,7 +449,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
         user.fhenixConnected,
         handleConnectFhenix,
         handleDisconnectFhenix,
-        false,
+        false
       )}
 
       {/* Error message for Fhenix connection */}

@@ -59,7 +59,7 @@ export const GovernedDeFiForm: React.FC<GovernedDeFiFormProps> = ({ agentId, pol
           `}
         >
           <Shield color={designTokens.colors.primary[500]} size={18} />
-          <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base];`}>
+          <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base};`}>
             Governed DeFi Execution
           </CardTitle>
         </div>

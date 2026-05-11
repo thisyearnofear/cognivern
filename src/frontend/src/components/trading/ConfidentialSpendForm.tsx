@@ -135,7 +135,7 @@ export default function ConfidentialSpendForm() {
             <Shield size={14} />
             FHE CONFIDENTIAL SPEND
           </div>
-          <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base];`}>
+          <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base};`}>
             Confidential Spend Request
           </CardTitle>
           <p

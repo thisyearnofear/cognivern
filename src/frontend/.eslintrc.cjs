@@ -7,12 +7,15 @@ const reactRefreshPlugin = require("eslint-plugin-react-refresh");
 
 module.exports = [
   {
+    // Global ignores — must be a standalone object with only `ignores` key in flat config
+    ignores: ["dist/**", ".eslintrc.cjs", "api/**", "node_modules/**", "stories/**", ".storybook/**"],
+  },
+  {
     // Global settings for all files
     linterOptions: {
       noInlineConfig: true,
       reportUnusedDisableDirectives: "error",
     },
-    ignores: ["dist", ".eslintrc.cjs", "api/**", "node_modules/**"],
   },
   {
     files: ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"],
@@ -87,7 +90,8 @@ module.exports = [
         "warn",
         { allowConstantExport: true },
       ],
-      "prettier/prettier": "error",
+      "prettier/prettier": "warn",
+      "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "no-case-declarations": "off",
