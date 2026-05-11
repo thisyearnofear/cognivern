@@ -13,7 +13,7 @@ export interface AnimationOptions {
 
 export const useAnimation = <T extends HTMLElement = HTMLElement>(
   keyframes: Keyframe[] | PropertyIndexedKeyframes,
-  options: AnimationOptions = {},
+  options: AnimationOptions = {}
 ) => {
   const elementRef = useRef<T>(null);
   const animationRef = useRef<Animation | null>(null);
@@ -103,7 +103,9 @@ export const useAnimation = <T extends HTMLElement = HTMLElement>(
 
 // Entrance animation CSS helper — returns an Emotion CSS object
 // for use in arrays: css={[baseStyles, getEntranceAnimationCSS({ delay, mode })]}
-export const getEntranceAnimationCSS = (options: AnimationOptions & { mode?: AnimationType } = {}) => {
+export const getEntranceAnimationCSS = (
+  options: AnimationOptions & { mode?: AnimationType } = {}
+) => {
   const { delay = 0, mode = 'slideInUp', ...rest } = options;
   const keyframesMap = {
     fadeIn: [{ opacity: 0 }, { opacity: 1 }],
@@ -138,20 +140,32 @@ export const getEntranceAnimationCSS = (options: AnimationOptions & { mode?: Ani
 
   return css`
     @keyframes ${animName} {
-      from { opacity: 0; transform: ${(keyframes[0] as { transform?: string }).transform ?? 'translateY(20px)'}; }
-      to   { opacity: 1; transform: ${(keyframes[1] as { transform?: string }).transform ?? 'translateY(0)'}; }
+      from {
+        opacity: 0;
+        transform: ${(keyframes[0] as { transform?: string }).transform ?? 'translateY(20px)'};
+      }
+      to {
+        opacity: 1;
+        transform: ${(keyframes[1] as { transform?: string }).transform ?? 'translateY(0)'};
+      }
     }
     animation: ${animName} ${duration}ms ${easing} ${delay}ms forwards;
   `;
 };
 
-type AnimationType = 'fadeIn' | 'slideInUp' | 'slideInDown' | 'slideInLeft' | 'slideInRight' | 'scaleIn';
+type AnimationType =
+  | 'fadeIn'
+  | 'slideInUp'
+  | 'slideInDown'
+  | 'slideInLeft'
+  | 'slideInRight'
+  | 'scaleIn';
 
 // Hook for hover animations
 export const useHoverAnimation = <T extends HTMLElement = HTMLElement>(
   hoverKeyframes: Keyframe[] | PropertyIndexedKeyframes,
   restKeyframes: Keyframe[] | PropertyIndexedKeyframes,
-  options: AnimationOptions = {},
+  options: AnimationOptions = {}
 ) => {
   const elementRef = useRef<T>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -198,21 +212,20 @@ export const useStaggeredAnimation = (
   keyframes: Keyframe[] | PropertyIndexedKeyframes,
   itemCount: number,
   staggerDelay: number = 100,
-  options: AnimationOptions = {},
+  options: AnimationOptions = {}
 ) => {
   const [playAnimation, setPlayAnimation] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
-  const createItemAnimation = (index: number) => {
-    return useAnimation(keyframes, {
-      duration: 300,
-      delay: index * staggerDelay,
-      easing: 'ease-out',
-      ...options,
-    });
-  };
-
-  const animations = Array.from({ length: itemCount }, (_, index) => createItemAnimation(index));
+  // Build per-item animation configs without calling hooks in a loop.
+  // Each item gets a CSS-compatible delay offset; actual playback is driven by playAll/cancelAll.
+  const animations = Array.from({ length: itemCount }, (_, index) => ({
+    delay: index * staggerDelay,
+    duration: options.duration ?? 300,
+    easing: options.easing ?? 'ease-out',
+    play: () => { setPlayAnimation(true); },
+    cancel: () => { setPlayAnimation(false); },
+  }));
 
   const playAll = () => {
     if (prefersReducedMotion) return;
@@ -237,7 +250,7 @@ export const useStaggeredAnimation = (
 // Hook for scroll-triggered animations
 export const useScrollAnimation = <T extends HTMLElement = HTMLElement>(
   keyframes: Keyframe[] | PropertyIndexedKeyframes,
-  options: AnimationOptions & { threshold?: number } = {},
+  options: AnimationOptions & { threshold?: number } = {}
 ) => {
   const elementRef = useRef<T>(null);
   const [hasAnimated, setHasAnimated] = useState(false);
@@ -263,7 +276,7 @@ export const useScrollAnimation = <T extends HTMLElement = HTMLElement>(
           }
         });
       },
-      { threshold },
+      { threshold }
     );
 
     observer.observe(element);
@@ -285,7 +298,10 @@ export const useScrollAnimation = <T extends HTMLElement = HTMLElement>(
 };
 
 // Count-up animation for numeric values
-export const useCountUpAnimation = (target: number, options: AnimationOptions & { trigger?: boolean } = {}) => {
+export const useCountUpAnimation = (
+  target: number,
+  options: AnimationOptions & { trigger?: boolean } = {}
+) => {
   const { duration = 600, delay = 0, trigger = true } = options;
   const [current, setCurrent] = useState(0);
   const prefersReducedMotion = useReducedMotion();
