@@ -1,0 +1,142 @@
+id: cognivern-governance-loop
+namespace: cognivern.healthcare
+
+description: |
+  Cognivern Governance Loop — Agents Assemble Healthcare AI Endgame
+  Orchestrates the full governance evaluation cycle:
+    1. Ingest agent run from CRE
+    2. Evaluate policy via Together AI (FHIR/SHARP context aware)
+    3. Record immutable audit log
+    4. Emit A2A result back to the originating agent
+
+labels:
+  hackathon: agents-assemble-2026
+  track: healthcare-governance
+  sponsor: together-ai
+
+inputs:
+  - id: agentId
+    type: STRING
+    description: "Cognivern agent identifier"
+  - id: actionPayload
+    type: JSON
+    description: "AgentAction payload (type, description, amount, currency, metadata)"
+  - id: fhirContext
+    type: JSON
+    required: false
+    description: "FHIR R4 / SHARP context block (subject, encounter, requester, sensitivityLabels)"
+  - id: policyId
+    type: STRING
+    required: false
+    description: "Override policy ID; omit to use the agent's active policy"
+  - id: a2aTraceId
+    type: STRING
+    required: false
+    description: "A2A call-chain trace ID for multi-agent correlation"
+
+variables:
+  cognivernBase: "{{ envs.COGNIVERN_BASE_URL ?? 'http://localhost:3000' }}"
+  apiKey: "{{ envs.COGNIVERN_API_KEY ?? '' }}"
+
+tasks:
+  # ── Step 1: Ingest run into the Core Run Engine ──────────────────────────
+  - id: ingest-run
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ vars.cognivernBase }}/ingest/runs"
+    method: POST
+    contentType: application/json
+    headers:
+      x-api-key: "{{ vars.apiKey }}"
+    body: |
+      {
+        "agentId": "{{ inputs.agentId }}",
+        "action": {{ inputs.actionPayload }},
+        "fhirContext": {{ inputs.fhirContext ?? 'null' }},
+        "a2aTraceId": "{{ inputs.a2aTraceId ?? '' }}"
+      }
+    timeout: PT30S
+
+  # ── Step 2: Evaluate policy via Together AI ──────────────────────────────
+  - id: evaluate-policy
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ vars.cognivernBase }}/api/governance/evaluate"
+    method: POST
+    contentType: application/json
+    headers:
+      x-api-key: "{{ vars.apiKey }}"
+    body: |
+      {
+        "agentId": "{{ inputs.agentId }}",
+        "action": {{ inputs.actionPayload }},
+        "policyId": "{{ inputs.policyId ?? '' }}",
+        "fhirContext": {{ inputs.fhirContext ?? 'null' }},
+        "a2aTraceId": "{{ inputs.a2aTraceId ?? '' }}",
+        "evaluator": "together-ai"
+      }
+    timeout: PT60S
+
+  # ── Step 3: Issue immutable audit permit ────────────────────────────────
+  # POST /api/audit/permits records a signed governance permit for this decision.
+  # The MCP endpoint (step 4) also records the full audit trail internally,
+  # so this step anchors the Kestra execution ID to the policy record.
+  - id: record-audit
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ vars.cognivernBase }}/api/audit/permits"
+    method: POST
+    contentType: application/json
+    headers:
+      x-api-key: "{{ vars.apiKey }}"
+    body: |
+      {
+        "auditor": "kestra/{{ execution.id }}",
+        "policyId": "{{ inputs.policyId ?? 'standard' }}"
+      }
+    timeout: PT30S
+
+  # ── Step 4: Emit A2A result ──────────────────────────────────────────────
+  - id: emit-a2a-result
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ vars.cognivernBase }}/api/mcp/governance-check"
+    method: POST
+    contentType: application/json
+    headers:
+      x-api-key: "{{ vars.apiKey }}"
+    body: |
+      {
+        "tool": "governance-check",
+        "agentId": "{{ inputs.agentId }}",
+        "decision": {{ outputs['evaluate-policy'].body }},
+        "auditRef": {{ outputs['record-audit'].body }},
+        "a2aTraceId": "{{ inputs.a2aTraceId ?? '' }}",
+        "kestraExecutionId": "{{ execution.id }}"
+      }
+    timeout: PT30S
+
+outputs:
+  - id: governanceDecision
+    type: JSON
+    value: "{{ outputs['evaluate-policy'].body }}"
+  - id: auditLogRef
+    type: JSON
+    value: "{{ outputs['record-audit'].body }}"
+  - id: a2aResult
+    type: JSON
+    value: "{{ outputs['emit-a2a-result'].body }}"
+
+errors:
+  - id: on-failure-alert
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      Cognivern governance loop FAILED for agent {{ inputs.agentId }}.
+      Execution: {{ execution.id }}
+      Error: {{ errorLogs() }}
+    level: ERROR
+
+triggers:
+  # Scheduled sweep — evaluate any pending governance decisions every 5 minutes
+  - id: scheduled-sweep
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/5 * * * *"
+    inputs:
+      agentId: "scheduled-sweep"
+      actionPayload: '{"type": "sweep", "description": "Scheduled governance sweep", "amount": 0, "currency": "USD"}'

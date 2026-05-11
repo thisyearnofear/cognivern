@@ -1,5 +1,6 @@
 import { FileText, Users, Shield, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { css } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
 import { useGovernanceStore, GovernanceTemplate } from '../../stores/governanceStore';
@@ -13,6 +14,7 @@ import {
   AgentCard,
   LoadingSpinner,
   ErrorBoundary,
+  EmptyState,
 } from '../ui';
 import { PageWrapper } from '../layout';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
@@ -46,6 +48,7 @@ export default function PolicyManagement() {
 }
 
 function PolicyManagementContent() {
+  const navigate = useNavigate();
   const { isMobile, isTablet } = useBreakpoint();
   const [activeTab, setActiveTab] = useState<'templates' | 'policies' | 'agents'>('templates');
 
@@ -167,14 +170,6 @@ function PolicyManagementContent() {
     gap: ${designTokens.spacing[6]};
   `;
 
-  const emptyStateStyles = css`
-    text-align: center;
-    padding: ${designTokens.spacing[16]};
-    background: ${designTokens.colors.neutral[50]};
-    border-radius: ${designTokens.borderRadius.xl};
-    color: ${designTokens.colors.neutral[500]};
-  `;
-
   return (
     <PageWrapper
       title="Governance & Policies"
@@ -281,13 +276,13 @@ function PolicyManagementContent() {
                 <LoadingSpinner />
               </div>
             ) : policies.length === 0 ? (
-              <div css={emptyStateStyles}>
-                <h3>No policies created yet</h3>
-                <p>Start with a template to apply clear spend guardrails to your agents.</p>
-                <Button style={{ marginTop: '16px' }} onClick={() => setActiveTab('templates')}>
-                  View Templates
-                </Button>
-              </div>
+              <EmptyState
+                type="policies"
+                title="No policies created yet"
+                description="Start with a template to apply clear spend guardrails to your agents."
+                actionLabel="View Templates"
+                onAction={() => setActiveTab('templates')}
+              />
             ) : (
               <div css={gridLayoutStyles}>
                 {policies.map((policy) => (
@@ -309,10 +304,13 @@ function PolicyManagementContent() {
                 <LoadingSpinner />
               </div>
             ) : agentConnections.length === 0 ? (
-              <div css={emptyStateStyles}>
-                <h3>No governed agents yet</h3>
-                <p>Connect your first agent to apply policies and enforce spend controls.</p>
-              </div>
+              <EmptyState
+                type="agents"
+                title="No governed agents yet"
+                description="Connect your first agent to apply policies and enforce spend controls."
+                actionLabel="Connect Agent"
+                onAction={() => navigate('/agents/workshop')}
+              />
             ) : (
               <div css={gridLayoutStyles}>
                 {agentConnections.map((agent) => (

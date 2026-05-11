@@ -20,6 +20,7 @@ const RunLedger = lazy(() => import('./components/cre/RunLedger'));
 const RunDetails = lazy(() => import('./components/cre/RunDetails'));
 const AgentProfile = lazy(() => import('./components/agents/AgentProfile'));
 const AgentWorkshop = lazy(() => import('./components/agents/AgentWorkshop'));
+const GovernancePlayground = lazy(() => import('./components/governance/GovernancePlayground'));
 
 // Enhanced loading component with animations
 const PageSkeleton: React.FC = () => (
@@ -195,6 +196,20 @@ function App() {
                       <RunDetails />
                     </Suspense>
                   </PageTransition>
+                }
+              />
+
+              {/* Governance Playground */}
+              <Route
+                path="governance/check"
+                element={
+                  <ErrorBoundary componentName="Governance Playground">
+                    <PageTransition type="slide">
+                      <Suspense fallback={<PageSkeleton />}>
+                        <GovernancePlayground />
+                      </Suspense>
+                    </PageTransition>
+                  </ErrorBoundary>
                 }
               />
 

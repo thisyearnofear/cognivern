@@ -1,0 +1,87 @@
+# CodeRabbit configuration — Cognivern
+# Targets contracts/ and governance policy files for automated policy/smart-contract
+# review on every PR. Agents Assemble Healthcare AI Endgame — CodeRabbit integration.
+
+version: "2"
+
+language: "en-US"
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+
+  path_filters:
+    # Always review smart contracts and governance policy files
+    - "contracts/**"
+    - "src/types/Policy.ts"
+    - "src/services/PolicyEnforcementService.ts"
+    - "src/services/TogetherAIPolicyEvaluator.ts"
+    - "src/modules/api/controllers/GovernanceController.ts"
+    - "src/services/PolicyService.ts"
+    - "deploy/kestra/**"
+    - ".coderabbit.yaml"
+
+  path_instructions:
+    - path: "contracts/**"
+      instructions: |
+        Review all Solidity smart contracts for:
+        - Reentrancy vulnerabilities (checks-effects-interactions pattern)
+        - Integer overflow/underflow (use SafeMath or Solidity >=0.8)
+        - Access control: only authorised callers can invoke spend/policy functions
+        - FHE (Fhenix CoFHE) usage: verify euint128/ebool operations are correct
+        - Hyperlane IMailbox/IMessageRecipient: verify origin/sender checks
+        - Gas optimisation: flag unbounded loops and unnecessary storage writes
+        - Emit events for all state-changing operations (audit trail requirement)
+        - HIPAA-relevant data must never appear in plaintext on-chain
+
+    - path: "src/types/Policy.ts"
+      instructions: |
+        Review FHIR R4 / SHARP type definitions for:
+        - Correctness against FHIR R4 spec (resource types, cardinality)
+        - Sensitivity label handling (HIV, MH, SUD must be treated as high-sensitivity)
+        - No PHI leakage in type definitions or default values
+
+    - path: "src/services/PolicyEnforcementService.ts"
+      instructions: |
+        Review policy enforcement logic for:
+        - Safe-deny default: any evaluation error must result in DENY, never ALLOW
+        - Rate-limit counters must be reset correctly to prevent bypass
+        - All policy checks must be logged for audit trail completeness
+
+    - path: "src/services/TogetherAIPolicyEvaluator.ts"
+      instructions: |
+        Review Together AI integration for:
+        - API key must come from environment variable, never hardcoded
+        - Fallback must be safe-deny (allowed: false) on any error
+        - Prompt injection: user-supplied action payloads must not override system prompt
+        - Timeout must be set to prevent hanging governance decisions
+
+    - path: "src/modules/api/controllers/GovernanceController.ts"
+      instructions: |
+        Review governance API controller for:
+        - Input validation: agentId and action must be validated before evaluation
+        - FHIR context must be sanitised before passing to LLM
+        - Audit log must be written for every evaluation, including failures
+        - HTTP error codes must be semantically correct (400 vs 422 vs 503)
+
+    - path: "deploy/kestra/**"
+      instructions: |
+        Review Kestra workflow definitions for:
+        - Secrets must use envs.* references, never inline values
+        - All HTTP tasks must have explicit timeouts
+        - Error handlers must log failures without exposing sensitive data
+        - Scheduled triggers must not run with production credentials in CI
+
+auto_review:
+  enabled: true
+  drafts: false
+  base_branches:
+    - main
+    - develop
+
+chat:
+  auto_reply: true
