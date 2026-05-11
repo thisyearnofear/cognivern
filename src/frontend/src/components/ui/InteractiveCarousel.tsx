@@ -42,7 +42,12 @@ const carouselTrackStyles = (activeIndex: number, cardWidth: number) => css`
   }
 `;
 
-const carouselItemStyles = (isActive: boolean, index: number, activeIndex: number, cardWidth: number = 280) => {
+const carouselItemStyles = (
+  isActive: boolean,
+  index: number,
+  activeIndex: number,
+  cardWidth: number = 280
+) => {
   const distance = Math.abs(index - activeIndex);
   const scale = isActive ? 1.05 : 0.9 / (1 + distance * 0.08);
   const rotateY = isActive ? 0 : index < activeIndex ? 20 : -20;
@@ -68,7 +73,8 @@ const carouselItemStyles = (isActive: boolean, index: number, activeIndex: numbe
     }
 
     &:hover {
-      transform: perspective(800px) rotateY(${rotateY * 0.3}deg) scale(${scale * 1.02}) translateZ(${translateZ + 20}px);
+      transform: perspective(800px) rotateY(${rotateY * 0.3}deg) scale(${scale * 1.02})
+        translateZ(${translateZ + 20}px);
       opacity: ${isActive ? 1 : 0.85};
     }
   `;

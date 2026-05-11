@@ -60,7 +60,7 @@ export default function ConfidentialSpendForm() {
 
       if (response.success) {
         setSuccess(
-          `Spend request submitted! Transaction: ${(response.data as any)?.txHash || 'Pending'}`,
+          `Spend request submitted! Transaction: ${(response.data as any)?.txHash || 'Pending'}`
         );
         setAmount('');
         setRecipient('');
@@ -76,18 +76,18 @@ export default function ConfidentialSpendForm() {
     }
   };
 
-   const formStyles = css`
-     max-width: 600px;
-     margin: 1.5rem auto;
-     animation: ${keyframeAnimations.revealUp} 0.5s ${easings.smooth};
-   `;
+  const formStyles = css`
+    max-width: 600px;
+    margin: 1.5rem auto;
+    animation: ${keyframeAnimations.revealUp} 0.5s ${easings.smooth};
+  `;
 
-   const fieldStyles = css`
-     margin-bottom: ${designTokens.spacing[4]};
-     display: flex;
-     flex-direction: column;
-     gap: ${designTokens.spacing[2]};
-   `;
+  const fieldStyles = css`
+    margin-bottom: ${designTokens.spacing[4]};
+    display: flex;
+    flex-direction: column;
+    gap: ${designTokens.spacing[2]};
+  `;
 
   const labelStyles = css`
     font-weight: ${designTokens.typography.fontWeight.semibold};
@@ -135,7 +135,11 @@ export default function ConfidentialSpendForm() {
             <Shield size={14} />
             FHE CONFIDENTIAL SPEND
           </div>
-          <CardTitle css={css`font-size: ${designTokens.typography.fontSize.base};`}>
+          <CardTitle
+            css={css`
+              font-size: ${designTokens.typography.fontSize.base};
+            `}
+          >
             Confidential Spend Request
           </CardTitle>
           <p

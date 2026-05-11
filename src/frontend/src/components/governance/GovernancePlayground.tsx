@@ -179,10 +179,15 @@ export default function GovernancePlayground() {
   `;
 
   const resultCardStyles = (allowed: boolean) => css`
-    border: 2px solid ${allowed ? designTokens.colors.semantic.success[400] : designTokens.colors.semantic.error[400]};
+    border: 2px solid
+      ${allowed
+        ? designTokens.colors.semantic.success[400]
+        : designTokens.colors.semantic.error[400]};
     border-radius: ${designTokens.borderRadius.xl};
     padding: ${designTokens.spacing[6]};
-    background: ${allowed ? designTokens.colors.semantic.success[50] : designTokens.colors.semantic.error[50]};
+    background: ${allowed
+      ? designTokens.colors.semantic.success[50]
+      : designTokens.colors.semantic.error[50]};
   `;
 
   const fhirToggleStyles = css`

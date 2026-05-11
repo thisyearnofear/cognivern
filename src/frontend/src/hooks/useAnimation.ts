@@ -223,8 +223,12 @@ export const useStaggeredAnimation = (
     delay: index * staggerDelay,
     duration: options.duration ?? 300,
     easing: options.easing ?? 'ease-out',
-    play: () => { setPlayAnimation(true); },
-    cancel: () => { setPlayAnimation(false); },
+    play: () => {
+      setPlayAnimation(true);
+    },
+    cancel: () => {
+      setPlayAnimation(false);
+    },
   }));
 
   const playAll = () => {
