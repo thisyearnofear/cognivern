@@ -1,4 +1,6 @@
+/** @jsxImportSource @emotion/react */
 import React, { useRef, useEffect, useState } from 'react';
+import { css, keyframes } from '@emotion/react';
 import { designTokens, chartColors, chartStyles } from '../../styles/design-system';
 import {
   TrendingUp,
