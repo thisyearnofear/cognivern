@@ -429,6 +429,8 @@ export default function EnhancedAuditLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSimplifiedMode, setIsSimplifiedMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'timeline' | 'table'>('timeline');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     startDate:
       searchParams.get('startDate') ||
@@ -806,15 +808,128 @@ export default function EnhancedAuditLogs() {
 
   const renderLogs = () => (
     <div>
-      <h3
+      <div
         css={css`
-          font-size: ${designTokens.typography.fontSize.xl};
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           margin-bottom: ${designTokens.spacing[4]};
         `}
       >
-        Audit Timeline
-      </h3>
+        <h3
+          css={css`
+            font-size: ${designTokens.typography.fontSize.xl};
+            margin: 0;
+          `}
+        >
+          {viewMode === 'timeline' ? 'Audit Timeline' : 'Audit Table'}
+        </h3>
+        <div css={css`display: flex; gap: ${designTokens.spacing[2]};`}>
+          <button
+            onClick={() => setViewMode('timeline')}
+            css={css`
+              padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
+              border-radius: ${designTokens.borderRadius.md};
+              border: 1px solid ${viewMode === 'timeline' ? designTokens.colors.primary[500] : designTokens.colors.neutral[300]};
+              background: ${viewMode === 'timeline' ? designTokens.colors.primary[50] : 'white'};
+              color: ${viewMode === 'timeline' ? designTokens.colors.primary[700] : designTokens.colors.neutral[600]};
+              font-size: ${designTokens.typography.fontSize.xs};
+              font-weight: ${designTokens.typography.fontWeight.medium};
+              cursor: pointer;
+            `}
+          >
+            Timeline
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            css={css`
+              padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
+              border-radius: ${designTokens.borderRadius.md};
+              border: 1px solid ${viewMode === 'table' ? designTokens.colors.primary[500] : designTokens.colors.neutral[300]};
+              background: ${viewMode === 'table' ? designTokens.colors.primary[50] : 'white'};
+              color: ${viewMode === 'table' ? designTokens.colors.primary[700] : designTokens.colors.neutral[600]};
+              font-size: ${designTokens.typography.fontSize.xs};
+              font-weight: ${designTokens.typography.fontWeight.medium};
+              cursor: pointer;
+            `}
+          >
+            Table
+          </button>
+        </div>
+      </div>
 
+      {viewMode === 'table' ? (
+        <div css={css`overflow-x: auto;`}>
+          <table css={css`width: 100%; border-collapse: collapse; font-size: ${designTokens.typography.fontSize.sm};`}>
+            <thead>
+              <tr css={css`background: ${designTokens.colors.neutral[50]}; text-align: left;`}>
+                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[700]};`}>Time</th>
+                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[700]};`}>Agent</th>
+                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[700]};`}>Action</th>
+                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[700]};`}>Decision</th>
+                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[700]};`}>Status</th>
+                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[700]};`}>Severity</th>
+                <th css={css`padding: ${designTokens.spacing[3]}; border-bottom: 1px solid ${designTokens.colors.neutral[200]};`}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <tr
+                  key={log.id}
+                  css={css`
+                    border-bottom: 1px solid ${designTokens.colors.neutral[100]};
+                    background: ${highlightedEventId === log.id ? designTokens.colors.primary[50] : 'white'};
+                    &:hover { background: ${designTokens.colors.neutral[50]}; }
+                  `}
+                >
+                  <td css={css`padding: ${designTokens.spacing[3]}; color: ${designTokens.colors.neutral[500]}; white-space: nowrap;`}>{new Date(log.timestamp).toLocaleString()}</td>
+                  <td css={css`padding: ${designTokens.spacing[3]}; font-weight: ${designTokens.typography.fontWeight.medium};`}>{log.agentName}</td>
+                  <td css={css`padding: ${designTokens.spacing[3]}; color: ${designTokens.colors.neutral[700]};`}>{log.action.type}</td>
+                  <td css={css`padding: ${designTokens.spacing[3]};`}>
+                    <span css={css`
+                      padding: 2px 8px;
+                      border-radius: ${designTokens.borderRadius.full};
+                      font-size: ${designTokens.typography.fontSize.xs};
+                      font-weight: ${designTokens.typography.fontWeight.semibold};
+                      background: ${log.action.decision === 'allowed' ? designTokens.colors.semantic.success[100] : designTokens.colors.semantic.error[100]};
+                      color: ${log.action.decision === 'allowed' ? designTokens.colors.semantic.success[700] : designTokens.colors.semantic.error[700]};
+                    `}>{log.action.decision}</span>
+                  </td>
+                  <td css={css`padding: ${designTokens.spacing[3]};`}>
+                    <span css={css`${statusBadgeStyles}; &.${log.metadata.complianceStatus}`}>{log.metadata.complianceStatus}</span>
+                  </td>
+                  <td css={css`padding: ${designTokens.spacing[3]};`}>
+                    <span css={css`${severityBadgeStyles}; &.${log.impact.severity}`}>{log.impact.severity}</span>
+                  </td>
+                  <td css={css`padding: ${designTokens.spacing[3]};`}>
+                    <button
+                      title="Copy permalink"
+                      onClick={() => {
+                        const url = `${window.location.origin}${window.location.pathname}?eventId=${log.id}`;
+                        void copyTextToClipboard(url).then(() => {
+                          setCopiedId(log.id);
+                          setTimeout(() => setCopiedId(null), 2000);
+                        });
+                      }}
+                      css={css`
+                        background: none;
+                        border: none;
+                        cursor: pointer;
+                        color: ${copiedId === log.id ? designTokens.colors.semantic.success[600] : designTokens.colors.neutral[400]};
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        padding: ${designTokens.spacing[1]};
+                        &:hover { color: ${designTokens.colors.primary[600]}; }
+                      `}
+                    >
+                      {copiedId === log.id ? '✓ Copied' : '🔗 Share'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
       <div css={logTimelineStyles}>
         {logs.map((log) => (
           <div
@@ -1086,6 +1201,32 @@ export default function EnhancedAuditLogs() {
                   />
                 )}
 
+                {!log.evidence && (
+                  <div css={css`margin-top: ${designTokens.spacing[3]};`}>
+                    <button
+                      css={css`
+                        background: ${copiedId === log.id ? designTokens.colors.semantic.success[100] : designTokens.colors.primary[50]};
+                        color: ${copiedId === log.id ? designTokens.colors.semantic.success[700] : designTokens.colors.primary[700]};
+                        padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+                        border-radius: ${designTokens.borderRadius.full};
+                        border: 1px solid ${copiedId === log.id ? designTokens.colors.semantic.success[200] : designTokens.colors.primary[200]};
+                        cursor: pointer;
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        font-weight: ${designTokens.typography.fontWeight.medium};
+                      `}
+                      onClick={() => {
+                        const url = `${window.location.origin}${window.location.pathname}?eventId=${log.id}`;
+                        void copyTextToClipboard(url).then(() => {
+                          setCopiedId(log.id);
+                          setTimeout(() => setCopiedId(null), 2000);
+                        });
+                      }}
+                    >
+                      {copiedId === log.id ? '✓ Link copied!' : '🔗 Share audit trail'}
+                    </button>
+                  </div>
+                )}
+
                 {log.evidence && (
                   <div
                     css={css`
@@ -1095,6 +1236,27 @@ export default function EnhancedAuditLogs() {
                       margin-top: ${designTokens.spacing[3]};
                     `}
                   >
+                    <button
+                      css={css`
+                        background: ${copiedId === log.id ? designTokens.colors.semantic.success[100] : designTokens.colors.primary[50]};
+                        color: ${copiedId === log.id ? designTokens.colors.semantic.success[700] : designTokens.colors.primary[700]};
+                        padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+                        border-radius: ${designTokens.borderRadius.full};
+                        border: 1px solid ${copiedId === log.id ? designTokens.colors.semantic.success[200] : designTokens.colors.primary[200]};
+                        cursor: pointer;
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        font-weight: ${designTokens.typography.fontWeight.medium};
+                      `}
+                      onClick={() => {
+                        const url = `${window.location.origin}${window.location.pathname}?eventId=${log.id}`;
+                        void copyTextToClipboard(url).then(() => {
+                          setCopiedId(log.id);
+                          setTimeout(() => setCopiedId(null), 2000);
+                        });
+                      }}
+                    >
+                      {copiedId === log.id ? '✓ Link copied!' : '🔗 Share audit trail'}
+                    </button>
                     <button
                       css={css`
                         background: ${designTokens.colors.neutral[100]};
@@ -1146,6 +1308,7 @@ export default function EnhancedAuditLogs() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 

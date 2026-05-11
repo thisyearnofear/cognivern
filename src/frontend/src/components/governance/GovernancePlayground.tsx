@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { css } from '@emotion/react';
 import { ShieldCheck, PlayCircle, ChevronDown, ChevronUp, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { designTokens } from '../../styles/design-system';
@@ -45,8 +46,9 @@ const EXAMPLE_FHIR = JSON.stringify({
 }, null, 2);
 
 export default function GovernancePlayground() {
+  const [searchParams] = useSearchParams();
   const [agentId, setAgentId] = useState('agent-demo-001');
-  const [policyId, setPolicyId] = useState('');
+  const [policyId, setPolicyId] = useState(searchParams.get('policyId') ?? '');
   const [actionJson, setActionJson] = useState(EXAMPLE_ACTIONS[0].value);
   const [actionError, setActionError] = useState('');
   const [showFhir, setShowFhir] = useState(false);
