@@ -101,3 +101,10 @@ remix-smart-bin-monitoring-das/
 
 # Private operations docs (server details, keys, addresses)
 OPS.md
+
+# Runtime data (generated at runtime, never committed)
+data/
+.cognivern/
+
+# Root-level ecosystem.config.cjs (server-local PM2 override — use config/ecosystem.config.cjs)
+/ecosystem.config.cjs
