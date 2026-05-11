@@ -7,7 +7,7 @@ import { designTokens } from '../../styles/design-system';
 import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Badge } from '../ui/Badge';
-import PageWrapper from '../layout/PageWrapper';
+import { PageWrapper } from '../layout';
 
 interface GovernanceResult {
   allowed: boolean;
