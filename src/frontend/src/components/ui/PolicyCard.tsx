@@ -1,13 +1,16 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { css } from '@emotion/react';
 import { Card, CardContent } from './Card';
 import { Badge } from './Badge';
+import { Button } from './Button';
 import { designTokens } from '../../styles/design-system';
 import { GovernancePolicy } from '../../stores/governanceStore';
 
 export interface PolicyCardProps {
   policy: GovernancePolicy;
   onClick?: (policy: GovernancePolicy) => void;
+  onTest?: (policy: GovernancePolicy) => void;
   interactive?: boolean;
 }
 
@@ -86,7 +89,17 @@ const statValueStyles = css`
   color: ${designTokens.colors.neutral[800]};
 `;
 
-export const PolicyCard: React.FC<PolicyCardProps> = ({ policy, onClick, interactive = true }) => {
+export const PolicyCard: React.FC<PolicyCardProps> = ({ policy, onClick, onTest, interactive = true }) => {
+  const navigate = useNavigate();
+
+  const handleTest = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onTest) {
+      onTest(policy);
+    } else {
+      navigate(`/governance/check?policyId=${encodeURIComponent(policy.id)}`);
+    }
+  };
   const activeRules = policy.rules.filter((r) => r.enabled).length;
   const highStrictnessCount = policy.rules.filter(
     (r) => r.enabled && r.strictness === 'high',
@@ -125,6 +138,29 @@ export const PolicyCard: React.FC<PolicyCardProps> = ({ policy, onClick, interac
             <span css={statLabelStyles}>Policy State</span>
             <span css={statValueStyles}>{reviewState}</span>
           </div>
+        </div>
+
+        <div
+          css={css`
+            margin-top: ${designTokens.spacing[3]};
+            padding-top: ${designTokens.spacing[3]};
+            border-top: 1px solid ${designTokens.colors.neutral[100]};
+          `}
+        >
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleTest}
+            css={css`
+              width: 100%;
+              justify-content: center;
+              font-size: ${designTokens.typography.fontSize.xs};
+              color: ${designTokens.colors.primary[600]};
+              &:hover { background: ${designTokens.colors.primary[50]}; }
+            `}
+          >
+            ▶ Test this policy
+          </Button>
         </div>
       </CardContent>
     </Card>
