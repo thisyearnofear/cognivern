@@ -57,7 +57,7 @@ describe('ResponsiveLayout', () => {
       render(
         <LayoutProvider>
           <TestComponent />
-        </LayoutProvider>,
+        </LayoutProvider>
       );
 
       expect(screen.getByTestId('sidebar-width')).toBeInTheDocument();
@@ -81,7 +81,7 @@ describe('ResponsiveLayout', () => {
       render(
         <LayoutProvider initialSidebarState="collapsed">
           <TestComponent />
-        </LayoutProvider>,
+        </LayoutProvider>
       );
 
       expect(screen.getByTestId('sidebar-state')).toHaveTextContent('collapsed');
@@ -95,7 +95,7 @@ describe('ResponsiveLayout', () => {
           <Container data-testid="container">
             <div>Test content</div>
           </Container>
-        </LayoutProvider>,
+        </LayoutProvider>
       );
 
       const container = screen.getByTestId('container');
@@ -109,7 +109,7 @@ describe('ResponsiveLayout', () => {
           <Container maxWidth="800px" data-testid="container">
             Content
           </Container>
-        </LayoutProvider>,
+        </LayoutProvider>
       );
 
       const container = screen.getByTestId('container');
@@ -122,7 +122,7 @@ describe('ResponsiveLayout', () => {
           <Container fluid data-testid="container">
             Content
           </Container>
-        </LayoutProvider>,
+        </LayoutProvider>
       );
 
       const container = screen.getByTestId('container');
@@ -138,7 +138,7 @@ describe('ResponsiveLayout', () => {
             <GridItem data-testid="grid-item">Item 1</GridItem>
             <GridItem data-testid="grid-item">Item 2</GridItem>
           </Grid>
-        </LayoutProvider>,
+        </LayoutProvider>
       );
 
       const grid = screen.getByTestId('grid');
@@ -156,7 +156,7 @@ describe('ResponsiveLayout', () => {
           <Grid columns={{ xs: 1, md: 2, lg: 3 }} data-testid="grid">
             <GridItem>Item</GridItem>
           </Grid>
-        </LayoutProvider>,
+        </LayoutProvider>
       );
 
       const grid = screen.getByTestId('grid');
@@ -173,7 +173,7 @@ describe('ResponsiveLayout', () => {
               Content
             </GridItem>
           </Grid>
-        </LayoutProvider>,
+        </LayoutProvider>
       );
 
       const item = screen.getByTestId('grid-item');
@@ -243,7 +243,7 @@ describe('Responsive Behavior', () => {
     render(
       <LayoutProvider>
         <TestComponent />
-      </LayoutProvider>,
+      </LayoutProvider>
     );
 
     // Should adapt layout for mobile
@@ -270,7 +270,7 @@ describe('Responsive Behavior', () => {
     render(
       <LayoutProvider>
         <TestSidebarComponent />
-      </LayoutProvider>,
+      </LayoutProvider>
     );
 
     const toggleButton = screen.getByTestId('toggle-sidebar');
@@ -300,7 +300,7 @@ describe('Performance', () => {
     const { rerender } = render(
       <LayoutProvider>
         <TestPerformanceComponent />
-      </LayoutProvider>,
+      </LayoutProvider>
     );
 
     expect(renderSpy).toHaveBeenCalledTimes(1);
@@ -309,7 +309,7 @@ describe('Performance', () => {
     rerender(
       <LayoutProvider>
         <TestPerformanceComponent />
-      </LayoutProvider>,
+      </LayoutProvider>
     );
 
     // Should still be 1 if memoization is working correctly
@@ -329,7 +329,7 @@ describe('Accessibility', () => {
             <p>Content</p>
           </main>
         </Container>
-      </LayoutProvider>,
+      </LayoutProvider>
     );
 
     expect(screen.getByRole('main')).toBeInTheDocument();
@@ -358,7 +358,7 @@ describe('Accessibility', () => {
     render(
       <LayoutProvider>
         <TestKeyboardComponent />
-      </LayoutProvider>,
+      </LayoutProvider>
     );
 
     const button = screen.getByTestId('keyboard-button');

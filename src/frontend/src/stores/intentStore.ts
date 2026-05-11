@@ -288,7 +288,7 @@ export const useIntentStore = create<IntentState>((set, get) => ({
                 component: component || undefined,
                 isFallback,
               }
-            : h,
+            : h
         ),
       }));
 
@@ -308,7 +308,7 @@ export const useIntentStore = create<IntentState>((set, get) => ({
                 response:
                   'Sorry, I encountered an error. The AI service may be temporarily unavailable. Please try again.',
               }
-            : h,
+            : h
         ),
       }));
     }

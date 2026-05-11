@@ -104,10 +104,10 @@ export const LayoutProvider: React.FC<LayoutProviderProps> = ({
 }) => {
   const { current: breakpoint } = useBreakpoint();
   const [sidebarState, setSidebarState] = useState<'expanded' | 'collapsed' | 'hidden' | 'overlay'>(
-    'expanded',
+    'expanded'
   );
   const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth : 1024,
+    typeof window !== 'undefined' ? window.innerWidth : 1024
   );
 
   // Track viewport width changes for responsive calculations

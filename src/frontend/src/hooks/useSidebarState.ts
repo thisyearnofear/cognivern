@@ -20,7 +20,7 @@ export const useSidebarState = () => {
         updatePreferences({ sidebarState: state });
       }
     },
-    [isDesktop, updatePreferences],
+    [isDesktop, updatePreferences]
   );
 
   // Intelligent sidebar toggle based on context
@@ -85,7 +85,7 @@ export const useSidebarState = () => {
           break;
       }
     },
-    [isDesktop, sidebarState, setSidebarState],
+    [isDesktop, sidebarState, setSidebarState]
   );
 
   return {

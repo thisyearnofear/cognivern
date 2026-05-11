@@ -101,7 +101,13 @@ export const HeroIllustration: React.FC<HeroIllustrationProps> = ({ className })
         />
 
         {/* Shield SVG */}
-        <svg viewBox="0 0 100 120" css={css`width: 100%; height: 100%;`}>
+        <svg
+          viewBox="0 0 100 120"
+          css={css`
+            width: 100%;
+            height: 100%;
+          `}
+        >
           <defs>
             <linearGradient id="shieldBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#0ea5e9" />
@@ -112,7 +118,7 @@ export const HeroIllustration: React.FC<HeroIllustrationProps> = ({ className })
               <stop offset="100%" stopColor="#ffffff" stopOpacity="0.05" />
             </linearGradient>
             <filter id="shieldShadow">
-              <feDropShadow dx="0" dy="4" stdDeviation="8" floodOpacity="0.3"/>
+              <feDropShadow dx="0" dy="4" stdDeviation="8" floodOpacity="0.3" />
             </filter>
           </defs>
 
@@ -138,7 +144,13 @@ export const HeroIllustration: React.FC<HeroIllustrationProps> = ({ className })
           {/* Lock icon inside */}
           <g transform="translate(50, 50)">
             <rect x="-12" y="-5" width="24" height="18" rx="3" fill="white" />
-            <path d="M-8 -5 V-10 A8 8 0 0 1 8 -10 V-5" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" />
+            <path
+              d="M-8 -5 V-10 A8 8 0 0 1 8 -10 V-5"
+              fill="none"
+              stroke="white"
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
             <circle cx="0" cy="5" r="3" fill={designTokens.colors.primary[600]} />
           </g>
         </svg>
@@ -175,7 +187,7 @@ export const HeroIllustration: React.FC<HeroIllustrationProps> = ({ className })
               height: 100%;
               background: white;
               border-radius: 50%;
-              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
               display: flex;
               align-items: center;
               justify-content: center;
@@ -189,18 +201,40 @@ export const HeroIllustration: React.FC<HeroIllustrationProps> = ({ className })
             {node.label === 'Agent' && (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="8" r="4" stroke={node.color} strokeWidth="2" />
-                <path d="M6 20C6 16 8 14 12 14C16 14 18 16 18 20" stroke={node.color} strokeWidth="2" strokeLinecap="round" />
+                <path
+                  d="M6 20C6 16 8 14 12 14C16 14 18 16 18 20"
+                  stroke={node.color}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
             )}
             {node.label === 'Policy' && (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M9 12L11 14L15 10M21 12C21 16.97 16.97 21 12 21C7.03 21 3 16.97 3 12C3 7.03 7.03 3 12 3C16.97 3 21 7.03 21 12Z" stroke={node.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M9 12L11 14L15 10M21 12C21 16.97 16.97 21 12 21C7.03 21 3 16.97 3 12C3 7.03 7.03 3 12 3C16.97 3 21 7.03 21 12Z"
+                  stroke={node.color}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             )}
             {node.label === 'Audit' && (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5" stroke={node.color} strokeWidth="2" strokeLinecap="round" />
-                <path d="M9 12L11 14L15 10" stroke={node.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5"
+                  stroke={node.color}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M9 12L11 14L15 10"
+                  stroke={node.color}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             )}
           </div>
@@ -274,7 +308,9 @@ export const HeroIllustration: React.FC<HeroIllustrationProps> = ({ className })
             position: absolute;
             width: ${6 + i * 2}px;
             height: ${6 + i * 2}px;
-            background: ${i % 2 === 0 ? designTokens.colors.primary[400] : designTokens.colors.semantic.success[400]};
+            background: ${i % 2 === 0
+              ? designTokens.colors.primary[400]
+              : designTokens.colors.semantic.success[400]};
             border-radius: 50%;
             opacity: 0.3;
             animation: ${float} ${3 + i * 0.5}s ease-in-out infinite;

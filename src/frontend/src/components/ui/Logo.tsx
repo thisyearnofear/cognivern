@@ -78,7 +78,8 @@ export const Logo: React.FC<LogoProps> = ({
           overflow: hidden;
           box-shadow: ${isAnimated ? designTokens.shadows.glow.primary : 'none'};
 
-          ${isAnimated && css`
+          ${isAnimated &&
+          css`
             animation: ${float} 3s ease-in-out infinite;
           `}
         `}
@@ -90,7 +91,8 @@ export const Logo: React.FC<LogoProps> = ({
           viewBox="0 0 24 24"
           fill="none"
           css={css`
-            ${isAnimated && css`
+            ${isAnimated &&
+            css`
               animation: ${pulse} 2s ease-in-out infinite;
             `}
           `}
@@ -116,7 +118,14 @@ export const Logo: React.FC<LogoProps> = ({
           <circle cx="14" cy="15" r="1" fill="white" />
 
           <defs>
-            <linearGradient id="shieldGradient" x1="3" y1="2" x2="21" y2="23" gradientUnits="userSpaceOnUse">
+            <linearGradient
+              id="shieldGradient"
+              x1="3"
+              y1="2"
+              x2="21"
+              y2="23"
+              gradientUnits="userSpaceOnUse"
+            >
               <stop stopColor="#0ea5e9" />
               <stop offset="1" stopColor="#0284c7" />
             </linearGradient>

@@ -161,7 +161,7 @@ export const CommandPalette: React.FC = () => {
         icon: '⌨️',
         action: () => {
           setError(
-            'Shortcuts: Ctrl/Cmd+K Search, Alt+D Dashboard, Alt+T Agents, Alt+P Policies, Alt+A Audit, Ctrl/Cmd+B Sidebar.',
+            'Shortcuts: Ctrl/Cmd+K Search, Alt+D Dashboard, Alt+T Agents, Alt+P Policies, Alt+A Audit, Ctrl/Cmd+B Sidebar.'
           );
           onClose();
         },
@@ -182,7 +182,7 @@ export const CommandPalette: React.FC = () => {
         category: 'help',
       },
     ],
-    [navigate, onClose, updatePreferences, preferences, setError, sidebarState, toggleSidebar],
+    [navigate, onClose, updatePreferences, preferences, setError, sidebarState, toggleSidebar]
   );
 
   // Filter commands based on query
@@ -206,7 +206,7 @@ export const CommandPalette: React.FC = () => {
       acc[command.category].push(command);
       return acc;
     },
-    {} as Record<string, Command[]>,
+    {} as Record<string, Command[]>
   );
 
   // Reset selection when filtered commands change
@@ -238,7 +238,7 @@ export const CommandPalette: React.FC = () => {
               (query ? 0 : suggestions.length + Math.min(history.length, 3)) -
               1
               ? prev + 1
-              : 0,
+              : 0
           );
           break;
         case 'ArrowUp':
@@ -249,7 +249,7 @@ export const CommandPalette: React.FC = () => {
               ? prev - 1
               : filteredCommands.length +
                 (query ? 0 : suggestions.length + Math.min(history.length, 3)) -
-                1,
+                1
           );
           break;
         case 'Enter':

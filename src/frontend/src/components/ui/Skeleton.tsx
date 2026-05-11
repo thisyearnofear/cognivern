@@ -108,7 +108,13 @@ export const SkeletonText: React.FC<{ lines?: number; lastLineWidth?: string }> 
   lines = 3,
   lastLineWidth = '60%',
 }) => (
-  <div css={css`display: flex; flex-direction: column; gap: ${designTokens.spacing[2]};`}>
+  <div
+    css={css`
+      display: flex;
+      flex-direction: column;
+      gap: ${designTokens.spacing[2]};
+    `}
+  >
     {Array.from({ length: lines }).map((_, i) => (
       <Skeleton
         key={i}
@@ -129,11 +135,25 @@ export const SkeletonCard: React.FC = () => (
       border: 1px solid ${designTokens.colors.neutral[200]};
     `}
   >
-    <div css={css`display: flex; gap: ${designTokens.spacing[3]}; margin-bottom: ${designTokens.spacing[4]};`}>
+    <div
+      css={css`
+        display: flex;
+        gap: ${designTokens.spacing[3]};
+        margin-bottom: ${designTokens.spacing[4]};
+      `}
+    >
       <Skeleton width={48} height={48} borderRadius={designTokens.borderRadius.md} />
-      <div css={css`flex: 1;`}>
+      <div
+        css={css`
+          flex: 1;
+        `}
+      >
         <Skeleton height={20} width="60%" />
-        <div css={css`margin-top: ${designTokens.spacing[2]};`}>
+        <div
+          css={css`
+            margin-top: ${designTokens.spacing[2]};
+          `}
+        >
           <Skeleton height={14} width="40%" />
         </div>
       </div>
@@ -143,11 +163,7 @@ export const SkeletonCard: React.FC = () => (
 );
 
 export const SkeletonButton: React.FC<{ width?: string | number }> = ({ width = 120 }) => (
-  <Skeleton
-    height={40}
-    width={width}
-    borderRadius={designTokens.borderRadius.md}
-  />
+  <Skeleton height={40} width={width} borderRadius={designTokens.borderRadius.md} />
 );
 
 // ===========================================
@@ -194,12 +210,7 @@ export const SkeletonTableRow: React.FC<SkeletonTableRowProps> = ({ columns = 4 
     `}
   >
     {Array.from({ length: columns }).map((_, i) => (
-      <Skeleton
-        key={i}
-        variant="text"
-        width={i === 0 ? '80%' : '60%'}
-        height={14}
-      />
+      <Skeleton key={i} variant="text" width={i === 0 ? '80%' : '60%'} height={14} />
     ))}
   </div>
 );
@@ -217,7 +228,11 @@ export const PageSkeleton: React.FC = () => (
     `}
   >
     {/* Header skeleton */}
-    <div css={css`margin-bottom: ${designTokens.spacing[6]};`}>
+    <div
+      css={css`
+        margin-bottom: ${designTokens.spacing[6]};
+      `}
+    >
       <Skeleton variant="text" width="30%" height={32} />
       <Skeleton
         variant="text"
@@ -298,7 +313,13 @@ export const AsyncSkeleton: React.FC<AsyncSkeletonProps> = ({
         `}
         role="alert"
       >
-        <p css={css`margin-bottom: ${designTokens.spacing[4]};`}>{errorMessage}</p>
+        <p
+          css={css`
+            margin-bottom: ${designTokens.spacing[4]};
+          `}
+        >
+          {errorMessage}
+        </p>
         {onRetry && (
           <button
             onClick={onRetry}

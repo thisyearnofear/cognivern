@@ -104,19 +104,23 @@ const ToastItemComponent: React.FC<{
         position: relative;
         overflow: hidden;
 
-        ${toast.type === 'success' && css`
+        ${toast.type === 'success' &&
+        css`
           --toast-bg: ${designTokens.colors.semantic.success[50]};
           --toast-border: ${designTokens.colors.semantic.success[200]};
         `}
-        ${toast.type === 'error' && css`
+        ${toast.type === 'error' &&
+        css`
           --toast-bg: ${designTokens.colors.semantic.error[50]};
           --toast-border: ${designTokens.colors.semantic.error[200]};
         `}
-        ${toast.type === 'warning' && css`
+        ${toast.type === 'warning' &&
+        css`
           --toast-bg: ${designTokens.colors.semantic.warning[50]};
           --toast-border: ${designTokens.colors.semantic.warning[200]};
         `}
-        ${toast.type === 'info' && css`
+        ${toast.type === 'info' &&
+        css`
           --toast-bg: ${designTokens.colors.primary[50]};
           --toast-border: ${designTokens.colors.primary[200]};
         `}
@@ -124,17 +128,30 @@ const ToastItemComponent: React.FC<{
       role="alert"
       aria-live="polite"
     >
-      <span css={css`color: ${color}; flex-shrink: 0; margin-top: 2px;`}>
+      <span
+        css={css`
+          color: ${color};
+          flex-shrink: 0;
+          margin-top: 2px;
+        `}
+      >
         <Icon size={20} />
       </span>
 
-      <div css={css`flex: 1; min-width: 0;`}>
-        <p css={css`
-          font-size: ${designTokens.typography.fontSize.sm};
-          font-weight: ${designTokens.typography.fontWeight.medium};
-          color: var(--text-primary);
-          line-height: 1.4;
-        `}>
+      <div
+        css={css`
+          flex: 1;
+          min-width: 0;
+        `}
+      >
+        <p
+          css={css`
+            font-size: ${designTokens.typography.fontSize.sm};
+            font-weight: ${designTokens.typography.fontWeight.medium};
+            color: var(--text-primary);
+            line-height: 1.4;
+          `}
+        >
           {toast.message}
         </p>
 
@@ -218,9 +235,16 @@ const ToastContainer: React.FC<{
       max-height: calc(100vh - ${designTokens.spacing[8]});
       overflow-y: auto;
 
-      &::-webkit-scrollbar { width: 6px; }
-      &::-webkit-scrollbar-track { background: transparent; }
-      &::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: var(--border-subtle);
+        border-radius: 3px;
+      }
     `}
   >
     {toasts.map((toast) => (
@@ -247,24 +271,38 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setToasts([]);
   }, []);
 
-  const success = useCallback((message: string, duration?: number) => {
-    return addToast({ type: 'success', message, duration });
-  }, [addToast]);
+  const success = useCallback(
+    (message: string, duration?: number) => {
+      return addToast({ type: 'success', message, duration });
+    },
+    [addToast]
+  );
 
-  const error = useCallback((message: string, duration?: number) => {
-    return addToast({ type: 'error', message, duration: duration ?? 8000 });
-  }, [addToast]);
+  const error = useCallback(
+    (message: string, duration?: number) => {
+      return addToast({ type: 'error', message, duration: duration ?? 8000 });
+    },
+    [addToast]
+  );
 
-  const warning = useCallback((message: string, duration?: number) => {
-    return addToast({ type: 'warning', message, duration: duration ?? 6000 });
-  }, [addToast]);
+  const warning = useCallback(
+    (message: string, duration?: number) => {
+      return addToast({ type: 'warning', message, duration: duration ?? 6000 });
+    },
+    [addToast]
+  );
 
-  const info = useCallback((message: string, duration?: number) => {
-    return addToast({ type: 'info', message, duration });
-  }, [addToast]);
+  const info = useCallback(
+    (message: string, duration?: number) => {
+      return addToast({ type: 'info', message, duration });
+    },
+    [addToast]
+  );
 
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast, clearAll, success, error, warning, info }}>
+    <ToastContext.Provider
+      value={{ toasts, addToast, removeToast, clearAll, success, error, warning, info }}
+    >
       {children}
       <ToastContainer toasts={toasts} onClose={removeToast} />
     </ToastContext.Provider>

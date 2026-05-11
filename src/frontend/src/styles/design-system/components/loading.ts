@@ -12,7 +12,7 @@ export const loadingStyles = {
   `,
   spinner: (
     size: 'sm' | 'md' | 'lg' = 'md',
-    color: string = designTokens.colors.primary[500],
+    color: string = designTokens.colors.primary[500]
   ) => css`
     border: 2px solid ${designTokens.colors.neutral[200]};
     border-top: 2px solid ${color};
@@ -129,7 +129,7 @@ export const loadingStyles = {
   skeleton: (
     variant: 'text' | 'rectangular' | 'circular' | 'card' = 'text',
     width?: string | number,
-    height?: string | number,
+    height?: string | number
   ) => css`
     /* Theme-aware skeleton background */
     background-color: var(--card-bg-elevated);

@@ -57,7 +57,11 @@ export const mediaQuery = {
     }
   `,
   // Range queries
-  between: (min: keyof typeof breakpoints, max: keyof typeof breakpoints, styles: TemplateStringsArray | string) => css`
+  between: (
+    min: keyof typeof breakpoints,
+    max: keyof typeof breakpoints,
+    styles: TemplateStringsArray | string
+  ) => css`
     @media (min-width: ${breakpoints[min]}) and (max-width: ${breakpoints[max]}) {
       ${styles}
     }

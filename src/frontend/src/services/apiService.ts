@@ -20,7 +20,7 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {},
     retries: number = 2, // Reduced from 3
-    delay: number = 1000,
+    delay: number = 1000
   ): Promise<ApiResponse<T>> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
@@ -74,7 +74,7 @@ class ApiService {
           if (!import.meta.env.PROD) {
             console.warn(
               `API request attempt ${attempt + 1} failed for ${endpoint}, retrying...`,
-              error,
+              error
             );
           }
           await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, attempt)));

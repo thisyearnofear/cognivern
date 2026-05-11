@@ -306,7 +306,7 @@ export const EcosystemVisualizer: React.FC<EcosystemVisualizerProps> = ({
                       x2={node.x}
                       y2={node.y}
                     />
-                  ),
+                  )
               )}
 
             {processedNodes.map((node, i) => {

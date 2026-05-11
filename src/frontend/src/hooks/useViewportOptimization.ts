@@ -13,11 +13,11 @@ import { useLayout } from '../components/layout/ResponsiveLayout';
  */
 export const useViewportOptimization = (
   contentType: 'dashboard' | 'form' | 'table' | 'chart' | 'list' = 'dashboard',
-  autoOptimize: boolean = false,
+  autoOptimize: boolean = false
 ) => {
   const [viewport, setViewport] = useState<ViewportDimensions>(() => getViewportDimensions());
   const [optimization, setOptimization] = useState<LayoutOptimization>(() =>
-    calculateOptimalLayout(getViewportDimensions(), contentType),
+    calculateOptimalLayout(getViewportDimensions(), contentType)
   );
   const { setSidebarState, sidebarState } = useLayout();
 

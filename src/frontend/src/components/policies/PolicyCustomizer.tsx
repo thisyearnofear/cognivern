@@ -204,10 +204,10 @@ export default function PolicyCustomizer({ onPolicyChange, initialPolicy }: Poli
   };
 
   const [selectedTemplate, setSelectedTemplate] = useState<string>(
-    initialPolicy?.template || 'standard',
+    initialPolicy?.template || 'standard'
   );
   const [currentPolicy, setCurrentPolicy] = useState<Policy>(
-    initialPolicy || policyTemplates.standard,
+    initialPolicy || policyTemplates.standard
   );
   const [isCustomized, setIsCustomized] = useState<boolean>(initialPolicy?.template === 'custom');
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
@@ -231,7 +231,7 @@ export default function PolicyCustomizer({ onPolicyChange, initialPolicy }: Poli
 
   const handleRuleToggle = (ruleId: string) => {
     const updatedRules = currentPolicy.rules.map((rule) =>
-      rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule,
+      rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule
     );
 
     const updatedPolicy: Policy = {
@@ -247,7 +247,7 @@ export default function PolicyCustomizer({ onPolicyChange, initialPolicy }: Poli
 
   const handleStrictnessChange = (ruleId: string, strictness: 'low' | 'medium' | 'high') => {
     const updatedRules = currentPolicy.rules.map((rule) =>
-      rule.id === ruleId ? { ...rule, strictness } : rule,
+      rule.id === ruleId ? { ...rule, strictness } : rule
     );
 
     const updatedPolicy: Policy = {

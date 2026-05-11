@@ -98,7 +98,7 @@ export const useTouchDevice = (): boolean => {
       setIsTouch(
         'ontouchstart' in window ||
           navigator.maxTouchPoints > 0 ||
-          (navigator as any).msMaxTouchPoints > 0,
+          (navigator as any).msMaxTouchPoints > 0
       );
     };
 

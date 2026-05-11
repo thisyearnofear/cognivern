@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   // Ensure backend URL uses HTTPS in production
   if (mode === 'production' && !backendUrl.startsWith('https://')) {
     console.warn(
-      `Backend URL ${backendUrl} does not use HTTPS. Switching to HTTPS for production.`,
+      `Backend URL ${backendUrl} does not use HTTPS. Switching to HTTPS for production.`
     );
     backendUrl = backendUrl.replace('http://', 'https://');
   }

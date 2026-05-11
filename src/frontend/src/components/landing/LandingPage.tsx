@@ -72,19 +72,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
     {
       icon: <Shield size={24} />,
       title: 'Policy Guardrails',
-      description: 'Set limits, require approvals, and automatically block risky actions before money moves.',
+      description:
+        'Set limits, require approvals, and automatically block risky actions before money moves.',
       accent: designTokens.colors.semantic.success[500],
     },
     {
       icon: <Key size={24} />,
       title: 'Scoped Agent Permissions',
-      description: 'Grant agents limited access with revocable keys instead of handing over full wallet control.',
+      description:
+        'Grant agents limited access with revocable keys instead of handing over full wallet control.',
       accent: designTokens.colors.semantic.info[500],
     },
     {
       icon: <BarChart3 size={24} />,
       title: 'Audit Evidence',
-      description: 'Review every governed decision with the evidence needed to explain what happened and why.',
+      description:
+        'Review every governed decision with the evidence needed to explain what happened and why.',
       accent: designTokens.colors.semantic.warning[500],
     },
   ];
@@ -257,9 +260,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             animation: ${fadeInUp} 0.6s ease-out 0.6s both;
           `}
         >
-          Cognivern checks every spend against your policy, holds risky moves for review, and
-          gives you cryptographic audit evidence — in under 100&nbsp;ms. No wallet required to
-          look around.
+          Cognivern checks every spend against your policy, holds risky moves for review, and gives
+          you cryptographic audit evidence — in under 100&nbsp;ms. No wallet required to look
+          around.
         </p>
 
         <div
@@ -280,7 +283,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               display: flex;
               align-items: center;
               gap: ${designTokens.spacing[2]};
-              background: linear-gradient(135deg, ${designTokens.colors.primary[600]}, ${designTokens.colors.primary[700]});
+              background: linear-gradient(
+                135deg,
+                ${designTokens.colors.primary[600]},
+                ${designTokens.colors.primary[700]}
+              );
               box-shadow: 0 4px 12px ${designTokens.colors.primary[500]}40;
               &:hover {
                 box-shadow: 0 6px 16px ${designTokens.colors.primary[500]}60;
@@ -313,8 +320,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             animation: ${fadeInUp} 0.6s ease-out 0.75s both;
           `}
         >
-          <span css={css`color: ${designTokens.colors.semantic.success[500]};`}>✓</span> Demo opens instantly.
-          <span css={css`font-weight: 600; color: ${designTokens.colors.primary[600]};`}>No signup, no wallet</span> — sample data to explore the flow.
+          <span
+            css={css`
+              color: ${designTokens.colors.semantic.success[500]};
+            `}
+          >
+            ✓
+          </span>{' '}
+          Demo opens instantly.
+          <span
+            css={css`
+              font-weight: 600;
+              color: ${designTokens.colors.primary[600]};
+            `}
+          >
+            No signup, no wallet
+          </span>{' '}
+          — sample data to explore the flow.
         </div>
 
         {/* Social Proof */}
@@ -514,10 +536,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
                 `}
               >
                 <Activity size={14} color="#64748b" />
-                <span css={css`color: rgba(255,255,255,0.6); min-width: 140px;`}>
+                <span
+                  css={css`
+                    color: rgba(255, 255, 255, 0.6);
+                    min-width: 140px;
+                  `}
+                >
                   {event.agent}
                 </span>
-                <span css={css`color: rgba(255,255,255,0.8); flex: 1;`}>
+                <span
+                  css={css`
+                    color: rgba(255, 255, 255, 0.8);
+                    flex: 1;
+                  `}
+                >
                   {event.action}
                 </span>
                 <span
@@ -534,16 +566,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
                 <span
                   css={css`
                     padding: 2px ${designTokens.spacing[2]};
-                    background: rgba(255,255,255,0.1);
-                    color: rgba(255,255,255,0.5);
+                    background: rgba(255, 255, 255, 0.1);
+                    color: rgba(255, 255, 255, 0.5);
                     border-radius: ${designTokens.borderRadius.sm};
                     font-size: ${designTokens.typography.fontSize.xxs};
-                    border: 1px solid rgba(255,255,255,0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
                   `}
                 >
                   {event.provider}
                 </span>
-                <span css={css`color: rgba(255,255,255,0.4);`}>
+                <span
+                  css={css`
+                    color: rgba(255, 255, 255, 0.4);
+                  `}
+                >
                   {event.time}
                 </span>
               </div>
@@ -1035,10 +1071,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
         `}
       >
         Multi-Chain: X Layer + Filecoin + 0G + Fhenix · Open Wallet Standard Compliant ·
-          <span css={css`color: ${designTokens.colors.primary[600]}; font-weight: 600;`}>
-            Powered by ChainGPT AI
-          </span> · Built with
-        ❤️ for autonomous agent governance
+        <span
+          css={css`
+            color: ${designTokens.colors.primary[600]};
+            font-weight: 600;
+          `}
+        >
+          Powered by ChainGPT AI
+        </span>{' '}
+        · Built with ❤️ for autonomous agent governance
       </footer>
     </div>
   );

@@ -8,10 +8,31 @@ import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { Button } from '../ui/Button';
 import { ConnectionModal } from '../web3/ConnectionModal';
 import {
-  Brain, ChevronRight, CheckCircle2, Wallet, Zap,
-  Shield, Play, Target, Rocket, Eye, Star, Share2,
-  Clock, Lock, TrendingUp, Sparkles, ArrowRight, Award,
-  DollarSign, BarChart3, Bot, AlertCircle, Stethoscope, Building2, Code2
+  Brain,
+  ChevronRight,
+  CheckCircle2,
+  Wallet,
+  Zap,
+  Shield,
+  Play,
+  Target,
+  Rocket,
+  Eye,
+  Star,
+  Share2,
+  Clock,
+  Lock,
+  TrendingUp,
+  Sparkles,
+  ArrowRight,
+  Award,
+  DollarSign,
+  BarChart3,
+  Bot,
+  AlertCircle,
+  Stethoscope,
+  Building2,
+  Code2,
 } from 'lucide-react';
 
 /**
@@ -72,7 +93,10 @@ export const SmartOnboarding: React.FC = () => {
   const handleCreatePolicy = () => {
     if (policyName.trim()) {
       setPolicyCreated(true);
-      setAchievement({ badge: 'Policy Pioneer', message: `"${policyName}" is now protecting your treasury!` });
+      setAchievement({
+        badge: 'Policy Pioneer',
+        message: `"${policyName}" is now protecting your treasury!`,
+      });
       setTimeout(() => setAchievement(null), 4000);
     }
   };
@@ -85,7 +109,7 @@ export const SmartOnboarding: React.FC = () => {
   };
 
   const handleComplete = () => {
-    setAchievement({ badge: 'Governor', message: 'You\'re now controlling agent spend!' });
+    setAchievement({ badge: 'Governor', message: "You're now controlling agent spend!" });
     completeOnboarding(selectedPersona || 'operator');
     setTimeout(() => navigate('/dashboard'), 2000);
   };
@@ -101,37 +125,58 @@ export const SmartOnboarding: React.FC = () => {
   };
 
   // Achievement toast component
-  const AchievementToast = () => achievement ? (
-    <div
-      css={css`
-        position: absolute;
-        top: -60px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, ${designTokens.colors.primary[500]}, ${designTokens.colors.primary[600]});
-        color: white;
-        padding: ${designTokens.spacing[3]} ${designTokens.spacing[6]};
-        border-radius: ${designTokens.borderRadius.full};
-        display: flex;
-        align-items: center;
-        gap: ${designTokens.spacing[2]};
-        box-shadow: 0 8px 32px ${designTokens.colors.primary[500]}50;
-        animation: slideDown 0.4s ease-out;
-        z-index: 100;
+  const AchievementToast = () =>
+    achievement ? (
+      <div
+        css={css`
+          position: absolute;
+          top: -60px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: linear-gradient(
+            135deg,
+            ${designTokens.colors.primary[500]},
+            ${designTokens.colors.primary[600]}
+          );
+          color: white;
+          padding: ${designTokens.spacing[3]} ${designTokens.spacing[6]};
+          border-radius: ${designTokens.borderRadius.full};
+          display: flex;
+          align-items: center;
+          gap: ${designTokens.spacing[2]};
+          box-shadow: 0 8px 32px ${designTokens.colors.primary[500]}50;
+          animation: slideDown 0.4s ease-out;
+          z-index: 100;
 
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-      `}
-    >
-      <Award size={18} />
-      <span css={css`font-weight: ${designTokens.typography.fontWeight.bold};`}>
-        {achievement.badge}
-      </span>
-      <span css={css`opacity: 0.9;`}>— {achievement.message}</span>
-    </div>
-  ) : null;
+          @keyframes slideDown {
+            from {
+              opacity: 0;
+              transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(-50%) translateY(0);
+            }
+          }
+        `}
+      >
+        <Award size={18} />
+        <span
+          css={css`
+            font-weight: ${designTokens.typography.fontWeight.bold};
+          `}
+        >
+          {achievement.badge}
+        </span>
+        <span
+          css={css`
+            opacity: 0.9;
+          `}
+        >
+          — {achievement.message}
+        </span>
+      </div>
+    ) : null;
 
   // Progress indicator with steps
   const ProgressIndicator = () => (
@@ -171,7 +216,8 @@ export const SmartOnboarding: React.FC = () => {
                   justify-content: center;
                   font-size: ${designTokens.typography.fontSize.sm};
                   font-weight: ${designTokens.typography.fontWeight.semibold};
-                  transition: all ${designTokens.animation.duration.fast} ${designTokens.animation.easing.easeInOut};
+                  transition: all ${designTokens.animation.duration.fast}
+                    ${designTokens.animation.easing.easeInOut};
                   background: ${isCompleted
                     ? designTokens.colors.semantic.success[500]
                     : isCurrent
@@ -231,7 +277,8 @@ export const SmartOnboarding: React.FC = () => {
     {
       id: 'enterprise',
       label: 'Enterprise / Ops',
-      description: 'Audit trails, compliance guardrails, and spend controls for internal AI agents.',
+      description:
+        'Audit trails, compliance guardrails, and spend controls for internal AI agents.',
       icon: <Building2 size={22} />,
       color: designTokens.colors.neutral[700],
     },
@@ -245,18 +292,51 @@ export const SmartOnboarding: React.FC = () => {
   ];
 
   const PersonaStep = () => (
-    <div css={css`padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]};`}>
-      <div css={css`text-align: center; margin-bottom: ${designTokens.spacing[6]};`}>
-        <Brain size={36} color={designTokens.colors.primary[500]} css={css`margin: 0 auto ${designTokens.spacing[3]};`} />
-        <h3 css={css`font-size: ${designTokens.typography.fontSize.xl}; font-weight: ${designTokens.typography.fontWeight.bold}; color: ${designTokens.colors.neutral[900]}; margin-bottom: ${designTokens.spacing[2]};`}>
+    <div
+      css={css`
+        padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]};
+      `}
+    >
+      <div
+        css={css`
+          text-align: center;
+          margin-bottom: ${designTokens.spacing[6]};
+        `}
+      >
+        <Brain
+          size={36}
+          color={designTokens.colors.primary[500]}
+          css={css`
+            margin: 0 auto ${designTokens.spacing[3]};
+          `}
+        />
+        <h3
+          css={css`
+            font-size: ${designTokens.typography.fontSize.xl};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            color: ${designTokens.colors.neutral[900]};
+            margin-bottom: ${designTokens.spacing[2]};
+          `}
+        >
           What best describes you?
         </h3>
-        <p css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[500]};`}>
+        <p
+          css={css`
+            font-size: ${designTokens.typography.fontSize.sm};
+            color: ${designTokens.colors.neutral[500]};
+          `}
+        >
           We'll surface the most relevant features and examples for your use case.
         </p>
       </div>
 
-      <div css={css`display: flex; flex-direction: column; gap: ${designTokens.spacing[3]};`}>
+      <div
+        css={css`
+          display: flex;
+          flex-direction: column;
+          gap: ${designTokens.spacing[3]};
+        `}
+      >
         {personas.map((p) => (
           <button
             key={p.id}
@@ -266,26 +346,62 @@ export const SmartOnboarding: React.FC = () => {
               align-items: flex-start;
               gap: ${designTokens.spacing[4]};
               padding: ${designTokens.spacing[4]};
-              border: 2px solid ${selectedPersona === p.id ? p.color : designTokens.colors.neutral[200]};
+              border: 2px solid
+                ${selectedPersona === p.id ? p.color : designTokens.colors.neutral[200]};
               border-radius: ${designTokens.borderRadius.lg};
               background: ${selectedPersona === p.id ? `${p.color}10` : 'white'};
               cursor: pointer;
               text-align: left;
-              transition: border-color 0.15s, background 0.15s;
+              transition:
+                border-color 0.15s,
+                background 0.15s;
               width: 100%;
-              &:hover { border-color: ${p.color}; background: ${p.color}08; }
+              &:hover {
+                border-color: ${p.color};
+                background: ${p.color}08;
+              }
             `}
           >
-            <span css={css`color: ${p.color}; flex-shrink: 0; margin-top: 2px;`}>{p.icon}</span>
+            <span
+              css={css`
+                color: ${p.color};
+                flex-shrink: 0;
+                margin-top: 2px;
+              `}
+            >
+              {p.icon}
+            </span>
             <div>
-              <p css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[900]}; margin-bottom: ${designTokens.spacing[1]};`}>{p.label}</p>
-              <p css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[500]};`}>{p.description}</p>
+              <p
+                css={css`
+                  font-weight: ${designTokens.typography.fontWeight.semibold};
+                  color: ${designTokens.colors.neutral[900]};
+                  margin-bottom: ${designTokens.spacing[1]};
+                `}
+              >
+                {p.label}
+              </p>
+              <p
+                css={css`
+                  font-size: ${designTokens.typography.fontSize.sm};
+                  color: ${designTokens.colors.neutral[500]};
+                `}
+              >
+                {p.description}
+              </p>
             </div>
           </button>
         ))}
       </div>
 
-      <p css={css`text-align: center; margin-top: ${designTokens.spacing[4]}; font-size: ${designTokens.typography.fontSize.xs}; color: ${designTokens.colors.neutral[400]};`}>
+      <p
+        css={css`
+          text-align: center;
+          margin-top: ${designTokens.spacing[4]};
+          font-size: ${designTokens.typography.fontSize.xs};
+          color: ${designTokens.colors.neutral[400]};
+        `}
+      >
         You can change this any time in Settings.
       </p>
     </div>
@@ -293,7 +409,12 @@ export const SmartOnboarding: React.FC = () => {
 
   // Step 1: "See it work" - Live demo of governance
   const SeeStep = () => (
-    <div css={css`padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]}; position: relative;`}>
+    <div
+      css={css`
+        padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]};
+        position: relative;
+      `}
+    >
       <AchievementToast />
 
       {/* Hero visual - animated governance demo */}
@@ -314,13 +435,18 @@ export const SmartOnboarding: React.FC = () => {
             position: absolute;
             inset: 0;
             background-image:
-              linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+              linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
             background-size: 20px 20px;
           `}
         />
 
-        <div css={css`position: relative; z-index: 1;`}>
+        <div
+          css={css`
+            position: relative;
+            z-index: 1;
+          `}
+        >
           <div
             css={css`
               display: flex;
@@ -343,8 +469,13 @@ export const SmartOnboarding: React.FC = () => {
                 ${demoPlaying ? `animation: pulse 0.5s infinite;` : ''}
 
                 @keyframes pulse {
-                  0%, 100% { transform: scale(1); }
-                  50% { transform: scale(1.05); }
+                  0%,
+                  100% {
+                    transform: scale(1);
+                  }
+                  50% {
+                    transform: scale(1.05);
+                  }
                 }
               `}
             >
@@ -366,8 +497,13 @@ export const SmartOnboarding: React.FC = () => {
                 ${demoPlaying ? `animation: glow 1s infinite;` : ''}
 
                 @keyframes glow {
-                  0%, 100% { box-shadow: 0 0 0 0 ${designTokens.colors.primary[500]}40; }
-                  50% { box-shadow: 0 0 20px 4px ${designTokens.colors.primary[500]}40; }
+                  0%,
+                  100% {
+                    box-shadow: 0 0 0 0 ${designTokens.colors.primary[500]}40;
+                  }
+                  50% {
+                    box-shadow: 0 0 20px 4px ${designTokens.colors.primary[500]}40;
+                  }
                 }
               `}
             >
@@ -376,12 +512,29 @@ export const SmartOnboarding: React.FC = () => {
           </div>
 
           {demoPlaying ? (
-            <div css={css`color: ${designTokens.colors.semantic.success[400]}; font-size: ${designTokens.typography.fontSize.sm};`}>
-              <Sparkles size={14} css={css`display: inline; vertical-align: middle; margin-right: 4px;`} />
+            <div
+              css={css`
+                color: ${designTokens.colors.semantic.success[400]};
+                font-size: ${designTokens.typography.fontSize.sm};
+              `}
+            >
+              <Sparkles
+                size={14}
+                css={css`
+                  display: inline;
+                  vertical-align: middle;
+                  margin-right: 4px;
+                `}
+              />
               Governance check passed — spend approved ✓
             </div>
           ) : (
-            <p css={css`color: ${designTokens.colors.neutral[400]}; font-size: ${designTokens.typography.fontSize.sm};`}>
+            <p
+              css={css`
+                color: ${designTokens.colors.neutral[400]};
+                font-size: ${designTokens.typography.fontSize.sm};
+              `}
+            >
               Watch: agent attempts spend → policy check → decision logged
             </p>
           )}
@@ -421,9 +574,16 @@ export const SmartOnboarding: React.FC = () => {
           variant="primary"
           size="lg"
           onClick={handlePlayDemo}
-          css={css`min-width: 180px;`}
+          css={css`
+            min-width: 180px;
+          `}
         >
-          <Play size={18} css={css`margin-right: 8px;`} />
+          <Play
+            size={18}
+            css={css`
+              margin-right: 8px;
+            `}
+          />
           Watch Demo
         </Button>
       </div>
@@ -443,8 +603,13 @@ export const SmartOnboarding: React.FC = () => {
           { value: '<100ms', label: 'Policy checks' },
           { value: '7', label: 'AI providers' },
           { value: '∞', label: 'Audit trail' },
-        ].map(stat => (
-          <div key={stat.label} css={css`text-align: center;`}>
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            css={css`
+              text-align: center;
+            `}
+          >
             <div
               css={css`
                 font-size: ${designTokens.typography.fontSize['2xl']};
@@ -470,16 +635,30 @@ export const SmartOnboarding: React.FC = () => {
 
   // Step 1: "Create your first policy" - Concrete first action
   const CreateStep = () => (
-    <div css={css`padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]}; position: relative;`}>
+    <div
+      css={css`
+        padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]};
+        position: relative;
+      `}
+    >
       <AchievementToast />
 
-      <div css={css`text-align: center; margin-bottom: ${designTokens.spacing[6]};`}>
+      <div
+        css={css`
+          text-align: center;
+          margin-bottom: ${designTokens.spacing[6]};
+        `}
+      >
         <div
           css={css`
             width: 56px;
             height: 56px;
             border-radius: 50%;
-            background: linear-gradient(135deg, ${designTokens.colors.semantic.success[400]}, ${designTokens.colors.semantic.success[500]});
+            background: linear-gradient(
+              135deg,
+              ${designTokens.colors.semantic.success[400]},
+              ${designTokens.colors.semantic.success[500]}
+            );
             display: flex;
             align-items: center;
             justify-content: center;
@@ -497,13 +676,22 @@ export const SmartOnboarding: React.FC = () => {
         >
           Create your first policy
         </h3>
-        <p css={css`color: ${designTokens.colors.neutral[600]}; font-size: ${designTokens.typography.fontSize.sm};`}>
+        <p
+          css={css`
+            color: ${designTokens.colors.neutral[600]};
+            font-size: ${designTokens.typography.fontSize.sm};
+          `}
+        >
           A policy controls what your agents can spend
         </p>
       </div>
 
       {/* Policy name input */}
-      <div css={css`margin-bottom: ${designTokens.spacing[4]};`}>
+      <div
+        css={css`
+          margin-bottom: ${designTokens.spacing[4]};
+        `}
+      >
         <label
           css={css`
             display: block;
@@ -553,12 +741,26 @@ export const SmartOnboarding: React.FC = () => {
         >
           Or start with a template
         </label>
-        <div css={css`display: flex; flex-direction: column; gap: ${designTokens.spacing[2]};`}>
+        <div
+          css={css`
+            display: flex;
+            flex-direction: column;
+            gap: ${designTokens.spacing[2]};
+          `}
+        >
           {[
-            { name: 'Daily spend limit', desc: '$500/day per agent', icon: <DollarSign size={16} /> },
-            { name: 'High-value require approval', desc: '>$50 needs review', icon: <AlertCircle size={16} /> },
+            {
+              name: 'Daily spend limit',
+              desc: '$500/day per agent',
+              icon: <DollarSign size={16} />,
+            },
+            {
+              name: 'High-value require approval',
+              desc: '>$50 needs review',
+              icon: <AlertCircle size={16} />,
+            },
             { name: 'Vendor whitelist', desc: 'Only approved contracts', icon: <Lock size={16} /> },
-          ].map(template => (
+          ].map((template) => (
             <button
               key={template.name}
               onClick={() => setPolicyName(template.name)}
@@ -567,8 +769,11 @@ export const SmartOnboarding: React.FC = () => {
                 align-items: center;
                 gap: ${designTokens.spacing[3]};
                 padding: ${designTokens.spacing[3]};
-                background: ${policyName === template.name ? designTokens.colors.primary[50] : designTokens.colors.neutral[50]};
-                border: 2px solid ${policyName === template.name ? designTokens.colors.primary[200] : 'transparent'};
+                background: ${policyName === template.name
+                  ? designTokens.colors.primary[50]
+                  : designTokens.colors.neutral[50]};
+                border: 2px solid
+                  ${policyName === template.name ? designTokens.colors.primary[200] : 'transparent'};
                 border-radius: ${designTokens.borderRadius.lg};
                 cursor: pointer;
                 text-align: left;
@@ -622,21 +827,39 @@ export const SmartOnboarding: React.FC = () => {
         size="lg"
         onClick={handleCreatePolicy}
         disabled={!policyName.trim() || policyCreated}
-        css={css`width: 100%;`}
+        css={css`
+          width: 100%;
+        `}
       >
         {policyCreated ? (
           <>
-            <CheckCircle2 size={18} css={css`margin-right: 8px;`} />
+            <CheckCircle2
+              size={18}
+              css={css`
+                margin-right: 8px;
+              `}
+            />
             Policy created!
           </>
         ) : (
           <>
-            Create Policy <ArrowRight size={18} css={css`margin-left: 8px;`} />
+            Create Policy{' '}
+            <ArrowRight
+              size={18}
+              css={css`
+                margin-left: 8px;
+              `}
+            />
           </>
         )}
       </Button>
 
-      <div css={css`text-align: center; margin-top: ${designTokens.spacing[4]};`}>
+      <div
+        css={css`
+          text-align: center;
+          margin-top: ${designTokens.spacing[4]};
+        `}
+      >
         <Button variant="ghost" size="sm" onClick={handleSkipToDemo}>
           Skip — try with demo data →
         </Button>
@@ -646,16 +869,30 @@ export const SmartOnboarding: React.FC = () => {
 
   // Step 2: "Connect" - Wallet connection (progressive)
   const ConnectStep = () => (
-    <div css={css`padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]}; position: relative;`}>
+    <div
+      css={css`
+        padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]};
+        position: relative;
+      `}
+    >
       <AchievementToast />
 
-      <div css={css`text-align: center; margin-bottom: ${designTokens.spacing[6]};`}>
+      <div
+        css={css`
+          text-align: center;
+          margin-bottom: ${designTokens.spacing[6]};
+        `}
+      >
         <div
           css={css`
             width: 56px;
             height: 56px;
             border-radius: 50%;
-            background: linear-gradient(135deg, ${designTokens.colors.primary[400]}, ${designTokens.colors.primary[500]});
+            background: linear-gradient(
+              135deg,
+              ${designTokens.colors.primary[400]},
+              ${designTokens.colors.primary[500]}
+            );
             display: flex;
             align-items: center;
             justify-content: center;
@@ -698,7 +935,13 @@ export const SmartOnboarding: React.FC = () => {
               text-align: center;
             `}
           >
-            <p css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[600]}; margin-bottom: ${designTokens.spacing[3]};`}>
+            <p
+              css={css`
+                font-size: ${designTokens.typography.fontSize.sm};
+                color: ${designTokens.colors.neutral[600]};
+                margin-bottom: ${designTokens.spacing[3]};
+              `}
+            >
               Want to explore first?
             </p>
             <Button variant="secondary" size="sm" onClick={handleSkipToDemo}>
@@ -709,9 +952,19 @@ export const SmartOnboarding: React.FC = () => {
       )}
 
       {user.isConnected && (
-        <div css={css`text-align: center;`}>
+        <div
+          css={css`
+            text-align: center;
+          `}
+        >
           <Button variant="primary" size="lg" onClick={handleNext}>
-            Continue <ChevronRight size={18} css={css`margin-left: 8px;`} />
+            Continue{' '}
+            <ChevronRight
+              size={18}
+              css={css`
+                margin-left: 8px;
+              `}
+            />
           </Button>
         </div>
       )}
@@ -720,7 +973,13 @@ export const SmartOnboarding: React.FC = () => {
 
   // Step 3: "Launch" - Achievement + shareable moment
   const LaunchStep = () => (
-    <div css={css`padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]}; position: relative; text-align: center;`}>
+    <div
+      css={css`
+        padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]};
+        position: relative;
+        text-align: center;
+      `}
+    >
       <AchievementToast />
 
       {/* Big achievement moment */}
@@ -729,7 +988,11 @@ export const SmartOnboarding: React.FC = () => {
           width: 100px;
           height: 100px;
           border-radius: 50%;
-          background: linear-gradient(135deg, ${designTokens.colors.warning[400]}, ${designTokens.colors.warning[500]});
+          background: linear-gradient(
+            135deg,
+            ${designTokens.colors.warning[400]},
+            ${designTokens.colors.warning[500]}
+          );
           display: flex;
           align-items: center;
           justify-content: center;
@@ -738,9 +1001,15 @@ export const SmartOnboarding: React.FC = () => {
           animation: bounce 0.6s ease-out;
 
           @keyframes bounce {
-            0% { transform: scale(0); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+            0% {
+              transform: scale(0);
+            }
+            50% {
+              transform: scale(1.1);
+            }
+            100% {
+              transform: scale(1);
+            }
           }
         `}
       >
@@ -774,17 +1043,30 @@ export const SmartOnboarding: React.FC = () => {
           align-items: center;
           gap: ${designTokens.spacing[2]};
           padding: ${designTokens.spacing[2]} ${designTokens.spacing[4]};
-          background: linear-gradient(135deg, ${designTokens.colors.primary[50]}, ${designTokens.colors.primary[100]});
+          background: linear-gradient(
+            135deg,
+            ${designTokens.colors.primary[50]},
+            ${designTokens.colors.primary[100]}
+          );
           border: 2px solid ${designTokens.colors.primary[200]};
           border-radius: ${designTokens.borderRadius.full};
           margin-bottom: ${designTokens.spacing[6]};
         `}
       >
         <Award size={18} color={designTokens.colors.primary[600]} />
-        <span css={css`font-weight: ${designTokens.typography.fontWeight.bold}; color: ${designTokens.colors.primary[700]};`}>
+        <span
+          css={css`
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            color: ${designTokens.colors.primary[700]};
+          `}
+        >
           Governor Badge
         </span>
-        <Star size={14} fill={designTokens.colors.warning[500]} color={designTokens.colors.warning[500]} />
+        <Star
+          size={14}
+          fill={designTokens.colors.warning[500]}
+          color={designTokens.colors.warning[500]}
+        />
       </div>
 
       {/* What's next */}
@@ -797,15 +1079,28 @@ export const SmartOnboarding: React.FC = () => {
           text-align: left;
         `}
       >
-        <h4 css={css`font-size: ${designTokens.typography.fontSize.sm}; font-weight: ${designTokens.typography.fontWeight.bold}; color: ${designTokens.colors.neutral[900]}; margin-bottom: ${designTokens.spacing[3]};`}>
+        <h4
+          css={css`
+            font-size: ${designTokens.typography.fontSize.sm};
+            font-weight: ${designTokens.typography.fontWeight.bold};
+            color: ${designTokens.colors.neutral[900]};
+            margin-bottom: ${designTokens.spacing[3]};
+          `}
+        >
           What's next?
         </h4>
-        <div css={css`display: flex; flex-direction: column; gap: ${designTokens.spacing[2]};`}>
+        <div
+          css={css`
+            display: flex;
+            flex-direction: column;
+            gap: ${designTokens.spacing[2]};
+          `}
+        >
           {[
             { icon: <Bot size={16} />, text: 'Connect your first AI agent' },
             { icon: <BarChart3 size={16} />, text: 'View your governance dashboard' },
             { icon: <Shield size={16} />, text: 'Add more policies' },
-          ].map(item => (
+          ].map((item) => (
             <div
               key={item.text}
               css={css`
@@ -816,7 +1111,13 @@ export const SmartOnboarding: React.FC = () => {
                 color: ${designTokens.colors.neutral[600]};
               `}
             >
-              <span css={css`color: ${designTokens.colors.primary[500]};`}>{item.icon}</span>
+              <span
+                css={css`
+                  color: ${designTokens.colors.primary[500]};
+                `}
+              >
+                {item.icon}
+              </span>
               {item.text}
             </div>
           ))}
@@ -824,13 +1125,31 @@ export const SmartOnboarding: React.FC = () => {
       </div>
 
       {/* Actions */}
-      <div css={css`display: flex; gap: ${designTokens.spacing[3]}; justify-content: center; flex-wrap: wrap;`}>
+      <div
+        css={css`
+          display: flex;
+          gap: ${designTokens.spacing[3]};
+          justify-content: center;
+          flex-wrap: wrap;
+        `}
+      >
         <Button variant="secondary" onClick={handleShareAchievement}>
-          <Share2 size={16} css={css`margin-right: 8px;`} />
+          <Share2
+            size={16}
+            css={css`
+              margin-right: 8px;
+            `}
+          />
           Share achievement
         </Button>
         <Button variant="primary" size="lg" onClick={handleComplete}>
-          Go to Dashboard <ChevronRight size={18} css={css`margin-left: 8px;`} />
+          Go to Dashboard{' '}
+          <ChevronRight
+            size={18}
+            css={css`
+              margin-left: 8px;
+            `}
+          />
         </Button>
       </div>
     </div>

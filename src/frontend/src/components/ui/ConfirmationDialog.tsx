@@ -184,7 +184,11 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
             <Icon size={24} />
           </div>
 
-          <div css={css`flex: 1;`}>
+          <div
+            css={css`
+              flex: 1;
+            `}
+          >
             <h2
               id="confirm-dialog-title"
               css={css`
@@ -221,7 +225,11 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
         </div>
 
         {/* Message */}
-        <div css={css`padding: ${designTokens.spacing[5]};`}>
+        <div
+          css={css`
+            padding: ${designTokens.spacing[5]};
+          `}
+        >
           <p
             id="confirm-dialog-message"
             css={css`
@@ -246,12 +254,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
             justify-content: flex-end;
           `}
         >
-          <Button
-            ref={cancelButtonRef}
-            variant="outline"
-            onClick={onCancel}
-            disabled={isLoading}
-          >
+          <Button ref={cancelButtonRef} variant="outline" onClick={onCancel} disabled={isLoading}>
             {cancelLabel}
           </Button>
           <Button

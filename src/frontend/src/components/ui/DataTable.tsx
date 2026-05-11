@@ -60,7 +60,7 @@ export function DataTable<T extends Record<string, any>>({
       columns.some((column) => {
         const value = record[column.key];
         return String(value).toLowerCase().includes(searchQuery.toLowerCase());
-      }),
+      })
     );
   }, [data, searchQuery, columns]);
 

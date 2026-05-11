@@ -73,7 +73,7 @@ export const toUiSeverity = (value?: string): ActivityItem['severity'] => {
  * Map quest severity to UI severity
  */
 export const mapQuestSeverity = (
-  s: 'low' | 'medium' | 'high' | 'critical',
+  s: 'low' | 'medium' | 'high' | 'critical'
 ): 'success' | 'warning' | 'error' | 'info' => {
   switch (s) {
     case 'critical':
@@ -135,7 +135,7 @@ export const normalizeActivity = (entry: AuditEntry): ActivityItem => ({
   severity: toUiSeverity(
     typeof entry.severity === 'string' || typeof entry.complianceStatus === 'string'
       ? ((entry.severity || entry.complianceStatus) as string)
-      : undefined,
+      : undefined
   ),
   description:
     typeof entry.description === 'string'

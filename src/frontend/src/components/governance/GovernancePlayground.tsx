@@ -1,8 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { css } from '@emotion/react';
-import { ShieldCheck, PlayCircle, ChevronDown, ChevronUp, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import {
+  ShieldCheck,
+  PlayCircle,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+} from 'lucide-react';
 import { designTokens } from '../../styles/design-system';
 import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
@@ -21,32 +29,58 @@ interface GovernanceResult {
 const EXAMPLE_ACTIONS = [
   {
     label: 'Transfer funds',
-    value: JSON.stringify({ type: 'transfer', amount: 500, asset: 'USDC', destination: '0xabc...' }, null, 2),
+    value: JSON.stringify(
+      { type: 'transfer', amount: 500, asset: 'USDC', destination: '0xabc...' },
+      null,
+      2
+    ),
   },
   {
     label: 'Execute trade',
-    value: JSON.stringify({ type: 'trade', action: 'buy', asset: 'ETH', amount: 1.5, price: 3200 }, null, 2),
+    value: JSON.stringify(
+      { type: 'trade', action: 'buy', asset: 'ETH', amount: 1.5, price: 3200 },
+      null,
+      2
+    ),
   },
   {
     label: 'Access patient record',
-    value: JSON.stringify({ type: 'data_access', resource: 'patient_record', resourceId: 'pt-001', purpose: 'treatment' }, null, 2),
+    value: JSON.stringify(
+      {
+        type: 'data_access',
+        resource: 'patient_record',
+        resourceId: 'pt-001',
+        purpose: 'treatment',
+      },
+      null,
+      2
+    ),
   },
   {
     label: 'Deploy contract',
-    value: JSON.stringify({ type: 'contract_deploy', contract: 'SpendVault', network: 'mainnet' }, null, 2),
+    value: JSON.stringify(
+      { type: 'contract_deploy', contract: 'SpendVault', network: 'mainnet' },
+      null,
+      2
+    ),
   },
 ];
 
-const EXAMPLE_FHIR = JSON.stringify({
-  resourceType: 'Patient',
-  id: 'pt-001',
-  meta: { profile: ['http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient'] },
-  name: [{ use: 'official', family: 'Smith', given: ['Jane'] }],
-  birthDate: '1985-04-12',
-}, null, 2);
+const EXAMPLE_FHIR = JSON.stringify(
+  {
+    resourceType: 'Patient',
+    id: 'pt-001',
+    meta: { profile: ['http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient'] },
+    name: [{ use: 'official', family: 'Smith', given: ['Jane'] }],
+    birthDate: '1985-04-12',
+  },
+  null,
+  2
+);
 
 export default function GovernancePlayground() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [agentId, setAgentId] = useState('agent-demo-001');
   const [policyId, setPolicyId] = useState(searchParams.get('policyId') ?? '');
   const [actionJson, setActionJson] = useState(EXAMPLE_ACTIONS[0].value);
@@ -59,9 +93,18 @@ export default function GovernancePlayground() {
   const [apiError, setApiError] = useState('');
 
   const validateJson = (value: string, setter: (e: string) => void): boolean => {
-    if (!value.trim()) { setter(''); return true; }
-    try { JSON.parse(value); setter(''); return true; }
-    catch { setter('Invalid JSON'); return false; }
+    if (!value.trim()) {
+      setter('');
+      return true;
+    }
+    try {
+      JSON.parse(value);
+      setter('');
+      return true;
+    } catch {
+      setter('Invalid JSON');
+      return false;
+    }
   };
 
   const handleEvaluate = async () => {
@@ -106,7 +149,9 @@ export default function GovernancePlayground() {
       font-weight: ${designTokens.typography.fontWeight.medium};
       color: ${designTokens.colors.neutral[700]};
     }
-    input, textarea, select {
+    input,
+    textarea,
+    select {
       padding: ${designTokens.spacing[3]};
       border: 1px solid ${designTokens.colors.neutral[300]};
       border-radius: ${designTokens.borderRadius.md};
@@ -115,9 +160,17 @@ export default function GovernancePlayground() {
       background: ${designTokens.colors.neutral[50]};
       color: ${designTokens.colors.neutral[900]};
       transition: border-color 0.15s;
-      &:focus { outline: none; border-color: ${designTokens.colors.primary[500]}; background: white; }
+      &:focus {
+        outline: none;
+        border-color: ${designTokens.colors.primary[500]};
+        background: white;
+      }
     }
-    textarea { resize: vertical; font-family: 'Menlo', 'Monaco', monospace; font-size: 0.8rem; }
+    textarea {
+      resize: vertical;
+      font-family: 'Menlo', 'Monaco', monospace;
+      font-size: 0.8rem;
+    }
   `;
 
   const errorTextStyles = css`
@@ -143,7 +196,9 @@ export default function GovernancePlayground() {
     background: none;
     border: none;
     padding: 0;
-    &:hover { color: ${designTokens.colors.primary[800]}; }
+    &:hover {
+      color: ${designTokens.colors.primary[800]};
+    }
   `;
 
   return (
@@ -151,8 +206,16 @@ export default function GovernancePlayground() {
       title="Governance Playground"
       subtitle="Evaluate any agent action against your policies live — with optional FHIR/SHARP clinical context."
     >
-      <div css={css`display: grid; grid-template-columns: 1fr 1fr; gap: ${designTokens.spacing[6]}; @media (max-width: 768px) { grid-template-columns: 1fr; }`}>
-
+      <div
+        css={css`
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: ${designTokens.spacing[6]};
+          @media (max-width: 768px) {
+            grid-template-columns: 1fr;
+          }
+        `}
+      >
         {/* Input Panel */}
         <Card>
           <CardHeader>
@@ -162,14 +225,25 @@ export default function GovernancePlayground() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div css={css`display: flex; flex-direction: column; gap: ${designTokens.spacing[5]};`}>
-
+            <div
+              css={css`
+                display: flex;
+                flex-direction: column;
+                gap: ${designTokens.spacing[5]};
+              `}
+            >
               {/* Quick-fill examples */}
               <div css={fieldStyles}>
                 <label>Quick-fill example</label>
-                <select onChange={(e) => { if (e.target.value) setActionJson(e.target.value); }}>
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) setActionJson(e.target.value);
+                  }}
+                >
                   {EXAMPLE_ACTIONS.map((ex) => (
-                    <option key={ex.label} value={ex.value}>{ex.label}</option>
+                    <option key={ex.label} value={ex.value}>
+                      {ex.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -184,7 +258,16 @@ export default function GovernancePlayground() {
               </div>
 
               <div css={fieldStyles}>
-                <label>Policy ID <span css={css`color: ${designTokens.colors.neutral[400]};`}>(optional — uses default if blank)</span></label>
+                <label>
+                  Policy ID{' '}
+                  <span
+                    css={css`
+                      color: ${designTokens.colors.neutral[400]};
+                    `}
+                  >
+                    (optional — uses default if blank)
+                  </span>
+                </label>
                 <input
                   value={policyId}
                   onChange={(e) => setPolicyId(e.target.value)}
@@ -197,7 +280,10 @@ export default function GovernancePlayground() {
                 <textarea
                   rows={8}
                   value={actionJson}
-                  onChange={(e) => { setActionJson(e.target.value); validateJson(e.target.value, setActionError); }}
+                  onChange={(e) => {
+                    setActionJson(e.target.value);
+                    validateJson(e.target.value, setActionError);
+                  }}
                 />
                 {actionError && <span css={errorTextStyles}>{actionError}</span>}
               </div>
@@ -210,21 +296,54 @@ export default function GovernancePlayground() {
                 </button>
 
                 {showFhir && (
-                  <div css={css`margin-top: ${designTokens.spacing[3]}; display: flex; flex-direction: column; gap: ${designTokens.spacing[2]};`}>
-                    <div css={css`display: flex; justify-content: flex-end;`}>
+                  <div
+                    css={css`
+                      margin-top: ${designTokens.spacing[3]};
+                      display: flex;
+                      flex-direction: column;
+                      gap: ${designTokens.spacing[2]};
+                    `}
+                  >
+                    <div
+                      css={css`
+                        display: flex;
+                        justify-content: flex-end;
+                      `}
+                    >
                       <button
-                        css={css`font-size: 0.75rem; color: ${designTokens.colors.primary[500]}; background: none; border: none; cursor: pointer;`}
+                        css={css`
+                          font-size: 0.75rem;
+                          color: ${designTokens.colors.primary[500]};
+                          background: none;
+                          border: none;
+                          cursor: pointer;
+                        `}
                         onClick={() => setFhirJson(EXAMPLE_FHIR)}
                       >
                         Load example Patient resource
                       </button>
                     </div>
                     <textarea
-                      css={css`padding: ${designTokens.spacing[3]}; border: 1px solid ${designTokens.colors.neutral[300]}; border-radius: ${designTokens.borderRadius.md}; font-family: 'Menlo', 'Monaco', monospace; font-size: 0.8rem; resize: vertical; background: ${designTokens.colors.neutral[50]}; &:focus { outline: none; border-color: ${designTokens.colors.primary[500]}; }`}
+                      css={css`
+                        padding: ${designTokens.spacing[3]};
+                        border: 1px solid ${designTokens.colors.neutral[300]};
+                        border-radius: ${designTokens.borderRadius.md};
+                        font-family: 'Menlo', 'Monaco', monospace;
+                        font-size: 0.8rem;
+                        resize: vertical;
+                        background: ${designTokens.colors.neutral[50]};
+                        &:focus {
+                          outline: none;
+                          border-color: ${designTokens.colors.primary[500]};
+                        }
+                      `}
                       rows={8}
                       placeholder="Paste a FHIR R4 resource (Patient, Encounter, Observation…)"
                       value={fhirJson}
-                      onChange={(e) => { setFhirJson(e.target.value); validateJson(e.target.value, setFhirError); }}
+                      onChange={(e) => {
+                        setFhirJson(e.target.value);
+                        validateJson(e.target.value, setFhirError);
+                      }}
                     />
                     {fhirError && <span css={errorTextStyles}>{fhirError}</span>}
                   </div>
@@ -236,24 +355,56 @@ export default function GovernancePlayground() {
                 disabled={loading || !!actionError || !!fhirError}
                 style={{ width: '100%' }}
               >
-                {loading
-                  ? <><Loader2 size={16} style={{ marginRight: 8, animation: 'spin 1s linear infinite' }} />Evaluating…</>
-                  : <><PlayCircle size={16} style={{ marginRight: 8 }} />Evaluate</>
-                }
+                {loading ? (
+                  <>
+                    <Loader2
+                      size={16}
+                      style={{ marginRight: 8, animation: 'spin 1s linear infinite' }}
+                    />
+                    Evaluating…
+                  </>
+                ) : (
+                  <>
+                    <PlayCircle size={16} style={{ marginRight: 8 }} />
+                    Evaluate
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>
         </Card>
 
         {/* Result Panel */}
-        <div css={css`display: flex; flex-direction: column; gap: ${designTokens.spacing[4]};`}>
+        <div
+          css={css`
+            display: flex;
+            flex-direction: column;
+            gap: ${designTokens.spacing[4]};
+          `}
+        >
           {!result && !apiError && !loading && (
             <Card>
               <CardContent>
-                <div css={css`text-align: center; padding: ${designTokens.spacing[12]}; color: ${designTokens.colors.neutral[400]};`}>
-                  <ShieldCheck size={48} css={css`margin: 0 auto ${designTokens.spacing[4]};`} />
-                  <p css={css`font-size: ${designTokens.typography.fontSize.sm};`}>
-                    Fill in an action and click <strong>Evaluate</strong> to see the policy decision, Together AI reasoning, and audit trail entry — all in one place.
+                <div
+                  css={css`
+                    text-align: center;
+                    padding: ${designTokens.spacing[12]};
+                    color: ${designTokens.colors.neutral[400]};
+                  `}
+                >
+                  <ShieldCheck
+                    size={48}
+                    css={css`
+                      margin: 0 auto ${designTokens.spacing[4]};
+                    `}
+                  />
+                  <p
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.sm};
+                    `}
+                  >
+                    Fill in an action and click <strong>Evaluate</strong> to see the policy
+                    decision, Together AI reasoning, and audit trail entry — all in one place.
                   </p>
                 </div>
               </CardContent>
@@ -263,9 +414,27 @@ export default function GovernancePlayground() {
           {loading && (
             <Card>
               <CardContent>
-                <div css={css`text-align: center; padding: ${designTokens.spacing[12]}; color: ${designTokens.colors.neutral[500]};`}>
-                  <Loader2 size={32} css={css`margin: 0 auto ${designTokens.spacing[4]}; animation: spin 1s linear infinite;`} />
-                  <p css={css`font-size: ${designTokens.typography.fontSize.sm};`}>Evaluating via Together AI…</p>
+                <div
+                  css={css`
+                    text-align: center;
+                    padding: ${designTokens.spacing[12]};
+                    color: ${designTokens.colors.neutral[500]};
+                  `}
+                >
+                  <Loader2
+                    size={32}
+                    css={css`
+                      margin: 0 auto ${designTokens.spacing[4]};
+                      animation: spin 1s linear infinite;
+                    `}
+                  />
+                  <p
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.sm};
+                    `}
+                  >
+                    Evaluating via Together AI…
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -274,11 +443,31 @@ export default function GovernancePlayground() {
           {apiError && (
             <Card>
               <CardContent>
-                <div css={css`display: flex; align-items: flex-start; gap: ${designTokens.spacing[3]}; color: ${designTokens.colors.error[700]};`}>
+                <div
+                  css={css`
+                    display: flex;
+                    align-items: flex-start;
+                    gap: ${designTokens.spacing[3]};
+                    color: ${designTokens.colors.error[700]};
+                  `}
+                >
                   <XCircle size={20} style={{ flexShrink: 0, marginTop: 2 }} />
                   <div>
-                    <p css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; margin-bottom: ${designTokens.spacing[1]};`}>Evaluation failed</p>
-                    <p css={css`font-size: ${designTokens.typography.fontSize.sm};`}>{apiError}</p>
+                    <p
+                      css={css`
+                        font-weight: ${designTokens.typography.fontWeight.semibold};
+                        margin-bottom: ${designTokens.spacing[1]};
+                      `}
+                    >
+                      Evaluation failed
+                    </p>
+                    <p
+                      css={css`
+                        font-size: ${designTokens.typography.fontSize.sm};
+                      `}
+                    >
+                      {apiError}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -287,50 +476,195 @@ export default function GovernancePlayground() {
 
           {result && (
             <div css={resultCardStyles(result.allowed)}>
-              <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]}; margin-bottom: ${designTokens.spacing[5]};`}>
-                {result.allowed
-                  ? <CheckCircle2 size={28} color={designTokens.colors.success[600]} />
-                  : <XCircle size={28} color={designTokens.colors.error[600]} />
-                }
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  gap: ${designTokens.spacing[3]};
+                  margin-bottom: ${designTokens.spacing[5]};
+                `}
+              >
+                {result.allowed ? (
+                  <CheckCircle2 size={28} color={designTokens.colors.success[600]} />
+                ) : (
+                  <XCircle size={28} color={designTokens.colors.error[600]} />
+                )}
                 <div>
-                  <p css={css`font-size: ${designTokens.typography.fontSize.xl}; font-weight: ${designTokens.typography.fontWeight.bold}; color: ${result.allowed ? designTokens.colors.success[700] : designTokens.colors.error[700]};`}>
+                  <p
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.xl};
+                      font-weight: ${designTokens.typography.fontWeight.bold};
+                      color: ${result.allowed
+                        ? designTokens.colors.success[700]
+                        : designTokens.colors.error[700]};
+                    `}
+                  >
                     {result.allowed ? 'Action Allowed' : 'Action Denied'}
                   </p>
                   {result.evaluatedBy && (
-                    <p css={css`font-size: ${designTokens.typography.fontSize.xs}; color: ${designTokens.colors.neutral[500]};`}>
+                    <p
+                      css={css`
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        color: ${designTokens.colors.neutral[500]};
+                      `}
+                    >
                       Evaluated by {result.evaluatedBy}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div css={css`display: flex; flex-direction: column; gap: ${designTokens.spacing[3]};`}>
+              <div
+                css={css`
+                  display: flex;
+                  flex-direction: column;
+                  gap: ${designTokens.spacing[3]};
+                `}
+              >
                 <div>
-                  <p css={css`font-size: ${designTokens.typography.fontSize.xs}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[500]}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: ${designTokens.spacing[1]};`}>Policy</p>
+                  <p
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.xs};
+                      font-weight: ${designTokens.typography.fontWeight.semibold};
+                      color: ${designTokens.colors.neutral[500]};
+                      text-transform: uppercase;
+                      letter-spacing: 0.05em;
+                      margin-bottom: ${designTokens.spacing[1]};
+                    `}
+                  >
+                    Policy
+                  </p>
                   <Badge variant="secondary">{result.policyId}</Badge>
                 </div>
 
                 <div>
-                  <p css={css`font-size: ${designTokens.typography.fontSize.xs}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[500]}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: ${designTokens.spacing[1]};`}>Reasoning</p>
-                  <p css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[800]}; line-height: 1.6;`}>{result.reason}</p>
+                  <p
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.xs};
+                      font-weight: ${designTokens.typography.fontWeight.semibold};
+                      color: ${designTokens.colors.neutral[500]};
+                      text-transform: uppercase;
+                      letter-spacing: 0.05em;
+                      margin-bottom: ${designTokens.spacing[1]};
+                    `}
+                  >
+                    Reasoning
+                  </p>
+                  <p
+                    css={css`
+                      font-size: ${designTokens.typography.fontSize.sm};
+                      color: ${designTokens.colors.neutral[800]};
+                      line-height: 1.6;
+                    `}
+                  >
+                    {result.reason}
+                  </p>
                 </div>
 
                 {result.confidence !== undefined && (
                   <div>
-                    <p css={css`font-size: ${designTokens.typography.fontSize.xs}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[500]}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: ${designTokens.spacing[1]};`}>Confidence</p>
-                    <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
-                      <div css={css`flex: 1; height: 6px; background: ${designTokens.colors.neutral[200]}; border-radius: 9999px; overflow: hidden;`}>
-                        <div css={css`height: 100%; width: ${Math.round(result.confidence * 100)}%; background: ${result.allowed ? designTokens.colors.success[500] : designTokens.colors.error[500]}; border-radius: 9999px;`} />
+                    <p
+                      css={css`
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        font-weight: ${designTokens.typography.fontWeight.semibold};
+                        color: ${designTokens.colors.neutral[500]};
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                        margin-bottom: ${designTokens.spacing[1]};
+                      `}
+                    >
+                      Confidence
+                    </p>
+                    <div
+                      css={css`
+                        display: flex;
+                        align-items: center;
+                        gap: ${designTokens.spacing[3]};
+                      `}
+                    >
+                      <div
+                        css={css`
+                          flex: 1;
+                          height: 6px;
+                          background: ${designTokens.colors.neutral[200]};
+                          border-radius: 9999px;
+                          overflow: hidden;
+                        `}
+                      >
+                        <div
+                          css={css`
+                            height: 100%;
+                            width: ${Math.round(result.confidence * 100)}%;
+                            background: ${result.allowed
+                              ? designTokens.colors.success[500]
+                              : designTokens.colors.error[500]};
+                            border-radius: 9999px;
+                          `}
+                        />
                       </div>
-                      <span css={css`font-size: ${designTokens.typography.fontSize.sm}; font-weight: ${designTokens.typography.fontWeight.medium};`}>{Math.round(result.confidence * 100)}%</span>
+                      <span
+                        css={css`
+                          font-size: ${designTokens.typography.fontSize.sm};
+                          font-weight: ${designTokens.typography.fontWeight.medium};
+                        `}
+                      >
+                        {Math.round(result.confidence * 100)}%
+                      </span>
                     </div>
                   </div>
                 )}
 
                 {result.auditId && (
                   <div>
-                    <p css={css`font-size: ${designTokens.typography.fontSize.xs}; font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[500]}; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: ${designTokens.spacing[1]};`}>Audit Trail</p>
-                    <code css={css`font-size: 0.75rem; background: white; padding: 4px 8px; border-radius: 4px; color: ${designTokens.colors.neutral[700]};`}>{result.auditId}</code>
+                    <p
+                      css={css`
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        font-weight: ${designTokens.typography.fontWeight.semibold};
+                        color: ${designTokens.colors.neutral[500]};
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                        margin-bottom: ${designTokens.spacing[1]};
+                      `}
+                    >
+                      Audit Trail
+                    </p>
+                    <div
+                      css={css`
+                        display: flex;
+                        align-items: center;
+                        gap: ${designTokens.spacing[3]};
+                      `}
+                    >
+                      <code
+                        css={css`
+                          font-size: 0.75rem;
+                          background: white;
+                          padding: 4px 8px;
+                          border-radius: 4px;
+                          color: ${designTokens.colors.neutral[700]};
+                        `}
+                      >
+                        {result.auditId}
+                      </code>
+                      <button
+                        onClick={() => navigate(`/audit?eventId=${result.auditId}`)}
+                        css={css`
+                          background: none;
+                          border: none;
+                          cursor: pointer;
+                          font-size: ${designTokens.typography.fontSize.xs};
+                          font-weight: ${designTokens.typography.fontWeight.semibold};
+                          color: ${designTokens.colors.primary[600]};
+                          padding: 0;
+                          &:hover {
+                            color: ${designTokens.colors.primary[800]};
+                            text-decoration: underline;
+                          }
+                        `}
+                      >
+                        View in Audit Log →
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -343,16 +677,62 @@ export default function GovernancePlayground() {
               <CardTitle style={{ fontSize: '0.9rem' }}>How it works</CardTitle>
             </CardHeader>
             <CardContent>
-              <ol css={css`list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: ${designTokens.spacing[3]};`}>
+              <ol
+                css={css`
+                  list-style: none;
+                  padding: 0;
+                  margin: 0;
+                  display: flex;
+                  flex-direction: column;
+                  gap: ${designTokens.spacing[3]};
+                `}
+              >
                 {[
                   { n: '1', text: 'Your action JSON is sent to the MCP governance endpoint' },
                   { n: '2', text: 'Together AI (Llama-3.3-70B) evaluates it against your policy' },
-                  { n: '3', text: 'FHIR/SHARP context enriches the evaluation for healthcare agents' },
-                  { n: '4', text: 'The decision + reasoning is recorded in the immutable audit trail' },
+                  {
+                    n: '3',
+                    text: 'FHIR/SHARP context enriches the evaluation for healthcare agents',
+                  },
+                  {
+                    n: '4',
+                    text: 'The decision + reasoning is recorded in the immutable audit trail',
+                  },
                 ].map((item) => (
-                  <li key={item.n} css={css`display: flex; gap: ${designTokens.spacing[3]}; align-items: flex-start;`}>
-                    <span css={css`width: 22px; height: 22px; border-radius: 9999px; background: ${designTokens.colors.primary[100]}; color: ${designTokens.colors.primary[700]}; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;`}>{item.n}</span>
-                    <span css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[600]};`}>{item.text}</span>
+                  <li
+                    key={item.n}
+                    css={css`
+                      display: flex;
+                      gap: ${designTokens.spacing[3]};
+                      align-items: flex-start;
+                    `}
+                  >
+                    <span
+                      css={css`
+                        width: 22px;
+                        height: 22px;
+                        border-radius: 9999px;
+                        background: ${designTokens.colors.primary[100]};
+                        color: ${designTokens.colors.primary[700]};
+                        font-size: 0.75rem;
+                        font-weight: 700;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                        margin-top: 1px;
+                      `}
+                    >
+                      {item.n}
+                    </span>
+                    <span
+                      css={css`
+                        font-size: ${designTokens.typography.fontSize.sm};
+                        color: ${designTokens.colors.neutral[600]};
+                      `}
+                    >
+                      {item.text}
+                    </span>
                   </li>
                 ))}
               </ol>

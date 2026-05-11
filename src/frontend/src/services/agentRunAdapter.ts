@@ -134,7 +134,7 @@ export const toAgentRunViewModel = (run: CreRun): AgentRunViewModel => {
 
 export const toForensicEvents = (run: CreRun, liveEvents: CreRunEvent[] = []): ForensicEvent[] => {
   const sourceEvents = [...(run.events || []), ...liveEvents].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
 
   if (sourceEvents.length) {

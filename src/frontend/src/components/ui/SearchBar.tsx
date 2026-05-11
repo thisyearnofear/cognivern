@@ -96,7 +96,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   }, [onChange, onClear, onFiltersChange]);
 
   return (
-    <div css={css`width: 100%;`}>
+    <div
+      css={css`
+        width: 100%;
+      `}
+    >
       {/* Main search row */}
       <div
         css={css`
@@ -131,7 +135,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           {isSearching ? (
             <Search
               size={18}
-              css={css`animation: ${spin} 1s linear infinite; color: ${designTokens.colors.primary[500]};`}
+              css={css`
+                animation: ${spin} 1s linear infinite;
+                color: ${designTokens.colors.primary[500]};
+              `}
             />
           ) : (
             <Search size={18} />
@@ -237,9 +244,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               gap: ${designTokens.spacing[1]};
               padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
               font-size: ${designTokens.typography.fontSize.xs};
-              color: ${hasActiveFilters ? designTokens.colors.primary[600] : 'var(--text-secondary)'};
+              color: ${hasActiveFilters
+                ? designTokens.colors.primary[600]
+                : 'var(--text-secondary)'};
               background: ${hasActiveFilters ? designTokens.colors.primary[50] : 'transparent'};
-              border: 1px solid ${hasActiveFilters ? designTokens.colors.primary[200] : 'var(--border-subtle)'};
+              border: 1px solid
+                ${hasActiveFilters ? designTokens.colors.primary[200] : 'var(--border-subtle)'};
               border-radius: ${designTokens.borderRadius.sm};
               cursor: pointer;
               transition: all 0.15s;
@@ -255,7 +265,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               <Badge
                 variant="primary"
                 size="sm"
-                css={css`margin-left: ${designTokens.spacing[1]};`}
+                css={css`
+                  margin-left: ${designTokens.spacing[1]};
+                `}
               >
                 {activeFilterCount}
               </Badge>
@@ -290,7 +302,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             `}
           >
             {filters.map((filter) => (
-              <div key={filter.id} css={css`min-width: 160px;`}>
+              <div
+                key={filter.id}
+                css={css`
+                  min-width: 160px;
+                `}
+              >
                 <label
                   css={css`
                     display: block;
@@ -302,11 +319,15 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 >
                   {filter.label}
                 </label>
-                <div css={css`display: flex; flex-wrap: wrap; gap: ${designTokens.spacing[1]};`}>
+                <div
+                  css={css`
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: ${designTokens.spacing[1]};
+                  `}
+                >
                   {filter.options.map((option) => {
-                    const isSelected = (activeFilters[filter.id] || []).includes(
-                      option.value
-                    );
+                    const isSelected = (activeFilters[filter.id] || []).includes(option.value);
                     return (
                       <button
                         key={option.value}
@@ -315,8 +336,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                           padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
                           font-size: ${designTokens.typography.fontSize.xs};
                           color: ${isSelected ? 'white' : 'var(--text-secondary)'};
-                          background: ${isSelected ? designTokens.colors.primary[600] : 'var(--bg-secondary)'};
-                          border: 1px solid ${isSelected ? designTokens.colors.primary[600] : 'var(--border-subtle)'};
+                          background: ${isSelected
+                            ? designTokens.colors.primary[600]
+                            : 'var(--bg-secondary)'};
+                          border: 1px solid
+                            ${isSelected
+                              ? designTokens.colors.primary[600]
+                              : 'var(--border-subtle)'};
                           border-radius: ${designTokens.borderRadius.sm};
                           cursor: pointer;
                           transition: all 0.15s;
@@ -368,7 +394,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             color: var(--text-muted);
           `}
         >
-          {resultCount === 0 ? 'No results' : `${resultCount} result${resultCount === 1 ? '' : 's'} found`}
+          {resultCount === 0
+            ? 'No results'
+            : `${resultCount} result${resultCount === 1 ? '' : 's'} found`}
         </div>
       )}
     </div>

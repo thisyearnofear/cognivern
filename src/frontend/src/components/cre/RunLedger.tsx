@@ -1,14 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { css } from '@emotion/react';
 import { Link } from 'react-router-dom';
-import {
-  Activity,
-  AlertTriangle,
-  CheckCircle2,
-  Clock3,
-  PlayCircle,
-  RefreshCw,
-} from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle2, Clock3, PlayCircle, RefreshCw } from 'lucide-react';
 import { creApi, CreRun } from '../../services/creApi';
 import { toAgentRunViewModel } from '../../services/agentRunAdapter';
 import { uxAnalytics } from '../../services/uxAnalytics';
@@ -76,7 +69,11 @@ const selectStyles = css`
 
 const statsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
   display: grid;
-  grid-template-columns: ${isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)'};
+  grid-template-columns: ${isMobile
+    ? 'repeat(2, 1fr)'
+    : isTablet
+      ? 'repeat(2, 1fr)'
+      : 'repeat(4, 1fr)'};
   gap: ${isMobile ? designTokens.spacing[2] : designTokens.spacing[3]};
 `;
 
@@ -409,11 +406,11 @@ export default function RunLedger() {
     const normalized = runs.map((run) => toAgentRunViewModel(run));
     const completed = normalized.filter((run) => run.status === 'completed').length;
     const active = normalized.filter(
-      (run) => run.status === 'running' || run.status === 'paused_for_approval',
+      (run) => run.status === 'running' || run.status === 'paused_for_approval'
     ).length;
     const approvals = normalized.filter((run) => run.status === 'paused_for_approval').length;
     const failed = normalized.filter(
-      (run) => run.status === 'failed' || run.status === 'cancelled',
+      (run) => run.status === 'failed' || run.status === 'cancelled'
     ).length;
 
     return {
@@ -449,7 +446,13 @@ export default function RunLedger() {
             </select>
           </div>
           <div css={projectControlStyles}>
-            <span css={css`display: flex; align-items: center; gap: ${designTokens.spacing[1]};`}>
+            <span
+              css={css`
+                display: flex;
+                align-items: center;
+                gap: ${designTokens.spacing[1]};
+              `}
+            >
               {autoRefresh && <span css={pulseDotStyles} />}
               <span>Live</span>
             </span>
@@ -560,12 +563,26 @@ export default function RunLedger() {
             <div css={runListSkeletonStyles}>
               {[1, 2, 3].map((i) => (
                 <div key={i} css={runCardSkeletonStyles}>
-                  <div css={css`display: flex; gap: ${designTokens.spacing[2]}; align-items: center;`}>
+                  <div
+                    css={css`
+                      display: flex;
+                      gap: ${designTokens.spacing[2]};
+                      align-items: center;
+                    `}
+                  >
                     <div css={loadingStyles.skeleton('rectangular', 60, 22)} />
                     <div css={loadingStyles.skeleton('rectangular', 160, 16)} />
-                    <div css={loadingStyles.skeleton('rectangular', 120, 12)} style={{ marginLeft: 'auto' }} />
+                    <div
+                      css={loadingStyles.skeleton('rectangular', 120, 12)}
+                      style={{ marginLeft: 'auto' }}
+                    />
                   </div>
-                  <div css={css`display: flex; gap: ${designTokens.spacing[3]};`}>
+                  <div
+                    css={css`
+                      display: flex;
+                      gap: ${designTokens.spacing[3]};
+                    `}
+                  >
                     <div css={loadingStyles.skeleton('text', 48, 10)} />
                     <div css={loadingStyles.skeleton('text', 48, 10)} />
                     <div css={loadingStyles.skeleton('text', 64, 10)} />
@@ -591,10 +608,7 @@ export default function RunLedger() {
                 return (
                   <article
                     key={run.runId}
-                    css={[
-                      runCardStyles(isMobile),
-                      getEntranceAnimationCSS({ delay: index * 60 }),
-                    ]}
+                    css={[runCardStyles(isMobile), getEntranceAnimationCSS({ delay: index * 60 })]}
                   >
                     <div css={runTopRowStyles}>
                       <div css={runHeadingStyles}>

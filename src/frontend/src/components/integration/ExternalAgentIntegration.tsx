@@ -345,9 +345,7 @@ export default function ExternalAgentIntegration() {
 
       // Update agent status locally
       setAgents(
-        agents.map((agent) =>
-          agent.id === agentId ? { ...agent, status: 'disconnected' } : agent,
-        ),
+        agents.map((agent) => (agent.id === agentId ? { ...agent, status: 'disconnected' } : agent))
       );
     } catch (err) {
       console.error('Error disconnecting agent:', err);
@@ -368,7 +366,7 @@ export default function ExternalAgentIntegration() {
 
       // Update agent status locally
       setAgents(
-        agents.map((agent) => (agent.id === agentId ? { ...agent, status: 'connected' } : agent)),
+        agents.map((agent) => (agent.id === agentId ? { ...agent, status: 'connected' } : agent))
       );
     } catch (err) {
       console.error('Error reconnecting agent:', err);

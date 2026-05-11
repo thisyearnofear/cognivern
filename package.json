@@ -56,7 +56,8 @@
     "demo:seed": "tsx scripts/demo-seed.ts",
     "demo:scenario": "tsx scripts/demo-scenario.ts",
     "demo:live": "tsx scripts/demo-live.ts",
-    "demo:fhenix": "tsx scripts/demo-fhenix.ts"
+    "demo:fhenix": "tsx scripts/demo-fhenix.ts",
+    "prepare": "husky"
   },
   "dependencies": {
     "@cofhe/sdk": "0.5.1",
@@ -105,6 +106,8 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
     "hardhat": "^2.25.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.0.4",
     "nodemon": "^3.1.0",
     "prettier": "^3.2.5",
     "ts-node": "^10.9.2",

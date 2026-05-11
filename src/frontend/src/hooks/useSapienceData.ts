@@ -122,7 +122,7 @@ export function useAgentLeaderboardPosition(agentAddress?: string) {
       try {
         const leaderboard = await fetchAccuracyLeaderboard(100);
         const entry = leaderboard.find(
-          (e) => e.address.toLowerCase() === agentAddress.toLowerCase(),
+          (e) => e.address.toLowerCase() === agentAddress.toLowerCase()
         );
         if (entry) {
           setPosition(entry.rank);

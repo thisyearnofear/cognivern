@@ -89,7 +89,12 @@ const statValueStyles = css`
   color: ${designTokens.colors.neutral[800]};
 `;
 
-export const PolicyCard: React.FC<PolicyCardProps> = ({ policy, onClick, onTest, interactive = true }) => {
+export const PolicyCard: React.FC<PolicyCardProps> = ({
+  policy,
+  onClick,
+  onTest,
+  interactive = true,
+}) => {
   const navigate = useNavigate();
 
   const handleTest = (e: React.MouseEvent) => {
@@ -102,10 +107,14 @@ export const PolicyCard: React.FC<PolicyCardProps> = ({ policy, onClick, onTest,
   };
   const activeRules = policy.rules.filter((r) => r.enabled).length;
   const highStrictnessCount = policy.rules.filter(
-    (r) => r.enabled && r.strictness === 'high',
+    (r) => r.enabled && r.strictness === 'high'
   ).length;
   const reviewState =
-    policy.status === 'active' ? 'Enforcing' : policy.status === 'draft' ? 'Needs Review' : 'Archived';
+    policy.status === 'active'
+      ? 'Enforcing'
+      : policy.status === 'draft'
+        ? 'Needs Review'
+        : 'Archived';
 
   return (
     <Card
@@ -132,7 +141,9 @@ export const PolicyCard: React.FC<PolicyCardProps> = ({ policy, onClick, onTest,
           </div>
           <div css={statStyles}>
             <span css={statLabelStyles}>Strictness</span>
-            <span css={statValueStyles}>{highStrictnessCount > 0 ? 'High Control' : 'Standard'}</span>
+            <span css={statValueStyles}>
+              {highStrictnessCount > 0 ? 'High Control' : 'Standard'}
+            </span>
           </div>
           <div css={statStyles}>
             <span css={statLabelStyles}>Policy State</span>
@@ -156,7 +167,9 @@ export const PolicyCard: React.FC<PolicyCardProps> = ({ policy, onClick, onTest,
               justify-content: center;
               font-size: ${designTokens.typography.fontSize.xs};
               color: ${designTokens.colors.primary[600]};
-              &:hover { background: ${designTokens.colors.primary[50]}; }
+              &:hover {
+                background: ${designTokens.colors.primary[50]};
+              }
             `}
           >
             ▶ Test this policy

@@ -11,7 +11,7 @@ export const pageTransitionStyles = {
   content: (
     stage: 'entering' | 'entered' | 'exiting',
     type: 'fade' | 'slide' | 'scale' = 'fade',
-    duration: number = 300,
+    duration: number = 300
   ) => {
     const transition = `all ${duration}ms ${designTokens.animation.easing.easeInOut}`;
 

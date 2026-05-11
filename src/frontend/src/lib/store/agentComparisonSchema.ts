@@ -142,7 +142,7 @@ export const defaultFilters: AgentComparisonFilters = Object.entries(agentCompar
     ...acc,
     [key]: field.defaultValue,
   }),
-  {} as AgentComparisonFilters,
+  {} as AgentComparisonFilters
 );
 
 // Filter field definitions for UI rendering

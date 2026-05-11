@@ -83,18 +83,18 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
     return 'timestamp';
   };
 
-   const containerStyles = css`
-     min-height: 250px;
-   `;
+  const containerStyles = css`
+    min-height: 250px;
+  `;
 
-   const headerStyles = css`
-     display: flex;
-     justify-content: space-between;
-     align-items: center;
-     margin-bottom: ${designTokens.spacing[4]};
-     flex-wrap: wrap;
-     gap: ${designTokens.spacing[3]};
-   `;
+  const headerStyles = css`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: ${designTokens.spacing[4]};
+    flex-wrap: wrap;
+    gap: ${designTokens.spacing[3]};
+  `;
 
   const controlsStyles = css`
     display: flex;
@@ -117,14 +117,14 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
     }
   `;
 
-   const loadingStyles = css`
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
-     padding: ${designTokens.spacing[4]};
-     text-align: center;
-   `;
+  const loadingStyles = css`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${designTokens.spacing[4]};
+    text-align: center;
+  `;
 
   const spinnerStyles = css`
     width: 40px;
@@ -145,24 +145,24 @@ export default function TradeHistory({ decisions, agentType, isLoading }: TradeH
     }
   `;
 
-   const emptyStateStyles = css`
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
-     padding: ${designTokens.spacing[4]};
-     text-align: center;
-   `;
+  const emptyStateStyles = css`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: ${designTokens.spacing[4]};
+    text-align: center;
+  `;
 
-   const summaryStyles = css`
-     display: grid;
-     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-     gap: ${designTokens.spacing[3]};
-     margin-bottom: ${designTokens.spacing[4]};
-     padding: ${designTokens.spacing[3]};
-     background: ${designTokens.colors.neutral[50]};
-     border-radius: ${designTokens.borderRadius.lg};
-   `;
+  const summaryStyles = css`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: ${designTokens.spacing[3]};
+    margin-bottom: ${designTokens.spacing[4]};
+    padding: ${designTokens.spacing[3]};
+    background: ${designTokens.colors.neutral[50]};
+    border-radius: ${designTokens.borderRadius.lg};
+  `;
 
   const summaryStatStyles = css`
     text-align: center;

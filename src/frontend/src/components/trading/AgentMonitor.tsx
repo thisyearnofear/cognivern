@@ -179,7 +179,12 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
           border: 1px solid ${designTokens.colors.neutral[200]};
         `}
       >
-        <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+        <CardHeader
+          css={css`
+            padding-bottom: ${designTokens.spacing[2]};
+            margin-bottom: ${designTokens.spacing[2]};
+          `}
+        >
           <div css={headerStyles}>
             <div>
               <div
@@ -379,13 +384,22 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
 
       <Tabs defaultValue="activity" size="sm" variant="underline">
         <TabList>
-          <Tab value="activity" icon={<Activity size={14} />}>Activity</Tab>
-          <Tab value="audit" icon={<ShieldCheck size={14} />}>Audit</Tab>
+          <Tab value="activity" icon={<Activity size={14} />}>
+            Activity
+          </Tab>
+          <Tab value="audit" icon={<ShieldCheck size={14} />}>
+            Audit
+          </Tab>
         </TabList>
 
         <TabContent value="activity">
           <Card compact padding="sm">
-            <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+            <CardHeader
+              css={css`
+                padding-bottom: ${designTokens.spacing[2]};
+                margin-bottom: ${designTokens.spacing[2]};
+              `}
+            >
               <CardTitle
                 css={css`
                   font-size: ${designTokens.typography.fontSize.sm};
@@ -396,7 +410,13 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
                 Intelligence Activity Stream
               </CardTitle>
             </CardHeader>
-            <CardContent padding="none" css={css`padding: 0 ${designTokens.spacing[3]} ${designTokens.spacing[3]} ${designTokens.spacing[3]};`}>
+            <CardContent
+              padding="none"
+              css={css`
+                padding: 0 ${designTokens.spacing[3]} ${designTokens.spacing[3]}
+                  ${designTokens.spacing[3]};
+              `}
+            >
               <React.Suspense
                 fallback={
                   <div
@@ -420,7 +440,12 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
 
         <TabContent value="audit">
           <Card compact padding="sm">
-            <CardHeader css={css`padding-bottom: ${designTokens.spacing[2]}; margin-bottom: ${designTokens.spacing[2]};`}>
+            <CardHeader
+              css={css`
+                padding-bottom: ${designTokens.spacing[2]};
+                margin-bottom: ${designTokens.spacing[2]};
+              `}
+            >
               <CardTitle
                 css={css`
                   font-size: ${designTokens.typography.fontSize.sm};
@@ -431,7 +456,13 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
                 Governance Audit Trail
               </CardTitle>
             </CardHeader>
-            <CardContent padding="none" css={css`padding: 0 ${designTokens.spacing[3]} ${designTokens.spacing[3]} ${designTokens.spacing[3]};`}>
+            <CardContent
+              padding="none"
+              css={css`
+                padding: 0 ${designTokens.spacing[3]} ${designTokens.spacing[3]}
+                  ${designTokens.spacing[3]};
+              `}
+            >
               <React.Suspense
                 fallback={
                   <div
