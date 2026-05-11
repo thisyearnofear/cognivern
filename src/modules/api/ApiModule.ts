@@ -37,6 +37,7 @@ import { OwsApiKeyController } from "./controllers/OwsApiKeyController.js";
 import { OwsPermissionsController } from "./controllers/OwsPermissionsController.js";
 import { FhenixController } from "./controllers/FhenixController.js";
 import { IntentController } from "./controllers/IntentController.js";
+import { McpGovernanceController } from "./controllers/McpGovernanceController.js";
 import type { Server } from "node:http";
 
 /** Typed controller registry */
@@ -57,6 +58,7 @@ interface ControllerRegistry {
   owsPermissions: OwsPermissionsController;
   fhenix: FhenixController;
   intent: IntentController;
+  mcpGovernance: McpGovernanceController;
 }
 
 /** Typed error with optional HTTP status code */
@@ -355,6 +357,7 @@ export class ApiModule extends BaseService {
     this.controllers.owsPermissions = new OwsPermissionsController();
     this.controllers.fhenix = new FhenixController();
     this.controllers.intent = new IntentController();
+    this.controllers.mcpGovernance = new McpGovernanceController(policyService);
 
     // Initialize all controllers that have an initialize method
     for (const [name, controller] of Object.entries(this.controllers)) {
@@ -538,6 +541,15 @@ export class ApiModule extends BaseService {
 
     apiRouter.post("/governance/evaluate", (req, res) => {
       this.ctrl("governance").evaluateAction(req, res);
+    });
+
+    // MCP tool endpoints — Prompt Opinion Marketplace (Agents Assemble Healthcare AI Endgame)
+    apiRouter.get("/mcp/governance-check", (req, res) => {
+      this.ctrl("mcpGovernance").getManifest(req, res);
+    });
+
+    apiRouter.post("/mcp/governance-check", (req, res) => {
+      this.ctrl("mcpGovernance").governanceCheck(req, res);
     });
 
     // Metrics routes

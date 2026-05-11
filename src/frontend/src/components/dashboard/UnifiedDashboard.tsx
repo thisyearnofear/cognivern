@@ -758,6 +758,36 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
           )}
         </section>
 
+        {/* Governance Playground CTA */}
+        <div
+          css={css`
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: ${designTokens.spacing[4]};
+            padding: ${designTokens.spacing[4]} ${designTokens.spacing[5]};
+            background: linear-gradient(135deg, ${designTokens.colors.primary[50]}, ${designTokens.colors.primary[100]});
+            border: 1px solid ${designTokens.colors.primary[200]};
+            border-radius: ${designTokens.borderRadius.xl};
+            flex-wrap: wrap;
+          `}
+        >
+          <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
+            <ShieldCheck size={22} color={designTokens.colors.primary[600]} style={{ flexShrink: 0 }} />
+            <div>
+              <p css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.primary[800]}; font-size: ${designTokens.typography.fontSize.sm};`}>
+                Try a live governance check
+              </p>
+              <p css={css`font-size: ${designTokens.typography.fontSize.xs}; color: ${designTokens.colors.primary[600]};`}>
+                Evaluate any agent action against your policies — with Together AI reasoning and audit trail.
+              </p>
+            </div>
+          </div>
+          <Button size="sm" variant="primary" onClick={() => navigate('/governance/check')}>
+            Open Playground <ArrowRight size={14} css={css`margin-left: 6px;`} />
+          </Button>
+        </div>
+
         <QuickActions isMobile={isMobile} />
 
         <section css={styles.sectionStyles}>

@@ -11,7 +11,7 @@ import {
   Brain, ChevronRight, CheckCircle2, Wallet, Zap,
   Shield, Play, Target, Rocket, Eye, Star, Share2,
   Clock, Lock, TrendingUp, Sparkles, ArrowRight, Award,
-  DollarSign, BarChart3, Bot, AlertCircle
+  DollarSign, BarChart3, Bot, AlertCircle, Stethoscope, Building2, Code2
 } from 'lucide-react';
 
 /**
@@ -34,7 +34,8 @@ export const SmartOnboarding: React.FC = () => {
     navigate('/dashboard');
   };
 
-  // 4-step guided flow: See → Create → Connect → Launch
+  // 5-step guided flow: Who are you → See → Create → Connect → Launch
+  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [achievement, setAchievement] = useState<{ badge: string; message: string } | null>(null);
   const [policyName, setPolicyName] = useState('');
@@ -42,6 +43,7 @@ export const SmartOnboarding: React.FC = () => {
   const [demoPlaying, setDemoPlaying] = useState(false);
 
   const steps = [
+    { id: 'persona', label: 'Your role', icon: <Brain size={14} /> },
     { id: 'see', label: 'See it', icon: <Eye size={14} /> },
     { id: 'create', label: 'Create', icon: <Target size={14} /> },
     { id: 'connect', label: 'Connect', icon: <Wallet size={14} /> },
@@ -56,7 +58,7 @@ export const SmartOnboarding: React.FC = () => {
   }, [preferences.onboardingCompleted]);
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -75,9 +77,16 @@ export const SmartOnboarding: React.FC = () => {
     }
   };
 
+  const handlePersonaSelect = (persona: string) => {
+    setSelectedPersona(persona);
+    // Store the user type early so the rest of the app can personalise immediately
+    useAppStore.getState().setUser({ userType: persona });
+    setCurrentStep(1);
+  };
+
   const handleComplete = () => {
     setAchievement({ badge: 'Governor', message: 'You\'re now controlling agent spend!' });
-    completeOnboarding('operator');
+    completeOnboarding(selectedPersona || 'operator');
     setTimeout(() => navigate('/dashboard'), 2000);
   };
 
@@ -203,7 +212,86 @@ export const SmartOnboarding: React.FC = () => {
     </div>
   );
 
-  // Step 0: "See it work" - Live demo of governance
+  // Step 0: Persona selection — who are you?
+  const personas = [
+    {
+      id: 'healthcare',
+      label: 'Healthcare / Clinical',
+      description: 'Govern AI agents handling patient data, FHIR records, and clinical workflows.',
+      icon: <Stethoscope size={22} />,
+      color: designTokens.colors.primary[500],
+    },
+    {
+      id: 'defi',
+      label: 'DeFi / Finance',
+      description: 'Policy-check agent spend, trades, and on-chain transactions before execution.',
+      icon: <TrendingUp size={22} />,
+      color: designTokens.colors.warning[500],
+    },
+    {
+      id: 'enterprise',
+      label: 'Enterprise / Ops',
+      description: 'Audit trails, compliance guardrails, and spend controls for internal AI agents.',
+      icon: <Building2 size={22} />,
+      color: designTokens.colors.neutral[700],
+    },
+    {
+      id: 'developer',
+      label: 'Developer / Builder',
+      description: 'Integrate the MCP governance API, test policies, and build on the platform.',
+      icon: <Code2 size={22} />,
+      color: designTokens.colors.semantic?.success?.[600] ?? '#16a34a',
+    },
+  ];
+
+  const PersonaStep = () => (
+    <div css={css`padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]};`}>
+      <div css={css`text-align: center; margin-bottom: ${designTokens.spacing[6]};`}>
+        <Brain size={36} color={designTokens.colors.primary[500]} css={css`margin: 0 auto ${designTokens.spacing[3]};`} />
+        <h3 css={css`font-size: ${designTokens.typography.fontSize.xl}; font-weight: ${designTokens.typography.fontWeight.bold}; color: ${designTokens.colors.neutral[900]}; margin-bottom: ${designTokens.spacing[2]};`}>
+          What best describes you?
+        </h3>
+        <p css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[500]};`}>
+          We'll surface the most relevant features and examples for your use case.
+        </p>
+      </div>
+
+      <div css={css`display: flex; flex-direction: column; gap: ${designTokens.spacing[3]};`}>
+        {personas.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => handlePersonaSelect(p.id)}
+            css={css`
+              display: flex;
+              align-items: flex-start;
+              gap: ${designTokens.spacing[4]};
+              padding: ${designTokens.spacing[4]};
+              border: 2px solid ${selectedPersona === p.id ? p.color : designTokens.colors.neutral[200]};
+              border-radius: ${designTokens.borderRadius.lg};
+              background: ${selectedPersona === p.id ? `${p.color}10` : 'white'};
+              cursor: pointer;
+              text-align: left;
+              transition: border-color 0.15s, background 0.15s;
+              width: 100%;
+              &:hover { border-color: ${p.color}; background: ${p.color}08; }
+            `}
+          >
+            <span css={css`color: ${p.color}; flex-shrink: 0; margin-top: 2px;`}>{p.icon}</span>
+            <div>
+              <p css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: ${designTokens.colors.neutral[900]}; margin-bottom: ${designTokens.spacing[1]};`}>{p.label}</p>
+              <p css={css`font-size: ${designTokens.typography.fontSize.sm}; color: ${designTokens.colors.neutral[500]};`}>{p.description}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <p css={css`text-align: center; margin-top: ${designTokens.spacing[4]}; font-size: ${designTokens.typography.fontSize.xs}; color: ${designTokens.colors.neutral[400]};`}>
+        You can change this any time in Settings.
+      </p>
+    </div>
+  );
+
+  // Step 1: "See it work" - Live demo of governance
   const SeeStep = () => (
     <div css={css`padding: ${designTokens.spacing[6]} ${designTokens.spacing[4]}; position: relative;`}>
       <AchievementToast />
@@ -769,26 +857,32 @@ export const SmartOnboarding: React.FC = () => {
           min-height: 400px;
         `}
       >
-        {currentStep === 0 && <SeeStep />}
-        {currentStep === 1 && <CreateStep />}
-        {currentStep === 2 && <ConnectStep />}
-        {currentStep === 3 && <LaunchStep />}
+        {currentStep === 0 && <PersonaStep />}
+        {currentStep === 1 && <SeeStep />}
+        {currentStep === 2 && <CreateStep />}
+        {currentStep === 3 && <ConnectStep />}
+        {currentStep === 4 && <LaunchStep />}
       </div>
 
       {/* Navigation */}
       <div
         css={css`
           display: flex;
-          justify-content: ${currentStep === 0 ? 'flex-end' : 'space-between'};
+          justify-content: ${currentStep <= 1 ? 'flex-end' : 'space-between'};
           align-items: center;
         `}
       >
-        {currentStep > 0 && (
+        {currentStep > 1 && (
           <Button variant="ghost" onClick={handlePrevious}>
             Back
           </Button>
         )}
         {currentStep === 0 && (
+          <Button variant="ghost" onClick={handleSkipToDemo}>
+            Skip — explore demo →
+          </Button>
+        )}
+        {currentStep === 1 && (
           <Button variant="ghost" onClick={handleSkipToDemo}>
             Skip — explore demo →
           </Button>

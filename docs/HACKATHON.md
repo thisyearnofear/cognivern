@@ -247,8 +247,242 @@ type SpendDecision = {
 - **Primary Angle:** SpendOS for teams
 - **Secondary Angle:** Audit log forensics
 
+---
+
+## Agents Assemble Healthcare AI Endgame (2026)
+
+**Cognivern is the governance control plane for autonomous healthcare AI agents** — a
+policy-checked, HIPAA-aware, audit-ready SpendOS that makes multi-agent clinical workflows
+safe to deploy in production.
+
+### The Healthcare Governance Gap
+
+Hospitals and payers are blocked from deploying autonomous AI agents because:
+
+1. **No policy enforcement** — agents can access PHI, order tests, or authorise spend without
+   clinical or compliance review.
+2. **No audit trail** — decisions are opaque; regulators cannot reconstruct what happened.
+3. **No interoperability** — agents from different vendors cannot share clinical context safely.
+
+Cognivern closes all three gaps with a single, composable governance layer.
+
+### Architecture: FHIR Context Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Multi-Agent Call Chain (A2A)                    │
+│                                                                     │
+│  Agent A ──► Agent B ──► Agent C ──► ... ──► Cognivern Governance  │
+│     │           │           │                        │              │
+│  FHIR ctx    FHIR ctx    FHIR ctx           SharpContext envelope   │
+│  (Patient)  (Encounter)  (Obs/Rx)           propagated end-to-end  │
+└─────────────────────────────────────────────────────────────────────┘
+                                                        │
+                              ┌─────────────────────────▼──────────────────────────┐
+                              │          Cognivern Governance Pipeline              │
+                              │                                                     │
+                              │  1. Ingest run (CRE)                               │
+                              │       ↓                                             │
+                              │  2. FHIR/SHARP context adapter                     │
+                              │     • Validates resource refs (Patient, Encounter) │
+                              │     • Checks sensitivity labels (HIV, MH, SUD)     │
+                              │     • Attaches a2aTraceId for call-chain audit      │
+                              │       ↓                                             │
+                              │  3. Together AI policy evaluator                   │
+                              │     • Model: Llama-3.3-70B-Instruct-Turbo          │
+                              │     • System prompt: HIPAA + FHIR R4 rules         │
+                              │     • Returns: allowed, reasoning, policyChecks    │
+                              │       ↓                                             │
+                              │  4. Immutable audit log (0G Newton + Filecoin)     │
+                              │       ↓                                             │
+                              │  5. A2A result emitted via MCP tool endpoint       │
+                              └─────────────────────────────────────────────────────┘
+```
+
+### Integration Stack
+
+| Sponsor | Integration | File |
+|---------|-------------|------|
+| **Together AI** | Primary LLM for policy evaluation (Llama-3.3-70B-Instruct-Turbo) | `src/services/TogetherAIPolicyEvaluator.ts` |
+| **Kestra** | Orchestrates the full governance loop (ingest → evaluate → audit → A2A) | `deploy/kestra/governance-flow.yml` |
+| **CodeRabbit** | Automated policy + smart-contract review on every PR | `.coderabbit.yaml` |
+| **MCP / Prompt Opinion** | `POST /api/mcp/governance-check` tool endpoint | `src/modules/api/controllers/McpGovernanceController.ts` |
+| **FHIR R4 / SHARP** | Clinical context propagation through multi-agent call chains | `src/types/Policy.ts` |
+
+### Key Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/mcp/governance-check` | MCP tool manifest (Prompt Opinion Marketplace) |
+| `POST` | `/api/mcp/governance-check` | Evaluate governance action with FHIR context |
+| `POST` | `/api/governance/evaluate` | Core governance evaluation (Together AI backed) |
+| `GET` | `/api/audit/logs` | Immutable audit trail |
+
+### Example: MCP Governance-Check Request
+
+```json
+POST /api/mcp/governance-check
+{
+  "agentId": "clinical-agent-001",
+  "action": {
+    "type": "medication_order",
+    "description": "Order metformin 500mg for patient P-12345",
+    "amount": 45.00,
+    "currency": "USD"
+  },
+  "fhirContext": {
+    "subject": { "resourceType": "Patient", "id": "P-12345", "display": "Jane Doe" },
+    "encounter": { "resourceType": "Encounter", "id": "E-98765" },
+    "requester": { "resourceType": "Practitioner", "id": "DR-001" },
+    "sensitivityLabels": [],
+    "eventTime": "2026-05-11T10:21:00Z"
+  },
+  "a2aTraceId": "trace-abc-123"
+}
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "tool": "governance-check",
+    "callId": "uuid-...",
+    "allowed": true,
+    "reasoning": "Action complies with formulary policy; spend within daily limit; no sensitivity flags.",
+    "policyChecks": [...],
+    "auditLogId": "audit-uuid-...",
+    "provider": "together-ai",
+    "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "a2aTraceId": "trace-abc-123",
+    "timestamp": "2026-05-11T10:21:00Z"
+  }
+}
+```
+
+### Environment Variables
+
+```bash
+TOGETHER_API_KEY=your_together_ai_key        # Together AI inference
+TOGETHER_MODEL=meta-llama/Llama-3.3-70B-Instruct-Turbo  # optional override
+COGNIVERN_BASE_URL=https://your-deployment   # for Kestra workflow
+COGNIVERN_API_KEY=your_api_key               # for Kestra workflow
+```
+
+### Quick Start — Test the Integrations in 60 Seconds
+
+**Prerequisites:** Cognivern running locally (`pnpm dev`) with `TOGETHER_API_KEY` set in `.env`.
+
+#### 1. Discover the MCP tool manifest
+```bash
+curl http://localhost:3000/api/mcp/governance-check
+```
+
+#### 2. Run a governance check via Together AI (no FHIR context)
+```bash
+curl -X POST http://localhost:3000/api/mcp/governance-check \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $COGNIVERN_API_KEY" \
+  -d '{
+    "agentId": "agent-001",
+    "action": {
+      "type": "spend",
+      "description": "Purchase lab reagents",
+      "amount": 450,
+      "currency": "USD"
+    }
+  }'
+```
+
+#### 3. Run a governance check with FHIR/SHARP clinical context
+```bash
+curl -X POST http://localhost:3000/api/mcp/governance-check \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $COGNIVERN_API_KEY" \
+  -d '{
+    "agentId": "agent-001",
+    "action": {
+      "type": "spend",
+      "description": "Administer insulin — formulary check",
+      "amount": 120,
+      "currency": "USD"
+    },
+    "fhirContext": {
+      "subject":   { "resourceType": "Patient",      "id": "P-12345", "display": "Jane Doe" },
+      "encounter": { "resourceType": "Encounter",    "id": "E-98765" },
+      "requester": { "resourceType": "Practitioner", "id": "DR-001"  },
+      "sensitivityLabels": [],
+      "eventTime": "2026-05-11T10:00:00Z"
+    },
+    "a2aTraceId": "trace-demo-001"
+  }'
+```
+
+#### 4. Ingest a run directly into the Core Run Engine
+```bash
+curl -X POST http://localhost:3000/ingest/runs \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $COGNIVERN_API_KEY" \
+  -d '{
+    "agentId": "agent-001",
+    "action": { "type": "data_access", "description": "Read patient record", "amount": 0, "currency": "USD" }
+  }'
+```
+
+#### 5. Fetch the audit trail
+```bash
+curl http://localhost:3000/api/audit/logs \
+  -H "x-api-key: $COGNIVERN_API_KEY"
+```
+
+#### 6. Trigger the full Kestra governance loop (requires Kestra running)
+```bash
+curl -X POST http://localhost:8080/api/v1/executions/cognivern.healthcare/cognivern-governance-loop \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentId": "agent-001",
+    "actionPayload": { "type": "spend", "description": "MRI scan authorisation", "amount": 800, "currency": "USD" },
+    "policyId": "standard",
+    "a2aTraceId": "kestra-demo-001"
+  }'
+```
+
+Expected response shape for steps 2 & 3:
+```json
+{
+  "success": true,
+  "data": {
+    "tool": "governance-check",
+    "allowed": true,
+    "reasoning": "Action complies with policy; spend within daily limit.",
+    "provider": "together-ai",
+    "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "auditLogId": "<uuid>",
+    "a2aTraceId": "trace-demo-001",
+    "timestamp": "<iso8601>"
+  }
+}
+```
+
+---
+
+### Submission Package (Agents Assemble Healthcare AI Endgame)
+
+- **Project Name:** Cognivern
+- **Hackathon:** Agents Assemble Healthcare AI Endgame (agents-assemble.devpost.com)
+- **Track:** Healthcare Governance / Interoperable AI Agents
+- **Primary Angle:** Policy-checked, HIPAA-aware governance control plane for autonomous
+  healthcare AI agents using MCP, A2A, and FHIR R4 standards
+- **Sponsor Integrations:** Together AI · Kestra · CodeRabbit · Prompt Opinion (MCP)
+- **Standards:** FHIR R4, SHARP extension spec, MCP tool schema, A2A call-chain tracing
+- **Existing Foundation:** Live multi-chain spend governance (X Layer + 0G + Filecoin + Fhenix)
+- **New Layer:** FHIR/SHARP context adapter + Together AI evaluator + Kestra orchestration +
+  MCP marketplace endpoint
+
+---
+
 ## Related Docs
 
 - [Architecture](./ARCHITECTURE.md) — System design and data flows
 - [Developer Guide](./DEVELOPER.md) — APIs, local setup, testing
 - [Deployment](./DEPLOYMENT.md) — Production deployment and operations
+- [Fhenix Integration](./FHENIX_INTEGRATION.md) — Confidential policy state on Fhenix
