@@ -112,8 +112,18 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
 
   const statsGridStyles = css`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: ${designTokens.spacing[3]};
+
+    @media (max-width: ${designTokens.breakpoints.md}) {
+      grid-template-columns: repeat(3, 1fr);
+      gap: ${designTokens.spacing[2]};
+    }
+
+    @media (max-width: ${designTokens.breakpoints.sm}) {
+      grid-template-columns: 1fr;
+      gap: ${designTokens.spacing[2]};
+    }
   `;
 
   if (error) {
@@ -177,6 +187,8 @@ const AgentMonitorContent: React.FC<AgentMonitorProps> = ({
           background: rgba(255, 255, 255, 0.8);
           backdrop-filter: blur(12px);
           border: 1px solid ${designTokens.colors.neutral[200]};
+          width: 100%;
+          max-width: 100%;
         `}
       >
         <CardHeader
@@ -495,8 +507,20 @@ const statItemStyles = css`
   padding: ${designTokens.spacing[3]};
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid ${designTokens.colors.neutral[100]};
-  border-radius: ${designTokens.borderRadius.xl};
+  border-radius: ${designTokens.borderRadius.lg};
   transition: all 0.3s ease;
+  min-height: 56px;
+
+  @media (max-width: ${designTokens.breakpoints.md}) {
+    padding: ${designTokens.spacing[2]} ${designTokens.spacing[3]};
+    min-height: 52px;
+  }
+
+  @media (max-width: ${designTokens.breakpoints.sm}) {
+    gap: ${designTokens.spacing[2]};
+    padding: ${designTokens.spacing[2]};
+    min-height: 48px;
+  }
 
   &:hover {
     background: white;

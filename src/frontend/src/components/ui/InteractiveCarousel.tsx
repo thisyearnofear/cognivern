@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { css } from '@emotion/react';
 import { designTokens } from '../../styles/design-system';
 import { Card, CardContent } from './Card';
@@ -22,41 +22,54 @@ const carouselContainerStyles = css`
   position: relative;
   width: 100%;
   perspective: 1000px;
-  padding: ${designTokens.spacing[10]} 0;
+  padding: ${designTokens.spacing[8]} 0;
   overflow: hidden;
-`;
-
-const carouselTrackStyles = (activeIndex: number) => css`
   display: flex;
-  transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-  transform: translateX(calc(50% - ${activeIndex * 320 + 150}px));
-  gap: ${designTokens.spacing[12]};
-  padding: 0 ${designTokens.spacing[10]};
+  flex-direction: column;
   align-items: center;
 `;
 
-const carouselItemStyles = (isActive: boolean, index: number, activeIndex: number) => {
+const carouselTrackStyles = (activeIndex: number, cardWidth: number) => css`
+  display: flex;
+  transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+  transform: translateX(calc(50% - ${activeIndex * cardWidth + cardWidth / 2}px));
+  gap: ${designTokens.spacing[6]};
+  padding: 0 ${designTokens.spacing[4]};
+  align-items: center;
+
+  @media (max-width: ${designTokens.breakpoints.md}) {
+    transform: translateX(calc(50% - ${activeIndex * cardWidth + cardWidth / 2}px));
+  }
+`;
+
+const carouselItemStyles = (isActive: boolean, index: number, activeIndex: number, cardWidth: number = 280) => {
   const distance = Math.abs(index - activeIndex);
-  const scale = isActive ? 1.25 : 0.85 / (1 + distance * 0.12);
-  const rotateY = isActive ? 0 : index < activeIndex ? 35 : -35;
-  const translateZ = isActive ? 150 : -120 * distance;
-  const blur = isActive ? 0 : distance * 1.5;
+  const scale = isActive ? 1.05 : 0.9 / (1 + distance * 0.08);
+  const rotateY = isActive ? 0 : index < activeIndex ? 20 : -20;
+  const translateZ = isActive ? 50 : -50 * distance;
+  const blur = isActive ? 0 : distance * 0.5;
+  const opacity = isActive ? 1 : 0.7 / (1 + distance * 0.15);
 
   return css`
-    min-width: 320px;
-    max-width: 320px;
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-    transform: perspective(1200px) rotateY(${rotateY}deg) scale(${scale})
-      translateZ(${translateZ}px);
-    opacity: ${isActive ? 1 : 0.5 / (1 + distance * 0.25)};
+    min-width: ${cardWidth}px;
+    max-width: ${cardWidth}px;
+    width: ${cardWidth}px;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: perspective(800px) rotateY(${rotateY}deg) scale(${scale}) translateZ(${translateZ}px);
+    opacity: ${opacity};
     cursor: pointer;
     filter: blur(${blur}px);
     z-index: ${100 - distance};
 
+    @media (max-width: ${designTokens.breakpoints.sm}) {
+      min-width: 240px;
+      max-width: 240px;
+      width: 240px;
+    }
+
     &:hover {
-      transform: perspective(1200px) rotateY(${rotateY * 0.3}deg) scale(${scale * 1.05})
-        translateZ(${translateZ + 30}px);
-      opacity: ${isActive ? 1 : 0.8};
+      transform: perspective(800px) rotateY(${rotateY * 0.3}deg) scale(${scale * 1.02}) translateZ(${translateZ + 20}px);
+      opacity: ${isActive ? 1 : 0.85};
     }
   `;
 };
@@ -84,10 +97,34 @@ const iconWrapperStyles = css`
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
+  flex-shrink: 0;
+
+  @media (max-width: ${designTokens.breakpoints.sm}) {
+    width: 40px;
+    height: 40px;
+    font-size: 1.25rem;
+  }
 `;
 
 export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({ items, onItemClick }) => {
   const [activeIndex, setActiveIndex] = useState(0);
+
+  // Use a breakpoint hook to determine card width
+  const getCardWidth = () => {
+    if (typeof window === 'undefined') return 280;
+    if (window.innerWidth <= parseInt(designTokens.breakpoints.sm)) return 240;
+    if (window.innerWidth <= parseInt(designTokens.breakpoints.md)) return 260;
+    return 280;
+  };
+
+  const [cardWidth, setCardWidth] = useState(280);
+
+  useEffect(() => {
+    const updateCardWidth = () => setCardWidth(getCardWidth());
+    updateCardWidth();
+    window.addEventListener('resize', updateCardWidth);
+    return () => window.removeEventListener('resize', updateCardWidth);
+  }, []);
 
   const handlePrev = () => {
     setActiveIndex((prev) => (prev > 0 ? prev - 1 : items.length - 1));
@@ -99,11 +136,11 @@ export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({ items,
 
   return (
     <div css={carouselContainerStyles}>
-      <div css={carouselTrackStyles(activeIndex)}>
+      <div css={carouselTrackStyles(activeIndex, cardWidth)}>
         {items.map((item, index) => (
           <div
             key={item.id}
-            css={carouselItemStyles(index === activeIndex, index, activeIndex)}
+            css={carouselItemStyles(index === activeIndex, index, activeIndex, cardWidth)}
             onClick={() => {
               if (index === activeIndex) {
                 onItemClick?.(item.id);
@@ -159,6 +196,10 @@ export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({ items,
                         font-size: ${designTokens.typography.fontSize.xl};
                         font-weight: ${designTokens.typography.fontWeight.bold};
                         color: ${designTokens.colors.neutral[900]};
+
+                        @media (max-width: ${designTokens.breakpoints.sm}) {
+                          font-size: ${designTokens.typography.fontSize.lg};
+                        }
                       `}
                     >
                       {item.title}
@@ -170,6 +211,10 @@ export const InteractiveCarousel: React.FC<InteractiveCarouselProps> = ({ items,
                           font-size: ${designTokens.typography.fontSize.sm};
                           color: ${designTokens.colors.neutral[500]};
                           font-weight: ${designTokens.typography.fontWeight.medium};
+
+                          @media (max-width: ${designTokens.breakpoints.sm}) {
+                            font-size: ${designTokens.typography.fontSize.xs};
+                          }
                         `}
                       >
                         {item.subtitle}
