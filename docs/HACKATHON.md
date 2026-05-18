@@ -47,8 +47,9 @@ The decision (approve / hold / deny) is publicly verifiable. The inputs and thre
 | Wave 1 | [x] Integration plan + `ConfidentialSpendPolicy.sol` skeleton + Hardhat scaffold |
 | Wave 2 | [x] `FhenixPolicyService` end-to-end on Fhenix testnet; `/api/spend/encrypted` |
 | Wave 3 | [x] Frontend `useEncrypt` flow; auditor permits; X Layer cross-chain attestation |
-| Wave 4 | [ ] Privara SDK confidential payroll; sealed-bid vendor selection *(starts May 11)* |
+| Wave 4 | [x] Privara SDK confidential payroll; sealed-bid vendor selection |
 | Wave 5 | [ ] Production demo: institutional treasury agent with fully encrypted budgets, MEV-protected execution, selective auditor disclosure *(starts May 23)* |
+| Wave 6 (Hardening) | [x] Shared singleton, two-phase resolution, DeFi action guard, contract tests, centralized config, rate-limited decrypt, typed interfaces *(complete — not part of program schedule)* |
 
 ### Submission Package (Fhenix Buildathon)
 
@@ -56,7 +57,7 @@ The decision (approve / hold / deny) is publicly verifiable. The inputs and thre
 - **Primary Angle:** Privacy-by-design SpendOS for autonomous agent wallets
 - **Application Areas:** Confidential DeFi, Private Payments, RWA & Compliance
 - **Existing Foundation:** Live spend control plane on X Layer + Filecoin + 0G
-- **New Layer:** Fhenix `ConfidentialSpendPolicy` + Privara payment rails
+- **New Layer:** Fhenix `ConfidentialSpendPolicy` + Privara payment rails + sealed-bid vendor selection *(new)*
 - **Full Plan:** [Fhenix Integration](./FHENIX_INTEGRATION.md)
 - **GitHub:** https://github.com/thisyearnofear/cognivern
 

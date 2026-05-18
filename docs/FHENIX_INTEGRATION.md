@@ -275,7 +275,7 @@ To support non-TypeScript agents (Python/Go), Cognivern provides a **Trusted Enc
 
 ---
 
-## 9. Buildathon Wave Plan
+## 11. Buildathon Wave Plan
 
 | Wave | Deliverable |
 |------|-------------|
@@ -288,7 +288,7 @@ To support non-TypeScript agents (Python/Go), Cognivern provides a **Trusted Enc
 
 ---
 
-## 10. Why Cognivern Wins This Buildathon
+## 12. Why Cognivern Wins This Buildathon
 
 - **Real protocol, not a demo.** Existing OWS wallet layer, policy engine, audit ledger, multi-chain deployment — Fhenix slots into a working system.
 - **Direct hit on the institutional gap.** Compliance teams reject autonomous agents because budgets and counterparties are visible. Encrypted policy state removes the blocker.

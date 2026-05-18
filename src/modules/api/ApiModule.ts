@@ -37,6 +37,8 @@ import { OwsPermissionsController } from "./controllers/OwsPermissionsController
 import { FhenixController } from "./controllers/FhenixController.js";
 import { IntentController } from "./controllers/IntentController.js";
 import { McpGovernanceController } from "./controllers/McpGovernanceController.js";
+import { PayrollController } from "./controllers/PayrollController.js";
+import { SealedBidController } from "./controllers/SealedBidController.js";
 import type { Server } from "node:http";
 
 /** Typed controller registry */
@@ -64,6 +66,8 @@ interface ControllerRegistry {
   fhenix: FhenixController;
   intent: IntentController;
   mcpGovernance: McpGovernanceController;
+  payroll: PayrollController;
+  sealedBid: SealedBidController;
 }
 
 /** Typed error with optional HTTP status code */
@@ -387,6 +391,8 @@ export class ApiModule extends BaseService {
     this.controllers.fhenix = new FhenixController();
     this.controllers.intent = new IntentController();
     this.controllers.mcpGovernance = new McpGovernanceController(policyService);
+    this.controllers.payroll = new PayrollController();
+    this.controllers.sealedBid = new SealedBidController();
 
     // Initialize all controllers that have an initialize method
     for (const [name, controller] of Object.entries(this.controllers)) {
@@ -796,6 +802,36 @@ export class ApiModule extends BaseService {
 
     apiRouter.post("/fhenix/encrypt", (req, res) => {
       this.ctrl("fhenix").encrypt(req, res);
+    });
+
+    // Privara confidential payroll routes
+    apiRouter.post("/payroll/confidential", (req, res) => {
+      this.ctrl("payroll").executeConfidentialPayroll(req, res);
+    });
+
+    // Sealed-bid vendor selection routes
+    apiRouter.post("/vendor/sealed-bid/rounds", (req, res) => {
+      this.ctrl("sealedBid").createRound(req, res);
+    });
+
+    apiRouter.post("/vendor/sealed-bid/rounds/:roundId/bid", (req, res) => {
+      this.ctrl("sealedBid").submitBid(req, res);
+    });
+
+    apiRouter.post("/vendor/sealed-bid/rounds/:roundId/close", (req, res) => {
+      this.ctrl("sealedBid").closeRound(req, res);
+    });
+
+    apiRouter.post("/vendor/sealed-bid/rounds/:roundId/reveal", (req, res) => {
+      this.ctrl("sealedBid").revealWinner(req, res);
+    });
+
+    apiRouter.get("/vendor/sealed-bid/rounds/:roundId", (req, res) => {
+      this.ctrl("sealedBid").getRound(req, res);
+    });
+
+    apiRouter.get("/vendor/sealed-bid/rounds", (req, res) => {
+      this.ctrl("sealedBid").listRounds(req, res);
     });
 
     // Dashboard routes
