@@ -24,7 +24,6 @@ import { HealthController } from "./controllers/HealthController.js";
 import { AgentsController } from "./controllers/AgentsController.js";
 import { GovernanceController } from "./controllers/GovernanceController.js";
 import { MetricsController } from "./controllers/MetricsController.js";
-import { SapienceController } from "./controllers/SapienceController.js";
 import { RecallController } from "./controllers/RecallController.js";
 import { AuditLogController } from "./controllers/AuditLogController.js";
 import { AuditLogService } from "../../services/AuditLogService.js";
@@ -46,7 +45,13 @@ interface ControllerRegistry {
   agents: AgentsController;
   governance: GovernanceController;
   metrics: MetricsController;
-  sapience: SapienceController;
+  sapience?: {
+    getStatus(req: express.Request, res: express.Response): Promise<void>;
+    submitForecast(req: express.Request, res: express.Response): Promise<void>;
+    submitAutomatedForecast(req: express.Request, res: express.Response): Promise<void>;
+    getWallet(req: express.Request, res: express.Response): Promise<void>;
+    getDecisions(req: express.Request, res: express.Response): Promise<void>;
+  };
   recall: RecallController;
   auditLog: AuditLogController;
   cre: CreController;
@@ -73,8 +78,12 @@ export class ApiModule extends BaseService {
   private controllers = {} as ControllerRegistry;
 
   /** Type-safe controller accessor */
-  private ctrl<K extends keyof ControllerRegistry>(key: K): ControllerRegistry[K] {
-    return this.controllers[key];
+  private ctrl<K extends keyof ControllerRegistry>(key: K): NonNullable<ControllerRegistry[K]> {
+    const controller = this.controllers[key];
+    if (!controller) {
+      throw new Error(`Controller '${String(key)}' is not enabled`);
+    }
+    return controller as NonNullable<ControllerRegistry[K]>;
   }
 
   constructor() {
@@ -220,6 +229,19 @@ export class ApiModule extends BaseService {
     });
     this.app.use("/api/intent", intentLimiter);
 
+    // Strict rate limit for decrypt endpoint (expensive CoFHE operation)
+    const decryptLimiter = rateLimit({
+      windowMs: 60_000, // 1 min
+      max: Number(process.env.DECRYPT_RATE_LIMIT_PER_MINUTE || 10),
+      message: {
+        error: "Too many decrypt requests, please slow down.",
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      validate: { trustProxy: false },
+    });
+    this.app.use("/api/fhenix/decrypt", decryptLimiter);
+
     // Strict rate limit for governance/spend endpoints
     const governanceLimiter = rateLimit({
       windowMs: 60_000, // 1 min
@@ -329,6 +351,9 @@ export class ApiModule extends BaseService {
       );
     }
 
+    const sapienceEnabled =
+      (process.env.SAPIENCE_ENABLED || "false").toLowerCase() === "true";
+
     // Initialize shared services for controllers (CONSOLIDATION & DRY)
     const { sharedPolicyService } = await import(
       "../../services/PolicyService.js"
@@ -345,7 +370,12 @@ export class ApiModule extends BaseService {
     );
     this.controllers.governance = new GovernanceController(policyService, undefined);
     this.controllers.metrics = new MetricsController();
-    this.controllers.sapience = new SapienceController();
+    if (sapienceEnabled) {
+      const { SapienceController } = await import("./controllers/SapienceController.js");
+      this.controllers.sapience = new SapienceController();
+    } else {
+      this.logger.info("SapienceController disabled (set SAPIENCE_ENABLED=true to enable)");
+    }
     this.controllers.recall = new RecallController();
     this.controllers.auditLog = new AuditLogController();
     this.controllers.cre = new CreController();
@@ -722,26 +752,27 @@ export class ApiModule extends BaseService {
     });
 
     // Sapience routes
-    apiRouter.get("/sapience/status", (req, res) => {
-      this.ctrl("sapience").getStatus(req, res);
-    });
+    if (this.controllers.sapience) {
+      apiRouter.get("/sapience/status", (req, res) => {
+        this.ctrl("sapience").getStatus(req, res);
+      });
 
-    apiRouter.post("/sapience/forecast", (req, res) => {
-      this.ctrl("sapience").submitForecast(req, res);
-    });
+      apiRouter.post("/sapience/forecast", (req, res) => {
+        this.ctrl("sapience").submitForecast(req, res);
+      });
 
-    apiRouter.post("/sapience/forecast/auto", (req, res) => {
-      this.ctrl("sapience").submitAutomatedForecast(req, res);
-    });
+      apiRouter.post("/sapience/forecast/auto", (req, res) => {
+        this.ctrl("sapience").submitAutomatedForecast(req, res);
+      });
 
-    apiRouter.get("/sapience/wallet", (req, res) => {
-      this.ctrl("sapience").getWallet(req, res);
-    });
+      apiRouter.get("/sapience/wallet", (req, res) => {
+        this.ctrl("sapience").getWallet(req, res);
+      });
 
-    // SpendOS routes
-    apiRouter.get("/spendos/status", (req, res) => {
-      this.ctrl("recall").getStatus(req, res);
-    });
+      apiRouter.get("/sapience/decisions", (req, res) => {
+        this.ctrl("sapience").getDecisions(req, res);
+      });
+    }
 
     apiRouter.get("/spendos/decisions", (req, res) => {
       this.ctrl("recall").getDecisions(req, res);

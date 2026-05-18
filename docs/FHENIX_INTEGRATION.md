@@ -284,6 +284,7 @@ To support non-TypeScript agents (Python/Go), Cognivern provides a **Trusted Enc
 | **Wave 3 (Marathon)** | [x] Frontend `useEncrypt` flow; production CoFHE client + contract adapter; auditor permit consumption/decrypt UX; X Layer cross-chain decision anchoring; demo script |
 | **Wave 4** | [x] Privara SDK integration for confidential payroll; sealed-bid vendor selection example |
 | **Wave 5 (Final)** | [x] Production-grade demo: institutional treasury agent operating with fully encrypted budgets, MEV-protected execution, selective auditor disclosure |
+| **Wave 6 (Hardening)** | [x] Shared `FhenixPolicyService` singleton eliminates redundant CoFHE clients; `resolveDecision()` enables proper two-phase FHE outcome resolution; `requestDeFiAction` guarded by resolved outcome; contract tests; centralized config; rate-limited decrypt; typed interfaces; docs updated |
 
 ---
 

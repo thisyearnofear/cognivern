@@ -1,5 +1,6 @@
 import { createCofheClient, createCofheConfig } from "@cofhe/sdk/node";
 import { CofheClient, Encryptable, FheTypes } from "@cofhe/sdk";
+import type { UnsealedItem } from "@cofhe/sdk";
 import { PermitUtils } from "@cofhe/sdk/permits";
 import { createPublicClient, createWalletClient, http, parseAbi, Hex, decodeEventLog } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -19,6 +20,13 @@ import logger from "../utils/logger.js";
  */
 
 export type ConfidentialOutcome = "approve" | "hold" | "deny";
+
+export interface EncryptedAmount {
+  ctHash: bigint | string;
+  securityZone: number;
+  utype: number;
+  signature: string;
+}
 
 export interface ConfidentialSpendInput {
   agentId: string;
@@ -64,7 +72,7 @@ export interface FhenixClientAdapter {
     outcome: number;
     attestation: string;
   }>;
-  createSharingPermit?: (auditor: string) => Promise<any>;
+  createSharingPermit?: (auditor: string) => Promise<string>;
 }
 
 const ABI = parseAbi([
@@ -73,17 +81,24 @@ const ABI = parseAbi([
   "event SpendEvaluated(bytes32 indexed decisionId, bytes32 indexed agentId, bytes32 indexed policyId, uint8 outcome, bytes attestation)",
 ]);
 
+export function createFhenixConfig() {
+  return {
+    rpcUrl: process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
+    contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
+    privateKey: process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
+    evaluateTimeoutMs: Number(process.env.FHENIX_EVALUATE_TIMEOUT_MS || "30000"),
+  };
+}
+
 export class FhenixPolicyService {
   private client: CofheClient | null = null;
-  private publicClient: any;
-  private walletClient: any;
+  private publicClient: any = null;
+  private walletClient: any = null;
   private adapter: FhenixClientAdapter | null = null;
 
   constructor(private readonly config: FhenixPolicyServiceConfig) {
     if (config.client) {
       this.adapter = config.client;
-      // Skip CoFHE client initialization when using adapter
-      // No need to create wallet/public clients since adapter handles everything
       return;
     }
 
@@ -94,9 +109,9 @@ export class FhenixPolicyService {
           id: 84532,
           name: "Fhenix Base Sepolia",
           network: "fhenix-base-sepolia",
-          coFheUrl: "https://api.testnet.fhenix.zone",
-          verifierUrl: "https://api.testnet.fhenix.zone",
-          thresholdNetworkUrl: "https://api.testnet.fhenix.zone",
+          coFheUrl: config.rpcUrl || "https://api.testnet.fhenix.zone",
+          verifierUrl: config.rpcUrl || "https://api.testnet.fhenix.zone",
+          thresholdNetworkUrl: config.rpcUrl || "https://api.testnet.fhenix.zone",
           environment: "TESTNET",
         },
       ],
@@ -353,18 +368,19 @@ export class FhenixPolicyService {
       throw new Error("CoFHE client not available");
     }
 
-    // Parse the permit
-    let parsedPermit: any;
+    let parsedPermit: string = permit;
     try {
-      parsedPermit = JSON.parse(permit);
-    } catch (e) {
-      throw new Error("Invalid permit format — must be a JSON-serialized CoFHE Permit");
+      const parsed = JSON.parse(permit);
+      if (typeof parsed === "object" && parsed !== null) {
+        parsedPermit = permit;
+      }
+    } catch {
+      // Treat as a raw permit hash string
     }
 
-    // Parse the encrypted value — accept either a JSON envelope or a bare ctHash hex/bigint
     let ctHash: bigint;
-    let utype: number = FheTypes.Uint128; // default to uint128 (our spend amounts)
-    let chainId: number = 84532; // default to Fhenix Base Sepolia
+    let utype: number = FheTypes.Uint128;
+    let chainId: number = 84532;
 
     try {
       const parsed = JSON.parse(encryptedValue);
@@ -372,7 +388,6 @@ export class FhenixPolicyService {
       if (parsed.utype !== undefined) utype = Number(parsed.utype);
       if (parsed.chainId !== undefined) chainId = Number(parsed.chainId);
     } catch {
-      // Treat as a bare hex/decimal ctHash string
       ctHash = BigInt(encryptedValue);
     }
 
@@ -389,13 +404,11 @@ export class FhenixPolicyService {
       this.config.evaluateTimeoutMs || 30000
     );
 
-    // unsealedItem is typed as UnsealedItem — extract the numeric value
-    const value =
-      unsealedItem != null && typeof unsealedItem === "object" && "value" in (unsealedItem as object)
-        ? (unsealedItem as any).value
-        : unsealedItem;
+    if (unsealedItem != null && typeof unsealedItem === "object" && "value" in (unsealedItem as object)) {
+      return String((unsealedItem as { value: unknown }).value);
+    }
 
-    return String(value);
+    return String(unsealedItem);
   }
 
   /**
@@ -408,7 +421,7 @@ export class FhenixPolicyService {
   /**
    * Utility for sidecar encryption of values (e.g. for Python/Go agents)
    */
-  async encryptValue(amountWei: bigint): Promise<any> {
+  async encryptValue(amountWei: bigint): Promise<EncryptedAmount> {
     if (this.adapter) {
       const ctHash = await this.adapter.encryptUint256(amountWei);
       return {
@@ -487,3 +500,5 @@ export class FhenixPolicyService {
     };
   }
 }
+
+export const sharedFhenixPolicyService = new FhenixPolicyService(createFhenixConfig());

@@ -12,7 +12,7 @@ import {
   owsLocalVaultService,
   OwsResolvedAccess,
 } from "./OwsLocalVaultService.js";
-import { FhenixPolicyService, FhenixClientAdapter } from "./FhenixPolicyService.js";
+import { FhenixPolicyService, FhenixClientAdapter, sharedFhenixPolicyService } from "./FhenixPolicyService.js";
 
 export interface SpendIntent {
   id: string;
@@ -52,14 +52,9 @@ export class OwsWalletService {
   private policyEnforcement: PolicyEnforcementService;
   private fhenixPolicyService: FhenixPolicyService;
 
-  constructor(policyService?: PolicyService) {
+  constructor(policyService?: PolicyService, fhenixPolicyService?: FhenixPolicyService) {
     this.policyService = policyService || sharedPolicyService;
-    this.fhenixPolicyService = new FhenixPolicyService({
-      rpcUrl: process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
-      contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
-      privateKey: process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
-      evaluateTimeoutMs: Number(process.env.FHENIX_EVALUATE_TIMEOUT_MS || "30000"),
-    });
+    this.fhenixPolicyService = fhenixPolicyService || sharedFhenixPolicyService;
     this.policyEnforcement = new PolicyEnforcementService(this.policyService, this.fhenixPolicyService);
   }
 

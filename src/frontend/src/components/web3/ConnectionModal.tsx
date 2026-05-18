@@ -175,7 +175,7 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
 
     if (cofheButton) {
       cofheButton.click();
-      setUser({ fhenixConnected: true });
+      // Connection state is synced by useEffect watching client?.isConnected
     } else {
       const altButtons = document.querySelectorAll('[class*="cofhe"], [data-cofhe]');
 
