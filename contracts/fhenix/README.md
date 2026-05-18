@@ -10,6 +10,9 @@ See [`docs/FHENIX_INTEGRATION.md`](../../docs/FHENIX_INTEGRATION.md) for the ful
 - `src/ConfidentialSpendPolicy.sol` — encrypted budgets, encrypted spend counters,
   FHE-evaluated approve/hold/deny decisions. Emits `SpendEvaluated(decisionId, ...)`
   consumed by the X Layer `GovernanceContract`.
+- `src/SealedBidVendorSelection.sol` — sealed-bid vendor selection mechanism using
+  FHE-encrypted `euint128` bid amounts. Two-phase flow: agents submit encrypted bids
+  → manager closes round → winner revealed off-chain after threshold decryption.
 
 ## Setup
 
@@ -39,7 +42,8 @@ npx hardhat --config contracts/fhenix/hardhat.config.cjs run scripts/deploy.cjs 
 | Wave | Status |
 |------|--------|
 | 1 — scaffold + types + event surface | ✅ this commit |
-| 2 — FHE.lte / FHE.gt evaluation + decryption callback | ⏳ |
-| 3 — cross-chain attestation to X Layer | ⏳ |
-| 4 — Privara payment-rails integration | ⏳ |
-| 5 — production demo | ⏳ |
+| 2 — FHE.lte / FHE.gt evaluation + decryption callback | ✅ complete |
+| 3 — cross-chain attestation to X Layer | ✅ complete |
+| 4 — Privara payment-rails integration + sealed-bid vendor selection | ✅ complete |
+| 5 — production demo | ✅ complete |
+| 6 — Hardening: shared singleton, two-phase resolution, DeFi action guard, contract tests, centralized config, rate-limited decrypt, typed interfaces | ✅ complete |

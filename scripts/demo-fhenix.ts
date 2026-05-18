@@ -9,7 +9,8 @@
  *   5. Issue auditor permit (selective disclosure)
  *   6. Auditor decrypts scoped fields
  *   7. Non-TypeScript agent path (Trusted Encryption Sidecar)
- *   8. Privara confidential payroll (Wave 4)
+ *   8. Privara confidential payroll (Wave 5)
+ *   9. Sealed-bid vendor selection (Wave 5)
  *
  * Usage:
  *   pnpm demo:fhenix
@@ -230,7 +231,7 @@ async function main() {
   }
 
   // ── Step 8: Privara confidential payroll ─────────────────────────────────
-  step(8, "Privara Confidential Payroll (Wave 4)");
+  step(8, "Privara Confidential Payroll (Wave 5)");
   if (approveDecisionId) {
     try {
       const res = await request("/api/payroll/confidential", {
@@ -250,6 +251,68 @@ async function main() {
     }
   } else {
     warn("skipped", "no approveDecisionId from step 2");
+  }
+
+  // ── Step 9: Sealed-bid vendor selection ──────────────────────────────────
+  step(9, "Sealed-Bid Vendor Selection (Wave 5)");
+  try {
+    // 9a. Create a sealed-bid round
+    const deadline = new Date(Date.now() + 86400000).toISOString(); // 24h from now
+    const roundRes = await request("/api/vendor/sealed-bid/rounds", {
+      method: "POST",
+      json: {
+        description: "Security audit vendor selection",
+        serviceCategory: "audit",
+        deadline,
+        maxBids: 5,
+      },
+    });
+    const roundId = roundRes.data?.roundId;
+    ok("roundId", roundId);
+    ok("description", roundRes.data?.description);
+
+    if (roundId) {
+      // 9b. Submit encrypted bids from three vendors
+      const vendors = [
+        { bidder: "0x1111111111111111111111111111111111111111", amount: 15000, proposal: "Security audit by Vendor A" },
+        { bidder: "0x2222222222222222222222222222222222222222", amount: 12000, proposal: "Audit services from Vendor B" },
+        { bidder: "0x3333333333333333333333333333333333333333", amount: 18000, proposal: "Full stack audit by Vendor C" },
+      ];
+
+      for (const v of vendors) {
+        const bidRes = await request(`/api/vendor/sealed-bid/rounds/${roundId}/bid`, {
+          method: "POST",
+          json: {
+            bidder: v.bidder,
+            amountUsd: v.amount,
+            proposalDetails: v.proposal,
+          },
+        });
+        ok(`bid ${v.bidder.slice(0, 10)}...`, {
+          encryptedAmount: bidRes.data?.encryptedAmount?.slice(0, 20) + "...",
+          index: bidRes.data?.index,
+          note: "Amount stays encrypted under FHE — no one sees raw values",
+        });
+      }
+
+      // 9c. Close the round
+      const closeRes = await request(`/api/vendor/sealed-bid/rounds/${roundId}/close`, {
+        method: "POST",
+        json: { manager: "demo-manager" },
+      });
+      ok("round closed", { status: closeRes.data?.status, bids: closeRes.data?.bidCount });
+
+      // 9d. Reveal the winning bid (lowest bid wins)
+      const revealRes = await request(`/api/vendor/sealed-bid/rounds/${roundId}/reveal`, {
+        method: "POST",
+        json: { selectionMethod: "lowest-bid" },
+      });
+      ok("winner", revealRes.data?.winner);
+      ok("winningBid", `$${revealRes.data?.winningBid}`);
+      ok("note", revealRes.data?.note ?? "Lowest bid wins — all losing bids remain encrypted on Fhenix");
+    }
+  } catch (err: any) {
+    warn("sealed-bid vendor selection error", err.message);
   }
 
   // ── Summary ───────────────────────────────────────────────────────────────
