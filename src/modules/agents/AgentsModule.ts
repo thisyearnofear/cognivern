@@ -15,9 +15,7 @@ import {
   Agent,
   TradingDecision,
 } from "../../shared/index.js";
-import { tradingConfig } from "../../shared/config/index.js";
 import { TradingAgent } from "./types/TradingAgent.js";
-import { SapienceTradingAgent } from "./implementations/SapienceTradingAgent.js";
 import { UserTradingAgent } from "./implementations/UserTradingAgent.js";
 import { AgentOrchestrator } from "./services/AgentOrchestrator.js";
 import { TradingService } from "./services/TradingService.js";
@@ -121,21 +119,37 @@ export class AgentsModule extends BaseService {
   private async initializeAgents(): Promise<void> {
     this.logger.info("Initializing trading agents...");
 
-    // Initialize Sapience Trading Agent
-    const sapienceAgent = new SapienceTradingAgent(
-      "sapience-agent-1",
-      "Sapience Forecasting Agent",
-      {
-        maxTradeSize: 1000,
-        riskTolerance: 0.1,
-        tradingPairs: ["ETH/USD", "BTC/USD"], // Can be market IDs
-        strategies: ["forecasting"],
-        governanceRules: [],
-      },
-    );
+    const sapienceEnabled =
+      (process.env.SAPIENCE_ENABLED || "false").toLowerCase() === "true";
 
-    // Register agents
-    this.agents.set(sapienceAgent.getId(), sapienceAgent);
+    if (sapienceEnabled) {
+      try {
+        const { SapienceTradingAgent } = await import(
+          "./implementations/SapienceTradingAgent.js"
+        );
+
+        // Initialize Sapience Trading Agent
+        const sapienceAgent = new SapienceTradingAgent(
+          "sapience-agent-1",
+          "Sapience Forecasting Agent",
+          {
+            maxTradeSize: 1000,
+            riskTolerance: 0.1,
+            tradingPairs: ["ETH/USD", "BTC/USD"], // Can be market IDs
+            strategies: ["forecasting"],
+            governanceRules: [],
+          },
+        );
+
+        // Register agents
+        this.agents.set(sapienceAgent.getId(), sapienceAgent);
+        this.logger.info("SapienceTradingAgent initialized and added to registry");
+      } catch (error) {
+        this.logger.error("Failed to lazy-load SapienceTradingAgent:", error);
+      }
+    } else {
+      this.logger.info("SapienceTradingAgent disabled (set SAPIENCE_ENABLED=true to enable)");
+    }
 
     // Initialize all agents
     for (const [agentId, agent] of this.agents) {

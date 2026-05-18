@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { Suspense } from 'react';
+import { Navigate } from 'react-router-dom';
 import {
   Activity,
   FileSearch,
@@ -8,6 +9,10 @@ import {
   ShieldCheck,
   Users,
 } from 'lucide-react';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
+import PageTransition from '../ui/PageTransition';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { loadingStyles } from '../../styles/design-system';
 
 export type UserPersona = 'healthcare' | 'defi' | 'enterprise' | 'developer';
 
@@ -25,6 +30,54 @@ export interface AppRouteMeta {
   /** When set, this route is only shown for the listed personas. Omit = always shown. */
   personas?: UserPersona[];
 }
+
+const PageSkeleton: React.FC = () => (
+  <div css={loadingStyles.pageSkeleton.container}>
+    <LoadingSpinner type="skeleton" variant="card" width="100%" height={200} />
+    <div
+      style={{
+        width: '100%',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '1rem',
+      }}
+    >
+      <LoadingSpinner type="skeleton" variant="rectangular" height={150} />
+      <LoadingSpinner type="skeleton" variant="rectangular" height={150} />
+    </div>
+    <LoadingSpinner type="skeleton" lines={3} />
+  </div>
+);
+
+interface RouteShellProps {
+  componentName: string;
+  children: React.ReactNode;
+}
+
+export const RouteShell: React.FC<RouteShellProps> = ({ componentName, children }) => (
+  <ErrorBoundary componentName={componentName}>
+    <PageTransition type="slide">
+      <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
+    </PageTransition>
+  </ErrorBoundary>
+);
+
+interface AuthGuardProps {
+  isAuthenticated: boolean;
+  redirectTo?: string;
+  children: React.ReactNode;
+}
+
+export const AuthGuard: React.FC<AuthGuardProps> = ({
+  isAuthenticated,
+  redirectTo = '/',
+  children,
+}) => {
+  if (!isAuthenticated) {
+    return <Navigate to={redirectTo} replace />;
+  }
+  return <>{children}</>;
+};
 
 export const appRouteMeta: AppRouteMeta[] = [
   {

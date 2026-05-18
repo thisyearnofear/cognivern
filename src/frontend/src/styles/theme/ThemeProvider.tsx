@@ -1,94 +1,6 @@
-/**
- * Theme Provider - Light/Dark mode support with CSS variables
- *
- * Core Principles:
- * - ENHANCEMENT FIRST: Build on existing tokens, don't duplicate
- * - MODULAR: Theme context is isolated and easily swappable
- * - PREVENTION BLOAT: Single file handles all theme concerns
- */
-
 import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 
-// Theme types
 export type ThemeMode = 'light' | 'dark' | 'system';
-
-// CSS variable mappings for themes
-export const themeVariables = {
-  light: {
-    // Background colors
-    '--color-bg-primary': '#ffffff',
-    '--color-bg-secondary': '#f8fafc',
-    '--color-bg-tertiary': '#f1f5f9',
-    '--color-bg-inverse': '#0f172a',
-
-    // Text colors
-    '--color-text-primary': '#1f2937',
-    '--color-text-secondary': '#6b7280',
-    '--color-text-tertiary': '#9ca3af',
-    '--color-text-inverse': '#ffffff',
-
-    // Border colors
-    '--color-border-primary': '#e2e8f0',
-    '--color-border-secondary': '#cbd5e1',
-
-    // Surface colors
-    '--color-surface-hover': '#f1f5f9',
-    '--color-surface-active': '#e2e8f0',
-
-    // Card backgrounds
-    '--color-card-bg': '#ffffff',
-    '--color-card-border': '#e2e8f0',
-
-    // Sidebar
-    '--color-sidebar-bg': '#ffffff',
-    '--color-sidebar-border': '#e2e8f0',
-
-    // Shadow styles
-    '--shadow-sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-    '--shadow-md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-    '--shadow-lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-
-    // Overlay
-    '--color-overlay-bg': 'rgba(0, 0, 0, 0.5)',
-  },
-  dark: {
-    // Background colors
-    '--color-bg-primary': '#0f172a',
-    '--color-bg-secondary': '#1e293b',
-    '--color-bg-tertiary': '#334155',
-    '--color-bg-inverse': '#f8fafc',
-
-    // Text colors
-    '--color-text-primary': '#f8fafc',
-    '--color-text-secondary': '#94a3b8',
-    '--color-text-tertiary': '#64748b',
-    '--color-text-inverse': '#0f172a',
-
-    // Border colors
-    '--color-border-primary': '#334155',
-    '--color-border-secondary': '#475569',
-
-    // Surface colors
-    '--color-surface-hover': '#1e293b',
-    '--color-surface-active': '#334155',
-
-    // Card backgrounds
-    '--color-card-bg': '#1e293b',
-    '--color-card-border': '#334155',
-
-    // Sidebar
-    '--color-sidebar-bg': '#0f172a',
-    '--color-sidebar-border': '#334155',
-
-    // Shadow styles (darker for dark mode)
-    '--shadow-sm': '0 1px 2px 0 rgb(0 0 0 / 0.3)',
-    '--shadow-md': '0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3)',
-    '--shadow-lg': '0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4)',
-
-    // Overlay
-    '--color-overlay-bg': 'rgba(0, 0, 0, 0.7)',
-  },
-} as const;
 
 // Context type
 interface ThemeContextValue {
@@ -128,17 +40,12 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     return () => mediaQuery.removeEventListener('change', updateResolvedTheme);
   }, [theme]);
 
-  // Apply CSS variables to document root
+  // Apply theme attributes to document root
   useEffect(() => {
     const root = document.documentElement;
-    const variables = themeVariables[resolvedTheme];
-
-    Object.entries(variables).forEach(([key, value]) => {
-      root.style.setProperty(key, value);
-    });
-
-    // Also set data attribute for CSS selectors
     root.setAttribute('data-theme', resolvedTheme);
+    root.classList.toggle('dark', resolvedTheme === 'dark');
+    root.style.colorScheme = resolvedTheme;
   }, [resolvedTheme]);
 
   // Set theme function (syncs with appStore)

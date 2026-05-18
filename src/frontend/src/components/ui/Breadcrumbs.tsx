@@ -1,15 +1,9 @@
-/**
- * Breadcrumbs Component - Path Navigation
- *
- * Provides clear wayfinding across deep application paths.
- * Follows CLEAN + MODULAR principles.
- */
-
 import React from 'react';
 import { css } from '@emotion/react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, Home } from 'lucide-react';
 import { designTokens, easings } from '../../styles/design-system';
+import { getRouteMetaByPath } from '../layout/routeMeta';
 
 interface BreadcrumbItem {
   label: string;
@@ -21,16 +15,15 @@ export const Breadcrumbs: React.FC = () => {
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter((x) => x);
 
-  // Don't show on root dashboard
   if (pathnames.length === 0) return null;
 
   const breadcrumbs: BreadcrumbItem[] = pathnames.map((name, index) => {
     const path = `/${pathnames.slice(0, index + 1).join('/')}`;
     const isLast = index === pathnames.length - 1;
 
-    // Humanize labels
-    let label = name.charAt(0).toUpperCase() + name.slice(1).replace(/-/g, ' ');
-    if (name.length > 20) label = label.slice(0, 17) + '...'; // Truncate IDs
+    const meta = getRouteMetaByPath(path);
+    const label =
+      meta?.label ?? name.charAt(0).toUpperCase() + name.slice(1).replace(/-/g, ' ');
 
     return { label, path, isLast };
   });

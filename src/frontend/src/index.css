@@ -8,7 +8,7 @@
   --card-border: #e2e8f0;
   --text-primary: #1f2937;
   --text-secondary: #6b7280;
-  --text-muted: #94a3b8;
+  --text-muted: #64748b;
   --surface-bg: #f8fafc;
   --surface-bg-alt: #f1f5f9;
   --input-bg: #ffffff;
@@ -29,7 +29,7 @@
   --card-border: #334155;
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-muted: #94a3b8;
   --surface-bg: #0f172a;
   --surface-bg-alt: #1e293b;
   --input-bg: #1e293b;
@@ -156,10 +156,42 @@ h6 {
   border-width: 0;
 }
 
+/* Skip-to-content link — first focusable element on the page */
+.skip-to-content {
+  position: absolute;
+  top: -100%;
+  left: 8px;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: #0ea5e9;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 0 0 6px 6px;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
 /* Focus states for accessibility */
 :focus-visible {
   outline: 2px solid #0ea5e9;
   outline-offset: 2px;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Global animations used in the design system */

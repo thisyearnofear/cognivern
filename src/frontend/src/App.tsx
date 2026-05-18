@@ -1,17 +1,13 @@
-import React, { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-import { AppLayout } from './components/layout';
+import { AppLayout, RouteShell, AuthGuard } from './components/layout';
 import SmartOnboarding from './components/onboarding/SmartOnboarding';
 import LandingPage from './components/landing/LandingPage';
-import { useTheme, useAppStore } from './stores/appStore';
-import PageTransition from './components/ui/PageTransition';
-import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { useAppStore } from './stores/appStore';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
-import { loadingStyles } from './styles/design-system';
 import { FhenixProvider } from './components/blockchain/FhenixProvider';
 
-// Lazy load components for better performance
 const UnifiedDashboard = lazy(() => import('./components/dashboard/UnifiedDashboard'));
 const TradingAgentDashboard = lazy(() => import('./components/trading/TradingAgentDashboard'));
 const PolicyManagement = lazy(() => import('./components/policies/PolicyManagement'));
@@ -22,33 +18,10 @@ const AgentProfile = lazy(() => import('./components/agents/AgentProfile'));
 const AgentWorkshop = lazy(() => import('./components/agents/AgentWorkshop'));
 const GovernancePlayground = lazy(() => import('./components/governance/GovernancePlayground'));
 
-// Enhanced loading component with animations
-const PageSkeleton: React.FC = () => (
-  <div css={loadingStyles.pageSkeleton.container}>
-    <LoadingSpinner type="skeleton" variant="card" width="100%" height={200} />
-    <div
-      style={{
-        width: '100%',
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '1rem',
-      }}
-    >
-      <LoadingSpinner type="skeleton" variant="rectangular" height={150} />
-      <LoadingSpinner type="skeleton" variant="rectangular" height={150} />
-    </div>
-    <LoadingSpinner type="skeleton" lines={3} />
-  </div>
-);
-
 function App() {
-  const { effectiveTheme } = useTheme();
   const setError = useAppStore((state) => state.setError);
   const preferences = useAppStore((state) => state.preferences);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', effectiveTheme === 'dark');
-  }, [effectiveTheme]);
+  const isOnboarded = preferences.onboardingCompleted;
 
   const handleGlobalError = (error: Error) => {
     setError(error.message);
@@ -59,158 +32,47 @@ function App() {
       <ErrorBoundary componentName="Application Root" onError={handleGlobalError}>
         <div className="app">
           <Routes>
-            {/* Landing Page - New users see this first (no FhenixProvider so the
-                CoFHE Portal widget does not bleed into the marketing page) */}
             <Route
               path="/"
               element={
-                preferences.onboardingCompleted ? (
-                  <Navigate to="/dashboard" replace />
-                ) : (
+                <AuthGuard isAuthenticated={!isOnboarded} redirectTo="/dashboard">
                   <LandingPage />
-                )
+                </AuthGuard>
               }
             />
 
-            {/* Onboarding - Shown after "Get Started" on landing */}
             <Route
               path="/onboarding"
               element={
-                <ErrorBoundary componentName="Onboarding" showRetry>
-                  {preferences.onboardingCompleted ? (
-                    <Navigate to="/dashboard" replace />
-                  ) : (
+                <AuthGuard isAuthenticated={!isOnboarded} redirectTo="/dashboard">
+                  <ErrorBoundary componentName="Onboarding" showRetry>
                     <SmartOnboarding />
-                  )}
-                </ErrorBoundary>
+                  </ErrorBoundary>
+                </AuthGuard>
               }
             />
 
-            {/* App Routes with Layout - FhenixProvider only wraps the
-                authenticated app where confidential features are used */}
             <Route
               path="/"
               element={
-                <FhenixProvider>
-                  <AppLayout />
-                </FhenixProvider>
+                <AuthGuard isAuthenticated={isOnboarded} redirectTo="/">
+                  <FhenixProvider>
+                    <AppLayout />
+                  </FhenixProvider>
+                </AuthGuard>
               }
             >
-              {/* Dashboard - Default for returning users */}
-              <Route
-                path="dashboard"
-                element={
-                  <ErrorBoundary componentName="Dashboard">
-                    <PageTransition type="slide">
-                      <Suspense fallback={<PageSkeleton />}>
-                        <UnifiedDashboard />
-                      </Suspense>
-                    </PageTransition>
-                  </ErrorBoundary>
-                }
-              />
-
-              {/* Agents Route */}
-              <Route
-                path="agents"
-                element={
-                  <PageTransition type="slide">
-                    <Suspense fallback={<PageSkeleton />}>
-                      <TradingAgentDashboard />
-                    </Suspense>
-                  </PageTransition>
-                }
-              />
-
-              <Route
-                path="agents/:agentId"
-                element={
-                  <PageTransition type="slide">
-                    <Suspense fallback={<PageSkeleton />}>
-                      <AgentProfile />
-                    </Suspense>
-                  </PageTransition>
-                }
-              />
-
-              <Route
-                path="agents/workshop"
-                element={
-                  <PageTransition type="slide">
-                    <Suspense fallback={<PageSkeleton />}>
-                      <AgentWorkshop />
-                    </Suspense>
-                  </PageTransition>
-                }
-              />
-
+              <Route path="dashboard" element={<RouteShell componentName="Dashboard"><UnifiedDashboard /></RouteShell>} />
+              <Route path="agents" element={<RouteShell componentName="Agents"><TradingAgentDashboard /></RouteShell>} />
+              <Route path="agents/:agentId" element={<RouteShell componentName="Agent Profile"><AgentProfile /></RouteShell>} />
+              <Route path="agents/workshop" element={<RouteShell componentName="Agent Workshop"><AgentWorkshop /></RouteShell>} />
               <Route path="agents/connect" element={<Navigate to="/agents/workshop" replace />} />
-
-              {/* Legacy trading route - redirect to agents */}
               <Route path="trading" element={<Navigate to="/agents" replace />} />
-
-              {/* Policies Route */}
-              <Route
-                path="policies"
-                element={
-                  <PageTransition type="slide">
-                    <Suspense fallback={<PageSkeleton />}>
-                      <PolicyManagement />
-                    </Suspense>
-                  </PageTransition>
-                }
-              />
-
-              {/* Audit Logs Route */}
-              <Route
-                path="audit"
-                element={
-                  <PageTransition type="slide">
-                    <Suspense fallback={<PageSkeleton />}>
-                      <AuditLogs />
-                    </Suspense>
-                  </PageTransition>
-                }
-              />
-
-              {/* Run Ledger Routes */}
-              <Route
-                path="runs"
-                element={
-                  <PageTransition type="slide">
-                    <Suspense fallback={<PageSkeleton />}>
-                      <RunLedger />
-                    </Suspense>
-                  </PageTransition>
-                }
-              />
-
-              <Route
-                path="runs/:runId"
-                element={
-                  <PageTransition type="slide">
-                    <Suspense fallback={<PageSkeleton />}>
-                      <RunDetails />
-                    </Suspense>
-                  </PageTransition>
-                }
-              />
-
-              {/* Governance Playground */}
-              <Route
-                path="governance/check"
-                element={
-                  <ErrorBoundary componentName="Governance Playground">
-                    <PageTransition type="slide">
-                      <Suspense fallback={<PageSkeleton />}>
-                        <GovernancePlayground />
-                      </Suspense>
-                    </PageTransition>
-                  </ErrorBoundary>
-                }
-              />
-
-              {/* Redirect unknown routes to dashboard */}
+              <Route path="policies" element={<RouteShell componentName="Policies"><PolicyManagement /></RouteShell>} />
+              <Route path="audit" element={<RouteShell componentName="Audit"><AuditLogs /></RouteShell>} />
+              <Route path="runs" element={<RouteShell componentName="Runs"><RunLedger /></RouteShell>} />
+              <Route path="runs/:runId" element={<RouteShell componentName="Run Details"><RunDetails /></RouteShell>} />
+              <Route path="governance/check" element={<RouteShell componentName="Governance Playground"><GovernancePlayground /></RouteShell>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

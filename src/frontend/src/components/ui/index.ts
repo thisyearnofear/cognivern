@@ -4,7 +4,7 @@ export { Badge } from './Badge';
 export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './Card';
 export { Modal } from './Modal';
 export { Dialog, ConfirmDialog, PromptDialog, MultiFieldDialog } from './Dialog';
-export { Toast, ToastProvider, useToast } from './Toast';
+export { Toast } from './Toast';
 export { ConfirmationDialog, useConfirmation } from './ConfirmationDialog';
 export { DataTable } from './DataTable';
 export { Form, FormField } from './Form';

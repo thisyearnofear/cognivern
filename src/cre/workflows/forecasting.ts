@@ -1,5 +1,4 @@
 import { ethers } from "ethers";
-import { SapienceService } from "../../services/SapienceService.js";
 import { DefaultEvmAdapter } from "../adapters/evm.js";
 import { DefaultHttpAdapter } from "../adapters/http.js";
 import { DefaultLlmAdapter } from "../adapters/llm.js";
@@ -110,6 +109,7 @@ export async function runForecastingWorkflow(
         "submit_attestation_via_sapience",
       );
 
+      const { SapienceService } = await import("../../services/SapienceService.js");
       const sapience = new SapienceService();
       const req: AttestationRequest = {
         conditionId: condition.id as `0x${string}`,

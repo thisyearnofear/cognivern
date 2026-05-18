@@ -16,13 +16,16 @@ import {
 import { Logger } from "../../../shared/logging/Logger.js";
 
 const logger = new Logger("SapienceTradingAgent");
-import {
-  SapienceService,
-  ForecastRequest,
-} from "../../../services/SapienceService.js";
-import { RecallService } from "../../../services/RecallService.js";
-import { AutomatedForecastingService } from "../../../services/AutomatedForecastingService.js";
-import { TradingHistoryService } from "../../../services/TradingHistoryService.js";
+
+type SapienceServiceType = InstanceType<
+  typeof import("../../../services/SapienceService.js").SapienceService
+>;
+type AutomatedForecastingServiceType = InstanceType<
+  typeof import("../../../services/AutomatedForecastingService.js").AutomatedForecastingService
+>;
+type RecallServiceType = InstanceType<
+  typeof import("../../../services/RecallService.js").RecallService
+>;
 
 export class SapienceTradingAgent implements TradingAgent {
   public readonly id: string;
@@ -31,9 +34,9 @@ export class SapienceTradingAgent implements TradingAgent {
   public status: "active" | "inactive" | "paused" | "error" = "inactive";
   public config: TradingAgentConfig;
 
-  private sapienceService: SapienceService;
-  private recallService: RecallService;
-  private forecastingService: AutomatedForecastingService;
+  private sapienceService?: SapienceServiceType;
+  private recallService?: RecallServiceType;
+  private forecastingService?: AutomatedForecastingServiceType;
   private portfolio: Portfolio | null = null;
   private history: any[] = [];
 
@@ -41,11 +44,33 @@ export class SapienceTradingAgent implements TradingAgent {
     this.id = id;
     this.name = name;
     this.config = config;
-    this.sapienceService = new SapienceService();
-    this.recallService = new RecallService();
-    this.forecastingService = new AutomatedForecastingService({
-      sapienceService: this.sapienceService,
-    });
+  }
+
+  private async ensureServices(): Promise<void> {
+    if (this.sapienceService && this.recallService && this.forecastingService) {
+      return;
+    }
+
+    try {
+      const [
+        { SapienceService },
+        { RecallService },
+        { AutomatedForecastingService },
+      ] = await Promise.all([
+        import("../../../services/SapienceService.js"),
+        import("../../../services/RecallService.js"),
+        import("../../../services/AutomatedForecastingService.js"),
+      ]);
+
+      this.sapienceService = new SapienceService();
+      this.recallService = new RecallService();
+      this.forecastingService = new AutomatedForecastingService({
+        sapienceService: this.sapienceService,
+      });
+    } catch (error) {
+      logger.error("Failed to load Sapience services", error instanceof Error ? error : undefined);
+      throw error;
+    }
   }
 
   async initialize(): Promise<void> {
@@ -62,6 +87,7 @@ export class SapienceTradingAgent implements TradingAgent {
       throw new Error("Cannot start agent in error state");
     }
 
+    await this.ensureServices();
     this.status = "active";
     await this.reportActivity({
       agentId: this.id,
@@ -109,7 +135,8 @@ export class SapienceTradingAgent implements TradingAgent {
     if (this.status !== "active") return;
 
     try {
-      const result = await this.forecastingService.runForecastingCycle();
+      await this.ensureServices();
+      const result = await this.forecastingService!.runForecastingCycle();
 
       if (result.success) {
         // Create a decision record for the history/frontend
@@ -140,6 +167,8 @@ export class SapienceTradingAgent implements TradingAgent {
       throw new Error("Agent is not active");
     }
 
+    await this.ensureServices();
+
     // Check compliance before executing
     const compliance = await this.checkCompliance(decision);
     if (!compliance.isCompliant) {
@@ -154,18 +183,18 @@ export class SapienceTradingAgent implements TradingAgent {
 
     try {
       // Execute forecast/trade through Sapience Service
-      const forecast: ForecastRequest = {
+      const forecast = {
         marketId: decision.symbol, // Using symbol as marketId for now
         probability: decision.confidence,
         confidence: decision.confidence,
         reasoning: decision.reasoning,
       };
 
-      const txHash = await this.sapienceService.submitForecast(forecast);
+      const txHash = await this.sapienceService!.submitForecast(forecast);
 
       // Store reasoning in Recall Memory
       try {
-        await this.recallService.store({
+        await this.recallService!.store({
           agentId: this.id,
           type: "reasoning",
           content: `Forecast submitted for ${forecast.marketId}. Probability: ${forecast.probability}%. Reasoning: ${forecast.reasoning}`,
@@ -224,7 +253,8 @@ export class SapienceTradingAgent implements TradingAgent {
 
   async getPortfolio(): Promise<Portfolio> {
     try {
-      const balance = await this.sapienceService.getEthBalance();
+      await this.ensureServices();
+      const balance = await this.sapienceService!.getEthBalance();
       this.portfolio = {
         totalValue: parseFloat(balance),
         cash: parseFloat(balance),
@@ -314,7 +344,8 @@ export class SapienceTradingAgent implements TradingAgent {
   }
 
   async getStatus(): Promise<any> {
-    const forecastingStats = await this.forecastingService.getStats();
+    await this.ensureServices();
+    const forecastingStats = await this.forecastingService!.getStats();
 
     return {
       id: this.id,

@@ -1,10 +1,9 @@
 /** @jsxImportSource @emotion/react */
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { designTokens } from '../../styles/design-system';
 import { css, keyframes } from '@emotion/react';
 import { CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 
-// Toast types
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 export interface ToastItem {
@@ -22,20 +21,6 @@ export interface ToastProps extends ToastItem {
   onClose: (id: string) => void;
 }
 
-// Context types
-interface ToastContextValue {
-  toasts: ToastItem[];
-  addToast: (toast: Omit<ToastItem, 'id'>) => string;
-  removeToast: (id: string) => void;
-  clearAll: () => void;
-  success: (message: string, duration?: number) => string;
-  error: (message: string, duration?: number) => string;
-  warning: (message: string, duration?: number) => string;
-  info: (message: string, duration?: number) => string;
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null);
-
 // Animations
 const slideIn = keyframes`
   from { transform: translateX(100%); opacity: 0; }
@@ -45,11 +30,6 @@ const slideIn = keyframes`
 const slideOut = keyframes`
   from { transform: translateX(0); opacity: 1; }
   to { transform: translateX(100%); opacity: 0; }
-`;
-
-const slideUp = keyframes`
-  from { transform: translateY(100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
 `;
 
 const progress = keyframes`
@@ -218,107 +198,6 @@ const ToastItemComponent: React.FC<{
   );
 };
 
-// Toast container
-const ToastContainer: React.FC<{
-  toasts: ToastItem[];
-  onClose: (id: string) => void;
-}> = ({ toasts, onClose }) => (
-  <div
-    css={css`
-      position: fixed;
-      top: ${designTokens.spacing[4]};
-      right: ${designTokens.spacing[4]};
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: ${designTokens.spacing[3]};
-      max-height: calc(100vh - ${designTokens.spacing[8]});
-      overflow-y: auto;
-
-      &::-webkit-scrollbar {
-        width: 6px;
-      }
-      &::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      &::-webkit-scrollbar-thumb {
-        background: var(--border-subtle);
-        border-radius: 3px;
-      }
-    `}
-  >
-    {toasts.map((toast) => (
-      <ToastItemComponent key={toast.id} toast={toast} onClose={onClose} />
-    ))}
-  </div>
-);
-
-// Toast Provider
-export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-
-  const addToast = useCallback((toast: Omit<ToastItem, 'id'>): string => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    setToasts((prev) => [...prev, { ...toast, id }]);
-    return id;
-  }, []);
-
-  const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
-
-  const clearAll = useCallback(() => {
-    setToasts([]);
-  }, []);
-
-  const success = useCallback(
-    (message: string, duration?: number) => {
-      return addToast({ type: 'success', message, duration });
-    },
-    [addToast]
-  );
-
-  const error = useCallback(
-    (message: string, duration?: number) => {
-      return addToast({ type: 'error', message, duration: duration ?? 8000 });
-    },
-    [addToast]
-  );
-
-  const warning = useCallback(
-    (message: string, duration?: number) => {
-      return addToast({ type: 'warning', message, duration: duration ?? 6000 });
-    },
-    [addToast]
-  );
-
-  const info = useCallback(
-    (message: string, duration?: number) => {
-      return addToast({ type: 'info', message, duration });
-    },
-    [addToast]
-  );
-
-  return (
-    <ToastContext.Provider
-      value={{ toasts, addToast, removeToast, clearAll, success, error, warning, info }}
-    >
-      {children}
-      <ToastContainer toasts={toasts} onClose={removeToast} />
-    </ToastContext.Provider>
-  );
-};
-
-// Hook
-export const useToast = (): ToastContextValue => {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
-  }
-  return context;
-};
-
-// Simple standalone Toast (for use without provider)
 export const Toast: React.FC<ToastProps> = ({ id, type, message, duration, onClose, action }) => {
   return (
     <ToastItemComponent
@@ -328,4 +207,4 @@ export const Toast: React.FC<ToastProps> = ({ id, type, message, duration, onClo
   );
 };
 
-export default ToastProvider;
+export default Toast;
