@@ -1,6 +1,16 @@
 #!/usr/bin/env sh
-# Run type-check and lint on the frontend before every commit.
-# Catches broken imports (e.g. missing named exports) before they reach the server.
+# Pre-commit checks: typecheck, lint, secrets scanning
+
+echo "▶ secrets scan..."
+git diff --cached --name-only --diff-filter=A | while read -r file; do
+  if [ -f "$file" ]; then
+    # Check for common secret patterns in new files
+    if grep -qE '(PRIVATE_KEY|API_KEY|SECRET|PASSWORD|TOKEN).*0x[a-fA-F0-9]{40,}|ghp_[a-zA-Z0-9]{36,}|sk-[a-zA-Z0-9]{20,}|AIza[0-9A-Za-z_-]{35}' "$file" 2>/dev/null; then
+      echo "⚠  WARNING: $file may contain a secret (private key, API key, or token)"
+      echo "   If this is intentional, add a comment with 'pragma: allowlist secret' to bypass."
+    fi
+  fi
+done
 
 echo "▶ typecheck (frontend)..."
 pnpm --filter ./src/frontend run typecheck

@@ -42,7 +42,7 @@ const sapienceConfigSchema = z.object({
 // API configuration
 const apiConfigSchema = z.object({
   COGNIVERN_API_KEY: z.string().min(1),
-  CORS_ORIGIN: z.string().default("*"),
+  CORS_ORIGIN: z.string().default("http://localhost:5173"),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000), // 15 minutes
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
   REQUEST_TIMEOUT: z.coerce.number().default(30000),
