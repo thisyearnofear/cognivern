@@ -108,3 +108,7 @@ data/
 
 # Root-level ecosystem.config.cjs (server-local PM2 override — use config/ecosystem.config.cjs)
 /ecosystem.config.cjs
+
+# Deploy scripts (contain server IPs, SSH targets, local overrides)
+scripts/deploy.sh
+scripts/monitoring/monitor-api.sh
