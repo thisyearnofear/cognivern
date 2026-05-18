@@ -21,9 +21,8 @@ const AppLayoutContent: React.FC = () => {
   const { isMobile } = useBreakpoint();
   const { sidebarState } = useLayout();
 
-  // Apply theme to document
+  // Theme attributes handled by ThemeProvider — keep colorScheme for legacy sync
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', effectiveTheme);
     document.documentElement.style.colorScheme = effectiveTheme;
   }, [effectiveTheme]);
 
@@ -160,9 +159,13 @@ const AppLayoutContent: React.FC = () => {
 
   return (
     <div css={layoutStyles}>
+      {/* Skip-to-content link — first focusable element */}
+      <a href="#main-content" className="skip-to-content">
+        Skip to content
+      </a>
       <ImprovedSidebar />
       <Header />
-      <main css={mainStyles}>
+      <main id="main-content" aria-label="Main content" css={mainStyles}>
         <DemoBanner />
         <div css={contentWrapperStyles}>
           <Outlet />

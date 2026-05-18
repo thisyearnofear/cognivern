@@ -19,9 +19,12 @@ export const PageTransition: React.FC<PageTransitionProps> = ({
   const [transitionStage, setTransitionStage] = useState<'entering' | 'entered' | 'exiting'>(
     'entered'
   );
+  const prefersReducedMotion =
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const entranceKeyframes =
-    type === 'fade'
+  const entranceKeyframes = prefersReducedMotion
+    ? [{ opacity: 1 }, { opacity: 1 }]
+    : type === 'fade'
       ? [{ opacity: 0 }, { opacity: 1 }]
       : type === 'scale'
         ? [

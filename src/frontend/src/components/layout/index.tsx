@@ -3,6 +3,9 @@ export { ImprovedAppLayout as AppLayout } from './ImprovedAppLayout';
 export { default as Sidebar } from './ImprovedSidebar';
 export { default as Header } from './Header';
 
+// Route utilities
+export { RouteShell, AuthGuard, getRouteMetaByPath, appRouteMeta } from './routeMeta';
+
 // Responsive layout system
 export {
   LayoutProvider,

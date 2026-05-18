@@ -9,7 +9,6 @@ export {
   useResolvedTheme,
   withTheme,
   themeTransitionCSS,
-  themeVariables,
   type ThemeMode,
 } from './ThemeProvider';
 

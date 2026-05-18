@@ -5,17 +5,31 @@
  */
 
 import { Request, Response } from "express";
-import { SapienceService } from "../../../services/SapienceService.js";
-import { AutomatedForecastingService } from "../../../services/AutomatedForecastingService.js";
 import { Logger } from "../../../shared/logging/Logger.js";
 
 const logger = new Logger("SapienceController");
 
-export class SapienceController {
-  private sapienceService: SapienceService;
-  private forecastingService: AutomatedForecastingService;
+type SapienceServiceType = InstanceType<
+  typeof import("../../../services/SapienceService.js").SapienceService
+>;
+type AutomatedForecastingServiceType = InstanceType<
+  typeof import("../../../services/AutomatedForecastingService.js").AutomatedForecastingService
+>;
 
-  constructor() {
+export class SapienceController {
+  private sapienceService?: SapienceServiceType;
+  private forecastingService?: AutomatedForecastingServiceType;
+
+  private async ensureServices(): Promise<void> {
+    if (this.sapienceService && this.forecastingService) {
+      return;
+    }
+
+    const [{ SapienceService }, { AutomatedForecastingService }] = await Promise.all([
+      import("../../../services/SapienceService.js"),
+      import("../../../services/AutomatedForecastingService.js"),
+    ]);
+
     this.sapienceService = new SapienceService();
     this.forecastingService = new AutomatedForecastingService({
       sapienceService: this.sapienceService,
@@ -28,8 +42,9 @@ export class SapienceController {
    */
   async getStatus(req: Request, res: Response): Promise<void> {
     try {
-      const stats = this.forecastingService.getStats();
-      const walletAddress = this.sapienceService.getAddress();
+      await this.ensureServices();
+      const stats = this.forecastingService!.getStats();
+      const walletAddress = this.sapienceService!.getAddress();
 
       res.json({
         status: "operational",
@@ -52,6 +67,7 @@ export class SapienceController {
    */
   async submitForecast(req: Request, res: Response): Promise<void> {
     try {
+      await this.ensureServices();
       const { conditionId, probability, reasoning, confidence } = req.body;
 
       if (!conditionId || probability === undefined) {
@@ -70,7 +86,7 @@ export class SapienceController {
         return;
       }
 
-      const txHash = await this.sapienceService.submitForecast({
+      const txHash = await this.sapienceService!.submitForecast({
         marketId: conditionId,
         probability,
         reasoning: reasoning || "Manual forecast submission",
@@ -99,7 +115,8 @@ export class SapienceController {
    */
   async submitAutomatedForecast(req: Request, res: Response): Promise<void> {
     try {
-      const result = await this.forecastingService.runForecastingCycle();
+      await this.ensureServices();
+      const result = await this.forecastingService!.runForecastingCycle();
 
       if (result.success) {
         res.json({
@@ -129,12 +146,12 @@ export class SapienceController {
    */
   async getWallet(req: Request, res: Response): Promise<void> {
     try {
-      const address = this.sapienceService.getAddress();
+      await this.ensureServices();
+      const address = this.sapienceService!.getAddress();
 
       res.json({
         address,
         network: "arbitrum",
-        // Note: Balance check would require provider integration
       });
     } catch (error) {
       logger.error("Failed to get wallet info:", error);
@@ -148,19 +165,20 @@ export class SapienceController {
   /**
    * Start continuous forecasting
    */
-  startContinuousForecasting(intervalMinutes: number = 60): void {
+  async startContinuousForecasting(intervalMinutes: number = 60): Promise<void> {
+    await this.ensureServices();
     logger.info(
       `Starting continuous forecasting service (interval: ${intervalMinutes} minutes)`,
     );
-    this.forecastingService.startContinuousForecasting(intervalMinutes);
+    this.forecastingService!.startContinuousForecasting(intervalMinutes);
   }
+
   /**
    * GET /api/sapience/decisions
    */
   async getDecisions(req: Request, res: Response): Promise<void> {
     try {
-      const stats = this.forecastingService.getStats();
-      // Transform forecasting stats to TradingDecision format
+      await this.ensureServices();
       const decisions = [
         {
           id: "sapience-1",

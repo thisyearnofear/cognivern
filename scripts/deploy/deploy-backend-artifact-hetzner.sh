@@ -3,45 +3,41 @@ set -euo pipefail
 
 HOST="${HOST:-snel-bot}"
 REMOTE_BASE="${REMOTE_BASE:-/opt/cognivern}"
+REMOTE_APP_DIR="$REMOTE_BASE/app"
 ARTIFACT_DIR="${ARTIFACT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/.artifacts}"
+PM2_APP_NAME="${PM2_APP_NAME:-cognivern-backend}"
 
 LATEST_TGZ="${ARTIFACT_TGZ:-$(ls -t "$ARTIFACT_DIR"/*.tgz | head -n 1)}"
-RELEASE_NAME="$(basename "$LATEST_TGZ" .tgz)"
 
 echo "== deploying $LATEST_TGZ to $HOST"
 
-ssh "$HOST" "mkdir -p '$REMOTE_BASE/releases' '$REMOTE_BASE/shared/data' '$REMOTE_BASE/shared/logs'"
+ssh "$HOST" "mkdir -p '$REMOTE_APP_DIR' '$REMOTE_BASE/shared/data' '$REMOTE_BASE/shared/logs'"
+scp "$LATEST_TGZ" "$HOST:$REMOTE_BASE/app.tgz"
 
-# Upload artifact
-scp "$LATEST_TGZ" "$HOST:$REMOTE_BASE/releases/$RELEASE_NAME.tgz"
-
-# Unpack release and wire shared dirs
 ssh "$HOST" "set -e; \
-  cd '$REMOTE_BASE/releases'; \
-  mkdir -p '$RELEASE_NAME'; \
-  tar -xzf '$RELEASE_NAME.tgz' -C '$RELEASE_NAME'; \
-  ln -sfn '$REMOTE_BASE/shared/data' '$REMOTE_BASE/releases/$RELEASE_NAME/data'; \
-  ln -sfn '$REMOTE_BASE/shared/logs' '$REMOTE_BASE/releases/$RELEASE_NAME/logs'; \
+  rm -rf '$REMOTE_APP_DIR'; \
+  mkdir -p '$REMOTE_APP_DIR'; \
+  tar -xzf '$REMOTE_BASE/app.tgz' -C '$REMOTE_APP_DIR'; \
+  rm -f '$REMOTE_BASE/app.tgz'; \
+  ln -sfn '$REMOTE_BASE/shared/data' '$REMOTE_APP_DIR/data'; \
+  ln -sfn '$REMOTE_BASE/shared/logs' '$REMOTE_APP_DIR/logs'; \
   if [ -f '$REMOTE_BASE/shared/.env' ]; then \
-    ln -sfn '$REMOTE_BASE/shared/.env' '$REMOTE_BASE/releases/$RELEASE_NAME/.env'; \
-  else \
-    if [ -f '$REMOTE_BASE/.env' ]; then \
-      cp -n '$REMOTE_BASE/.env' '$REMOTE_BASE/shared/.env' || true; \
-      ln -sfn '$REMOTE_BASE/shared/.env' '$REMOTE_BASE/releases/$RELEASE_NAME/.env'; \
-    fi; \
+    ln -sfn '$REMOTE_BASE/shared/.env' '$REMOTE_APP_DIR/.env'; \
+  elif [ -f '$REMOTE_BASE/.env' ]; then \
+    cp -n '$REMOTE_BASE/.env' '$REMOTE_BASE/shared/.env' || true; \
+    ln -sfn '$REMOTE_BASE/shared/.env' '$REMOTE_APP_DIR/.env'; \
   fi; \
-  cd '$REMOTE_BASE/releases/$RELEASE_NAME'; \
+  cd '$REMOTE_APP_DIR'; \
   export CI=true; \
-  pnpm install --prod --frozen-lockfile=false; \
-  ln -sfn '$REMOTE_BASE/releases/$RELEASE_NAME' '$REMOTE_BASE/current'; \
-  pm2 restart cognivern-api --update-env || pm2 start '$REMOTE_BASE/config/ecosystem.config.cjs'; \
+  npm install --omit=dev --ignore-scripts --no-audit --no-fund --legacy-peer-deps; \
+  if pm2 describe '$PM2_APP_NAME' >/dev/null 2>&1; then \
+    pm2 restart '$PM2_APP_NAME' --update-env; \
+  else \
+    pm2 start '$REMOTE_APP_DIR/config/ecosystem.config.cjs'; \
+  fi; \
   pm2 save; \
   sleep 2; \
   curl -sf http://127.0.0.1:10000/health | head -c 200; echo; \
-  echo '== release deployed: $RELEASE_NAME'"
-
-# Retain last N releases
-RETAIN="${RETAIN:-5}"
-ssh "$HOST" "bash -lc 'cd "$REMOTE_BASE/releases" && ls -1dt cognivern-backend-* 2>/dev/null | tail -n +$((RETAIN+1)) | xargs -r rm -rf'"
+  echo '== app deployed in place'"
 
 echo "== done"

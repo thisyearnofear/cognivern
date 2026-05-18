@@ -140,8 +140,13 @@ export class McpGovernanceController {
       // Resolve active policy
       let resolvedPolicyId = policyId;
       if (!resolvedPolicyId) {
-        const policies = await this.policyService.getPolicies();
-        const active = policies.find((p: { status: string }) => p.status === "active");
+        const policies = await this.policyService.listPolicies();
+        const active = policies
+          .filter((candidate) => candidate.status === "active" && candidate.rules.length > 0)
+          .sort(
+            (left, right) =>
+              new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+          )[0];
         resolvedPolicyId = active?.id;
       }
 
@@ -164,16 +169,21 @@ export class McpGovernanceController {
         return;
       }
 
+      const actionInput = action as Partial<AgentAction> & {
+        amount?: number;
+        currency?: string;
+      };
+
       const normalizedAction: AgentAction = {
         id: crypto.randomUUID(),
         timestamp,
-        type: action.type ?? "unknown",
-        description: action.description ?? "",
+        type: actionInput.type ?? "unknown",
+        description: actionInput.description ?? "",
         metadata: {
-          ...(action.metadata ?? {}),
+          ...(actionInput.metadata ?? {}),
           agentId,
-          amount: action.amount ?? 0,
-          currency: action.currency ?? "USD",
+          amount: actionInput.amount ?? 0,
+          currency: actionInput.currency ?? "USD",
           a2aTraceId,
           mcpCallId: callId,
         },
@@ -212,14 +222,13 @@ export class McpGovernanceController {
       }
 
       // Record audit log
-      let auditLogId: string | undefined;
+      const auditLogId: string | null = null;
       try {
-        const auditLog = await this.auditLogService.logAction(
+        await this.auditLogService.logAction(
           normalizedAction,
           policyChecks,
           allowed,
         );
-        auditLogId = auditLog?.id;
       } catch (auditErr) {
         logger.warn("Audit log write failed (non-fatal)", {
           error: auditErr instanceof Error ? auditErr.message : String(auditErr),
