@@ -1,15 +1,10 @@
 import { Request, Response } from "express";
-import { FhenixPolicyService } from "../../../services/FhenixPolicyService.js";
+import { sharedFhenixPolicyService } from "../../../services/FhenixPolicyService.js";
 import { Logger } from "../../../shared/logging/Logger.js";
 
 const logger = new Logger("FhenixController");
 
-const fhenixPolicyService = new FhenixPolicyService({
-  rpcUrl: process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
-  contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
-  privateKey: process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
-  evaluateTimeoutMs: Number(process.env.FHENIX_EVALUATE_TIMEOUT_MS || "30000"),
-});
+const fhenixPolicyService = sharedFhenixPolicyService;
 
 export class FhenixController {
   /**

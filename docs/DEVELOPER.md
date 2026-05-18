@@ -42,7 +42,15 @@ INTENT_RATE_LIMIT_PER_MINUTE=30   # 30 requests/min for AI intent (expensive)
 GOVERNANCE_RATE_LIMIT_PER_MINUTE=60  # 60 requests/min for governance
 ```
 
-Contract addresses (`GOVERNANCE_CONTRACT_ADDRESS`, `STORAGE_CONTRACT_ADDRESS`) and `RECALL_API_KEY` can be left empty for local dev — they default to empty strings. AI provider keys enable the natural language intent system; without them, keyword-based fallback responses are used.
+# Fhenix / CoFHE (optional — for confidential policy evaluation)
+FHENIX_RPC_URL=https://api.testnet.fhenix.zone
+FHENIX_POLICY_CONTRACT=
+# Falls back to FILECOIN_PRIVATE_KEY if not set
+FHENIX_PRIVATE_KEY=
+FHENIX_EVALUATE_TIMEOUT_MS=30000
+```
+
+Fhenix variables can be left empty for local dev — the service falls back to a deny decision when the CoFHE client is unavailable. Contract addresses (`GOVERNANCE_CONTRACT_ADDRESS`, `STORAGE_CONTRACT_ADDRESS`) and `RECALL_API_KEY` can be left empty for local dev — they default to empty strings. AI provider keys enable the natural language intent system; without them, keyword-based fallback responses are used.
 
 ### Smart Contracts
 

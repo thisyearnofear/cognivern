@@ -42,6 +42,9 @@ contract ConfidentialSpendPolicy {
     mapping(bytes32 => EncryptedPolicy)  public policies; // policyId -> policy
     mapping(bytes32 => EncryptedCounter) public counters; // agentId  -> counter
 
+    // Resolved outcomes — set by operator after off-chain FHE decrypt
+    mapping(bytes32 => Outcome) public resolvedOutcomes;
+
     // Hyperlane Integration
     IMailbox public mailbox;
     uint32 public xLayerDestinationDomain;
@@ -57,6 +60,7 @@ contract ConfidentialSpendPolicy {
         Outcome outcome,
         bytes   attestation
     );
+    event DecisionResolved(bytes32 indexed decisionId, Outcome outcome);
 
     constructor() {
         owner = msg.sender;
@@ -167,9 +171,31 @@ contract ConfidentialSpendPolicy {
     }
 
     /**
+     * Resolve a pending decision with the actual FHE outcome.
+     * Callable only by the contract owner after off-chain threshold decryption.
+     * This is the second phase: evaluateSpend emits Pending, then operator
+     * resolves with the real outcome via this function.
+     */
+    function resolveDecision(bytes32 decisionId, Outcome outcome) external {
+        require(msg.sender == owner, "not owner");
+        require(outcome != Outcome.Pending, "outcome must be resolved");
+        require(resolvedOutcomes[decisionId] == Outcome.Pending, "already resolved");
+        resolvedOutcomes[decisionId] = outcome;
+        emit DecisionResolved(decisionId, outcome);
+    }
+
+    /**
+     * Check if a resolved decision allows execution.
+     */
+    function isDecisionApproved(bytes32 decisionId) public view returns (bool) {
+        Outcome outcome = resolvedOutcomes[decisionId];
+        return outcome == Outcome.Approve;
+    }
+
+    /**
      * Request a DeFi action (e.g. Swap) to be executed by the GovernedVault on X Layer.
      * Evaluates encrypted budget via evaluateSpend before dispatching.
-     * Only dispatches to the vault if the spend evaluation does not result in Deny.
+     * Only dispatches to the vault if the spend evaluation has been resolved to Approve.
      */
     function requestDeFiAction(
         bytes32 agentId,
@@ -205,9 +231,9 @@ contract ConfidentialSpendPolicy {
 
         decisionId = keccak256(abi.encode(agentId, policyId, vendorHash, target, data, block.number));
 
-        // Dispatch to DeFi vault only when budget checks pass (resolved off-chain via permit).
-        // The vault must verify the decisionId against the backend-resolved outcome before executing.
+        // Only dispatch to DeFi vault if the decision has been resolved to Approve
         if (address(mailbox) != address(0) && xLayerDeFiVault != bytes32(0)) {
+            require(resolvedOutcomes[decisionId] == Outcome.Approve, "decision not approved");
             uint256 value = 0;
             bytes memory payload = abi.encode(decisionId, agentId, target, value, data);
             mailbox.dispatch(xLayerDestinationDomain, xLayerDeFiVault, payload);
