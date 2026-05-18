@@ -36,7 +36,8 @@ const envSchema = z.object({
   COGNIVERN_API_KEY: z.string().min(1),
 
   // Filecoin Configuration
-  FILECOIN_PRIVATE_KEY: z.string().min(1),
+  FILECOIN_ENABLED: z.coerce.boolean().default(false),
+  FILECOIN_PRIVATE_KEY: z.string().optional(),
   FILECOIN_RPC_URL: z
     .string()
     .default("https://api.calibration.node.glif.io/rpc/v1"),
@@ -80,7 +81,7 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
 
   // Security
-  CORS_ORIGIN: z.string().default("*"),
+  CORS_ORIGIN: z.string().default("http://localhost:5173"),
 
   // Logging
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),

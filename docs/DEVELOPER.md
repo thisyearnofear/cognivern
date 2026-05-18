@@ -22,8 +22,9 @@ pnpm start
 Create `.env` from `.env.example`. Minimum for local dev:
 
 ```env
-API_KEY=development-api-key
-FILECOIN_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+API_KEY=your_api_key_here
+# Optional — used by OWS wallet bootstrap and Fhenix fallback
+FILECOIN_PRIVATE_KEY=
 GOVERNANCE_CONTRACT_ADDRESS=
 STORAGE_CONTRACT_ADDRESS=
 RECALL_API_KEY=
