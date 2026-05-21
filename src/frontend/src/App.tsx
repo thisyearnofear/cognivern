@@ -32,6 +32,7 @@ const RunDetails = lazy(() => import('./components/cre/RunDetails'));
 const AgentProfile = lazy(() => import('./components/agents/AgentProfile'));
 const AgentWorkshop = lazy(() => import('./components/agents/AgentWorkshop'));
 const GovernancePlayground = lazy(() => import('./components/governance/GovernancePlayground'));
+const SpendFlowDemo = lazy(() => import('./components/demo/SpendFlowDemo').then(m => ({ default: m.SpendFlowDemo })));
 
 function App() {
   const setError = useAppStore((state) => state.setError);
@@ -88,6 +89,7 @@ function App() {
               <Route path="runs" element={<RouteShell componentName="Runs"><RunLedger /></RouteShell>} />
               <Route path="runs/:runId" element={<RouteShell componentName="Run Details"><RunDetails /></RouteShell>} />
               <Route path="governance/check" element={<RouteShell componentName="Governance Playground"><GovernancePlayground /></RouteShell>} />
+              <Route path="demo/spend" element={<RouteShell componentName="Spend Flow Demo"><SpendFlowDemo /></RouteShell>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>
