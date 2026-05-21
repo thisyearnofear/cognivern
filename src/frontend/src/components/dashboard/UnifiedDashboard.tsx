@@ -35,6 +35,7 @@ import { QuestHUD } from './QuestHUD';
 import { Leaderboard, AgentGrid } from './Leaderboard';
 import { ActivityFeed } from './ActivityFeed';
 import { QuickActions } from './QuickActions';
+import { Treasury } from './Treasury';
 import {
   ActivityItem,
   AgentSummary,
@@ -969,7 +970,42 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
           </Button>
         </div>
 
+        {/* Spend Flow Demo CTA */}
+        <div
+          onMouseEnter={() => { import('../demo/SpendFlowDemo'); }}
+          css={css`
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: ${designTokens.spacing[4]};
+            padding: ${designTokens.spacing[3]} ${designTokens.spacing[5]};
+            background: var(--surface-bg-alt, ${designTokens.colors.neutral[50]});
+            border-left: 3px solid ${designTokens.colors.semantic.success[500]};
+            border-radius: ${designTokens.borderRadius.md};
+            flex-wrap: wrap;
+          `}
+        >
+          <div css={css`display: flex; align-items: center; gap: ${designTokens.spacing[3]};`}>
+            <Zap size={20} color={designTokens.colors.semantic.success[600]} style={{ flexShrink: 0 }} />
+            <div>
+              <p css={css`font-weight: ${designTokens.typography.fontWeight.semibold}; color: var(--text-primary, ${designTokens.colors.text.primary}); font-size: ${designTokens.typography.fontSize.sm}; margin: 0;`}>
+                Watch a live spend evaluation
+              </p>
+              <p css={css`font-size: ${designTokens.typography.fontSize.xs}; color: var(--text-secondary, ${designTokens.colors.text.secondary}); margin: 0;`}>
+                See policy → FHE → Hyperlane → Mantle execution in real time.
+              </p>
+            </div>
+          </div>
+          <Button size="sm" variant="secondary" onClick={() => navigate('/demo/spend')}>
+            Run Demo <ArrowRight size={14} css={css`margin-left: 6px;`} />
+          </Button>
+        </div>
+
         <QuickActions isMobile={isMobile} />
+
+        <section css={styles.sectionStyles} data-tour="treasury">
+          <Treasury compact={isMobile} />
+        </section>
 
         <section css={styles.sectionStyles} data-tour="agent-grid">
           <div css={styles.sectionHeaderStyles}>
