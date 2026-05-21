@@ -104,13 +104,15 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({
 
       if (accounts.length > 0) {
         const address = accounts[0];
-        let network: 'filecoin' | 'xlayer' = 'filecoin';
+        let network: 'filecoin' | 'xlayer' | 'mantle' = 'filecoin';
 
         try {
           const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
           const chainId = parseInt(chainIdHex, 16);
           if (chainId === 195 || chainId === 196 || chainId === 1952) {
             network = 'xlayer';
+          } else if (chainId === 5000 || chainId === 5003) {
+            network = 'mantle';
           }
         } catch (e) {
           // Default to filecoin

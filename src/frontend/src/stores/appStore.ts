@@ -18,7 +18,7 @@ export interface User {
   address?: string;
   userType?: string;
   isConnected: boolean;
-  network?: 'filecoin' | 'xlayer';
+  network?: 'filecoin' | 'xlayer' | 'mantle';
   // OWS governance wallet (single source of truth)
   owsWalletConnected: boolean;
   owsWalletAddress?: string;
