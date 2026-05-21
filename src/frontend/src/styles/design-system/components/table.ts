@@ -62,7 +62,7 @@ export const tableStyles = {
     font-size: ${designTokens.typography.fontSize.sm};
     margin-bottom: ${designTokens.spacing[4]};
 
-    &:focus {
+    &:focus-visible {
       outline: none;
       border-color: ${designTokens.colors.primary[500]};
       box-shadow: 0 0 0 2px ${designTokens.colors.primary[100]};

@@ -827,7 +827,7 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
             label="Approval Rate"
             value={`${((stats?.avgWinRate || 0) * 100).toFixed(1)}%`}
             icon={<Percent size={24} />}
-            color="success"
+            color="primary"
             trend={{
               value: `${stats?.activeAgents || 0}/${stats?.totalAgents || 0} agents online`,
               isPositive: true,
@@ -920,13 +920,9 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
             justify-content: space-between;
             gap: ${designTokens.spacing[4]};
             padding: ${designTokens.spacing[4]} ${designTokens.spacing[5]};
-            background: linear-gradient(
-              135deg,
-              ${designTokens.colors.primary[50]},
-              ${designTokens.colors.primary[100]}
-            );
-            border: 1px solid ${designTokens.colors.primary[200]};
-            border-radius: ${designTokens.borderRadius.xl};
+            background: var(--surface-bg-alt, ${designTokens.colors.neutral[50]});
+            border-left: 3px solid ${designTokens.colors.primary[500]};
+            border-radius: ${designTokens.borderRadius.md};
             flex-wrap: wrap;
           `}
         >
