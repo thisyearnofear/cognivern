@@ -32,6 +32,11 @@ const fadeSlideIn = keyframes`
   }
 `;
 
+const highlightPulse = keyframes`
+  0% { background-color: var(--highlight-color); }
+  100% { background-color: transparent; }
+`;
+
 export const TrustSignals = ({ activity }: { activity: ActivityItem }) => {
   const signals = buildTrustSignals(activity);
   if (!signals.length) return null;
@@ -90,12 +95,26 @@ export const ActivityFeed = ({
           <>
             {displayActivities.map((activity, idx) => (
               <div
-                key={idx}
+                key={activity.id || idx}
+                data-fresh={idx === 0 ? "true" : undefined}
                 css={css`
                   ${styles.activityItemStyles}
                   animation: ${fadeSlideIn} 0.3s ease-out forwards;
                   animation-delay: ${idx * 40}ms;
                   opacity: 0;
+
+                  --highlight-color: ${
+                    activity.severity === 'success' ? designTokens.colors.semantic.success[50] :
+                    activity.severity === 'error' ? designTokens.colors.semantic.error[50] :
+                    activity.severity === 'warning' ? designTokens.colors.semantic.warning[50] :
+                    designTokens.colors.primary[50]
+                  };
+
+                  ${idx === 0 ? `
+                    &[data-fresh="true"] {
+                      animation: ${fadeSlideIn} 0.3s ease-out forwards, ${highlightPulse} 1.5s ease-out 0.3s forwards;
+                    }
+                  ` : ''}
                 `}
               >
                 <div
@@ -107,6 +126,32 @@ export const ActivityFeed = ({
                 </div>
                 <div css={styles.activityDetailsStyles}>
                   <div css={styles.activityTextStyles}>{activity.description || 'Activity'}</div>
+                  {activity.policyReason && (activity.severity === 'error' || activity.severity === 'warning') && (
+                    <div
+                      css={css`
+                        display: inline-flex;
+                        align-items: center;
+                        gap: ${designTokens.spacing[1]};
+                        margin-top: ${designTokens.spacing[1]};
+                        padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+                        font-size: ${designTokens.typography.fontSize.xs};
+                        line-height: 1.3;
+                        border-radius: ${designTokens.borderRadius.sm};
+                        background: ${activity.severity === 'error'
+                          ? designTokens.colors.semantic.error[50]
+                          : designTokens.colors.semantic.warning[50]};
+                        color: ${activity.severity === 'error'
+                          ? designTokens.colors.semantic.error[700]
+                          : designTokens.colors.semantic.warning[700]};
+                        border: 1px solid ${activity.severity === 'error'
+                          ? designTokens.colors.semantic.error[200]
+                          : designTokens.colors.semantic.warning[200]};
+                      `}
+                    >
+                      {activity.severity === 'error' ? <XCircle size={12} /> : <AlertTriangle size={12} />}
+                      <span>{activity.policyReason}</span>
+                    </div>
+                  )}
                   <TrustSignals activity={activity} />
                   <div css={styles.activityTimeStyles}>
                     {activity.timestamp

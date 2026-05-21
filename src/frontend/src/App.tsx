@@ -6,7 +6,22 @@ import SmartOnboarding from './components/onboarding/SmartOnboarding';
 import LandingPage from './components/landing/LandingPage';
 import { useAppStore } from './stores/appStore';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
-import { FhenixProvider } from './components/blockchain/FhenixProvider';
+const LazyFhenixProvider = lazy(() => import('./components/blockchain/FhenixProvider').then(m => ({ default: m.FhenixProvider })));
+
+function Web3Gate({ children }: { children: React.ReactNode }) {
+  const user = useAppStore((state) => state.user);
+  const needsWeb3 = user.owsWalletConnected || user.fhenixConnected;
+
+  if (!needsWeb3) {
+    return <>{children}</>;
+  }
+
+  return (
+    <React.Suspense fallback={children}>
+      <LazyFhenixProvider>{children}</LazyFhenixProvider>
+    </React.Suspense>
+  );
+}
 
 const UnifiedDashboard = lazy(() => import('./components/dashboard/UnifiedDashboard'));
 const TradingAgentDashboard = lazy(() => import('./components/trading/TradingAgentDashboard'));
@@ -56,9 +71,9 @@ function App() {
               path="/"
               element={
                 <AuthGuard isAuthenticated={isOnboarded} redirectTo="/">
-                  <FhenixProvider>
+                  <Web3Gate>
                     <AppLayout />
-                  </FhenixProvider>
+                  </Web3Gate>
                 </AuthGuard>
               }
             >

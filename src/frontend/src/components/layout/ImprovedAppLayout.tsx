@@ -12,6 +12,8 @@ import MobileBottomTabNav from './MobileBottomTabNav';
 import Toast from '../ui/Toast';
 import NotificationCenter from '../ui/NotificationCenter';
 import DemoBanner from '../onboarding/DemoBanner';
+import { Breadcrumbs } from '../ui/Breadcrumbs';
+import AchievementToast from '../ui/AchievementToast';
 
 // Main layout component with responsive behavior
 const AppLayoutContent: React.FC = () => {
@@ -167,6 +169,16 @@ const AppLayoutContent: React.FC = () => {
       <Header />
       <main id="main-content" aria-label="Main content" css={mainStyles}>
         <DemoBanner />
+        {!isMobile && (
+          <div css={css`
+            width: 100%;
+            padding: ${designTokens.spacing[2]} ${designTokens.spacing[6]};
+            flex: 0;
+            min-height: auto;
+          `}>
+            <Breadcrumbs />
+          </div>
+        )}
         <div css={contentWrapperStyles}>
           <Outlet />
         </div>
@@ -174,6 +186,8 @@ const AppLayoutContent: React.FC = () => {
 
       {/* Mobile Navigation */}
       {isMobile && <MobileBottomTabNav />}
+
+      <AchievementToast />
 
       {/* Global Toast Notifications */}
       {error && (
