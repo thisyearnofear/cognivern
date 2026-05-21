@@ -199,7 +199,7 @@ export const skipLinkStyles = `
   z-index: 100;
   transition: top 0.2s ease;
 
-  &:focus {
+  &:focus-visible {
     top: 0;
   }
 `;

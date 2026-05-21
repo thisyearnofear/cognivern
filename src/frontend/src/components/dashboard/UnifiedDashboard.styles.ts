@@ -69,10 +69,12 @@ export const chartsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
 
 export const sectionStyles = css`
   margin-bottom: ${designTokens.spacing[4]};
-  background: var(--card-bg, ${designTokens.colors.background.primary});
-  border-radius: ${designTokens.borderRadius.lg};
-  padding: ${designTokens.spacing[4]};
-  border: 1px solid var(--divider, ${designTokens.colors.border.primary});
+  padding: ${designTokens.spacing[4]} 0;
+  border-bottom: 1px solid var(--divider, ${designTokens.colors.border.primary});
+
+  &:last-child {
+    border-bottom: none;
+  }
 `;
 
 export const prioritySectionStyles = css`

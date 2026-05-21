@@ -172,7 +172,7 @@ h6 {
   transition: top 0.15s ease;
 }
 
-.skip-to-content:focus {
+.skip-to-content:focus-visible {
   top: 0;
 }
 
