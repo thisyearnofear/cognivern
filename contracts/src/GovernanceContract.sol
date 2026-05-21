@@ -145,7 +145,7 @@ contract GovernanceContract is IMessageRecipient {
             "CROSS_CHAIN_FHE_DECISION",
             bytes32(0), // No public data hash for confidential spends
             approved,
-            fhenixSender // Treat the Fhenix contract as the evaluator
+            address(uint160(uint256(fhenixSender)))
         );
     }
 
