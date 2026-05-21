@@ -34,6 +34,22 @@ module.exports = {
         : [],
       chainId: 1952,
     },
+    mantle: {
+      url:
+        process.env.MANTLE_RPC_URL || "https://rpc.mantle.xyz",
+      accounts: process.env.MANTLE_PRIVATE_KEY
+        ? [process.env.MANTLE_PRIVATE_KEY]
+        : [],
+      chainId: 5000,
+    },
+    mantleSepolia: {
+      url:
+        process.env.MANTLE_SEPOLIA_RPC_URL || "https://rpc.sepolia.mantle.xyz",
+      accounts: process.env.MANTLE_PRIVATE_KEY
+        ? [process.env.MANTLE_PRIVATE_KEY]
+        : [],
+      chainId: 5003,
+    },
   },
   paths: {
     sources: path.join(root, "contracts", "src"),

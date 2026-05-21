@@ -5,7 +5,7 @@ import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { LogOut, Wallet } from 'lucide-react';
 
 interface WalletConnectProps {
-  onConnect: (address: string, network: 'filecoin' | 'xlayer') => void;
+  onConnect: (address: string, network: 'filecoin' | 'xlayer' | 'mantle') => void;
   onDisconnect: () => void;
 }
 
@@ -49,6 +49,10 @@ export default function WalletConnect({ onConnect, onDisconnect }: WalletConnect
               // X Layer testnet (1952) or mainnet (196)
               setNetwork('xlayer');
               onConnect(accounts[0], 'xlayer');
+            } else if (chainId === 5000 || chainId === 5003) {
+              // Mantle mainnet (5000) or Sepolia (5003)
+              setNetwork('mantle');
+              onConnect(accounts[0], 'mantle');
             } else if (chainId === 314159) {
               // Filecoin Calibration
               setNetwork('filecoin');
@@ -98,10 +102,14 @@ export default function WalletConnect({ onConnect, onDisconnect }: WalletConnect
           });
           const chainId = parseInt(chainIdHex, 16);
 
-          if (chainId === 195 || chainId === 196) {
-            // X Layer testnet (195) or mainnet (196)
+          if (chainId === 195 || chainId === 196 || chainId === 1952) {
+            // X Layer testnet or mainnet
             setNetwork('xlayer');
             onConnect(userAddress, 'xlayer');
+          } else if (chainId === 5000 || chainId === 5003) {
+            // Mantle mainnet (5000) or Sepolia (5003)
+            setNetwork('mantle');
+            onConnect(userAddress, 'mantle');
           } else if (chainId === 314159) {
             // Filecoin Calibration
             setNetwork('filecoin');
@@ -186,7 +194,8 @@ export default function WalletConnect({ onConnect, onDisconnect }: WalletConnect
   `;
 
   if (isConnected) {
-    const networkName = network === 'xlayer' ? 'X Layer' : 'Filecoin Calibration';
+    const networkName =
+      network === 'xlayer' ? 'X Layer' : network === 'mantle' ? 'Mantle' : 'Filecoin Calibration';
     return (
       <div css={containerStyles}>
         <button css={connectedButtonStyles} title={networkName}>

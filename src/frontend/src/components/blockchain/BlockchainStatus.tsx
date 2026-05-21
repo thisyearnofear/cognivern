@@ -7,6 +7,7 @@ import {
   fetchGovernanceStats,
   fetchAIGovernanceStats,
 } from '../../services/apiService';
+import { checkMantleConnection, fetchVaultBalance, MANTLE_CONTRACT_ADDRESSES } from '../../services/mantleApi';
 
 interface ContractStats {
   filecoin?: {
@@ -30,6 +31,12 @@ interface ContractStats {
     blockNumber: number;
     chainId: number;
     rpcUrl: string;
+  };
+  mantle?: {
+    connected: boolean;
+    blockNumber: number;
+    vaultAddress: string;
+    vaultBalance: string;
   };
   aiGovernance?: {
     totalActions: number;
@@ -57,6 +64,10 @@ export default function BlockchainStatus() {
         // Check X Layer connection
         const connectionInfo = await checkXLayerConnection();
 
+        // Check Mantle connection
+        const mantleInfo = await checkMantleConnection();
+        const mantleBalance = await fetchVaultBalance();
+
         setStats({
           governance: {
             address: '0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6',
@@ -79,6 +90,12 @@ export default function BlockchainStatus() {
             blockNumber: connectionInfo.blockNumber,
             chainId: 1952,
             rpcUrl: 'https://testrpc.xlayer.tech',
+          },
+          mantle: {
+            connected: mantleInfo.connected,
+            blockNumber: mantleInfo.blockNumber,
+            vaultAddress: MANTLE_CONTRACT_ADDRESSES.GOVERNED_VAULT,
+            vaultBalance: mantleBalance,
           },
           aiGovernance: {
             totalActions: aiGovernanceStats.totalActions,
@@ -167,7 +184,7 @@ export default function BlockchainStatus() {
               ${keyframeAnimations.pulse}
             `}
           />
-          X Layer Testnet
+          X Layer + Mantle
         </div>
       </div>
 
@@ -503,6 +520,106 @@ export default function BlockchainStatus() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Mantle Execution Layer */}
+        {stats?.mantle?.vaultAddress && (
+          <Card
+            variant="default"
+            css={css`
+              border: 1px solid ${designTokens.colors.neutral[200]};
+              overflow: hidden;
+            `}
+          >
+            <CardContent
+              css={css`
+                padding: 24px;
+              `}
+            >
+              <div
+                css={css`
+                  display: flex;
+                  align-items: center;
+                  gap: 12px;
+                  margin-bottom: 16px;
+                `}
+              >
+                <span css={css`font-size: 1.5rem;`}>⚡</span>
+                <span
+                  css={css`
+                    font-weight: 700;
+                    font-size: 1rem;
+                    color: ${designTokens.colors.neutral[800]};
+                  `}
+                >
+                  Mantle Vault
+                </span>
+                <div
+                  css={css`
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 2px 8px;
+                    background: ${stats.mantle.connected ? designTokens.colors.semantic.success[50] : designTokens.colors.semantic.error[50]};
+                    border-radius: 100px;
+                    color: ${stats.mantle.connected ? designTokens.colors.semantic.success[700] : designTokens.colors.semantic.error[700]};
+                    font-size: 0.6rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                  `}
+                >
+                  {stats.mantle.connected ? 'Live' : 'Offline'}
+                </div>
+              </div>
+
+              <div
+                css={css`
+                  background: ${designTokens.colors.neutral[50]};
+                  padding: 12px;
+                  border-radius: 8px;
+                  margin-bottom: 20px;
+                  font-family: ${designTokens.typography.fontFamily.mono};
+                  font-size: 0.75rem;
+                  color: ${designTokens.colors.neutral[500]};
+                  border: 1px solid ${designTokens.colors.neutral[100]};
+                  word-break: break-all;
+                `}
+              >
+                <strong css={css`color: ${designTokens.colors.primary[600]}; margin-right: 8px;`}>VAULT:</strong>
+                <a
+                  href={`https://mantlescan.xyz/address/${stats.mantle.vaultAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  css={css`
+                    color: ${designTokens.colors.neutral[500]};
+                    text-decoration: none;
+                    &:hover { color: ${designTokens.colors.primary[600]}; text-decoration: underline; }
+                  `}
+                >
+                  {stats.mantle.vaultAddress}
+                </a>
+              </div>
+
+              <div css={css`display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;`}>
+                <div css={css`text-align: center;`}>
+                  <div css={css`font-size: 1.5rem; font-weight: 800; color: ${designTokens.colors.primary[600]};`}>
+                    {stats.mantle.vaultBalance} MNT
+                  </div>
+                  <div css={css`font-size: 0.65rem; font-weight: 700; color: ${designTokens.colors.neutral[400]}; text-transform: uppercase;`}>
+                    Vault Balance
+                  </div>
+                </div>
+                <div css={css`text-align: center;`}>
+                  <div css={css`font-size: 1.5rem; font-weight: 800; color: ${designTokens.colors.primary[600]};`}>
+                    Block #{stats.mantle.blockNumber}
+                  </div>
+                  <div css={css`font-size: 0.65rem; font-weight: 700; color: ${designTokens.colors.neutral[400]}; text-transform: uppercase;`}>
+                    Latest Block
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Audit Storage */}
         <Card

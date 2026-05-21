@@ -95,6 +95,12 @@ const envSchema = z.object({
   DEFAULT_POLICY: z.string().default("standard"),
   AUDIT_FREQUENCY: z.string().default("daily"),
 
+  // Mantle L2 (Agent Execution Layer)
+  MANTLE_RPC_URL: z.string().default("https://rpc.mantle.xyz"),
+  MANTLE_SEPOLIA_RPC_URL: z.string().default("https://rpc.sepolia.mantle.xyz"),
+  MANTLE_PRIVATE_KEY: z.string().optional(),
+  MANTLE_VAULT_ADDRESS: z.string().default(""),
+
   // Cloudflare Workers Configuration
   CLOUDFLARE_WORKER_URL: z.string().default("http://localhost:8787"),
   CLOUDFLARE_WORKER_ENABLED: z.coerce.boolean().default(false),

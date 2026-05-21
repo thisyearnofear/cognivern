@@ -133,6 +133,14 @@ export const blockchainConfig = {
       "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D",
   },
 };
+
+export const mantleConfig = {
+  rpcUrl: process.env.MANTLE_RPC_URL || "https://rpc.mantle.xyz",
+  sepoliaRpcUrl: process.env.MANTLE_SEPOLIA_RPC_URL || "https://rpc.sepolia.mantle.xyz",
+  privateKey: process.env.MANTLE_PRIVATE_KEY || "",
+  vaultAddress: process.env.MANTLE_VAULT_ADDRESS || "",
+  chainId: { mainnet: 5000, sepolia: 5003 },
+};
 export const monitoringConfig = {
   enabled: false,
   healthCheckInterval: 30000,
