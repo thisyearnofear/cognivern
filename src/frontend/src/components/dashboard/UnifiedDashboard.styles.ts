@@ -69,6 +69,24 @@ export const chartsGridStyles = (isMobile: boolean, isTablet: boolean) => css`
 
 export const sectionStyles = css`
   margin-bottom: ${designTokens.spacing[4]};
+  background: var(--card-bg, ${designTokens.colors.background.primary});
+  border-radius: ${designTokens.borderRadius.lg};
+  padding: ${designTokens.spacing[4]};
+  border: 1px solid var(--divider, ${designTokens.colors.border.primary});
+`;
+
+export const prioritySectionStyles = css`
+  margin-bottom: ${designTokens.spacing[4]};
+  background: var(--card-bg, ${designTokens.colors.background.primary});
+  border-radius: ${designTokens.borderRadius.lg};
+  padding: ${designTokens.spacing[4]};
+  border: 1px solid ${designTokens.colors.semantic.warning[200]};
+  box-shadow: 0 1px 3px ${designTokens.colors.semantic.warning[100]};
+
+  [data-theme='dark'] & {
+    border-color: ${designTokens.colors.semantic.warning[800]};
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
 `;
 
 export const sectionHeaderStyles = css`

@@ -8,6 +8,7 @@ export interface UserPreferences {
   onboardingCompleted: boolean;
   demoExplored: boolean; // User has seen the demo
   demoValueSeen: boolean; // User reached an "aha moment" (e.g., saw policy enforcement in action)
+  dashboardTourCompleted: boolean;
   lastVisited: string;
   notifications: boolean;
   shadowedAgents: string[];
@@ -56,6 +57,7 @@ const defaultPreferences: UserPreferences = {
   onboardingCompleted: false,
   demoExplored: false,
   demoValueSeen: false,
+  dashboardTourCompleted: false,
   lastVisited: '/',
   notifications: true,
   shadowedAgents: [],

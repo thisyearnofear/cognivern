@@ -48,6 +48,7 @@ export interface ActivityItem {
   workflowVersion?: string;
   evidenceHash?: string;
   cid?: string;
+  policyReason?: string;
   artifactIds?: string[];
 }
 

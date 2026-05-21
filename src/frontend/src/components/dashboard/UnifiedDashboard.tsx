@@ -24,7 +24,12 @@ import {
   Modal,
   GenerativeReveal,
   EmptyState,
+  OnboardingGuide,
+  UserFriendlyError,
+  useErrorTranslation,
+  Tooltip,
 } from '../ui';
+import type { TourStep } from '../ui';
 import * as styles from './UnifiedDashboard.styles';
 import { QuestHUD } from './QuestHUD';
 import { Leaderboard, AgentGrid } from './Leaderboard';
@@ -47,7 +52,68 @@ import {
   unwrapApiPayload,
 } from './utils/activity';
 import { useAppStore } from '../../stores/appStore';
+import { useAchievementStore } from '../../stores/achievementStore';
 import { Wallet, Sparkles } from 'lucide-react';
+
+const dashboardTourSteps: TourStep[] = [
+  {
+    id: 'start',
+    title: 'Welcome to your Control Plane',
+    content: 'This is where you monitor all governed agent activity. Key stats are at the top — agents, policies, approval rates, and total decisions.',
+    placement: 'center',
+  },
+  {
+    id: 'alerts',
+    target: '[data-tour="governance-alerts"]',
+    title: 'Governance Alerts',
+    content: 'Actions that need your attention appear here. Approve, deny, or adjust policies based on flagged activity.',
+    placement: 'bottom',
+  },
+  {
+    id: 'activity',
+    target: '[data-tour="activity-feed"]',
+    title: 'Live Activity Feed',
+    content: 'Every governed decision streams here in real time. You\'ll see approvals, denials, and policy evaluations as they happen.',
+    placement: 'bottom',
+  },
+  {
+    id: 'playground',
+    target: '[data-tour="governance-playground"]',
+    title: 'Test Your Policies',
+    content: 'Try a live governance check — evaluate any agent action against your policies before it runs for real.',
+    placement: 'top',
+  },
+  {
+    id: 'agents',
+    target: '[data-tour="agent-grid"]',
+    title: 'Your Governed Agents',
+    content: 'All connected agents appear here with their status and recent activity. Click any agent to see detailed traces.',
+    placement: 'top',
+  },
+];
+
+function DashboardSkeleton() {
+  return (
+    <div css={styles.dashboardSkeletonStyles}>
+      <div css={styles.skeletonStatGridStyles}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} css={styles.skeletonStatCardStyles} />
+        ))}
+      </div>
+      <div css={styles.skeletonBannerStyles} />
+      <div css={styles.skeletonActivityStyles}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} css={styles.skeletonActivityRowStyles} />
+        ))}
+      </div>
+      <div css={styles.skeletonAgentGridStyles}>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} css={styles.skeletonAgentCardStyles} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function OwsStatusIndicator() {
   const [owsStatus, setOwsStatus] = useState<{
@@ -134,6 +200,7 @@ function OwsStatusIndicator() {
   }
 
   return (
+    <Tooltip content="Operator Wallet Service — your governed treasury for agent spend" position="bottom">
     <div
       css={css`
         display: flex;
@@ -170,6 +237,7 @@ function OwsStatusIndicator() {
           : ''}
       </span>
     </div>
+    </Tooltip>
   );
 }
 
@@ -199,8 +267,11 @@ const TrustSignals = ({ activity }: { activity: ActivityItem }) => {
 export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
   const navigate = useNavigate();
   const { isMobile, isTablet } = useBreakpoint();
-  const { preferences, enterDemoMode } = useAppStore();
+  const { preferences, enterDemoMode, updatePreferences } = useAppStore();
+  const translateError = useErrorTranslation();
+  const unlockAchievement = useAchievementStore((s) => s.unlock);
   const isInDemoMode = preferences.demoExplored && !preferences.onboardingCompleted;
+  const showTour = preferences.onboardingCompleted && !preferences.dashboardTourCompleted;
 
   const [stats, setStats] = useState<QuickStats | null>(null);
   const [agents, setAgents] = useState<AgentSummary[]>([]);
@@ -208,6 +279,7 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
   const [quests, setQuests] = useState<QuestItem[]>([]);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<Error | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showMoreActivity, setShowMoreActivity] = useState(false);
   const [workerThoughts, setWorkerThoughts] = useState<string[]>([]);
@@ -224,11 +296,39 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
 
   useEffect(() => {
     void fetchDashboardData();
-    const intervalId = window.setInterval(() => {
-      void fetchDashboardData(false);
-    }, 30000);
 
-    return () => window.clearInterval(intervalId);
+    let intervalId: number | undefined;
+
+    const startPolling = () => {
+      if (intervalId) return;
+      intervalId = window.setInterval(() => {
+        void fetchDashboardData(false);
+      }, 30000);
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        window.clearInterval(intervalId);
+        intervalId = undefined;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        void fetchDashboardData(false);
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -350,6 +450,17 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
       setRecentActivity((bundle.activity || []).map((entry) => normalizeActivity(entry)));
       setPolicies(bundle.policies || []);
       setQuests(bundle.quests || []);
+      setFetchError(null);
+
+      if (mappedStats.totalPolicies > 0) {
+        unlockAchievement('first-policy');
+      }
+      if (agentList.length >= 5) {
+        unlockAchievement('five-agents');
+      }
+      if (mappedStats.totalTrades >= 100) {
+        unlockAchievement('hundred-decisions');
+      }
 
       try {
         const unifiedResult = await agentApi.getUnifiedDashboard();
@@ -360,6 +471,7 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
       }
     } catch (error) {
       console.error('Failed to fetch dashboard bundle:', error);
+      setFetchError(error instanceof Error ? error : new Error('Failed to load dashboard'));
     } finally {
       if (showLoader) {
         setIsLoading(false);
@@ -422,6 +534,24 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
           {JSON.stringify({ stats, agents, recentActivity }, null, 2)}
         </pre>
       </div>
+    );
+  }
+
+  if (isLoading && !stats) {
+    return <DashboardSkeleton />;
+  }
+
+  if (fetchError && !stats) {
+    return (
+      <UserFriendlyError
+        errorType={translateError(fetchError)}
+        title="Couldn't load dashboard"
+        message={fetchError.message}
+        showRetry
+        showHome={false}
+        showBack={false}
+        onRetry={() => void fetchDashboardData()}
+      />
     );
   }
 
@@ -576,7 +706,7 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
             }}
           >
             {isMobile ? (
-              <Button variant="primary" size="sm" onClick={() => navigate('/policies')}>
+              <Button variant="primary" size="sm" onClick={() => navigate('/governance/check?mode=create')}>
                 + Policy
               </Button>
             ) : (
@@ -584,7 +714,7 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
                 <Button variant="outline" size="sm" onClick={() => void handleRefresh()}>
                   Refresh
                 </Button>
-                <Button variant="primary" size="sm" onClick={() => navigate('/policies')}>
+                <Button variant="primary" size="sm" onClick={() => navigate('/governance/check?mode=create')}>
                   Deploy Policy
                 </Button>
               </>
@@ -719,9 +849,11 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
       </section>
 
       <div css={styles.mainGridStyles(isMobile, isTablet)}>
-        <section css={styles.sectionStyles}>
+        <section css={styles.prioritySectionStyles} data-tour="governance-alerts">
           <div css={styles.sectionHeaderStyles}>
-            <h2 css={styles.sectionTitleStyles}>Governance Alerts</h2>
+            <Tooltip content="Policy evaluations that need your review — approvals, denials, or actions held for human decision" position="bottom">
+              <h2 css={styles.sectionTitleStyles}>Governance Alerts</h2>
+            </Tooltip>
             <Badge variant="secondary" size="sm">
               {openAlerts.length} OPEN
             </Badge>
@@ -729,7 +861,7 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
           <QuestHUD quests={openAlerts} onResolve={handleResolveQuest} />
         </section>
 
-        <section css={styles.sectionStyles}>
+        <section css={styles.sectionStyles} data-tour="activity-feed">
           <div css={styles.sectionHeaderStyles}>
             <div style={{ display: 'flex', alignItems: 'center', gap: designTokens.spacing[2] }}>
               <h2 css={styles.sectionTitleStyles}>Recent Activity</h2>
@@ -778,6 +910,10 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
 
         {/* Governance Playground CTA */}
         <div
+          data-tour="governance-playground"
+          onMouseEnter={() => {
+            import('../governance/GovernancePlayground');
+          }}
           css={css`
             display: flex;
             align-items: center;
@@ -822,8 +958,7 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
                   color: ${designTokens.colors.primary[600]};
                 `}
               >
-                Evaluate any agent action against your policies — with Together AI reasoning and
-                audit trail.
+                Evaluate any agent action against your policies — test before you deploy.
               </p>
             </div>
           </div>
@@ -840,7 +975,7 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
 
         <QuickActions isMobile={isMobile} />
 
-        <section css={styles.sectionStyles}>
+        <section css={styles.sectionStyles} data-tour="agent-grid">
           <div css={styles.sectionHeaderStyles}>
             <h2 css={styles.sectionTitleStyles}>Governed Agents</h2>
             <Button variant="ghost" size="sm" onClick={() => navigate('/agents')}>
@@ -848,7 +983,11 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
             </Button>
           </div>
           {isLoading ? (
-            <div css={styles.loadingStyles}>Loading agents...</div>
+            <div css={styles.skeletonAgentGridStyles}>
+              {Array.from({ length: isMobile ? 2 : 3 }).map((_, i) => (
+                <div key={i} css={styles.skeletonAgentCardStyles} />
+              ))}
+            </div>
           ) : agents.length === 0 ? (
             <EmptyState type="agents" compact onAction={() => navigate('/agents/connect')} />
           ) : (
@@ -945,7 +1084,15 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
         </div>
       </Modal>
 
-      <QuickActions isMobile={isMobile} />
+      {showTour && !isLoading && (
+        <OnboardingGuide
+          steps={dashboardTourSteps}
+          autoStart
+          showProgress
+          onComplete={() => updatePreferences({ dashboardTourCompleted: true })}
+          onSkip={() => updatePreferences({ dashboardTourCompleted: true })}
+        />
+      )}
     </div>
   );
 }

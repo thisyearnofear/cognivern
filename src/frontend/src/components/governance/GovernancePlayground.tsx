@@ -672,6 +672,29 @@ export default function GovernancePlayground() {
                     </div>
                   </div>
                 )}
+
+                <div css={css`
+                  margin-top: ${designTokens.spacing[3]};
+                  padding-top: ${designTokens.spacing[3]};
+                  border-top: 1px solid ${designTokens.colors.neutral[200]};
+                `}>
+                  <Button
+                    variant="primary"
+                    onClick={() => navigate('/policies?from=playground')}
+                    style={{ width: '100%' }}
+                  >
+                    <ShieldCheck size={16} style={{ marginRight: 8 }} />
+                    Save as Policy Rule
+                  </Button>
+                  <p css={css`
+                    font-size: ${designTokens.typography.fontSize.xs};
+                    color: ${designTokens.colors.neutral[500]};
+                    text-align: center;
+                    margin-top: ${designTokens.spacing[2]};
+                  `}>
+                    Create a permanent policy rule based on this evaluation
+                  </p>
+                </div>
               </div>
             </div>
           )}
