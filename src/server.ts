@@ -1,5 +1,5 @@
-import { ApiModule } from "./modules/api/ApiModule.js";
-import logger from "./utils/logger.js";
+import { ApiModule } from "./backend/modules/api/ApiModule.js";
+import logger from "./backend/utils/logger.js";
 
 // Fix EventEmitter memory leak warnings
 process.setMaxListeners(20);
