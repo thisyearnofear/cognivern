@@ -9,6 +9,7 @@ import {
   UseAgentState,
   UseTradingData,
 } from '../types';
+import { isDemoAgent } from '../utils/demoAgents';
 import { getApiUrl, getApiKey } from '../utils/api';
 
 // Generic agent data hook - replaces repeated patterns
@@ -150,11 +151,24 @@ export const useTradingData = (agentType: AgentType): UseTradingData => {
       }
 
       const data = await response.json();
-      setDecisions(data.decisions || data.data || []);
+      const decisionsData = data.decisions || data.data || [];
+
+      // Fall back to demo decisions when API returns empty for demo agents
+      if (decisionsData.length === 0 && isDemoAgent(agentType)) {
+        setDecisions(generateDemoDecisions(agentType));
+      } else {
+        setDecisions(decisionsData);
+      }
     } catch (err) {
       console.error(`Error fetching ${agentType} trading data:`, err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setDecisions([]);
+      // Fall back to demo decisions when API fails for demo agents
+      if (isDemoAgent(agentType)) {
+        setDecisions(generateDemoDecisions(agentType));
+        setError(null);
+      } else {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        setDecisions([]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -175,6 +189,35 @@ export const useTradingData = (agentType: AgentType): UseTradingData => {
     refreshData,
   };
 };
+
+/** Generate demo trading decisions for demo agents when the API returns empty. */
+function generateDemoDecisions(agentType: AgentType): TradingDecision[] {
+  const actions: Array<'buy' | 'sell' | 'hold'>[] = [['buy'], ['sell'], ['hold']];
+  const now = Date.now();
+  return Array.from({ length: 20 }, (_, i) => ({
+    id: `demo-decision-${agentType}-${i}`,
+    agentType,
+    timestamp: new Date(now - i * 3600000).toISOString(),
+    action: [['buy'], ['sell'], ['hold']][i % 3][0],
+    price: 1.05 + Math.sin(i * 0.5) * 0.15,
+    confidence: 0.6 + Math.random() * 0.35,
+    rationale: `Demo decision ${i + 1}: ${['Market momentum indicator positive', 'Price above SMA-50', 'Portfolio rebalancing needed', 'Risk threshold met', 'Volume spike detected'][i % 5]}`,
+    sentimentData: {
+      sentiment: -0.3 + Math.random() * 0.6,
+      confidence: 0.5 + Math.random() * 0.4,
+      sources: ['demo-market-feed'],
+    },
+    riskScore: Math.random() * 0.4,
+    metadata: {
+      dailyBudget: { used: 150 + i * 30, limit: 500 },
+      portfolioValue: 5000 + Math.sin(i * 0.3) * 500,
+    },
+    simulation: {
+      wouldExecute: true,
+      warnings: [],
+    },
+  }));
+}
 
 // Generic loading state hook
 export const useLoadingState = (initialLoading = false) => {

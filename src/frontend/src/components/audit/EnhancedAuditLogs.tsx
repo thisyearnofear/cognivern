@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getApiUrl, getRequestHeaders } from '../../utils/api';
 import { copyTextToClipboard } from '../../utils/clipboard';
+import { useAppStore } from '../../stores/appStore';
 import { css } from '@emotion/react';
 import { designTokens, colorSystem, keyframeAnimations } from '../../styles/design-system';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
@@ -422,9 +423,82 @@ const severityBadgeStyles = css`
   }
 `;
 
+function generateDemoAuditLogs(): AuditLog[] {
+  const now = Date.now();
+  const agents = [
+    { id: 'agent-yield-01', name: 'YieldHunter-01' },
+    { id: 'agent-rebal-03', name: 'Rebalancer-03' },
+    { id: 'agent-arb-07', name: 'Arbitrage-07' },
+  ];
+  const scenarios = [
+    { type: 'spend_request', desc: 'Requested 200 MNT for liquidity pool stake', decision: 'allowed', status: 'compliant' as const, severity: 'low' as const, latency: 42 },
+    { type: 'spend_request', desc: 'Requested 500 MNT for arbitrage swap', decision: 'denied', status: 'non-compliant' as const, severity: 'medium' as const, latency: 38 },
+    { type: 'policy_evaluation', desc: 'Policy #4 triggered — daily limit check', decision: 'allowed', status: 'compliant' as const, severity: 'low' as const, latency: 12 },
+    { type: 'approval_review', desc: 'Manual approval required for high-value trade', decision: 'allowed', status: 'compliant' as const, severity: 'medium' as const, latency: 2400 },
+    { type: 'spend_request', desc: 'Requested 50 MNT for gas top-up', decision: 'allowed', status: 'compliant' as const, severity: 'low' as const, latency: 18 },
+    { type: 'policy_evaluation', desc: 'FHE budget check — 300/500 MNT spent', decision: 'allowed', status: 'compliant' as const, severity: 'low' as const, latency: 15 },
+    { type: 'spend_request', desc: 'Requested 1000 MNT exceeds daily limit', decision: 'denied', status: 'non-compliant' as const, severity: 'high' as const, latency: 35 },
+    { type: 'approval_review', desc: 'Policy override approved by operator', decision: 'allowed', status: 'warning' as const, severity: 'high' as const, latency: 1800 },
+  ];
+
+  return Array.from({ length: 24 }, (_, i) => {
+    const agent = agents[i % agents.length];
+    const s = scenarios[i % scenarios.length];
+    return {
+      id: `demo-${i}-${now}`,
+      timestamp: new Date(now - i * 3600000).toISOString(),
+      agentId: agent.id,
+      agentName: agent.name,
+      action: {
+        type: s.type,
+        description: s.desc,
+        input: `{ "agentId": "${agent.id}", "amount": ${[200, 500, 50, 1000][i % 4]}, "token": "MNT" }`,
+        decision: s.decision,
+        confidence: 0.85 + Math.random() * 0.15,
+        riskScore: s.decision === 'denied' ? 0.7 + Math.random() * 0.3 : Math.random() * 0.3,
+      },
+      policyChecks: [
+        {
+          policyId: 'policy-spend-limit',
+          policyName: 'Agent Spend Guardrails',
+          result: s.decision === 'allowed',
+          reason: s.decision === 'allowed' ? 'Within approved budget and daily limit' : `${[200, 500, 50, 1000][i % 4]} MNT would exceed daily cap (500 MNT)`,
+          ruleTriggered: s.decision === 'denied' ? 'daily_limit_exceeded' : undefined,
+        },
+        {
+          policyId: 'policy-compliance',
+          policyName: 'Regulatory Compliance',
+          result: true,
+          reason: 'No compliance flags triggered',
+        },
+      ],
+      metadata: {
+        modelVersion: 'v2.1.0',
+        governancePolicy: 'fhenix-fhe',
+        complianceStatus: s.status,
+        latencyMs: s.latency + Math.floor(Math.random() * 10),
+        executionContext: i % 2 === 0 ? 'fhenix' : 'local',
+      },
+      impact: {
+        severity: s.severity,
+        category: 'compliance',
+        financialImpact: s.decision === 'allowed' ? [200, 500, 50][i % 3] : 0,
+      },
+      evidence: {
+        hash: `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`,
+        cid: `bafy${Array.from({ length: 40 }, () => Math.random().toString(36)[2]).join('')}`,
+        artifactIds: [`artifact-${i}`],
+        policyIds: ['policy-spend-limit', 'policy-compliance'],
+      },
+    };
+  });
+}
+
 export default function EnhancedAuditLogs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const preferences = useAppStore((s) => s.preferences);
+  const isInDemo = preferences.demoExplored && !preferences.onboardingCompleted;
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -494,18 +568,38 @@ export default function EnhancedAuditLogs() {
             ? data.data.logs
             : [];
         const normalizedLogs = logsArray.map(normalizeAuditLog);
-        setLogs(normalizedLogs);
-        calculateMetrics(normalizedLogs);
+        if (normalizedLogs.length === 0 && isInDemo) {
+          const demo = generateDemoAuditLogs();
+          setLogs(demo);
+          calculateMetrics(demo);
+        } else {
+          setLogs(normalizedLogs);
+          calculateMetrics(normalizedLogs);
+        }
       } else {
-        setError('Failed to load audit logs');
-        setLogs([]);
-        calculateMetrics([]);
+        if (isInDemo) {
+          const demo = generateDemoAuditLogs();
+          setLogs(demo);
+          calculateMetrics(demo);
+          setError(null);
+        } else {
+          setError('Failed to load audit logs');
+          setLogs([]);
+          calculateMetrics([]);
+        }
       }
     } catch (err) {
       console.error('Error fetching audit logs:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load audit logs');
-      setLogs([]);
-      calculateMetrics([]);
+      if (isInDemo) {
+        const demo = generateDemoAuditLogs();
+        setLogs(demo);
+        calculateMetrics(demo);
+        setError(null);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load audit logs');
+        setLogs([]);
+        calculateMetrics([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -530,6 +624,41 @@ export default function EnhancedAuditLogs() {
   };
 
   const generateAIInsights = async () => {
+    if (isInDemo) {
+      setAiInsights([
+        {
+          id: 'demo-insight-1',
+          type: 'pattern',
+          title: 'Spend patterns within limits',
+          description: 'Most agent spend requests fall within configured daily limits. YieldHunter-01 accounts for 60% of all spend volume.',
+          confidence: 89,
+          actionable: false,
+          relatedLogs: [],
+          generatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'demo-insight-2',
+          type: 'anomaly',
+          title: 'Repeated limit breaches detected',
+          description: 'Arbitrage-07 has exceeded daily spend limits 3 times in the past 24 hours. Consider reviewing its budget allocation.',
+          confidence: 76,
+          actionable: true,
+          relatedLogs: [],
+          generatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'demo-insight-3',
+          type: 'recommendation',
+          title: 'Add automated approval for low-risk trades',
+          description: '87% of spend requests under 100 MNT are approved manually. Configure auto-approval for low-value transactions to reduce latency.',
+          confidence: 94,
+          actionable: true,
+          relatedLogs: [],
+          generatedAt: new Date().toISOString(),
+        },
+      ]);
+      return;
+    }
     try {
       const response = await fetch(getApiUrl('/api/audit/insights'), {
         headers: getRequestHeaders(),
