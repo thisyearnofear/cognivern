@@ -9,11 +9,9 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Static generation of dashboard pages requires SidebarProvider
-  // context, which is only available at runtime. Skip during build.
-  outputFileTracingIncludes: {
-    "/*": [],
-  },
+  // shadcn sidebar uses React context which breaks static generation
+  // of Next.js internal error pages. Vercel builds handle this correctly.
+  output: "standalone",
 };
 
 export default nextConfig;
