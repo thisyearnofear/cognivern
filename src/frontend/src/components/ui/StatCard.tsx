@@ -115,16 +115,16 @@ const statTotalStyles = css`
 `;
 
 const statLabelStyles = css`
-  font-size: ${designTokens.typography.fontSize.xs};
+  font-size: ${designTokens.typography.fontSize.sm};
   color: var(--stat-label, ${designTokens.colors.neutral[600]});
   font-weight: ${designTokens.typography.fontWeight.medium};
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.025em;
   margin-top: ${designTokens.spacing[1]};
 `;
 
 const trendStyles = (isPositive: boolean) => css`
-  font-size: ${designTokens.typography.fontSize.xs};
+  font-size: ${designTokens.typography.fontSize.sm};
   font-weight: ${designTokens.typography.fontWeight.semibold};
   color: ${isPositive
     ? designTokens.colors.semantic.success[600]
