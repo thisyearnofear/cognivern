@@ -38,6 +38,11 @@ function App() {
   const setError = useAppStore((state) => state.setError);
   const preferences = useAppStore((state) => state.preferences);
   const isOnboarded = preferences.onboardingCompleted;
+  const isInDemo = preferences.demoExplored;
+
+  // Demo users can access the dashboard without completing onboarding.
+  // The demo banner inside the dashboard nudges them to set up for real.
+  const canAccessApp = isOnboarded || isInDemo;
 
   const handleGlobalError = (error: Error) => {
     setError(error.message);
@@ -51,7 +56,7 @@ function App() {
             <Route
               path="/"
               element={
-                <AuthGuard isAuthenticated={!isOnboarded} redirectTo="/dashboard">
+                <AuthGuard isAuthenticated={!canAccessApp} redirectTo="/dashboard">
                   <LandingPage />
                 </AuthGuard>
               }
@@ -71,7 +76,7 @@ function App() {
             <Route
               path="/"
               element={
-                <AuthGuard isAuthenticated={isOnboarded} redirectTo="/">
+                <AuthGuard isAuthenticated={canAccessApp} redirectTo="/">
                   <Web3Gate>
                     <AppLayout />
                   </Web3Gate>
