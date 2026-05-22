@@ -626,7 +626,8 @@ export default function UnifiedDashboard({ mode = 'full' }: DashboardProps) {
                   css={css`
                     margin: 0;
                     font-size: ${designTokens.typography.fontSize.sm};
-                    color: rgba(255, 255, 255, 0.9);
+                    color: rgba(255, 255, 255, 1);
+                    line-height: 1.5;
                   `}
                 >
                   {preferences.demoValueSeen
