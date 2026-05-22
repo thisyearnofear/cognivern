@@ -74,6 +74,9 @@ coverage
 .letta/
 .qwen/
 .artifacts/
+.commandcode/
+.commandcode
+
 
 # Volta (tool version manager)
 .volta/
