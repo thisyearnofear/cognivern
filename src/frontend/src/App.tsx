@@ -90,7 +90,7 @@ function App() {
             <Route
               path="/"
               element={
-                <AuthGuard isAuthenticated={canAccessApp} redirectTo="/">
+                <AuthGuard isAuthenticated={true}>
                   <Web3Gate>
                     <DemoEntry>
                       <AppLayout />

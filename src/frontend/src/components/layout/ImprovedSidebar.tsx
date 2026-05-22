@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { css } from '@emotion/react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Shield } from 'lucide-react';
 import { useAppStore, useTheme } from '../../stores/appStore';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
@@ -397,13 +397,12 @@ export const ImprovedSidebar: React.FC = () => {
           {getNavItemsForPersona(primaryNavItems, user?.userType).map((item) => {
             const isActive = location.pathname === item.path;
             return (
-              <button
+              <Link
                 key={item.id}
+                to={item.path}
                 css={navItemStyles(isActive)}
-                onClick={() => navigate(item.path)}
                 title={isCollapsed ? item.label : undefined}
                 aria-current={isActive ? 'page' : undefined}
-                type="button"
               >
                 <span css={navIconStyles}>{item.icon}</span>
                 <div css={navContentStyles}>
@@ -413,7 +412,7 @@ export const ImprovedSidebar: React.FC = () => {
                   )}
                 </div>
                 {item.badge && <span css={badgeStyles}>{item.badge}</span>}
-              </button>
+              </Link>
             );
           })}
         </nav>
