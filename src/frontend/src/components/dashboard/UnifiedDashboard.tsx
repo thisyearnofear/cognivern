@@ -201,7 +201,7 @@ function OwsStatusIndicator() {
   }
 
   return (
-    <Tooltip content="Operator Wallet Service — your governed treasury for agent spend" position="bottom">
+    <Tooltip content="Operator Wallet Service — a governed treasury wallet for agent spend" position="bottom">
     <div
       css={css`
         display: flex;
@@ -230,8 +230,8 @@ function OwsStatusIndicator() {
       />
       <span>
         {owsStatus?.walletConnected
-          ? `OWS: ${owsStatus.walletName || 'Connected'}`
-          : 'OWS: No Wallet'}
+          ? `Wallet: ${owsStatus.walletName || 'Connected'}`
+          : 'No Treasury Wallet'}
         {owsStatus?.apiKeysCount ? ` · ${owsStatus.apiKeysCount} keys` : ''}
         {owsStatus?.agentsCount
           ? ` · ${owsStatus.activeAgents}/${owsStatus.agentsCount} agents`

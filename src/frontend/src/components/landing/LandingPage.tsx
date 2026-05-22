@@ -155,23 +155,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               display: inline-flex;
               align-items: center;
               gap: ${designTokens.spacing[1]};
-              padding: ${designTokens.spacing[1]} ${designTokens.spacing[3]};
-              background: linear-gradient(
-                135deg,
-                ${designTokens.colors.semantic.success[600]} 0%,
-                ${designTokens.colors.semantic.success[500]} 100%
-              );
-              color: #fff;
+              padding: ${designTokens.spacing[1]} ${designTokens.spacing[2]};
+              background: ${designTokens.colors.neutral[100]};
+              color: ${designTokens.colors.neutral[500]};
               border-radius: ${designTokens.borderRadius.full};
               font-size: ${designTokens.typography.fontSize.xs};
-              font-weight: ${designTokens.typography.fontWeight.semibold};
-              letter-spacing: 0.05em;
+              font-weight: ${designTokens.typography.fontWeight.medium};
             `}
           >
-            <Lock size={12} />
-            Open Wallet Standard
+            <Lock size={10} />
+            OWS
           </span>
-          <Button variant="ghost" onClick={handleExplore}>
+          <Button variant="primary" size="sm" onClick={handleExplore}>
             Try Demo →
           </Button>
         </div>
@@ -183,8 +178,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           position: relative;
           max-width: 800px;
           text-align: center;
-          margin-top: ${designTokens.spacing[32]};
-          padding: ${designTokens.spacing[12]} ${designTokens.spacing[8]};
+          margin-top: ${designTokens.spacing[24]};
+          padding: ${designTokens.spacing[8]} ${designTokens.spacing[6]};
           background: #ffffff;
           border-radius: ${designTokens.borderRadius['2xl']};
           box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
@@ -199,7 +194,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
         {/* Badge */}
         <div
           css={css`
-            margin-bottom: ${designTokens.spacing[6]};
+            margin-bottom: ${designTokens.spacing[4]};
             animation: ${fadeInUp} 0.6s ease-out 0.4s both;
           `}
         >
@@ -255,14 +250,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             font-size: ${designTokens.typography.fontSize.lg};
             color: #475569;
             max-width: 580px;
-            margin: 0 auto ${designTokens.spacing[8]};
+            margin: 0 auto ${designTokens.spacing[6]};
             line-height: 1.6;
             animation: ${fadeInUp} 0.6s ease-out 0.6s both;
           `}
         >
-          Cognivern checks every spend against your policy, holds risky moves for review, and gives
-          you cryptographic audit evidence — in under 100&nbsp;ms. No wallet required to look
-          around.
+          Checks every spend against your policy, holds risky moves for review, and gives
+          you cryptographic audit evidence — in under 100&nbsp;ms. No wallet required.
         </p>
 
         <div
@@ -271,7 +265,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             gap: ${designTokens.spacing[4]};
             justify-content: center;
             flex-wrap: wrap;
-            margin-bottom: ${designTokens.spacing[6]};
+            margin-bottom: ${designTokens.spacing[4]};
             animation: ${fadeInUp} 0.6s ease-out 0.7s both;
           `}
         >
@@ -314,8 +308,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
         {/* Trust micro-line under CTAs reduces hesitation to click */}
         <div
           css={css`
-            margin-bottom: ${designTokens.spacing[12]};
-            font-size: ${designTokens.typography.fontSize.sm};
+            margin-bottom: ${designTokens.spacing[8]};
+            font-size: ${designTokens.typography.fontSize.xs};
             color: ${designTokens.colors.neutral[500]};
             animation: ${fadeInUp} 0.6s ease-out 0.75s both;
           `}
@@ -345,7 +339,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
             display: flex;
             justify-content: center;
             gap: ${designTokens.spacing[8]};
-            margin-bottom: ${designTokens.spacing[12]};
+            margin-bottom: ${designTokens.spacing[8]};
             flex-wrap: wrap;
             animation: ${fadeInUp} 0.6s ease-out 0.8s both;
           `}

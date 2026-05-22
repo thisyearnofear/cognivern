@@ -1,4 +1,4 @@
-import React, { lazy } from 'react';
+import React, { lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 import { AppLayout, RouteShell, AuthGuard } from './components/layout';
@@ -33,6 +33,20 @@ const AgentProfile = lazy(() => import('./components/agents/AgentProfile'));
 const AgentWorkshop = lazy(() => import('./components/agents/AgentWorkshop'));
 const GovernancePlayground = lazy(() => import('./components/governance/GovernancePlayground'));
 const SpendFlowDemo = lazy(() => import('./components/demo/SpendFlowDemo').then(m => ({ default: m.SpendFlowDemo })));
+
+function DemoEntry({ children }: { children: React.ReactNode }) {
+  const enterDemoMode = useAppStore((s) => s.enterDemoMode);
+  const prefs = useAppStore((s) => s.preferences);
+  const canAccess = prefs.onboardingCompleted || prefs.demoExplored;
+
+  useEffect(() => {
+    if (!canAccess) {
+      enterDemoMode();
+    }
+  }, [canAccess, enterDemoMode]);
+
+  return <>{children}</>;
+}
 
 function App() {
   const setError = useAppStore((state) => state.setError);
@@ -78,7 +92,9 @@ function App() {
               element={
                 <AuthGuard isAuthenticated={canAccessApp} redirectTo="/">
                   <Web3Gate>
-                    <AppLayout />
+                    <DemoEntry>
+                      <AppLayout />
+                    </DemoEntry>
                   </Web3Gate>
                 </AuthGuard>
               }
