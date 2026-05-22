@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
+import { useState } from 'react';
 import { css } from '@emotion/react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowRight, X } from 'lucide-react';
+import { Sparkles, ArrowRight } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { designTokens } from '../../styles/design-system';
 import { Button } from '../ui/Button';
@@ -26,11 +27,12 @@ import { Button } from '../ui/Button';
  */
 export const DemoBanner: React.FC = () => {
   const navigate = useNavigate();
-  const { preferences, exitDemoMode, markDemoValueSeen } = useAppStore();
+  const [dismissed, setDismissed] = useState(false);
+  const { preferences, markDemoValueSeen } = useAppStore();
 
   // Only show when the user is in demo mode AND hasn't completed onboarding.
   // Once they finish onboarding, the banner disappears.
-  if (!preferences.demoExplored || preferences.onboardingCompleted) {
+  if (!preferences.demoExplored || preferences.onboardingCompleted || dismissed) {
     return null;
   }
 
@@ -44,9 +46,6 @@ export const DemoBanner: React.FC = () => {
     <div
       role="status"
       css={css`
-        position: sticky;
-        top: 0;
-        z-index: 60;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -60,10 +59,13 @@ export const DemoBanner: React.FC = () => {
         color: white;
         font-size: ${designTokens.typography.fontSize.sm};
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+        max-height: 56px;
+        overflow: hidden;
 
         @media (max-width: 640px) {
           flex-direction: column;
           align-items: stretch;
+          max-height: none;
           padding: ${designTokens.spacing[3]};
         }
       `}
@@ -124,8 +126,8 @@ export const DemoBanner: React.FC = () => {
         </Button>
         <button
           type="button"
-          aria-label="Continue browsing demo"
-          onClick={exitDemoMode}
+          aria-label="Dismiss demo banner"
+          onClick={() => setDismissed(true)}
           css={css`
             background: transparent;
             border: none;

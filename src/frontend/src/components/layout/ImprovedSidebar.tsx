@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { css } from '@emotion/react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Shield } from 'lucide-react';
 import { useAppStore, useTheme } from '../../stores/appStore';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { designTokens } from '../../styles/design-system';
@@ -322,7 +323,7 @@ export const ImprovedSidebar: React.FC = () => {
       <aside ref={sidebarRef} css={sidebarStyles}>
         {/* Logo and Brand */}
         <div css={logoStyles}>
-          <span css={logoIconStyles}>CV</span>
+          <span css={logoIconStyles}><Shield size={24} /></span>
           {!isCollapsed && (
             <div css={logoTextStyles}>
               <h2>Cognivern</h2>
@@ -396,11 +397,13 @@ export const ImprovedSidebar: React.FC = () => {
           {getNavItemsForPersona(primaryNavItems, user?.userType).map((item) => {
             const isActive = location.pathname === item.path;
             return (
-              <div
+              <button
                 key={item.id}
                 css={navItemStyles(isActive)}
                 onClick={() => navigate(item.path)}
                 title={isCollapsed ? item.label : undefined}
+                aria-current={isActive ? 'page' : undefined}
+                type="button"
               >
                 <span css={navIconStyles}>{item.icon}</span>
                 <div css={navContentStyles}>
@@ -410,7 +413,7 @@ export const ImprovedSidebar: React.FC = () => {
                   )}
                 </div>
                 {item.badge && <span css={badgeStyles}>{item.badge}</span>}
-              </div>
+              </button>
             );
           })}
         </nav>

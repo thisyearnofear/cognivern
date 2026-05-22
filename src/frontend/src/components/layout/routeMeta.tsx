@@ -1,5 +1,5 @@
-import React, { Suspense } from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { Suspense, useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import {
   Activity,
   FileSearch,
