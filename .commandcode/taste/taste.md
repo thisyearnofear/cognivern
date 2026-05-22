@@ -3,7 +3,7 @@
 [cmd]: https://commandcode.ai/
 
 # workflow
-- Stage, commit, and push changes after completing a batch of work. Confidence: 0.75
+- Stage, commit, and push changes after completing a batch of work, then wait for deployment and do another pass to verify remaining issues. Confidence: 0.75
 - SSH into the backend server via "ssh snel-bot", git pull, and restart with pm2 to deploy updates. Confidence: 0.70
 - Align project positioning and documentation toward hackathon requirements when targeting a hackathon. Confidence: 0.65
 

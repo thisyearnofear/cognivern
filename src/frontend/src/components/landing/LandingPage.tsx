@@ -345,9 +345,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
           `}
         >
           {[
-            { label: 'Chains Supported', value: '4' },
-            { label: 'Transactions Audited', value: '100%' },
-            { label: 'Avg. Setup Time', value: '<2 min' },
+            { label: 'Multi-Chain', value: '4 Networks' },
+            { label: 'Avg. Response', value: '<100ms' },
+            { label: 'Wallet Setup', value: '<2 min' },
           ].map((item) => (
             <div
               key={item.label}
@@ -478,6 +478,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
               `}
             >
               LIVE GOVERNANCE
+            </span>
+            <span
+              css={css`
+                font-size: ${designTokens.typography.fontSize.xs};
+                color: rgba(255,255,255,0.4);
+                margin-left: ${designTokens.spacing[2]};
+                font-style: italic;
+              `}
+            >
+              simulated preview
             </span>
           </div>
 
@@ -1060,20 +1070,57 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onComplete }) => {
       <footer
         css={css`
           margin-top: ${designTokens.spacing[12]};
+          padding-bottom: ${designTokens.spacing[8]};
           color: ${designTokens.colors.neutral[600]};
           font-size: ${designTokens.typography.fontSize.sm};
+          text-align: center;
         `}
       >
-        Multi-Chain: X Layer + Filecoin + 0G + Fhenix · Open Wallet Standard Compliant ·
-        <span
+        <div
           css={css`
-            color: ${designTokens.colors.primary[600]};
-            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            gap: ${designTokens.spacing[6]};
+            margin-bottom: ${designTokens.spacing[4]};
+            flex-wrap: wrap;
           `}
         >
-          Powered by ChainGPT AI
-        </span>{' '}
-        · Built with ❤️ for autonomous agent governance
+          <a
+            href="https://github.com/thisyearnofear/cognivern"
+            target="_blank"
+            rel="noopener noreferrer"
+            css={css`
+              color: ${designTokens.colors.primary[600]};
+              text-decoration: none;
+              &:hover { text-decoration: underline; }
+            `}
+          >
+            GitHub
+          </a>
+          <a
+            href="/docs"
+            css={css`
+              color: ${designTokens.colors.primary[600]};
+              text-decoration: none;
+              &:hover { text-decoration: underline; }
+            `}
+          >
+            Docs
+          </a>
+          <span>Multi-Chain: X Layer + Filecoin + 0G + Fhenix</span>
+          <span>Open Wallet Standard Compliant</span>
+        </div>
+        <div>
+          <span
+            css={css`
+              color: ${designTokens.colors.primary[600]};
+              font-weight: 600;
+            `}
+          >
+            Powered by ChainGPT AI
+          </span>{' '}
+          · Built for autonomous agent governance
+        </div>
       </footer>
     </div>
   );

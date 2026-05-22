@@ -548,7 +548,7 @@ export default function RunLedger() {
         >
           Require approval
         </Button>
-        <Button onClick={() => trigger(true)} disabled={isTriggering} variant="danger" size="sm">
+        <Button onClick={() => trigger(true)} disabled={isTriggering} variant="primary" size="sm">
           Run + Attest
         </Button>
       </div>
