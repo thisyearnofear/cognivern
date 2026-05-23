@@ -84,6 +84,10 @@ export function IntegratePage() {
             Your agent calls Cognivern before every transaction. If the action violates a policy, it gets denied.
             The agent should respect the decision — or the audit trail will flag it.
           </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            <strong>Works with any agent</strong> that performs on-chain actions: trading bots, yield optimizers, rebalancers,
+            payment agents, DAO treasury ops, bridge agents — anything that spends, swaps, stakes, or transfers.
+          </p>
         </CardContent>
       </Card>
 

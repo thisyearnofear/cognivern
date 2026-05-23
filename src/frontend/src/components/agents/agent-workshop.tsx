@@ -28,6 +28,15 @@ const BUDGETS = [
   { id: "Unlimited", label: "Unlimited" },
 ];
 
+const USE_CASE_TEMPLATES = [
+  { role: "DeFi Trading Bot", name: "TraderBot", chain: "Ethereum", budget: "$5,000", desc: "Swaps, limit orders, arbitrage" },
+  { role: "Yield Optimizer", name: "YieldHunter", chain: "Arbitrum", budget: "$10,000", desc: "Deposit/withdraw into yield protocols" },
+  { role: "Portfolio Rebalancer", name: "Rebalancer", chain: "Ethereum", budget: "$25,000", desc: "Cross-vault rebalancing" },
+  { role: "Payment Agent", name: "PayBot", chain: "Base", budget: "$1,000", desc: "Recurring payments, vendor payouts" },
+  { role: "DAO Treasury Agent", name: "TreasuryOps", chain: "Ethereum", budget: "$10,000", desc: "Proposal-linked disbursements" },
+  { role: "Bridge Agent", name: "Bridger", chain: "Ethereum", budget: "$5,000", desc: "Cross-chain transfers" },
+];
+
 export function AgentWorkshop() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -109,6 +118,28 @@ export function AgentWorkshop() {
               <h2 className="font-semibold">Agent Configuration</h2>
               <p className="text-xs text-muted-foreground">Define your agent&apos;s identity and constraints</p>
             </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Start from a template</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {USE_CASE_TEMPLATES.map((t) => (
+                <button
+                  key={t.role}
+                  type="button"
+                  onClick={() => { setName(t.name); setRole(t.role); setChain(t.chain); setBudget(t.budget); }}
+                  className={`p-3 rounded-lg border text-left transition-colors hover:border-primary/50 ${
+                    role === t.role ? "border-primary bg-primary/5" : "border-border"
+                  }`}
+                >
+                  <div className="text-xs font-medium">{t.role}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{t.desc}</div>
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Or fill in manually below</p>
           </div>
 
           <Separator />
