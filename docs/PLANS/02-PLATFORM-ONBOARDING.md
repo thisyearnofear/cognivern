@@ -1,6 +1,6 @@
 # Phase 2: Platform Onboarding & Multi-Tenant Auth
 
-> **Status:** Planned — not started
+> **Status:** Phases 0–2 complete, Phase 3 in progress
 > **Depends on:** Phase 1 (Next.js migration — complete)
 > **Goal:** Turn a single-user demo into a platform that real humans and agents can use, with proper auth, workspace isolation, and a demo experience that reflects the real product.
 
@@ -28,8 +28,6 @@ Cognivern's primary users are **autonomous agents** making blockchain transactio
 3. API keys to give their agents
 4. Confidence that their data is isolated from other teams
 
-The current architecture has none of this. It's a single-user demo with a speculative API wrapper — fine for hackathon demos, not for onboarding real teams.
-
 ---
 
 ## Approach
@@ -42,24 +40,24 @@ The key insight: **demo should be a workspace tier, not a client-side toggle**. 
                     │                  │
                     │  Component       │
                     │     ↓            │
-                    │  DataService     │
+                    │  SWR hooks       │
                     │  (HTTP to API)   │
                     └────────┬─────────┘
-                             │ POST /api/* with JWT or API key
+                             │ GET/POST /api/* with JWT
                              │ (workspace_id extracted from auth)
                              ▼
                     ┌──────────────────┐
                     │   Backend        │
                     │                  │
-                    │  Auth middleware │
+                    │  demoInterceptor │
                     │     ↓            │
-                    │  workspace_id    │
+                    │  authMiddleware  │
                     │     ↓            │
                     │  Controller      │
                     │     ↓            │
                     │  ┌──────┬──────┐ │
-                    │  │ Demo │ Live │ │
-                    │  │Data  │ DB   │ │
+                    │  │ Demo │SQLite│ │
+                    │  │Data  │  DB  │ │
                     │  │Service│     │ │
                     │  └──────┴──────┘ │
                     └──────────────────┘
@@ -69,95 +67,81 @@ The key insight: **demo should be a workspace tier, not a client-side toggle**. 
 
 ## Phases
 
-### Phase 0 — Auth & Workspace Isolation (foundation)
+### Phase 0 — Auth & Workspace Isolation ✅
 
-Everything depends on this. No point building features without knowing who the user is.
+**Backend (done):**
+- [x] SIWE middleware: `POST /api/auth/nonce`, `POST /api/auth/verify`
+- [x] Workspace model with `tier: "demo" | "live"`
+- [x] Auto-provisioned "demo" workspace on first sign-in
+- [x] Auth middleware extracts `workspace_id` from JWT
+- [x] SQLite persistence via better-sqlite3 (users, workspaces, nonces survive restarts)
 
-**Backend:**
-- Add `siwe` middleware: `POST /api/auth/siwe/nonce`, `POST /api/auth/siwe/verify`, `POST /api/auth/logout`
-- Create workspace model with `tier: "demo" | "live"` and `workspace_id`
-- `POST /api/workspaces` creates a new workspace (auto-provisioned as "demo" on signup)
-- Auth middleware extracts `workspace_id` from JWT (humans) or API key (agents)
-- All existing queries filter by `workspace_id`
+**Frontend (done):**
+- [x] RainbowKit + wagmi 2.x for wallet connection (WalletConnect, Coinbase, injected)
+- [x] `useAuth` hook: signIn, logout, loading, error, isConnected, address
+- [x] Landing page: "Connect Wallet" (SIWE) as primary CTA
+- [x] On wallet connect → auto-create workspace → redirect to dashboard
+- [x] `app-store.ts` stripped of mode state, keeps auth state
 
-**Frontend:**
-- Add `useLogin()`, `useLogout()`, `useSession()` hooks
-- Landing page: "Connect Wallet" (SIWE) replaces "Try Live Demo" as primary CTA
-- On wallet connect → auto-create workspace → redirect to dashboard
-- Remove `proxy.ts` cookie gateway — replace with session check
-- Add `useAuth` store that replaces `useAppStore`'s mode
-
-**Types to add to `packages/shared`:**
-- `User`, `Session`, `Workspace`
-
-**New backend files:**
+**Files created/modified:**
+- `src/backend/db/index.ts` — SQLite setup + auto-migration
+- `src/backend/middleware/authMiddleware.ts` — JWT verification
+- `src/backend/middleware/workspaceMiddleware.ts` — tier lookup from DB
+- `src/backend/modules/api/controllers/AuthController.ts` — SIWE + JWT issuance
+- `src/backend/modules/api/controllers/WorkspaceController.ts` — workspace CRUD
 - `src/backend/modules/api/routes/authRoutes.ts`
 - `src/backend/modules/api/routes/workspaceRoutes.ts`
-- `src/backend/middleware/authMiddleware.ts`
-- `src/backend/middleware/workspaceMiddleware.ts`
+- `src/frontend/src/lib/wagmi.ts` — wagmi config
+- `src/frontend/src/lib/auth.ts` — fetchNonce, verifySignature
+- `src/frontend/src/hooks/use-auth.ts` — hook wrapping wagmi + SIWE
+- `src/frontend/src/components/providers.tsx` — WagmiProvider + RainbowKit
 
-### Phase 1 — Demo Data Service
+### Phase 1 — Demo Data Service ✅
 
-Remove demo data from frontend components. Backend serves it instead.
+**Backend (done):**
+- [x] `src/backend/services/DemoDataService.ts` with agents, policies, audit logs, runs
+- [x] `src/backend/middleware/demoInterceptor.ts` intercepts API requests for demo-tier workspaces
+- [x] All `/api/*` endpoints Just Work for both tiers
 
-**Backend:**
-- Create `src/backend/services/DemoDataService.ts`
-  - Factory functions: `demoAgent()`, `demoAuditLog()`, `demoPolicy()`, `demoRun()`
-  - Deterministic but varied (seeded random, time-aware)
-- Wire into controllers: if `workspace.tier === "demo"`, return demo data from `DemoDataService`
-- All `/api/*` endpoints Just Work for both tiers
+**Frontend (done):**
+- [x] All `DEMO_AGENT`, `DEMO_LOGS`, `DEMO_*` constants deleted from components
+- [x] All `mode === "demo" ? ...` ternaries removed
+- [x] Components call API via SWR hooks — they never know the data source
 
-**Frontend:**
-- Delete all `DEMO_AGENT`, `DEMO_LOGS`, `DEMO_*` constants from component files
-- Remove all `mode === "demo" ? DEMO_DATA : liveData` ternaries
-- Components just call API — they never know the data source
-- No `useAgent("" )` key-gating — always pass the real ID
+### Phase 2 — Remove Client-Side Mode Awareness ✅
 
-### Phase 2 — Remove Client-Side Mode Awareness
+- [x] Removed `mode`, `setMode`, `toggleMode`, `enterDemoMode` from `app-store.ts`
+- [x] Removed "Demo Mode / Live Mode" switch from sidebar and settings
+- [x] Settings page shows workspace info (name, tier) instead
+- [x] Landing page → wallet connect → workspace created → dashboard
+- [x] Sidebar shows wallet address + workspace tier for authenticated users
 
-The frontend no longer needs to know about "demo mode".
+### Phase 3 — Real Onboarding (in progress)
 
-- Remove `mode`, `setMode`, `toggleMode`, `enterDemoMode` from `app-store.ts`
-- Remove the SSR stub (was only needed for the mode hack)
-- Remove "Demo Mode / Live Mode" switch from sidebar and settings
-- Settings page → replace with real settings (API key management, workspace config)
-- Landing page → wallet connect → workspace created → dashboard
+- [x] Onboarding wizard uses RainbowKit ConnectButton (real wallet)
+- [x] Auto-triggers SIWE signIn when wallet connects
+- [ ] Guide flow: Connect → Name Workspace → Explore Dashboard → Configure Chains → Invite Agents
+- [ ] "Go Live" button in settings to upgrade workspace from `demo` → `live`
 
-### Phase 3 — Real Onboarding
+### Phase 4 — Agent API Key Management (not started)
 
-- Replace simulated wallet connection in `onboarding-wizard.tsx` with real SIWE flow
-- First workspace gets pre-seeded demo data (agents, policies, sample runs)
-- Guide: Connect Wallet → Name Workspace → Explore Dashboard → Configure Real Chains → Invite Agents via API Key
-- "Go Live" = upgrade workspace tier from `demo` to `live` + configure blockchain RPCs
-
-### Phase 4 — Agent API Key Management
-
-- Settings page → "API Keys" tab
-- Humans create/revoke API keys scoped to their workspace
-- Agents present these keys in `x-api-key` header
-- Backend `apiKeyMiddleware` already exists — wire it to workspace scope
-- `setApiKey()` in frontend `apiClient` becomes meaningful (operators test agent calls from UI)
+- [ ] Settings page → "API Keys" tab
+- [ ] Humans create/revoke API keys scoped to their workspace
+- [ ] Agents present keys in `x-api-key` header
+- [ ] Backend `apiKeyMiddleware` resolves workspace from API key
+- [ ] `api_keys` table in SQLite (already designed in D1 schema)
 
 ---
 
-## File Change Summary
+## Architecture Decisions
 
-| File | Action |
+| Decision | Rationale |
 |---|---|
-| `packages/shared/src/types/index.ts` | Add `User`, `Session`, `Workspace` types |
-| `src/backend/modules/api/routes/authRoutes.ts` | **New** — SIWE auth endpoints |
-| `src/backend/modules/api/routes/workspaceRoutes.ts` | **New** — Workspace CRUD |
-| `src/backend/services/DemoDataService.ts` | **New** — Centralized demo data |
-| `src/backend/middleware/authMiddleware.ts` | **New** — JWT verification |
-| `src/backend/middleware/workspaceMiddleware.ts` | **New** — Workspace context |
-| `src/frontend/src/stores/app-store.ts` | Remove mode, add auth store |
-| `src/frontend/src/hooks/use-auth.ts` | **New** — SIWE hooks |
-| `src/frontend/src/lib/api-client.ts` | Add auth methods |
-| `src/frontend/src/hooks/use-api.ts` | Remove mode-gating logic |
-| `src/frontend/src/components/` (10+ files) | Remove DEMO constants, remove ternaries |
-| `src/frontend/src/components/landing/` | Wallet connect replaces "Try Demo" |
-| `src/frontend/src/components/onboarding/` | Real wallet + workspace flow |
-| `src/frontend/src/proxy.ts` | Remove — replaced by session middleware |
+| RainbowKit over ConnectKit | ConnectKit required React 17/18 + wagmi 2.x. RainbowKit supports React >=18, wagmi 2.x, and has better multi-chain UX |
+| better-sqlite3 over Turso | Local file-based, zero-config, synchronous API fits Express. Can migrate to Turso (libsql) later with same SQL schema |
+| Demo as workspace tier | Single code path — components are mode-agnostic. Backend controls what data a workspace sees |
+| JWT over sessions | Stateless auth fits serverless/edge deployment paths. 24h expiry. No session store needed |
+| demoInterceptor middleware | Transparent — sits before controllers, serves demo data without touching controller logic |
 
 ---
 
@@ -165,7 +149,7 @@ The frontend no longer needs to know about "demo mode".
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Wallet-gating excludes non-crypto users | Medium | Offer email+password as secondary auth option |
+| Wallet-gating excludes non-crypto users | Medium | Offer email+password as secondary auth option later |
 | Breaking existing demo flow | Low | Demo still works — just served from backend instead of frontend |
-| Backend migration complexity | Medium | `workspace_id` filter is a well-known pattern; phased rollout |
-| Frontend component rewrites | Medium | 10+ files to touch, but each change is mechanical (delete DEMO, remove ternary) |
+| SQLite single-writer bottleneck | Low | WAL mode handles reads concurrently; scale to Turso when needed |
+| Frontend component rewrites | Low (done) | All 10+ files already updated — mechanical deletion of DEMO constants |
