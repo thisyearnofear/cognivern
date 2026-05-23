@@ -406,20 +406,23 @@ export class ApiModule extends BaseService {
   private async setupRoutes(): Promise<void> {
     this.logger.info("Setting up routes...");
 
-    // Health check (no API key required)
-    this.app.get("/health", (req, res) => {
-      this.ctrl("health").getHealth(req, res);
-    });
+    // Import route modules
+    const {
+      createHealthRoutes,
+      createAgentRoutes,
+      createGovernanceRoutes,
+      createMetricsRoutes,
+      createAuditRoutes,
+      createCreRoutes,
+      createSpendRoutes,
+      createMiscRoutes,
+    } = await import("./routes/index.js");
 
-    this.app.get("/health/ready", (req, res) => {
-      this.ctrl("health").getReadiness(req, res);
-    });
-    this.app.get("/health/live", (req, res) => {
-      this.ctrl("health").getLiveness(req, res);
-    });
+    // Health check (no API key required)
+    const healthRoutes = createHealthRoutes(this.ctrl("health"));
+    this.app.use(healthRoutes);
 
     // Data plane ingestion (NO API key middleware)
-    // Keep this outside of the /api router so it can be locked down independently.
     this.app.post("/ingest/runs", (req, res) => {
       this.ctrl("ingest").ingestRun(req, res);
     });
@@ -427,496 +430,86 @@ export class ApiModule extends BaseService {
     // API routes (require API key)
     const apiRouter = express.Router();
 
-    apiRouter.get("/health", (req, res) => {
-      this.ctrl("health").getHealth(req, res);
-    });
-
-    // System health
-    apiRouter.get("/system/health", (req, res) => {
-      this.ctrl("health").getSystemHealth(req, res);
-    });
-
-    // Agent comparison routes (must come before parameterized routes)
-    apiRouter.get("/agents/stats", (req, res) => {
-      this.ctrl("agents").getAggregateStats(req, res);
-    });
-
-    apiRouter.get("/agents/compare", (req, res) => {
-      this.ctrl("agents").compareAgents(req, res);
-    });
-
-    apiRouter.get("/agents/leaderboard", (req, res) => {
-      this.ctrl("agents").getLeaderboard(req, res);
-    });
-
-    apiRouter.get("/agents", (req, res) => {
-      this.ctrl("agents").getAgents(req, res);
-    });
-
-    apiRouter.post("/agents/register", (req, res) => {
-      this.ctrl("agents").registerAgent(req, res);
-    });
-
-    // Specific routes must come before parameterized routes
-    apiRouter.get("/agents/connections", (req, res) => {
-      this.ctrl("agents").getConnections(req, res);
-    });
-
-    apiRouter.get("/agents/monitoring", (req, res) => {
-      this.ctrl("agents").getMonitoring(req, res);
-    });
-
-    apiRouter.get("/agents/unified", (req, res) => {
-      this.ctrl("agents").getUnified(req, res);
-    });
-
-    // Specific agent status/decisions routes for dashboard
-    apiRouter.get("/agents/governance/status", (req, res) => {
-      (req.params as Record<string, string>).agentType = "governance";
-      this.ctrl("agents").getAgentStatus(req, res);
-    });
-
-    apiRouter.get("/agents/governance/decisions", (req, res) => {
-      (req.params as Record<string, string>).agentType = "governance";
-      this.ctrl("agents").getAgentDecisions(req, res);
-    });
-
-    apiRouter.get("/agents/portfolio/status", (req, res) => {
-      (req.params as Record<string, string>).agentType = "portfolio";
-      this.ctrl("agents").getAgentStatus(req, res);
-    });
-
-    apiRouter.get("/agents/portfolio/decisions", (req, res) => {
-      (req.params as Record<string, string>).agentType = "portfolio";
-      this.ctrl("agents").getAgentDecisions(req, res);
-    });
-
-    apiRouter.get("/agents/sapience/status", (req, res) => {
-      (req.params as Record<string, string>).agentType = "sapience";
-      this.ctrl("agents").getAgentStatus(req, res);
-    });
-
-    apiRouter.get("/agents/sapience/decisions", (req, res) => {
-      (req.params as Record<string, string>).agentType = "sapience";
-      this.ctrl("agents").getAgentDecisions(req, res);
-    });
-
-    // Parameterized routes come after specific routes
-    apiRouter.get("/agents/:id", (req, res) => {
-      this.ctrl("agents").getAgent(req, res);
-    });
-
-    apiRouter.get("/agents/:id/status", (req, res) => {
-      this.ctrl("agents").getAgentStatus(req, res);
-    });
-
-    apiRouter.get("/agents/:id/decisions", (req, res) => {
-      this.ctrl("agents").getAgentDecisions(req, res);
-    });
-
-    apiRouter.get("/agents/:id/briefing", (req, res) => {
-      this.ctrl("agents").getAgentBriefing(req, res);
-    });
-
-    apiRouter.post("/agents/:id/start", (req, res) => {
-      this.ctrl("agents").startAgent(req, res);
-    });
-
-    apiRouter.post("/agents/:id/stop", (req, res) => {
-      this.ctrl("agents").stopAgent(req, res);
-    });
-
-    // Trading routes - Updated to match frontend expectations
-    apiRouter.get("/agents/:agentType/status", (req, res) => {
-      this.ctrl("agents").getAgentStatus(req, res);
-    });
-
-    apiRouter.get("/agents/:agentType/decisions", (req, res) => {
-      this.ctrl("agents").getAgentDecisions(req, res);
-    });
-
-    apiRouter.post("/agents/:agentType/start", (req, res) => {
-      this.ctrl("agents").startAgent(req, res);
-    });
-
-    apiRouter.post("/agents/:agentType/stop", (req, res) => {
-      this.ctrl("agents").stopAgent(req, res);
-    });
-
-    // Market Data Routes
-    apiRouter.get("/market/data/:symbol", (req, res) => {
-      this.ctrl("agents").getMarketData(req, res);
-    });
-
-    apiRouter.get("/market/historical/:symbol", (req, res) => {
-      this.ctrl("agents").getHistoricalData(req, res);
-    });
-
-    apiRouter.get("/market/stats", (req, res) => {
-      this.ctrl("agents").getMarketStats(req, res);
-    });
-
-    apiRouter.get("/market/top", (req, res) => {
-      this.ctrl("agents").getTopMarkets(req, res);
-    });
-
-    // Governance routes
-    apiRouter.get("/governance/policies", (req, res) => {
-      this.ctrl("governance").getPolicies(req, res);
-    });
-
-    apiRouter.post("/governance/policies", (req, res) => {
-      this.ctrl("governance").createPolicy(req, res);
-    });
-
-    // New governance routes for Cloudflare Worker integration
-    apiRouter.get("/governance/health", (req, res) => {
-      this.ctrl("governance").getHealth(req, res);
-    });
-
-    apiRouter.post("/governance/evaluate", (req, res) => {
-      this.ctrl("governance").evaluateAction(req, res);
-    });
-
-    // MCP tool endpoints — Prompt Opinion Marketplace (Agents Assemble Healthcare AI Endgame)
-    apiRouter.get("/mcp/governance-check", (req, res) => {
-      this.ctrl("mcpGovernance").getManifest(req, res);
-    });
-
-    apiRouter.post("/mcp/governance-check", (req, res) => {
-      this.ctrl("mcpGovernance").governanceCheck(req, res);
-    });
-
-    // Metrics routes
-    apiRouter.get("/metrics/daily", (req, res) => {
-      this.ctrl("metrics").getDailyMetrics(req, res);
-    });
-
-    apiRouter.post("/metrics/ux-events", (req, res) => {
-      this.ctrl("metrics").postUxEvent(req, res);
-    });
-
-    apiRouter.get("/metrics/ux-summary", (req, res) => {
-      this.ctrl("metrics").getUxSummary(req, res);
-    });
-
-    // Audit routes - Updated to match frontend expectations
-    apiRouter.get("/audit/logs", (req, res) => {
-      this.ctrl("auditLog").getLogs(req, res);
-    });
-
-    apiRouter.get("/audit/insights", (req, res) => {
-      this.ctrl("auditLog").getInsights(req, res);
-    });
-
-    apiRouter.post("/audit/insights/:id/resolve", (req, res) => {
-      this.ctrl("auditLog").resolveInsight(req, res);
-    });
-
-    apiRouter.post("/audit/permits", (req, res) => {
-      this.ctrl("auditLog").issuePermit(req, res);
-    });
-
-    // CRE / Agent Run Ledger routes
-    apiRouter.get("/cre/runs", (req, res) => {
-      this.ctrl("cre").listRuns(req, res);
-    });
-
-    apiRouter.get("/cre/runs/:runId", (req, res) => {
-      this.ctrl("cre").getRun(req, res);
-    });
-
-    apiRouter.get("/cre/runs/:runId/events", (req, res) => {
-      this.ctrl("cre").getRunEvents(req, res);
-    });
-
-    apiRouter.get("/cre/runs/:runId/events/stream", (req, res) => {
-      this.ctrl("cre").streamRunEvents(req, res);
-    });
-
-    apiRouter.post("/cre/runs/:runId/cancel", (req, res) => {
-      this.ctrl("cre").cancelRun(req, res);
-    });
-
-    apiRouter.post("/cre/runs/:runId/retry", (req, res) => {
-      this.ctrl("cre").retryRun(req, res);
-    });
-
-    apiRouter.post("/cre/runs/:runId/approval", (req, res) => {
-      this.ctrl("cre").submitApproval(req, res);
-    });
-
-    apiRouter.post("/cre/runs/:runId/plan", (req, res) => {
-      this.ctrl("cre").updateRunPlan(req, res);
-    });
-
-    apiRouter.post("/cre/forecast", (req, res) => {
-      this.ctrl("cre").triggerForecast(req, res);
-    });
-
-    // SpendOS / OWS Wallet Execution Layer routes
-    apiRouter.post("/spend", (req, res) => {
-      this.ctrl("spend").requestSpend(req, res);
-    });
-
-    apiRouter.post("/spend/encrypted", (req, res) => {
-      this.ctrl("spend").requestEncryptedSpend(req, res);
-    });
-
-    apiRouter.post("/spend/preview", (req, res) => {
-      this.ctrl("spend").previewSpend(req, res);
-    });
-
-    apiRouter.get("/spend/status", (req, res) => {
-      this.ctrl("spend").getStatus(req, res);
-    });
-
-    apiRouter.get("/spend/scan", (req, res) => {
-      this.ctrl("spend").scanContract(req, res);
-    });
-
-    apiRouter.get("/ows/status", (req, res) => {
-      this.ctrl("ows").getStatus(req, res);
-    });
-
-    apiRouter.get("/ows/health", (req, res) => {
-      this.ctrl("owsWallet").getHealth(req, res);
-    });
-
-    apiRouter.get("/ows/dashboard", (req, res) => {
-      this.ctrl("owsWallet").getDashboard(req, res);
-    });
-
-    apiRouter.post("/ows/bootstrap", (req, res) => {
-      this.ctrl("owsWallet").bootstrap(req, res);
-    });
-
-    // Wallet routes
-    apiRouter.get("/ows/wallets", (req, res) => {
-      this.ctrl("owsWallet").listWallets(req, res);
-    });
-
-    apiRouter.get("/ows/wallets/:id", (req, res) => {
-      this.ctrl("owsWallet").getWallet(req, res);
-    });
-
-    apiRouter.post("/ows/wallets/connect", (req, res) => {
-      this.ctrl("owsWallet").connectExternal(req, res);
-    });
-
-    apiRouter.post("/ows/wallets/import", (req, res) => {
-      this.ctrl("owsWallet").importWallet(req, res);
-    });
-
-    // Agent routes
-    apiRouter.get("/ows/agents", (req, res) => {
-      this.ctrl("owsWallet").listAgents(req, res);
-    });
-
-    apiRouter.post("/ows/agents", (req, res) => {
-      this.ctrl("owsWallet").createAgent(req, res);
-    });
-
-    // API Key routes
-    apiRouter.get("/ows/api-keys", (req, res) => {
-      this.ctrl("owsApiKey").listApiKeys(req, res);
-    });
-
-    apiRouter.get("/ows/api-keys/:id", (req, res) => {
-      this.ctrl("owsApiKey").getApiKey(req, res);
-    });
-
-    apiRouter.post("/ows/api-keys", (req, res) => {
-      this.ctrl("owsApiKey").createApiKey(req, res);
-    });
-
-    apiRouter.delete("/ows/api-keys/:id", (req, res) => {
-      this.ctrl("owsApiKey").deleteApiKey(req, res);
-    });
-
-    // Permissions routes
-    apiRouter.post("/ows/permissions", (req, res) => {
-      this.ctrl("owsPermissions").requestPermissions(req, res);
-    });
-
-    apiRouter.get("/ows/permissions/:walletId", (req, res) => {
-      this.ctrl("owsPermissions").getPermissions(req, res);
-    });
-
-    // Projects (multi-project support)
-    apiRouter.get("/projects", (req, res) => {
-      this.ctrl("ingest").listProjects(req, res);
-    });
-
-    apiRouter.get("/projects/:projectId/usage", (req, res) => {
-      this.ctrl("ingest").getUsage(req, res);
-    });
-
-    apiRouter.get("/projects/:projectId/tokens", (req, res) => {
-      this.ctrl("ingest").listTokens(req, res);
-    });
-
-    // Sapience routes
+    // Mount feature-based route modules
+    apiRouter.use(createHealthRoutes(this.ctrl("health")));
+    apiRouter.use(createAgentRoutes(this.ctrl("agents")));
+    apiRouter.use(createGovernanceRoutes(this.ctrl("governance"), this.ctrl("mcpGovernance")));
+    apiRouter.use(createMetricsRoutes(this.ctrl("metrics")));
+    apiRouter.use(createAuditRoutes(this.ctrl("auditLog")));
+    apiRouter.use(createCreRoutes(this.ctrl("cre")));
+    apiRouter.use(createSpendRoutes(
+      this.ctrl("spend"),
+      this.ctrl("ows"),
+      this.ctrl("owsWallet"),
+      this.ctrl("owsApiKey"),
+      this.ctrl("owsPermissions")
+    ));
+    apiRouter.use(createMiscRoutes(
+      this.ctrl("ingest"),
+      this.ctrl("recall"),
+      this.ctrl("fhenix"),
+      this.ctrl("intent"),
+      this.ctrl("payroll"),
+      this.ctrl("sealedBid")
+    ));
+
+    // Sapience routes (conditional)
     if (this.controllers.sapience) {
       apiRouter.get("/sapience/status", (req, res) => {
         this.ctrl("sapience").getStatus(req, res);
       });
-
       apiRouter.post("/sapience/forecast", (req, res) => {
         this.ctrl("sapience").submitForecast(req, res);
       });
-
       apiRouter.post("/sapience/forecast/auto", (req, res) => {
         this.ctrl("sapience").submitAutomatedForecast(req, res);
       });
-
       apiRouter.get("/sapience/wallet", (req, res) => {
         this.ctrl("sapience").getWallet(req, res);
       });
-
       apiRouter.get("/sapience/decisions", (req, res) => {
         this.ctrl("sapience").getDecisions(req, res);
       });
     }
 
-    apiRouter.get("/spendos/decisions", (req, res) => {
-      this.ctrl("recall").getDecisions(req, res);
-    });
-
-    apiRouter.post("/recall/store", (req, res) => {
-      this.ctrl("recall").storeMemory(req, res);
-    });
-
-    apiRouter.get("/recall/query", (req, res) => {
-      this.ctrl("recall").queryMemories(req, res);
-    });
-
-    // Fhenix routes
-    apiRouter.get("/fhenix/status", (req, res) => {
-      this.ctrl("fhenix").getStatus(req, res);
-    });
-
-    apiRouter.post("/fhenix/decrypt", (req, res) => {
-      this.ctrl("fhenix").decrypt(req, res);
-    });
-
-    apiRouter.post("/fhenix/encrypt", (req, res) => {
-      this.ctrl("fhenix").encrypt(req, res);
-    });
-
-    // Privara confidential payroll routes
-    apiRouter.post("/payroll/confidential", (req, res) => {
-      this.ctrl("payroll").executeConfidentialPayroll(req, res);
-    });
-
-    // Sealed-bid vendor selection routes
-    apiRouter.post("/vendor/sealed-bid/rounds", (req, res) => {
-      this.ctrl("sealedBid").createRound(req, res);
-    });
-
-    apiRouter.post("/vendor/sealed-bid/rounds/:roundId/bid", (req, res) => {
-      this.ctrl("sealedBid").submitBid(req, res);
-    });
-
-    apiRouter.post("/vendor/sealed-bid/rounds/:roundId/close", (req, res) => {
-      this.ctrl("sealedBid").closeRound(req, res);
-    });
-
-    apiRouter.post("/vendor/sealed-bid/rounds/:roundId/reveal", (req, res) => {
-      this.ctrl("sealedBid").revealWinner(req, res);
-    });
-
-    apiRouter.get("/vendor/sealed-bid/rounds/:roundId", (req, res) => {
-      this.ctrl("sealedBid").getRound(req, res);
-    });
-
-    apiRouter.get("/vendor/sealed-bid/rounds", (req, res) => {
-      this.ctrl("sealedBid").listRounds(req, res);
-    });
-
-    // Dashboard routes
-    apiRouter.get("/dashboard/unified", (req, res) => {
-      this.ctrl("agents").getUnified(req, res);
-    });
-
-    apiRouter.get("/dashboard/bundle", (req, res) => {
-      this.ctrl("agents").getDashboardBundle(req, res);
-    });
-
-    apiRouter.get("/dashboard/events/stream", (req, res) => {
-      this.ctrl("agents").streamDashboardEvents(req, res);
-    });
-
-    // Intent / Natural Language Processing routes
-    apiRouter.post("/intent", (req, res) => {
-      this.ctrl("intent").processIntent(req, res);
-    });
-
-    // Intent metrics for monitoring
-    apiRouter.get("/intent/metrics", (_req, res) => {
-      res.json({
-        success: true,
-        data: this.ctrl("intent").getMetrics(),
-      });
-    });
-
     // Mount API router
     this.app.use("/api", apiRouter);
 
-    // 404 handler for unknown routes
+    // 404 handler
     this.app.use("*", (req, res) => {
-      // If it's an /api request that didn't match anything, 404
-      if (req.path.startsWith("/api")) {
-        res.status(404).json({
-          success: false,
-          error: "API Endpoint not found",
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-
-      // For other top-level routes, we'll let the load balancer/proxy handle them
-      // but if we're here, we should still return a JSON 404 for consistency
+      const message = req.path.startsWith("/api")
+        ? "API Endpoint not found"
+        : "Resource not found";
       res.status(404).json({
         success: false,
-        error: "Resource not found",
+        error: message,
         timestamp: new Date().toISOString(),
       });
     });
 
-    // Error handler - Use structured error handling
-    this.app.use(
-      (
-        error: Error,
-        req: express.Request,
-        res: express.Response,
-        _next: express.NextFunction,
-      ) => {
-        // Log the error
-        this.logger.error(`API Error: ${error.message}`, error);
+    // Error handler
+    this.app.use((error: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      this.logger.error(`API Error: ${error.message}`, error);
 
-        // Handle Zod validation errors specifically
-        if (error.name === "ZodError") {
-          return res.status(422).json({
-            success: false,
-            error: "Validation failed",
-            code: "VALIDATION_ERROR",
-            details: error,
-            timestamp: new Date().toISOString(),
-          });
-        }
-
-        // Generic error response
-        const httpError = error as HttpError;
-        const statusCode = httpError.statusCode || 500;
-        return res.status(statusCode).json({
+      if (error.name === "ZodError") {
+        return res.status(422).json({
           success: false,
-          error: error.message || "Internal server error",
-          code: httpError.code || "INTERNAL_ERROR",
+          error: "Validation failed",
+          code: "VALIDATION_ERROR",
+          details: error,
           timestamp: new Date().toISOString(),
         });
-      },
-    );
+      }
+
+      const httpError = error as HttpError;
+      const statusCode = httpError.statusCode || 500;
+      return res.status(statusCode).json({
+        success: false,
+        error: error.message || "Internal server error",
+        code: httpError.code || "INTERNAL_ERROR",
+        timestamp: new Date().toISOString(),
+      });
+    });
   }
 
   private async startServer(): Promise<void> {

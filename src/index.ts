@@ -1,4 +1,4 @@
-import { startServer } from "./backend/server.js";
+import { startServer } from "./server.js";
 import logger from "./backend/utils/logger.js";
 
 // Error handling for uncaught exceptions and unhandled rejections

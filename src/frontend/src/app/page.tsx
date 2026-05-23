@@ -1,6 +1,8 @@
 import { LandingPage } from "@/components/landing/landing-page";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Cognivern — AI Agent Governance",
   description:

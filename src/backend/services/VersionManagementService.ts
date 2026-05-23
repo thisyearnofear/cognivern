@@ -1,4 +1,4 @@
-import { config } from "../config.js";
+import { config } from "../../config.js";
 import logger from "../utils/logger.js";
 
 export interface ModelVersion {

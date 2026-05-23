@@ -1,0 +1,8 @@
+export { createHealthRoutes } from "./healthRoutes.js";
+export { createAgentRoutes } from "./agentRoutes.js";
+export { createGovernanceRoutes } from "./governanceRoutes.js";
+export { createMetricsRoutes } from "./metricsRoutes.js";
+export { createAuditRoutes } from "./auditRoutes.js";
+export { createCreRoutes } from "./creRoutes.js";
+export { createSpendRoutes } from "./spendRoutes.js";
+export { createMiscRoutes } from "./miscRoutes.js";
