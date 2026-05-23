@@ -26,25 +26,6 @@ import {
   FileSearch,
 } from "lucide-react";
 import { useAgent } from "@/hooks/use-api";
-import { useAppStore } from "@/stores/app-store";
-import type { Agent } from "@cognivern/shared";
-
-const DEMO_AGENT: Agent = {
-  id: "yield-01",
-  name: "YieldHunter-01",
-  role: "DeFi Yield Optimizer",
-  status: "active" as const,
-  trades: 142,
-  budget: "500 MNT/day",
-  chain: "X Layer",
-  spendHistory: [
-    { amount: 200, currency: "MNT", timestamp: "2026-05-23T10:21:00Z", decision: "approved" },
-    { amount: 150, currency: "MNT", timestamp: "2026-05-23T09:15:00Z", decision: "approved" },
-    { amount: 600, currency: "MNT", timestamp: "2026-05-23T08:00:00Z", decision: "denied" },
-    { amount: 50, currency: "MNT", timestamp: "2026-05-22T22:30:00Z", decision: "approved" },
-    { amount: 1000, currency: "MNT", timestamp: "2026-05-22T18:00:00Z", decision: "held" },
-  ],
-};
 
 function Breadcrumbs({ agentName }: { agentName: string }) {
   const router = useRouter();
@@ -65,12 +46,9 @@ function Breadcrumbs({ agentName }: { agentName: string }) {
 
 export function AgentDetailPage({ agentId }: { agentId: string }) {
   const router = useRouter();
-  const mode = useAppStore((s) => s.mode);
-  const { data: liveAgent, isLoading, error } = useAgent(mode === "live" ? agentId : "");
+  const { data: agent, isLoading, error } = useAgent(agentId);
 
-  const agent = mode === "demo" ? DEMO_AGENT : liveAgent;
-
-  if (isLoading && mode === "live") {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-5 w-48" />

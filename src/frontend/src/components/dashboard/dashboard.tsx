@@ -6,47 +6,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
-import { useAppStore } from "@/stores/app-store";
 import { useAgents, useAuditLogs } from "@/hooks/use-api";
-
-const DEMO_AGENTS = [
-  { id: "yield-01", name: "YieldHunter-01", status: "active", trades: 142, return: "+12.4%" },
-  { id: "rebal-03", name: "Rebalancer-03", status: "active", trades: 89, return: "+8.1%" },
-  { id: "arb-07", name: "Arbitrage-07", status: "paused", trades: 56, return: "-2.3%" },
-  { id: "gov-01", name: "GovChecker-01", status: "active", trades: 31, return: "\u2014" },
-];
-
-const DEMO_ACTIVITY = [
-  { id: "1", agent: "YieldHunter-01", action: "Spend request approved", amount: "200 MNT", time: "2m ago", status: "approved" },
-  { id: "2", agent: "Arbitrage-07", action: "Spend request denied", amount: "500 MNT", time: "14m ago", status: "denied" },
-  { id: "3", agent: "Rebalancer-03", action: "Policy check passed", amount: "50 MNT", time: "28m ago", status: "passed" },
-  { id: "4", agent: "YieldHunter-01", action: "Audit trail recorded", amount: "200 MNT", time: "45m ago", status: "audited" },
-  { id: "5", agent: "GovChecker-01", action: "Manual approval completed", amount: "1,000 MNT", time: "1h ago", status: "approved" },
-];
-
-const DEMO_ALERTS = [
-  { id: "a1", text: "Arbitrage-07 exceeded daily spend limit (500/500 MNT)", variant: "warning" as const },
-  { id: "a2", text: "YieldHunter-01 near limit \u2014 450/500 MNT spent today", variant: "secondary" as const },
-];
 
 export function Dashboard() {
   const router = useRouter();
-  const mode = useAppStore((s) => s.mode);
-  const { data: liveAgents, isLoading: agentsLoading, error: agentsError } = useAgents();
-  const { data: liveLogs, isLoading: logsLoading, error: logsError } = useAuditLogs();
+  const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
+  const { data: logs, isLoading: logsLoading, error: logsError } = useAuditLogs();
 
-  const isLive = mode === "live";
-  const agents = isLive && liveAgents ? liveAgents.map(a => ({
-    id: a.id, name: a.name, status: a.status, trades: a.trades, return: "\u2014"
-  })) : DEMO_AGENTS;
-  const activity = isLive && liveLogs ? liveLogs.map(l => ({
+  const agentList = agents || [];
+  const activity = (logs || []).map(l => ({
     id: l.id, agent: l.agentId, action: l.action,
     amount: "—", time: new Date(l.timestamp).toLocaleString(), status: l.decision
-  })) : DEMO_ACTIVITY;
-  const activeCount = agents.filter(a => a.status === "active").length;
-  const approvalRate = isLive && liveLogs
-    ? Math.round((liveLogs.filter(l => l.decision === "approved").length / liveLogs.length) * 100) : 78.3;
-  const decisions = isLive && liveLogs ? liveLogs.length : 318;
+  }));
+  const activeCount = agentList.filter(a => a.status === "active").length;
+  const approvalRate = logs && logs.length > 0
+    ? Math.round((logs.filter(l => l.decision === "approved").length / logs.length) * 100) : 0;
+  const decisions = logs?.length || 0;
 
   return (
     <div className="space-y-6">
@@ -54,7 +29,7 @@ export function Dashboard() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <div className="flex items-center gap-2">
-          {isLive && agentsError && (
+          {agentsError && (
             <Badge variant="destructive" className="text-xs">API Error</Badge>
           )}
           <Button size="sm" variant="outline" onClick={() => router.refresh()}>
@@ -70,7 +45,7 @@ export function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-4">
-            {agentsLoading && isLive ? (
+            {agentsLoading ? (
               <Skeleton className="h-12 w-24" />
             ) : (
               <div className="flex items-center gap-3">
@@ -78,7 +53,7 @@ export function Dashboard() {
                   <Users className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">{activeCount}/{agents.length}</div>
+                  <div className="text-2xl font-bold">{activeCount}/{agentList.length}</div>
                   <div className="text-xs text-muted-foreground">Agents Online</div>
                 </div>
               </div>
@@ -100,7 +75,7 @@ export function Dashboard() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            {logsLoading && isLive ? (
+            {logsLoading ? (
               <Skeleton className="h-12 w-24" />
             ) : (
               <div className="flex items-center gap-3">
@@ -117,7 +92,7 @@ export function Dashboard() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            {logsLoading && isLive ? (
+            {logsLoading ? (
               <Skeleton className="h-12 w-24" />
             ) : (
               <div className="flex items-center gap-3">
@@ -134,27 +109,6 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Governance Alerts */}
-      {DEMO_ALERTS.length > 0 && (
-        <div className="p-4 rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/30">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-sm flex items-center gap-2">
-              <Activity className="h-4 w-4 text-amber-500" />
-              Governance Alerts
-            </h2>
-            <Badge variant="secondary">{DEMO_ALERTS.length} open</Badge>
-          </div>
-          <div className="space-y-2">
-            {DEMO_ALERTS.map((alert) => (
-              <div key={alert.id} className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
-                {alert.text}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Governed Agents */}
       <div>
         <div className="flex items-center justify-between mb-3">
@@ -163,20 +117,20 @@ export function Dashboard() {
             View All <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </div>
-        {agentsLoading && isLive ? (
+        {agentsLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[1, 2, 3, 4].map(i => (
               <Card key={i}><CardContent className="p-4"><Skeleton className="h-24 w-full" /></CardContent></Card>
             ))}
           </div>
-        ) : agentsError && isLive ? (
+        ) : agentsError ? (
           <div className="p-8 text-center text-muted-foreground">
             <p>Failed to load agents</p>
             <Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>Retry</Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {agents.map((agent) => (
+            {agentList.map((agent) => (
               <Card key={agent.id} className="hover:border-sky-200 dark:hover:border-sky-800 transition-colors cursor-pointer" onClick={() => router.push(`/agents/${agent.id}`)}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -190,9 +144,7 @@ export function Dashboard() {
                   </div>
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>{agent.trades} trades</span>
-                    {agent.return && <span className={
-                      agent.return.startsWith("+") ? "text-emerald-500" : agent.return.startsWith("-") ? "text-red-500" : ""
-                    }>{agent.return}</span>}
+                    <span>{agent.budget}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -204,26 +156,16 @@ export function Dashboard() {
       {/* Recent Activity */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <h2 className="font-semibold">Recent Activity</h2>
-            {isLive ? (
-              <span className="flex items-center gap-1 text-xs text-emerald-500">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                LIVE
-              </span>
-            ) : (
-              <Badge variant="outline" className="text-xs">Demo</Badge>
-            )}
-          </div>
+          <h2 className="font-semibold">Recent Activity</h2>
           <Button variant="ghost" size="sm" onClick={() => router.push("/audit")}>
             View All <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </div>
-        {logsLoading && isLive ? (
+        {logsLoading ? (
           <div className="space-y-2">
             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}
           </div>
-        ) : logsError && isLive ? (
+        ) : logsError ? (
           <div className="p-8 text-center text-muted-foreground border rounded-xl">
             <p>Failed to load activity</p>
           </div>
@@ -289,7 +231,7 @@ export function Dashboard() {
           className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
         >
           <Activity className="h-5 w-5 text-emerald-500 mb-2" />
-          <div className="font-medium text-sm">Spend Flow Demo</div>
+          <div className="font-medium text-sm">Spend Flow</div>
           <div className="text-xs text-muted-foreground mt-1">See spend evaluation</div>
         </button>
         <button

@@ -1,14 +1,14 @@
-import { useEffect, useRef } from 'react';
-import { io, type Socket } from 'socket.io-client';
-import { useAppStore } from '@/stores/app-store';
+import { useEffect, useRef } from "react";
+import { io, type Socket } from "socket.io-client";
+import { useAppStore } from "@/stores/app-store";
 
 let socket: Socket | null = null;
 
 export function useSocket(): Socket | null {
-  const mode = useAppStore((s) => s.mode);
+  const isConnected = useAppStore((s) => s.user.isConnected);
 
   useEffect(() => {
-    if (mode !== 'live') {
+    if (!isConnected) {
       if (socket) {
         socket.disconnect();
         socket = null;
@@ -18,15 +18,13 @@ export function useSocket(): Socket | null {
 
     if (!socket) {
       socket = io(window.location.origin, {
-        path: '/api/socket',
-        transports: ['websocket', 'polling'],
+        path: "/api/socket",
+        transports: ["websocket", "polling"],
       });
     }
 
-    return () => {
-      // Don't disconnect on unmount - keep global connection
-    };
-  }, [mode]);
+    return () => {};
+  }, [isConnected]);
 
   return socket;
 }

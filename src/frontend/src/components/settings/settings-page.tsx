@@ -1,17 +1,15 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Monitor, Key, ShieldCheck, ExternalLink } from "lucide-react";
+import { Sun, Moon, Monitor, Key, ExternalLink } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const mode = useAppStore((s) => s.mode);
-  const toggleMode = useAppStore((s) => s.toggleMode);
+  const workspace = useAppStore((s) => s.user.workspace);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -50,40 +48,25 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Mode */}
-      <Card>
-        <CardContent className="p-5 space-y-4">
-          <h2 className="font-semibold flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            Data Mode
-          </h2>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium">
-                {mode === "demo" ? "Demo Mode" : "Live Mode"}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {mode === "demo" ? "Using sample data for exploration" : "Connected to backend API"}
-              </div>
-            </div>
-            <Button variant="outline" size="sm" onClick={toggleMode}>
-              Switch to {mode === "demo" ? "Live" : "Demo"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* API Key */}
+      {/* Workspace */}
       <Card>
         <CardContent className="p-5 space-y-4">
           <h2 className="font-semibold flex items-center gap-2">
             <Key className="h-4 w-4 text-amber-500" />
-            API Access
+            Workspace
           </h2>
-          <div className="text-sm text-muted-foreground">
-            API keys will be available in a future update. For now, use the demo mode or connect a wallet.
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium">{workspace?.name || "Not connected"}</div>
+              <div className="text-xs text-muted-foreground">
+                Tier: {workspace?.tier || "—"}
+              </div>
+            </div>
+            <Badge variant="secondary">{workspace?.tier || "none"}</Badge>
           </div>
-          <Badge variant="outline" className="text-xs">Coming soon</Badge>
+          <div className="text-sm text-muted-foreground">
+            API keys for your agents will be available in a future update.
+          </div>
         </CardContent>
       </Card>
 

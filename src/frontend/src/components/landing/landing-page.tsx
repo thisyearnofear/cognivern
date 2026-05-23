@@ -5,16 +5,22 @@ import { motion } from "motion/react";
 import { ArrowRight, Zap, Globe, Lock, Eye, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShieldLogo } from "@/components/landing/shield-logo";
-import { useAppStore } from "@/stores/app-store";
+import { useAuth } from "@/hooks/use-auth";
 
 export function LandingPage() {
   const router = useRouter();
-  const enterDemoMode = useAppStore((s) => s.enterDemoMode);
+  const { signIn, loading } = useAuth();
+
+  const handleConnectWallet = async () => {
+    try {
+      await signIn();
+      router.push("/dashboard");
+    } catch (err) {
+      console.error("Login failed:", err);
+    }
+  };
 
   const handleTryDemo = () => {
-    enterDemoMode();
-    document.cookie =
-      "demoExplored=true; path=/; max-age=" + 60 * 60 * 24 * 7;
     router.push("/dashboard");
   };
 
@@ -28,16 +34,22 @@ export function LandingPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 bg-stone-100 dark:bg-stone-800 text-stone-500 rounded-full text-xs">
-            <Lock size={10} />
+            <Shield size={10} />
             OWS
           </span>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleTryDemo}
-          >
-            Try Demo →
-          </Button>
+          {loading ? (
+            <Button variant="default" size="sm" disabled>
+              Connecting...
+            </Button>
+          ) : (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleConnectWallet}
+            >
+              Connect Wallet
+            </Button>
+          )}
         </div>
       </header>
 
@@ -67,17 +79,17 @@ export function LandingPage() {
         <p className="text-lg text-stone-500 max-w-lg mx-auto mb-8">
           Checks every spend against your policy, holds risky moves for
           review, and gives you cryptographic audit evidence — in under
-          100ms. No wallet required.
+          100ms.
         </p>
 
         <div className="flex gap-4 justify-center flex-wrap mb-8">
           <Button
             variant="default"
             size="lg"
-            onClick={handleTryDemo}
+            onClick={handleConnectWallet}
             className="bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 shadow-lg"
           >
-            Try Live Demo <ArrowRight />
+            Connect Wallet <ArrowRight />
           </Button>
           <Button
             variant="outline"

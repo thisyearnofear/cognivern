@@ -11,32 +11,15 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShieldCheck, CheckCircle2, XCircle, AlertTriangle, Loader2, PlayCircle, ArrowRight } from "lucide-react";
 import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
+import { useAgents } from "@/hooks/use-api";
 
-const DEMO_AGENTS = [
-  { id: "yield-01", name: "YieldHunter-01", chain: "X Layer" },
-  { id: "arb-07", name: "Arbitrage-07", chain: "Fhenix" },
-  { id: "rebal-03", name: "Rebalancer-03", chain: "Mantle" },
-  { id: "gov-01", name: "GovChecker-01", chain: "Fhenix" },
+const ACTION_TYPES = [
+  { type: "swap", description: "Swap tokens on a DEX" },
+  { type: "stake", description: "Stake tokens in a liquidity pool" },
+  { type: "transfer", description: "Transfer tokens to an external wallet" },
+  { type: "mint", description: "Mint tokens" },
+  { type: "approve", description: "Approve a spending cap" },
 ];
-
-const DEMO_ACTIONS = [
-  { type: "swap", description: "Swap 200 MNT for USDC on X Layer" },
-  { type: "stake", description: "Stake 500 MNT in liquidity pool" },
-  { type: "transfer", description: "Transfer 1,000 MNT to external wallet" },
-  { type: "mint", description: "Mint 100 NFT tokens" },
-  { type: "approve", description: "Approve 2,500 MNT spending cap" },
-];
-
-const DEMO_EVALUATION: GovernanceEvaluation = {
-  allowed: true,
-  reasoning: "Action falls within configured spend limits and passes all policy checks.",
-  policyChecks: [
-    { policyId: "p1", result: true, reason: "Daily spend limit: 200/500 MNT used \u2014 within budget" },
-    { policyId: "p2", result: true, reason: "Compliance check passed \u2014 no KYC/AML flags" },
-    { policyId: "p3", result: true, reason: "Transaction under 1,000 MNT \u2014 no manual approval needed" },
-  ],
-  timestamp: new Date().toISOString(),
-};
 
 function CheckItem({ label, passed, detail }: { label: string; passed: boolean; detail: string }) {
   return (
@@ -55,6 +38,7 @@ function CheckItem({ label, passed, detail }: { label: string; passed: boolean; 
 }
 
 export function GovernanceCheck() {
+  const { data: agents } = useAgents();
   const [agentId, setAgentId] = useState("");
   const [actionType, setActionType] = useState("swap");
   const [actionDesc, setActionDesc] = useState("");
@@ -63,29 +47,32 @@ export function GovernanceCheck() {
   const [result, setResult] = useState<GovernanceEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const agentList = agents || [];
+
   const handleEvaluate = useCallback(async () => {
     setEvaluating(true);
     setError(null);
     setResult(null);
 
     try {
+      const selectedAgent = agentList.find(a => a.id === agentId);
       const res = await apiClient.evaluateGovernance({
-        agentId: agentId || "yield-01",
+        agentId: agentId || agentList[0]?.id || "unknown",
         action: {
           type: actionType,
-          description: actionDesc || DEMO_ACTIONS.find(a => a.type === actionType)?.description || "",
+          description: actionDesc || ACTION_TYPES.find(a => a.type === actionType)?.description || "",
           amount: parseFloat(amount) || 200,
-          currency: "MNT",
+          currency: "USDC",
         },
       });
       setResult(res.data || null);
       if (!res.data) setError("No evaluation result returned");
-    } catch {
-      setResult(DEMO_EVALUATION);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Evaluation failed");
     } finally {
       setEvaluating(false);
     }
-  }, [agentId, actionType, actionDesc, amount]);
+  }, [agentId, agentList, actionType, actionDesc, amount]);
 
   return (
     <div className="space-y-6">
@@ -113,7 +100,7 @@ export function GovernanceCheck() {
                     <SelectValue placeholder="Select an agent" />
                   </SelectTrigger>
                   <SelectContent>
-                    {DEMO_AGENTS.map(a => (
+                    {agentList.map(a => (
                       <SelectItem key={a.id} value={a.id}>{a.name} ({a.chain})</SelectItem>
                     ))}
                   </SelectContent>
@@ -125,14 +112,14 @@ export function GovernanceCheck() {
                 <Select value={actionType} onValueChange={(v) => {
                   if (!v) return;
                   setActionType(v);
-                  const action = DEMO_ACTIONS.find(a => a.type === v);
+                  const action = ACTION_TYPES.find(a => a.type === v);
                   if (action) setActionDesc(action.description);
                 }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select action type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {DEMO_ACTIONS.map(a => (
+                    {ACTION_TYPES.map(a => (
                       <SelectItem key={a.type} value={a.type}>{a.type}</SelectItem>
                     ))}
                   </SelectContent>
@@ -151,7 +138,7 @@ export function GovernanceCheck() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="amount" className="text-sm font-medium">Amount (MNT)</label>
+                <label htmlFor="amount" className="text-sm font-medium">Amount (USDC)</label>
                 <Input
                   id="amount"
                   type="number"

@@ -15,13 +15,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Switch } from "@/components/ui/switch";
-import {
   LayoutDashboard,
   Users,
   ShieldCheck,
@@ -32,10 +25,11 @@ import {
   Search,
   Settings,
   HelpCircle,
-  CreditCard,
-  Zap,
+  LogOut,
 } from "lucide-react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAppStore } from "@/stores/app-store";
+import { useAuth } from "@/hooks/use-auth";
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
@@ -50,8 +44,12 @@ const navItems = [
 export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const mode = useAppStore((s) => s.mode);
-  const toggleMode = useAppStore((s) => s.toggleMode);
+  const user = useAppStore((s) => s.user);
+  const { logout } = useAuth();
+
+  const displayName = user.walletAddress
+    ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`
+    : "Not connected";
 
   return (
     <Sidebar className="border-border/40 border-r-0 shadow-none">
@@ -79,7 +77,7 @@ export function AppSidebar() {
               className="h-9 w-full rounded-lg bg-muted/50 pl-8 pr-3 text-left text-sm text-muted-foreground border border-border shadow-none hover:bg-muted"
               aria-label="Open command palette"
             >
-              Search\u2026
+              Search...
             </button>
           </div>
         </SidebarGroup>
@@ -134,43 +132,38 @@ export function AppSidebar() {
         <SidebarSeparator className="my-2" />
 
         <div className="px-2 py-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">
-                {mode === 'demo' ? 'Demo Mode' : 'Live Mode'}
-              </span>
+          {user.isConnected ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                    {displayName.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">{displayName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {user.workspace?.tier === "live" ? "Live" : "Demo"} workspace
+                  </span>
+                </div>
+              </div>
+              <button onClick={logout} className="p-1.5 rounded-md hover:bg-muted" aria-label="Sign out">
+                <LogOut className="h-4 w-4 text-muted-foreground" />
+              </button>
             </div>
-            <Switch
-              checked={mode === 'live'}
-              onCheckedChange={toggleMode}
-              aria-label="Toggle demo/live mode"
-            />
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            {mode === 'demo' ? 'Using sample data' : 'Connected to API'}
-          </div>
+          ) : (
+            <ConnectButton.Custom>
+              {({ openConnectModal }) => (
+                <button
+                  onClick={openConnectModal}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  Connect Wallet
+                </button>
+              )}
+            </ConnectButton.Custom>
+          )}
         </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger className="mt-2 flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-accent cursor-pointer" aria-label="User menu">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                CV
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-1 flex-col">
-              <span className="text-sm font-medium">Demo User</span>
-              <span className="text-xs text-muted-foreground">Explore Mode</span>
-            </div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="end" className="w-40">
-            <DropdownMenuItem>
-              <CreditCard className="h-4 w-4" />
-              Connect Wallet
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
   );

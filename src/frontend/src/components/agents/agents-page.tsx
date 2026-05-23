@@ -6,26 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { Users, PlusCircle } from "lucide-react";
-import { useAppStore } from "@/stores/app-store";
 import { useAgents } from "@/hooks/use-api";
-
-const DEMO_AGENTS = [
-  { id: "yield-01", name: "YieldHunter-01", role: "DeFi Yield Optimizer", status: "active", trades: 142, budget: "500 MNT/day", chain: "X Layer" },
-  { id: "rebal-03", name: "Rebalancer-03", role: "Portfolio Rebalancing", status: "active", trades: 89, budget: "1,000 MNT/day", chain: "Mantle" },
-  { id: "arb-07", name: "Arbitrage-07", role: "Cross-DEX Arbitrage", status: "paused", trades: 56, budget: "500 MNT/day", chain: "X Layer" },
-  { id: "gov-01", name: "GovChecker-01", role: "Policy Validator", status: "active", trades: 31, budget: "Unlimited", chain: "Fhenix" },
-  { id: "nft-02", name: "NFT-Flipper-v2", role: "NFT Market Scanner", status: "inactive", trades: 0, budget: "250 MNT/day", chain: "X Layer" },
-];
 
 export function AgentsPage() {
   const router = useRouter();
-  const mode = useAppStore((s) => s.mode);
-  const { data: liveAgents, isLoading, error } = useAgents();
-  const isLive = mode === "live";
+  const { data: agents, isLoading, error } = useAgents();
 
-  const agents = isLive && liveAgents ? liveAgents.map(a => ({
-    id: a.id, name: a.name, role: a.role, status: a.status, trades: a.trades, budget: a.budget, chain: a.chain
-  })) : DEMO_AGENTS;
+  const agentList = agents || [];
 
   return (
     <div className="space-y-6">
@@ -35,25 +22,25 @@ export function AgentsPage() {
           <p className="text-sm text-muted-foreground mt-1">Manage and monitor governed agents</p>
         </div>
         <div className="flex items-center gap-2">
-          {isLive && error && <Badge variant="destructive" className="text-xs">Error</Badge>}
+          {error && <Badge variant="destructive" className="text-xs">Error</Badge>}
           <Button onClick={() => router.push("/agents/workshop")}>
             <PlusCircle className="h-4 w-4" /> Add Agent
           </Button>
         </div>
       </div>
 
-      {isLoading && isLive ? (
+      {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map(i => (
             <Card key={i}><CardContent className="p-5"><Skeleton className="h-32 w-full" /></CardContent></Card>
           ))}
         </div>
-      ) : error && isLive ? (
+      ) : error ? (
         <div className="p-12 text-center text-muted-foreground border rounded-xl">
           <p>Failed to load agents</p>
           <Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>Retry</Button>
         </div>
-      ) : agents.length === 0 ? (
+      ) : agentList.length === 0 ? (
         <div className="p-12 text-center text-muted-foreground border rounded-xl">
           <Users className="h-8 w-8 mx-auto mb-3 opacity-50" />
           <p className="font-medium">No agents yet</p>
@@ -64,7 +51,7 @@ export function AgentsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {agents.map((agent) => (
+          {agentList.map((agent) => (
             <Card
               key={agent.id}
               className="hover:border-sky-200 dark:hover:border-sky-800 transition-colors cursor-pointer"

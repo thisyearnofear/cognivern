@@ -39,6 +39,9 @@ import { IntentController } from "./controllers/IntentController.js";
 import { McpGovernanceController } from "./controllers/McpGovernanceController.js";
 import { PayrollController } from "./controllers/PayrollController.js";
 import { SealedBidController } from "./controllers/SealedBidController.js";
+import { AuthController } from "./controllers/AuthController.js";
+import { WorkspaceController } from "./controllers/WorkspaceController.js";
+import { demoInterceptor } from "../../middleware/demoInterceptor.js";
 import type { Server } from "node:http";
 
 /** Typed controller registry */
@@ -68,6 +71,8 @@ interface ControllerRegistry {
   mcpGovernance: McpGovernanceController;
   payroll: PayrollController;
   sealedBid: SealedBidController;
+  auth: AuthController;
+  workspace: WorkspaceController;
 }
 
 /** Typed error with optional HTTP status code */
@@ -393,6 +398,8 @@ export class ApiModule extends BaseService {
     this.controllers.mcpGovernance = new McpGovernanceController(policyService);
     this.controllers.payroll = new PayrollController();
     this.controllers.sealedBid = new SealedBidController();
+    this.controllers.auth = new AuthController();
+    this.controllers.workspace = new WorkspaceController();
 
     // Initialize all controllers that have an initialize method
     for (const [name, controller] of Object.entries(this.controllers)) {
@@ -416,11 +423,21 @@ export class ApiModule extends BaseService {
       createCreRoutes,
       createSpendRoutes,
       createMiscRoutes,
+      createAuthRoutes,
+      createWorkspaceRoutes,
     } = await import("./routes/index.js");
 
     // Health check (no API key required)
     const healthRoutes = createHealthRoutes(this.ctrl("health"));
     this.app.use(healthRoutes);
+
+    // Auth routes (public - no API key, no auth)
+    const authRoutes = createAuthRoutes(this.ctrl("auth"));
+    this.app.use(authRoutes);
+
+    // Workspace routes (protected by JWT auth middleware in routes)
+    const workspaceRoutes = createWorkspaceRoutes(this.ctrl("workspace"));
+    this.app.use(workspaceRoutes);
 
     // Data plane ingestion (NO API key middleware)
     this.app.post("/ingest/runs", (req, res) => {
@@ -429,6 +446,9 @@ export class ApiModule extends BaseService {
 
     // API routes (require API key)
     const apiRouter = express.Router();
+
+    // Demo workspace interceptor — serves demo data for demo-tier workspaces
+    apiRouter.use(demoInterceptor);
 
     // Mount feature-based route modules
     apiRouter.use(createHealthRoutes(this.ctrl("health")));
