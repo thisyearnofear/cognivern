@@ -1,6 +1,0 @@
-packages:
-  - "src/frontend"
-
-# Fix dependency hoisting for build
-hoist-pattern:
-  - "*"
