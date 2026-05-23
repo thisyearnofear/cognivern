@@ -9,62 +9,74 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sparkles, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
+import { mutate } from "swr";
 
 const CHAINS = [
-  { id: "x-layer", name: "X Layer" },
-  { id: "mantle", name: "Mantle" },
-  { id: "fhenix", name: "Fhenix" },
+  { id: "Ethereum", name: "Ethereum" },
+  { id: "Arbitrum", name: "Arbitrum" },
+  { id: "Base", name: "Base" },
+  { id: "X Layer", name: "X Layer" },
+  { id: "Mantle", name: "Mantle" },
+  { id: "Fhenix", name: "Fhenix" },
 ];
 
 const BUDGETS = [
-  { id: "100", name: "100 MNT/day", value: 100 },
-  { id: "500", name: "500 MNT/day", value: 500 },
-  { id: "1000", name: "1,000 MNT/day", value: 1000 },
-  { id: "unlimited", name: "Unlimited", value: 99999 },
+  { id: "$1,000", label: "$1,000/day" },
+  { id: "$5,000", label: "$5,000/day" },
+  { id: "$10,000", label: "$10,000/day" },
+  { id: "$25,000", label: "$25,000/day" },
+  { id: "Unlimited", label: "Unlimited" },
 ];
 
 export function AgentWorkshop() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
-  const [chain, setChain] = useState("x-layer");
-  const [budget, setBudget] = useState("500");
+  const [chain, setChain] = useState("Ethereum");
+  const [budget, setBudget] = useState("$5,000");
   const [creating, setCreating] = useState(false);
-  const [created, setCreated] = useState(false);
+  const [createdId, setCreatedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleCreate() {
-    if (!name.trim()) return;
+    if (!name.trim() || !role.trim()) return;
     setCreating(true);
     setError(null);
 
     try {
-      await apiClient.bootstrapWallet({ name, chain });
-      await apiClient.createApiKey({
-        walletId: name,
-        scopes: ["spend", "read"],
+      const res = await apiClient.registerAgent({
+        name: name.trim(),
+        role: role.trim(),
+        chain,
+        budget,
       });
-      setCreated(true);
-    } catch {
-      setCreated(true);
+
+      if (res.success && res.data) {
+        setCreatedId(res.data.id);
+        mutate("/api/agents");
+      } else {
+        setError("Failed to create agent");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create agent");
     } finally {
       setCreating(false);
     }
   }
 
-  if (created) {
+  if (createdId) {
     return (
       <div className="max-w-xl mx-auto pt-12 text-center space-y-4">
         <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mx-auto">
           <CheckCircle2 className="h-8 w-8 text-emerald-500" />
         </div>
-        <h2 className="text-2xl font-bold">Agent Created!</h2>
+        <h2 className="text-2xl font-bold">Agent Registered</h2>
         <p className="text-muted-foreground">
-          {name} is ready to operate on {CHAINS.find(c => c.id === chain)?.name} with a{" "}
-          {BUDGETS.find(b => b.id === budget)?.name.toLowerCase()} budget.
+          <strong>{name}</strong> is ready to operate on {chain}.
+          Give it an API key from Settings so it can authenticate.
         </p>
         <div className="flex items-center justify-center gap-2">
-          <Button onClick={() => router.push(`/agents/${name.toLowerCase().replace(/\s+/g, "-")}`)}>
+          <Button onClick={() => router.push(`/agents/${createdId}`)}>
             View Agent
           </Button>
           <Button variant="outline" onClick={() => router.push("/agents")}>
@@ -82,8 +94,8 @@ export function AgentWorkshop() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Agent Workshop</h1>
-          <p className="text-sm text-muted-foreground mt-1">Configure and deploy a new governed agent</p>
+          <h1 className="text-2xl font-bold tracking-tight">Register Agent</h1>
+          <p className="text-sm text-muted-foreground mt-1">Configure and register a new governed agent</p>
         </div>
       </div>
 
@@ -95,14 +107,14 @@ export function AgentWorkshop() {
             </div>
             <div>
               <h2 className="font-semibold">Agent Configuration</h2>
-              <p className="text-xs text-muted-foreground">Define your agent&apos;s identity and budget</p>
+              <p className="text-xs text-muted-foreground">Define your agent&apos;s identity and constraints</p>
             </div>
           </div>
 
           <Separator />
 
           <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">Agent Name</label>
+            <label htmlFor="name" className="text-sm font-medium">Agent Name</label>
             <Input
               id="name"
               value={name}
@@ -112,7 +124,7 @@ export function AgentWorkshop() {
           </div>
 
           <div className="space-y-2">
-              <label htmlFor="role" className="text-sm font-medium">Role / Purpose</label>
+            <label htmlFor="role" className="text-sm font-medium">Role / Purpose</label>
             <Input
               id="role"
               value={role}
@@ -123,7 +135,7 @@ export function AgentWorkshop() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="chain" className="text-sm font-medium">Chain</label>
+              <label htmlFor="chain" className="text-sm font-medium">Primary Chain</label>
               <Select value={chain} onValueChange={(v) => v && setChain(v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select chain" />
@@ -144,7 +156,7 @@ export function AgentWorkshop() {
                 </SelectTrigger>
                 <SelectContent>
                   {BUDGETS.map(b => (
-                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    <SelectItem key={b.id} value={b.id}>{b.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -160,27 +172,26 @@ export function AgentWorkshop() {
           <Button
             className="w-full"
             onClick={handleCreate}
-            disabled={!name.trim() || creating}
+            disabled={!name.trim() || !role.trim() || creating}
           >
             {creating ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Creating Agent...</>
+              <><Loader2 className="h-4 w-4 animate-spin" /> Registering...</>
             ) : (
-              <><Sparkles className="h-4 w-4" /> Deploy Agent</>
+              <><Sparkles className="h-4 w-4" /> Register Agent</>
             )}
           </Button>
         </CardContent>
       </Card>
 
-      {/* Quick reference */}
       <Card className="bg-muted/20">
         <CardContent className="p-4">
           <div className="text-sm space-y-2">
-            <div className="font-medium">What happens when you deploy:</div>
+            <div className="font-medium">What happens when you register:</div>
             <ol className="list-decimal list-inside text-muted-foreground space-y-1 text-xs">
-              <li>A wallet is bootstrapped for the agent on the selected chain</li>
-              <li>An API key is generated with spend and read scopes</li>
-              <li>The agent is registered in the governance system</li>
-              <li>Default policies are applied based on the selected budget</li>
+              <li>The agent is registered in your workspace with the selected budget and chain</li>
+              <li>It appears in your Agents dashboard with &ldquo;active&rdquo; status</li>
+              <li>Create an API key in Settings and give it to your agent for authentication</li>
+              <li>The agent calls Cognivern&apos;s API before every transaction for governance checks</li>
             </ol>
           </div>
         </CardContent>

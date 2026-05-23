@@ -234,6 +234,41 @@ class ApiClient {
       body: JSON.stringify(params),
     });
   }
+
+  // Agent registration (live workspaces)
+  async registerAgent(params: {
+    name: string;
+    role: string;
+    chain: string;
+    walletAddress?: string;
+    budget?: string;
+  }): Promise<ApiResponse<Agent>> {
+    return this.fetch('/api/agents/register', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  // Policy creation (live workspaces)
+  async createGovernancePolicy(params: {
+    name: string;
+    type: string;
+    description: string;
+    rules?: Array<{ condition: string; action: string }>;
+  }): Promise<ApiResponse<Policy>> {
+    return this.fetch('/api/governance/policies', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  // Agent status update
+  async updateAgentStatus(agentId: string, status: 'active' | 'paused' | 'inactive'): Promise<ApiResponse<{ id: string; status: string }>> {
+    return this.fetch(`/api/agents/${agentId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();
