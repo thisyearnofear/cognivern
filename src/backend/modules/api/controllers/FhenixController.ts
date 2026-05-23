@@ -52,14 +52,27 @@ export class FhenixController {
   async getStatus(req: Request, res: Response) {
     try {
       const provider = fhenixPolicyService.getProvider();
-      const network = await provider.getNetwork();
+      if (!provider) {
+        res.json({
+          success: true,
+          data: {
+            chainId: "84532",
+            name: "base-sepolia",
+            fhenixEnabled: false,
+            reason: "CoFHE client not initialized (missing RPC or key)"
+          }
+        });
+        return;
+      }
+      const chainId = await provider.getChainId();
 
       res.json({
         success: true,
         data: {
-          chainId: network.chainId.toString(),
-          name: network.name,
-          fhenixEnabled: true
+          chainId: chainId.toString(),
+          name: "base-sepolia",
+          fhenixEnabled: true,
+          contract: process.env.FHENIX_POLICY_CONTRACT || "not set"
         }
       });
     } catch (error: any) {
