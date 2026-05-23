@@ -12,6 +12,7 @@
  */
 
 const API_BASE = process.env.API_URL || "http://localhost:3087/api";
+const API_KEY = process.env.COGNIVERN_API_KEY || process.env.API_KEY || "";
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -20,9 +21,12 @@ interface ApiResponse<T = any> {
 }
 
 async function request<T>(path: string, body?: any): Promise<ApiResponse<T>> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (API_KEY) headers["x-api-key"] = API_KEY;
+
   const res = await fetch(`${API_BASE}${path}`, {
     method: body ? "POST" : "GET",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
   return res.json() as Promise<ApiResponse<T>>;

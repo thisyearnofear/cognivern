@@ -159,84 +159,99 @@ export class FhenixPolicyService {
       };
     }
 
-    // 1. Encrypt amount for Fhenix (use uint128, max supported by CoFHE SDK)
-    const encryptedInputs = await this.withTimeout(
-      this.client
-        .encryptInputs([Encryptable.uint128(input.amountWei)])
-        .setChainId(84532)
-        .execute(),
-      this.config.evaluateTimeoutMs || 30000
-    );
+    try {
+      // 1. Encrypt amount for Fhenix (use uint128, max supported by CoFHE SDK)
+      const encryptedInputs = await this.withTimeout(
+        this.client
+          .encryptInputs([Encryptable.uint128(input.amountWei)])
+          .setChainId(84532)
+          .execute(),
+        this.config.evaluateTimeoutMs || 30000
+      );
 
-    const amountCt = encryptedInputs[0];
+      const amountCt = encryptedInputs[0];
 
-    // 2. Submit to Fhenix contract
-    const hash = await this.walletClient.writeContract({
-      address: this.config.contractAddress as Hex,
-      abi: ABI,
-      functionName: "evaluateSpend",
-      args: [
-        input.agentId as Hex,
-        input.policyId as Hex,
-        {
-          ctHash: amountCt.ctHash,
-          securityZone: amountCt.securityZone,
-          utype: amountCt.utype,
-          signature: amountCt.signature as Hex,
-        },
-        input.vendorHash as Hex,
-      ],
-    });
+      // 2. Submit to Fhenix contract
+      const hash = await this.walletClient.writeContract({
+        address: this.config.contractAddress as Hex,
+        abi: ABI,
+        functionName: "evaluateSpend",
+        args: [
+          input.agentId as Hex,
+          input.policyId as Hex,
+          {
+            ctHash: amountCt.ctHash,
+            securityZone: amountCt.securityZone,
+            utype: amountCt.utype,
+            signature: amountCt.signature as Hex,
+          },
+          input.vendorHash as Hex,
+        ],
+      });
 
-    // 3. Wait for receipt
-    const receipt = await this.publicClient.waitForTransactionReceipt({
-      hash,
-    });
+      // 3. Wait for receipt
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash,
+      });
 
-    // Find SpendEvaluated event
-    let decisionId = "0x";
-    let outcome: number = 0;
-    let attestation = "0x";
+      // Find SpendEvaluated event
+      let decisionId = "0x";
+      let outcome: number = 0;
+      let attestation = "0x";
 
-    for (const log of receipt.logs) {
-      if (
-        log.address.toLowerCase() ===
-        this.config.contractAddress.toLowerCase()
-      ) {
-        try {
-          const decoded = decodeEventLog({
-            abi: ABI,
-            data: log.data,
-            topics: log.topics,
-          }) as { eventName: string; args: { decisionId: string; outcome: number; attestation: string } };
-          if (decoded.eventName === "SpendEvaluated") {
-            decisionId = decoded.args.decisionId;
-            outcome = Number(decoded.args.outcome);
-            attestation = decoded.args.attestation;
-            break;
+      for (const log of receipt.logs) {
+        if (
+          log.address.toLowerCase() ===
+          this.config.contractAddress.toLowerCase()
+        ) {
+          try {
+            const decoded = decodeEventLog({
+              abi: ABI,
+              data: log.data,
+              topics: log.topics,
+            }) as { eventName: string; args: { decisionId: string; outcome: number; attestation: string } };
+            if (decoded.eventName === "SpendEvaluated") {
+              decisionId = decoded.args.decisionId;
+              outcome = Number(decoded.args.outcome);
+              attestation = decoded.args.attestation;
+              break;
+            }
+          } catch (e) {
+            // Ignore non-matching logs
           }
-        } catch (e) {
-          // Ignore non-matching logs
         }
       }
-    }
 
-    if (decisionId === "0x") {
-      logger.warn(
-        "SpendEvaluated event not found, synthesizing decisionId from hash"
-      );
-      decisionId = hash;
-      outcome = 2; // Default to Approve for demo
-    }
+      if (decisionId === "0x") {
+        logger.warn(
+          "SpendEvaluated event not found, synthesizing decisionId from hash"
+        );
+        decisionId = hash;
+        outcome = 2; // Default to Approve for demo
+      }
 
-    return {
-      decisionId,
-      outcome: this.normalizeOutcome(outcome),
-      attestation,
-      agentId: input.agentId,
-      policyId: input.policyId,
-      timestamp: new Date().toISOString(),
-    };
+      return {
+        decisionId,
+        outcome: this.normalizeOutcome(outcome),
+        attestation,
+        agentId: input.agentId,
+        policyId: input.policyId,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (err) {
+      // CoFHE SDK or on-chain call failed — return a deny with attestation
+      // showing the FHE path was attempted but the coprocessor wasn't reachable
+      const errorMsg = err instanceof Error ? err.message : "Unknown FHE error";
+      logger.warn(`FHE on-chain evaluation failed, denying: ${errorMsg}`);
+      return {
+        decisionId: `0x${crypto.randomUUID().replace(/-/g, "")}`,
+        outcome: "deny",
+        attestation: `fhe-attempted:${errorMsg.slice(0, 64)}`,
+        agentId: input.agentId,
+        policyId: input.policyId,
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
 
   private async evaluateWithAdapter(
