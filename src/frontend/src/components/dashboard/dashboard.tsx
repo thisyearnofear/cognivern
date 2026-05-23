@@ -56,7 +56,7 @@ export function Dashboard() {
                 </p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <button
                 onClick={() => router.push("/agents/workshop")}
                 className="p-4 rounded-lg border bg-card hover:border-purple-300 transition-colors text-left"
@@ -78,7 +78,7 @@ export function Dashboard() {
                   <span className="text-sm font-medium">Create an API Key</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Your agent uses this to authenticate with the governance API.
+                  Your agent uses this to authenticate.
                 </p>
               </button>
               <button
@@ -90,7 +90,19 @@ export function Dashboard() {
                   <span className="text-sm font-medium">Set Policies</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Define spend limits and allowlists your agents must follow.
+                  Define spend limits and allowlists.
+                </p>
+              </button>
+              <button
+                onClick={() => router.push("/integrate")}
+                className="p-4 rounded-lg border bg-card hover:border-purple-300 transition-colors text-left"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 text-xs font-bold flex items-center justify-center">4</span>
+                  <span className="text-sm font-medium">Integrate</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Add the governance check to your agent code.
                 </p>
               </button>
             </div>
