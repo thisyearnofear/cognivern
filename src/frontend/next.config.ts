@@ -10,9 +10,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // shadcn sidebar uses React context which breaks static generation
-  // of Next.js internal error pages. Vercel builds handle this correctly.
-  output: "standalone",
 };
 
 export default nextConfig;
