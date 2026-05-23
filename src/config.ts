@@ -71,7 +71,7 @@ const envSchema = z.object({
     .default("https://api.sandbox.competitions.recall.network"),
 
   // Server Configuration
-  PORT: z.coerce.number().default(3000),
+  PORT: z.coerce.number().default(3001),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),

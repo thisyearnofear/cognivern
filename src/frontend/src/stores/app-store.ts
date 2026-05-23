@@ -15,8 +15,11 @@ interface User {
 interface AppState {
   user: User;
   preferences: UserPreferences;
+  mode: 'demo' | 'live';
   setUser: (user: Partial<User>) => void;
   updatePreferences: (prefs: Partial<UserPreferences>) => void;
+  setMode: (mode: 'demo' | 'live') => void;
+  toggleMode: () => void;
   enterDemoMode: () => void;
 }
 
@@ -36,12 +39,16 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       user: defaultUser,
       preferences: defaultPreferences,
+      mode: 'demo',
       setUser: (userData) =>
         set({ user: { ...get().user, ...userData } }),
       updatePreferences: (prefs) =>
         set({ preferences: { ...get().preferences, ...prefs } }),
+      setMode: (mode) => set({ mode }),
+      toggleMode: () => set({ mode: get().mode === 'demo' ? 'live' : 'demo' }),
       enterDemoMode: () =>
         set({
+          mode: 'demo',
           preferences: {
             ...get().preferences,
             demoExplored: true,

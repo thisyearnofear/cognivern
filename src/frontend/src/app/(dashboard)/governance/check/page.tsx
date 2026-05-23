@@ -1,3 +1,5 @@
+import { GovernanceCheck } from "@/components/governance/governance-check";
+
 export default function GovernancePlaygroundPage() {
-  return <div>Governance Playground</div>;
+  return <GovernanceCheck />;
 }
