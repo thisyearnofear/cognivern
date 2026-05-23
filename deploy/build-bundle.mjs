@@ -12,13 +12,20 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 const OUT_DIR = resolve(ROOT, "deploy-bundle");
 
-// Native modules that can't be bundled (they contain .node binaries)
+// Packages that can't be bundled:
+// - Native modules (contain .node binaries)
+// - WASM packages (need filesystem assets at runtime)
+// - Frontend-only packages
 const NATIVE_EXTERNALS = [
   "better-sqlite3",
   "bufferutil",
   "utf-8-validate",
   "secp256k1",
   "keccak",
+  // WASM packages that load files from disk at runtime
+  "@cofhe/sdk",
+  "@fhenixprotocol/cofhe-contracts",
+  "node-tfhe",
   // Frontend-only packages that shouldn't be in the backend bundle
   "@wagmi/*",
   "@rainbow-me/*",
@@ -49,10 +56,6 @@ await build({
   alias: {
     "@cognivern/shared": resolve(ROOT, "packages/shared/src/index.ts"),
   },
-  // Handle __dirname/__filename in ESM
-  define: {
-    "import.meta.dirname": "import.meta.dirname",
-  },
   banner: {
     js: [
       "import { createRequire } from 'node:module';",
@@ -75,6 +78,8 @@ const pkg = {
     "utf-8-validate": "^6.0.4",
     "secp256k1": "^5.0.1",
     "keccak": "^3.0.4",
+    "@cofhe/sdk": "0.5.1",
+    "@fhenixprotocol/cofhe-contracts": "0.1.3",
   },
 };
 
