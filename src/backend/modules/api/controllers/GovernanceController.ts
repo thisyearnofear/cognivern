@@ -125,6 +125,10 @@ export class GovernanceController {
         ? failedChecks.map((check) => check.reason || check.policyId).join("; ")
         : `Action approved under policy ${policyId}`;
 
+      const confidentialChecks = decision.policyChecks.filter(
+        (check) => check.metadata?.confidential
+      );
+
       const localDecision = {
         approved: decision.allowed,
         reason,
@@ -132,6 +136,14 @@ export class GovernanceController {
         actionType: normalizedAction.type,
         policyId,
         policyChecks: decision.policyChecks,
+        ...(confidentialChecks.length > 0 && {
+          confidential: {
+            fheEvaluated: true,
+            chain: "fhenix-base-sepolia",
+            decisionIds: confidentialChecks.map((c) => c.metadata?.decisionId).filter(Boolean),
+            attestations: confidentialChecks.map((c) => c.metadata?.attestation).filter(Boolean),
+          },
+        }),
         timestamp: new Date().toISOString(),
       };
 
@@ -228,7 +240,7 @@ export class GovernanceController {
 
   async createPolicy(req: Request, res: Response): Promise<void> {
     try {
-      const { name, description, rules } = req.body;
+      const { name, description, rules, metadata } = req.body;
 
       if (!name || !description) {
         res.status(400).json({
@@ -242,7 +254,7 @@ export class GovernanceController {
         return;
       }
 
-      const policy = await this.policyService.createPolicy(name, description, rules || []);
+      const policy = await this.policyService.createPolicy(name, description, rules || [], metadata);
 
       res.status(201).json({
         success: true,
