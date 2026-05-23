@@ -39,6 +39,8 @@
     "frontend": "cd src/frontend && pnpm dev",
     "frontend:build": "cd src/frontend && pnpm build",
     "deploy:build": "pnpm run build && pnpm run start",
+    "deploy:lean": "./deploy/deploy-lean.sh",
+    "deploy:bundle": "node deploy/build-bundle.mjs",
     "deploy:hetzner": "./deploy/deploy.sh",
     "deploy:monitor": "./deploy/monitor.sh",
     "deploy:workers": "wrangler deploy --config src/modules/cloudflare-agents/wrangler.toml",

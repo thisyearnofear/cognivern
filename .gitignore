@@ -66,6 +66,7 @@ coverage
 # Local deploy artifacts
 .artifacts
 .junie/
+deploy-bundle/
 
 # AI/IDE assistant artifacts
 .claude/
