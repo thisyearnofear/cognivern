@@ -27,8 +27,9 @@ import {
 } from "lucide-react";
 import { useAgent } from "@/hooks/use-api";
 import { useAppStore } from "@/stores/app-store";
+import type { Agent } from "@cognivern/shared";
 
-const DEMO_AGENT = {
+const DEMO_AGENT: Agent = {
   id: "yield-01",
   name: "YieldHunter-01",
   role: "DeFi Yield Optimizer",
