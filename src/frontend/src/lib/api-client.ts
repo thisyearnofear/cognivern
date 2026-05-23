@@ -9,6 +9,9 @@ import type {
   GovernanceEvaluation,
   IntentMetrics,
   AuditInsights,
+  ApiKey,
+  ApiKeyCreateResponse,
+  Workspace,
 } from '@cognivern/shared';
 
 // Get token from localStorage for auth
@@ -29,6 +32,9 @@ export type {
   GovernanceEvaluation,
   IntentMetrics,
   AuditInsights,
+  ApiKey,
+  ApiKeyCreateResponse,
+  Workspace,
 };
 
 class ApiClient {
@@ -198,6 +204,33 @@ class ApiClient {
   }): Promise<ApiResponse<Record<string, unknown>>> {
     return this.fetch('/api/ows/api-keys', {
       method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  // Workspace API Keys
+  async getApiKeys(): Promise<ApiResponse<ApiKey[]>> {
+    return this.fetch('/api-keys');
+  }
+
+  async createWorkspaceApiKey(params: {
+    name: string;
+    scopes: string[];
+  }): Promise<ApiResponse<ApiKeyCreateResponse>> {
+    return this.fetch('/api-keys', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  async revokeApiKey(keyId: string): Promise<ApiResponse<{ id: string; revokedAt: string }>> {
+    return this.fetch(`/api-keys/${keyId}`, { method: 'DELETE' });
+  }
+
+  // Workspace
+  async updateWorkspace(params: { name?: string; tier?: 'demo' | 'live' }): Promise<ApiResponse<Workspace>> {
+    return this.fetch('/workspace', {
+      method: 'PUT',
       body: JSON.stringify(params),
     });
   }

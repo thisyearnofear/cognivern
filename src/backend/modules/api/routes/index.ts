@@ -8,3 +8,4 @@ export { createSpendRoutes } from "./spendRoutes.js";
 export { createMiscRoutes } from "./miscRoutes.js";
 export { createAuthRoutes } from "./authRoutes.js";
 export { createWorkspaceRoutes } from "./workspaceRoutes.js";
+export { createApiKeyRoutes } from "./apiKeyRoutes.js";
