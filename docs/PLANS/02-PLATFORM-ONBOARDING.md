@@ -1,6 +1,6 @@
 # Phase 2: Platform Onboarding & Multi-Tenant Auth
 
-> **Status:** Phases 0–4 complete
+> **Status:** Phases 0–5 complete
 > **Depends on:** Phase 1 (Next.js migration — complete)
 > **Goal:** Turn a single-user demo into a platform that real humans and agents can use, with proper auth, workspace isolation, and a demo experience that reflects the real product.
 
@@ -122,6 +122,9 @@ The key insight: **demo should be a workspace tier, not a client-side toggle**. 
 - [x] Auto-triggers SIWE signIn when wallet connects
 - [x] "Go Live" button in settings upgrades workspace from `demo` → `live`
 - [x] Settings page shows workspace info, tier badge, upgrade CTA
+- [x] Dashboard shows 3-step getting-started guide when live with no agents
+- [x] Agent workshop rewired to call live `POST /agents/register`
+- [x] Policies page has inline create form (no navigation needed)
 
 ### Phase 4 — Agent API Key Management ✅
 
@@ -133,6 +136,15 @@ The key insight: **demo should be a workspace tier, not a client-side toggle**. 
 - [x] Configurable scopes: agents:read/write, governance:read/write, audit:read, spend:execute
 - [x] Shared types: `ApiKey`, `ApiKeyScope`, `ApiKeyCreateResponse`
 
+### Phase 5 — Live Data Layer ✅
+
+- [x] `WorkspaceDataService` — CRUD for agents/policies scoped to workspace_id
+- [x] `workspace_agents` and `workspace_policies` tables in SQLite
+- [x] demoInterceptor handles both tiers: demo → DemoDataService, live → WorkspaceDataService
+- [x] Live POST endpoints: register agent, create policy, update agent status
+- [x] Live GET endpoints: agents, agent/:id, audit/logs, governance/policies, cre/runs
+- [x] Audit logs derived from agent spend_history for live workspaces
+
 ---
 
 ## Architecture Decisions
@@ -143,7 +155,8 @@ The key insight: **demo should be a workspace tier, not a client-side toggle**. 
 | better-sqlite3 over Turso | Local file-based, zero-config, synchronous API fits Express. Can migrate to Turso (libsql) later with same SQL schema |
 | Demo as workspace tier | Single code path — components are mode-agnostic. Backend controls what data a workspace sees |
 | JWT over sessions | Stateless auth fits serverless/edge deployment paths. 24h expiry. No session store needed |
-| demoInterceptor middleware | Transparent — sits before controllers, serves demo data without touching controller logic |
+| demoInterceptor middleware | Transparent — sits before controllers, serves data for both tiers without touching existing controller logic |
+| WorkspaceDataService | Separate from AgentsModule (which runs background loops). Simple CRUD — agents are registered records, not active processes |
 
 ---
 
