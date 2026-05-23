@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
-import { setWorkspaceTier, getWorkspaceTier } from "../../../middleware/workspaceMiddleware.js";
+import { getDb } from "../../../db/index.js";
+import type { Workspace } from "@cognivern/shared";
 
 export class WorkspaceController {
   async getWorkspace(req: Request, res: Response): Promise<void> {
@@ -10,11 +11,26 @@ export class WorkspaceController {
       return;
     }
 
-    const tier = getWorkspaceTier(workspaceId);
-    res.json({
-      success: true,
-      data: { id: workspaceId, tier },
-    });
+    const db = getDb();
+    const row = db
+      .prepare("SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE id = ?")
+      .get(workspaceId) as { id: string; name: string; owner_id: string; tier: string; created_at: string; updated_at: string } | undefined;
+
+    if (!row) {
+      res.status(404).json({ success: false, error: "Workspace not found" });
+      return;
+    }
+
+    const workspace: Workspace = {
+      id: row.id,
+      name: row.name,
+      ownerId: row.owner_id,
+      tier: row.tier as "demo" | "live",
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+
+    res.json({ success: true, data: workspace });
   }
 
   async updateWorkspace(req: Request, res: Response): Promise<void> {
@@ -26,18 +42,35 @@ export class WorkspaceController {
       return;
     }
 
-    if (tier && (tier === "demo" || tier === "live")) {
-      setWorkspaceTier(workspaceId, tier);
+    const db = getDb();
+    const now = new Date().toISOString();
+
+    if (name) {
+      db.prepare("UPDATE workspaces SET name = ?, updated_at = ? WHERE id = ?").run(name, now, workspaceId);
     }
 
-    res.json({
-      success: true,
-      data: {
-        id: workspaceId,
-        name: name || "My Workspace",
-        tier: getWorkspaceTier(workspaceId),
-        updatedAt: new Date().toISOString(),
-      },
-    });
+    if (tier && (tier === "demo" || tier === "live")) {
+      db.prepare("UPDATE workspaces SET tier = ?, updated_at = ? WHERE id = ?").run(tier, now, workspaceId);
+    }
+
+    const row = db
+      .prepare("SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE id = ?")
+      .get(workspaceId) as { id: string; name: string; owner_id: string; tier: string; created_at: string; updated_at: string } | undefined;
+
+    if (!row) {
+      res.status(404).json({ success: false, error: "Workspace not found" });
+      return;
+    }
+
+    const workspace: Workspace = {
+      id: row.id,
+      name: row.name,
+      ownerId: row.owner_id,
+      tier: row.tier as "demo" | "live",
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+
+    res.json({ success: true, data: workspace });
   }
 }
