@@ -254,7 +254,8 @@ class ApiClient {
     name: string;
     type: string;
     description: string;
-    rules?: Array<{ condition: string; action: string }>;
+    rules?: Array<Record<string, unknown>>;
+    metadata?: Record<string, unknown>;
   }): Promise<ApiResponse<Policy>> {
     return this.fetch('/api/governance/policies', {
       method: 'POST',

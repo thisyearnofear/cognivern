@@ -61,6 +61,8 @@
     "demo:scenario": "tsx scripts/demo/demo-scenario.ts",
     "demo:live": "tsx scripts/demo/demo-live.ts",
     "demo:fhenix": "tsx scripts/demo/demo-fhenix.ts",
+    "demo:fhe": "tsx scripts/demo/demo-fhe-spend.ts",
+    "deploy:fhenix": "npx hardhat run scripts/deploy-fhenix.ts --config contracts/fhenix/hardhat.config.cjs --network baseSepolia",
     "prepare": "husky"
   },
   "dependencies": {

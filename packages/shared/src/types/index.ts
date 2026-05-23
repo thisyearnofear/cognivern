@@ -52,6 +52,7 @@ export interface Policy {
   agents: number;
   violations: number;
   rules?: PolicyRule[];
+  metadata?: Record<string, any>;
 }
 
 export interface PolicyRule {

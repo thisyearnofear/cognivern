@@ -16,6 +16,7 @@ export class PolicyService {
     name: string,
     description: string,
     rules: PolicyRule[],
+    metadata?: Record<string, any>,
   ): Promise<Policy> {
     const id = `policy-${Date.now()}`;
     const now = new Date().toISOString();
@@ -28,7 +29,7 @@ export class PolicyService {
       rules,
       createdAt: now,
       updatedAt: now,
-      metadata: {},
+      metadata: metadata || {},
       status: "active",
     };
 

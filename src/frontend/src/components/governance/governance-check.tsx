@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ShieldCheck, CheckCircle2, XCircle, AlertTriangle, Loader2, PlayCircle, ArrowRight } from "lucide-react";
+import { ShieldCheck, CheckCircle2, XCircle, AlertTriangle, Loader2, PlayCircle, ArrowRight, Lock } from "lucide-react";
 import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
 
@@ -230,6 +230,30 @@ export function GovernanceCheck() {
                     ))}
                   </div>
                 </div>
+
+                {/* FHE Confidential evaluation badge */}
+                {"confidential" in result && (result as GovernanceEvaluation & { confidential?: { fheEvaluated: boolean; chain: string; decisionIds?: string[] } }).confidential?.fheEvaluated && (() => {
+                  const conf = (result as GovernanceEvaluation & { confidential: { fheEvaluated: boolean; chain: string; decisionIds?: string[] } }).confidential;
+                  return (
+                    <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
+                        <Lock className="h-4 w-4" />
+                        Confidential Evaluation (Fhenix FHE)
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <div>Chain: {conf.chain}</div>
+                        {conf.decisionIds && conf.decisionIds.length > 0 && (
+                          <div className="font-mono break-all">
+                            Decision: {conf.decisionIds[0]}
+                          </div>
+                        )}
+                        <div className="text-[11px] text-amber-600 dark:text-amber-400">
+                          Budget limits evaluated in ciphertext — values never revealed to agent
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Metadata */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
