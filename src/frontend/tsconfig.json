@@ -27,10 +27,10 @@
         "./src/*"
       ],
       "@cognivern/shared": [
-        "../../../packages/shared/src"
+        "../../packages/shared/src"
       ],
       "@cognivern/shared/*": [
-        "../../../packages/shared/src/*"
+        "../../packages/shared/src/*"
       ]
     }
   },
