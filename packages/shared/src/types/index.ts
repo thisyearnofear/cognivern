@@ -205,3 +205,31 @@ export interface WalletConfig {
   address: string;
   chainId: number;
 }
+
+// API Key types
+export type ApiKeyScope =
+  | "agents:read"
+  | "agents:write"
+  | "governance:read"
+  | "governance:write"
+  | "audit:read"
+  | "spend:execute";
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  scopes: ApiKeyScope[];
+  lastUsedAt: string | null;
+  createdAt: string;
+  revokedAt: string | null;
+}
+
+export interface ApiKeyCreateResponse {
+  id: string;
+  name: string;
+  key: string;
+  keyPrefix: string;
+  scopes: ApiKeyScope[];
+  createdAt: string;
+}

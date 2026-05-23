@@ -41,6 +41,7 @@ import { PayrollController } from "./controllers/PayrollController.js";
 import { SealedBidController } from "./controllers/SealedBidController.js";
 import { AuthController } from "./controllers/AuthController.js";
 import { WorkspaceController } from "./controllers/WorkspaceController.js";
+import { ApiKeyController, resolveWorkspaceFromApiKey } from "./controllers/ApiKeyController.js";
 import { demoInterceptor } from "../../middleware/demoInterceptor.js";
 import type { Server } from "node:http";
 
@@ -73,6 +74,7 @@ interface ControllerRegistry {
   sealedBid: SealedBidController;
   auth: AuthController;
   workspace: WorkspaceController;
+  apiKey: ApiKeyController;
 }
 
 /** Typed error with optional HTTP status code */
@@ -321,6 +323,12 @@ export class ApiModule extends BaseService {
       return next();
     }
 
+    // Skip if already authenticated via JWT (Bearer token)
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) {
+      return next();
+    }
+
     const headerApiKey = req.headers["x-api-key"] as string;
     const queryApiKey =
       req.path.endsWith("/events/stream") && // pragma: allowlist secret
@@ -329,9 +337,33 @@ export class ApiModule extends BaseService {
         : undefined;
     const apiKey = headerApiKey || queryApiKey;
 
-    const validApiKeys = [apiConfig.apiKey];
+    if (!apiKey) {
+      res.status(401).json({
+        success: false,
+        error: "Authentication required. Provide a Bearer token or x-api-key header.",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
 
-    if (!apiKey || !validApiKeys.includes(apiKey)) {
+    // Check workspace-scoped API keys (cvn_ prefix)
+    if (apiKey.startsWith("cvn_")) {
+      const workspaceId = resolveWorkspaceFromApiKey(apiKey);
+      if (workspaceId) {
+        req.workspaceId = workspaceId;
+        return next();
+      }
+      res.status(401).json({
+        success: false,
+        error: "Invalid or revoked API key",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    // Legacy global API key check
+    const validApiKeys = [apiConfig.apiKey];
+    if (!validApiKeys.includes(apiKey)) {
       res.status(401).json({
         success: false,
         error: "Invalid API key",
@@ -400,6 +432,7 @@ export class ApiModule extends BaseService {
     this.controllers.sealedBid = new SealedBidController();
     this.controllers.auth = new AuthController();
     this.controllers.workspace = new WorkspaceController();
+    this.controllers.apiKey = new ApiKeyController();
 
     // Initialize all controllers that have an initialize method
     for (const [name, controller] of Object.entries(this.controllers)) {
@@ -425,6 +458,7 @@ export class ApiModule extends BaseService {
       createMiscRoutes,
       createAuthRoutes,
       createWorkspaceRoutes,
+      createApiKeyRoutes,
     } = await import("./routes/index.js");
 
     // Health check (no API key required)
@@ -438,6 +472,10 @@ export class ApiModule extends BaseService {
     // Workspace routes (protected by JWT auth middleware in routes)
     const workspaceRoutes = createWorkspaceRoutes(this.ctrl("workspace"));
     this.app.use(workspaceRoutes);
+
+    // API key management routes (protected by JWT auth middleware in routes)
+    const apiKeyRoutes = createApiKeyRoutes(this.ctrl("apiKey"));
+    this.app.use(apiKeyRoutes);
 
     // Data plane ingestion (NO API key middleware)
     this.app.post("/ingest/runs", (req, res) => {
