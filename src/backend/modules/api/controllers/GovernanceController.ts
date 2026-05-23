@@ -9,6 +9,7 @@ import { getWorkerClient } from "../../../services/CloudflareWorkerClient.js";
 
 const logger = new Logger("GovernanceController");
 import { PolicyEnforcementService } from "../../../services/PolicyEnforcementService.js";
+import { sharedFhenixPolicyService } from "../../../services/FhenixPolicyService.js";
 import { AuditLogService } from "../../../services/AuditLogService.js";
 import type { AgentAction } from "../../../types/Agent.js";
 import crypto from "node:crypto";
@@ -28,7 +29,7 @@ export class GovernanceController {
     this.auditLogService = auditLogService || new AuditLogService();
     this.policyEnforcementService =
       policyEnforcementService ||
-      new PolicyEnforcementService(this.policyService);
+      new PolicyEnforcementService(this.policyService, sharedFhenixPolicyService);
   }
 
   /**
