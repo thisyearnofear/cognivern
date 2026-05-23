@@ -1,15 +1,17 @@
 "use client";
 
-import { ShieldCheck, Users, FileSearch, Percent, Activity, ArrowRight, Sparkles } from "lucide-react";
+import { ShieldCheck, Users, FileSearch, Percent, Activity, ArrowRight, Sparkles, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { useAgents, useAuditLogs } from "@/hooks/use-api";
+import { useAppStore } from "@/stores/app-store";
 
 export function Dashboard() {
   const router = useRouter();
+  const workspace = useAppStore((s) => s.user.workspace);
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
   const { data: logs, isLoading: logsLoading, error: logsError } = useAuditLogs();
 
@@ -40,6 +42,61 @@ export function Dashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Getting Started Guide — shown for live workspaces with no agents */}
+      {!agentsLoading && workspace?.tier === "live" && agentList.length === 0 && (
+        <Card className="border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50/50 to-sky-50/50 dark:from-purple-950/20 dark:to-sky-950/20">
+          <CardContent className="p-5">
+            <div className="flex items-start gap-3 mb-4">
+              <Rocket className="h-5 w-5 text-purple-500 mt-0.5" />
+              <div>
+                <h2 className="font-semibold">You&apos;re live — let&apos;s set up your first agent</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Follow these steps to start governing your agents with Cognivern.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <button
+                onClick={() => router.push("/agents/workshop")}
+                className="p-4 rounded-lg border bg-card hover:border-purple-300 transition-colors text-left"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 text-xs font-bold flex items-center justify-center">1</span>
+                  <span className="text-sm font-medium">Register an Agent</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Name it, pick a chain, set a budget.
+                </p>
+              </button>
+              <button
+                onClick={() => router.push("/settings")}
+                className="p-4 rounded-lg border bg-card hover:border-purple-300 transition-colors text-left"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 text-xs font-bold flex items-center justify-center">2</span>
+                  <span className="text-sm font-medium">Create an API Key</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Your agent uses this to authenticate with the governance API.
+                </p>
+              </button>
+              <button
+                onClick={() => router.push("/policies")}
+                className="p-4 rounded-lg border bg-card hover:border-purple-300 transition-colors text-left"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 text-xs font-bold flex items-center justify-center">3</span>
+                  <span className="text-sm font-medium">Set Policies</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Define spend limits and allowlists your agents must follow.
+                </p>
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

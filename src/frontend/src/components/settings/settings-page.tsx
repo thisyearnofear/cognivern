@@ -345,21 +345,27 @@ function AppearanceCard({ theme, setTheme }: { theme: string | undefined; setThe
 }
 
 function ChainsCard() {
+  const chains = [
+    { name: "Ethereum", role: "Execution", supported: true },
+    { name: "Arbitrum", role: "Execution", supported: true },
+    { name: "Base", role: "Execution", supported: true },
+    { name: "X Layer", role: "Execution", supported: true },
+    { name: "Mantle", role: "Execution", supported: true },
+    { name: "Fhenix", role: "Confidential Compute", supported: true },
+  ];
+
   return (
     <Card>
       <CardContent className="p-5 space-y-4">
         <h2 className="font-semibold flex items-center gap-2">
           <ExternalLink className="h-4 w-4 text-sky-500" />
-          Connected Chains
+          Supported Chains
         </h2>
+        <p className="text-xs text-muted-foreground">
+          Agents can operate on any of these chains. Set the primary chain when registering an agent.
+        </p>
         <div className="space-y-2">
-          {[
-            { name: "X Layer", status: "connected" as const, role: "Execution" },
-            { name: "Mantle", status: "connected" as const, role: "Execution" },
-            { name: "Fhenix", status: "connected" as const, role: "Confidential Compute" },
-            { name: "0G", status: "connected" as const, role: "Live Audit" },
-            { name: "Filecoin", status: "connected" as const, role: "Archive" },
-          ].map((chain) => (
+          {chains.map((chain) => (
             <div key={chain.name} className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -367,7 +373,7 @@ function ChainsCard() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">{chain.role}</span>
-                <Badge variant="secondary" className="text-xs">{chain.status}</Badge>
+                <Badge variant="secondary" className="text-xs">supported</Badge>
               </div>
             </div>
           ))}
