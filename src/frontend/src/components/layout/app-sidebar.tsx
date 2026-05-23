@@ -22,6 +22,7 @@ import {
   Activity,
   PlayCircle,
   PlusCircle,
+  Code2,
   Search,
   Settings,
   HelpCircle,
@@ -39,6 +40,7 @@ const navItems = [
   { id: "runs", label: "Runs", icon: Activity, href: "/runs" },
   { id: "governance", label: "Governance Check", icon: PlayCircle, href: "/governance/check" },
   { id: "workshop", label: "Agent Workshop", icon: PlusCircle, href: "/agents/workshop" },
+  { id: "integrate", label: "Integrate", icon: Code2, href: "/integrate" },
 ];
 
 export function AppSidebar() {

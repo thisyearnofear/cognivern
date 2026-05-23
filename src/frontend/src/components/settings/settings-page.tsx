@@ -134,6 +134,19 @@ function WorkspaceCard({
             </Button>
           </div>
         )}
+
+        {workspace?.tier === "live" && (
+          <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 p-4 space-y-2">
+            <div className="text-sm font-medium">Workspace is live</div>
+            <div className="text-xs text-muted-foreground">
+              Register agents, create API keys below, and{" "}
+              <a href="/integrate" className="text-primary underline underline-offset-2">
+                integrate the governance API
+              </a>{" "}
+              into your agent code.
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
