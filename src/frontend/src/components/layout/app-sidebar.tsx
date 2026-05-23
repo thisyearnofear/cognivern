@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,6 +11,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -20,6 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 import {
   LayoutDashboard,
   Users,
@@ -32,7 +33,9 @@ import {
   Settings,
   HelpCircle,
   CreditCard,
+  Zap,
 } from "lucide-react";
+import { useAppStore } from "@/stores/app-store";
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
@@ -40,14 +43,15 @@ const navItems = [
   { id: "policies", label: "Policies", icon: ShieldCheck, href: "/policies" },
   { id: "audit", label: "Audit", icon: FileSearch, href: "/audit" },
   { id: "runs", label: "Runs", icon: Activity, href: "/runs" },
-  { id: "playground", label: "Governance Check", icon: PlayCircle, href: "/governance/check" },
+  { id: "governance", label: "Governance Check", icon: PlayCircle, href: "/governance/check" },
   { id: "workshop", label: "Agent Workshop", icon: PlusCircle, href: "/agents/workshop" },
 ];
 
 export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const [searchOpen, setSearchOpen] = useState(false);
+  const mode = useAppStore((s) => s.mode);
+  const toggleMode = useAppStore((s) => s.toggleMode);
 
   return (
     <Sidebar className="border-border/40 border-r-0 shadow-none">
@@ -71,10 +75,11 @@ export function AppSidebar() {
           <div className="relative px-3 py-2">
             <Search className="absolute left-6 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <button
-              onClick={() => setSearchOpen(true)}
+              onClick={() => document.dispatchEvent(new CustomEvent("opencode-palette"))}
               className="h-9 w-full rounded-lg bg-muted/50 pl-8 pr-3 text-left text-sm text-muted-foreground border border-border shadow-none hover:bg-muted"
+              aria-label="Open command palette"
             >
-              Search...
+              Search\u2026
             </button>
           </div>
         </SidebarGroup>
@@ -91,6 +96,7 @@ export function AppSidebar() {
                       onClick={() => router.push(item.href)}
                       isActive={isActive}
                       className="h-9 rounded-lg px-3 font-normal text-muted-foreground"
+                      aria-label={`Navigate to ${item.label}`}
                     >
                       <item.icon className="h-[18px] w-[18px]" />
                       <span>{item.label}</span>
@@ -106,21 +112,48 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-border/40 p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton className="h-9 rounded-lg px-3 text-muted-foreground">
+            <SidebarMenuButton
+              onClick={() => router.push("/settings")}
+              className="h-9 rounded-lg px-3 text-muted-foreground"
+            >
               <Settings className="h-[18px] w-[18px]" />
               <span>Settings</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton className="h-9 rounded-lg px-3 text-muted-foreground">
+            <SidebarMenuButton
+              onClick={() => window.open("https://docs.cognivern.xyz", "_blank")}
+              className="h-9 rounded-lg px-3 text-muted-foreground"
+            >
               <HelpCircle className="h-[18px] w-[18px]" />
               <span>Help</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
 
+        <SidebarSeparator className="my-2" />
+
+        <div className="px-2 py-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">
+                {mode === 'demo' ? 'Demo Mode' : 'Live Mode'}
+              </span>
+            </div>
+            <Switch
+              checked={mode === 'live'}
+              onCheckedChange={toggleMode}
+              aria-label="Toggle demo/live mode"
+            />
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {mode === 'demo' ? 'Using sample data' : 'Connected to API'}
+          </div>
+        </div>
+
         <DropdownMenu>
-          <DropdownMenuTrigger className="mt-2 flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-accent cursor-pointer">
+          <DropdownMenuTrigger className="mt-2 flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-accent cursor-pointer" aria-label="User menu">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-primary/10 text-primary text-xs">
                 CV

@@ -1,3 +1,5 @@
+import { SpendFlowDemo } from "@/components/demo/spend-flow-demo";
+
 export default function SpendFlowDemoPage() {
-  return <div>Spend Flow Demo</div>;
+  return <SpendFlowDemo />;
 }
