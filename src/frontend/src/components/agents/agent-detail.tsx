@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,8 @@ import {
   FileSearch,
 } from "lucide-react";
 import { useAgent } from "@/hooks/use-api";
+import { apiClient } from "@/lib/api-client";
+import { mutate } from "swr";
 
 function Breadcrumbs({ agentName }: { agentName: string }) {
   const router = useRouter();
@@ -47,6 +50,28 @@ function Breadcrumbs({ agentName }: { agentName: string }) {
 export function AgentDetailPage({ agentId }: { agentId: string }) {
   const router = useRouter();
   const { data: agent, isLoading, error } = useAgent(agentId);
+  const [toggling, setToggling] = useState(false);
+
+  const handleToggleStatus = useCallback(async () => {
+    if (!agent) return;
+    setToggling(true);
+    try {
+      const newStatus = agent.status === "active" ? "paused" : "active";
+      await apiClient.updateAgentStatus(agentId, newStatus);
+      mutate(`/api/agents/${agentId}`);
+      mutate("/api/agents");
+    } finally {
+      setToggling(false);
+    }
+  }, [agent, agentId]);
+
+  const handleRevoke = useCallback(async () => {
+    if (!agent) return;
+    await apiClient.updateAgentStatus(agentId, "inactive");
+    mutate(`/api/agents/${agentId}`);
+    mutate("/api/agents");
+    router.push("/agents");
+  }, [agent, agentId, router]);
 
   if (isLoading) {
     return (
@@ -105,18 +130,20 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
           <Button
             variant={agent.status === "active" ? "outline" : "default"}
             size="sm"
+            onClick={handleToggleStatus}
+            disabled={toggling || agent.status === "inactive"}
           >
             {agent.status === "active" ? (
               <>
-                <Pause className="h-4 w-4" /> Pause
+                <Pause className="h-4 w-4" /> {toggling ? "Pausing..." : "Pause"}
               </>
             ) : (
               <>
-                <Play className="h-4 w-4" /> Resume
+                <Play className="h-4 w-4" /> {toggling ? "Resuming..." : "Resume"}
               </>
             )}
           </Button>
-          <Button variant="destructive" size="sm">
+          <Button variant="destructive" size="sm" onClick={handleRevoke} disabled={agent.status === "inactive"}>
             <Trash2 className="h-4 w-4" /> Revoke
           </Button>
         </div>

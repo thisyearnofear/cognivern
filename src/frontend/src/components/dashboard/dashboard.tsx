@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
-import { useAgents, useAuditLogs } from "@/hooks/use-api";
+import { useAgents, useAuditLogs, usePolicies } from "@/hooks/use-api";
 import { useAppStore } from "@/stores/app-store";
 
 export function Dashboard() {
@@ -14,6 +14,7 @@ export function Dashboard() {
   const workspace = useAppStore((s) => s.user.workspace);
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
   const { data: logs, isLoading: logsLoading, error: logsError } = useAuditLogs();
+  const { data: policies, isLoading: policiesLoading } = usePolicies();
 
   const agentList = agents || [];
   const activity = (logs || []).map(l => ({
@@ -131,15 +132,19 @@ export function Dashboard() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950">
-                <ShieldCheck className="h-5 w-5 text-sky-500" />
+            {policiesLoading ? (
+              <Skeleton className="h-12 w-24" />
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950">
+                  <ShieldCheck className="h-5 w-5 text-sky-500" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{(policies || []).filter(p => p.status === "active").length}</div>
+                  <div className="text-xs text-muted-foreground">Active Policies</div>
+                </div>
               </div>
-              <div>
-                <div className="text-2xl font-bold">3</div>
-                <div className="text-xs text-muted-foreground">Active Policies</div>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
         <Card>
