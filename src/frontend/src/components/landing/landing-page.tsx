@@ -161,24 +161,93 @@ export function LandingPage() {
           ))}
         </div>
 
-        {/* Trust Signals */}
-        <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-          {[
-            "Every agent action logged with cryptographic proof",
-            "Human-in-the-loop approval for high-value transactions",
-            "Real-time monitoring with instant policy enforcement",
-            "Spend limits enforced under FHE — budgets never revealed",
-          ].map((text) => (
-            <div
-              key={text}
-              className="flex items-start gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900"
-            >
-              <div className="text-emerald-600 mt-0.5 flex-shrink-0">✓</div>
-              <span className="text-sm text-stone-700 dark:text-stone-300">
-                {text}
-              </span>
-            </div>
-          ))}
+        {/* Use Cases */}
+        <div className="mt-16 text-left">
+          <h2 className="text-xl font-bold text-foreground mb-2">Built for agents that move value</h2>
+          <p className="text-sm text-stone-500 mb-6">
+            Any autonomous agent that spends, swaps, stakes, or transfers on-chain can be governed by Cognivern.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              {
+                title: "DeFi Trading Bots",
+                desc: "Enforce per-trade limits, restrict to allowlisted DEXs, cap daily volume.",
+                example: "Swap 2,000 USDC → ETH on Uniswap",
+              },
+              {
+                title: "Yield Optimizers",
+                desc: "Approve deposit/withdraw within budget, block unknown protocols.",
+                example: "Deposit 10,000 USDC into Aave v3",
+              },
+              {
+                title: "Portfolio Rebalancers",
+                desc: "Gate rebalances above a threshold, require multi-sig for large moves.",
+                example: "Rebalance $50k across 4 vaults",
+              },
+              {
+                title: "Payment Agents",
+                desc: "Cap per-payment and daily totals, restrict recipient addresses.",
+                example: "Pay 500 USDC to vendor wallet",
+              },
+              {
+                title: "DAO Treasury Agents",
+                desc: "Enforce proposal-linked budgets, require quorum for large disbursements.",
+                example: "Fund grant #42 with 3 ETH",
+              },
+              {
+                title: "Cross-Chain Bridges",
+                desc: "Limit bridge amounts, restrict destination chains, flag unusual routes.",
+                example: "Bridge 5,000 USDC to Arbitrum",
+              },
+            ].map((uc) => (
+              <div
+                key={uc.title}
+                className="p-5 rounded-xl bg-white dark:bg-stone-900 border border-border hover:border-primary/30 transition-colors"
+              >
+                <h3 className="font-semibold text-sm text-foreground mb-1">{uc.title}</h3>
+                <p className="text-xs text-stone-500 mb-3">{uc.desc}</p>
+                <div className="text-[11px] font-mono text-primary/70 bg-primary/5 rounded px-2 py-1.5">
+                  {uc.example}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Who is this for + Trust signals merged */}
+        <div className="mt-16 text-left">
+          <h2 className="text-xl font-bold text-foreground mb-6">Who uses Cognivern?</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              {
+                who: "Crypto Funds",
+                why: "Constrain trading bots to pre-approved strategies and limits before they touch the treasury.",
+                signal: "Cryptographic audit proof for every decision",
+              },
+              {
+                who: "Agent Developers",
+                why: "Ship autonomous agents that customers trust — governance is built in, not bolted on.",
+                signal: "Real-time policy enforcement in <100ms",
+              },
+              {
+                who: "DAOs & Multisigs",
+                why: "Let operational agents execute within proposal-linked budgets without manual signing.",
+                signal: "Human-in-the-loop for high-value moves",
+              },
+            ].map((persona) => (
+              <div
+                key={persona.who}
+                className="p-5 rounded-xl bg-white dark:bg-stone-900 border border-border space-y-3"
+              >
+                <div className="text-sm font-semibold text-foreground">{persona.who}</div>
+                <p className="text-xs text-stone-500">{persona.why}</p>
+                <div className="flex items-center gap-2 pt-2 border-t border-border">
+                  <div className="text-emerald-600 flex-shrink-0 text-xs">✓</div>
+                  <span className="text-[11px] text-stone-500">{persona.signal}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Multi-Chain */}
