@@ -13,6 +13,13 @@ contracts/build
 .next
 out
 
+# TypeScript build artifacts inside source tree (compiled output belongs in dist/)
+src/backend/**/*.js
+src/backend/**/*.js.map
+src/backend/**/*.d.ts
+src/backend/**/*.d.ts.map
+!src/backend/types/openai.d.ts
+
 # Logs
 *.log
 logs

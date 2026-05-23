@@ -1,99 +1,27 @@
 // Typed API client for Cognivern backend
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  timestamp?: string;
-}
+import type {
+  ApiResponse,
+  AuditLog,
+  Run,
+  Policy,
+  Agent,
+  GovernanceEvaluation,
+  IntentMetrics,
+  AuditInsights,
+} from '@cognivern/shared';
 
-export interface AuditLog {
-  id: string;
-  agentId: string;
-  action: string;
-  description: string;
-  decision: 'approved' | 'denied' | 'held';
-  chain: string;
-  timestamp: string;
-  latency?: string;
-  policyChecks?: Array<{
-    policyId: string;
-    result: boolean;
-    reason: string;
-  }>;
-}
-
-export interface Run {
-  id: string;
-  workflow: string;
-  status: 'completed' | 'running' | 'failed' | 'paused_for_approval';
-  mode: string;
-  steps: number;
-  duration: string;
-  artifacts: number;
-  timestamp: string;
-  events?: Array<{
-    type: string;
-    data: Record<string, unknown>;
-    timestamp: string;
-  }>;
-}
-
-export interface Policy {
-  id: string;
-  name: string;
-  type: string;
-  description: string;
-  status: 'active' | 'draft' | 'inactive';
-  agents: number;
-  violations: number;
-  rules?: Array<Record<string, unknown>>;
-}
-
-export interface Agent {
-  id: string;
-  name: string;
-  role: string;
-  status: 'active' | 'paused' | 'inactive';
-  trades: number;
-  budget: string;
-  chain: string;
-  spendHistory?: Array<{
-    amount: number;
-    currency: string;
-    timestamp: string;
-    decision: string;
-  }>;
-}
-
-export interface GovernanceEvaluation {
-  allowed: boolean;
-  reasoning: string;
-  policyChecks: Array<{
-    policyId: string;
-    result: boolean;
-    reason: string;
-  }>;
-  auditLogId?: string;
-  provider?: string;
-  model?: string;
-  timestamp: string;
-}
-
-export interface IntentMetrics {
-  totalIntents: number;
-  successRate: number;
-  averageLatency: number;
-  topActions: Array<{
-    action: string;
-    count: number;
-  }>;
-}
-
-interface AuditInsights {
-  compliance: number;
-  trends: Array<Record<string, unknown>>;
-}
+// Re-export for convenience
+export type {
+  ApiResponse,
+  AuditLog,
+  Run,
+  Policy,
+  Agent,
+  GovernanceEvaluation,
+  IntentMetrics,
+  AuditInsights,
+};
 
 class ApiClient {
   private baseUrl: string;

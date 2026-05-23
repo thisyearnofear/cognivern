@@ -34,29 +34,43 @@ const defaultUser: User = {
   isConnected: false,
 };
 
+// SSR-safe persistence - only use localStorage in browser
+const isBrowser = typeof window !== 'undefined';
+
 export const useAppStore = create<AppState>()(
-  persist(
-    (set, get) => ({
-      user: defaultUser,
-      preferences: defaultPreferences,
-      mode: 'demo',
-      setUser: (userData) =>
-        set({ user: { ...get().user, ...userData } }),
-      updatePreferences: (prefs) =>
-        set({ preferences: { ...get().preferences, ...prefs } }),
-      setMode: (mode) => set({ mode }),
-      toggleMode: () => set({ mode: get().mode === 'demo' ? 'live' : 'demo' }),
-      enterDemoMode: () =>
-        set({
+  isBrowser
+    ? persist(
+        (set, get) => ({
+          user: defaultUser,
+          preferences: defaultPreferences,
           mode: 'demo',
-          preferences: {
-            ...get().preferences,
-            demoExplored: true,
-          },
+          setUser: (userData) =>
+            set({ user: { ...get().user, ...userData } }),
+          updatePreferences: (prefs) =>
+            set({ preferences: { ...get().preferences, ...prefs } }),
+          setMode: (mode) => set({ mode }),
+          toggleMode: () => set({ mode: get().mode === 'demo' ? 'live' : 'demo' }),
+          enterDemoMode: () =>
+            set({
+              mode: 'demo',
+              preferences: {
+                ...get().preferences,
+                demoExplored: true,
+              },
+            }),
         }),
-    }),
-    {
-      name: "cognivern-app-store",
-    }
-  )
+        {
+          name: "cognivern-app-store",
+        }
+      )
+    : (set) => ({
+        user: defaultUser,
+        preferences: defaultPreferences,
+        mode: 'demo' as const,
+        setUser: () => {},
+        updatePreferences: () => {},
+        setMode: () => {},
+        toggleMode: () => {},
+        enterDemoMode: () => set({ mode: 'demo' as const }),
+      })
 );

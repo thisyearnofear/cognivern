@@ -8,19 +8,13 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <html>
+    <html lang="en">
       <body>
-        <div
-          style={{
-            padding: "2rem",
-            fontFamily: "system-ui",
-            maxWidth: "600px",
-            margin: "0 auto",
-          }}
-        >
-          <h1>Something went wrong</h1>
-          <p style={{ color: "#666" }}>{error.message}</p>
+        <div style={{ fontFamily: "system-ui", padding: "2rem", maxWidth: 600, margin: "0 auto" }}>
+          <h1 style={{ color: "#1a1a1a" }}>Something went wrong</h1>
+          <p style={{ color: "#666" }}>{error?.message || "An unexpected error occurred"}</p>
           <button
+            type="button"
             onClick={() => reset()}
             style={{
               marginTop: "1rem",
