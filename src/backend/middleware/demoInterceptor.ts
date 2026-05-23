@@ -35,7 +35,7 @@ export async function demoInterceptor(
 
     const tier = getWorkspaceTier(workspaceId);
     const response = tier === "demo"
-      ? serveDemoData(req.method, req.path)
+      ? serveDemoData(req.method, req.path, req.body)
       : serveLiveData(req.method, req.path, workspaceId, req.body);
 
     if (response) {
@@ -51,7 +51,47 @@ export async function demoInterceptor(
   }
 }
 
-function serveDemoData(method: string, path: string): object | null {
+function serveDemoData(method: string, path: string, body?: any): object | null {
+  // POST handlers for demo tier
+  if (method === "POST") {
+    if (path === "/governance/evaluate" || path === "/governance/evaluate/") {
+      const { agentId, action } = body || {};
+      if (!agentId || !action) {
+        return { success: false, error: "agentId and action are required", _status: 400 };
+      }
+      const agent = DemoDataService.getAgent(agentId);
+      const policies = DemoDataService.getPolicies();
+      const amount = action.amount || 0;
+
+      // Simulate evaluation against demo policies
+      const budgetPolicy = policies.find((p) => p.type === "budget");
+      const budgetLimit = 3000;
+      const denied = amount > budgetLimit;
+
+      const policyChecks = policies.map((p) => ({
+        policyId: p.id,
+        result: p.type === "budget" ? !denied : true,
+        reason: p.type === "budget"
+          ? denied ? `Amount ${amount} exceeds $${budgetLimit} single transaction limit` : "Within daily limit"
+          : `${p.name} check passed`,
+      }));
+
+      return {
+        success: true,
+        data: {
+          allowed: !denied,
+          reasoning: denied
+            ? `Denied by ${budgetPolicy?.name || "budget policy"}: amount ${amount} exceeds limit`
+            : `Action approved — passed ${policyChecks.length} policy check(s)`,
+          policyChecks,
+          auditLogId: `log-${agentId}-${new Date().toISOString()}`,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+    return null;
+  }
+
   if (method !== "GET") return null;
 
   if (path === "/agents" || path === "/agents/") {
@@ -179,6 +219,15 @@ function serveLiveData(method: string, path: string, workspaceId: string, body: 
       }
       const policy = WorkspaceDataService.createPolicy(workspaceId, { name, type, description: description || "", rules });
       return { success: true, data: policy, _status: 201 };
+    }
+
+    if (path === "/governance/evaluate" || path === "/governance/evaluate/") {
+      const { agentId, action, policyId } = body || {};
+      if (!agentId || !action) {
+        return { success: false, error: "agentId and action are required", _status: 400 };
+      }
+      const evaluation = WorkspaceDataService.evaluateAction(workspaceId, { agentId, action, policyId });
+      return { success: true, data: evaluation };
     }
 
     return null;
