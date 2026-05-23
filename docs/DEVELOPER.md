@@ -219,20 +219,13 @@ pnpm lint
 
 ### Progress: ~93%
 
-See the full checklist in [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md) (archived).
+### Remaining (Platform)
 
-## Platform Enhancements (Completed 2026-03-30)
-
-All planned enhancements have been implemented:
-
-- **Caching** — `BaseService.withCache()` for TTL-based caching
-- **BaseStore** — Unified lazy loading, persistence, and TTL patterns
-- **Error Boundaries** — Global and section-level error handling
-- **Collapsible Dashboard** — Information density with collapsible cards
-- **Accessibility** — ARIA labels, focus management, role attributes
-- **Circuit Breakers** — External service call protection
-
-See [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) (archived) for details.
+- [ ] User authentication (SIWE wallet + email) — see [Platform Onboarding Plan](./PLANS/02-PLATFORM-ONBOARDING.md)
+- [ ] Workspace multi-tenancy with data isolation
+- [ ] Per-workspace API key management
+- [ ] Demo data moved from frontend to backend DemoDataService
+- [ ] Real wallet connection in onboarding flow
 
 ## Related Docs
 

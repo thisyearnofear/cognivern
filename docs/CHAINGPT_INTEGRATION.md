@@ -404,3 +404,18 @@ Metrics exported:
 | Audit caching | Cross-node shared cache for audit results | Medium |
 | News sentiment | Use ChainGPT to analyze news sentiment for policy adjustment | Low |
 | Automated remediation | Allow ChainGPT to suggest policy modifications based on audit findings | Low |
+
+---
+
+## Appendix: Quick Reference
+
+**Overview:** Cognivern is a governance platform for AI agents providing real-time spend control, policy enforcement, and security auditing.
+
+**Key capabilities:**
+- Runtime contract auditing (pre-spend vulnerability checks)
+- Severity-based decisions (critical=deny, high=hold, low=approve)
+- Exploit pattern detection (reentrancy, flash loans, oracle manipulation)
+- 5-minute audit cache (~80% API cost reduction)
+- Batch auditing for multiple contracts
+
+**Response time:** <100ms cached, <30s fresh — Configurable decision thresholds — EVM chain support

@@ -137,8 +137,13 @@ These parts of the repo are considered transitional and should not be part of th
 | `/api/projects` | GET | Project list |
 | `/api/projects/:projectId/usage` | GET | Project usage |
 
+## Current Limitations
+
+Cognivern currently has **no user authentication or multi-tenancy**. The frontend serves hardcoded demo data via client-side `mode === "demo"` ternaries. There is no way for a real team to sign up, create a workspace, or issue API keys to their agents. See the [Platform Onboarding Plan](./PLANS/02-PLATFORM-ONBOARDING.md) for the roadmap to fix this.
+
 ## Related Docs
 
 - [Hackathon Brief](./HACKATHON.md) — Demo story and submission
 - [Developer Guide](./DEVELOPER.md) — APIs, local setup, testing
 - [Deployment](./DEPLOYMENT.md) — Production deployment and operations
+- [Platform Onboarding Plan](./PLANS/02-PLATFORM-ONBOARDING.md) — Phase 2 roadmap
