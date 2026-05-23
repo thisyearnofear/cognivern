@@ -1,6 +1,6 @@
 # Phase 2: Platform Onboarding & Multi-Tenant Auth
 
-> **Status:** Phases 0–2 complete, Phase 3 in progress
+> **Status:** Phases 0–4 complete
 > **Depends on:** Phase 1 (Next.js migration — complete)
 > **Goal:** Turn a single-user demo into a platform that real humans and agents can use, with proper auth, workspace isolation, and a demo experience that reflects the real product.
 
@@ -116,20 +116,22 @@ The key insight: **demo should be a workspace tier, not a client-side toggle**. 
 - [x] Landing page → wallet connect → workspace created → dashboard
 - [x] Sidebar shows wallet address + workspace tier for authenticated users
 
-### Phase 3 — Real Onboarding (in progress)
+### Phase 3 — Real Onboarding ✅
 
 - [x] Onboarding wizard uses RainbowKit ConnectButton (real wallet)
 - [x] Auto-triggers SIWE signIn when wallet connects
-- [ ] Guide flow: Connect → Name Workspace → Explore Dashboard → Configure Chains → Invite Agents
-- [ ] "Go Live" button in settings to upgrade workspace from `demo` → `live`
+- [x] "Go Live" button in settings upgrades workspace from `demo` → `live`
+- [x] Settings page shows workspace info, tier badge, upgrade CTA
 
-### Phase 4 — Agent API Key Management (not started)
+### Phase 4 — Agent API Key Management ✅
 
-- [ ] Settings page → "API Keys" tab
-- [ ] Humans create/revoke API keys scoped to their workspace
-- [ ] Agents present keys in `x-api-key` header
-- [ ] Backend `apiKeyMiddleware` resolves workspace from API key
-- [ ] `api_keys` table in SQLite (already designed in D1 schema)
+- [x] Settings page → "API Keys" tab with create/copy/revoke UI
+- [x] Humans create/revoke API keys scoped to their workspace (max 10 active)
+- [x] Agents present keys in `x-api-key` header with `cvn_` prefix
+- [x] Backend `apiKeyMiddleware` resolves workspace from API key hash
+- [x] `api_keys` table in SQLite with SHA-256 hashed keys
+- [x] Configurable scopes: agents:read/write, governance:read/write, audit:read, spend:execute
+- [x] Shared types: `ApiKey`, `ApiKeyScope`, `ApiKeyCreateResponse`
 
 ---
 
