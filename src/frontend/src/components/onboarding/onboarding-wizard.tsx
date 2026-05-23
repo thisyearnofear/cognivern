@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ShieldCheck, Wallet, Users, PlayCircle, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
 import { useAppStore } from "@/stores/app-store";
+import { useAuth } from "@/hooks/use-auth";
 
 const STEPS = [
   {
@@ -37,18 +40,26 @@ const STEPS = [
 ];
 
 const POLICY_TEMPLATES = [
-  { id: "strict", name: "Strict", desc: "Max 100 MNT/day, manual approval above 500 MNT" },
-  { id: "moderate", name: "Moderate", desc: "Max 500 MNT/day, auto-approve under 1,000 MNT" },
-  { id: "relaxed", name: "Relaxed", desc: "Max 2,000 MNT/day, auto-approve all" },
+  { id: "strict", name: "Strict", desc: "Max $100/day, manual approval above $500" },
+  { id: "moderate", name: "Moderate", desc: "Max $500/day, auto-approve under $1,000" },
+  { id: "relaxed", name: "Relaxed", desc: "Max $2,000/day, auto-approve all" },
 ];
 
 export function OnboardingWizard() {
   const router = useRouter();
   const updatePreferences = useAppStore((s) => s.updatePreferences);
+  const { isConnected, address } = useAccount();
+  const { signIn } = useAuth();
+  const user = useAppStore((s) => s.user);
   const [step, setStep] = useState(0);
-  const [walletConnected, setWalletConnected] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState("moderate");
   const [agentName, setAgentName] = useState("");
+
+  useEffect(() => {
+    if (isConnected && !user.isConnected && address) {
+      signIn().catch(() => {});
+    }
+  }, [isConnected, user.isConnected, address, signIn]);
 
   function handleFinish() {
     updatePreferences({ onboardingCompleted: true });
@@ -97,20 +108,16 @@ export function OnboardingWizard() {
                   Link a wallet to create and manage governance policies
                 </p>
               </div>
-              <Button
-                className="w-full"
-                variant={walletConnected ? "secondary" : "default"}
-                onClick={() => setWalletConnected(true)}
-              >
-                {walletConnected ? (
-                  <><CheckCircle2 className="h-4 w-4" /> Wallet Connected (Demo)</>
-                ) : (
-                  <><Wallet className="h-4 w-4" /> Connect Wallet</>
-                )}
-              </Button>
-              <p className="text-xs text-muted-foreground text-center">
-                In demo mode, a simulated wallet is used. Real wallets coming soon.
-              </p>
+              {user.isConnected ? (
+                <div className="flex items-center justify-center gap-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  <span className="font-medium">Wallet connected: {user.walletAddress?.slice(0, 6)}...{user.walletAddress?.slice(-4)}</span>
+                </div>
+              ) : (
+                <div className="flex justify-center">
+                  <ConnectButton />
+                </div>
+              )}
             </div>
           )}
 

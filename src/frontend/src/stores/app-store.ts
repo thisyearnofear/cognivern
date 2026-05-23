@@ -1,41 +1,45 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { AuthUser, Workspace } from "@cognivern/shared";
 
 interface UserPreferences {
   theme: "light" | "dark" | "system";
   onboardingCompleted: boolean;
-  demoExplored: boolean;
   sidebarState: "expanded" | "collapsed";
 }
 
 interface User {
   isConnected: boolean;
+  walletAddress: string | null;
+  authUser: AuthUser | null;
+  workspace: Workspace | null;
+  token: string | null;
 }
 
 interface AppState {
   user: User;
   preferences: UserPreferences;
-  mode: 'demo' | 'live';
   setUser: (user: Partial<User>) => void;
   updatePreferences: (prefs: Partial<UserPreferences>) => void;
-  setMode: (mode: 'demo' | 'live') => void;
-  toggleMode: () => void;
-  enterDemoMode: () => void;
+  login: (token: string, authUser: AuthUser, workspace: Workspace) => void;
+  logout: () => void;
 }
 
 const defaultPreferences: UserPreferences = {
   theme: "dark",
   onboardingCompleted: false,
-  demoExplored: false,
   sidebarState: "expanded",
 };
 
 const defaultUser: User = {
   isConnected: false,
+  walletAddress: null,
+  authUser: null,
+  workspace: null,
+  token: null,
 };
 
-// SSR-safe persistence - only use localStorage in browser
-const isBrowser = typeof window !== 'undefined';
+const isBrowser = typeof window !== "undefined";
 
 export const useAppStore = create<AppState>()(
   isBrowser
@@ -43,34 +47,37 @@ export const useAppStore = create<AppState>()(
         (set, get) => ({
           user: defaultUser,
           preferences: defaultPreferences,
-          mode: 'demo',
           setUser: (userData) =>
             set({ user: { ...get().user, ...userData } }),
           updatePreferences: (prefs) =>
             set({ preferences: { ...get().preferences, ...prefs } }),
-          setMode: (mode) => set({ mode }),
-          toggleMode: () => set({ mode: get().mode === 'demo' ? 'live' : 'demo' }),
-          enterDemoMode: () =>
+          login: (token: string, authUser: AuthUser, workspace: Workspace) => {
             set({
-              mode: 'demo',
-              preferences: {
-                ...get().preferences,
-                demoExplored: true,
+              user: {
+                isConnected: true,
+                walletAddress: authUser.walletAddress,
+                authUser,
+                workspace,
+                token,
               },
-            }),
+            });
+            localStorage.setItem("cognivern-token", token);
+          },
+          logout: () => {
+            set({ user: defaultUser });
+            localStorage.removeItem("cognivern-token");
+          },
         }),
         {
-          name: "cognivern-app-store",
+          name: "civern-app-store",
         }
       )
     : (set) => ({
         user: defaultUser,
         preferences: defaultPreferences,
-        mode: 'demo' as const,
         setUser: () => {},
         updatePreferences: () => {},
-        setMode: () => {},
-        toggleMode: () => {},
-        enterDemoMode: () => set({ mode: 'demo' as const }),
+        login: () => {},
+        logout: () => {},
       })
 );

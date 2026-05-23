@@ -11,6 +11,14 @@ import type {
   AuditInsights,
 } from '@cognivern/shared';
 
+// Get token from localStorage for auth
+function getAuthToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('cognivern-token');
+  }
+  return null;
+}
+
 // Re-export for convenience
 export type {
   ApiResponse,
@@ -45,8 +53,15 @@ class ApiClient {
       'Content-Type': 'application/json',
     };
 
+    // Add API key if set
     if (this.apiKey) {
       headers['x-api-key'] = this.apiKey;
+    }
+
+    // Add auth token from localStorage
+    const token = getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     try {

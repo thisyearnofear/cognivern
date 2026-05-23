@@ -8,7 +8,7 @@
       "DOM"
     ],
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": ".",
     "strict": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -24,6 +24,9 @@
     "paths": {
       "@/*": [
         "src/*"
+      ],
+      "@cognivern/shared": [
+        "packages/shared/src/index.ts"
       ]
     },
     "sourceMap": true,
@@ -32,7 +35,8 @@
     "noEmit": false
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "packages/shared/src/**/*"
   ],
   "exclude": [
     "src/frontend/**/*",

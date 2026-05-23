@@ -6,25 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, PlusCircle } from "lucide-react";
-import { useAppStore } from "@/stores/app-store";
 import { usePolicies } from "@/hooks/use-api";
-
-const DEMO_POLICIES = [
-  { id: "p1", name: "Agent Spend Guardrails", type: "spend-limit", agents: 4, violations: 2, status: "active", desc: "Limits agent spend to configured daily budgets with FHE enforcement" },
-  { id: "p2", name: "Regulatory Compliance", type: "compliance", agents: 4, violations: 0, status: "active", desc: "Ensures all agent actions comply with KYC/AML regulations" },
-  { id: "p3", name: "High-Value Approval", type: "approval", agents: 3, violations: 0, status: "active", desc: "Requires manual approval for transactions above 1,000 MNT" },
-  { id: "p4", name: "Contract Scanner", type: "security", agents: 2, violations: 1, status: "draft", desc: "Scans smart contract interactions for known vulnerability patterns" },
-];
 
 export function PoliciesPage() {
   const router = useRouter();
-  const mode = useAppStore((s) => s.mode);
-  const { data: livePolicies, isLoading, error } = usePolicies();
-  const isLive = mode === "live";
+  const { data: rawPolicies, isLoading, error } = usePolicies();
 
-  const policies = isLive && livePolicies ? livePolicies.map(p => ({
+  const policies = (rawPolicies || []).map(p => ({
     id: p.id, name: p.name, type: p.type, agents: p.agents, violations: p.violations, status: p.status, desc: p.description
-  })) : DEMO_POLICIES;
+  }));
 
   return (
     <div className="space-y-6">
@@ -34,20 +24,20 @@ export function PoliciesPage() {
           <p className="text-sm text-muted-foreground mt-1">Governance guardrails for agent spend</p>
         </div>
         <div className="flex items-center gap-2">
-          {isLive && error && <Badge variant="destructive" className="text-xs">Error</Badge>}
+          {error && <Badge variant="destructive" className="text-xs">Error</Badge>}
           <Button onClick={() => router.push("/governance/check?mode=create")}>
             <PlusCircle className="h-4 w-4" /> Create Policy
           </Button>
         </div>
       </div>
 
-      {isLoading && isLive ? (
+      {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map(i => (
             <Card key={i}><CardContent className="p-5"><Skeleton className="h-32 w-full" /></CardContent></Card>
           ))}
         </div>
-      ) : error && isLive ? (
+      ) : error ? (
         <div className="p-12 text-center text-muted-foreground border rounded-xl">
           <p>Failed to load policies</p>
           <Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>Retry</Button>

@@ -6,28 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { Activity, RefreshCw, CheckCircle2, Clock, AlertTriangle, PlayCircle } from "lucide-react";
-import { useAppStore } from "@/stores/app-store";
 import { useRuns } from "@/hooks/use-api";
-
-const DEMO_RUNS = [
-  { id: "run-1", workflow: "Spend Governance Check", status: "completed", mode: "forecast", steps: 5, duration: "3.2s", artifacts: 2, time: "5 min ago" },
-  { id: "run-2", workflow: "Policy Evaluation", status: "running", mode: "live", steps: 3, duration: "In progress", artifacts: 1, time: "12 min ago" },
-  { id: "run-3", workflow: "Audit Trail Attestation", status: "failed", mode: "forecast", steps: 4, duration: "1.8s", artifacts: 0, time: "45 min ago" },
-  { id: "run-4", workflow: "Portfolio Rebalance Check", status: "completed", mode: "forecast", steps: 6, duration: "5.1s", artifacts: 3, time: "1 h ago" },
-  { id: "run-5", workflow: "Compliance Scan", status: "paused_for_approval", mode: "live", steps: 2, duration: "Awaiting", artifacts: 0, time: "2 h ago" },
-];
 
 export function RunsPage() {
   const router = useRouter();
-  const mode = useAppStore((s) => s.mode);
-  const { data: liveRuns, isLoading, error } = useRuns();
-  const isLive = mode === "live";
+  const { data: rawRuns, isLoading, error } = useRuns();
 
-  const runs = isLive && liveRuns ? liveRuns.map(r => ({
+  const runs = (rawRuns || []).map(r => ({
     id: r.id, workflow: r.workflow, status: r.status, mode: r.mode,
     steps: r.steps, duration: r.duration, artifacts: r.artifacts,
     time: new Date(r.timestamp).toLocaleString()
-  })) : DEMO_RUNS;
+  }));
 
   const statuses = runs.reduce((acc, r) => ({ ...acc, [r.status]: (acc[r.status] || 0) + 1 }), {} as Record<string, number>);
 
@@ -39,17 +28,17 @@ export function RunsPage() {
           <p className="text-sm text-muted-foreground mt-1">Agent workflow execution traces</p>
         </div>
         <div className="flex items-center gap-2">
-          {isLive && error && <Badge variant="destructive" className="text-xs">Error</Badge>}
+          {error && <Badge variant="destructive" className="text-xs">Error</Badge>}
           <Badge variant="secondary">{runs.length} tracked</Badge>
         </div>
       </div>
 
       {/* Stats */}
-      {isLoading && isLive ? (
+      {isLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map(i => <Card key={i}><CardContent className="p-4"><Skeleton className="h-12 w-24" /></CardContent></Card>)}
         </div>
-      ) : error && isLive ? (
+      ) : error ? (
         <div className="p-12 text-center text-muted-foreground border rounded-xl">
           <p>Failed to load runs</p>
           <p className="text-xs mt-1">The backend may be unavailable</p>
@@ -106,7 +95,7 @@ export function RunsPage() {
       </div>
 
       {/* Run List */}
-      {!error && runs.length === 0 ? (
+      {!error && runs.length === 0 && !isLoading ? (
         <div className="p-12 text-center text-muted-foreground border rounded-xl">
           <Activity className="h-8 w-8 mx-auto mb-3 opacity-50" />
           <p className="font-medium">No runs yet</p>
@@ -141,7 +130,6 @@ export function RunsPage() {
                     <span>{run.artifacts} artifacts</span>
                     <span>{run.duration}</span>
                     <span>{run.time}</span>
-                    <span className="text-primary font-medium">Open \u2192</span>
                   </div>
                 </div>
               </CardContent>

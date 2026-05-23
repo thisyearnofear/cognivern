@@ -4,30 +4,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle2, XCircle, Clock, FileSearch } from "lucide-react";
-import { useAppStore } from "@/stores/app-store";
 import { useAuditLogs } from "@/hooks/use-api";
 
-const DEMO_LOGS = [
-  { id: "1", agent: "YieldHunter-01", action: "Spend Request", desc: "Requested 200 MNT for liquidity pool stake", decision: "approved", chain: "X Layer", time: "2 min ago", latency: "42ms" },
-  { id: "2", agent: "Arbitrage-07", action: "Spend Request", desc: "Requested 500 MNT for arbitrage swap", decision: "denied", chain: "Fhenix", time: "14 min ago", latency: "38ms" },
-  { id: "3", agent: "Rebalancer-03", action: "Policy Evaluation", desc: "Daily limit check \u2014 300/1,000 MNT used", decision: "approved", chain: "Fhenix", time: "28 min ago", latency: "15ms" },
-  { id: "4", agent: "YieldHunter-01", action: "Approval Review", desc: "Manual approval for high-value trade", decision: "approved", chain: "X Layer", time: "45 min ago", latency: "2.4s" },
-  { id: "5", agent: "Arbitrage-07", action: "Spend Request", desc: "Requested 50 MNT for gas top-up", decision: "approved", chain: "Mantle", time: "1 h ago", latency: "18ms" },
-  { id: "6", agent: "GovChecker-01", action: "Policy Check", desc: "Compliance scan \u2014 all clear", decision: "approved", chain: "Fhenix", time: "2 h ago", latency: "22ms" },
-  { id: "7", agent: "NFT-Flipper-v2", action: "Spend Request", desc: "Requested 2.5 ETH for OpenSea trade", decision: "held", chain: "X Layer", time: "3 h ago", latency: "45ms" },
-  { id: "8", agent: "Arbitrage-07", action: "Spend Request", desc: "Requested 1,000 MNT \u2014 exceeds budget", decision: "denied", chain: "Fhenix", time: "4 h ago", latency: "35ms" },
-];
-
 export function AuditPage() {
-  const mode = useAppStore((s) => s.mode);
-  const { data: liveLogs, isLoading, error } = useAuditLogs();
-  const isLive = mode === "live";
+  const { data: rawLogs, isLoading, error } = useAuditLogs();
 
-  const logs = isLive && liveLogs ? liveLogs.map(l => ({
+  const logs = (rawLogs || []).map(l => ({
     id: l.id, agent: l.agentId, action: l.action, desc: l.description,
     decision: l.decision, chain: l.chain, time: new Date(l.timestamp).toLocaleString(),
-    latency: l.latency || "\u2014"
-  })) : DEMO_LOGS;
+    latency: l.latency || "—"
+  }));
 
   const total = logs.length;
   const compliance = total > 0 ? Math.round((logs.filter(l => l.decision !== "denied").length / total) * 100) : 0;
@@ -43,9 +29,9 @@ export function AuditPage() {
 
       {/* Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {isLoading && isLive ? (
+        {isLoading ? (
           [1, 2, 3, 4].map(i => <Card key={i}><CardContent className="p-4"><Skeleton className="h-12 w-24" /></CardContent></Card>)
-        ) : error && isLive ? (
+        ) : error ? (
           <div className="col-span-4 p-8 text-center text-muted-foreground border rounded-xl">
             <p>Failed to load audit logs</p>
             <p className="text-xs mt-1">The backend may be unavailable</p>
@@ -81,7 +67,7 @@ export function AuditPage() {
       </div>
 
       {/* Log Timeline */}
-      {!error && logs.length === 0 ? (
+      {!error && logs.length === 0 && !isLoading ? (
         <div className="p-12 text-center text-muted-foreground border rounded-xl">
           <FileSearch className="h-8 w-8 mx-auto mb-3 opacity-50" />
           <p className="font-medium">No audit logs yet</p>

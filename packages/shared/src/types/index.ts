@@ -160,3 +160,48 @@ export interface CreateApiKeyRequest {
   walletId: string;
   scopes: string[];
 }
+
+// Auth types
+export interface AuthUser {
+  id: string;
+  walletAddress: string;
+  createdAt: string;
+  lastLoginAt: string;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  ownerId: string;
+  tier: 'demo' | 'live';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuthSession {
+  token: string;
+  user: AuthUser;
+  workspace: Workspace;
+  expiresAt: string;
+}
+
+export interface NonceResponse {
+  nonce: string;
+}
+
+export interface VerifyRequest {
+  message: string;
+  signature: string;
+  address: string;
+}
+
+export interface VerifyResponse {
+  token: string;
+  user: AuthUser;
+  workspace: Workspace;
+}
+
+export interface WalletConfig {
+  address: string;
+  chainId: number;
+}
