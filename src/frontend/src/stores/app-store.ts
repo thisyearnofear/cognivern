@@ -70,6 +70,15 @@ export const useAppStore = create<AppState>()(
         }),
         {
           name: "civern-app-store",
+          partialize: (state) => ({
+            preferences: state.preferences,
+            user: {
+              isConnected: state.user.isConnected,
+              walletAddress: state.user.walletAddress,
+              authUser: state.user.authUser,
+              workspace: state.user.workspace,
+            },
+          }),
         }
       )
     : (set) => ({
