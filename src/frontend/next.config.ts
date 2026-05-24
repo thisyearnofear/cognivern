@@ -6,7 +6,7 @@ const cspHeader = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self'",
-  "connect-src 'self' https://*.walletconnect.com https://*.walletconnect.org https://*.web3modal.org https://pulse.walletconnect.org https://api.web3modal.org wss://*.walletconnect.com wss://*.walletconnect.org",
+  "connect-src 'self' https://cognivern.thisyearnofear.com https://*.walletconnect.com https://*.walletconnect.org https://*.web3modal.org https://pulse.walletconnect.org https://api.web3modal.org wss://*.walletconnect.com wss://*.walletconnect.org",
   "frame-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: `${apiUrl}/:path*`,
+        destination: `${apiUrl}/api/:path*`,
       },
     ];
   },
