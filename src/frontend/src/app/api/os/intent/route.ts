@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isConfigured, fullRecall } from "@/lib/hydradb-service";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.thisyearnofear.com";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://cognivern.thisyearnofear.com";
 
 /**
  * POST /api/os/intent
