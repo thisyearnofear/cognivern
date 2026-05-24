@@ -44,7 +44,9 @@ The **decision** (approve / hold / deny) is revealed publicly. The **inputs and 
 
 ## 3. New Smart Contract — `ConfidentialSpendPolicy.sol`
 
-Deployed on Fhenix. Mirrors the rule semantics of `PolicyEnforcementService` but operates on `euint128` / `ebool`.
+Deployed on Fhenix (Base Sepolia, chain 84532) at **`0xeA88BD6121d181cFD6F60997B4BDd0297CA432fE`**.
+
+Mirrors the rule semantics of `PolicyEnforcementService` but operates on `euint128` / `ebool`.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -52,63 +54,112 @@ pragma solidity ^0.8.24;
 
 import {FHE, euint128, ebool, InEuint128} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 
+interface IMailbox {
+    function dispatch(uint32 _destinationDomain, bytes32 _recipientAddress, bytes calldata _messageBody) external returns (bytes32);
+}
+
 contract ConfidentialSpendPolicy {
     struct EncryptedPolicy {
-        euint128 dailyLimit;        // encrypted per-agent daily cap
-        euint128 perTxLimit;        // encrypted per-tx cap
-        euint128 approvalThreshold; // encrypted hold threshold
-        bytes32 vendorSetRoot;      // commitment to encrypted vendor allowlist
+        euint128 dailyLimit;
+        euint128 perTxLimit;
+        euint128 approvalThreshold;
+        bytes32 vendorSetRoot;
         address operator;
+        bool initialized;
     }
 
     struct EncryptedCounter {
         euint128 spentToday;
-        uint256  windowStart;       // plaintext window boundary (UTC day)
+        uint256 windowStart;
+        bool initialized;
     }
 
-    mapping(bytes32 => EncryptedPolicy)  public policies;     // policyId -> policy
-    mapping(bytes32 => EncryptedCounter) public counters;     // agentId  -> counter
+    struct PendingDecision {
+        bytes32 agentId;
+        bytes32 policyId;
+        bytes32 vendorHash;
+    }
 
-    event SpendEvaluated(
-        bytes32 indexed decisionId,
-        bytes32 indexed agentId,
-        bytes32 indexed policyId,
-        uint8   outcome,            // 0=deny, 1=hold, 2=approve
-        bytes   attestation         // FHE attestation consumed by X Layer
-    );
+    enum Outcome { Deny, Hold, Approve, Pending }
 
-    function evaluateSpend(
-        bytes32 agentId,
-        bytes32 policyId,
-        InEuint128 calldata amountCt,
-        bytes32 vendorHash
-    ) external returns (bytes32 decisionId) {
-        EncryptedPolicy storage p = policies[policyId];
-        EncryptedCounter storage c = counters[agentId];
+    mapping(bytes32 => EncryptedPolicy)  public policies;
+    mapping(bytes32 => EncryptedCounter) public counters;
+    mapping(bytes32 => Outcome)          public resolvedOutcomes;
+    mapping(bytes32 => PendingDecision)  public pendingDecisions;
+    mapping(address => bool)             public authorizedEvaluators;
 
-        euint128 amount   = FHE.asEuint128(amountCt);
+    address public owner;
+    address public pendingOwner;
+    IMailbox public mailbox;
+    uint32  public xLayerDestinationDomain;
+    bytes32 public xLayerRecipient;
+
+    modifier onlyAuthorized() {
+        require(msg.sender == owner || authorizedEvaluators[msg.sender], "not authorized");
+        _;
+    }
+
+    constructor() { owner = msg.sender; authorizedEvaluators[msg.sender] = true; }
+
+    // Two-step ownership transfer
+    function transferOwnership(address newOwner) external { /* owner only */ }
+    function acceptOwnership() external { /* pending owner only */ }
+
+    // Evaluator whitelist
+    function authorizeEvaluator(address e) external { /* owner only */ }
+    function revokeEvaluator(address e)  external { /* owner only */ }
+
+    // Policy registration (permissionless)
+    function registerPolicy(bytes32 policyId, InEuint128 calldata dailyLimitCt,
+        InEuint128 calldata perTxLimitCt, InEuint128 calldata approvalThresholdCt,
+        bytes32 vendorSetRoot) external { /* ... */ }
+
+    // Encrypted spend evaluation — only authorized callers
+    function evaluateSpend(bytes32 agentId, bytes32 policyId,
+        InEuint128 calldata amountCt, bytes32 vendorHash)
+        external onlyAuthorized returns (bytes32 decisionId)
+    {
+        euint128 amount = FHE.asEuint128(amountCt);
         euint128 newSpent = FHE.add(c.spentToday, amount);
 
-        ebool underDaily   = FHE.lte(newSpent, p.dailyLimit);
-        ebool underPerTx   = FHE.lte(amount,   p.perTxLimit);
-        ebool needsApproval= FHE.gt (amount,   p.approvalThreshold);
+        ebool underDaily    = FHE.lte(newSpent, p.dailyLimit);
+        ebool underPerTx    = FHE.lte(amount, p.perTxLimit);
+        ebool needsApproval = FHE.gt(amount, p.approvalThreshold);
 
         ebool approved = FHE.and(underDaily, FHE.and(underPerTx, FHE.not(needsApproval)));
         ebool held     = FHE.and(underDaily, FHE.and(underPerTx, needsApproval));
 
-        // outcome packed into a public uint8 via threshold decryption
-        // (simplified — real impl uses FHE.decrypt + callback)
-        decisionId = keccak256(abi.encode(agentId, policyId, block.number, amountCt));
-        emit SpendEvaluated(decisionId, agentId, policyId, /*outcome*/ 0, "");
+        ebool notDenied = FHE.or(approved, held);
+        c.spentToday = FHE.select(notDenied, newSpent, c.spentToday);
 
-        // commit updated counter only if not denied (FHE conditional update)
-        c.spentToday = FHE.select(approved, newSpent, c.spentToday);
+        decisionId = keccak256(abi.encode(agentId, policyId, vendorHash, block.number, msg.sender));
+        pendingDecisions[decisionId] = PendingDecision(agentId, policyId, vendorHash);
+        emit SpendEvaluated(decisionId, agentId, policyId, Outcome.Pending, "");
+    }
+
+    // Two-phase resolution: owner decrypts off-chain, then commits outcome + dispatches via Hyperlane
+    function resolveDecision(bytes32 decisionId, Outcome outcome) external {
+        require(msg.sender == owner, "not owner");
+        require(outcome != Outcome.Pending, "outcome must be resolved");
+
+        PendingDecision memory pending = pendingDecisions[decisionId];
+        resolvedOutcomes[decisionId] = outcome;
+        emit DecisionResolved(decisionId, outcome);
+
+        // Cross-chain dispatch: send real outcome to GovernanceContract on X Layer
+        if (address(mailbox) != address(0) && xLayerRecipient != bytes32(0)) {
+            bytes memory payload = abi.encode(decisionId, pending.agentId, pending.policyId, uint8(outcome));
+            mailbox.dispatch(xLayerDestinationDomain, xLayerRecipient, payload);
+        }
     }
 }
 ```
 
 Key properties:
 - Budgets and amounts never appear in plaintext on-chain.
+- **Access control:** Only the contract owner or whitelisted evaluators can submit spend evaluations — prevents unauthorized actors from inflating encrypted counters.
+- **Two-step ownership transfer:** `transferOwnership` + `acceptOwnership` protects against accidental transfers and key loss.
+- **Two-phase FHE resolution:** `evaluateSpend` emits `Pending` → off-chain threshold decryption → `resolveDecision` commits the real outcome and dispatches it to X Layer via Hyperlane. The GovernanceContract receives the actual FHE-evaluated outcome (Deny/Hold/Approve), not a placeholder.
 - Operators decrypt their own policies via CoFHE permits.
 - Auditors receive scoped permits — selective disclosure for compliance.
 
@@ -214,19 +265,37 @@ This composes cleanly: Cognivern decides → Privara executes the confidential t
 
 ## 8. Hardhat Setup
 
-Add a `contracts/fhenix/` workspace using the CoFHE Hardhat plugin for local dev:
-
 ```js
 // contracts/fhenix/hardhat.config.cjs
 require("@fhenixprotocol/cofhe-hardhat-plugin");
+require("@fhenixprotocol/hardhat-fhenix");
 module.exports = {
-  solidity: "0.8.24",
+  solidity: { version: "0.8.25", settings: { evmVersion: "cancun", viaIR: true } },
   networks: {
-    fhenixSepolia:    { url: process.env.FHENIX_SEPOLIA_RPC },
-    arbitrumSepolia:  { url: process.env.ARB_SEPOLIA_RPC },
-    baseSepolia:      { url: process.env.BASE_SEPOLIA_RPC },
+    fhenixSepolia:    {
+      url: process.env.FHENIX_SEPOLIA_RPC || "https://api.testnet.fhenix.zone",
+      accounts: process.env.FHENIX_PRIVATE_KEY ? [process.env.FHENIX_PRIVATE_KEY] : [],
+      chainId: 84532,
+    },
+    arbitrumSepolia:  {
+      url: process.env.ARB_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
+      accounts: process.env.FHENIX_PRIVATE_KEY ? [process.env.FHENIX_PRIVATE_KEY] : [],
+      chainId: 421614,
+    },
+    baseSepolia:      {
+      url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
+      accounts: process.env.FHENIX_PRIVATE_KEY ? [process.env.FHENIX_PRIVATE_KEY] : [],
+      chainId: 84532,
+    },
   },
 };
+
+Deploy:
+```bash
+pnpm deploy:fhenix
+# or directly:
+npx hardhat run scripts/deploy-fhenix.ts --config contracts/fhenix/hardhat.config.cjs --network fhenixSepolia
+```
 ```
 
 ---
@@ -284,7 +353,7 @@ To support non-TypeScript agents (Python/Go), Cognivern provides a **Trusted Enc
 | **Wave 3 (Marathon)** | [x] Frontend `useEncrypt` flow; production CoFHE client + contract adapter; auditor permit consumption/decrypt UX; X Layer cross-chain decision anchoring; demo script |
 | **Wave 4** | [x] Privara SDK integration for confidential payroll; sealed-bid vendor selection example |
 | **Wave 5 (Final)** | [x] Production-grade demo: institutional treasury agent operating with fully encrypted budgets, MEV-protected execution, selective auditor disclosure |
-| **Wave 6 (Hardening)** | [x] Shared `FhenixPolicyService` singleton eliminates redundant CoFHE clients; `resolveDecision()` enables proper two-phase FHE outcome resolution; `requestDeFiAction` guarded by resolved outcome; contract tests; centralized config; rate-limited decrypt; typed interfaces; docs updated |
+| **Wave 6 (Hardening)** | [x] Shared `FhenixPolicyService` singleton eliminates redundant CoFHE clients; `resolveDecision()` enables proper two-phase FHE outcome resolution; `requestDeFiAction` guarded by resolved outcome; contract tests; centralized config; rate-limited decrypt; typed interfaces; docs updated; access control (`onlyAuthorized`) on evaluateSpend + requestDeFiAction; evaluator whitelist; two-step ownership transfer; Hyperlane dispatch moved from evaluateSpend (dead) to resolveDecision (real outcome) |
 
 ---
 
