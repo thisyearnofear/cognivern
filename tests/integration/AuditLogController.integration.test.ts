@@ -2,9 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 const { AuditLogController } = await import(
-  "../../src/modules/api/controllers/AuditLogController.js"
+  "../../src/backend/modules/api/controllers/AuditLogController.js"
 );
-const { owsWalletService } = await import("../../src/services/OwsWalletService.js");
+const { owsWalletService } = await import("../../src/backend/services/OwsWalletService.js");
 
 class MockRes {
   statusCode = 200;

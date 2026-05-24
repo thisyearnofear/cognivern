@@ -8,6 +8,8 @@ Cognivern is a control plane for agent operations: governed wallet spend plus AI
 
 [![Powered by ChainGPT AI](https://img.shields.io/badge/Powered%20by-ChainGPT%20AI-7B61FF?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iIzdiNjFGZiIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkNIQUlOR1BUPC90ZXh0Pjwvc3ZnPg==)](https://chaingpt.org)
 
+**Live:** [Frontend](https://cognivern.vercel.app) · [API](https://api.thisyearnofear.com) · [PromptOS Terminal](https://cognivern.vercel.app/os)
+
 ## Quick Start
 
 ```bash
