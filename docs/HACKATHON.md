@@ -9,6 +9,7 @@ Cognivern has been submitted to multiple hackathons. This doc tracks them.
 | 0G APAC — Track 3 | Agentic Economy / Autonomous Apps | 2026-Q2 | Submitted |
 | OWS Hackathon — Track 02 | Agent Spend Governance & Identity | 2026-Q2 | Submitted |
 | Agents Assemble Healthcare AI Endgame | Healthcare Governance | 2026-Q2 | Submitted |
+| Agents Under Pressure — Build Your Own OS | PromptOS + DevFactory Grid | 2026-Q2 | Planning |
 
 ## Integration Details
 

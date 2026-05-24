@@ -129,3 +129,56 @@
     @apply font-sans;
   }
 }
+
+/* PromptOS terminal styles */
+.os-terminal .xterm {
+  padding: 12px;
+}
+
+.os-terminal .xterm-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.os-terminal .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.os-terminal .xterm-viewport::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+
+/* CRT scanline overlay */
+.crt-effect::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  z-index: 10;
+}
+
+/* Subtle CRT glow */
+.crt-glow {
+  text-shadow: 0 0 5px currentColor;
+}
+
+/* Agent grid scroll */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 2px;
+}
