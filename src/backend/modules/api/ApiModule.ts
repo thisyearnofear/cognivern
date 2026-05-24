@@ -13,6 +13,7 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import rateLimit from "express-rate-limit";
+import { createHash, timingSafeEqual } from "crypto";
 import { BaseService } from "../../shared/services/BaseService.js";
 import { Logger } from "../../shared/logging/Logger.js";
 import {
@@ -361,9 +362,19 @@ export class ApiModule extends BaseService {
       return;
     }
 
-    // Legacy global API key check
-    const validApiKeys = [apiConfig.apiKey];
-    if (!validApiKeys.includes(apiKey)) {
+    // Legacy global API key check — timing-safe hash comparison
+    if (apiConfig.apiKey) {
+      const expected = Buffer.from(createHash("sha256").update(apiConfig.apiKey).digest());
+      const actual = Buffer.from(createHash("sha256").update(apiKey).digest());
+      if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
+        res.status(401).json({
+          success: false,
+          error: "Invalid API key",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+    } else {
       res.status(401).json({
         success: false,
         error: "Invalid API key",

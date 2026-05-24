@@ -141,6 +141,17 @@ export const mantleConfig = {
   vaultAddress: process.env.MANTLE_VAULT_ADDRESS || "",
   chainId: { mainnet: 5000, sepolia: 5003 },
 };
+
+export const fhenixConfig = {
+  rpcUrl: process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
+  chainId: Number(process.env.FHENIX_CHAIN_ID || "84532"),
+  contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
+  privateKey: process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
+  cofheUrl: process.env.FHENIX_COFHE_URL || process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
+  verifierUrl: process.env.FHENIX_VERIFIER_URL || process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
+  thresholdNetworkUrl: process.env.FHENIX_TN_URL || process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
+};
+
 export const monitoringConfig = {
   enabled: false,
   healthCheckInterval: 30000,

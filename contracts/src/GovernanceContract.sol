@@ -284,6 +284,7 @@ contract GovernanceContract is IMessageRecipient {
         bool approved,
         address evaluator
     ) internal {
+        require(actions[actionId].id == 0, "Action already evaluated");
         actions[actionId] = GovernanceAction({
             id: actionId,
             agentId: agentId,

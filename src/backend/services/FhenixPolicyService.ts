@@ -2,7 +2,7 @@ import { createCofheClient, createCofheConfig } from "@cofhe/sdk/node";
 import { CofheClient, Encryptable, FheTypes } from "@cofhe/sdk";
 import type { UnsealedItem } from "@cofhe/sdk";
 import { PermitUtils } from "@cofhe/sdk/permits";
-import { createPublicClient, createWalletClient, http, parseAbi, Hex, decodeEventLog } from "viem";
+import { createPublicClient, createWalletClient, http, parseAbi, Hex, decodeEventLog, Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import logger from "../utils/logger.js";
@@ -48,6 +48,10 @@ export interface FhenixPolicyServiceConfig {
   rpcUrl: string;
   contractAddress: string;
   privateKey: string;
+  chainId?: number;
+  cofheUrl?: string;
+  verifierUrl?: string;
+  thresholdNetworkUrl?: string;
   evaluateTimeoutMs?: number;
   client?: FhenixClientAdapter;
 }
@@ -81,11 +85,34 @@ const ABI = parseAbi([
   "event SpendEvaluated(bytes32 indexed decisionId, bytes32 indexed agentId, bytes32 indexed policyId, uint8 outcome, bytes attestation)",
 ]);
 
+/**
+ * Resolve a viem Chain object for the given chain ID.
+ * Extend this map as additional Fhenix-enabled chains are added.
+ */
+function resolveViemChain(chainId: number): Chain {
+  // viem's built-in baseSepolia covers both vanilla Base Sepolia
+  // and Fhenix Base Sepolia (same chain, CoFHE contracts deployed on it)
+  if (chainId === 84532) return baseSepolia;
+
+  // Add other Fhenix-enabled chains here:
+  // if (chainId === 421614) return arbitrumSepolia;
+  // if (chainId === 11155111) return sepolia;
+
+  // Fallback: construct a minimal Chain object so we don't crash
+  logger.warn(`No viem chain entry for chainId ${chainId}, using baseSepolia fallback`);
+  return baseSepolia;
+}
+
 export function createFhenixConfig() {
+  const rpcUrl = process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone";
   return {
-    rpcUrl: process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
+    rpcUrl,
     contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
     privateKey: process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
+    chainId: Number(process.env.FHENIX_CHAIN_ID || "84532"),
+    cofheUrl: process.env.FHENIX_COFHE_URL || rpcUrl,
+    verifierUrl: process.env.FHENIX_VERIFIER_URL || rpcUrl,
+    thresholdNetworkUrl: process.env.FHENIX_TN_URL || rpcUrl,
     evaluateTimeoutMs: Number(process.env.FHENIX_EVALUATE_TIMEOUT_MS || "30000"),
   };
 }
@@ -102,16 +129,21 @@ export class FhenixPolicyService {
       return;
     }
 
+    const chainId = config.chainId ?? 84532;
+    const coFheUrl = config.cofheUrl || config.rpcUrl || "https://api.testnet.fhenix.zone";
+    const verifierUrl = config.verifierUrl || config.rpcUrl || "https://api.testnet.fhenix.zone";
+    const thresholdNetworkUrl = config.thresholdNetworkUrl || config.rpcUrl || "https://api.testnet.fhenix.zone";
+
     const cofheConfig = createCofheConfig({
       environment: "node",
       supportedChains: [
         {
-          id: 84532,
-          name: "Fhenix Base Sepolia",
-          network: "fhenix-base-sepolia",
-          coFheUrl: config.rpcUrl || "https://api.testnet.fhenix.zone",
-          verifierUrl: config.rpcUrl || "https://api.testnet.fhenix.zone",
-          thresholdNetworkUrl: config.rpcUrl || "https://api.testnet.fhenix.zone",
+          id: chainId,
+          name: "Fhenix Testnet",
+          network: "fhenix-testnet",
+          coFheUrl,
+          verifierUrl,
+          thresholdNetworkUrl,
           environment: "TESTNET",
         },
       ],
@@ -121,15 +153,16 @@ export class FhenixPolicyService {
     if (config.rpcUrl && config.privateKey) {
       this.client = createCofheClient(cofheConfig);
 
+      const chain = resolveViemChain(chainId);
       const account = privateKeyToAccount(config.privateKey as Hex);
       this.publicClient = createPublicClient({
-        chain: baseSepolia,
+        chain,
         transport: http(config.rpcUrl),
       });
 
       this.walletClient = createWalletClient({
         account,
-        chain: baseSepolia,
+        chain,
         transport: http(config.rpcUrl),
       });
     }
@@ -164,7 +197,7 @@ export class FhenixPolicyService {
       const encryptedInputs = await this.withTimeout(
         this.client
           .encryptInputs([Encryptable.uint128(input.amountWei)])
-          .setChainId(84532)
+          .setChainId(this.config.chainId ?? 84532)
           .execute(),
         this.config.evaluateTimeoutMs || 30000
       );
@@ -395,7 +428,7 @@ export class FhenixPolicyService {
 
     let ctHash: bigint;
     let utype: number = FheTypes.Uint128;
-    let chainId: number = 84532;
+    let chainId: number = this.config.chainId ?? 84532;
 
     try {
       const parsed = JSON.parse(encryptedValue);
@@ -454,7 +487,7 @@ export class FhenixPolicyService {
     const encryptedInputs = await this.withTimeout(
       this.client
         .encryptInputs([Encryptable.uint128(amountWei)])
-        .setChainId(84532)
+        .setChainId(this.config.chainId ?? 84532)
         .execute(),
       this.config.evaluateTimeoutMs || 30000
     );
@@ -484,7 +517,7 @@ export class FhenixPolicyService {
     const encryptedInputs = await this.withTimeout(
       this.client
         .encryptInputs([Encryptable.uint128(input.amountWei)])
-        .setChainId(84532)
+        .setChainId(this.config.chainId ?? 84532)
         .execute(),
       this.config.evaluateTimeoutMs || 30000
     );

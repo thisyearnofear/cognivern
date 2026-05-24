@@ -5,13 +5,18 @@ import { randomUUID } from "node:crypto";
 import type { AuthUser, Workspace } from "@cognivern/shared";
 import { getDb } from "../../../db/index.js";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "cognivern-dev-jwt-secret-change-in-production"
-);
-
 function getJwtSecret(): Uint8Array {
-  return JWT_SECRET;
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("JWT_SECRET is required in production");
+    }
+    return new TextEncoder().encode("cognivern-dev-jwt-secret-change-in-production");
+  }
+  return new TextEncoder().encode(secret);
 }
+
+const JWT_SECRET = getJwtSecret();
 
 export class AuthController {
   async getNonce(_req: Request, res: Response): Promise<void> {
@@ -145,7 +150,7 @@ export class AuthController {
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("24h")
-      .sign(getJwtSecret());
+      .sign(JWT_SECRET);
 
     res.json({ token, user: authUser, workspace: authWorkspace });
   }

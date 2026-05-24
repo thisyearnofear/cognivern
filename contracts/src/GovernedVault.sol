@@ -66,9 +66,9 @@ contract GovernedVault is IMessageRecipient {
 
         // Execute the call
         (bool success, bytes memory response) = target.call{value: value}(data);
+        require(success, "Execution failed");
 
         emit CallExecuted(target, value, data, success, response);
-        require(success, "Execution failed");
     }
 
     /**
