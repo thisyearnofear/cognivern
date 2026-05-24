@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const response = await fetch(`${API_URL}/intent`, {
+    const response = await fetch(`${API_URL}/api/intent`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, context: enrichedContext }),

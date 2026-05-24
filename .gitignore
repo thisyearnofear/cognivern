@@ -123,3 +123,4 @@ data/
 # Deploy scripts (contain server IPs, SSH targets, local overrides)
 scripts/deploy.sh
 scripts/monitoring/monitor-api.sh
+.vercel
