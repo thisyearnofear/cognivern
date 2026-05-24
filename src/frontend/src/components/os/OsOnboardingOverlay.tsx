@@ -23,9 +23,9 @@ export function OsOnboardingOverlay({
             <div className="text-xs font-mono uppercase tracking-[0.3em] text-zinc-500">
               First run
             </div>
-            <h2 className="mt-2 text-xl font-semibold text-zinc-100">Explore Cognivern OS</h2>
+            <h2 className="mt-2 text-xl font-semibold text-zinc-100">Inspect Agents Live</h2>
             <p className="mt-2 text-sm text-zinc-400">
-              Use natural-language commands to inspect agents, audit activity, and governance state.
+              Ask plain-English questions about agent status, audits, and governance health from one command center.
             </p>
           </div>
           <button
@@ -61,15 +61,15 @@ export function OsOnboardingOverlay({
             </div>
             <ul className="mt-3 space-y-2 text-sm text-zinc-400">
               <li>1. Start with a suggested prompt.</li>
-              <li>2. Follow the response suggestions.</li>
-              <li>3. Run the auto-demo for a guided tour.</li>
+              <li>2. Reuse follow-up actions to go deeper.</li>
+              <li>3. Run the demo tour for the full walkthrough.</li>
             </ul>
             <button
               onClick={onRunDemo}
               disabled={disabled}
               className="mt-4 w-full rounded-lg border border-emerald-800 bg-emerald-950/50 px-3 py-2 text-sm font-mono text-emerald-400 transition-colors hover:bg-emerald-950/70 disabled:opacity-50"
             >
-              run auto-demo
+              run demo tour
             </button>
           </div>
         </div>

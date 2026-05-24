@@ -26,10 +26,16 @@ export const QUICK_PROMPTS = [
   "check governance health score",
   "create a new agent",
   "show performance stats",
+  "hydra status",
+  "hydra help",
 ] as const;
 
+export const RECENT_PROMPTS_STORAGE_KEY = "cognivern-os-recent-prompts";
+export const ONBOARDING_STORAGE_KEY = "cognivern-os-onboarding-dismissed";
+export const MAX_RECENT_PROMPTS = 5;
+
 export const MOBILE_PROMPT_HINT =
-  "Try: show me active agents · check governance health score · show performance stats";
+  "Try: show me active agents · check governance health · hydra status · show performance stats";
 
 export function formatIntentOutput(intent: OsIntentData): string {
   const color = INTENT_TYPE_COLORS[intent.type] || INTENT_TYPE_COLORS.unknown;

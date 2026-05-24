@@ -3,6 +3,11 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
+interface HydraMemory {
+  text: string;
+  score?: number;
+}
+
 type AgentState = "IDLE" | "BUSY" | "CRSH" | "SYNC";
 
 interface AgentCore {
@@ -49,6 +54,8 @@ export function AgentGrid({ activeIntentType }: AgentGridProps) {
   );
   const [runCount, setRunCount] = useState(0);
   const [auditEvents, setAuditEvents] = useState<Array<{ eventType: string; timestamp: string }>>([]);
+  const [recentMemories, setRecentMemories] = useState<HydraMemory[]>([]);
+  const [memoryConfig, setMemoryConfig] = useState<{ configured: boolean } | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -90,6 +97,43 @@ export function AgentGrid({ activeIntentType }: AgentGridProps) {
     pollRef.current = setInterval(poll, 5000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
+
+  // Poll memory feed separately (parallel to main poll)
+  useEffect(() => {
+    const fetchMemories = async () => {
+      try {
+        const [statusRes, recentRes] = await Promise.all([
+          fetch("/api/os/hydra"),
+          fetch("/api/os/hydra", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "recent", limit: 5 }),
+          }),
+        ]);
+
+        const statusData = (await statusRes.json()).data;
+        if (statusData) {
+          setMemoryConfig({ configured: statusData.configured && statusData.tenantExists });
+        }
+
+        const recentData = (await recentRes.json()).data;
+        if (recentData?.results && Array.isArray(recentData.results)) {
+          setRecentMemories(recentData.results.slice(0, 5));
+        }
+      } catch {
+        // HydraDB not available
+      }
+    };
+
+    // Initial fetch with delay so layout doesn't block
+    const timer = setTimeout(fetchMemories, 2000);
+    const interval = setInterval(fetchMemories, 15000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
     };
   }, []);
 
@@ -219,12 +263,49 @@ export function AgentGrid({ activeIntentType }: AgentGridProps) {
         </AnimatePresence>
       </div>
 
-      {/* Auto-patch log feed */}
+      {/* Memory feed */}
+      <div className="border-t border-zinc-800 px-3 py-2">
+        <div className="flex items-center justify-between mb-1">
+          <div className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
+            Memory
+          </div>
+          {memoryConfig && (
+            <span
+              className={`inline-block w-1.5 h-1.5 rounded-full ${
+                memoryConfig.configured ? "bg-emerald-500" : "bg-amber-500"
+              }`}
+            />
+          )}
+        </div>
+        <div className="space-y-0.5 max-h-24 overflow-y-auto scrollbar-thin">
+          {recentMemories.length > 0 ? (
+            recentMemories.map((mem, i) => {
+              const display = (mem.text || "").length > 55
+                ? (mem.text || "").slice(0, 55) + "..."
+                : (mem.text || "");
+              return (
+                <div
+                  key={`mem-${i}`}
+                  className="text-[10px] font-mono text-zinc-500 truncate hover:text-zinc-400 transition-colors"
+                >
+                  <span className="text-emerald-600">&#9655;</span> {display}
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-[10px] font-mono text-zinc-600">
+              {memoryConfig === null ? "loading..." : memoryConfig.configured ? "no memories yet" : "not configured"}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Event feed */}
       <div className="border-t border-zinc-800 px-3 py-2">
         <div className="text-[10px] font-mono text-zinc-600 mb-1 uppercase tracking-wider">
           Event Feed
         </div>
-        <div className="space-y-0.5 max-h-32 overflow-y-auto scrollbar-thin">
+        <div className="space-y-0.5 max-h-24 overflow-y-auto scrollbar-thin">
           {/* Active core states first */}
           {cores
             .filter((c) => c.state !== "IDLE")

@@ -74,6 +74,7 @@ async function handleLocalCommand(term: XTerminal, cmd: string, writePrompt: () 
     term.writeln("  \x1b[38;2;34;197;94mclear\x1b[0m        Clear terminal");
     term.writeln("  \x1b[38;2;34;197;94mstatus\x1b[0m       Show system status");
     term.writeln("  \x1b[38;2;34;197;94magents\x1b[0m       List active agents");
+    term.writeln("  \x1b[38;2;34;197;94mhydra\x1b[0m        Agent memory & recall (type 'hydra help')");
     term.writeln("  \x1b[38;2;34;197;94mls\x1b[0m           List virtual filesystem");
     term.writeln("  \x1b[38;2;34;197;94mcat <path>\x1b[0m   Read virtual file");
     term.writeln("  \x1b[38;2;34;197;94mcd <dir>\x1b[0m     Change virtual directory");
@@ -81,6 +82,7 @@ async function handleLocalCommand(term: XTerminal, cmd: string, writePrompt: () 
     term.writeln("  \x1b[38;2;34;197;94mhistory\x1b[0m      Show command history");
     term.writeln("  \x1b[38;2;34;197;94msuggest\x1b[0m      Show suggested commands");
     term.writeln("");
+    term.writeln("  \x1b[38;2;56;189;248mMemory system:\x1b[0m  \x1b[38;2;113;113;122mEvery command is auto-stored as a HydraDB memory. Use 'hydra search <topic>' to recall previous context.\x1b[0m");
     term.writeln("  \x1b[38;2;113;113;122mOr type any natural language command.\x1b[0m");
     term.writeln("");
   } else if (lower === "clear") {
@@ -182,7 +184,288 @@ async function handleLocalCommand(term: XTerminal, cmd: string, writePrompt: () 
     } else {
       term.writeln(`  \x1b[38;2;234;179;8mNo such directory: ${dir}\x1b[0m`);
     }
-    term.writeln("");
+    term.writeln("");      } else if (lower.startsWith("hydra")) {
+    const parts = cmd.slice("hydra".length).trim().split(/\s+/);
+    const sub = parts[0]?.toLowerCase() || "help";
+
+    if (sub === "help" || sub === "") {
+      term.writeln("");
+      term.writeln("  \x1b[38;2;56;189;248mHydraDB — Agent Memory & Recall\x1b[0m");
+      term.writeln("  \x1b[38;2;113;113;122m────────────────────────────────────────────────────\x1b[0m");
+      term.writeln("  \x1b[38;2;34;197;94mhydra status\x1b[0m        Check memory system status");
+      term.writeln("  \x1b[38;2;34;197;94mhydra stats\x1b[0m         Memory count + health");
+      term.writeln("  \x1b[38;2;34;197;94mhydra recent [N]\x1b[0m   Browse recent memories");
+      term.writeln("  \x1b[38;2;34;197;94mhydra search <q>\x1b[0m   Find memories by topic");
+      term.writeln("  \x1b[38;2;34;197;94mhydra recall <q>\x1b[0m   Semantic search (alias)");
+      term.writeln('  \x1b[38;2;34;197;94mhydra memory "text"\x1b[0m  Store a memory');
+      term.writeln("  \x1b[38;2;34;197;94mhydra qna <q>\x1b[0m     Ask against memory");
+      term.writeln("  \x1b[38;2;34;197;94mhydra prefs <q>\x1b[0m   Search preferences");
+      term.writeln("  \x1b[38;2;34;197;94mhydra help\x1b[0m         Show this help");
+      term.writeln("");
+      term.writeln("  \x1b[38;2;113;113;122mRequires HYDRA_DB_API_KEY env var. Sign up at app.hydradb.com\x1b[0m");
+      term.writeln("");
+    } else if (sub === "status") {
+      term.writeln("");
+      term.writeln("  \x1b[38;2;56;189;248mChecking HydraDB status...\x1b[0m");
+      fetch("/api/os/hydra")
+        .then((r) => r.json())
+        .then((res) => {
+          if (res.success && res.data) {
+            const d = res.data;
+            const ok = d.configured && d.tenantExists;
+            term.writeln(`  \x1b[38;2;${ok ? "34;197;94" : "234;179;8"}m[${ok ? "CONNECTED" : "DEGRADED"}]\x1b[0m HydraDB`);
+            term.writeln(`  \x1b[38;2;113;113;122mTenant:\x1b[0m ${d.tenantId || "(none)"}`);
+            term.writeln(`  \x1b[38;2;113;113;122mStatus:\x1b[0m ${d.tenantExists ? "ready" : "not found"}`);
+            if (d.error) term.writeln(`  \x1b[38;2;234;179;8mNote:\x1b[0m ${d.error}`);
+          } else {
+            term.writeln("  \x1b[38;2;239;68;68mFailed to get status.\x1b[0m");
+          }
+          term.writeln("");
+          writePrompt();
+        })
+        .catch(() => {
+          term.writeln("  \x1b[38;2;239;68;68mHydraDB unreachable.\x1b[0m");
+          term.writeln("");
+          writePrompt();
+        });
+      return;
+    } else if (sub === "stats") {
+      term.writeln("");
+      term.writeln("  \x1b[38;2;56;189;248mHydraDB Memory System\x1b[0m");
+      term.writeln("  \x1b[38;2;113;113;122m─────────────────────────────────────\x1b[0m");
+
+      // Fetch status + recent memories in parallel
+      Promise.all([
+        fetch("/api/os/hydra"),
+        fetch("/api/os/hydra", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "recent", limit: 3 }),
+        }),
+      ])
+        .then(async ([statusRes, recentRes]) => {
+          const statusData = (await statusRes.json()).data;
+          const recentData = (await recentRes.json()).data;
+
+          if (statusData) {
+            const ok = statusData.configured && statusData.tenantExists;
+            term.writeln(`  \x1b[38;2;${ok ? "34;197;94" : "234;179;8"}m[${
+              ok ? "ACTIVE" : "INACTIVE"
+            }]\x1b[0m Memory System`);
+            term.writeln(`  \x1b[38;2;113;113;122mTenant ID:  \x1b[0m${statusData.tenantId || "—"}`);
+            term.writeln(`  \x1b[38;2;113;113;122mConnection: \x1b[0m${
+              statusData.configured ? "\u2705 configured" : "\u274c not configured"
+            }`);
+            term.writeln(`  \x1b[38;2;113;113;122mTenant:     \x1b[0m${statusData.tenantExists ? "\u2705 exists" : "\u26a0 not found"}`);
+          }
+
+          if (recentData?.results && Array.isArray(recentData.results) && recentData.results.length > 0) {
+            term.writeln("");
+            term.writeln(`  \x1b[38;2;113;113;122mRecent memories (#${recentData.results.length} shown):\x1b[0m`);
+            recentData.results.forEach((r: { text?: string }) => {
+              const display = (r.text || "").length > 60
+                ? (r.text || "").slice(0, 60) + "..."
+                : (r.text || "");
+              term.writeln(`    \x1b[38;2;34;197;94m\u2022\x1b[0m ${display}`);
+            });
+          }
+          term.writeln("");
+          term.writeln("  \x1b[38;2;113;113;122mTip: 'hydra recent 10' to see more, 'hydra search <topic>' to find specific memories.\x1b[0m");
+          term.writeln("");
+          writePrompt();
+        })
+        .catch(() => {
+          term.writeln("  \x1b[38;2;239;68;68mFailed to fetch memory system stats.\x1b[0m");
+          term.writeln("");
+          writePrompt();
+        });
+      return;
+    } else if (sub === "recent") {
+      const limit = Math.min(Math.max(1, parseInt(parts[1], 10) || 5), 20);
+      term.writeln("");
+      term.writeln(`  \x1b[38;2;56;189;248mRecent memories \x1b[0m(limit: ${limit})`);
+      fetch("/api/os/hydra", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "recent", limit }),
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          if (res.success && res.data?.results) {
+            const results = res.data.results;
+            if (Array.isArray(results) && results.length > 0) {
+              results.forEach((r: { text?: string; score?: number }) => {
+                term.writeln(`  \x1b[38;2;34;197;94m\u2022\x1b[0m ${r.text || "(empty)"}`);
+              });
+            } else {
+              term.writeln("  \x1b[38;2;113;113;122mNo memories stored yet. Run commands to auto-store them.\x1b[0m");
+            }
+          } else {
+            term.writeln(`  \x1b[38;2;239;68;68mFailed: ${res.error || "unknown"}\x1b[0m`);
+          }
+          term.writeln("");
+          writePrompt();
+        })
+        .catch(() => {
+          term.writeln("  \x1b[38;2;239;68;68mHydraDB unreachable.\x1b[0m");
+          term.writeln("");
+          writePrompt();
+        });
+      return;
+    } else if (sub === "recall" || sub === "search") {
+      const query = parts.slice(1).join(" ");
+      if (!query) {
+        const cmdName = sub === "search" ? "search" : "recall";
+        term.writeln("");
+        term.writeln(`  \x1b[38;2;234;179;8mUsage: hydra ${cmdName} <search query>\x1b[0m`);
+        term.writeln(`  \x1b[38;2;113;113;122mExample: hydra ${cmdName} "what did I ask about governance"\x1b[0m`);
+        term.writeln("");
+      } else {
+        term.writeln("");
+        term.writeln(`  \x1b[38;2;56;189;248mSearching memories for:\x1b[0m ${query}`);
+        fetch("/api/os/hydra", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "recall", query }),
+        })
+          .then((r) => r.json())
+          .then((res) => {
+            if (res.success && res.data?.results) {
+              const results = res.data.results;
+              if (Array.isArray(results) && results.length > 0) {
+                results.forEach((r: { text?: string; score?: number }) => {
+                  const score = r.score != null ? ` [${(r.score * 100).toFixed(0)}%]` : "";
+                  term.writeln(`  \x1b[38;2;34;197;94m•\x1b[0m ${r.text || "(empty)"}${score}`);
+                });
+              } else {
+                term.writeln("  \x1b[38;2;113;113;122mNo relevant memories found.\x1b[0m");
+              }
+            } else {
+              term.writeln(`  \x1b[38;2;239;68;68mRecall failed: ${res.error || "unknown"}\x1b[0m`);
+            }
+            term.writeln("");
+            writePrompt();
+          })
+          .catch(() => {
+            term.writeln("  \x1b[38;2;239;68;68mHydraDB unreachable.\x1b[0m");
+            term.writeln("");
+            writePrompt();
+          });
+        return;
+      }
+    } else if (sub === "memory" || sub === "remember") {
+      const text = parts.slice(1).join(" ");
+      if (!text) {
+        term.writeln("");
+        term.writeln('  \x1b[38;2;234;179;8mUsage: hydra memory "<text to remember>"\x1b[0m');
+        term.writeln("");
+      } else {
+        term.writeln("");
+        term.writeln("  \x1b[38;2;56;189;248mStoring memory...\x1b[0m");
+        fetch("/api/os/hydra", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "memory", text, title: "CLI memory" }),
+        })
+          .then((r) => r.json())
+          .then((res) => {
+            if (res.success) {
+              term.writeln("  \x1b[38;2;34;197;94mMemory stored.\x1b[0m");
+            } else {
+              term.writeln(`  \x1b[38;2;239;68;68mFailed: ${res.error || "unknown"}\x1b[0m`);
+            }
+            term.writeln("");
+            writePrompt();
+          })
+          .catch(() => {
+            term.writeln("  \x1b[38;2;239;68;68mHydraDB unreachable.\x1b[0m");
+            term.writeln("");
+            writePrompt();
+          });
+        return;
+      }
+    } else if (sub === "qna") {
+      const question = parts.slice(1).join(" ");
+      if (!question) {
+        term.writeln("");
+        term.writeln("  \x1b[38;2;234;179;8mUsage: hydra qna <question>\x1b[0m");
+        term.writeln("");
+      } else {
+        term.writeln("");
+        term.writeln(`  \x1b[38;2;56;189;248mQ&A — ${question}\x1b[0m`);
+        fetch("/api/os/hydra", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "qna", question }),
+        })
+          .then((r) => r.json())
+          .then((res) => {
+            if (res.success && res.data?.answer) {
+              const answer = res.data.answer;
+              try {
+                const parsed = JSON.parse(answer);
+                term.writeln(`  \x1b[38;2;34;197;94mAnswer:\x1b[0m ${parsed.answer || JSON.stringify(parsed)}`);
+              } catch {
+                term.writeln(`  \x1b[38;2;34;197;94mAnswer:\x1b[0m ${answer}`);
+              }
+            } else {
+              term.writeln(`  \x1b[38;2;239;68;68mQ&A failed: ${res.error || "unknown"}\x1b[0m`);
+            }
+            term.writeln("");
+            writePrompt();
+          })
+          .catch(() => {
+            term.writeln("  \x1b[38;2;239;68;68mHydraDB unreachable.\x1b[0m");
+            term.writeln("");
+            writePrompt();
+          });
+        return;
+      }
+    } else if (sub === "prefs" || sub === "preferences") {
+      const query = parts.slice(1).join(" ");
+      if (!query) {
+        term.writeln("");
+        term.writeln("  \x1b[38;2;234;179;8mUsage: hydra prefs <search query>\x1b[0m");
+        term.writeln("");
+      } else {
+        term.writeln("");
+        term.writeln(`  \x1b[38;2;56;189;248mSearching preferences for:\x1b[0m ${query}`);
+        fetch("/api/os/hydra", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "preferences", query }),
+        })
+          .then((r) => r.json())
+          .then((res) => {
+            if (res.success && res.data?.results) {
+              const results = res.data.results;
+              if (Array.isArray(results) && results.length > 0) {
+                results.forEach((r: { text?: string; score?: number }) => {
+                  const score = r.score != null ? ` [${(r.score * 100).toFixed(0)}%]` : "";
+                  term.writeln(`  \x1b[38;2;34;197;94m•\x1b[0m ${r.text || "(empty)"}${score}`);
+                });
+              } else {
+                term.writeln("  \x1b[38;2;113;113;122mNo preferences found.\x1b[0m");
+              }
+            } else {
+              term.writeln(`  \x1b[38;2;239;68;68mFailed: ${res.error || "unknown"}\x1b[0m`);
+            }
+            term.writeln("");
+            writePrompt();
+          })
+          .catch(() => {
+            term.writeln("  \x1b[38;2;239;68;68mHydraDB unreachable.\x1b[0m");
+            term.writeln("");
+            writePrompt();
+          });
+        return;
+      }
+    } else {
+      term.writeln("");
+      term.writeln(`  \x1b[38;2;234;179;8mUnknown hydra subcommand: ${sub}\x1b[0m`);
+      term.writeln(`  \x1b[38;2;113;113;122mType 'hydra help' for available commands.\x1b[0m`);
+      term.writeln("");
+    }
   } else if (lower === "audit") {
     term.writeln("");
     term.writeln("  \x1b[38;2;56;189;248mFetching recent audit logs...\x1b[0m");

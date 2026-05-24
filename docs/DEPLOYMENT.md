@@ -4,6 +4,12 @@
 
 Cognivern runs as a Node.js backend served from a VPS (e.g. Hetzner), with the frontend hosted on Vercel. The backend is managed by PM2 for process management and auto-restart.
 
+| Layer | URL |
+|-------|-----|
+| Frontend | https://cognivern.vercel.app |
+| Backend API | https://api.thisyearnofear.com |
+| Repository | https://github.com/thisyearnofear/cognivern |
+
 ## Architecture
 
 ```text

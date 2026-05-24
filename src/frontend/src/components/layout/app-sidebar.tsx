@@ -35,7 +35,7 @@ import { useAuth } from "@/hooks/use-auth";
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { id: "agents", label: "Agents", icon: Users, href: "/agents" },
-  { id: "os", label: "OS Shell", icon: PlayCircle, href: "/os" },
+  { id: "os", label: "Command Center", icon: PlayCircle, href: "/os" },
   { id: "policies", label: "Policies", icon: ShieldCheck, href: "/policies" },
   { id: "audit", label: "Audit", icon: FileSearch, href: "/audit" },
   { id: "runs", label: "Runs", icon: Activity, href: "/runs" },

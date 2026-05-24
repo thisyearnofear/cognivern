@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 const { FhenixPolicyService } = await import(
-  "../../dist/services/FhenixPolicyService.js"
+  "../../src/backend/services/FhenixPolicyService.js"
 );
 
 test("FhenixPolicyService.evaluateEncrypted uses fallback when client is absent", async () => {

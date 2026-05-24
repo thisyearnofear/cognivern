@@ -297,8 +297,8 @@ export function Dashboard() {
           className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
         >
           <Rocket className="h-5 w-5 text-violet-500 mb-2" />
-          <div className="font-medium text-sm">Open OS Shell</div>
-          <div className="text-xs text-muted-foreground mt-1">Try the demo terminal</div>
+          <div className="font-medium text-sm">Open Agent Command Center</div>
+          <div className="text-xs text-muted-foreground mt-1">Inspect agents live</div>
         </button>
         <button
           onClick={() => router.push("/agents/workshop")}
