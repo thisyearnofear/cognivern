@@ -220,7 +220,7 @@ export function GovernanceCheck() {
                 <div>
                   <h3 className="font-semibold text-sm mb-3">Policy Checks</h3>
                   <div className="space-y-2">
-                    {result.policyChecks.map((check) => (
+                    {(result.policyChecks || []).map((check) => (
                       <CheckItem
                         key={check.policyId}
                         label={check.policyId}

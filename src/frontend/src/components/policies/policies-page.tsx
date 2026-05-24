@@ -18,10 +18,10 @@ export function PoliciesPage() {
   const { data: rawPolicies, isLoading, error } = usePolicies();
   const [showCreate, setShowCreate] = useState(false);
 
-  const policies = (rawPolicies || []).map(p => ({
+  const policies = Array.isArray(rawPolicies) ? rawPolicies.map(p => ({
     id: p.id, name: p.name, type: p.type, agents: p.agents, violations: p.violations, status: p.status, desc: p.description,
     confidential: p.metadata?.confidential === true,
-  }));
+  })) : [];
 
   return (
     <div className="space-y-6">

@@ -86,7 +86,8 @@ export function AgentGrid({ activeIntentType }: AgentGridProps) {
 
         if (auditRes.status === "fulfilled") {
           const data = await auditRes.value.json();
-          setAuditEvents((data.data || []).slice(0, 10));
+          const logs = data.data?.logs || data.data || [];
+          setAuditEvents((Array.isArray(logs) ? logs : []).slice(0, 10));
         }
       } catch {
         // Silent fail
