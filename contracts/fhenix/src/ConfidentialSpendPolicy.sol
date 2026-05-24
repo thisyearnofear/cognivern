@@ -37,6 +37,12 @@ contract ConfidentialSpendPolicy {
         bool    initialized;
     }
 
+    struct PendingDecision {
+        bytes32 agentId;
+        bytes32 policyId;
+        bytes32 vendorHash;
+    }
+
     enum Outcome { Deny, Hold, Approve, Pending }
 
     mapping(bytes32 => EncryptedPolicy)  public policies; // policyId -> policy
@@ -45,12 +51,19 @@ contract ConfidentialSpendPolicy {
     // Resolved outcomes — set by operator after off-chain FHE decrypt
     mapping(bytes32 => Outcome) public resolvedOutcomes;
 
+    // Decision metadata for cross-chain relay from resolveDecision
+    mapping(bytes32 => PendingDecision) public pendingDecisions;
+
+    // Access control — only owner or authorized evaluators can submit
+    mapping(address => bool) public authorizedEvaluators;
+
     // Hyperlane Integration
     IMailbox public mailbox;
     uint32 public xLayerDestinationDomain;
     bytes32 public xLayerRecipient;
     bytes32 public xLayerDeFiVault; // The specialized DeFi vault address
     address public owner;
+    address public pendingOwner;
 
     event PolicyRegistered(bytes32 indexed policyId, address indexed operator);
     event SpendEvaluated(
@@ -61,9 +74,19 @@ contract ConfidentialSpendPolicy {
         bytes   attestation
     );
     event DecisionResolved(bytes32 indexed decisionId, Outcome outcome);
+    event EvaluatorAuthorized(address indexed evaluator);
+    event EvaluatorRevoked(address indexed evaluator);
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    modifier onlyAuthorized() {
+        require(msg.sender == owner || authorizedEvaluators[msg.sender], "not authorized");
+        _;
+    }
 
     constructor() {
         owner = msg.sender;
+        authorizedEvaluators[msg.sender] = true;
     }
 
     /**
@@ -80,6 +103,45 @@ contract ConfidentialSpendPolicy {
         xLayerDestinationDomain = _domain;
         xLayerRecipient = _recipient;
         xLayerDeFiVault = _vault;
+    }
+
+    /**
+     * Two-step ownership transfer — initiate.
+     */
+    function transferOwnership(address newOwner) external {
+        require(msg.sender == owner, "not owner");
+        require(newOwner != address(0), "zero address");
+        pendingOwner = newOwner;
+        emit OwnershipTransferStarted(owner, newOwner);
+    }
+
+    /**
+     * Two-step ownership transfer — accept.
+     */
+    function acceptOwnership() external {
+        require(msg.sender == pendingOwner, "not pending owner");
+        address previousOwner = owner;
+        owner = pendingOwner;
+        pendingOwner = address(0);
+        emit OwnershipTransferred(previousOwner, owner);
+    }
+
+    /**
+     * Authorize an address to call evaluateSpend.
+     */
+    function authorizeEvaluator(address evaluator) external {
+        require(msg.sender == owner, "not owner");
+        authorizedEvaluators[evaluator] = true;
+        emit EvaluatorAuthorized(evaluator);
+    }
+
+    /**
+     * Revoke an evaluator's authorization.
+     */
+    function revokeEvaluator(address evaluator) external {
+        require(msg.sender == owner, "not owner");
+        authorizedEvaluators[evaluator] = false;
+        emit EvaluatorRevoked(evaluator);
     }
 
     /**
@@ -108,13 +170,14 @@ contract ConfidentialSpendPolicy {
 
     /**
      * Evaluate an encrypted spend.
+     * Only owner or authorized evaluators may submit.
      */
     function evaluateSpend(
         bytes32 agentId,
         bytes32 policyId,
         InEuint128 calldata amountCt,
         bytes32 vendorHash
-    ) external returns (bytes32 decisionId) {
+    ) external onlyAuthorized returns (bytes32 decisionId) {
         EncryptedPolicy storage p = policies[policyId];
         EncryptedCounter storage c = counters[agentId];
 
@@ -151,37 +214,42 @@ contract ConfidentialSpendPolicy {
             abi.encode(agentId, policyId, vendorHash, block.number, msg.sender)
         );
 
-        // CoFHE threshold-decryption note:
-        // The `approved` and `held` ciphertexts are computed correctly above under FHE.
-        // On-chain plaintext revelation requires a permit-based async callback (CoFHE
-        // threshold decryption). We emit Outcome.Pending here; the backend resolves the
-        // true outcome by calling FHE.decrypt with the operator permit off-chain and
-        // then relays the final decision to GovernanceContract via Hyperlane.
-        // This is the architecturally correct pattern for CoFHE — not a simplification.
-        Outcome computedOutcome = Outcome.Pending;
+        // Store decision metadata so resolveDecision can cross-chain relay
+        pendingDecisions[decisionId] = PendingDecision({
+            agentId: agentId,
+            policyId: policyId,
+            vendorHash: vendorHash
+        });
 
-        emit SpendEvaluated(decisionId, agentId, policyId, computedOutcome, "");
-
-        // Hyperlane Cross-Chain Dispatch — carries decisionId so X Layer can correlate
-        // the backend-resolved outcome once threshold decryption completes.
-        if (address(mailbox) != address(0) && xLayerRecipient != bytes32(0)) {
-            bytes memory payload = abi.encode(decisionId, agentId, policyId, uint8(computedOutcome));
-            mailbox.dispatch(xLayerDestinationDomain, xLayerRecipient, payload);
-        }
+        // Emit Pending — the true outcome is revealed off-chain via threshold decryption,
+        // then committed on-chain by resolveDecision, which dispatches the real outcome
+        // to the GovernanceContract via Hyperlane.
+        emit SpendEvaluated(decisionId, agentId, policyId, Outcome.Pending, "");
     }
 
     /**
      * Resolve a pending decision with the actual FHE outcome.
      * Callable only by the contract owner after off-chain threshold decryption.
-     * This is the second phase: evaluateSpend emits Pending, then operator
-     * resolves with the real outcome via this function.
+     * Once resolved, dispatches the real outcome to GovernanceContract via Hyperlane.
      */
     function resolveDecision(bytes32 decisionId, Outcome outcome) external {
         require(msg.sender == owner, "not owner");
         require(outcome != Outcome.Pending, "outcome must be resolved");
         require(resolvedOutcomes[decisionId] == Outcome.Pending, "already resolved");
+
+        PendingDecision memory pending = pendingDecisions[decisionId];
+        require(pending.agentId != bytes32(0), "decision not found");
+
         resolvedOutcomes[decisionId] = outcome;
         emit DecisionResolved(decisionId, outcome);
+
+        // Cross-chain dispatch: send the resolved outcome to GovernanceContract on X Layer.
+        // The handle() path in GovernanceContract now receives the real FHE-evaluated
+        // outcome (0=Deny, 1=Hold, 2=Approve) instead of a placeholder Pending.
+        if (address(mailbox) != address(0) && xLayerRecipient != bytes32(0)) {
+            bytes memory payload = abi.encode(decisionId, pending.agentId, pending.policyId, uint8(outcome));
+            mailbox.dispatch(xLayerDestinationDomain, xLayerRecipient, payload);
+        }
     }
 
     /**
@@ -204,7 +272,7 @@ contract ConfidentialSpendPolicy {
         bytes32 vendorHash,
         address target,
         bytes calldata data
-    ) external returns (bytes32 decisionId) {
+    ) external onlyAuthorized returns (bytes32 decisionId) {
         EncryptedPolicy storage p = policies[policyId];
         EncryptedCounter storage c = counters[agentId];
         require(p.initialized, "policy missing");
