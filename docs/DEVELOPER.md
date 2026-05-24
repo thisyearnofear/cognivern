@@ -45,9 +45,16 @@ GOVERNANCE_RATE_LIMIT_PER_MINUTE=60  # 60 requests/min for governance
 
 # Fhenix / CoFHE (optional — for confidential policy evaluation)
 FHENIX_RPC_URL=https://api.testnet.fhenix.zone
-FHENIX_POLICY_CONTRACT=
+FHENIX_SEPOLIA_RPC=https://api.testnet.fhenix.zone
+FHENIX_POLICY_CONTRACT=0xeA88BD6121d181cFD6F60997B4BDd0297CA432fE
 # Falls back to FILECOIN_PRIVATE_KEY if not set
 FHENIX_PRIVATE_KEY=
+# Optional: override chain ID (default: 84532 for Fhenix Base Sepolia)
+FHENIX_CHAIN_ID=84532
+# Optional: override individual CoFHE service URLs
+# FHENIX_COFHE_URL=https://testnet-cofhe.fhenix.zone
+# FHENIX_VERIFIER_URL=https://testnet-cofhe-vrf.fhenix.zone
+# FHENIX_TN_URL=https://testnet-cofhe-tn.fhenix.zone
 FHENIX_EVALUATE_TIMEOUT_MS=30000
 ```
 
