@@ -111,6 +111,7 @@
     "@types/node": "^20.11.30",
     "@typescript-eslint/eslint-plugin": "^8.37.0",
     "@typescript-eslint/parser": "^8.37.0",
+    "@vitejs/plugin-react": "6.0.2",
     "esbuild": "^0.25.0",
     "eslint": "^9.31.0",
     "eslint-plugin-prettier": "^5.5.1",
@@ -127,6 +128,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
     "typescript": "^5.4.2",
+    "vitest": "4.1.7",
     "wrangler": "^4.13.0"
   }
 }
