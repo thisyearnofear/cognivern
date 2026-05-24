@@ -12,11 +12,11 @@ export function RunsPage() {
   const router = useRouter();
   const { data: rawRuns, isLoading, error } = useRuns();
 
-  const runs = (rawRuns || []).map(r => ({
+  const runs = Array.isArray(rawRuns) ? rawRuns.map(r => ({
     id: r.id, workflow: r.workflow, status: r.status, mode: r.mode,
     steps: r.steps, duration: r.duration, artifacts: r.artifacts,
     time: new Date(r.timestamp).toLocaleString()
-  }));
+  })) : [];
 
   const statuses = runs.reduce((acc, r) => ({ ...acc, [r.status]: (acc[r.status] || 0) + 1 }), {} as Record<string, number>);
 

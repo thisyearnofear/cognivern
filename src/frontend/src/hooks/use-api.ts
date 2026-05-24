@@ -4,7 +4,11 @@ import { apiClient } from '@/lib/api-client';
 export function useAuditLogs() {
   return useSWR('/api/audit/logs', async () => {
     const response = await apiClient.getAuditLogs();
-    return response.data || [];
+    const data = response.data;
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      return (data as Record<string, unknown>).logs || [];
+    }
+    return data || [];
   });
 }
 
@@ -18,7 +22,7 @@ export function useAuditInsights() {
 export function useRuns() {
   return useSWR('/api/cre/runs', async () => {
     const response = await apiClient.getRuns();
-    return response.data || [];
+    return (response as Record<string, unknown>).runs || response.data || [];
   });
 }
 

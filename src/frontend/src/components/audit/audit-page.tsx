@@ -9,11 +9,11 @@ import { useAuditLogs } from "@/hooks/use-api";
 export function AuditPage() {
   const { data: rawLogs, isLoading, error } = useAuditLogs();
 
-  const logs = (rawLogs || []).map(l => ({
-    id: l.id, agent: l.agentId, action: l.action, desc: l.description,
-    decision: l.decision, chain: l.chain, time: new Date(l.timestamp).toLocaleString(),
-    latency: l.latency || "—"
-  }));
+  const logs = Array.isArray(rawLogs) ? rawLogs.map(l => ({
+    id: l.id, agent: l.agent, action: l.actionType, desc: l.description,
+    decision: l.outcome ?? l.complianceStatus, chain: l.chain ?? "—", time: new Date(l.timestamp).toLocaleString(),
+    latency: l.responseTime ?? l.latency ?? "—"
+  })) : [];
 
   const total = logs.length;
   const compliance = total > 0 ? Math.round((logs.filter(l => l.decision !== "denied").length / total) * 100) : 0;
