@@ -293,20 +293,20 @@ export function Dashboard() {
           <div className="text-xs text-muted-foreground mt-1">Test policies live</div>
         </button>
         <button
+          onClick={() => router.push("/os")}
+          className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
+        >
+          <Rocket className="h-5 w-5 text-violet-500 mb-2" />
+          <div className="font-medium text-sm">Open OS Shell</div>
+          <div className="text-xs text-muted-foreground mt-1">Try the demo terminal</div>
+        </button>
+        <button
           onClick={() => router.push("/agents/workshop")}
           className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
         >
           <Sparkles className="h-5 w-5 text-sky-500 mb-2" />
           <div className="font-medium text-sm">Add Agent</div>
           <div className="text-xs text-muted-foreground mt-1">Onboard new agents</div>
-        </button>
-        <button
-          onClick={() => router.push("/demo/spend")}
-          className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
-        >
-          <Activity className="h-5 w-5 text-emerald-500 mb-2" />
-          <div className="font-medium text-sm">Spend Flow</div>
-          <div className="text-xs text-muted-foreground mt-1">See spend evaluation</div>
         </button>
         <button
           onClick={() => router.push("/audit")}

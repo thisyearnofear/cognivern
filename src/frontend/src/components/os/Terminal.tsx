@@ -42,6 +42,7 @@ const SUGGESTED_COMMANDS = [
 export interface TerminalHandle {
   /** Simulate typing a command character-by-character, then press Enter */
   typeCommand: (text: string, charDelay?: number) => Promise<void>;
+  setInputValue: (text: string) => void;
 }
 
 export interface TerminalProps {
@@ -228,6 +229,7 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
     const termRef = useRef<XTerminal | null>(null);
     const onCommandRef = useRef(onCommand);
     const onBootRef = useRef(onBoot);
+    const inputBufferRef = useRef("");
     const commandHistoryIndex = useRef(-1);
     /** Expose programmatic typing to parent (auto-demo, tests) */
     const resolveCommandRef = useRef<((text: string) => void) | null>(null);
@@ -266,6 +268,7 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
         term.writeln("");
         commandHistoryStore.push(text);
         commandHistoryIndex.current = commandHistoryStore.length;
+        inputBufferRef.current = "";
 
         const handler = onCommandRef.current;
         if (handler) {
@@ -285,6 +288,14 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
             });
           });
         }
+      },
+      setInputValue: (text: string) => {
+        const term = termRef.current;
+        if (!term) return;
+
+        clearCurrentInput(term, inputBufferRef.current);
+        inputBufferRef.current = text;
+        term.write(text);
       },
     }));
 
@@ -337,8 +348,6 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       }, 150);
 
       // Input handling
-      let inputBuffer = "";
-
       term.onKey(({ key, domEvent }) => {
         const ev = domEvent;
         const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
@@ -347,8 +356,8 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
           ev.preventDefault();
           term.writeln("");
 
-          const trimmed = inputBuffer.trim();
-          inputBuffer = "";
+          const trimmed = inputBufferRef.current.trim();
+          inputBufferRef.current = "";
 
           if (trimmed) {
             commandHistoryStore.push(trimmed);
@@ -374,47 +383,47 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
             promptFn();
           }
         } else if (ev.key === "Backspace") {
-          if (inputBuffer.length > 0) {
-            inputBuffer = inputBuffer.slice(0, -1);
+          if (inputBufferRef.current.length > 0) {
+            inputBufferRef.current = inputBufferRef.current.slice(0, -1);
             term.write("\b \b");
           }
         } else if (ev.key === "ArrowUp") {
           ev.preventDefault();
           if (commandHistoryIndex.current > 0) {
             commandHistoryIndex.current--;
-            clearCurrentInput(term, inputBuffer);
-            inputBuffer = commandHistoryStore[commandHistoryIndex.current] || "";
-            term.write(inputBuffer);
+            clearCurrentInput(term, inputBufferRef.current);
+            inputBufferRef.current = commandHistoryStore[commandHistoryIndex.current] || "";
+            term.write(inputBufferRef.current);
           }
         } else if (ev.key === "ArrowDown") {
           ev.preventDefault();
           if (commandHistoryIndex.current < commandHistoryStore.length - 1) {
             commandHistoryIndex.current++;
-            clearCurrentInput(term, inputBuffer);
-            inputBuffer = commandHistoryStore[commandHistoryIndex.current] || "";
-            term.write(inputBuffer);
+            clearCurrentInput(term, inputBufferRef.current);
+            inputBufferRef.current = commandHistoryStore[commandHistoryIndex.current] || "";
+            term.write(inputBufferRef.current);
           } else {
             commandHistoryIndex.current = commandHistoryStore.length;
-            clearCurrentInput(term, inputBuffer);
-            inputBuffer = "";
+            clearCurrentInput(term, inputBufferRef.current);
+            inputBufferRef.current = "";
           }
         } else if (ev.key === "Tab") {
           ev.preventDefault();
-          const match = getTabCompletion(inputBuffer);
+          const match = getTabCompletion(inputBufferRef.current);
           if (match) {
-            clearCurrentInput(term, inputBuffer);
-            inputBuffer = match;
-            term.write(inputBuffer);
+            clearCurrentInput(term, inputBufferRef.current);
+            inputBufferRef.current = match;
+            term.write(inputBufferRef.current);
           }
         } else if (ev.ctrlKey && ev.key === "c") {
           term.writeln("^C");
-          inputBuffer = "";
+          inputBufferRef.current = "";
           promptFn();
         } else if (ev.ctrlKey && ev.key === "l") {
           term.clear();
           promptFn();
         } else if (printable) {
-          inputBuffer += key;
+          inputBufferRef.current += key;
           term.write(key);
         }
       });
