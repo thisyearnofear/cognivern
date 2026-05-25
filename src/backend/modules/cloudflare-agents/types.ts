@@ -128,6 +128,14 @@ export interface MultiModelConfig {
       enabled: boolean;
       model: string;
     };
+    groq?: {
+      enabled: boolean;
+      model: string;
+    };
+    venice?: {
+      enabled: boolean;
+      model: string;
+    };
     openai?: {
       enabled: boolean;
       model: string;
@@ -151,6 +159,8 @@ export interface MultiModelConfig {
   userApiKeys?: {
     fireworks?: string;
     kilocode?: string;
+    groq?: string;
+    venice?: string;
     openai?: string;
     gemini?: string;
     anthropic?: string;

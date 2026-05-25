@@ -135,6 +135,14 @@
   padding: 12px;
 }
 
+.os-terminal .xterm-cursor {
+  background-color: var(--primary) !important;
+}
+
+.os-terminal .xterm-rows {
+  font-family: var(--font-geist-mono);
+}
+
 .os-terminal .xterm-viewport::-webkit-scrollbar {
   width: 6px;
 }
@@ -144,7 +152,7 @@
 }
 
 .os-terminal .xterm-viewport::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: var(--muted);
   border-radius: 3px;
 }
 

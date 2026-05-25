@@ -12,16 +12,16 @@ import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
 
-const PROMPT = "\x1b[38;2;56;189;248mcognivern\x1b[0m \x1b[38;2;113;113;122mos\x1b[0m \x1b[38;2;34;197;94m>\x1b[0m ";
+const PROMPT = "cognivern os > ";
 
 const BOOT_MESSAGES = [
-  "\x1b[38;2;113;113;122m[    0.000000] cognivern os v0.1 booting...\x1b[0m",
-  "\x1b[38;2;113;113;122m[    0.001247] agent kernel: initialized\x1b[0m",
-  "\x1b[38;2;113;113;122m[    0.002103] governance subsystem: online\x1b[0m",
-  "\x1b[38;2;113;113;122m[    0.003451] audit trail: connected\x1b[0m",
-  "\x1b[38;2;113;113;122m[    0.004102] cre engine: 4 cores detected\x1b[0m",
-  "\x1b[38;2;113;113;122m[    0.005200] socket.io: transport ready\x1b[0m",
-  "\x1b[38;2;34;197;94m[    0.006000] system ready. type your intent.\x1b[0m",
+  "[    0.000000] cognivern os v0.1 booting...",
+  "[    0.001247] agent kernel: initialized",
+  "[    0.002103] governance subsystem: online",
+  "[    0.003451] audit trail: connected",
+  "[    0.004102] cre engine: 4 cores detected",
+  "[    0.005200] socket.io: transport ready",
+  "[    0.006000] system ready. type your intent.",
   "",
 ];
 
@@ -64,37 +64,39 @@ function getTabCompletion(input: string): string | null {
   return completions.length === 1 ? completions[0] : null;
 }
 
+// Simple helper for styled terminal output without excessive ANSI complexity
+const styled = (text: string, colorClass?: string) => text;
+
 async function handleLocalCommand(term: XTerminal, cmd: string, writePrompt: () => void, pushPromptAfter = true) {
   const lower = cmd.toLowerCase();
 
   if (lower === "help") {
     term.writeln("");
-    term.writeln("  \x1b[38;2;56;189;248mAvailable commands:\x1b[0m");
-    term.writeln("  \x1b[38;2;34;197;94mhelp\x1b[0m         Show this help");
-    term.writeln("  \x1b[38;2;34;197;94mclear\x1b[0m        Clear terminal");
-    term.writeln("  \x1b[38;2;34;197;94mstatus\x1b[0m       Show system status");
-    term.writeln("  \x1b[38;2;34;197;94magents\x1b[0m       List active agents");
-    term.writeln("  \x1b[38;2;34;197;94mhydra\x1b[0m        Agent memory & recall (type 'hydra help')");
-    term.writeln("  \x1b[38;2;34;197;94mls\x1b[0m           List virtual filesystem");
-    term.writeln("  \x1b[38;2;34;197;94mcat <path>\x1b[0m   Read virtual file");
-    term.writeln("  \x1b[38;2;34;197;94mcd <dir>\x1b[0m     Change virtual directory");
-    term.writeln("  \x1b[38;2;34;197;94maudit\x1b[0m        Show recent audit logs");
-    term.writeln("  \x1b[38;2;34;197;94mhistory\x1b[0m      Show command history");
-    term.writeln("  \x1b[38;2;34;197;94msuggest\x1b[0m      Show suggested commands");
+    term.writeln("  Available commands:");
+    term.writeln("  help         Show this help");
+    term.writeln("  clear        Clear terminal");
+    term.writeln("  status       Show system status");
+    term.writeln("  agents       List active agents");
+    term.writeln("  hydra        Agent memory & recall");
+    term.writeln("  ls           List virtual filesystem");
+    term.writeln("  cat <path>   Read virtual file");
+    term.writeln("  cd <dir>     Change virtual directory");
+    term.writeln("  audit        Show recent audit logs");
+    term.writeln("  history      Show command history");
+    term.writeln("  suggest      Show suggested commands");
     term.writeln("");
-    term.writeln("  \x1b[38;2;56;189;248mMemory system:\x1b[0m  \x1b[38;2;113;113;122mEvery command is auto-stored as a HydraDB memory. Use 'hydra search <topic>' to recall previous context.\x1b[0m");
-    term.writeln("  \x1b[38;2;113;113;122mOr type any natural language command.\x1b[0m");
+    term.writeln("  Memory system: Every command is auto-stored as a HydraDB memory. Use 'hydra search <topic>' to recall previous context.");
     term.writeln("");
   } else if (lower === "clear") {
     term.clear();
   } else if (lower === "status") {
     term.writeln("");
-    term.writeln("  \x1b[38;2;56;189;248mSystem Status\x1b[0m");
-    term.writeln("  \x1b[38;2;113;113;122m────────────────────────\x1b[0m");
-    term.writeln("  Kernel:     \x1b[38;2;34;197;94mONLINE\x1b[0m");
-    term.writeln("  Governance: \x1b[38;2;34;197;94mONLINE\x1b[0m");
-    term.writeln("  Audit:      \x1b[38;2;34;197;94mONLINE\x1b[0m");
-    term.writeln("  CRE:        \x1b[38;2;34;197;94mONLINE\x1b[0m");
+    term.writeln("  System Status");
+    term.writeln("  ────────────────────────");
+    term.writeln("  Kernel:     ONLINE");
+    term.writeln("  Governance: ONLINE");
+    term.writeln("  Audit:      ONLINE");
+    term.writeln("  CRE:        ONLINE");
     term.writeln("");
   } else if (lower === "suggest") {
     term.writeln("");
