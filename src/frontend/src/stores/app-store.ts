@@ -14,6 +14,7 @@ interface User {
   authUser: AuthUser | null;
   workspace: Workspace | null;
   token: string | null;
+  workspaceMode: 'sandbox' | 'production';
 }
 
 interface AppState {
@@ -21,6 +22,7 @@ interface AppState {
   preferences: UserPreferences;
   setUser: (user: Partial<User>) => void;
   updatePreferences: (prefs: Partial<UserPreferences>) => void;
+  setWorkspaceMode: (mode: 'sandbox' | 'production') => void;
   login: (token: string, authUser: AuthUser, workspace: Workspace) => void;
   logout: () => void;
 }
@@ -37,6 +39,7 @@ const defaultUser: User = {
   authUser: null,
   workspace: null,
   token: null,
+  workspaceMode: 'sandbox',
 };
 
 const isBrowser = typeof window !== 'undefined';
@@ -49,6 +52,7 @@ export const useAppStore = create<AppState>()(
           preferences: defaultPreferences,
           setUser: (userData) => set({ user: { ...get().user, ...userData } }),
           updatePreferences: (prefs) => set({ preferences: { ...get().preferences, ...prefs } }),
+          setWorkspaceMode: (mode) => set({ user: { ...get().user, workspaceMode: mode } }),
           login: (token: string, authUser: AuthUser, workspace: Workspace) => {
             set({
               user: {
@@ -57,6 +61,7 @@ export const useAppStore = create<AppState>()(
                 authUser,
                 workspace,
                 token,
+                workspaceMode: get().user.workspaceMode,
               },
             });
             localStorage.setItem('cognivern-token', token);
@@ -75,6 +80,7 @@ export const useAppStore = create<AppState>()(
               walletAddress: state.user.walletAddress,
               authUser: state.user.authUser,
               workspace: state.user.workspace,
+              workspaceMode: state.user.workspaceMode,
             },
           }),
         },
@@ -84,6 +90,7 @@ export const useAppStore = create<AppState>()(
         preferences: defaultPreferences,
         setUser: () => {},
         updatePreferences: () => {},
+        setWorkspaceMode: () => {},
         login: () => {},
         logout: () => {},
       }),
