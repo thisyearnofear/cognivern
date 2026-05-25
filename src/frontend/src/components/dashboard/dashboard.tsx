@@ -20,7 +20,8 @@ import { useAppStore } from '@/stores/app-store';
 
 export function Dashboard() {
   const router = useRouter();
-  const workspace = useAppStore((s) => s.user.workspace);
+  const user = useAppStore((s) => s.user);
+  const workspace = user.workspace;
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
   const { data: logs, isLoading: logsLoading, error: logsError } = useAuditLogs();
   const { data: policies, isLoading: policiesLoading } = usePolicies();
