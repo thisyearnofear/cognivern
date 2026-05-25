@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "postinstall": "",
-    "lint": "eslint --config ./config/eslint.config.mjs src/frontend",
+    "lint": "eslint --config ./config/eslint.config.mjs src/frontend/src",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "build": "pnpm run build:clean && pnpm run build:backend",

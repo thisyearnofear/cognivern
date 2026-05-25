@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Check, Terminal, Code2, Zap, ArrowRight } from "lucide-react";
+import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Copy, Check, Terminal, Code2, Zap, ArrowRight } from 'lucide-react';
 
 function CodeBlock({ code, language }: { code: string; language: string }) {
   const [copied, setCopied] = useState(false);
@@ -33,7 +33,15 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
   );
 }
 
-function StepCard({ step, title, children }: { step: number; title: string; children: React.ReactNode }) {
+function StepCard({
+  step,
+  title,
+  children,
+}: {
+  step: number;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex gap-4">
       <div className="flex flex-col items-center">
@@ -51,7 +59,8 @@ function StepCard({ step, title, children }: { step: number; title: string; chil
 }
 
 export function IntegratePage() {
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://api.cognivern.xyz";
+  const baseUrl =
+    typeof window !== 'undefined' ? window.location.origin : 'https://api.cognivern.xyz';
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -81,12 +90,13 @@ export function IntegratePage() {
             <Badge variant="secondary">Audit logged</Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
-            Your agent calls Cognivern before every transaction. If the action violates a policy, it gets denied.
-            The agent should respect the decision — or the audit trail will flag it.
+            Your agent calls Cognivern before every transaction. If the action violates a policy, it
+            gets denied. The agent should respect the decision — or the audit trail will flag it.
           </p>
           <p className="text-xs text-muted-foreground mt-2">
-            <strong>Works with any agent</strong> that performs on-chain actions: trading bots, yield optimizers, rebalancers,
-            payment agents, DAO treasury ops, bridge agents — anything that spends, swaps, stakes, or transfers.
+            <strong>Works with any agent</strong> that performs on-chain actions: trading bots,
+            yield optimizers, rebalancers, payment agents, DAO treasury ops, bridge agents —
+            anything that spends, swaps, stakes, or transfers.
           </p>
         </CardContent>
       </Card>
@@ -102,7 +112,11 @@ export function IntegratePage() {
         <TabsContent value="quickstart" className="space-y-2">
           <StepCard step={1} title="Get an API key">
             <p className="text-sm text-muted-foreground mb-3">
-              Go to <a href="/settings" className="text-primary underline underline-offset-2">Settings &rarr; API Keys</a> and create a key with the scopes your agent needs.
+              Go to{' '}
+              <a href="/settings" className="text-primary underline underline-offset-2">
+                Settings &rarr; API Keys
+              </a>{' '}
+              and create a key with the scopes your agent needs.
             </p>
             <CodeBlock
               language="bash"
@@ -154,18 +168,24 @@ cvn_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345`}
 }`}
             />
             <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-sm">
-              <strong>If denied:</strong> the response has <code className="text-xs bg-background px-1 rounded">{`"allowed": false`}</code> with
-              a <code className="text-xs bg-background px-1 rounded">reasoning</code> field explaining which policy blocked it.
-              Your agent should abort the transaction.
+              <strong>If denied:</strong> the response has{' '}
+              <code className="text-xs bg-background px-1 rounded">{`"allowed": false`}</code> with
+              a <code className="text-xs bg-background px-1 rounded">reasoning</code> field
+              explaining which policy blocked it. Your agent should abort the transaction.
             </div>
           </StepCard>
 
           <StepCard step={4} title="That's it — your agent is governed">
             <p className="text-sm text-muted-foreground">
-              Every evaluation is automatically logged. View results in the{" "}
-              <a href="/audit" className="text-primary underline underline-offset-2">Audit Trail</a>.
-              Adjust policies anytime from the{" "}
-              <a href="/policies" className="text-primary underline underline-offset-2">Policies</a> page.
+              Every evaluation is automatically logged. View results in the{' '}
+              <a href="/audit" className="text-primary underline underline-offset-2">
+                Audit Trail
+              </a>
+              . Adjust policies anytime from the{' '}
+              <a href="/policies" className="text-primary underline underline-offset-2">
+                Policies
+              </a>{' '}
+              page.
             </p>
           </StepCard>
         </TabsContent>
@@ -179,8 +199,10 @@ cvn_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345`}
                 Authentication
               </h3>
               <p className="text-sm text-muted-foreground">
-                All requests require an <code className="text-xs bg-muted px-1.5 py-0.5 rounded">x-api-key</code> header
-                with a workspace-scoped API key (starts with <code className="text-xs bg-muted px-1.5 py-0.5 rounded">cvn_</code>).
+                All requests require an{' '}
+                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">x-api-key</code> header
+                with a workspace-scoped API key (starts with{' '}
+                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">cvn_</code>).
               </p>
               <CodeBlock language="http" code={`x-api-key: cvn_YOUR_KEY_HERE`} />
             </CardContent>
@@ -404,7 +426,7 @@ function EndpointCard({
     <Card>
       <CardContent className="p-5 space-y-3">
         <div className="flex items-center gap-3">
-          <Badge variant={method === "GET" ? "secondary" : "default"} className="font-mono text-xs">
+          <Badge variant={method === 'GET' ? 'secondary' : 'default'} className="font-mono text-xs">
             {method}
           </Badge>
           <code className="text-sm font-mono">{path}</code>

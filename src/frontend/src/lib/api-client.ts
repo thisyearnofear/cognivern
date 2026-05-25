@@ -50,11 +50,7 @@ class ApiClient {
     this.apiKey = key;
   }
 
-  private async fetch<T>(
-    endpoint: string,
-    options: RequestInit = {},
-    retries = 2
-  ): Promise<T> {
+  private async fetch<T>(endpoint: string, options: RequestInit = {}, retries = 2): Promise<T> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -84,7 +80,7 @@ class ApiClient {
       return await response.json();
     } catch (error) {
       if (retries > 0 && error instanceof Error && !error.message.includes('4')) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (3 - retries)));
         return this.fetch(endpoint, options, retries - 1);
       }
       throw error;
@@ -228,7 +224,10 @@ class ApiClient {
   }
 
   // Workspace
-  async updateWorkspace(params: { name?: string; tier?: 'demo' | 'live' }): Promise<ApiResponse<Workspace>> {
+  async updateWorkspace(params: {
+    name?: string;
+    tier?: 'demo' | 'live';
+  }): Promise<ApiResponse<Workspace>> {
     return this.fetch('/workspace', {
       method: 'PUT',
       body: JSON.stringify(params),
@@ -264,7 +263,10 @@ class ApiClient {
   }
 
   // Agent status update
-  async updateAgentStatus(agentId: string, status: 'active' | 'paused' | 'inactive'): Promise<ApiResponse<{ id: string; status: string }>> {
+  async updateAgentStatus(
+    agentId: string,
+    status: 'active' | 'paused' | 'inactive',
+  ): Promise<ApiResponse<{ id: string; status: string }>> {
     return this.fetch(`/api/agents/${agentId}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),

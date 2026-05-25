@@ -1,26 +1,24 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Sparkles, ArrowRight, Zap } from "lucide-react";
-import { useAppStore } from "@/stores/app-store";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Sparkles, ArrowRight, Zap } from 'lucide-react';
+import { useAppStore } from '@/stores/app-store';
+import { Button } from '@/components/ui/button';
 
 export function DemoBanner() {
   const router = useRouter();
   const [dismissed, setDismissed] = useState(false);
   const workspace = useAppStore((s) => s.user.workspace);
 
-  if (workspace?.tier === "live") {
+  if (workspace?.tier === 'live') {
     return (
       <div className="flex items-center gap-2 px-6 py-2 bg-emerald-50 dark:bg-emerald-950/30 border-b border-emerald-200 dark:border-emerald-900 flex-shrink-0">
         <Zap className="h-3.5 w-3.5 text-emerald-500" />
         <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
           Live Workspace
         </span>
-        <span className="text-xs text-muted-foreground">
-          Connected to backend API
-        </span>
+        <span className="text-xs text-muted-foreground">Connected to backend API</span>
       </div>
     );
   }
@@ -42,16 +40,14 @@ export function DemoBanner() {
       <div className="flex items-center gap-2 min-w-0">
         <Sparkles size={16} aria-hidden />
         <span className="font-semibold">Demo workspace</span>
-        <span className="opacity-90 truncate">
-          — Explore agent governance with sample data
-        </span>
+        <span className="opacity-90 truncate">— Explore agent governance with sample data</span>
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => router.push("/onboarding")}
+          onClick={() => router.push('/onboarding')}
           className="bg-white text-blue-700 hover:bg-neutral-100"
         >
           Set Up Treasury

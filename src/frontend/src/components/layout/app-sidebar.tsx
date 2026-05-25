@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Sidebar,
   SidebarContent,
@@ -12,8 +12,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
-} from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+} from '@/components/ui/sidebar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   LayoutDashboard,
   Users,
@@ -27,21 +27,21 @@ import {
   Settings,
   HelpCircle,
   LogOut,
-} from "lucide-react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAppStore } from "@/stores/app-store";
-import { useAuth } from "@/hooks/use-auth";
+} from 'lucide-react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAppStore } from '@/stores/app-store';
+import { useAuth } from '@/hooks/use-auth';
 
 const navItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { id: "agents", label: "Agents", icon: Users, href: "/agents" },
-  { id: "os", label: "Command Center", icon: PlayCircle, href: "/os" },
-  { id: "policies", label: "Policies", icon: ShieldCheck, href: "/policies" },
-  { id: "audit", label: "Audit", icon: FileSearch, href: "/audit" },
-  { id: "runs", label: "Runs", icon: Activity, href: "/runs" },
-  { id: "governance", label: "Governance Check", icon: PlayCircle, href: "/governance/check" },
-  { id: "workshop", label: "Agent Workshop", icon: PlusCircle, href: "/agents/workshop" },
-  { id: "integrate", label: "Integrate", icon: Code2, href: "/integrate" },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+  { id: 'agents', label: 'Agents', icon: Users, href: '/agents' },
+  { id: 'os', label: 'Command Center', icon: PlayCircle, href: '/os' },
+  { id: 'policies', label: 'Policies', icon: ShieldCheck, href: '/policies' },
+  { id: 'audit', label: 'Audit', icon: FileSearch, href: '/audit' },
+  { id: 'runs', label: 'Runs', icon: Activity, href: '/runs' },
+  { id: 'governance', label: 'Governance Check', icon: PlayCircle, href: '/governance/check' },
+  { id: 'workshop', label: 'Agent Workshop', icon: PlusCircle, href: '/agents/workshop' },
+  { id: 'integrate', label: 'Integrate', icon: Code2, href: '/integrate' },
 ];
 
 export function AppSidebar() {
@@ -52,13 +52,13 @@ export function AppSidebar() {
 
   const displayName = user.walletAddress
     ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`
-    : "Not connected";
+    : 'Not connected';
 
   return (
     <Sidebar className="border-border/40 border-r-0 shadow-none">
       <SidebarHeader className="p-4">
         <button
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.push('/dashboard')}
           className="flex items-center gap-3 w-full text-left"
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
@@ -76,7 +76,7 @@ export function AppSidebar() {
           <div className="relative px-3 py-2">
             <Search className="absolute left-6 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <button
-              onClick={() => document.dispatchEvent(new CustomEvent("opencode-palette"))}
+              onClick={() => document.dispatchEvent(new CustomEvent('opencode-palette'))}
               className="h-9 w-full rounded-lg bg-muted/50 pl-8 pr-3 text-left text-sm text-muted-foreground border border-border shadow-none hover:bg-muted"
               aria-label="Open command palette"
             >
@@ -89,8 +89,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
-                const isActive =
-                  pathname === item.href || pathname.startsWith(item.href + "/");
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                 return (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
@@ -114,7 +113,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={() => router.push("/settings")}
+              onClick={() => router.push('/settings')}
               className="h-9 rounded-lg px-3 text-muted-foreground"
             >
               <Settings className="h-[18px] w-[18px]" />
@@ -123,7 +122,7 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={() => window.open("https://docs.cognivern.xyz", "_blank")}
+              onClick={() => window.open('https://docs.cognivern.xyz', '_blank')}
               className="h-9 rounded-lg px-3 text-muted-foreground"
             >
               <HelpCircle className="h-[18px] w-[18px]" />
@@ -146,11 +145,15 @@ export function AppSidebar() {
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{displayName}</span>
                   <span className="text-xs text-muted-foreground">
-                    {user.workspace?.tier === "live" ? "Live" : "Demo"} workspace
+                    {user.workspace?.tier === 'live' ? 'Live' : 'Demo'} workspace
                   </span>
                 </div>
               </div>
-              <button onClick={logout} className="p-1.5 rounded-md hover:bg-muted" aria-label="Sign out">
+              <button
+                onClick={logout}
+                className="p-1.5 rounded-md hover:bg-muted"
+                aria-label="Sign out"
+              >
                 <LogOut className="h-4 w-4 text-muted-foreground" />
               </button>
             </div>

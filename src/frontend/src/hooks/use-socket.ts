@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
-import { io, type Socket } from "socket.io-client";
-import { useAppStore } from "@/stores/app-store";
+import { useEffect, useRef } from 'react';
+import { io, type Socket } from 'socket.io-client';
+import { useAppStore } from '@/stores/app-store';
 
 let socket: Socket | null = null;
 
@@ -18,8 +18,8 @@ export function useSocket(): Socket | null {
 
     if (!socket) {
       socket = io(window.location.origin, {
-        path: "/api/socket",
-        transports: ["websocket", "polling"],
+        path: '/api/socket',
+        transports: ['websocket', 'polling'],
       });
     }
 
@@ -29,10 +29,7 @@ export function useSocket(): Socket | null {
   return socket;
 }
 
-export function useSocketEvent<T>(
-  event: string,
-  callback: (data: T) => void
-) {
+export function useSocketEvent<T>(event: string, callback: (data: T) => void) {
   const socket = useSocket();
   const callbackRef = useRef(callback);
 

@@ -1,15 +1,11 @@
-"use client";
+'use client';
 
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/layout/app-sidebar";
-import { DemoBanner } from "@/components/layout/demo-banner";
-import { CommandPalette } from "@/components/layout/command-palette";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/layout/app-sidebar';
+import { DemoBanner } from '@/components/layout/demo-banner';
+import { CommandPalette } from '@/components/layout/command-palette';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />

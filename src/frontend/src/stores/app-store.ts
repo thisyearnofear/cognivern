@@ -1,11 +1,11 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import type { AuthUser, Workspace } from "@cognivern/shared";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { AuthUser, Workspace } from '@cognivern/shared';
 
 interface UserPreferences {
-  theme: "light" | "dark" | "system";
+  theme: 'light' | 'dark' | 'system';
   onboardingCompleted: boolean;
-  sidebarState: "expanded" | "collapsed";
+  sidebarState: 'expanded' | 'collapsed';
 }
 
 interface User {
@@ -26,9 +26,9 @@ interface AppState {
 }
 
 const defaultPreferences: UserPreferences = {
-  theme: "dark",
+  theme: 'dark',
   onboardingCompleted: false,
-  sidebarState: "expanded",
+  sidebarState: 'expanded',
 };
 
 const defaultUser: User = {
@@ -39,7 +39,7 @@ const defaultUser: User = {
   token: null,
 };
 
-const isBrowser = typeof window !== "undefined";
+const isBrowser = typeof window !== 'undefined';
 
 export const useAppStore = create<AppState>()(
   isBrowser
@@ -47,10 +47,8 @@ export const useAppStore = create<AppState>()(
         (set, get) => ({
           user: defaultUser,
           preferences: defaultPreferences,
-          setUser: (userData) =>
-            set({ user: { ...get().user, ...userData } }),
-          updatePreferences: (prefs) =>
-            set({ preferences: { ...get().preferences, ...prefs } }),
+          setUser: (userData) => set({ user: { ...get().user, ...userData } }),
+          updatePreferences: (prefs) => set({ preferences: { ...get().preferences, ...prefs } }),
           login: (token: string, authUser: AuthUser, workspace: Workspace) => {
             set({
               user: {
@@ -61,15 +59,15 @@ export const useAppStore = create<AppState>()(
                 token,
               },
             });
-            localStorage.setItem("cognivern-token", token);
+            localStorage.setItem('cognivern-token', token);
           },
           logout: () => {
             set({ user: defaultUser });
-            localStorage.removeItem("cognivern-token");
+            localStorage.removeItem('cognivern-token');
           },
         }),
         {
-          name: "civern-app-store",
+          name: 'civern-app-store',
           partialize: (state) => ({
             preferences: state.preferences,
             user: {
@@ -79,7 +77,7 @@ export const useAppStore = create<AppState>()(
               workspace: state.user.workspace,
             },
           }),
-        }
+        },
       )
     : (set) => ({
         user: defaultUser,
@@ -88,5 +86,5 @@ export const useAppStore = create<AppState>()(
         updatePreferences: () => {},
         login: () => {},
         logout: () => {},
-      })
+      }),
 );

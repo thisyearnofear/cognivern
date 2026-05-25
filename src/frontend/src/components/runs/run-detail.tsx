@@ -1,26 +1,54 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, CheckCircle2, XCircle, Clock, AlertTriangle, PlayCircle, Activity } from "lucide-react";
-import { useRun } from "@/hooks/use-api";
+import { useRouter } from 'next/navigation';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  PlayCircle,
+  Activity,
+} from 'lucide-react';
+import { useRun } from '@/hooks/use-api';
 
 const statusConfig = {
-  completed: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-100 dark:bg-emerald-950", label: "Completed" },
-  running: { icon: Activity, color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-950", label: "Running" },
-  failed: { icon: XCircle, color: "text-red-500", bg: "bg-red-100 dark:bg-red-950", label: "Failed" },
-  paused_for_approval: { icon: Clock, color: "text-amber-500", bg: "bg-amber-100 dark:bg-amber-950", label: "Awaiting Approval" },
+  completed: {
+    icon: CheckCircle2,
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-100 dark:bg-emerald-950',
+    label: 'Completed',
+  },
+  running: {
+    icon: Activity,
+    color: 'text-blue-500',
+    bg: 'bg-blue-100 dark:bg-blue-950',
+    label: 'Running',
+  },
+  failed: {
+    icon: XCircle,
+    color: 'text-red-500',
+    bg: 'bg-red-100 dark:bg-red-950',
+    label: 'Failed',
+  },
+  paused_for_approval: {
+    icon: Clock,
+    color: 'text-amber-500',
+    bg: 'bg-amber-100 dark:bg-amber-950',
+    label: 'Awaiting Approval',
+  },
 };
 
 const eventLabels: Record<string, string> = {
-  policy_loaded: "Policy Loaded",
-  action_parsed: "Action Parsed",
-  policy_evaluated: "Policy Evaluated",
-  decision_made: "Decision Made",
-  audit_logged: "Audit Logged",
+  policy_loaded: 'Policy Loaded',
+  action_parsed: 'Action Parsed',
+  policy_evaluated: 'Policy Evaluated',
+  decision_made: 'Decision Made',
+  audit_logged: 'Audit Logged',
 };
 
 export function RunDetail({ runId }: { runId: string }) {
@@ -42,13 +70,15 @@ export function RunDetail({ runId }: { runId: string }) {
   if (error || !run) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/runs")}>
+        <Button variant="ghost" size="icon" onClick={() => router.push('/runs')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="p-8 text-center text-muted-foreground border rounded-xl">
           <AlertTriangle className="h-8 w-8 mx-auto mb-3 opacity-50" />
           <p>Failed to load run details</p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>Retry</Button>
+          <Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>
+            Retry
+          </Button>
         </div>
       </div>
     );
@@ -62,17 +92,23 @@ export function RunDetail({ runId }: { runId: string }) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/runs")}>
+        <Button variant="ghost" size="icon" onClick={() => router.push('/runs')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">{run.workflow}</h1>
-            <Badge variant={
-              run.status === "completed" ? "secondary" :
-              run.status === "failed" ? "destructive" :
-              run.status === "running" ? "default" : "outline"
-            }>
+            <Badge
+              variant={
+                run.status === 'completed'
+                  ? 'secondary'
+                  : run.status === 'failed'
+                    ? 'destructive'
+                    : run.status === 'running'
+                      ? 'default'
+                      : 'outline'
+              }
+            >
               {status.label}
             </Badge>
           </div>
@@ -127,16 +163,16 @@ export function RunDetail({ runId }: { runId: string }) {
               {events.map((event, idx) => (
                 <div key={idx} className="flex gap-4">
                   <div className="flex flex-col items-center">
-                    <div className={`w-3 h-3 rounded-full border-2 ${
-                      idx === events.length - 1 && run.status === "completed"
-                        ? "bg-emerald-500 border-emerald-500"
-                        : run.status === "failed" && idx === events.length - 1
-                        ? "bg-red-500 border-red-500"
-                        : "bg-background border-muted-foreground/30"
-                    }`} />
-                    {idx < events.length - 1 && (
-                      <div className="w-0.5 flex-1 bg-border/60 my-1" />
-                    )}
+                    <div
+                      className={`w-3 h-3 rounded-full border-2 ${
+                        idx === events.length - 1 && run.status === 'completed'
+                          ? 'bg-emerald-500 border-emerald-500'
+                          : run.status === 'failed' && idx === events.length - 1
+                            ? 'bg-red-500 border-red-500'
+                            : 'bg-background border-muted-foreground/30'
+                      }`}
+                    />
+                    {idx < events.length - 1 && <div className="w-0.5 flex-1 bg-border/60 my-1" />}
                   </div>
                   <div className="flex-1 pb-4">
                     <div className="flex items-center justify-between">
@@ -160,17 +196,17 @@ export function RunDetail({ runId }: { runId: string }) {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        {run.status === "failed" && (
+        {run.status === 'failed' && (
           <Button>
             <PlayCircle className="h-4 w-4" /> Retry Run
           </Button>
         )}
-        {run.status === "paused_for_approval" && (
+        {run.status === 'paused_for_approval' && (
           <Button>
             <CheckCircle2 className="h-4 w-4" /> Approve
           </Button>
         )}
-        <Button variant="outline" onClick={() => router.push("/governance/check")}>
+        <Button variant="outline" onClick={() => router.push('/governance/check')}>
           New Evaluation
         </Button>
       </div>
