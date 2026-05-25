@@ -44,19 +44,21 @@ const navItems = [
   { id: 'integrate', label: 'Integrate', icon: Code2, href: '/integrate' },
 ];
 
+import { useAppStore } from '@/stores/app-store';
+// ... existing imports ...
+
 export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const user = useAppStore((s) => s.user);
+  const { user, setWorkspaceMode } = useAppStore();
   const { logout, signIn, loading: signingIn } = useAuth();
+
+  const isSandbox = user.workspaceMode === 'sandbox';
 
   return (
     <Sidebar className="border-border/40 border-r-0 shadow-none">
-      <SidebarHeader className="p-4">
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="flex items-center gap-3 w-full text-left"
-        >
+      <SidebarHeader className="p-4 space-y-4">
+        <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
             <ShieldCheck className="h-4 w-4" />
           </div>
@@ -64,7 +66,31 @@ export function AppSidebar() {
             <span className="text-sm font-semibold">Cognivern</span>
             <span className="text-xs text-muted-foreground">AI Governance</span>
           </div>
-        </button>
+        </div>
+
+        {/* Mode Toggle */}
+        <div className="grid grid-cols-2 p-1 bg-muted rounded-lg border border-border/50">
+          <button
+            onClick={() => setWorkspaceMode('sandbox')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              isSandbox
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Sandbox
+          </button>
+          <button
+            onClick={() => setWorkspaceMode('production')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              !isSandbox
+                ? 'bg-background text-emerald-600 shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Production
+          </button>
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="px-0 gap-0">
