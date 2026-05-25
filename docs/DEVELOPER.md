@@ -31,7 +31,9 @@ RECALL_API_KEY=
 
 # AI Provider Keys (optional - for intent processing)
 OPENAI_API_KEY=
-FIREWORKS_API_KEY=      # Primary AI provider (recommended)
+FIREWORKS_API_KEY=      # Primary AI provider (DeepSeek-v4-Flash)
+GROQ_API_KEY=           # Fallback provider (Llama-3.3-70B)
+VENICE_API_KEY=         # Fallback provider (Llama-3.3-70B)
 GEMINI_API_KEY=         # Alternative provider
 KILOCODE_API_KEY=       # Free models fallback
 
