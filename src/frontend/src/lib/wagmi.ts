@@ -9,10 +9,10 @@ export const config = getDefaultConfig({
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'cognivern-dev',
   chains: [mainnet, sepolia, arbitrumSepolia, baseSepolia],
   transports: {
-    [mainnet.id]: http('https://eth.llamarpc.com'),
-    [sepolia.id]: http('https://ethereum-sepolia.publicnode.com'),
-    [arbitrumSepolia.id]: http('https://sepolia-rollup.arbitrum.io/rpc'),
-    [baseSepolia.id]: http('https://sepolia.base.org'),
+    [mainnet.id]: http(process.env.NEXT_PUBLIC_RPC_MAINNET || 'https://eth.llamarpc.com'),
+    [sepolia.id]: http(process.env.NEXT_PUBLIC_RPC_SEPOLIA || 'https://ethereum-sepolia.publicnode.com'),
+    [arbitrumSepolia.id]: http(process.env.NEXT_PUBLIC_RPC_ARBITRUM_SEPOLIA || 'https://sepolia-rollup.arbitrum.io/rpc'),
+    [baseSepolia.id]: http(process.env.NEXT_PUBLIC_RPC_BASE_SEPOLIA || 'https://sepolia.base.org'),
   },
   ssr: true,
 });

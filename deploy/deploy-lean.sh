@@ -50,10 +50,22 @@ ssh "$SSH_HOST" << 'REMOTE_EOF'
   SHARED_PATH="/opt/cognivern/shared"
   cd "$DEPLOY_PATH/bundle"
 
+  # Ensure npm is available (even if broken on server)
+  if ! command -v npm &> /dev/null; then
+    echo "  npm not found in PATH, attempting to use portable npm..."
+    if [ ! -d "package" ]; then
+      curl -fsSL https://registry.npmjs.org/npm/-/npm-10.9.2.tgz | tar xz
+    fi
+    NPM_CMD="node $(pwd)/package/bin/npm-cli.js"
+  else
+    NPM_CMD="npm"
+  fi
+
   # Install only if package.json changed (native deps are stable)
   if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules/.package-lock.json" ]; then
     echo "  Installing native dependencies..."
-    npm install --omit=dev --no-audit --no-fund 2>&1 | tail -5
+    $NPM_CMD install --omit=dev --no-audit --no-fund 2>&1 | tail -5
+    rm -rf package # Clean up portable npm if used
   else
     echo "  Native deps up to date, skipping install."
   fi
