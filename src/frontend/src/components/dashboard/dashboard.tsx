@@ -17,13 +17,13 @@ export function Dashboard() {
   const { data: policies, isLoading: policiesLoading } = usePolicies();
 
   const agentList = agents || [];
-  const activity = (logs || []).map(l => ({
-    id: l.id, agent: l.agentId, action: l.action,
-    amount: "—", time: new Date(l.timestamp).toLocaleString(), status: l.decision
-  }));
+  const activity = Array.isArray(logs) ? logs.map(l => ({
+    id: l.id, agent: l.agent, action: l.actionType,
+    amount: "—", time: new Date(l.timestamp).toLocaleString(), status: l.outcome ?? l.complianceStatus
+  })) : [];
   const activeCount = agentList.filter(a => a.status === "active").length;
-  const approvalRate = logs && logs.length > 0
-    ? Math.round((logs.filter(l => l.decision === "approved").length / logs.length) * 100) : 0;
+  const approvalRate = Array.isArray(logs)
+    ? Math.round((logs.filter(l => l.outcome === "allowed" || l.complianceStatus === "compliant").length / logs.length) * 100) : 0;
   const decisions = logs?.length || 0;
 
   return (
@@ -253,12 +253,12 @@ export function Dashboard() {
               <div key={item.id} className="flex items-center justify-between p-3 text-sm hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={`p-1.5 rounded-md flex-shrink-0 ${
-                    item.status === "approved" ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600" :
-                    item.status === "denied" ? "bg-red-100 dark:bg-red-950 text-red-600" :
+                    item.status === "allowed" || item.status === "compliant" ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600" :
+                    item.status === "denied" || item.status === "non-compliant" ? "bg-red-100 dark:bg-red-950 text-red-600" :
                     "bg-blue-100 dark:bg-blue-950 text-blue-600"
                   }`}>
-                    {item.status === "approved" ? <ShieldCheck className="h-3.5 w-3.5" /> :
-                     item.status === "denied" ? <Activity className="h-3.5 w-3.5" /> :
+                    {item.status === "allowed" || item.status === "compliant" ? <ShieldCheck className="h-3.5 w-3.5" /> :
+                     item.status === "denied" || item.status === "non-compliant" ? <Activity className="h-3.5 w-3.5" /> :
                      <FileSearch className="h-3.5 w-3.5" />}
                   </div>
                   <div className="min-w-0">
@@ -269,8 +269,8 @@ export function Dashboard() {
                 <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                   <span className="font-mono text-xs">{item.amount}</span>
                   <Badge variant={
-                    item.status === "approved" ? "secondary" :
-                    item.status === "denied" ? "destructive" : "outline"
+                    item.status === "allowed" || item.status === "compliant" ? "secondary" :
+                    item.status === "denied" || item.status === "non-compliant" ? "destructive" : "outline"
                   } className="text-xs">
                     {item.status}
                   </Badge>

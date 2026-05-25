@@ -16,9 +16,10 @@ export function AuditPage() {
   })) : [];
 
   const total = logs.length;
-  const compliance = total > 0 ? Math.round((logs.filter(l => l.decision !== "denied").length / total) * 100) : 0;
+  const isRejected = (d: string) => d === "denied" || d === "non-compliant";
+  const compliance = total > 0 ? Math.round((logs.filter(l => !isRejected(l.decision)).length / total) * 100) : 0;
   const avgLatency = total > 0 ? Math.round(logs.reduce((s, l) => s + (parseFloat(l.latency) || 0), 0) / total) : 0;
-  const critical = logs.filter(l => l.decision === "denied").length;
+  const critical = logs.filter(l => isRejected(l.decision)).length;
 
   return (
     <div className="space-y-6">
@@ -78,12 +79,12 @@ export function AuditPage() {
           {logs.map((log) => (
             <div key={log.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:bg-muted/30 transition-colors">
               <div className={`p-2 rounded-lg flex-shrink-0 ${
-                log.decision === "approved" ? "bg-emerald-100 dark:bg-emerald-950" :
-                log.decision === "denied" ? "bg-red-100 dark:bg-red-950" :
+                log.decision === "allowed" || log.decision === "compliant" ? "bg-emerald-100 dark:bg-emerald-950" :
+                log.decision === "denied" || log.decision === "non-compliant" ? "bg-red-100 dark:bg-red-950" :
                 "bg-amber-100 dark:bg-amber-950"
               }`}>
-                {log.decision === "approved" ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> :
-                 log.decision === "denied" ? <XCircle className="h-4 w-4 text-red-600" /> :
+                {log.decision === "allowed" || log.decision === "compliant" ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> :
+                 log.decision === "denied" || log.decision === "non-compliant" ? <XCircle className="h-4 w-4 text-red-600" /> :
                  <Clock className="h-4 w-4 text-amber-600" />}
               </div>
               <div className="flex-1 min-w-0">
@@ -96,8 +97,8 @@ export function AuditPage() {
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <Badge variant={
-                  log.decision === "approved" ? "secondary" :
-                  log.decision === "denied" ? "destructive" : "outline"
+                  log.decision === "allowed" || log.decision === "compliant" ? "secondary" :
+                  log.decision === "denied" || log.decision === "non-compliant" ? "destructive" : "outline"
                 }>
                   {log.decision}
                 </Badge>
