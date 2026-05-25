@@ -154,7 +154,7 @@ export function AppSidebar() {
 
               // State 2: Wallet connected but App not signed in (SIWE pending)
               if (!appAuthenticated) {
-                const shortAddress = `${account.address.slice(0, 6)}...${account.address.slice(-4)}`;
+                const shortAddress = account.displayName;
 
                 return (
                   <div className="space-y-2">
@@ -172,9 +172,11 @@ export function AppSidebar() {
                     </button>
                     <button
                       onClick={openAccountModal}
-                      className="w-full text-center text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider font-semibold"
+                      className="w-full text-center py-1 rounded-md hover:bg-muted transition-colors"
                     >
-                      Connected as {shortAddress}
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                        Connected as {shortAddress}
+                      </span>
                     </button>
                   </div>
                 );
