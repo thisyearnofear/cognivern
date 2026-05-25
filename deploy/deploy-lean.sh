@@ -45,6 +45,7 @@ rsync -avz --delete \
 info "Installing native deps and restarting..."
 ssh "$SSH_HOST" << 'REMOTE_EOF'
   set -e
+  export PATH="/tmp/node-v22.22.1-linux-x64/bin:$PATH"
   DEPLOY_PATH="/opt/cognivern/app"
   SHARED_PATH="/opt/cognivern/shared"
   cd "$DEPLOY_PATH/bundle"
