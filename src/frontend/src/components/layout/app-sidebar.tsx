@@ -159,14 +159,39 @@ export function AppSidebar() {
             </div>
           ) : (
             <ConnectButton.Custom>
-              {({ openConnectModal }) => (
-                <button
-                  onClick={openConnectModal}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  Connect Wallet
-                </button>
-              )}
+              {({ account, chain, openConnectModal, authenticationStatus, mounted }) => {
+                const ready = mounted && authenticationStatus !== 'loading';
+                const connected = ready && account && chain;
+
+                return (
+                  <div
+                    {...(!ready && {
+                      'aria-hidden': true,
+                      style: {
+                        opacity: 0,
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                      },
+                    })}
+                  >
+                    {(() => {
+                      if (!connected) {
+                        return (
+                          <button
+                            onClick={openConnectModal}
+                            type="button"
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                          >
+                            Connect Wallet
+                          </button>
+                        );
+                      }
+
+                      return null;
+                    })()}
+                  </div>
+                );
+              }}
             </ConnectButton.Custom>
           )}
         </div>
