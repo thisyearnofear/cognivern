@@ -1,48 +1,56 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { ShieldCheck, Wallet, Users, PlayCircle, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount } from "wagmi";
-import { useAppStore } from "@/stores/app-store";
-import { useAuth } from "@/hooks/use-auth";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  ShieldCheck,
+  Wallet,
+  Users,
+  PlayCircle,
+  CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
+} from 'lucide-react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
+import { useAppStore } from '@/stores/app-store';
+import { useAuth } from '@/hooks/use-auth';
 
 const STEPS = [
   {
-    id: "wallet",
-    title: "Connect Wallet",
-    description: "Link your wallet to start governing agent spend",
+    id: 'wallet',
+    title: 'Connect Wallet',
+    description: 'Link your wallet to start governing agent spend',
     icon: Wallet,
   },
   {
-    id: "policy",
-    title: "Create First Policy",
-    description: "Set up guardrails for agent spending",
+    id: 'policy',
+    title: 'Create First Policy',
+    description: 'Set up guardrails for agent spending',
     icon: ShieldCheck,
   },
   {
-    id: "agent",
-    title: "Register Agent",
-    description: "Give an agent a wallet and budget",
+    id: 'agent',
+    title: 'Register Agent',
+    description: 'Give an agent a wallet and budget',
     icon: Users,
   },
   {
-    id: "done",
-    title: "Ready to Go",
-    description: "Your treasury is up and running",
+    id: 'done',
+    title: 'Ready to Go',
+    description: 'Your treasury is up and running',
     icon: PlayCircle,
   },
 ];
 
 const POLICY_TEMPLATES = [
-  { id: "strict", name: "Strict", desc: "Max $100/day, manual approval above $500" },
-  { id: "moderate", name: "Moderate", desc: "Max $500/day, auto-approve under $1,000" },
-  { id: "relaxed", name: "Relaxed", desc: "Max $2,000/day, auto-approve all" },
+  { id: 'strict', name: 'Strict', desc: 'Max $100/day, manual approval above $500' },
+  { id: 'moderate', name: 'Moderate', desc: 'Max $500/day, auto-approve under $1,000' },
+  { id: 'relaxed', name: 'Relaxed', desc: 'Max $2,000/day, auto-approve all' },
 ];
 
 export function OnboardingWizard() {
@@ -52,8 +60,8 @@ export function OnboardingWizard() {
   const { signIn } = useAuth();
   const user = useAppStore((s) => s.user);
   const [step, setStep] = useState(0);
-  const [selectedPolicy, setSelectedPolicy] = useState("moderate");
-  const [agentName, setAgentName] = useState("");
+  const [selectedPolicy, setSelectedPolicy] = useState('moderate');
+  const [agentName, setAgentName] = useState('');
 
   useEffect(() => {
     if (isConnected && !user.isConnected && address) {
@@ -63,12 +71,12 @@ export function OnboardingWizard() {
 
   function handleFinish() {
     updatePreferences({ onboardingCompleted: true });
-    router.push("/dashboard");
+    router.push('/dashboard');
   }
 
   function handleSkip() {
     updatePreferences({ onboardingCompleted: true });
-    router.push("/dashboard");
+    router.push('/dashboard');
   }
 
   return (
@@ -76,19 +84,29 @@ export function OnboardingWizard() {
       {/* Header */}
       <div className="text-center">
         <h1 className="text-3xl font-bold tracking-tight">Set Up Your Treasury</h1>
-        <p className="text-muted-foreground mt-2">Configure governance for your agent team in 3 steps</p>
+        <p className="text-muted-foreground mt-2">
+          Configure governance for your agent team in 3 steps
+        </p>
       </div>
 
       {/* Step Indicators */}
       <div className="flex items-center justify-center gap-2">
         {STEPS.map((s, i) => (
           <div key={s.id} className="flex items-center gap-2">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
-              i === step ? "bg-primary text-primary-foreground" :
-              i < step ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600" :
-              "bg-muted text-muted-foreground"
-            }`}>
-              {i < step ? <CheckCircle2 className="h-3.5 w-3.5" /> : <s.icon className="h-3.5 w-3.5" />}
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
+                i === step
+                  ? 'bg-primary text-primary-foreground'
+                  : i < step
+                    ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600'
+                    : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {i < step ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              ) : (
+                <s.icon className="h-3.5 w-3.5" />
+              )}
               {s.title}
             </div>
             {i < STEPS.length - 1 && <div className="w-8 h-px bg-border" />}
@@ -111,7 +129,10 @@ export function OnboardingWizard() {
               {user.isConnected ? (
                 <div className="flex items-center justify-center gap-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
                   <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                  <span className="font-medium">Wallet connected: {user.walletAddress?.slice(0, 6)}...{user.walletAddress?.slice(-4)}</span>
+                  <span className="font-medium">
+                    Wallet connected: {user.walletAddress?.slice(0, 6)}...
+                    {user.walletAddress?.slice(-4)}
+                  </span>
                 </div>
               ) : (
                 <div className="flex justify-center">
@@ -137,8 +158,8 @@ export function OnboardingWizard() {
                     onClick={() => setSelectedPolicy(t.id)}
                     className={`p-4 rounded-xl border text-left transition-all ${
                       selectedPolicy === t.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-sky-200"
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-sky-200'
                     }`}
                   >
                     <div className="font-medium">{t.name}</div>
@@ -159,7 +180,9 @@ export function OnboardingWizard() {
                 </p>
               </div>
               <div className="space-y-2">
-                <label htmlFor="agent-name" className="text-sm font-medium">Agent Name</label>
+                <label htmlFor="agent-name" className="text-sm font-medium">
+                  Agent Name
+                </label>
                 <Input
                   id="agent-name"
                   value={agentName}
@@ -173,7 +196,7 @@ export function OnboardingWizard() {
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary">{agentName}</Badge>
                     <span className="text-muted-foreground">with</span>
-                    <Badge>{POLICY_TEMPLATES.find(t => t.id === selectedPolicy)?.name}</Badge>
+                    <Badge>{POLICY_TEMPLATES.find((t) => t.id === selectedPolicy)?.name}</Badge>
                     <span className="text-muted-foreground">policy</span>
                   </div>
                 </div>
@@ -188,9 +211,9 @@ export function OnboardingWizard() {
               </div>
               <h2 className="text-xl font-semibold">All Set!</h2>
               <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                Your treasury is configured with a{" "}
-                {POLICY_TEMPLATES.find(t => t.id === selectedPolicy)?.name.toLowerCase()} policy
-                {agentName ? ` and agent "${agentName}"` : ""}.
+                Your treasury is configured with a{' '}
+                {POLICY_TEMPLATES.find((t) => t.id === selectedPolicy)?.name.toLowerCase()} policy
+                {agentName ? ` and agent "${agentName}"` : ''}.
               </p>
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <ShieldCheck className="h-4 w-4 text-emerald-500" /> Policy active
@@ -209,12 +232,12 @@ export function OnboardingWizard() {
         </Button>
         <div className="flex items-center gap-2">
           {step > 0 && (
-            <Button variant="outline" onClick={() => setStep(s => s - 1)}>
+            <Button variant="outline" onClick={() => setStep((s) => s - 1)}>
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
           )}
           {step < STEPS.length - 1 ? (
-            <Button onClick={() => setStep(s => s + 1)}>
+            <Button onClick={() => setStep((s) => s + 1)}>
               Continue <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { QUICK_PROMPTS } from "./os-content";
+import { QUICK_PROMPTS } from './os-content';
 
 interface OsOnboardingOverlayProps {
   onDismiss: () => void;
@@ -25,7 +25,8 @@ export function OsOnboardingOverlay({
             </div>
             <h2 className="mt-2 text-xl font-semibold text-zinc-100">Inspect Agents Live</h2>
             <p className="mt-2 text-sm text-zinc-400">
-              Ask plain-English questions about agent status, audits, and governance health from one command center.
+              Ask plain-English questions about agent status, audits, and governance health from one
+              command center.
             </p>
           </div>
           <button

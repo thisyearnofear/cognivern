@@ -25,6 +25,6 @@ export default function Icon() {
     ),
     {
       ...size,
-    }
+    },
   );
 }

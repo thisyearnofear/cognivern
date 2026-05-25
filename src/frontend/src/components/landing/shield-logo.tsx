@@ -1,11 +1,7 @@
 export function ShieldLogo({ className }: { className?: string }) {
   return (
     <div className={className}>
-      <svg
-        viewBox="0 0 100 120"
-        className="w-full h-full"
-        aria-label="Cognivern Shield"
-      >
+      <svg viewBox="0 0 100 120" className="w-full h-full" aria-label="Cognivern Shield">
         <defs>
           <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#38bdf8" />

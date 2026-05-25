@@ -1,26 +1,37 @@
-"use client";
+'use client';
 
-import { useState, useCallback } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTheme } from "next-themes";
-import { Sun, Moon, Monitor, Key, ExternalLink, Copy, Trash2, Plus, Rocket, Check } from "lucide-react";
-import { useAppStore } from "@/stores/app-store";
-import { apiClient } from "@/lib/api-client";
-import type { ApiKey, ApiKeyCreateResponse } from "@/lib/api-client";
-import useSWR, { mutate } from "swr";
+import { useState, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTheme } from 'next-themes';
+import {
+  Sun,
+  Moon,
+  Monitor,
+  Key,
+  ExternalLink,
+  Copy,
+  Trash2,
+  Plus,
+  Rocket,
+  Check,
+} from 'lucide-react';
+import { useAppStore } from '@/stores/app-store';
+import { apiClient } from '@/lib/api-client';
+import type { ApiKey, ApiKeyCreateResponse } from '@/lib/api-client';
+import useSWR, { mutate } from 'swr';
 
 const AVAILABLE_SCOPES = [
-  { id: "agents:read", label: "Agents (read)" },
-  { id: "agents:write", label: "Agents (write)" },
-  { id: "governance:read", label: "Governance (read)" },
-  { id: "governance:write", label: "Governance (write)" },
-  { id: "audit:read", label: "Audit (read)" },
-  { id: "spend:execute", label: "Spend (execute)" },
+  { id: 'agents:read', label: 'Agents (read)' },
+  { id: 'agents:write', label: 'Agents (write)' },
+  { id: 'governance:read', label: 'Governance (read)' },
+  { id: 'governance:write', label: 'Governance (write)' },
+  { id: 'audit:read', label: 'Audit (read)' },
+  { id: 'spend:execute', label: 'Spend (execute)' },
 ] as const;
 
 export function SettingsPage() {
@@ -32,7 +43,9 @@ export function SettingsPage() {
     <div className="max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage your workspace, API keys, and preferences</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Manage your workspace, API keys, and preferences
+        </p>
       </div>
 
       <Tabs defaultValue="workspace" className="space-y-4">
@@ -69,7 +82,18 @@ function WorkspaceCard({
   setUser,
 }: {
   workspace: { id: string; name: string; tier: string } | null;
-  setUser: (u: Partial<{ workspace: { id: string; name: string; ownerId: string; tier: "demo" | "live"; createdAt: string; updatedAt: string } }>) => void;
+  setUser: (
+    u: Partial<{
+      workspace: {
+        id: string;
+        name: string;
+        ownerId: string;
+        tier: 'demo' | 'live';
+        createdAt: string;
+        updatedAt: string;
+      };
+    }>,
+  ) => void;
 }) {
   const [upgrading, setUpgrading] = useState(false);
   const [upgraded, setUpgraded] = useState(false);
@@ -78,7 +102,7 @@ function WorkspaceCard({
     if (!workspace) return;
     setUpgrading(true);
     try {
-      const res = await apiClient.updateWorkspace({ tier: "live" });
+      const res = await apiClient.updateWorkspace({ tier: 'live' });
       if (res.success && res.data) {
         setUser({ workspace: res.data });
         setUpgraded(true);
@@ -97,23 +121,23 @@ function WorkspaceCard({
         </h2>
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium">{workspace?.name || "Not connected"}</div>
+            <div className="text-sm font-medium">{workspace?.name || 'Not connected'}</div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              ID: {workspace?.id ? `${workspace.id.slice(0, 8)}...` : "—"}
+              ID: {workspace?.id ? `${workspace.id.slice(0, 8)}...` : '—'}
             </div>
           </div>
-          <Badge variant={workspace?.tier === "live" ? "default" : "secondary"}>
-            {workspace?.tier || "none"}
+          <Badge variant={workspace?.tier === 'live' ? 'default' : 'secondary'}>
+            {workspace?.tier || 'none'}
           </Badge>
         </div>
 
-        {workspace?.tier === "demo" && (
+        {workspace?.tier === 'demo' && (
           <div className="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/30 p-4 space-y-3">
             <div>
               <div className="text-sm font-medium">Ready to go live?</div>
               <div className="text-xs text-muted-foreground mt-1">
-                Upgrade to connect real agents with real blockchain transactions.
-                Demo data will be replaced by live data from your agents.
+                Upgrade to connect real agents with real blockchain transactions. Demo data will be
+                replaced by live data from your agents.
               </div>
             </div>
             <Button
@@ -128,21 +152,21 @@ function WorkspaceCard({
                 </>
               ) : (
                 <>
-                  <Rocket className="h-3.5 w-3.5" /> {upgrading ? "Upgrading..." : "Go Live"}
+                  <Rocket className="h-3.5 w-3.5" /> {upgrading ? 'Upgrading...' : 'Go Live'}
                 </>
               )}
             </Button>
           </div>
         )}
 
-        {workspace?.tier === "live" && (
+        {workspace?.tier === 'live' && (
           <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 p-4 space-y-2">
             <div className="text-sm font-medium">Workspace is live</div>
             <div className="text-xs text-muted-foreground">
-              Register agents, create API keys below, and{" "}
+              Register agents, create API keys below, and{' '}
               <a href="/integrate" className="text-primary underline underline-offset-2">
                 integrate the governance API
-              </a>{" "}
+              </a>{' '}
               into your agent code.
             </div>
           </div>
@@ -153,9 +177,13 @@ function WorkspaceCard({
 }
 
 function ApiKeysCard() {
-  const { data, isLoading } = useSWR("api-keys", () => apiClient.getApiKeys());
-  const [newKeyName, setNewKeyName] = useState("");
-  const [selectedScopes, setSelectedScopes] = useState<string[]>(["agents:read", "governance:read", "audit:read"]);
+  const { data, isLoading } = useSWR('api-keys', () => apiClient.getApiKeys());
+  const [newKeyName, setNewKeyName] = useState('');
+  const [selectedScopes, setSelectedScopes] = useState<string[]>([
+    'agents:read',
+    'governance:read',
+    'audit:read',
+  ]);
   const [createdKey, setCreatedKey] = useState<ApiKeyCreateResponse | null>(null);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -173,8 +201,8 @@ function ApiKeysCard() {
       });
       if (res.success && res.data) {
         setCreatedKey(res.data);
-        setNewKeyName("");
-        mutate("api-keys");
+        setNewKeyName('');
+        mutate('api-keys');
       }
     } finally {
       setCreating(false);
@@ -183,7 +211,7 @@ function ApiKeysCard() {
 
   const handleRevoke = useCallback(async (keyId: string) => {
     await apiClient.revokeApiKey(keyId);
-    mutate("api-keys");
+    mutate('api-keys');
   }, []);
 
   const handleCopy = useCallback(() => {
@@ -203,8 +231,8 @@ function ApiKeysCard() {
             API Keys
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Create keys for your agents to authenticate with the Cognivern API.
-            Keys are scoped to this workspace.
+            Create keys for your agents to authenticate with the Cognivern API. Keys are scoped to
+            this workspace.
           </p>
         </div>
 
@@ -225,7 +253,7 @@ function ApiKeysCard() {
               className="gap-1.5"
             >
               <Plus className="h-3.5 w-3.5" />
-              {creating ? "Creating..." : "Create"}
+              {creating ? 'Creating...' : 'Create'}
             </Button>
           </div>
 
@@ -237,13 +265,13 @@ function ApiKeysCard() {
                   setSelectedScopes((prev) =>
                     prev.includes(scope.id)
                       ? prev.filter((s) => s !== scope.id)
-                      : [...prev, scope.id]
+                      : [...prev, scope.id],
                   )
                 }
                 className={`text-xs px-2 py-1 rounded border transition-colors ${
                   selectedScopes.includes(scope.id)
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:border-primary/50"
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:border-primary/50'
                 }`}
               >
                 {scope.label}
@@ -265,7 +293,7 @@ function ApiKeysCard() {
               </code>
               <Button size="sm" variant="outline" onClick={handleCopy} className="gap-1.5 shrink-0">
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? "Copied" : "Copy"}
+                {copied ? 'Copied' : 'Copy'}
               </Button>
             </div>
             <Button
@@ -281,9 +309,7 @@ function ApiKeysCard() {
 
         {/* Existing keys */}
         <div className="space-y-2">
-          <div className="text-sm font-medium">
-            Active keys ({activeKeys.length}/10)
-          </div>
+          <div className="text-sm font-medium">Active keys ({activeKeys.length}/10)</div>
           {isLoading ? (
             <div className="text-xs text-muted-foreground">Loading...</div>
           ) : activeKeys.length === 0 ? (
@@ -291,13 +317,18 @@ function ApiKeysCard() {
           ) : (
             <div className="space-y-2">
               {activeKeys.map((key) => (
-                <div key={key.id} className="flex items-center justify-between py-2 px-3 rounded border">
+                <div
+                  key={key.id}
+                  className="flex items-center justify-between py-2 px-3 rounded border"
+                >
                   <div className="space-y-0.5">
                     <div className="text-sm font-medium">{key.name}</div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <code className="font-mono">{key.keyPrefix}...</code>
                       <span>·</span>
-                      <span>{key.scopes.length} scope{key.scopes.length !== 1 ? "s" : ""}</span>
+                      <span>
+                        {key.scopes.length} scope{key.scopes.length !== 1 ? 's' : ''}
+                      </span>
                       {key.lastUsedAt && (
                         <>
                           <span>·</span>
@@ -324,7 +355,13 @@ function ApiKeysCard() {
   );
 }
 
-function AppearanceCard({ theme, setTheme }: { theme: string | undefined; setTheme: (t: string) => void }) {
+function AppearanceCard({
+  theme,
+  setTheme,
+}: {
+  theme: string | undefined;
+  setTheme: (t: string) => void;
+}) {
   return (
     <Card>
       <CardContent className="p-5 space-y-4">
@@ -334,17 +371,17 @@ function AppearanceCard({ theme, setTheme }: { theme: string | undefined; setThe
         </h2>
         <div className="flex items-center gap-2">
           {[
-            { id: "light" as const, icon: Sun, label: "Light" },
-            { id: "dark" as const, icon: Moon, label: "Dark" },
-            { id: "system" as const, icon: Monitor, label: "System" },
+            { id: 'light' as const, icon: Sun, label: 'Light' },
+            { id: 'dark' as const, icon: Moon, label: 'Dark' },
+            { id: 'system' as const, icon: Monitor, label: 'System' },
           ].map((t) => (
             <button
               key={t.id}
               onClick={() => setTheme(t.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm border transition-all ${
                 theme === t.id
-                  ? "border-primary bg-primary/5 text-primary"
-                  : "border-border hover:border-sky-200"
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-border hover:border-sky-200'
               }`}
             >
               <t.icon className="h-4 w-4" />
@@ -359,12 +396,12 @@ function AppearanceCard({ theme, setTheme }: { theme: string | undefined; setThe
 
 function ChainsCard() {
   const chains = [
-    { name: "Ethereum", role: "Execution", supported: true },
-    { name: "Arbitrum", role: "Execution", supported: true },
-    { name: "Base", role: "Execution", supported: true },
-    { name: "X Layer", role: "Execution", supported: true },
-    { name: "Mantle", role: "Execution", supported: true },
-    { name: "Fhenix", role: "Confidential Compute", supported: true },
+    { name: 'Ethereum', role: 'Execution', supported: true },
+    { name: 'Arbitrum', role: 'Execution', supported: true },
+    { name: 'Base', role: 'Execution', supported: true },
+    { name: 'X Layer', role: 'Execution', supported: true },
+    { name: 'Mantle', role: 'Execution', supported: true },
+    { name: 'Fhenix', role: 'Confidential Compute', supported: true },
   ];
 
   return (
@@ -375,7 +412,8 @@ function ChainsCard() {
           Supported Chains
         </h2>
         <p className="text-xs text-muted-foreground">
-          Agents can operate on any of these chains. Set the primary chain when registering an agent.
+          Agents can operate on any of these chains. Set the primary chain when registering an
+          agent.
         </p>
         <div className="space-y-2">
           {chains.map((chain) => (
@@ -386,7 +424,9 @@ function ChainsCard() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">{chain.role}</span>
-                <Badge variant="secondary" className="text-xs">supported</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  supported
+                </Badge>
               </div>
             </div>
           ))}

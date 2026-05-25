@@ -1,24 +1,34 @@
-"use client";
+'use client';
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useRouter } from "next/navigation";
-import { Activity, RefreshCw, CheckCircle2, Clock, AlertTriangle, PlayCircle } from "lucide-react";
-import { useRuns } from "@/hooks/use-api";
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
+import { Activity, RefreshCw, CheckCircle2, Clock, AlertTriangle, PlayCircle } from 'lucide-react';
+import { useRuns } from '@/hooks/use-api';
 
 export function RunsPage() {
   const router = useRouter();
   const { data: rawRuns, isLoading, error } = useRuns();
 
-  const runs = Array.isArray(rawRuns) ? rawRuns.map(r => ({
-    id: r.id, workflow: r.workflow, status: r.status, mode: r.mode,
-    steps: r.steps, duration: r.duration, artifacts: r.artifacts,
-    time: new Date(r.timestamp).toLocaleString()
-  })) : [];
+  const runs = Array.isArray(rawRuns)
+    ? rawRuns.map((r) => ({
+        id: r.id,
+        workflow: r.workflow,
+        status: r.status,
+        mode: r.mode,
+        steps: r.steps,
+        duration: r.duration,
+        artifacts: r.artifacts,
+        time: new Date(r.timestamp).toLocaleString(),
+      }))
+    : [];
 
-  const statuses = runs.reduce((acc, r) => ({ ...acc, [r.status]: (acc[r.status] || 0) + 1 }), {} as Record<string, number>);
+  const statuses = runs.reduce(
+    (acc, r) => ({ ...acc, [r.status]: (acc[r.status] || 0) + 1 }),
+    {} as Record<string, number>,
+  );
 
   return (
     <div className="space-y-6">
@@ -28,7 +38,11 @@ export function RunsPage() {
           <p className="text-sm text-muted-foreground mt-1">Agent workflow execution traces</p>
         </div>
         <div className="flex items-center gap-2">
-          {error && <Badge variant="destructive" className="text-xs">Error</Badge>}
+          {error && (
+            <Badge variant="destructive" className="text-xs">
+              Error
+            </Badge>
+          )}
           <Badge variant="secondary">{runs.length} tracked</Badge>
         </div>
       </div>
@@ -36,7 +50,13 @@ export function RunsPage() {
       {/* Stats */}
       {isLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map(i => <Card key={i}><CardContent className="p-4"><Skeleton className="h-12 w-24" /></CardContent></Card>)}
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-12 w-24" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : error ? (
         <div className="p-12 text-center text-muted-foreground border rounded-xl">
@@ -49,7 +69,7 @@ export function RunsPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <Activity className="h-5 w-5 text-primary" />
               <div>
-                <div className="text-xl font-bold">{statuses["running"] || 0}</div>
+                <div className="text-xl font-bold">{statuses['running'] || 0}</div>
                 <div className="text-xs text-muted-foreground">Active</div>
               </div>
             </CardContent>
@@ -58,7 +78,7 @@ export function RunsPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               <div>
-                <div className="text-xl font-bold">{statuses["completed"] || 0}</div>
+                <div className="text-xl font-bold">{statuses['completed'] || 0}</div>
                 <div className="text-xs text-muted-foreground">Completed</div>
               </div>
             </CardContent>
@@ -67,7 +87,7 @@ export function RunsPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <Clock className="h-5 w-5 text-sky-500" />
               <div>
-                <div className="text-xl font-bold">{statuses["paused_for_approval"] || 0}</div>
+                <div className="text-xl font-bold">{statuses['paused_for_approval'] || 0}</div>
                 <div className="text-xs text-muted-foreground">Awaiting</div>
               </div>
             </CardContent>
@@ -76,7 +96,7 @@ export function RunsPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <AlertTriangle className="h-5 w-5 text-red-500" />
               <div>
-                <div className="text-xl font-bold">{statuses["failed"] || 0}</div>
+                <div className="text-xl font-bold">{statuses['failed'] || 0}</div>
                 <div className="text-xs text-muted-foreground">Failed</div>
               </div>
             </CardContent>
@@ -89,7 +109,7 @@ export function RunsPage() {
         <Button size="sm" variant="outline" onClick={() => router.refresh()}>
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
         </Button>
-        <Button size="sm" variant="default" onClick={() => router.push("/governance/check")}>
+        <Button size="sm" variant="default" onClick={() => router.push('/governance/check')}>
           <PlayCircle className="h-3.5 w-3.5" /> New Evaluation
         </Button>
       </div>
@@ -100,7 +120,7 @@ export function RunsPage() {
           <Activity className="h-8 w-8 mx-auto mb-3 opacity-50" />
           <p className="font-medium">No runs yet</p>
           <p className="text-sm mt-1">Run a governance check to see execution traces here</p>
-          <Button className="mt-4" onClick={() => router.push("/governance/check")}>
+          <Button className="mt-4" onClick={() => router.push('/governance/check')}>
             <PlayCircle className="h-3.5 w-3.5" /> Run a Check
           </Button>
         </div>
@@ -115,11 +135,17 @@ export function RunsPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-3">
-                    <Badge variant={
-                      run.status === "completed" ? "secondary" :
-                      run.status === "running" ? "default" :
-                      run.status === "failed" ? "destructive" : "outline"
-                    }>
+                    <Badge
+                      variant={
+                        run.status === 'completed'
+                          ? 'secondary'
+                          : run.status === 'running'
+                            ? 'default'
+                            : run.status === 'failed'
+                              ? 'destructive'
+                              : 'outline'
+                      }
+                    >
                       {run.status.toUpperCase()}
                     </Badge>
                     <span className="font-medium text-sm">{run.workflow}</span>

@@ -1,24 +1,39 @@
-"use client";
+'use client';
 
-import { useState, useCallback } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ShieldCheck, CheckCircle2, XCircle, AlertTriangle, Loader2, PlayCircle, ArrowRight, Lock } from "lucide-react";
-import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
-import { useAgents } from "@/hooks/use-api";
+import { useState, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  ShieldCheck,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Loader2,
+  PlayCircle,
+  ArrowRight,
+  Lock,
+} from 'lucide-react';
+import { apiClient, type GovernanceEvaluation } from '@/lib/api-client';
+import { useAgents } from '@/hooks/use-api';
 
 const ACTION_TYPES = [
-  { type: "swap", description: "Swap tokens on a DEX" },
-  { type: "stake", description: "Stake tokens in a liquidity pool" },
-  { type: "transfer", description: "Transfer tokens to an external wallet" },
-  { type: "mint", description: "Mint tokens" },
-  { type: "approve", description: "Approve a spending cap" },
+  { type: 'swap', description: 'Swap tokens on a DEX' },
+  { type: 'stake', description: 'Stake tokens in a liquidity pool' },
+  { type: 'transfer', description: 'Transfer tokens to an external wallet' },
+  { type: 'mint', description: 'Mint tokens' },
+  { type: 'approve', description: 'Approve a spending cap' },
 ];
 
 function CheckItem({ label, passed, detail }: { label: string; passed: boolean; detail: string }) {
@@ -39,10 +54,10 @@ function CheckItem({ label, passed, detail }: { label: string; passed: boolean; 
 
 export function GovernanceCheck() {
   const { data: agents } = useAgents();
-  const [agentId, setAgentId] = useState("");
-  const [actionType, setActionType] = useState("swap");
-  const [actionDesc, setActionDesc] = useState("");
-  const [amount, setAmount] = useState("200");
+  const [agentId, setAgentId] = useState('');
+  const [actionType, setActionType] = useState('swap');
+  const [actionDesc, setActionDesc] = useState('');
+  const [amount, setAmount] = useState('200');
   const [evaluating, setEvaluating] = useState(false);
   const [result, setResult] = useState<GovernanceEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,20 +70,21 @@ export function GovernanceCheck() {
     setResult(null);
 
     try {
-      const selectedAgent = agentList.find(a => a.id === agentId);
+      const selectedAgent = agentList.find((a) => a.id === agentId);
       const res = await apiClient.evaluateGovernance({
-        agentId: agentId || agentList[0]?.id || "unknown",
+        agentId: agentId || agentList[0]?.id || 'unknown',
         action: {
           type: actionType,
-          description: actionDesc || ACTION_TYPES.find(a => a.type === actionType)?.description || "",
+          description:
+            actionDesc || ACTION_TYPES.find((a) => a.type === actionType)?.description || '',
           amount: parseFloat(amount) || 200,
-          currency: "USDC",
+          currency: 'USDC',
         },
       });
       setResult(res.data || null);
-      if (!res.data) setError("No evaluation result returned");
+      if (!res.data) setError('No evaluation result returned');
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Evaluation failed");
+      setError(err instanceof Error ? err.message : 'Evaluation failed');
     } finally {
       setEvaluating(false);
     }
@@ -94,40 +110,53 @@ export function GovernanceCheck() {
               </h2>
 
               <div className="space-y-2">
-                <label htmlFor="agent" className="text-sm font-medium">Agent</label>
+                <label htmlFor="agent" className="text-sm font-medium">
+                  Agent
+                </label>
                 <Select value={agentId} onValueChange={(v) => v && setAgentId(v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select an agent" />
                   </SelectTrigger>
                   <SelectContent>
-                    {agentList.map(a => (
-                      <SelectItem key={a.id} value={a.id}>{a.name} ({a.chain})</SelectItem>
+                    {agentList.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name} ({a.chain})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="action-type" className="text-sm font-medium">Action Type</label>
-                <Select value={actionType} onValueChange={(v) => {
-                  if (!v) return;
-                  setActionType(v);
-                  const action = ACTION_TYPES.find(a => a.type === v);
-                  if (action) setActionDesc(action.description);
-                }}>
+                <label htmlFor="action-type" className="text-sm font-medium">
+                  Action Type
+                </label>
+                <Select
+                  value={actionType}
+                  onValueChange={(v) => {
+                    if (!v) return;
+                    setActionType(v);
+                    const action = ACTION_TYPES.find((a) => a.type === v);
+                    if (action) setActionDesc(action.description);
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select action type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ACTION_TYPES.map(a => (
-                      <SelectItem key={a.type} value={a.type}>{a.type}</SelectItem>
+                    {ACTION_TYPES.map((a) => (
+                      <SelectItem key={a.type} value={a.type}>
+                        {a.type}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="desc" className="text-sm font-medium">Description</label>
+                <label htmlFor="desc" className="text-sm font-medium">
+                  Description
+                </label>
                 <Textarea
                   id="desc"
                   value={actionDesc}
@@ -138,7 +167,9 @@ export function GovernanceCheck() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="amount" className="text-sm font-medium">Amount (USDC)</label>
+                <label htmlFor="amount" className="text-sm font-medium">
+                  Amount (USDC)
+                </label>
                 <Input
                   id="amount"
                   type="number"
@@ -148,15 +179,15 @@ export function GovernanceCheck() {
                 />
               </div>
 
-              <Button
-                className="w-full"
-                onClick={handleEvaluate}
-                disabled={evaluating}
-              >
+              <Button className="w-full" onClick={handleEvaluate} disabled={evaluating}>
                 {evaluating ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Evaluating...</>
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Evaluating...
+                  </>
                 ) : (
-                  <><ShieldCheck className="h-4 w-4" /> Evaluate Spend</>
+                  <>
+                    <ShieldCheck className="h-4 w-4" /> Evaluate Spend
+                  </>
                 )}
               </Button>
             </CardContent>
@@ -189,11 +220,13 @@ export function GovernanceCheck() {
             <Card>
               <CardContent className="p-5 space-y-4">
                 {/* Verdict */}
-                <div className={`p-4 rounded-xl flex items-center gap-3 ${
-                  result.allowed
-                    ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900"
-                    : "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900"
-                }`}>
+                <div
+                  className={`p-4 rounded-xl flex items-center gap-3 ${
+                    result.allowed
+                      ? 'bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900'
+                      : 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900'
+                  }`}
+                >
                   {result.allowed ? (
                     <CheckCircle2 className="h-8 w-8 text-emerald-500" />
                   ) : (
@@ -201,10 +234,12 @@ export function GovernanceCheck() {
                   )}
                   <div>
                     <div className="font-bold text-lg">
-                      {result.allowed ? "Approved" : "Denied"}
+                      {result.allowed ? 'Approved' : 'Denied'}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {result.allowed ? "This spend action is permitted" : "This spend action is blocked"}
+                      {result.allowed
+                        ? 'This spend action is permitted'
+                        : 'This spend action is blocked'}
                     </div>
                   </div>
                 </div>
@@ -232,34 +267,50 @@ export function GovernanceCheck() {
                 </div>
 
                 {/* FHE Confidential evaluation badge */}
-                {"confidential" in result && (result as GovernanceEvaluation & { confidential?: { fheEvaluated: boolean; chain: string; decisionIds?: string[] } }).confidential?.fheEvaluated && (() => {
-                  const conf = (result as GovernanceEvaluation & { confidential: { fheEvaluated: boolean; chain: string; decisionIds?: string[] } }).confidential;
-                  return (
-                    <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
-                        <Lock className="h-4 w-4" />
-                        Confidential Evaluation (Fhenix FHE)
-                      </div>
-                      <div className="text-xs text-muted-foreground space-y-1">
-                        <div>Chain: {conf.chain}</div>
-                        {conf.decisionIds && conf.decisionIds.length > 0 && (
-                          <div className="font-mono break-all">
-                            Decision: {conf.decisionIds[0]}
+                {'confidential' in result &&
+                  (
+                    result as GovernanceEvaluation & {
+                      confidential?: {
+                        fheEvaluated: boolean;
+                        chain: string;
+                        decisionIds?: string[];
+                      };
+                    }
+                  ).confidential?.fheEvaluated &&
+                  (() => {
+                    const conf = (
+                      result as GovernanceEvaluation & {
+                        confidential: {
+                          fheEvaluated: boolean;
+                          chain: string;
+                          decisionIds?: string[];
+                        };
+                      }
+                    ).confidential;
+                    return (
+                      <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
+                          <Lock className="h-4 w-4" />
+                          Confidential Evaluation (Fhenix FHE)
+                        </div>
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <div>Chain: {conf.chain}</div>
+                          {conf.decisionIds && conf.decisionIds.length > 0 && (
+                            <div className="font-mono break-all">
+                              Decision: {conf.decisionIds[0]}
+                            </div>
+                          )}
+                          <div className="text-[11px] text-amber-600 dark:text-amber-400">
+                            Budget limits evaluated in ciphertext — values never revealed to agent
                           </div>
-                        )}
-                        <div className="text-[11px] text-amber-600 dark:text-amber-400">
-                          Budget limits evaluated in ciphertext — values never revealed to agent
                         </div>
                       </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
 
                 {/* Metadata */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    Evaluated at: {new Date(result.timestamp).toLocaleTimeString()}
-                  </span>
+                  <span>Evaluated at: {new Date(result.timestamp).toLocaleTimeString()}</span>
                   {(result.provider || result.model) && (
                     <span>
                       {result.provider}/{result.model}

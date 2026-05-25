@@ -11,7 +11,7 @@ const config = [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: ['./src/frontend/tsconfig.app.json'],
+        project: ['./src/frontend/tsconfig.json'],
       },
     },
     plugins: {

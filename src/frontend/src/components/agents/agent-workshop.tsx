@@ -1,48 +1,90 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
-import { mutate } from "swr";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Sparkles, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
+import { mutate } from 'swr';
 
 const CHAINS = [
-  { id: "Ethereum", name: "Ethereum" },
-  { id: "Arbitrum", name: "Arbitrum" },
-  { id: "Base", name: "Base" },
-  { id: "X Layer", name: "X Layer" },
-  { id: "Mantle", name: "Mantle" },
-  { id: "Fhenix", name: "Fhenix" },
+  { id: 'Ethereum', name: 'Ethereum' },
+  { id: 'Arbitrum', name: 'Arbitrum' },
+  { id: 'Base', name: 'Base' },
+  { id: 'X Layer', name: 'X Layer' },
+  { id: 'Mantle', name: 'Mantle' },
+  { id: 'Fhenix', name: 'Fhenix' },
 ];
 
 const BUDGETS = [
-  { id: "$1,000", label: "$1,000/day" },
-  { id: "$5,000", label: "$5,000/day" },
-  { id: "$10,000", label: "$10,000/day" },
-  { id: "$25,000", label: "$25,000/day" },
-  { id: "Unlimited", label: "Unlimited" },
+  { id: '$1,000', label: '$1,000/day' },
+  { id: '$5,000', label: '$5,000/day' },
+  { id: '$10,000', label: '$10,000/day' },
+  { id: '$25,000', label: '$25,000/day' },
+  { id: 'Unlimited', label: 'Unlimited' },
 ];
 
 const USE_CASE_TEMPLATES = [
-  { role: "DeFi Trading Bot", name: "TraderBot", chain: "Ethereum", budget: "$5,000", desc: "Swaps, limit orders, arbitrage" },
-  { role: "Yield Optimizer", name: "YieldHunter", chain: "Arbitrum", budget: "$10,000", desc: "Deposit/withdraw into yield protocols" },
-  { role: "Portfolio Rebalancer", name: "Rebalancer", chain: "Ethereum", budget: "$25,000", desc: "Cross-vault rebalancing" },
-  { role: "Payment Agent", name: "PayBot", chain: "Base", budget: "$1,000", desc: "Recurring payments, vendor payouts" },
-  { role: "DAO Treasury Agent", name: "TreasuryOps", chain: "Ethereum", budget: "$10,000", desc: "Proposal-linked disbursements" },
-  { role: "Bridge Agent", name: "Bridger", chain: "Ethereum", budget: "$5,000", desc: "Cross-chain transfers" },
+  {
+    role: 'DeFi Trading Bot',
+    name: 'TraderBot',
+    chain: 'Ethereum',
+    budget: '$5,000',
+    desc: 'Swaps, limit orders, arbitrage',
+  },
+  {
+    role: 'Yield Optimizer',
+    name: 'YieldHunter',
+    chain: 'Arbitrum',
+    budget: '$10,000',
+    desc: 'Deposit/withdraw into yield protocols',
+  },
+  {
+    role: 'Portfolio Rebalancer',
+    name: 'Rebalancer',
+    chain: 'Ethereum',
+    budget: '$25,000',
+    desc: 'Cross-vault rebalancing',
+  },
+  {
+    role: 'Payment Agent',
+    name: 'PayBot',
+    chain: 'Base',
+    budget: '$1,000',
+    desc: 'Recurring payments, vendor payouts',
+  },
+  {
+    role: 'DAO Treasury Agent',
+    name: 'TreasuryOps',
+    chain: 'Ethereum',
+    budget: '$10,000',
+    desc: 'Proposal-linked disbursements',
+  },
+  {
+    role: 'Bridge Agent',
+    name: 'Bridger',
+    chain: 'Ethereum',
+    budget: '$5,000',
+    desc: 'Cross-chain transfers',
+  },
 ];
 
 export function AgentWorkshop() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [role, setRole] = useState("");
-  const [chain, setChain] = useState("Ethereum");
-  const [budget, setBudget] = useState("$5,000");
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('');
+  const [chain, setChain] = useState('Ethereum');
+  const [budget, setBudget] = useState('$5,000');
   const [creating, setCreating] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,12 +104,12 @@ export function AgentWorkshop() {
 
       if (res.success && res.data) {
         setCreatedId(res.data.id);
-        mutate("/api/agents");
+        mutate('/api/agents');
       } else {
-        setError("Failed to create agent");
+        setError('Failed to create agent');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create agent");
+      setError(err instanceof Error ? err.message : 'Failed to create agent');
     } finally {
       setCreating(false);
     }
@@ -81,14 +123,12 @@ export function AgentWorkshop() {
         </div>
         <h2 className="text-2xl font-bold">Agent Registered</h2>
         <p className="text-muted-foreground">
-          <strong>{name}</strong> is ready to operate on {chain}.
-          Give it an API key from Settings so it can authenticate.
+          <strong>{name}</strong> is ready to operate on {chain}. Give it an API key from Settings
+          so it can authenticate.
         </p>
         <div className="flex items-center justify-center gap-2">
-          <Button onClick={() => router.push(`/agents/${createdId}`)}>
-            View Agent
-          </Button>
-          <Button variant="outline" onClick={() => router.push("/agents")}>
+          <Button onClick={() => router.push(`/agents/${createdId}`)}>View Agent</Button>
+          <Button variant="outline" onClick={() => router.push('/agents')}>
             All Agents
           </Button>
         </div>
@@ -99,12 +139,14 @@ export function AgentWorkshop() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/agents")}>
+        <Button variant="ghost" size="icon" onClick={() => router.push('/agents')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Register Agent</h1>
-          <p className="text-sm text-muted-foreground mt-1">Configure and register a new governed agent</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Configure and register a new governed agent
+          </p>
         </div>
       </div>
 
@@ -116,7 +158,9 @@ export function AgentWorkshop() {
             </div>
             <div>
               <h2 className="font-semibold">Agent Configuration</h2>
-              <p className="text-xs text-muted-foreground">Define your agent&apos;s identity and constraints</p>
+              <p className="text-xs text-muted-foreground">
+                Define your agent&apos;s identity and constraints
+              </p>
             </div>
           </div>
 
@@ -129,9 +173,14 @@ export function AgentWorkshop() {
                 <button
                   key={t.role}
                   type="button"
-                  onClick={() => { setName(t.name); setRole(t.role); setChain(t.chain); setBudget(t.budget); }}
+                  onClick={() => {
+                    setName(t.name);
+                    setRole(t.role);
+                    setChain(t.chain);
+                    setBudget(t.budget);
+                  }}
                   className={`p-3 rounded-lg border text-left transition-colors hover:border-primary/50 ${
-                    role === t.role ? "border-primary bg-primary/5" : "border-border"
+                    role === t.role ? 'border-primary bg-primary/5' : 'border-border'
                   }`}
                 >
                   <div className="text-xs font-medium">{t.role}</div>
@@ -145,7 +194,9 @@ export function AgentWorkshop() {
           <Separator />
 
           <div className="space-y-2">
-            <label htmlFor="name" className="text-sm font-medium">Agent Name</label>
+            <label htmlFor="name" className="text-sm font-medium">
+              Agent Name
+            </label>
             <Input
               id="name"
               value={name}
@@ -155,7 +206,9 @@ export function AgentWorkshop() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="role" className="text-sm font-medium">Role / Purpose</label>
+            <label htmlFor="role" className="text-sm font-medium">
+              Role / Purpose
+            </label>
             <Input
               id="role"
               value={role}
@@ -166,28 +219,36 @@ export function AgentWorkshop() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="chain" className="text-sm font-medium">Primary Chain</label>
+              <label htmlFor="chain" className="text-sm font-medium">
+                Primary Chain
+              </label>
               <Select value={chain} onValueChange={(v) => v && setChain(v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select chain" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CHAINS.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  {CHAINS.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="budget" className="text-sm font-medium">Daily Budget</label>
+              <label htmlFor="budget" className="text-sm font-medium">
+                Daily Budget
+              </label>
               <Select value={budget} onValueChange={(v) => v && setBudget(v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select budget" />
                 </SelectTrigger>
                 <SelectContent>
-                  {BUDGETS.map(b => (
-                    <SelectItem key={b.id} value={b.id}>{b.label}</SelectItem>
+                  {BUDGETS.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -206,9 +267,13 @@ export function AgentWorkshop() {
             disabled={!name.trim() || !role.trim() || creating}
           >
             {creating ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Registering...</>
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Registering...
+              </>
             ) : (
-              <><Sparkles className="h-4 w-4" /> Register Agent</>
+              <>
+                <Sparkles className="h-4 w-4" /> Register Agent
+              </>
             )}
           </Button>
         </CardContent>
@@ -222,7 +287,9 @@ export function AgentWorkshop() {
               <li>The agent is registered in your workspace with the selected budget and chain</li>
               <li>It appears in your Agents dashboard with &ldquo;active&rdquo; status</li>
               <li>Create an API key in Settings and give it to your agent for authentication</li>
-              <li>The agent calls Cognivern&apos;s API before every transaction for governance checks</li>
+              <li>
+                The agent calls Cognivern&apos;s API before every transaction for governance checks
+              </li>
             </ol>
           </div>
         </CardContent>
