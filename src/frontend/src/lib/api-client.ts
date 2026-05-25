@@ -1,5 +1,6 @@
 // Typed API client for Cognivern backend
 
+import { useAppStore } from '@/stores/app-store';
 import type {
   ApiResponse,
   AuditLog,
@@ -51,8 +52,10 @@ class ApiClient {
   }
 
   private async fetch<T>(endpoint: string, options: RequestInit = {}, retries = 2): Promise<T> {
+    const { user } = useAppStore.getState();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'X-Workspace-Mode': user.workspaceMode,
     };
 
     // Add API key if set
