@@ -24,7 +24,7 @@ export function Dashboard() {
   const activeCount = agentList.filter(a => a.status === "active").length;
   const approvalRate = Array.isArray(logs)
     ? Math.round((logs.filter(l => l.outcome === "allowed" || l.complianceStatus === "compliant").length / logs.length) * 100) : 0;
-  const decisions = logs?.length || 0;
+  const decisions = Array.isArray(logs) ? logs.length : 0;
 
   return (
     <div className="space-y-6">
