@@ -40,6 +40,14 @@ export class MultiModelRouter {
           enabled: true,
           model: "minimax/minimax-m2.5:free",
         },
+        groq: {
+          enabled: true,
+          model: "llama-3.3-70b-versatile",
+        },
+        venice: {
+          enabled: true,
+          model: "llama-3.3-70b",
+        },
         openai: {
           enabled: true,
           model: "gpt-4o-mini",
@@ -54,7 +62,7 @@ export class MultiModelRouter {
         },
       },
       // Default fallback order: ChainGPT (Web3) → Fireworks → Kilocode → Workers AI → OpenAI → Gemini → Anthropic
-      fallbackOrder: ["chaingpt", "fireworks", "kilocode", "workers-ai", "openai", "gemini", "anthropic"],
+      fallbackOrder: ["groq", "venice", "openai", "gemini", "anthropic", "fireworks", "kilocode", "chaingpt", "workers-ai"],
       timeoutMs: 30000,
       userApiKeys: {},
       ...config,
@@ -74,6 +82,8 @@ export class MultiModelRouter {
       chaingpt: "CHAINGPT_API_KEY",
       fireworks: "FIREWORKS_API_KEY",
       kilocode: "KILOCODE_API_KEY",
+      groq: "GROQ_API_KEY",
+      venice: "VENICE_API_KEY",
       openai: "OPENAI_API_KEY",
       gemini: "GEMINI_API_KEY",
       anthropic: "ANTHROPIC_API_KEY",
@@ -249,6 +259,10 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
       switch (provider) {
         case "chaingpt":
           return this.executeChainGPT(prompt, controller.signal, taskType);
+        case "groq":
+          return this.executeGroq(prompt, controller.signal, taskType);
+        case "venice":
+          return this.executeVenice(prompt, controller.signal, taskType);
         case "workers-ai":
           return this.executeWorkersAI(prompt, controller.signal, taskType);
         case "fireworks":
@@ -267,6 +281,89 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  /**
+   * Groq execution (OpenAI-compatible)
+   */
+  private async executeGroq(
+    prompt: string,
+    signal: AbortSignal,
+    taskType: "governance" | "briefing"
+  ): Promise<string> {
+    const apiKey = this.getApiKey("groq");
+
+    if (!apiKey) {
+      throw new Error("Groq API key not configured");
+    }
+
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      signal,
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: this.config.providers.groq!.model,
+        messages: [
+          { role: "system", content: this.getSystemPrompt(taskType) },
+          { role: "user", content: prompt },
+        ],
+        temperature: taskType === "briefing" ? 0.7 : 0.3,
+        max_tokens: taskType === "briefing" ? 1024 : 2048,
+        response_format: taskType === "governance" ? { type: "json_object" } : { type: "text" },
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`Groq API error: ${response.status} ${err}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
+  }
+
+  /**
+   * Venice AI execution (OpenAI-compatible)
+   */
+  private async executeVenice(
+    prompt: string,
+    signal: AbortSignal,
+    taskType: "governance" | "briefing"
+  ): Promise<string> {
+    const apiKey = this.getApiKey("venice");
+
+    if (!apiKey) {
+      throw new Error("Venice API key not configured");
+    }
+
+    const response = await fetch("https://api.venice.ai/api/v1/chat/completions", {
+      method: "POST",
+      signal,
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: this.config.providers.venice!.model,
+        messages: [
+          { role: "system", content: this.getSystemPrompt(taskType) },
+          { role: "user", content: prompt },
+        ],
+        temperature: taskType === "briefing" ? 0.7 : 0.3,
+        max_tokens: taskType === "briefing" ? 1024 : 2048,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`Venice API error: ${response.status} ${err}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
   }
 
   /**
