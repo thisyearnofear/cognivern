@@ -33,6 +33,7 @@ function migrate(db: Database.Database): void {
       name TEXT NOT NULL,
       owner_id TEXT NOT NULL,
       tier TEXT NOT NULL DEFAULT 'demo',
+      activated_at TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY (owner_id) REFERENCES users(id)

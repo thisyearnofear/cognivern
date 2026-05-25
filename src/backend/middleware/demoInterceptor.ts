@@ -33,8 +33,10 @@ export async function demoInterceptor(
     req.walletAddress = payload.walletAddress as string;
     req.workspaceId = workspaceId;
 
-    const tier = getWorkspaceTier(workspaceId);
-    const response = tier === "demo"
+    // Determine mode: check header, fallback to 'production' if not provided
+    const mode = (req.headers["x-workspace-mode"] as string) === "sandbox" ? "sandbox" : "production";
+    
+    const response = mode === "sandbox"
       ? serveDemoData(req.method, req.path, req.body)
       : serveLiveData(req.method, req.path, workspaceId, req.body);
 
