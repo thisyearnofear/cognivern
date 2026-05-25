@@ -34,7 +34,7 @@ export class MultiModelRouter {
         },
         fireworks: {
           enabled: true,
-          model: "accounts/fireworks/models/glm-5",
+          model: "accounts/fireworks/models/deepseek-v4-flash",
         },
         kilocode: {
           enabled: true,
@@ -61,8 +61,8 @@ export class MultiModelRouter {
           model: "claude-3-haiku-20240307",
         },
       },
-      // Default fallback order: ChainGPT (Web3) → Fireworks → Kilocode → Workers AI → OpenAI → Gemini → Anthropic
-      fallbackOrder: ["groq", "venice", "openai", "gemini", "anthropic", "fireworks", "kilocode", "chaingpt", "workers-ai"],
+      // Default fallback order: Fireworks (DeepSeek) → Groq → Venice → OpenAI → Gemini → Anthropic
+      fallbackOrder: ["fireworks", "groq", "venice", "openai", "gemini", "anthropic", "kilocode", "chaingpt", "workers-ai"],
       timeoutMs: 30000,
       userApiKeys: {},
       ...config,
