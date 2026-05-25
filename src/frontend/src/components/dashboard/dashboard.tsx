@@ -76,76 +76,30 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Getting Started Guide — shown for live workspaces with no agents */}
-      {!agentsLoading && workspace?.tier === 'live' && agentList.length === 0 && (
-        <Card className="border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50/50 to-sky-50/50 dark:from-purple-950/20 dark:to-sky-950/20">
-          <CardContent className="p-5">
-            <div className="flex items-start gap-3 mb-4">
-              <Rocket className="h-5 w-5 text-purple-500 mt-0.5" />
-              <div>
-                <h2 className="font-semibold">
-                  You&apos;re live — let&apos;s set up your first agent
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Follow these steps to start governing your agents with Cognivern.
-                </p>
+      {/* Activation Hero — shown for production mode with no agents */}
+      {user.workspaceMode === 'production' && !agentsLoading && agentList.length === 0 && (
+        <Card className="border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 dark:from-emerald-950/20 dark:to-teal-950/20">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-emerald-100 dark:bg-emerald-900/50">
+                <Rocket className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              <button
-                onClick={() => router.push('/agents/workshop')}
-                className="p-4 rounded-lg border bg-card hover:border-purple-300 transition-colors text-left"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 text-xs font-bold flex items-center justify-center">
-                    1
-                  </span>
-                  <span className="text-sm font-medium">Register an Agent</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Name it, pick a chain, set a budget.
+              <div>
+                <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
+                  Ready for Production
+                </h2>
+                <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1 max-w-xl">
+                  Your production workspace is ready. Register your first agent to start enforcing governance policies on live data.
                 </p>
-              </button>
-              <button
-                onClick={() => router.push('/settings')}
-                className="p-4 rounded-lg border bg-card hover:border-purple-300 transition-colors text-left"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 text-xs font-bold flex items-center justify-center">
-                    2
-                  </span>
-                  <span className="text-sm font-medium">Create an API Key</span>
+                <div className="flex gap-3 mt-4">
+                  <Button onClick={() => router.push('/agents/workshop')}>
+                    Register Your First Agent
+                  </Button>
+                  <Button variant="outline" onClick={() => router.push('/policies')}>
+                    Define Policies
+                  </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Your agent uses this to authenticate.
-                </p>
-              </button>
-              <button
-                onClick={() => router.push('/policies')}
-                className="p-4 rounded-lg border bg-card hover:border-purple-300 transition-colors text-left"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 text-xs font-bold flex items-center justify-center">
-                    3
-                  </span>
-                  <span className="text-sm font-medium">Set Policies</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Define spend limits and allowlists.</p>
-              </button>
-              <button
-                onClick={() => router.push('/integrate')}
-                className="p-4 rounded-lg border bg-card hover:border-purple-300 transition-colors text-left"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 text-xs font-bold flex items-center justify-center">
-                    4
-                  </span>
-                  <span className="text-sm font-medium">Integrate</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Add the governance check to your agent code.
-                </p>
-              </button>
+              </div>
             </div>
           </CardContent>
         </Card>
