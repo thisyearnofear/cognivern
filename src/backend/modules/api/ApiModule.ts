@@ -304,6 +304,7 @@ export class ApiModule extends BaseService {
       "/agents/sapience/decisions",
       "/audit/logs",
       "/audit/insights",
+      "/governance/policies",
       "/spendos/status",
       "/spendos/decisions",
       "/metrics/ux-summary",
