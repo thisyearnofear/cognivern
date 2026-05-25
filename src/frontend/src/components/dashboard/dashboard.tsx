@@ -50,7 +50,17 @@ export function Dashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          {workspace && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>
+                Connected as <span className="font-mono">{useAppStore.getState().user.walletAddress?.slice(0, 6)}...{useAppStore.getState().user.walletAddress?.slice(-4)}</span>
+              </span>
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {agentsError && (
             <Badge variant="destructive" className="text-xs">
