@@ -29,6 +29,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { motion } from 'framer-motion';
 import { useAppStore } from '@/stores/app-store';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -43,9 +44,6 @@ const navItems = [
   { id: 'workshop', label: 'Agent Workshop', icon: PlusCircle, href: '/agents/workshop' },
   { id: 'integrate', label: 'Integrate', icon: Code2, href: '/integrate' },
 ];
-
-import { useAppStore } from '@/stores/app-store';
-// ... existing imports ...
 
 export function AppSidebar() {
   const router = useRouter();
@@ -68,24 +66,24 @@ export function AppSidebar() {
           </div>
         </div>
 
-        {/* Mode Toggle */}
-        <div className="grid grid-cols-2 p-1 bg-muted rounded-lg border border-border/50">
+        <div className="relative grid grid-cols-2 p-1 bg-muted rounded-lg border border-border/50">
+          <motion.div
+            className="absolute inset-y-1 w-[calc(50%-8px)] rounded-md bg-background shadow-sm"
+            animate={{ x: isSandbox ? 4 : 'calc(100% + 4px)' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          />
           <button
             onClick={() => setWorkspaceMode('sandbox')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-              isSandbox
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
+            className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              isSandbox ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Sandbox
           </button>
           <button
             onClick={() => setWorkspaceMode('production')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-              !isSandbox
-                ? 'bg-background text-emerald-600 shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
+            className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              !isSandbox ? 'text-emerald-600' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Production
@@ -164,7 +162,6 @@ export function AppSidebar() {
 
               if (!ready) return <div className="h-10 w-full animate-pulse bg-muted rounded-lg" />;
 
-              // State 1: Not connected at all
               if (!walletConnected) {
                 return (
                   <button
@@ -178,10 +175,8 @@ export function AppSidebar() {
                 );
               }
 
-              // State 2: Wallet connected but App not signed in (SIWE pending)
               if (!appAuthenticated) {
                 const shortAddress = account.displayName;
-
                 return (
                   <div className="space-y-2">
                     <button
@@ -208,7 +203,6 @@ export function AppSidebar() {
                 );
               }
 
-              // State 3: Fully Authenticated
               return (
                 <div className="flex items-center justify-between group/user">
                   <button
