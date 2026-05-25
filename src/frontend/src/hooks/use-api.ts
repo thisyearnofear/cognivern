@@ -22,7 +22,7 @@ export function useAuditInsights() {
 export function useRuns() {
   return useSWR('/api/cre/runs', async () => {
     const response = await apiClient.getRuns();
-    return (response as Record<string, unknown>).runs || response.data || [];
+    return (response as unknown as Record<string, unknown>).runs || response.data || [];
   });
 }
 
