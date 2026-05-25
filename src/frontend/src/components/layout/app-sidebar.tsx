@@ -219,7 +219,7 @@ export function AppSidebar() {
                         {account.displayName}
                       </span>
                       <span className="text-[10px] text-muted-foreground uppercase tracking-tight font-medium">
-                        {user.workspace?.tier === 'live' ? 'Live' : 'Demo'} Workspace
+                        {isSandbox ? 'Sandbox Mode' : 'Production Mode'}
                       </span>
                     </div>
                   </button>
