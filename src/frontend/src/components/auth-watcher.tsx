@@ -13,9 +13,15 @@ export function AuthWatcher() {
   const { isConnected, address } = useAccount();
   const { signIn, loading } = useAuth();
   const user = useAppStore((s) => s.user);
+  const demoMode = useAppStore((s) => s.demoMode);
   const autoSignInAttempted = useRef(false);
 
   useEffect(() => {
+    // Never nag for auth when user is exploring demo mode
+    if (demoMode) {
+      return;
+    }
+
     // Reset attempt flag when address changes or disconnects
     if (!isConnected || !address) {
       autoSignInAttempted.current = false;
@@ -35,7 +41,7 @@ export function AuthWatcher() {
         // We don't reset the ref here to prevent infinite retry loops on failure
       });
     }
-  }, [isConnected, address, user.isConnected, signIn, loading]);
+  }, [isConnected, address, user.isConnected, signIn, loading, demoMode]);
 
   return null;
 }

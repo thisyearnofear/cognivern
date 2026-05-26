@@ -10,12 +10,19 @@ export interface ApiResponse<T> {
 export interface AuditLog {
   id: string;
   agentId: string;
+  agent?: string;               // human-readable agent name
   action: string;
+  actionType?: string;          // alias for action (backward compat)
   description: string;
+  desc?: string;                // short alias for description
   decision: 'approved' | 'denied' | 'held';
+  outcome?: 'allowed' | 'denied' | 'held';       // alias for decision
+  complianceStatus?: 'compliant' | 'non-compliant' | 'pending';
   chain: string;
   timestamp: string;
+  time?: string;                // human-readable time string
   latency?: string;
+  responseTime?: string;         // alias for latency
   policyChecks?: PolicyCheck[];
 }
 
