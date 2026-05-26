@@ -4,7 +4,7 @@ import type { UnsealedItem } from "@cofhe/sdk";
 import { PermitUtils } from "@cofhe/sdk/permits";
 import { createPublicClient, createWalletClient, http, parseAbi, Hex, decodeEventLog, Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia } from "viem/chains";
+import { baseSepolia, arbitrumSepolia } from "viem/chains";
 import logger from "../utils/logger.js";
 
 /**
@@ -90,26 +90,20 @@ const ABI = parseAbi([
  * Extend this map as additional Fhenix-enabled chains are added.
  */
 function resolveViemChain(chainId: number): Chain {
-  // viem's built-in baseSepolia covers both vanilla Base Sepolia
-  // and Fhenix Base Sepolia (same chain, CoFHE contracts deployed on it)
   if (chainId === 84532) return baseSepolia;
+  if (chainId === 421614) return arbitrumSepolia;
 
-  // Add other Fhenix-enabled chains here:
-  // if (chainId === 421614) return arbitrumSepolia;
-  // if (chainId === 11155111) return sepolia;
-
-  // Fallback: construct a minimal Chain object so we don't crash
-  logger.warn(`No viem chain entry for chainId ${chainId}, using baseSepolia fallback`);
-  return baseSepolia;
+  logger.warn(`No viem chain entry for chainId ${chainId}, using arbitrumSepolia fallback`);
+  return arbitrumSepolia;
 }
 
 export function createFhenixConfig() {
-  const rpcUrl = process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone";
+  const rpcUrl = process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc";
   return {
     rpcUrl,
     contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
     privateKey: process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
-    chainId: Number(process.env.FHENIX_CHAIN_ID || "84532"),
+    chainId: Number(process.env.FHENIX_CHAIN_ID || "421614"),
     cofheUrl: process.env.FHENIX_COFHE_URL || rpcUrl,
     verifierUrl: process.env.FHENIX_VERIFIER_URL || rpcUrl,
     thresholdNetworkUrl: process.env.FHENIX_TN_URL || rpcUrl,
@@ -129,18 +123,21 @@ export class FhenixPolicyService {
       return;
     }
 
-    const chainId = config.chainId ?? 84532;
-    const coFheUrl = config.cofheUrl || config.rpcUrl || "https://api.testnet.fhenix.zone";
-    const verifierUrl = config.verifierUrl || config.rpcUrl || "https://api.testnet.fhenix.zone";
-    const thresholdNetworkUrl = config.thresholdNetworkUrl || config.rpcUrl || "https://api.testnet.fhenix.zone";
+    const chainId = config.chainId ?? 421614;
+    const coFheUrl = config.cofheUrl || config.rpcUrl || "https://sepolia-rollup.arbitrum.io/rpc";
+    const verifierUrl = config.verifierUrl || config.rpcUrl || "https://sepolia-rollup.arbitrum.io/rpc";
+    const thresholdNetworkUrl = config.thresholdNetworkUrl || config.rpcUrl || "https://sepolia-rollup.arbitrum.io/rpc";
+
+    const chainName = chainId === 84532 ? "Base Sepolia" : "Arbitrum Sepolia";
+    const networkName = chainId === 84532 ? "base-sepolia" : "arbitrum-sepolia";
 
     const cofheConfig = createCofheConfig({
       environment: "node",
       supportedChains: [
         {
           id: chainId,
-          name: "Fhenix Testnet",
-          network: "fhenix-testnet",
+          name: chainName,
+          network: networkName,
           coFheUrl,
           verifierUrl,
           thresholdNetworkUrl,
@@ -151,8 +148,6 @@ export class FhenixPolicyService {
 
     // Only create CoFHE client if rpcUrl and privateKey are provided
     if (config.rpcUrl && config.privateKey) {
-      this.client = createCofheClient(cofheConfig);
-
       const chain = resolveViemChain(chainId);
       const account = privateKeyToAccount(config.privateKey as Hex);
       this.publicClient = createPublicClient({
@@ -165,6 +160,30 @@ export class FhenixPolicyService {
         chain,
         transport: http(config.rpcUrl),
       });
+
+      this.client = createCofheClient(cofheConfig);
+      // Connect the CoFHE client asynchronously; failures are non-fatal
+      // (the client will be in disconnected state and operations will throw)
+      this.connectClient().catch((err) => {
+        logger.warn(`CoFHE client connection failed: ${err instanceof Error ? err.message : String(err)}`);
+      });
+    }
+  }
+
+  private async connectClient(): Promise<void> {
+    if (!this.client || !this.publicClient || !this.walletClient) return;
+    await this.client.connect(this.publicClient, this.walletClient);
+  }
+
+  private async ensureConnected(): Promise<void> {
+    if (!this.client) {
+      throw new Error("CoFHE client not available");
+    }
+    if (!this.client.connected) {
+      await this.connectClient();
+    }
+    if (!this.client.connected) {
+      throw new Error("CoFHE client failed to connect — check RPC and private key configuration");
     }
   }
 
@@ -192,99 +211,86 @@ export class FhenixPolicyService {
       };
     }
 
-    try {
-      // 1. Encrypt amount for Fhenix (use uint128, max supported by CoFHE SDK)
-      const encryptedInputs = await this.withTimeout(
-        this.client
-          .encryptInputs([Encryptable.uint128(input.amountWei)])
-          .setChainId(this.config.chainId ?? 84532)
-          .execute(),
-        this.config.evaluateTimeoutMs || 30000
-      );
+    await this.ensureConnected();
 
-      const amountCt = encryptedInputs[0];
+    // 1. Encrypt amount for Fhenix (use uint128, max supported by CoFHE SDK)
+    const encryptedInputs = await this.withTimeout(
+      this.client
+        .encryptInputs([Encryptable.uint128(input.amountWei)])
+        .setChainId(this.config.chainId ?? 421614)
+        .execute(),
+      this.config.evaluateTimeoutMs || 30000
+    );
 
-      // 2. Submit to Fhenix contract
-      const hash = await this.walletClient.writeContract({
-        address: this.config.contractAddress as Hex,
-        abi: ABI,
-        functionName: "evaluateSpend",
-        args: [
-          input.agentId as Hex,
-          input.policyId as Hex,
-          {
-            ctHash: amountCt.ctHash,
-            securityZone: amountCt.securityZone,
-            utype: amountCt.utype,
-            signature: amountCt.signature as Hex,
-          },
-          input.vendorHash as Hex,
-        ],
-      });
+    const amountCt = encryptedInputs[0];
 
-      // 3. Wait for receipt
-      const receipt = await this.publicClient.waitForTransactionReceipt({
-        hash,
-      });
+    // 2. Submit to Fhenix contract
+    const hash = await this.walletClient.writeContract({
+      address: this.config.contractAddress as Hex,
+      abi: ABI,
+      functionName: "evaluateSpend",
+      args: [
+        input.agentId as Hex,
+        input.policyId as Hex,
+        {
+          ctHash: amountCt.ctHash,
+          securityZone: amountCt.securityZone,
+          utype: amountCt.utype,
+          signature: amountCt.signature as Hex,
+        },
+        input.vendorHash as Hex,
+      ],
+    });
 
-      // Find SpendEvaluated event
-      let decisionId = "0x";
-      let outcome: number = 0;
-      let attestation = "0x";
+    // 3. Wait for receipt
+    const receipt = await this.publicClient.waitForTransactionReceipt({
+      hash,
+    });
 
-      for (const log of receipt.logs) {
-        if (
-          log.address.toLowerCase() ===
-          this.config.contractAddress.toLowerCase()
-        ) {
-          try {
-            const decoded = decodeEventLog({
-              abi: ABI,
-              data: log.data,
-              topics: log.topics,
-            }) as { eventName: string; args: { decisionId: string; outcome: number; attestation: string } };
-            if (decoded.eventName === "SpendEvaluated") {
-              decisionId = decoded.args.decisionId;
-              outcome = Number(decoded.args.outcome);
-              attestation = decoded.args.attestation;
-              break;
-            }
-          } catch (e) {
-            // Ignore non-matching logs
+    // Find SpendEvaluated event
+    let decisionId = "0x";
+    let outcome: number = 0;
+    let attestation = "0x";
+
+    for (const log of receipt.logs) {
+      if (
+        log.address.toLowerCase() ===
+        this.config.contractAddress.toLowerCase()
+      ) {
+        try {
+          const decoded = decodeEventLog({
+            abi: ABI,
+            data: log.data,
+            topics: log.topics,
+          }) as { eventName: string; args: { decisionId: string; outcome: number; attestation: string } };
+          if (decoded.eventName === "SpendEvaluated") {
+            decisionId = decoded.args.decisionId;
+            outcome = Number(decoded.args.outcome);
+            attestation = decoded.args.attestation;
+            break;
           }
+        } catch (e) {
+          // Ignore non-matching logs
         }
       }
-
-      if (decisionId === "0x") {
-        logger.warn(
-          "SpendEvaluated event not found, synthesizing decisionId from hash"
-        );
-        decisionId = hash;
-        outcome = 2; // Default to Approve for demo
-      }
-
-      return {
-        decisionId,
-        outcome: this.normalizeOutcome(outcome),
-        attestation,
-        agentId: input.agentId,
-        policyId: input.policyId,
-        timestamp: new Date().toISOString(),
-      };
-    } catch (err) {
-      // CoFHE SDK or on-chain call failed — return a deny with attestation
-      // showing the FHE path was attempted but the coprocessor wasn't reachable
-      const errorMsg = err instanceof Error ? err.message : "Unknown FHE error";
-      logger.warn(`FHE on-chain evaluation failed, denying: ${errorMsg}`);
-      return {
-        decisionId: `0x${crypto.randomUUID().replace(/-/g, "")}`,
-        outcome: "deny",
-        attestation: `fhe-attempted:${errorMsg.slice(0, 64)}`,
-        agentId: input.agentId,
-        policyId: input.policyId,
-        timestamp: new Date().toISOString(),
-      };
     }
+
+    if (decisionId === "0x") {
+      logger.warn(
+        "SpendEvaluated event not found, synthesizing decisionId from hash"
+      );
+      decisionId = hash;
+      outcome = 2; // Default to Approve for demo
+    }
+
+    return {
+      decisionId,
+      outcome: this.normalizeOutcome(outcome),
+      attestation,
+      agentId: input.agentId,
+      policyId: input.policyId,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   private async evaluateWithAdapter(
@@ -343,6 +349,8 @@ export class FhenixPolicyService {
     if (!this.client) {
       throw new Error("CoFHE client not available");
     }
+
+    await this.ensureConnected();
 
     const account = this.config.privateKey ? privateKeyToAccount(this.config.privateKey as Hex).address : undefined;
     if (!account) {
@@ -416,6 +424,8 @@ export class FhenixPolicyService {
       throw new Error("CoFHE client not available");
     }
 
+    await this.ensureConnected();
+
     let parsedPermit: string = permit;
     try {
       const parsed = JSON.parse(permit);
@@ -428,7 +438,7 @@ export class FhenixPolicyService {
 
     let ctHash: bigint;
     let utype: number = FheTypes.Uint128;
-    let chainId: number = this.config.chainId ?? 84532;
+    let chainId: number = this.config.chainId ?? 421614;
 
     try {
       const parsed = JSON.parse(encryptedValue);
@@ -484,10 +494,12 @@ export class FhenixPolicyService {
       throw new Error("CoFHE client not available");
     }
 
+    await this.ensureConnected();
+
     const encryptedInputs = await this.withTimeout(
       this.client
         .encryptInputs([Encryptable.uint128(amountWei)])
-        .setChainId(this.config.chainId ?? 84532)
+        .setChainId(this.config.chainId ?? 421614)
         .execute(),
       this.config.evaluateTimeoutMs || 30000
     );
@@ -513,11 +525,13 @@ export class FhenixPolicyService {
       throw new Error("CoFHE client not available");
     }
 
+    await this.ensureConnected();
+
     // 1. Encrypt amount
     const encryptedInputs = await this.withTimeout(
       this.client
         .encryptInputs([Encryptable.uint128(input.amountWei)])
-        .setChainId(this.config.chainId ?? 84532)
+        .setChainId(this.config.chainId ?? 421614)
         .execute(),
       this.config.evaluateTimeoutMs || 30000
     );

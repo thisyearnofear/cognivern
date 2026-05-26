@@ -143,13 +143,13 @@ export const mantleConfig = {
 };
 
 export const fhenixConfig = {
-  rpcUrl: process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
-  chainId: Number(process.env.FHENIX_CHAIN_ID || "84532"),
+  rpcUrl: process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
+  chainId: Number(process.env.FHENIX_CHAIN_ID || "421614"),
   contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
   privateKey: process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
-  cofheUrl: process.env.FHENIX_COFHE_URL || process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
-  verifierUrl: process.env.FHENIX_VERIFIER_URL || process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
-  thresholdNetworkUrl: process.env.FHENIX_TN_URL || process.env.FHENIX_RPC_URL || "https://api.testnet.fhenix.zone",
+  cofheUrl: process.env.FHENIX_COFHE_URL || process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
+  verifierUrl: process.env.FHENIX_VERIFIER_URL || process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
+  thresholdNetworkUrl: process.env.FHENIX_TN_URL || process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
 };
 
 export const monitoringConfig = {

@@ -101,7 +101,7 @@ export const DEMO_POLICIES = [
     status: 'active',
     agents: 1,
     violations: 0,
-    metadata: { confidential: true, chain: 'fhenix-base-sepolia', fheProvider: 'cofhe-sdk' },
+    metadata: { confidential: true, chain: 'fhenix-arbitrum-sepolia', fheProvider: 'cofhe-sdk' },
   },
 ] as Policy[];
 

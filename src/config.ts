@@ -102,12 +102,12 @@ const envSchema = z.object({
   MANTLE_VAULT_ADDRESS: z.string().default(""),
 
   // Fhenix / CoFHE (Confidential Policy Evaluation)
-  FHENIX_RPC_URL: z.string().default("https://api.testnet.fhenix.zone"),
-  FHENIX_SEPOLIA_RPC: z.string().default("https://api.testnet.fhenix.zone"),
+  FHENIX_RPC_URL: z.string().default("https://sepolia-rollup.arbitrum.io/rpc"),
+  FHENIX_SEPOLIA_RPC: z.string().default("https://sepolia-rollup.arbitrum.io/rpc"),
   FHENIX_COFHE_URL: z.string().optional(),
   FHENIX_VERIFIER_URL: z.string().optional(),
   FHENIX_TN_URL: z.string().optional(),
-  FHENIX_CHAIN_ID: z.coerce.number().default(84532),
+  FHENIX_CHAIN_ID: z.coerce.number().default(421614),
   FHENIX_POLICY_CONTRACT: z.string().default(""),
   FHENIX_PRIVATE_KEY: z.string().optional(),
   FHENIX_EVALUATE_TIMEOUT_MS: z.coerce.number().default(30000),
