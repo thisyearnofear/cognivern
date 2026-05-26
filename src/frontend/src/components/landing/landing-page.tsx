@@ -1,8 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
-import { ArrowRight, Zap, Globe, Lock, Eye, Shield } from 'lucide-react';
+import { ArrowRight, Zap, Globe, Lock, Eye, Shield, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ShieldLogo } from '@/components/landing/shield-logo';
 import { useAuth } from '@/hooks/use-auth';
@@ -12,6 +13,15 @@ export function LandingPage() {
   const router = useRouter();
   const { signIn, loading } = useAuth();
   const enableDemoMode = useAppStore((s) => s.enableDemoMode);
+  const demoMode = useAppStore((s) => s.demoMode);
+  const onboardingCompleted = useAppStore((s) => s.preferences.onboardingCompleted);
+
+  // Redirect onboarded or demo-mode users straight to the dashboard
+  useEffect(() => {
+    if (demoMode || onboardingCompleted) {
+      router.push('/dashboard');
+    }
+  }, [demoMode, onboardingCompleted, router]);
 
   const handleConnectWallet = async () => {
     try {
@@ -89,6 +99,14 @@ export function LandingPage() {
           </Button>
           <Button variant="outline" size="lg" onClick={() => router.push('/onboarding')}>
             Set Up My Treasury <Zap />
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={handleTryDemo}
+            className="border-sky-200 dark:border-sky-800"
+          >
+            <Sparkles className="h-4 w-4 mr-1" /> Try Demo
           </Button>
         </div>
 
