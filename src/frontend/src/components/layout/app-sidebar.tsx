@@ -27,6 +27,8 @@ import {
   Settings,
   HelpCircle,
   LogOut,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { motion } from 'framer-motion';
@@ -48,7 +50,7 @@ const navItems = [
 export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, setWorkspaceMode } = useAppStore();
+  const { user, setWorkspaceMode, demoMode, exitDemoMode } = useAppStore();
   const { logout, signIn, loading: signingIn } = useAuth();
 
   const isSandbox = user.workspaceMode === 'sandbox';
@@ -154,86 +156,108 @@ export function AppSidebar() {
         <SidebarSeparator className="my-2" />
 
         <div className="px-2 py-2">
-          <ConnectButton.Custom>
-            {({ account, chain, openConnectModal, openAccountModal, mounted }) => {
-              const ready = mounted;
-              const walletConnected = ready && account && chain;
-              const appAuthenticated = user.isConnected;
+          {demoMode ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Demo Mode</span>
+              </div>
+              <button
+                onClick={() => router.push('/onboarding')}
+                type="button"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+              >
+                Connect Wallet <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={exitDemoMode}
+                className="w-full text-center py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted transition-colors"
+              >
+                Exit Demo
+              </button>
+            </div>
+          ) : (
+            <ConnectButton.Custom>
+              {({ account, chain, openConnectModal, openAccountModal, mounted }) => {
+                const ready = mounted;
+                const walletConnected = ready && account && chain;
+                const appAuthenticated = user.isConnected;
 
-              if (!ready) return <div className="h-10 w-full animate-pulse bg-muted rounded-lg" />;
+                if (!ready) return <div className="h-10 w-full animate-pulse bg-muted rounded-lg" />;
 
-              if (!walletConnected) {
-                return (
-                  <button
-                    onClick={openConnectModal}
-                    type="button"
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
-                  >
-                    <ShieldCheck className="h-4 w-4" />
-                    Connect Wallet
-                  </button>
-                );
-              }
-
-              if (!appAuthenticated) {
-                const shortAddress = account.displayName;
-                return (
-                  <div className="space-y-2">
+                if (!walletConnected) {
+                  return (
                     <button
-                      onClick={() => signIn()}
-                      disabled={signingIn}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+                      onClick={openConnectModal}
+                      type="button"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
                     >
-                      {signingIn ? (
-                        <div className="h-4 w-4 animate-spin border-2 border-white/30 border-t-white rounded-full" />
-                      ) : (
-                        <ShieldCheck className="h-4 w-4" />
-                      )}
-                      Sign In to Cognivern
+                      <ShieldCheck className="h-4 w-4" />
+                      Connect Wallet
                     </button>
+                  );
+                }
+
+                if (!appAuthenticated) {
+                  const shortAddress = account.displayName;
+                  return (
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => signIn()}
+                        disabled={signingIn}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                        {signingIn ? (
+                          <div className="h-4 w-4 animate-spin border-2 border-white/30 border-t-white rounded-full" />
+                        ) : (
+                          <ShieldCheck className="h-4 w-4" />
+                        )}
+                        Sign In to Cognivern
+                      </button>
+                      <button
+                        onClick={openAccountModal}
+                        className="w-full text-center py-1 rounded-md hover:bg-muted transition-colors"
+                      >
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                          Connected as {shortAddress}
+                        </span>
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="flex items-center justify-between group/user">
                     <button
                       onClick={openAccountModal}
-                      className="w-full text-center py-1 rounded-md hover:bg-muted transition-colors"
+                      className="flex items-center gap-3 flex-1 text-left hover:bg-muted/50 p-1 rounded-lg transition-colors"
                     >
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                        Connected as {shortAddress}
-                      </span>
+                      <Avatar className="h-8 w-8 border border-border/50">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold uppercase">
+                          {account.address.slice(2, 4)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-semibold truncate">
+                          {account.displayName}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-tight font-medium">
+                          {isSandbox ? 'Sandbox Mode' : 'Production Mode'}
+                        </span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={logout}
+                      className="p-2 rounded-md hover:bg-red-50 hover:text-red-600 text-muted-foreground transition-colors"
+                      aria-label="Sign out"
+                    >
+                      <LogOut className="h-4 w-4" />
                     </button>
                   </div>
                 );
-              }
-
-              return (
-                <div className="flex items-center justify-between group/user">
-                  <button
-                    onClick={openAccountModal}
-                    className="flex items-center gap-3 flex-1 text-left hover:bg-muted/50 p-1 rounded-lg transition-colors"
-                  >
-                    <Avatar className="h-8 w-8 border border-border/50">
-                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold uppercase">
-                        {account.address.slice(2, 4)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-semibold truncate">
-                        {account.displayName}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-tight font-medium">
-                        {isSandbox ? 'Sandbox Mode' : 'Production Mode'}
-                      </span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={logout}
-                    className="p-2 rounded-md hover:bg-red-50 hover:text-red-600 text-muted-foreground transition-colors"
-                    aria-label="Sign out"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </button>
-                </div>
-              );
-            }}
-          </ConnectButton.Custom>
+              }}
+            </ConnectButton.Custom>
+          )}
         </div>
       </SidebarFooter>
     </Sidebar>
