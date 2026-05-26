@@ -204,7 +204,7 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
           : [];
 
       const metadata = isConfidential
-        ? { confidential: true, chain: 'fhenix-base-sepolia', fheProvider: 'cofhe-sdk' }
+        ? { confidential: true, chain: 'fhenix-arbitrum-sepolia', fheProvider: 'cofhe-sdk' }
         : undefined;
 
       const res = await apiClient.createGovernancePolicy({

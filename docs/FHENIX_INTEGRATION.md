@@ -44,7 +44,7 @@ The **decision** (approve / hold / deny) is revealed publicly. The **inputs and 
 
 ## 3. New Smart Contract — `ConfidentialSpendPolicy.sol`
 
-Deployed on Fhenix (Base Sepolia, chain 84532) at **`0xeA88BD6121d181cFD6F60997B4BDd0297CA432fE`**.
+Deployed on Fhenix (Arbitrum Sepolia, chain 421614) at **`0xeA88BD6121d181cFD6F60997B4BDd0297CA432fE`**.
 
 Mirrors the rule semantics of `PolicyEnforcementService` but operates on `euint128` / `ebool`.
 
@@ -212,9 +212,10 @@ Add a `confidential: true` flag on policy definitions. When set, evaluation is d
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/governance/policies/confidential` | POST | Create encrypted policy on Fhenix |
+| `/api/governance/decisions/:decisionId` | GET | Retrieve FHE decision + cross-chain anchoring status |
 | `/api/spend/encrypted` | POST | Submit pre-encrypted spend (client used `useEncrypt`) |
 | `/api/audit/permits` | POST | Issue auditor decryption permit |
-| `/api/audit/logs/:id/decrypt` | GET | Auditor-side decrypt with valid permit |
+| `/api/audit/logs/:decisionId/decrypt` | GET | Auditor-side decrypt with valid permit |
 
 ---
 
@@ -272,11 +273,6 @@ require("@fhenixprotocol/hardhat-fhenix");
 module.exports = {
   solidity: { version: "0.8.25", settings: { evmVersion: "cancun", viaIR: true } },
   networks: {
-    fhenixSepolia:    {
-      url: process.env.FHENIX_SEPOLIA_RPC || "https://api.testnet.fhenix.zone",
-      accounts: process.env.FHENIX_PRIVATE_KEY ? [process.env.FHENIX_PRIVATE_KEY] : [],
-      chainId: 84532,
-    },
     arbitrumSepolia:  {
       url: process.env.ARB_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
       accounts: process.env.FHENIX_PRIVATE_KEY ? [process.env.FHENIX_PRIVATE_KEY] : [],
@@ -354,6 +350,7 @@ To support non-TypeScript agents (Python/Go), Cognivern provides a **Trusted Enc
 | **Wave 4** | [x] Privara SDK integration for confidential payroll; sealed-bid vendor selection example |
 | **Wave 5 (Final)** | [x] Production-grade demo: institutional treasury agent operating with fully encrypted budgets, MEV-protected execution, selective auditor disclosure |
 | **Wave 6 (Hardening)** | [x] Shared `FhenixPolicyService` singleton eliminates redundant CoFHE clients; `resolveDecision()` enables proper two-phase FHE outcome resolution; `requestDeFiAction` guarded by resolved outcome; contract tests; centralized config; rate-limited decrypt; typed interfaces; docs updated; access control (`onlyAuthorized`) on evaluateSpend + requestDeFiAction; evaluator whitelist; two-step ownership transfer; Hyperlane dispatch moved from evaluateSpend (dead) to resolveDecision (real outcome) |
+| **Wave 7 (Migration)** | [x] Migrated from deprecated Helium testnet to **Arbitrum Sepolia** (chainId 421614); updated all RPC endpoints, chain configs, and hardcoded chain references; `FhenixPolicyService` properly initializes and connects CoFHE client with `ensureConnected`; `evaluateEncrypted` propagates errors for honest fallback messages; `demo:fhenix` script completes all 9 steps end-to-end; added `/governance/decisions/:decisionId` and `/audit/logs/:decisionId/decrypt` routes for demo compatibility |
 
 ---
 

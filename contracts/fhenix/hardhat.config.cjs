@@ -24,9 +24,9 @@ module.exports = {
   }, // Match contract version
   networks: {
     fhenixSepolia: {
-      url: process.env.FHENIX_SEPOLIA_RPC || "https://api.testnet.fhenix.zone",
+      url: process.env.FHENIX_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
       accounts: process.env.FHENIX_PRIVATE_KEY ? [process.env.FHENIX_PRIVATE_KEY] : [],
-      chainId: 84532,
+      chainId: 421614,
     },
     arbitrumSepolia: {
       url: process.env.ARB_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",

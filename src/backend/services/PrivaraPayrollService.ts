@@ -110,6 +110,7 @@ export class PrivaraPayrollService {
         "PrivaraPayrollService: SDK initialization failed",
         error instanceof Error ? error : undefined,
       );
+      this.sdk = null; // Reset so fallback mode is used
       throw error;
     }
   }
