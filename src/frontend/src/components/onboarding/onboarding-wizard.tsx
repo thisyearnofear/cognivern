@@ -80,17 +80,34 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 py-8">
+    <div className="max-w-2xl mx-auto space-y-8 py-8 px-4 sm:px-6">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Set Up Your Treasury</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Set Up Your Treasury</h1>
+        <p className="text-muted-foreground mt-2 text-sm sm:text-base">
           Configure governance for your agent team in 3 steps
         </p>
       </div>
 
-      {/* Step Indicators */}
-      <div className="flex items-center justify-center gap-2">
+      {/* Step Indicators — compact on mobile, full on desktop */}
+      <div className="sm:hidden text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-sm">
+          <span className="font-medium text-primary">Step {step + 1} of {STEPS.length}</span>
+          <span className="text-xs">— {STEPS[step].title}</span>
+        </div>
+        <div className="flex items-center justify-center gap-1.5 mt-3">
+          {STEPS.map((s, i) => (
+            <div
+              key={s.id}
+              className={`h-2 rounded-full transition-all ${
+                i === step ? 'w-6 bg-primary' : i < step ? 'w-2 bg-emerald-500' : 'w-2 bg-muted-foreground/30'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="hidden sm:flex items-center justify-center gap-2">
         {STEPS.map((s, i) => (
           <div key={s.id} className="flex items-center gap-2">
             <div
@@ -193,7 +210,7 @@ export function OnboardingWizard() {
               {agentName && (
                 <div className="p-3 rounded-lg bg-muted/30 text-sm">
                   <div className="font-medium text-xs text-muted-foreground mb-1">Summary</div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">{agentName}</Badge>
                     <span className="text-muted-foreground">with</span>
                     <Badge>{POLICY_TEMPLATES.find((t) => t.id === selectedPolicy)?.name}</Badge>
@@ -215,10 +232,16 @@ export function OnboardingWizard() {
                 {POLICY_TEMPLATES.find((t) => t.id === selectedPolicy)?.name.toLowerCase()} policy
                 {agentName ? ` and agent "${agentName}"` : ''}.
               </p>
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <ShieldCheck className="h-4 w-4 text-emerald-500" /> Policy active
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 ml-2" /> Agent registered
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 ml-2" /> Ready to govern
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-2 text-sm text-muted-foreground">
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-emerald-500" /> Policy active
+                </span>
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Agent registered
+                </span>
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Ready to govern
+                </span>
               </div>
             </div>
           )}
@@ -226,22 +249,22 @@ export function OnboardingWizard() {
       </Card>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={handleSkip}>
+      <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+        <Button variant="ghost" onClick={handleSkip} className="w-full sm:w-auto">
           Skip setup
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           {step > 0 && (
-            <Button variant="outline" onClick={() => setStep((s) => s - 1)}>
+            <Button variant="outline" onClick={() => setStep((s) => s - 1)} className="flex-1 sm:flex-initial">
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
           )}
           {step < STEPS.length - 1 ? (
-            <Button onClick={() => setStep((s) => s + 1)}>
+            <Button onClick={() => setStep((s) => s + 1)} className="flex-1 sm:flex-initial">
               Continue <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleFinish}>
+            <Button onClick={handleFinish} className="flex-1 sm:flex-initial">
               Go to Dashboard <ArrowRight className="h-4 w-4" />
             </Button>
           )}

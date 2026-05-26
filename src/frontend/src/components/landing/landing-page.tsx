@@ -21,7 +21,7 @@ export function LandingPage() {
   };
 
   const handleTryDemo = () => {
-    router.push('/dashboard');
+    router.push('/demo/spend');
   };
 
   return (
@@ -265,7 +265,7 @@ export function LandingPage() {
         <div className="mt-16 text-center">
           <h2 className="text-xl font-bold text-foreground mb-3">See it before you set it up.</h2>
           <p className="text-stone-500 max-w-md mx-auto mb-6">
-            Open the dashboard with sample data — explore policies, audit trail, and run ledger.
+            Watch a live spend-flow demo — see how policies, governance checks, and audit trails work in real-time.
             When you&apos;re ready, the same screens work with your own treasury.
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
@@ -275,10 +275,7 @@ export function LandingPage() {
               onClick={handleTryDemo}
               className="bg-gradient-to-r from-sky-600 to-blue-600"
             >
-              Open Demo Dashboard →
-            </Button>
-            <Button variant="outline" size="lg" onClick={() => router.push('/onboarding')}>
-              Run Setup Wizard
+              Open Live Demo →
             </Button>
           </div>
         </div>
@@ -294,9 +291,6 @@ export function LandingPage() {
             className="text-primary hover:underline"
           >
             GitHub
-          </a>
-          <a href="#" className="text-primary hover:underline">
-            Docs
           </a>
           <span className="text-stone-500">Multi-Chain: X Layer + Filecoin + 0G + Fhenix</span>
           <span className="text-stone-500">Open Wallet Standard Compliant</span>

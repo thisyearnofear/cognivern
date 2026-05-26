@@ -133,8 +133,8 @@ export function RunsPage() {
               onClick={() => router.push(`/runs/${run.id}`)}
             >
               <CardContent className="p-4">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <Badge
                       variant={
                         run.status === 'completed'
@@ -151,7 +151,7 @@ export function RunsPage() {
                     <span className="font-medium text-sm">{run.workflow}</span>
                     <span className="text-xs text-muted-foreground">{run.mode}</span>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                     <span>{run.steps} steps</span>
                     <span>{run.artifacts} artifacts</span>
                     <span>{run.duration}</span>

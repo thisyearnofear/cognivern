@@ -126,7 +126,7 @@ export function AgentWorkshop() {
           <strong>{name}</strong> is ready to operate on {chain}. Give it an API key from Settings
           so it can authenticate.
         </p>
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-2 flex-wrap">
           <Button onClick={() => router.push(`/agents/${createdId}`)}>View Agent</Button>
           <Button variant="outline" onClick={() => router.push('/agents')}>
             All Agents
