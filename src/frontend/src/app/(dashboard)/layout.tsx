@@ -4,6 +4,12 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/s
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { DemoBanner } from '@/components/layout/demo-banner';
 import { CommandPalette } from '@/components/layout/command-palette';
+import { useDemoSimulator } from '@/hooks/use-demo-simulator';
+
+function DemoSimulator() {
+  useDemoSimulator();
+  return null;
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,6 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <SidebarTrigger aria-label="Toggle sidebar navigation" />
         </header>
         <DemoBanner />
+        <DemoSimulator />
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
       </SidebarInset>
       <CommandPalette />

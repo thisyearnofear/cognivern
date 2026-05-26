@@ -13,9 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Sparkles, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { Sparkles, ArrowLeft, Loader2, CheckCircle2, Copy, Check } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { mutate } from 'swr';
+import { useCallback } from 'react';
 
 const CHAINS = [
   { id: 'Ethereum', name: 'Ethereum' },
@@ -116,24 +117,7 @@ export function AgentWorkshop() {
   }
 
   if (createdId) {
-    return (
-      <div className="max-w-xl mx-auto pt-12 text-center space-y-4">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mx-auto">
-          <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-        </div>
-        <h2 className="text-2xl font-bold">Agent Registered</h2>
-        <p className="text-muted-foreground">
-          <strong>{name}</strong> is ready to operate on {chain}. Give it an API key from Settings
-          so it can authenticate.
-        </p>
-        <div className="flex items-center justify-center gap-2 flex-wrap">
-          <Button onClick={() => router.push(`/agents/${createdId}`)}>View Agent</Button>
-          <Button variant="outline" onClick={() => router.push('/agents')}>
-            All Agents
-          </Button>
-        </div>
-      </div>
-    );
+    return <AgentCreatedSuccess name={name} chain={chain} createdId={createdId} router={router} />;
   }
 
   return (
@@ -294,6 +278,132 @@ export function AgentWorkshop() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function AgentCreatedSuccess({
+  name,
+  chain,
+  createdId,
+  router,
+}: {
+  name: string;
+  chain: string;
+  createdId: string;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const [copied, setCopied] = useState<'curl' | 'js' | null>(null);
+
+  const curlSnippet = `curl -X POST https://api.cognivern.xyz/governance/check \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: YOUR_API_KEY_HERE" \\
+  -d '{
+    "agentId": "${createdId}",
+    "action": {
+      "type": "swap",
+      "description": "Test swap on ${chain}",
+      "amount": 100,
+      "currency": "USDC"
+    }
+  }'`;
+
+  const jsSnippet = `const res = await fetch('https://api.cognivern.xyz/governance/check', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'YOUR_API_KEY_HERE',
+  },
+  body: JSON.stringify({
+    agentId: '${createdId}',
+    action: {
+      type: 'swap',
+      description: 'Test swap on ${chain}',
+      amount: 100,
+      currency: 'USDC',
+    },
+  }),
+});
+const result = await res.json();
+console.log(result.allowed ? 'Approved' : 'Blocked', result.reasoning);`;
+
+  const handleCopy = useCallback(
+    (type: 'curl' | 'js', text: string) => {
+      navigator.clipboard.writeText(text);
+      setCopied(type);
+      setTimeout(() => setCopied(null), 2000);
+    },
+    [],
+  );
+
+  return (
+    <div className="max-w-2xl mx-auto pt-8 space-y-6">
+      <div className="text-center space-y-3">
+        <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mx-auto">
+          <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+        </div>
+        <h2 className="text-2xl font-bold">Agent Registered</h2>
+        <p className="text-muted-foreground">
+          <strong>{name}</strong> is ready to operate on {chain}. Copy an integration snippet below
+          to start sending spend requests in seconds.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <div className="rounded-lg border border-border overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 bg-muted border-b border-border">
+            <span className="text-xs font-medium text-muted-foreground">cURL</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1.5 text-xs"
+              onClick={() => handleCopy('curl', curlSnippet)}
+            >
+              {copied === 'curl' ? (
+                <Check className="h-3.5 w-3.5" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+              {copied === 'curl' ? 'Copied' : 'Copy'}
+            </Button>
+          </div>
+          <pre className="p-4 text-xs font-mono bg-background overflow-x-auto">
+            <code>{curlSnippet}</code>
+          </pre>
+        </div>
+
+        <div className="rounded-lg border border-border overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 bg-muted border-b border-border">
+            <span className="text-xs font-medium text-muted-foreground">JavaScript</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1.5 text-xs"
+              onClick={() => handleCopy('js', jsSnippet)}
+            >
+              {copied === 'js' ? (
+                <Check className="h-3.5 w-3.5" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+              {copied === 'js' ? 'Copied' : 'Copy'}
+            </Button>
+          </div>
+          <pre className="p-4 text-xs font-mono bg-background overflow-x-auto">
+            <code>{jsSnippet}</code>
+          </pre>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        <Button onClick={() => router.push(`/agents/${createdId}`)}>View Agent</Button>
+        <Button variant="outline" onClick={() => router.push('/agents')}>
+          All Agents
+        </Button>
+        <Button variant="secondary" onClick={() => router.push('/settings')}>
+          Get API Key
+        </Button>
+      </div>
     </div>
   );
 }

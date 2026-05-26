@@ -6,10 +6,12 @@ import { ArrowRight, Zap, Globe, Lock, Eye, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ShieldLogo } from '@/components/landing/shield-logo';
 import { useAuth } from '@/hooks/use-auth';
+import { useAppStore } from '@/stores/app-store';
 
 export function LandingPage() {
   const router = useRouter();
   const { signIn, loading } = useAuth();
+  const enableDemoMode = useAppStore((s) => s.enableDemoMode);
 
   const handleConnectWallet = async () => {
     try {
@@ -21,7 +23,8 @@ export function LandingPage() {
   };
 
   const handleTryDemo = () => {
-    router.push('/demo/spend');
+    enableDemoMode();
+    router.push('/dashboard');
   };
 
   return (

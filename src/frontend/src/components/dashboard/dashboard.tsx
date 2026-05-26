@@ -21,6 +21,7 @@ import { useAppStore } from '@/stores/app-store';
 export function Dashboard() {
   const router = useRouter();
   const user = useAppStore((s) => s.user);
+  const demoMode = useAppStore((s) => s.demoMode);
   const workspace = user.workspace;
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
   const { data: logs, isLoading: logsLoading, error: logsError } = useAuditLogs();
@@ -53,7 +54,13 @@ export function Dashboard() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          {workspace && (
+          {demoMode && workspace && (
+            <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+              <Sparkles className="h-3 w-3" />
+              <span>Exploring <span className="font-medium">{workspace.name}</span> — sample data</span>
+            </div>
+          )}
+          {!demoMode && workspace && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>
