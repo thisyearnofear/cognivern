@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/s
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { DemoBanner } from '@/components/layout/demo-banner';
 import { CommandPalette } from '@/components/layout/command-palette';
+import { ErrorBoundary } from '@/components/error-boundary';
 import { useDemoSimulator } from '@/hooks/use-demo-simulator';
 
 function DemoSimulator() {
@@ -21,7 +22,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
         <DemoBanner />
         <DemoSimulator />
-        <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 md:p-6">
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </main>
       </SidebarInset>
       <CommandPalette />
     </SidebarProvider>

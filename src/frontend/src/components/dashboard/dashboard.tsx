@@ -31,17 +31,22 @@ export function Dashboard() {
   const activity = Array.isArray(logs)
     ? logs.map((l) => ({
         id: l.id,
-        agent: l.agent,
-        action: l.actionType,
+        agent: l.agent ?? l.agentId,
+        action: l.actionType ?? l.action,
         amount: '—',
-        time: new Date(l.timestamp).toLocaleString(),
-        status: l.outcome ?? l.complianceStatus,
+        time: l.time ?? new Date(l.timestamp).toLocaleString(),
+        status: l.outcome ?? l.complianceStatus ?? l.decision,
       }))
     : [];
   const activeCount = agentList.filter((a) => a.status === 'active').length;
   const approvalRate = Array.isArray(logs)
     ? Math.round(
-        (logs.filter((l) => l.outcome === 'allowed' || l.complianceStatus === 'compliant').length /
+        (logs.filter(
+          (l) =>
+            l.outcome === 'allowed' ||
+            l.complianceStatus === 'compliant' ||
+            l.decision === 'approved',
+        ).length /
           logs.length) *
           100,
       )

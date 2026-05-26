@@ -60,7 +60,7 @@ export const DEMO_AGENTS = [
     chain: 'Fhenix',
     spendHistory: [],
   },
-] as unknown as Agent[];
+] as Agent[];
 
 export const DEMO_POLICIES = [
   {
@@ -103,7 +103,7 @@ export const DEMO_POLICIES = [
     violations: 0,
     metadata: { confidential: true, chain: 'fhenix-base-sepolia', fheProvider: 'cofhe-sdk' },
   },
-] as unknown as Policy[];
+] as Policy[];
 
 export const DEMO_AUDIT_LOGS = [
   {
@@ -223,7 +223,7 @@ export const DEMO_AUDIT_LOGS = [
       { policyId: 'policy-allow-02', result: true, reason: 'Curve is allowlisted' },
     ],
   },
-] as unknown as AuditLog[];
+] as AuditLog[];
 
 export const DEMO_RUNS = [
   {
@@ -266,7 +266,7 @@ export const DEMO_RUNS = [
     artifacts: 4,
     timestamp: new Date(Date.now() - 7200 * 1000).toISOString(),
   },
-] as unknown as Run[];
+] as Run[];
 
 const AGENT_NAMES = ['YieldHunter-01', 'Arbitrage-07', 'MEV-Guardian', 'ConfidentialSwap-A1'];
 const ACTIONS = ['swap', 'bridge', 'stake', 'relay', 'withdraw', 'deposit'];
@@ -307,5 +307,5 @@ export function generateDemoAuditLog(): AuditLog {
         reason: decision === 'approved' ? 'Within daily limit' : 'Exceeds daily budget threshold',
       },
     ],
-  } as unknown as AuditLog;
+  } as AuditLog;
 }

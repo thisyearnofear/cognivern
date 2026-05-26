@@ -12,12 +12,12 @@ export function AuditPage() {
   const logs = Array.isArray(rawLogs)
     ? rawLogs.map((l) => ({
         id: l.id,
-        agent: l.agent,
-        action: l.actionType,
-        desc: l.description,
-        decision: l.outcome ?? l.complianceStatus,
+        agent: l.agent ?? l.agentId,
+        action: l.actionType ?? l.action,
+        desc: l.desc ?? l.description,
+        decision: l.outcome ?? l.complianceStatus ?? l.decision,
         chain: l.chain ?? '—',
-        time: new Date(l.timestamp).toLocaleString(),
+        time: l.time ?? new Date(l.timestamp).toLocaleString(),
         latency: l.responseTime ?? l.latency ?? '—',
       }))
     : [];
