@@ -56,6 +56,7 @@ const POLICY_TEMPLATES = [
 export function OnboardingWizard() {
   const router = useRouter();
   const updatePreferences = useAppStore((s) => s.updatePreferences);
+  const enableDemoMode = useAppStore((s) => s.enableDemoMode);
   const { isConnected, address } = useAccount();
   const { signIn } = useAuth();
   const user = useAppStore((s) => s.user);
@@ -71,11 +72,19 @@ export function OnboardingWizard() {
 
   function handleFinish() {
     updatePreferences({ onboardingCompleted: true });
+    // If the user never connected a wallet, drop them into demo mode
+    // so they see a populated dashboard instead of empty states
+    if (!user.isConnected) {
+      enableDemoMode();
+    }
     router.push('/dashboard');
   }
 
   function handleSkip() {
     updatePreferences({ onboardingCompleted: true });
+    if (!user.isConnected) {
+      enableDemoMode();
+    }
     router.push('/dashboard');
   }
 
