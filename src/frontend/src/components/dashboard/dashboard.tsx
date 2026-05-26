@@ -268,7 +268,7 @@ export function Dashboard() {
             {activity.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between p-3 text-sm hover:bg-muted/50 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 text-sm hover:bg-muted/50 transition-colors gap-2 sm:gap-0"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
@@ -293,7 +293,7 @@ export function Dashboard() {
                     <div className="text-muted-foreground text-xs truncate">{item.action}</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                <div className="flex items-center gap-3 flex-shrink-0 sm:ml-4 pl-8 sm:pl-0">
                   <span className="font-mono text-xs">{item.amount}</span>
                   <Badge
                     variant={
@@ -307,7 +307,7 @@ export function Dashboard() {
                   >
                     {item.status}
                   </Badge>
-                  <span className="text-xs text-muted-foreground w-20 text-right">{item.time}</span>
+                  <span className="text-xs text-muted-foreground">{item.time}</span>
                 </div>
               </div>
             ))}

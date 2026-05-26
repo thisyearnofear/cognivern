@@ -129,7 +129,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
             <p className="text-sm text-muted-foreground">{agent.role}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={() => router.push('/policies')}>
             <ShieldCheck className="h-4 w-4" /> View Policy
           </Button>
@@ -228,41 +228,43 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
         </div>
 
         {agent.spendHistory && agent.spendHistory.length > 0 ? (
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead scope="col">Amount</TableHead>
-                  <TableHead scope="col">Currency</TableHead>
-                  <TableHead scope="col">Time</TableHead>
-                  <TableHead scope="col">Decision</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {agent.spendHistory.map((tx, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-mono">{tx.amount}</TableCell>
-                    <TableCell>{tx.currency}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
-                      {new Date(tx.timestamp).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          tx.decision === 'approved'
-                            ? 'secondary'
-                            : tx.decision === 'denied'
-                              ? 'destructive'
-                              : 'outline'
-                        }
-                      >
-                        {tx.decision}
-                      </Badge>
-                    </TableCell>
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead scope="col">Amount</TableHead>
+                    <TableHead scope="col">Currency</TableHead>
+                    <TableHead scope="col">Time</TableHead>
+                    <TableHead scope="col">Decision</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {agent.spendHistory.map((tx, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-mono">{tx.amount}</TableCell>
+                      <TableCell>{tx.currency}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                        {new Date(tx.timestamp).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            tx.decision === 'approved'
+                              ? 'secondary'
+                              : tx.decision === 'denied'
+                                ? 'destructive'
+                                : 'outline'
+                          }
+                        >
+                          {tx.decision}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         ) : (
           <Card>
