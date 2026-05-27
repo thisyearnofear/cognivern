@@ -1,126 +1,114 @@
-# Dependencies
-node_modules
-**/node_modules
+# ── Dependencies ─────────────────────────────────────────────────────
+node_modules/
 .pnp
 .pnp.js
 
-# Build outputs
-dist
-src/frontend/dist
-build
-contracts/build
+# ── Build outputs ───────────────────────────────────────────────────
+dist/
+build/
+out/
+.next/
 *.tsbuildinfo
-.next
-out
+src/frontend/dist/
 
-# TypeScript build artifacts inside source tree (compiled output belongs in dist/)
+# ── TypeScript compiled output in source tree ───────────────────────
 src/backend/**/*.js
 src/backend/**/*.js.map
 src/backend/**/*.d.ts
 src/backend/**/*.d.ts.map
 !src/backend/types/openai.d.ts
 
-# Logs
+# ── Logs ────────────────────────────────────────────────────────────
+logs/
 *.log
-logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Environment variables
+# ── Runtime data ────────────────────────────────────────────────────
+data/
+.cognivern/
+
+# ── Environment variables & secrets ─────────────────────────────────
 .env
-.env.*
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.vercel
 !.env.example
 *.pem
 *.key
 
-# IDE / Editor
+# ── Testing ─────────────────────────────────────────────────────────
+coverage/
+*.lcov
+.nyc_output
+
+# ── IDE / Editor ────────────────────────────────────────────────────
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-.idea
+.idea/
 *.swp
 *.swo
 *~
-.DS_Store
 
-# Testing
-coverage
-*.lcov
-.nyc_output
-
-# Temporary files
-*.tmp
-*.temp
-.cache
-.parcel-cache
-
-# Local deploy artifacts
-.artifacts
-.junie/
-deploy-bundle/
-
-# AI/IDE assistant artifacts
-.claude/
-.cursor/
-.windsurf/
-.aider*
-.blackbox/
-.blackboxcli/
-.zeav/
-.zencoder/
-.zenflow/
-.junie/
-.letta/
-.qwen/
-.artifacts/
-.commandcode/
-.commandcode
-
-
-# Volta (tool version manager)
-.volta/
-.tool-versions
-
-# Mise (tool version manager)
-.mise/
-
-# Wrangler
-.wrangler/
-.dev.vars
-
-# OS
+# ── OS ──────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# External repos (cloned dependencies, not part of this project)
-remix-smart-bin-monitoring-das/
+# ── AI / IDE assistant artifacts ────────────────────────────────────
+.aider*
+.artifacts/
+.blackbox/
+.blackboxcli/
+.claude/
+.commandcode/
+.cursor/
+.junie/
+.letta/
+.qwen/
+.windsurf/
+.zeav/
+.zencoder/
+.zenflow/
 
-# Debug
+# ── pnpm store ─────────────────────────────────────────────────────
+.pnpm/
+
+# ── Deploy artifacts ───────────────────────────────────────────────
+deploy-bundle/
+.vercel/
+
+# ── Tool version managers ──────────────────────────────────────────
+.volta/
+.tool-versions
+.mise/
+
+# ── Wrangler ───────────────────────────────────────────────────────
+.wrangler/
+.dev.vars
+
+# ── Debug ───────────────────────────────────────────────────────────
 .vite-inspect
 
-# Pre-commit
+# ── Pre-commit ─────────────────────────────────────────────────────
 .secrets.baseline
 
-# Private operations docs (server details, keys, addresses)
+# ── Private operations docs ─────────────────────────────────────────
 OPS.md
 
-# Runtime data (generated at runtime, never committed)
-data/
-.cognivern/
-
-# Root-level ecosystem.config.cjs (server-local PM2 override — use config/ecosystem.config.cjs)
+# ── Root-level overrides (use config/ versions) ────────────────────
 /ecosystem.config.cjs
 
-# Deploy scripts (contain server IPs, SSH targets, local overrides)
+# ── Deploy scripts with server-specific values ─────────────────────
 scripts/deploy.sh
 scripts/monitoring/monitor-api.sh
-.vercel
+
+# ── External repos ─────────────────────────────────────────────────
+remix-smart-bin-monitoring-das/
