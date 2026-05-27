@@ -33,14 +33,19 @@ async function main() {
   // These values will be set once Hyperlane is deployed on Mantle Sepolia
   // For now we log the owner so the config can be called later
   console.log("\nVault owner (can configure Hyperlane):", deployer.address);
-  console.log("Call setHyperlaneConfig(mailbox, fhenixDomain, fhenixSender) once Hyperlane is live.");
+  console.log(
+    "Call setHyperlaneConfig(mailbox, fhenixDomain, fhenixSender) once Hyperlane is live.",
+  );
 
   // Output deployment information
   console.log("\n=== MANTLE SEPOLIA DEPLOYMENT COMPLETE ===");
   console.log("GovernedVault:", vaultAddress);
   console.log("\nAdd to your .env file:");
   console.log(`MANTLE_VAULT_ADDRESS=${vaultAddress}`);
-  console.log("\nMantle Sepolia Explorer: https://sepolia.mantlescan.xyz/address/" + vaultAddress);
+  console.log(
+    "\nMantle Sepolia Explorer: https://sepolia.mantlescan.xyz/address/" +
+      vaultAddress,
+  );
 }
 
 main()

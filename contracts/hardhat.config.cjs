@@ -19,24 +19,21 @@ module.exports = {
       chainId: 314159,
     },
     xlayer: {
-      url:
-        process.env.XLAYER_RPC_URL || "https://rpc.xlayer.tech",
+      url: process.env.XLAYER_RPC_URL || "https://rpc.xlayer.tech",
       accounts: process.env.XLAYER_PRIVATE_KEY
         ? [process.env.XLAYER_PRIVATE_KEY]
         : [],
       chainId: 196,
     },
     xlayerTestnet: {
-      url:
-        process.env.XLAYER_TESTNET_RPC_URL || "https://testrpc.xlayer.tech",
+      url: process.env.XLAYER_TESTNET_RPC_URL || "https://testrpc.xlayer.tech",
       accounts: process.env.XLAYER_PRIVATE_KEY
         ? [process.env.XLAYER_PRIVATE_KEY]
         : [],
       chainId: 1952,
     },
     mantle: {
-      url:
-        process.env.MANTLE_RPC_URL || "https://rpc.mantle.xyz",
+      url: process.env.MANTLE_RPC_URL || "https://rpc.mantle.xyz",
       accounts: process.env.MANTLE_PRIVATE_KEY
         ? [process.env.MANTLE_PRIVATE_KEY]
         : [],

@@ -6,7 +6,9 @@ describe("ConfidentialSpendPolicy", function () {
   async function deployFixture() {
     const [owner, operator, auditor] = await hre.ethers.getSigners();
 
-    const ConfidentialSpendPolicy = await hre.ethers.getContractFactory("ConfidentialSpendPolicy");
+    const ConfidentialSpendPolicy = await hre.ethers.getContractFactory(
+      "ConfidentialSpendPolicy",
+    );
     const contract = await ConfidentialSpendPolicy.deploy();
     await contract.waitForDeployment();
 
@@ -35,13 +37,36 @@ describe("ConfidentialSpendPolicy", function () {
       const policyId = hre.ethers.zeroPadValue("0x01", 32);
 
       // InEuint128 calldata format: (ctHash, securityZone, utype, signature)
-      const dailyLimitCt = { ctHash: 1000n, securityZone: 0, utype: 2, signature: "0x" };
-      const perTxLimitCt = { ctHash: 100n, securityZone: 0, utype: 2, signature: "0x" };
-      const approvalThresholdCt = { ctHash: 50n, securityZone: 0, utype: 2, signature: "0x" };
+      const dailyLimitCt = {
+        ctHash: 1000n,
+        securityZone: 0,
+        utype: 2,
+        signature: "0x",
+      };
+      const perTxLimitCt = {
+        ctHash: 100n,
+        securityZone: 0,
+        utype: 2,
+        signature: "0x",
+      };
+      const approvalThresholdCt = {
+        ctHash: 50n,
+        securityZone: 0,
+        utype: 2,
+        signature: "0x",
+      };
       const vendorSetRoot = hre.ethers.zeroPadValue("0x00", 32);
 
       await expect(
-        contract.connect(operator).registerPolicy(policyId, dailyLimitCt, perTxLimitCt, approvalThresholdCt, vendorSetRoot)
+        contract
+          .connect(operator)
+          .registerPolicy(
+            policyId,
+            dailyLimitCt,
+            perTxLimitCt,
+            approvalThresholdCt,
+            vendorSetRoot,
+          ),
       )
         .to.emit(contract, "PolicyRegistered")
         .withArgs(policyId, operator.address);
@@ -57,9 +82,21 @@ describe("ConfidentialSpendPolicy", function () {
 
       const ct = { ctHash: 1000n, securityZone: 0, utype: 2, signature: "0x" };
 
-      await contract.registerPolicy(policyId, ct, ct, ct, hre.ethers.zeroPadValue("0x00", 32));
+      await contract.registerPolicy(
+        policyId,
+        ct,
+        ct,
+        ct,
+        hre.ethers.zeroPadValue("0x00", 32),
+      );
       await expect(
-        contract.registerPolicy(policyId, ct, ct, ct, hre.ethers.zeroPadValue("0x00", 32))
+        contract.registerPolicy(
+          policyId,
+          ct,
+          ct,
+          ct,
+          hre.ethers.zeroPadValue("0x00", 32),
+        ),
       ).to.be.revertedWith("policy exists");
     });
   });
@@ -69,11 +106,16 @@ describe("ConfidentialSpendPolicy", function () {
       const { contract } = await loadFixture(deployFixture);
       const agentId = hre.ethers.zeroPadValue("0xaa", 32);
       const policyId = hre.ethers.zeroPadValue("0xbb", 32);
-      const amountCt = { ctHash: 10n, securityZone: 0, utype: 2, signature: "0x" };
+      const amountCt = {
+        ctHash: 10n,
+        securityZone: 0,
+        utype: 2,
+        signature: "0x",
+      };
       const vendorHash = hre.ethers.zeroPadValue("0x00", 32);
 
       await expect(
-        contract.evaluateSpend(agentId, policyId, amountCt, vendorHash)
+        contract.evaluateSpend(agentId, policyId, amountCt, vendorHash),
       ).to.be.revertedWith("policy missing");
     });
   });
@@ -81,7 +123,9 @@ describe("ConfidentialSpendPolicy", function () {
   describe("Decision Resolution", function () {
     it("should resolve a pending decision", async function () {
       const { contract, owner } = await loadFixture(deployFixture);
-      const decisionId = hre.ethers.keccak256(hre.ethers.toUtf8Bytes("test-decision"));
+      const decisionId = hre.ethers.keccak256(
+        hre.ethers.toUtf8Bytes("test-decision"),
+      );
 
       await expect(contract.connect(owner).resolveDecision(decisionId, 2)) // 2 = Approve
         .to.emit(contract, "DecisionResolved")
@@ -95,7 +139,7 @@ describe("ConfidentialSpendPolicy", function () {
       const decisionId = hre.ethers.keccak256(hre.ethers.toUtf8Bytes("test"));
 
       await expect(
-        contract.connect(operator).resolveDecision(decisionId, 2)
+        contract.connect(operator).resolveDecision(decisionId, 2),
       ).to.be.revertedWith("not owner");
     });
 
@@ -104,13 +148,15 @@ describe("ConfidentialSpendPolicy", function () {
       const decisionId = hre.ethers.keccak256(hre.ethers.toUtf8Bytes("test"));
 
       await expect(
-        contract.connect(owner).resolveDecision(decisionId, 3) // 3 = Pending
+        contract.connect(owner).resolveDecision(decisionId, 3), // 3 = Pending
       ).to.be.revertedWith("outcome must be resolved");
     });
 
     it("should return false for unresolved decisions", async function () {
       const { contract } = await loadFixture(deployFixture);
-      const decisionId = hre.ethers.keccak256(hre.ethers.toUtf8Bytes("unresolved"));
+      const decisionId = hre.ethers.keccak256(
+        hre.ethers.toUtf8Bytes("unresolved"),
+      );
 
       expect(await contract.isDecisionApproved(decisionId)).to.be.false;
     });
@@ -121,10 +167,18 @@ describe("ConfidentialSpendPolicy", function () {
       const { contract, owner } = await loadFixture(deployFixture);
       const mailbox = hre.ethers.Wallet.createRandom().address;
       const domain = 1952;
-      const recipient = hre.ethers.zeroPadValue(hre.ethers.Wallet.createRandom().address, 32);
-      const vault = hre.ethers.zeroPadValue(hre.ethers.Wallet.createRandom().address, 32);
+      const recipient = hre.ethers.zeroPadValue(
+        hre.ethers.Wallet.createRandom().address,
+        32,
+      );
+      const vault = hre.ethers.zeroPadValue(
+        hre.ethers.Wallet.createRandom().address,
+        32,
+      );
 
-      await contract.connect(owner).setHyperlaneConfig(mailbox, domain, recipient, vault);
+      await contract
+        .connect(owner)
+        .setHyperlaneConfig(mailbox, domain, recipient, vault);
 
       expect(await contract.mailbox()).to.equal(mailbox);
       expect(await contract.xLayerDestinationDomain()).to.equal(domain);
@@ -136,7 +190,14 @@ describe("ConfidentialSpendPolicy", function () {
       const { contract, operator } = await loadFixture(deployFixture);
 
       await expect(
-        contract.connect(operator).setHyperlaneConfig(hre.ethers.ZeroAddress, 0, hre.ethers.ZeroHash, hre.ethers.ZeroHash)
+        contract
+          .connect(operator)
+          .setHyperlaneConfig(
+            hre.ethers.ZeroAddress,
+            0,
+            hre.ethers.ZeroHash,
+            hre.ethers.ZeroHash,
+          ),
       ).to.be.revertedWith("not owner");
     });
   });

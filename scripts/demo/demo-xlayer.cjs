@@ -78,13 +78,19 @@ async function main() {
 
   const privateKey = process.env.XLAYER_PRIVATE_KEY;
   if (!privateKey) {
-    console.error("❌ XLAYER_PRIVATE_KEY not set. Add it to .env or export it.");
+    console.error(
+      "❌ XLAYER_PRIVATE_KEY not set. Add it to .env or export it.",
+    );
     process.exit(1);
   }
 
   const provider = new ethers.JsonRpcProvider(XLAYER_TESTNET_RPC);
   const wallet = new ethers.Wallet(privateKey, provider);
-  const governance = new ethers.Contract(GOVERNANCE_ADDRESS, GOVERNANCE_ABI, wallet);
+  const governance = new ethers.Contract(
+    GOVERNANCE_ADDRESS,
+    GOVERNANCE_ABI,
+    wallet,
+  );
   const storage = new ethers.Contract(STORAGE_ADDRESS, STORAGE_ABI, wallet);
 
   console.log(`  Network:    X Layer Testnet (chainId 195)`);
@@ -95,9 +101,14 @@ async function main() {
   // ── Step 1: Read current stats ──
   step(1, "Read current governance stats");
   const [policies, agents, actions] = await governance.getStats();
-  const [storageActions, violations, storageAgents] = await storage.getGovernanceStats();
-  info(`GovernanceContract — Policies: ${policies}, Agents: ${agents}, Actions: ${actions}`);
-  info(`AIGovernanceStorage — Actions: ${storageActions}, Violations: ${violations}, Agents: ${storageAgents}`);
+  const [storageActions, violations, storageAgents] =
+    await storage.getGovernanceStats();
+  info(
+    `GovernanceContract — Policies: ${policies}, Agents: ${agents}, Actions: ${actions}`,
+  );
+  info(
+    `AIGovernanceStorage — Actions: ${storageActions}, Violations: ${violations}, Agents: ${storageAgents}`,
+  );
   done();
 
   // ── Step 2: Create a new policy ──
@@ -109,7 +120,12 @@ async function main() {
   const rulesHash = ethers.keccak256(ethers.toUtf8Bytes(`rules-${ts}`));
 
   info(`Creating policy: "${policyName}"`);
-  let tx = await governance.createPolicy(policyId, policyName, policyDesc, rulesHash);
+  let tx = await governance.createPolicy(
+    policyId,
+    policyName,
+    policyDesc,
+    rulesHash,
+  );
   await tx.wait();
   ok("Policy created on-chain");
 
@@ -128,8 +144,15 @@ async function main() {
   const agentName = "Demo Trading Agent";
   const capabilities = ["swap", "transfer", "stake"];
 
-  info(`Registering agent: "${agentName}" with capabilities: [${capabilities.join(", ")}]`);
-  tx = await governance.registerAgent(agentId, agentName, capabilities, policyId);
+  info(
+    `Registering agent: "${agentName}" with capabilities: [${capabilities.join(", ")}]`,
+  );
+  tx = await governance.registerAgent(
+    agentId,
+    agentName,
+    capabilities,
+    policyId,
+  );
   await tx.wait();
   ok("Agent registered in GovernanceContract");
 
@@ -139,7 +162,9 @@ async function main() {
   ok("Agent activated");
 
   const agent = await governance.getAgent(agentId);
-  info(`Agent bound to policy, status: ${agent.status === 1n ? "Active" : "Inactive"}`);
+  info(
+    `Agent bound to policy, status: ${agent.status === 1n ? "Active" : "Inactive"}`,
+  );
   done();
 
   // ── Step 4: Evaluate a spend action (approve) ──
@@ -147,27 +172,39 @@ async function main() {
   const actionId = ethers.keccak256(ethers.toUtf8Bytes(`demo-action-${ts}`));
   const actionType = "swap";
   const evidenceHash = ethers.keccak256(
-    ethers.toUtf8Bytes(JSON.stringify({
-      from: "OKB",
-      to: "USDT",
-      amount: "0.3",
-      reason: "Portfolio rebalance",
-    }))
+    ethers.toUtf8Bytes(
+      JSON.stringify({
+        from: "OKB",
+        to: "USDT",
+        amount: "0.3",
+        reason: "Portfolio rebalance",
+      }),
+    ),
   );
 
   info(`Action: swap 0.3 OKB → USDT (within policy limit)`);
   info("Evaluating against policy...");
-  tx = await governance.evaluateAction(actionId, agentId, actionType, evidenceHash, true);
+  tx = await governance.evaluateAction(
+    actionId,
+    agentId,
+    actionType,
+    evidenceHash,
+    true,
+  );
   await tx.wait();
   ok("Action APPROVED and recorded on GovernanceContract");
 
   const action = await governance.getAction(actionId);
-  info(`On-chain result: approved=${action.approved}, type="${action.actionType}"`);
+  info(
+    `On-chain result: approved=${action.approved}, type="${action.actionType}"`,
+  );
   done();
 
   // ── Step 5: Store governance record in AIGovernanceStorage ──
   step(5, "Anchor audit record to AIGovernanceStorage");
-  const storageActionId = ethers.keccak256(ethers.toUtf8Bytes(`storage-action-${ts}`));
+  const storageActionId = ethers.keccak256(
+    ethers.toUtf8Bytes(`storage-action-${ts}`),
+  );
 
   info("Writing immutable audit record...");
   tx = await storage.storeGovernanceAction(
@@ -175,16 +212,18 @@ async function main() {
     wallet.address,
     "swap",
     "Swap 0.3 OKB to USDT — approved by policy engine",
-    true,                                       // approved
-    1,                                          // policyCheckCount
-    "PASS: within spend limit",                 // policyResult
-    evidenceHash                                // filecoinCID (using evidence hash as reference)
+    true, // approved
+    1, // policyCheckCount
+    "PASS: within spend limit", // policyResult
+    evidenceHash, // filecoinCID (using evidence hash as reference)
   );
   await tx.wait();
   ok("Audit record anchored to AIGovernanceStorage");
 
   const record = await storage.getGovernanceRecord(storageActionId);
-  info(`Record immutable: ${record.isImmutable}, approved: ${record.approved}, policyResult: "${record.policyResult}"`);
+  info(
+    `Record immutable: ${record.isImmutable}, approved: ${record.approved}, policyResult: "${record.policyResult}"`,
+  );
   done();
 
   // ── Step 6: Query final stats ──
@@ -192,7 +231,9 @@ async function main() {
   const [p2, a2, ac2] = await governance.getStats();
   const [sa2, v2, sag2] = await storage.getGovernanceStats();
   info(`GovernanceContract — Policies: ${p2}, Agents: ${a2}, Actions: ${ac2}`);
-  info(`AIGovernanceStorage — Actions: ${sa2}, Violations: ${v2}, Agents: ${sag2}`);
+  info(
+    `AIGovernanceStorage — Actions: ${sa2}, Violations: ${v2}, Agents: ${sag2}`,
+  );
   done();
 
   // ── Summary ──
@@ -201,7 +242,9 @@ async function main() {
   console.log("  1. Connected to deployed contracts on X Layer testnet");
   console.log("  2. Created a spend-limit policy and activated it on-chain");
   console.log("  3. Registered an AI trading agent bound to that policy");
-  console.log("  4. Agent requested a swap — policy engine approved it on-chain");
+  console.log(
+    "  4. Agent requested a swap — policy engine approved it on-chain",
+  );
   console.log("  5. Audit record anchored to AIGovernanceStorage (immutable)");
   console.log("  6. Verified all state changes are recorded and queryable\n");
   console.log("  Explorer: https://www.okx.com/explorer/xlayer-test");

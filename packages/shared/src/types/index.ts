@@ -10,19 +10,19 @@ export interface ApiResponse<T> {
 export interface AuditLog {
   id: string;
   agentId: string;
-  agent?: string;               // human-readable agent name
+  agent?: string; // human-readable agent name
   action: string;
-  actionType?: string;          // alias for action (backward compat)
+  actionType?: string; // alias for action (backward compat)
   description: string;
-  desc?: string;                // short alias for description
-  decision: 'approved' | 'denied' | 'held';
-  outcome?: 'allowed' | 'denied' | 'held';       // alias for decision
-  complianceStatus?: 'compliant' | 'non-compliant' | 'pending';
+  desc?: string; // short alias for description
+  decision: "approved" | "denied" | "held";
+  outcome?: "allowed" | "denied" | "held"; // alias for decision
+  complianceStatus?: "compliant" | "non-compliant" | "pending";
   chain: string;
   timestamp: string;
-  time?: string;                // human-readable time string
+  time?: string; // human-readable time string
   latency?: string;
-  responseTime?: string;         // alias for latency
+  responseTime?: string; // alias for latency
   policyChecks?: PolicyCheck[];
 }
 
@@ -35,7 +35,7 @@ export interface PolicyCheck {
 export interface Run {
   id: string;
   workflow: string;
-  status: 'completed' | 'running' | 'failed' | 'paused_for_approval';
+  status: "completed" | "running" | "failed" | "paused_for_approval";
   mode: string;
   steps: number;
   duration: string;
@@ -55,7 +55,7 @@ export interface Policy {
   name: string;
   type: string;
   description: string;
-  status: 'active' | 'draft' | 'inactive';
+  status: "active" | "draft" | "inactive";
   agents: number;
   violations: number;
   rules?: PolicyRule[];
@@ -65,7 +65,7 @@ export interface Policy {
 export interface PolicyRule {
   id?: string;
   condition: string;
-  action: 'allow' | 'deny' | 'flag';
+  action: "allow" | "deny" | "flag";
   params?: Record<string, unknown>;
 }
 
@@ -73,12 +73,12 @@ export interface Agent {
   id: string;
   name: string;
   role: string;
-  status: 'active' | 'paused' | 'inactive';
+  status: "active" | "paused" | "inactive";
   trades: number;
   budget: string;
   chain: string;
   spendHistory?: SpendEntry[];
-  source?: 'managed' | 'external';
+  source?: "managed" | "external";
   walletAddress?: string;
   webhookUrl?: string;
 }
@@ -184,7 +184,7 @@ export interface Workspace {
   id: string;
   name: string;
   ownerId: string;
-  tier: 'demo' | 'live';
+  tier: "demo" | "live";
   createdAt: string;
   updatedAt: string;
 }
