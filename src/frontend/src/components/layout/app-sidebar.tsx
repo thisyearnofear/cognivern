@@ -68,29 +68,37 @@ export function AppSidebar() {
           </div>
         </div>
 
-        <div className="relative grid grid-cols-2 p-1 bg-muted rounded-lg border border-border/50">
-          <motion.div
-            className="absolute inset-y-1 w-[calc(50%-8px)] rounded-md bg-background shadow-sm"
-            animate={{ x: isSandbox ? 4 : 'calc(100% + 4px)' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          />
-          <button
-            onClick={() => setWorkspaceMode('sandbox')}
-            className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              isSandbox ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Sandbox
-          </button>
-          <button
-            onClick={() => setWorkspaceMode('production')}
-            className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              !isSandbox ? 'text-emerald-600' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Production
-          </button>
-        </div>
+        {demoMode ? (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40">
+            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Demo Mode</span>
+            <span className="ml-auto text-[10px] text-amber-500/70">Sample data</span>
+          </div>
+        ) : (
+          <div className="relative grid grid-cols-2 p-1 bg-muted rounded-lg border border-border/50">
+            <motion.div
+              className="absolute inset-y-1 w-[calc(50%-8px)] rounded-md bg-background shadow-sm"
+              animate={{ x: isSandbox ? 4 : 'calc(100% + 4px)' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            />
+            <button
+              onClick={() => setWorkspaceMode('sandbox')}
+              className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                isSandbox ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Sandbox
+            </button>
+            <button
+              onClick={() => setWorkspaceMode('production')}
+              className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                !isSandbox ? 'text-emerald-600' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Production
+            </button>
+          </div>
+        )}
       </SidebarHeader>
 
       <SidebarContent className="px-0 gap-0">
@@ -158,10 +166,6 @@ export function AppSidebar() {
         <div className="px-2 py-2">
           {demoMode ? (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-                <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Demo Mode</span>
-              </div>
               <button
                 onClick={() => router.push('/onboarding')}
                 type="button"

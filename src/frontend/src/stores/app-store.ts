@@ -83,13 +83,16 @@ export const useAppStore = create<AppState>()(
           setWorkspaceMode: (mode) => set({ user: { ...get().user, workspaceMode: mode } }),
           login: (token: string, authUser: AuthUser, workspace: Workspace) => {
             set({
+              demoMode: false,
               user: {
                 isConnected: true,
                 walletAddress: authUser.walletAddress,
                 authUser,
                 workspace,
                 token,
-                workspaceMode: get().user.workspaceMode,
+                workspaceMode: get().user.workspaceMode === 'sandbox' && get().demoMode
+                  ? 'sandbox'
+                  : get().user.workspaceMode,
               },
             });
             localStorage.setItem('cognivern-token', token);
@@ -110,7 +113,13 @@ export const useAppStore = create<AppState>()(
             });
           },
           exitDemoMode: () => {
-            set({ demoMode: false, user: defaultUser });
+            const current = get().user;
+            // If user is authenticated, preserve their session; otherwise reset
+            if (current.isConnected) {
+              set({ demoMode: false });
+            } else {
+              set({ demoMode: false, user: defaultUser });
+            }
           },
           addDemoAuditLog: (log) => {
             set({

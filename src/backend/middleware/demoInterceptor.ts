@@ -33,10 +33,14 @@ export async function demoInterceptor(
     req.walletAddress = payload.walletAddress as string;
     req.workspaceId = workspaceId;
 
-    // Determine mode: check header, fallback to 'production' if not provided
-    const mode = (req.headers["x-workspace-mode"] as string) === "sandbox" ? "sandbox" : "production";
+    // Determine mode:
+    // 1. If workspace tier is 'demo' in DB, always serve demo data (free tier)
+    // 2. If tier is 'live', respect the X-Workspace-Mode header for sandbox testing
+    const tier = getWorkspaceTier(workspaceId);
+    const headerMode = (req.headers["x-workspace-mode"] as string) === "sandbox" ? "sandbox" : "production";
+    const effectiveMode = tier === "demo" ? "sandbox" : headerMode;
     
-    const response = mode === "sandbox"
+    const response = effectiveMode === "sandbox"
       ? serveDemoData(req.method, req.path, req.body)
       : serveLiveData(req.method, req.path, workspaceId, req.body);
 
