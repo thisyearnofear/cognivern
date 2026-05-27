@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,8 @@ import {
   PlayCircle,
   ArrowRight,
   Lock,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { apiClient, type GovernanceEvaluation } from '@/lib/api-client';
 import { useAgents } from '@/hooks/use-api';
@@ -35,6 +37,38 @@ const ACTION_TYPES = [
   { type: 'mint', description: 'Mint tokens' },
   { type: 'approve', description: 'Approve a spending cap' },
 ];
+
+/** Quick-select description chips per action type */
+const DESCRIPTION_CHIPS: Record<string, string[]> = {
+  swap: [
+    'Swap ETH for USDC on Uniswap V3',
+    'Swap USDC for WBTC on Curve',
+    'Swap stETH for ETH on Lido',
+    'Arbitrage ETH/USDC across DEXs',
+  ],
+  stake: [
+    'Stake USDC in Aave v3 lending pool',
+    'Stake ETH in Lido for stETH rewards',
+    'Deposit into Curve 3pool for CRV rewards',
+    'Restake ETH on EigenLayer',
+  ],
+  transfer: [
+    'Transfer USDC to treasury multisig',
+    'Bridge ETH to Arbitrum via native bridge',
+    'Withdraw to cold storage wallet',
+    'Pay vendor invoice in USDC',
+  ],
+  mint: [
+    'Mint governance tokens for rewards distribution',
+    'Mint NFT collection for community airdrop',
+    'Mint stablecoin via CDP vault',
+  ],
+  approve: [
+    'Approve USDC spend cap for Aave v3',
+    'Approve WETH for Uniswap V3 router',
+    'Approve stablecoin for Curve gauge',
+  ],
+};
 
 function CheckItem({ label, passed, detail }: { label: string; passed: boolean; detail: string }) {
   return (
@@ -56,11 +90,17 @@ export function GovernanceCheck() {
   const { data: agents } = useAgents();
   const [agentId, setAgentId] = useState('');
   const [actionType, setActionType] = useState('swap');
-  const [actionDesc, setActionDesc] = useState('');
+  const [actionDesc, setActionDesc] = useState(
+    ACTION_TYPES.find((a) => a.type === 'swap')?.description || ''
+  );
   const [amount, setAmount] = useState('200');
   const [evaluating, setEvaluating] = useState(false);
   const [result, setResult] = useState<GovernanceEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   const agentList = agents || [];
 
@@ -154,16 +194,120 @@ export function GovernanceCheck() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="desc" className="text-sm font-medium">
-                  Description
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="desc" className="text-sm font-medium">
+                    Description
+                  </label>
+                  <button
+                    type="button"
+                    disabled={transcribing}
+                    onClick={async () => {
+                      if (recording && mediaRecorderRef.current) {
+                        // Stop recording
+                        mediaRecorderRef.current.stop();
+                        setRecording(false);
+                        return;
+                      }
+
+                      // Start recording
+                      try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+                          ? 'audio/webm'
+                          : MediaRecorder.isTypeSupported('audio/mp4')
+                          ? 'audio/mp4'
+                          : undefined;
+                        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+                        mediaRecorderRef.current = recorder;
+                        recordedChunksRef.current = [];
+
+                        recorder.ondataavailable = (e) => {
+                          if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+                        };
+
+                        recorder.onstop = async () => {
+                          // Stop all tracks to release mic
+                          stream.getTracks().forEach((t) => t.stop());
+
+                          const blob = new Blob(recordedChunksRef.current, {
+                            type: mimeType || 'audio/webm',
+                          });
+                          if (blob.size === 0) return;
+
+                          setTranscribing(true);
+                          try {
+                            const arrayBuffer = await blob.arrayBuffer();
+                            const bytes = new Uint8Array(arrayBuffer);
+                            let binary = '';
+                            const len = bytes.byteLength;
+                            for (let i = 0; i < len; i++) {
+                              binary += String.fromCharCode(bytes[i]);
+                            }
+                            const base64 = btoa(binary);
+
+                            const res = await apiClient.transcribeSpeech({
+                              audio: base64,
+                              mimeType: mimeType || 'audio/webm',
+                            });
+                            if (res.success && res.data?.text) {
+                              setActionDesc(res.data.text);
+                            } else {
+                              setError(res.error || 'Transcription failed');
+                            }
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : 'Transcription failed');
+                          } finally {
+                            setTranscribing(false);
+                          }
+                        };
+
+                        recorder.start();
+                        setRecording(true);
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Microphone access denied');
+                      }
+                    }}
+                    className={`flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors ${
+                      recording
+                        ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                        : 'bg-muted text-muted-foreground hover:text-foreground'
+                    }`}
+                    title={recording ? 'Stop recording' : 'Record voice description'}
+                  >
+                    {transcribing ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : recording ? (
+                      <MicOff className="h-3 w-3" />
+                    ) : (
+                      <Mic className="h-3 w-3" />
+                    )}
+                    {transcribing ? 'Transcribing…' : recording ? 'Recording...' : 'Voice'}
+                  </button>
+                </div>
                 <Textarea
                   id="desc"
                   value={actionDesc}
                   onChange={(e) => setActionDesc(e.target.value)}
-                  placeholder="Describe the spend action..."
+                  placeholder="Describe the spend action or pick a chip below..."
                   rows={2}
                 />
+                {/* Quick-select chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {(DESCRIPTION_CHIPS[actionType] || []).map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => setActionDesc(chip)}
+                      className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                        actionDesc === chip
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                      }`}
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-2">

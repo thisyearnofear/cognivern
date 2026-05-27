@@ -26,15 +26,18 @@ export const WorkspaceDataService = {
     chain: string;
     walletAddress?: string;
     budget?: string;
+    source?: 'managed' | 'external';
+    webhookUrl?: string;
   }): Agent {
     const db = getDb();
     const id = `agent-${randomUUID().slice(0, 8)}`;
     const now = new Date().toISOString();
+    const source = params.source || 'managed';
 
     db.prepare(
-      `INSERT INTO workspace_agents (id, workspace_id, name, role, status, chain, wallet_address, budget, trades, spend_history, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, 0, '[]', ?, ?)`
-    ).run(id, workspaceId, params.name, params.role, params.chain, params.walletAddress || null, params.budget || "$0", now, now);
+      `INSERT INTO workspace_agents (id, workspace_id, name, role, status, chain, wallet_address, budget, trades, spend_history, source, webhook_url, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, 0, '[]', ?, ?, ?, ?)`
+    ).run(id, workspaceId, params.name, params.role, params.chain, params.walletAddress || null, params.budget || "$0", source, params.webhookUrl || null, now, now);
 
     return {
       id,
@@ -45,6 +48,9 @@ export const WorkspaceDataService = {
       budget: params.budget || "$0",
       trades: 0,
       spendHistory: [],
+      source,
+      walletAddress: params.walletAddress,
+      webhookUrl: params.webhookUrl,
     };
   },
 
@@ -301,6 +307,9 @@ function rowToAgent(row: any): Agent {
     budget: row.budget || "$0",
     trades: row.trades || 0,
     spendHistory: JSON.parse(row.spend_history || "[]"),
+    source: row.source || 'managed',
+    walletAddress: row.wallet_address || undefined,
+    webhookUrl: row.webhook_url || undefined,
   };
 }
 

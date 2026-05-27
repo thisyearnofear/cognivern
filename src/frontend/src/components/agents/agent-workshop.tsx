@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Sparkles, ArrowLeft, Loader2, CheckCircle2, Copy, Check } from 'lucide-react';
+import { Sparkles, ArrowLeft, Loader2, CheckCircle2, Copy, Check, Plug } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { mutate } from 'swr';
 import { useCallback } from 'react';
@@ -82,10 +82,13 @@ const USE_CASE_TEMPLATES = [
 
 export function AgentWorkshop() {
   const router = useRouter();
+  const [mode, setMode] = useState<'create' | 'connect'>('create');
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [chain, setChain] = useState('Ethereum');
   const [budget, setBudget] = useState('$5,000');
+  const [walletAddress, setWalletAddress] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState('');
   const [creating, setCreating] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -96,21 +99,31 @@ export function AgentWorkshop() {
     setError(null);
 
     try {
-      const res = await apiClient.registerAgent({
-        name: name.trim(),
-        role: role.trim(),
-        chain,
-        budget,
-      });
+      const res =
+        mode === 'connect'
+          ? await apiClient.connectAgent({
+              name: name.trim(),
+              role: role.trim(),
+              chain,
+              walletAddress: walletAddress.trim(),
+              budget,
+              webhookUrl: webhookUrl.trim() || undefined,
+            })
+          : await apiClient.registerAgent({
+              name: name.trim(),
+              role: role.trim(),
+              chain,
+              budget,
+            });
 
       if (res.success && res.data) {
         setCreatedId(res.data.id);
         mutate('/api/agents');
       } else {
-        setError('Failed to create agent');
+        setError(res.error || `Failed to ${mode === 'connect' ? 'connect' : 'create'} agent`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create agent');
+      setError(err instanceof Error ? err.message : `Failed to ${mode === 'connect' ? 'connect' : 'create'} agent`);
     } finally {
       setCreating(false);
     }
@@ -134,48 +147,87 @@ export function AgentWorkshop() {
         </div>
       </div>
 
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setMode('create')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+            mode === 'create'
+              ? 'border-primary bg-primary/5 text-primary'
+              : 'border-border text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Sparkles className="h-4 w-4" />
+          Create New
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('connect')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+            mode === 'connect'
+              ? 'border-primary bg-primary/5 text-primary'
+              : 'border-border text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Plug className="h-4 w-4" />
+          Connect Existing
+        </button>
+      </div>
+
       <Card>
         <CardContent className="p-6 space-y-5">
           <div className="flex items-center gap-3 pb-2">
             <div className="p-2 rounded-lg bg-sky-100 dark:bg-sky-950">
-              <Sparkles className="h-5 w-5 text-sky-500" />
+              {mode === 'connect' ? (
+                <Plug className="h-5 w-5 text-sky-500" />
+              ) : (
+                <Sparkles className="h-5 w-5 text-sky-500" />
+              )}
             </div>
             <div>
-              <h2 className="font-semibold">Agent Configuration</h2>
+              <h2 className="font-semibold">
+                {mode === 'connect' ? 'Connect Existing Agent' : 'Agent Configuration'}
+              </h2>
               <p className="text-xs text-muted-foreground">
-                Define your agent&apos;s identity and constraints
+                {mode === 'connect'
+                  ? 'Register an agent that already exists on-chain or off-chain'
+                  : 'Define your agent\'s identity and constraints'}
               </p>
             </div>
           </div>
 
           <Separator />
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Start from a template</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {USE_CASE_TEMPLATES.map((t) => (
-                <button
-                  key={t.role}
-                  type="button"
-                  onClick={() => {
-                    setName(t.name);
-                    setRole(t.role);
-                    setChain(t.chain);
-                    setBudget(t.budget);
-                  }}
-                  className={`p-3 rounded-lg border text-left transition-colors hover:border-primary/50 ${
-                    role === t.role ? 'border-primary bg-primary/5' : 'border-border'
-                  }`}
-                >
-                  <div className="text-xs font-medium">{t.role}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">{t.desc}</div>
-                </button>
-              ))}
-            </div>
-            <p className="text-[11px] text-muted-foreground">Or fill in manually below</p>
-          </div>
+          {mode === 'create' && (
+            <>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Start from a template</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {USE_CASE_TEMPLATES.map((t) => (
+                    <button
+                      key={t.role}
+                      type="button"
+                      onClick={() => {
+                        setName(t.name);
+                        setRole(t.role);
+                        setChain(t.chain);
+                        setBudget(t.budget);
+                      }}
+                      className={`p-3 rounded-lg border text-left transition-colors hover:border-primary/50 ${
+                        role === t.role ? 'border-primary bg-primary/5' : 'border-border'
+                      }`}
+                    >
+                      <div className="text-xs font-medium">{t.role}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{t.desc}</div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-muted-foreground">Or fill in manually below</p>
+              </div>
 
-          <Separator />
+              <Separator />
+            </>
+          )}
 
           <div className="space-y-2">
             <label htmlFor="name" className="text-sm font-medium">
@@ -197,9 +249,26 @@ export function AgentWorkshop() {
               id="role"
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              placeholder="e.g. DeFi Yield Optimizer"
+              placeholder={mode === 'connect' ? 'e.g. Existing DeFi Trading Bot' : 'e.g. DeFi Yield Optimizer'}
             />
           </div>
+
+          {mode === 'connect' && (
+            <div className="space-y-2">
+              <label htmlFor="wallet" className="text-sm font-medium">
+                Wallet Address <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="wallet"
+                value={walletAddress}
+                onChange={(e) => setWalletAddress(e.target.value)}
+                placeholder="0x..."
+              />
+              <p className="text-[11px] text-muted-foreground">
+                The existing agent&apos;s wallet address used to identify it on-chain
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -239,6 +308,23 @@ export function AgentWorkshop() {
             </div>
           </div>
 
+          {mode === 'connect' && (
+            <div className="space-y-2">
+              <label htmlFor="webhook" className="text-sm font-medium">
+                Webhook URL <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <Input
+                id="webhook"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                placeholder="https://your-agent.example.com/webhook"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Optional endpoint for governance decision callbacks
+              </p>
+            </div>
+          )}
+
           {error && (
             <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 text-sm text-red-600 dark:text-red-400">
               {error}
@@ -248,11 +334,20 @@ export function AgentWorkshop() {
           <Button
             className="w-full"
             onClick={handleCreate}
-            disabled={!name.trim() || !role.trim() || creating}
+            disabled={
+              !name.trim() ||
+              !role.trim() ||
+              creating ||
+              (mode === 'connect' && !walletAddress.trim())
+            }
           >
             {creating ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Registering...
+                <Loader2 className="h-4 w-4 animate-spin" /> {mode === 'connect' ? 'Connecting...' : 'Registering...'}
+              </>
+            ) : mode === 'connect' ? (
+              <>
+                <Plug className="h-4 w-4" /> Connect Agent
               </>
             ) : (
               <>
@@ -266,14 +361,26 @@ export function AgentWorkshop() {
       <Card className="bg-muted/20">
         <CardContent className="p-4">
           <div className="text-sm space-y-2">
-            <div className="font-medium">What happens when you register:</div>
+            <div className="font-medium">
+              {mode === 'connect' ? 'What happens when you connect an existing agent:' : 'What happens when you register:'}
+            </div>
             <ol className="list-decimal list-inside text-muted-foreground space-y-1 text-xs">
-              <li>The agent is registered in your workspace with the selected budget and chain</li>
-              <li>It appears in your Agents dashboard with &ldquo;active&rdquo; status</li>
-              <li>Create an API key in Settings and give it to your agent for authentication</li>
-              <li>
-                The agent calls Cognivern&apos;s API before every transaction for governance checks
-              </li>
+              {mode === 'connect' ? (
+                <>
+                  <li>The agent is linked to your workspace with its wallet address and metadata</li>
+                  <li>It appears in your Agents dashboard with &ldquo;external&rdquo; label</li>
+                  <li>Create an API key in Settings and configure your existing agent to use it</li>
+                  <li>Your agent calls Cognivern&apos;s API before every transaction for governance checks</li>
+                  <li>No new infrastructure is spun up — we govern, you operate</li>
+                </>
+              ) : (
+                <>
+                  <li>The agent is registered in your workspace with the selected budget and chain</li>
+                  <li>It appears in your Agents dashboard with &ldquo;active&rdquo; status</li>
+                  <li>Create an API key in Settings and give it to your agent for authentication</li>
+                  <li>The agent calls Cognivern&apos;s API before every transaction for governance checks</li>
+                </>
+              )}
             </ol>
           </div>
         </CardContent>

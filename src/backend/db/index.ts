@@ -94,6 +94,14 @@ function migrate(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_workspace_agents_workspace ON workspace_agents(workspace_id);
     CREATE INDEX IF NOT EXISTS idx_workspace_policies_workspace ON workspace_policies(workspace_id);
   `);
+
+  // Migration: add source / webhook_url to workspace_agents (idempotent)
+  try {
+    db.exec(`ALTER TABLE workspace_agents ADD COLUMN source TEXT NOT NULL DEFAULT 'managed'`);
+  } catch { /* already exists */ }
+  try {
+    db.exec(`ALTER TABLE workspace_agents ADD COLUMN webhook_url TEXT`);
+  } catch { /* already exists */ }
 }
 
 export function closeDb(): void {

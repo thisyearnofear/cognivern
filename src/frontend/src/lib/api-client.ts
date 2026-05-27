@@ -251,6 +251,20 @@ class ApiClient {
     });
   }
 
+  async connectAgent(params: {
+    name: string;
+    role: string;
+    chain: string;
+    walletAddress: string;
+    budget?: string;
+    webhookUrl?: string;
+  }): Promise<ApiResponse<Agent>> {
+    return this.fetch('/api/agents/connect', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
   // Policy creation (live workspaces)
   async createGovernancePolicy(params: {
     name: string;
@@ -260,6 +274,17 @@ class ApiClient {
     metadata?: Record<string, unknown>;
   }): Promise<ApiResponse<Policy>> {
     return this.fetch('/api/governance/policies', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  // Speech-to-text (ElevenLabs proxy)
+  async transcribeSpeech(params: {
+    audio: string; // base64
+    mimeType?: string;
+  }): Promise<ApiResponse<{ text: string; language?: string }>> {
+    return this.fetch('/api/speech/transcribe', {
       method: 'POST',
       body: JSON.stringify(params),
     });

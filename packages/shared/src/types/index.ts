@@ -78,6 +78,9 @@ export interface Agent {
   budget: string;
   chain: string;
   spendHistory?: SpendEntry[];
+  source?: 'managed' | 'external';
+  walletAddress?: string;
+  webhookUrl?: string;
 }
 
 export interface SpendEntry {
