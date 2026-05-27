@@ -7,7 +7,9 @@ try {
 } catch (_) {
   // Plugins are optional during initial scaffolding
 }
-require("dotenv").config({ path: path.resolve(__dirname, "..", "..", ".env.local") });
+require("dotenv").config({
+  path: path.resolve(__dirname, "..", "..", ".env.local"),
+});
 require("dotenv").config({ path: path.resolve(__dirname, "..", "..", ".env") });
 
 const root = path.resolve(__dirname, "..", "..");
@@ -19,23 +21,32 @@ module.exports = {
     settings: {
       evmVersion: "cancun",
       viaIR: true,
-      optimizer: { enabled: true, runs: 200 }
-    }
+      optimizer: { enabled: true, runs: 200 },
+    },
   }, // Match contract version
   networks: {
     fhenixSepolia: {
-      url: process.env.FHENIX_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
-      accounts: process.env.FHENIX_PRIVATE_KEY ? [process.env.FHENIX_PRIVATE_KEY] : [],
+      url:
+        process.env.FHENIX_SEPOLIA_RPC ||
+        "https://sepolia-rollup.arbitrum.io/rpc",
+      accounts: process.env.FHENIX_PRIVATE_KEY
+        ? [process.env.FHENIX_PRIVATE_KEY]
+        : [],
       chainId: 421614,
     },
     arbitrumSepolia: {
-      url: process.env.ARB_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
-      accounts: process.env.FHENIX_PRIVATE_KEY ? [process.env.FHENIX_PRIVATE_KEY] : [],
+      url:
+        process.env.ARB_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
+      accounts: process.env.FHENIX_PRIVATE_KEY
+        ? [process.env.FHENIX_PRIVATE_KEY]
+        : [],
       chainId: 421614,
     },
     baseSepolia: {
       url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
-      accounts: process.env.FHENIX_PRIVATE_KEY ? [process.env.FHENIX_PRIVATE_KEY] : [],
+      accounts: process.env.FHENIX_PRIVATE_KEY
+        ? [process.env.FHENIX_PRIVATE_KEY]
+        : [],
       chainId: 84532,
     },
   },

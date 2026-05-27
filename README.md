@@ -32,20 +32,20 @@ See [Developer Guide](./docs/DEVELOPER.md) for full setup and API reference.
 
 Cognivern solves a common agentic scaling problem: teams can ship quickly, but spend control, privacy, and accountability often fragment across tools. The platform unifies those rails so operators can prove disciplined execution without slowing builders down.
 
-| Capability | Endpoint |
-|------------|----------|
-| Policy evaluation | `POST /api/governance/evaluate` |
-| Governed spend | `POST /api/spend` |
-| Governed encrypted spend | `POST /api/spend/encrypted` |
-| Spend preview (dry-run) | `POST /api/spend/preview` |
-| OWS wallet bootstrap | `POST /api/ows/bootstrap` |
-| API-key issuance | `POST /api/ows/api-keys` |
-| Audit trail | `GET /api/audit/logs` |
-| Audit permits (confidential) | `POST /api/audit/permits` |
-| Run ledger | `GET /api/cre/runs` |
-| Run ingestion | `POST /ingest/runs` |
-| Natural language intent | `POST /api/intent` |
-| Intent metrics | `GET /api/intent/metrics` |
+| Capability                   | Endpoint                        |
+| ---------------------------- | ------------------------------- |
+| Policy evaluation            | `POST /api/governance/evaluate` |
+| Governed spend               | `POST /api/spend`               |
+| Governed encrypted spend     | `POST /api/spend/encrypted`     |
+| Spend preview (dry-run)      | `POST /api/spend/preview`       |
+| OWS wallet bootstrap         | `POST /api/ows/bootstrap`       |
+| API-key issuance             | `POST /api/ows/api-keys`        |
+| Audit trail                  | `GET /api/audit/logs`           |
+| Audit permits (confidential) | `POST /api/audit/permits`       |
+| Run ledger                   | `GET /api/cre/runs`             |
+| Run ingestion                | `POST /ingest/runs`             |
+| Natural language intent      | `POST /api/intent`              |
+| Intent metrics               | `GET /api/intent/metrics`       |
 
 ### Product Primitives
 
@@ -66,37 +66,37 @@ pnpm demo:live
 
 ## Documentation
 
-| Doc | Covers |
-|-----|--------|
-| [Hackathon Brief](./docs/HACKATHON.md) | Demo story, submission, talk track |
-| [Architecture](./docs/ARCHITECTURE.md) | System design, data flows, endpoints |
-| [Developer Guide](./docs/DEVELOPER.md) | Local setup, APIs, testing, production readiness |
-| [Deployment](./docs/DEPLOYMENT.md) | Production deployment, PM2, rollbacks |
-| [Fhenix Integration](./docs/FHENIX_INTEGRATION.md) | Privacy-by-Design plan: encrypted budgets, sealed approvals, FHE policy evaluation |
-| [ChainGPT Integration](./docs/CHAINGPT_INTEGRATION.md) | Web3-native AI governance: ChainGPT LLM + Smart Contract Auditor integration |
+| Doc                                                    | Covers                                                                             |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| [Hackathon Brief](./docs/HACKATHON.md)                 | Demo story, submission, talk track                                                 |
+| [Architecture](./docs/ARCHITECTURE.md)                 | System design, data flows, endpoints                                               |
+| [Developer Guide](./docs/DEVELOPER.md)                 | Local setup, APIs, testing, production readiness                                   |
+| [Deployment](./docs/DEPLOYMENT.md)                     | Production deployment, PM2, rollbacks                                              |
+| [Fhenix Integration](./docs/FHENIX_INTEGRATION.md)     | Privacy-by-Design plan: encrypted budgets, sealed approvals, FHE policy evaluation |
+| [ChainGPT Integration](./docs/CHAINGPT_INTEGRATION.md) | Web3-native AI governance: ChainGPT LLM + Smart Contract Auditor integration       |
 
 ## Multi-Chain Deployment
 
-| Layer | Chain | Contracts |
-|-------|-------|-----------|
-| Execution & Policy | X Layer Testnet (chainId 1952) | GovernanceContract `0x755602bB...`, AIGovernanceStorage `0x1E0317bF...` |
-| Audit Storage | Filecoin Calibration | GovernanceContract + AIGovernanceStorage |
+| Layer                            | Chain                                              | Contracts                                                                                                                                     |
+| -------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Execution & Policy               | X Layer Testnet (chainId 1952)                     | GovernanceContract `0x755602bB...`, AIGovernanceStorage `0x1E0317bF...`                                                                       |
+| Audit Storage                    | Filecoin Calibration                               | GovernanceContract + AIGovernanceStorage                                                                                                      |
 | Confidential Policy State (LIVE) | Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia) | `ConfidentialSpendPolicy` + full-stack FHE policy evaluation & authorized decryption — see [Fhenix Integration](./docs/FHENIX_INTEGRATION.md) |
-| **Web3 AI Governance** | **ChainGPT** | **Web3 LLM for governance intent + Smart Contract Auditor for runtime defense — see [ChainGPT Integration](./docs/CHAINGPT_INTEGRATION.md)** |
+| **Web3 AI Governance**           | **ChainGPT**                                       | **Web3 LLM for governance intent + Smart Contract Auditor for runtime defense — see [ChainGPT Integration](./docs/CHAINGPT_INTEGRATION.md)**  |
 
 ## AI Provider Stack
 
 Cognivern uses multi-provider AI routing for governance analysis:
 
-| Provider | Use Case | Status |
-|----------|----------|--------|
+| Provider     | Use Case                                                  | Status     |
+| ------------ | --------------------------------------------------------- | ---------- |
 | **ChainGPT** | Web3-specific governance queries, smart contract analysis | ✅ Primary |
-| Fireworks | Cost-efficient general analysis | ✅ Active |
-| Kilocode | Free fallback | ✅ Active |
-| Workers AI | Cloudflare native | ✅ Active |
-| OpenAI | High quality | ✅ Active |
-| Gemini | Advanced reasoning | ✅ Active |
-| Anthropic | Alternative model | ✅ Active |
+| Fireworks    | Cost-efficient general analysis                           | ✅ Active  |
+| Kilocode     | Free fallback                                             | ✅ Active  |
+| Workers AI   | Cloudflare native                                         | ✅ Active  |
+| OpenAI       | High quality                                              | ✅ Active  |
+| Gemini       | Advanced reasoning                                        | ✅ Active  |
+| Anthropic    | Alternative model                                         | ✅ Active  |
 
 ## Status
 

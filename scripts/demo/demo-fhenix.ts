@@ -112,7 +112,11 @@ async function main() {
     policyId = res.data?.policyId;
     ok("policyId", policyId);
     ok("fhenixTx", res.data?.fhenixTx);
-    ok("note", res.data?.note ?? "dailyLimit, perTxLimit, approvalThreshold encrypted as euint128 on Fhenix");
+    ok(
+      "note",
+      res.data?.note ??
+        "dailyLimit, perTxLimit, approvalThreshold encrypted as euint128 on Fhenix",
+    );
   } catch (err: any) {
     warn("policy creation error", err.message);
     // Use a deterministic fallback so subsequent steps can still run
@@ -135,7 +139,10 @@ async function main() {
     approveDecisionId = res.data?.decisionId;
     ok("decisionId", approveDecisionId);
     ok("outcome", res.data?.outcome);
-    ok("note", res.data?.note ?? "FHE.lte(newSpent, dailyLimit) evaluated in ciphertext");
+    ok(
+      "note",
+      res.data?.note ?? "FHE.lte(newSpent, dailyLimit) evaluated in ciphertext",
+    );
   } catch (err: any) {
     warn("spend/encrypted error", err.message);
   }
@@ -154,7 +161,10 @@ async function main() {
     });
     ok("decisionId", res.data?.decisionId);
     ok("outcome", res.data?.outcome);
-    ok("note", res.data?.note ?? "Amount > approvalThreshold — sealed for human review");
+    ok(
+      "note",
+      res.data?.note ?? "Amount > approvalThreshold — sealed for human review",
+    );
   } catch (err: any) {
     warn("spend/encrypted (hold) error", err.message);
   }
@@ -163,12 +173,18 @@ async function main() {
   step(4, "Check Cross-Chain Anchoring on X Layer");
   if (approveDecisionId) {
     try {
-      const res = await request(`/api/governance/decisions/${approveDecisionId}`);
+      const res = await request(
+        `/api/governance/decisions/${approveDecisionId}`,
+      );
       ok("decisionId", res.data?.decisionId ?? approveDecisionId);
       ok("origin", res.data?.origin);
       ok("outcome", res.data?.outcome);
       ok("xlayerTx", res.data?.xlayerTx);
-      ok("note", res.data?.note ?? "GovernanceContract.handle() verified origin domain + sender via ISM");
+      ok(
+        "note",
+        res.data?.note ??
+          "GovernanceContract.handle() verified origin domain + sender via ISM",
+      );
     } catch (err: any) {
       warn("governance/decisions error", err.message);
     }
@@ -190,7 +206,10 @@ async function main() {
     permitToken = res.data?.permit;
     ok("permit", permitToken);
     ok("scope", res.data?.scope);
-    ok("note", res.data?.note ?? "approvalThreshold and perTxLimit remain sealed");
+    ok(
+      "note",
+      res.data?.note ?? "approvalThreshold and perTxLimit remain sealed",
+    );
   } catch (err: any) {
     warn("audit/permits error", err.message);
   }
@@ -209,12 +228,19 @@ async function main() {
       ok("dailyLimit", res.data?.dailyLimit);
       ok("spentToday", res.data?.spentToday);
       ok("outcome", res.data?.outcome);
-      ok("note", res.data?.note ?? "approvalThreshold not in permit scope — remains encrypted");
+      ok(
+        "note",
+        res.data?.note ??
+          "approvalThreshold not in permit scope — remains encrypted",
+      );
     } catch (err: any) {
       warn("audit/logs/decrypt error", err.message);
     }
   } else {
-    warn("skipped", "need both approveDecisionId and permitToken from steps 2 & 5");
+    warn(
+      "skipped",
+      "need both approveDecisionId and permitToken from steps 2 & 5",
+    );
   }
 
   // ── Step 7: Trusted Encryption Sidecar (non-TS agents) ───────────────────
@@ -225,7 +251,11 @@ async function main() {
       json: { amount: 300, type: "uint128" },
     });
     ok("ciphertextHandle", res.data?.ciphertextHandle);
-    ok("note", res.data?.note ?? "Agent passes this handle directly to /api/spend/encrypted");
+    ok(
+      "note",
+      res.data?.note ??
+        "Agent passes this handle directly to /api/spend/encrypted",
+    );
   } catch (err: any) {
     warn("fhenix/encrypt error", err.message);
   }
@@ -245,7 +275,11 @@ async function main() {
       });
       ok("privatransferTx", res.data?.privatransferTx);
       ok("decisionId", res.data?.decisionId);
-      ok("note", res.data?.note ?? "Privara executed confidential transfer — decisionId carried as compliance proof");
+      ok(
+        "note",
+        res.data?.note ??
+          "Privara executed confidential transfer — decisionId carried as compliance proof",
+      );
     } catch (err: any) {
       warn("payroll/confidential error", err.message);
     }
@@ -274,20 +308,35 @@ async function main() {
     if (roundId) {
       // 9b. Submit encrypted bids from three vendors
       const vendors = [
-        { bidder: "0x1111111111111111111111111111111111111111", amount: 15000, proposal: "Security audit by Vendor A" },
-        { bidder: "0x2222222222222222222222222222222222222222", amount: 12000, proposal: "Audit services from Vendor B" },
-        { bidder: "0x3333333333333333333333333333333333333333", amount: 18000, proposal: "Full stack audit by Vendor C" },
+        {
+          bidder: "0x1111111111111111111111111111111111111111",
+          amount: 15000,
+          proposal: "Security audit by Vendor A",
+        },
+        {
+          bidder: "0x2222222222222222222222222222222222222222",
+          amount: 12000,
+          proposal: "Audit services from Vendor B",
+        },
+        {
+          bidder: "0x3333333333333333333333333333333333333333",
+          amount: 18000,
+          proposal: "Full stack audit by Vendor C",
+        },
       ];
 
       for (const v of vendors) {
-        const bidRes = await request(`/api/vendor/sealed-bid/rounds/${roundId}/bid`, {
-          method: "POST",
-          json: {
-            bidder: v.bidder,
-            amountUsd: v.amount,
-            proposalDetails: v.proposal,
+        const bidRes = await request(
+          `/api/vendor/sealed-bid/rounds/${roundId}/bid`,
+          {
+            method: "POST",
+            json: {
+              bidder: v.bidder,
+              amountUsd: v.amount,
+              proposalDetails: v.proposal,
+            },
           },
-        });
+        );
         ok(`bid ${v.bidder.slice(0, 10)}...`, {
           encryptedAmount: bidRes.data?.encryptedAmount?.slice(0, 20) + "...",
           index: bidRes.data?.index,
@@ -296,20 +345,33 @@ async function main() {
       }
 
       // 9c. Close the round
-      const closeRes = await request(`/api/vendor/sealed-bid/rounds/${roundId}/close`, {
-        method: "POST",
-        json: { manager: "demo-manager" },
+      const closeRes = await request(
+        `/api/vendor/sealed-bid/rounds/${roundId}/close`,
+        {
+          method: "POST",
+          json: { manager: "demo-manager" },
+        },
+      );
+      ok("round closed", {
+        status: closeRes.data?.status,
+        bids: closeRes.data?.bidCount,
       });
-      ok("round closed", { status: closeRes.data?.status, bids: closeRes.data?.bidCount });
 
       // 9d. Reveal the winning bid (lowest bid wins)
-      const revealRes = await request(`/api/vendor/sealed-bid/rounds/${roundId}/reveal`, {
-        method: "POST",
-        json: { selectionMethod: "lowest-bid" },
-      });
+      const revealRes = await request(
+        `/api/vendor/sealed-bid/rounds/${roundId}/reveal`,
+        {
+          method: "POST",
+          json: { selectionMethod: "lowest-bid" },
+        },
+      );
       ok("winner", revealRes.data?.winner);
       ok("winningBid", `$${revealRes.data?.winningBid}`);
-      ok("note", revealRes.data?.note ?? "Lowest bid wins — all losing bids remain encrypted on Fhenix");
+      ok(
+        "note",
+        revealRes.data?.note ??
+          "Lowest bid wins — all losing bids remain encrypted on Fhenix",
+      );
     }
   } catch (err: any) {
     warn("sealed-bid vendor selection error", err.message);

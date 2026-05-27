@@ -3,10 +3,7 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": [
-      "ES2022",
-      "DOM"
-    ],
+    "lib": ["ES2022", "DOM"],
     "outDir": "dist",
     "rootDir": ".",
     "strict": false,
@@ -17,27 +14,18 @@
     "resolveJsonModule": true,
     "allowJs": true,
     "noImplicitAny": false,
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@cognivern/shared": [
-        "packages/shared/src/index.ts"
-      ]
+      "@/*": ["src/*"],
+      "@cognivern/shared": ["packages/shared/src/index.ts"]
     },
     "sourceMap": true,
     "declaration": false,
     "checkJs": false,
     "noEmit": false
   },
-  "include": [
-    "src/**/*",
-    "packages/shared/src/**/*"
-  ],
+  "include": ["src/**/*", "packages/shared/src/**/*"],
   "exclude": [
     "src/frontend/**/*",
     "src/backend/modules/cloudflare-agents/**/*",

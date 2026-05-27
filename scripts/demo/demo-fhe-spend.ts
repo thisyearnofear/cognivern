@@ -21,7 +21,9 @@ interface ApiResponse<T = any> {
 }
 
 async function request<T>(path: string, body?: any): Promise<ApiResponse<T>> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
   if (API_KEY) headers["x-api-key"] = API_KEY;
 
   const res = await fetch(`${API_BASE}${path}`, {
@@ -33,25 +35,38 @@ async function request<T>(path: string, body?: any): Promise<ApiResponse<T>> {
 }
 
 async function main() {
-  console.log("╔══════════════════════════════════════════════════════════════╗");
-  console.log("║  Cognivern FHE Confidential Spend Demo                      ║");
-  console.log("║  Budget limits are encrypted — agents can't see their caps  ║");
-  console.log("╚══════════════════════════════════════════════════════════════╝\n");
+  console.log(
+    "╔══════════════════════════════════════════════════════════════╗",
+  );
+  console.log(
+    "║  Cognivern FHE Confidential Spend Demo                      ║",
+  );
+  console.log(
+    "║  Budget limits are encrypted — agents can't see their caps  ║",
+  );
+  console.log(
+    "╚══════════════════════════════════════════════════════════════╝\n",
+  );
 
   // 1. Create a confidential policy
   console.log("[1] Creating confidential policy...");
   const policyRes = await request("/governance/policies", {
     name: "FHE-Governed DeFi Budget",
-    description: "Encrypted daily/per-tx limits evaluated on Fhenix via FHE. Agent cannot see budget caps.",
+    description:
+      "Encrypted daily/per-tx limits evaluated on Fhenix via FHE. Agent cannot see budget caps.",
     rules: [
       {
         id: "fhe-budget-check",
         type: "deny",
         condition: "true",
-        action: { type: "block", parameters: { reason: "FHE evaluation required" } },
+        action: {
+          type: "block",
+          parameters: { reason: "FHE evaluation required" },
+        },
         metadata: {
           confidential: true,
-          fheContract: process.env.FHENIX_POLICY_CONTRACT || "pending-deployment",
+          fheContract:
+            process.env.FHENIX_POLICY_CONTRACT || "pending-deployment",
           dailyLimitUsd: "encrypted",
           perTxLimitUsd: "encrypted",
         },
@@ -95,7 +110,9 @@ async function main() {
   console.log();
 
   // 3. Simulate agent spend (high amount — should hold or deny)
-  console.log("[3] Agent requests spend: $10,000 USDC (exceeds typical caps)...");
+  console.log(
+    "[3] Agent requests spend: $10,000 USDC (exceeds typical caps)...",
+  );
   const bigSpendRes = await request("/spend/preview", {
     agentId: "agent-defi-bot-001",
     recipient: "0x742d35Cc6634C0532925a3b844Bc9e7595f4AAAA",
@@ -116,8 +133,12 @@ async function main() {
   // 4. Show the privacy guarantee
   console.log("[4] Privacy guarantee:");
   console.log("  - The agent NEVER sees the actual budget limits");
-  console.log("  - The $500 daily cap and $100 per-tx cap are encrypted on-chain");
-  console.log("  - FHE comparisons happen in ciphertext — no decryption needed for evaluation");
+  console.log(
+    "  - The $500 daily cap and $100 per-tx cap are encrypted on-chain",
+  );
+  console.log(
+    "  - FHE comparisons happen in ciphertext — no decryption needed for evaluation",
+  );
   console.log("  - Only the operator can decrypt limits (via CoFHE permit)");
   console.log("  - Attestation proves the evaluation happened correctly");
   console.log();
@@ -135,7 +156,8 @@ async function main() {
       metadata: {
         amountWei: "50000000",
         confidential: true,
-        vendorHash: "0x0000000000000000000000000000000000000000000000000000000000000001",
+        vendorHash:
+          "0x0000000000000000000000000000000000000000000000000000000000000001",
       },
     },
   });
@@ -153,13 +175,19 @@ async function main() {
     }
   }
 
-  console.log("\n═══════════════════════════════════════════════════════════════");
+  console.log(
+    "\n═══════════════════════════════════════════════════════════════",
+  );
   console.log("Demo complete. The FHE integration ensures:");
   console.log("  1. Budget limits remain secret from agents");
-  console.log("  2. Spend decisions are provably correct (on-chain attestation)");
+  console.log(
+    "  2. Spend decisions are provably correct (on-chain attestation)",
+  );
   console.log("  3. Auditors can selectively decrypt with CoFHE permits");
   console.log("  4. Cross-chain enforcement via Hyperlane bridge");
-  console.log("═══════════════════════════════════════════════════════════════");
+  console.log(
+    "═══════════════════════════════════════════════════════════════",
+  );
 }
 
 main().catch(console.error);

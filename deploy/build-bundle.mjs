@@ -4,7 +4,13 @@
 // Native modules are marked external and installed separately on the server.
 
 import { build } from "esbuild";
-import { rmSync, mkdirSync, writeFileSync, copyFileSync, existsSync } from "node:fs";
+import {
+  rmSync,
+  mkdirSync,
+  writeFileSync,
+  copyFileSync,
+  existsSync,
+} from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -74,16 +80,19 @@ const pkg = {
   engines: { node: ">=22.0.0" },
   dependencies: {
     "better-sqlite3": "12.10.0",
-    "bufferutil": "^4.0.8",
+    bufferutil: "^4.0.8",
     "utf-8-validate": "^6.0.4",
-    "secp256k1": "^5.0.1",
-    "keccak": "^3.0.4",
+    secp256k1: "^5.0.1",
+    keccak: "^3.0.4",
     "@cofhe/sdk": "0.5.1",
     "@fhenixprotocol/cofhe-contracts": "0.1.3",
   },
 };
 
-writeFileSync(resolve(OUT_DIR, "package.json"), JSON.stringify(pkg, null, 2) + "\n");
+writeFileSync(
+  resolve(OUT_DIR, "package.json"),
+  JSON.stringify(pkg, null, 2) + "\n",
+);
 
 // Copy static policy files if they exist
 const policiesDir = resolve(ROOT, "src/backend/modules/api/controllers");

@@ -31,6 +31,6 @@ module.exports = {
       merge_logs: true,
       time: true,
       max_size: '10M',
-    }
+    },
   ],
 };

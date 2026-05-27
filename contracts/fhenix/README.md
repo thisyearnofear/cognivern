@@ -39,11 +39,11 @@ npx hardhat --config contracts/fhenix/hardhat.config.cjs run scripts/deploy.cjs 
 
 ## Wave Status
 
-| Wave | Status |
-|------|--------|
-| 1 — scaffold + types + event surface | ✅ this commit |
-| 2 — FHE.lte / FHE.gt evaluation + decryption callback | ✅ complete |
-| 3 — cross-chain attestation to X Layer | ✅ complete |
-| 4 — Privara payment-rails integration + sealed-bid vendor selection | ✅ complete |
-| 5 — production demo | ✅ complete |
-| 6 — Hardening: shared singleton, two-phase resolution, DeFi action guard, contract tests, centralized config, rate-limited decrypt, typed interfaces | ✅ complete |
+| Wave                                                                                                                                                 | Status         |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1 — scaffold + types + event surface                                                                                                                 | ✅ this commit |
+| 2 — FHE.lte / FHE.gt evaluation + decryption callback                                                                                                | ✅ complete    |
+| 3 — cross-chain attestation to X Layer                                                                                                               | ✅ complete    |
+| 4 — Privara payment-rails integration + sealed-bid vendor selection                                                                                  | ✅ complete    |
+| 5 — production demo                                                                                                                                  | ✅ complete    |
+| 6 — Hardening: shared singleton, two-phase resolution, DeFi action guard, contract tests, centralized config, rate-limited decrypt, typed interfaces | ✅ complete    |

@@ -33,7 +33,9 @@ async function request<T = any>(
   });
 
   const text = await res.text();
-  const body = text ? (JSON.parse(text) as ApiEnvelope<T>) : ({} as ApiEnvelope<T>);
+  const body = text
+    ? (JSON.parse(text) as ApiEnvelope<T>)
+    : ({} as ApiEnvelope<T>);
 
   if (!res.ok) {
     throw new Error(
@@ -79,7 +81,10 @@ async function ensureSpendPolicy() {
         id: `rule-amount-${crypto.randomUUID()}`,
         type: "deny",
         condition: "Number(action.metadata.amountUsd || 0) > 100",
-        action: { type: "block", parameters: { reason: "Amount exceeds $100" } },
+        action: {
+          type: "block",
+          parameters: { reason: "Amount exceeds $100" },
+        },
         metadata: { reason: "Amount exceeds live demo limit" },
       },
       {
@@ -120,10 +125,7 @@ async function ensureSpendPolicy() {
   return response.data;
 }
 
-async function requestSpend(
-  spend: Record<string, unknown>,
-  owsApiKey: string,
-) {
+async function requestSpend(spend: Record<string, unknown>, owsApiKey: string) {
   return request<ApiEnvelope<any>>("/api/spend", {
     method: "POST",
     headers: {
@@ -165,55 +167,65 @@ async function main() {
 
   const status = await request<ApiEnvelope<any>>("/api/spend/status");
 
-  const approved = await requestSpend({
-    agentId: "procurement-agent-1",
-    recipient: "0x1111111111111111111111111111111111111111",
-    amount: "12",
-    asset: "USDC",
-    reason: "Send campaign email batch through approved vendor",
-    metadata: {
-      policyId: policy.id,
-      walletId,
-      amountUsd: 12,
-      vendor: "stable-email",
-      chain: "base",
-      purpose: "newsletter_send",
+  const approved = await requestSpend(
+    {
+      agentId: "procurement-agent-1",
+      recipient: "0x1111111111111111111111111111111111111111",
+      amount: "12",
+      asset: "USDC",
+      reason: "Send campaign email batch through approved vendor",
+      metadata: {
+        policyId: policy.id,
+        walletId,
+        amountUsd: 12,
+        vendor: "stable-email",
+        chain: "base",
+        purpose: "newsletter_send",
+      },
     },
-  }, owsApiKey);
+    owsApiKey,
+  );
 
-  const held = await requestSpend({
-    agentId: "procurement-agent-1",
-    recipient: "0x2222222222222222222222222222222222222222",
-    amount: "55",
-    asset: "USDC",
-    reason: "Mid-sized supplier payment requiring operator review",
-    metadata: {
-      policyId: policy.id,
-      walletId,
-      amountUsd: 55,
-      vendor: "stable-email",
-      chain: "base",
-      purpose: "supplier_review",
+  const held = await requestSpend(
+    {
+      agentId: "procurement-agent-1",
+      recipient: "0x2222222222222222222222222222222222222222",
+      amount: "55",
+      asset: "USDC",
+      reason: "Mid-sized supplier payment requiring operator review",
+      metadata: {
+        policyId: policy.id,
+        walletId,
+        amountUsd: 55,
+        vendor: "stable-email",
+        chain: "base",
+        purpose: "supplier_review",
+      },
     },
-  }, owsApiKey);
+    owsApiKey,
+  );
 
-  const denied = await requestSpend({
-    agentId: "procurement-agent-1",
-    recipient: "0x3333333333333333333333333333333333333333",
-    amount: "125",
-    asset: "USDC",
-    reason: "Large supplier payment above budget threshold",
-    metadata: {
-      policyId: policy.id,
-      walletId,
-      amountUsd: 125,
-      vendor: "stable-email",
-      chain: "base",
-      purpose: "supplier_payment",
+  const denied = await requestSpend(
+    {
+      agentId: "procurement-agent-1",
+      recipient: "0x3333333333333333333333333333333333333333",
+      amount: "125",
+      asset: "USDC",
+      reason: "Large supplier payment above budget threshold",
+      metadata: {
+        policyId: policy.id,
+        walletId,
+        amountUsd: 125,
+        vendor: "stable-email",
+        chain: "base",
+        purpose: "supplier_payment",
+      },
     },
-  }, owsApiKey);
+    owsApiKey,
+  );
 
-  const auditLogs = await request<ApiEnvelope<{ logs?: unknown[] }>>("/api/audit/logs");
+  const auditLogs =
+    await request<ApiEnvelope<{ logs?: unknown[] }>>("/api/audit/logs");
   const runs = await request<ApiEnvelope<{ runs?: unknown[] }>>(
     `/api/cre/runs?projectId=${encodeURIComponent(projectId)}`,
   );
@@ -224,13 +236,19 @@ async function main() {
   console.log(`Scoped API key: ${scopedKey.data?.apiKey?.id ?? "unknown"}`);
   console.log(`Policy ID: ${policy.id}`);
   console.log(`Execution layer: ${status.data?.status}`);
-  console.log(`Approved spend: ${approved.data?.status} (${approved.data?.runId ?? "no run"})`);
-  console.log(`Held spend: ${held.data?.status} (${held.data?.runId ?? "no run"})`);
-  console.log(`Denied spend: ${denied.data?.status} (${denied.data?.runId ?? "no run"})`);
   console.log(
-    `Audit log count: ${auditLogs.data?.logs?.length ?? "unknown"}`,
+    `Approved spend: ${approved.data?.status} (${approved.data?.runId ?? "no run"})`,
   );
-  console.log(`Run count: ${runs.data?.runs?.length ?? runs.runs?.length ?? "unknown"}`);
+  console.log(
+    `Held spend: ${held.data?.status} (${held.data?.runId ?? "no run"})`,
+  );
+  console.log(
+    `Denied spend: ${denied.data?.status} (${denied.data?.runId ?? "no run"})`,
+  );
+  console.log(`Audit log count: ${auditLogs.data?.logs?.length ?? "unknown"}`);
+  console.log(
+    `Run count: ${runs.data?.runs?.length ?? runs.runs?.length ?? "unknown"}`,
+  );
   console.log("");
   console.log("Open these screens for the demo:");
   console.log(`- ${baseUrl}/audit`);

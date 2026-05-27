@@ -121,7 +121,9 @@ async function main() {
 
   console.log("\n✅ Deployment verification complete!");
   console.log("🌟 Cognivern: AI Agent Governance on X Layer");
-  console.log("🔗 X Layer Testnet Explorer: https://www.okx.com/explorer/xlayer-test");
+  console.log(
+    "🔗 X Layer Testnet Explorer: https://www.okx.com/explorer/xlayer-test",
+  );
 }
 
 main()
