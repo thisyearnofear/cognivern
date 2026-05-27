@@ -1106,7 +1106,7 @@ export class AgentsController {
         return;
       }
 
-      const nodeStream = Readable.fromWeb(workerResponse.body);
+      const nodeStream = Readable.fromWeb(workerResponse.body as any);
       nodeStream.pipe(res);
     } catch (error) {
       res.status(500).json({

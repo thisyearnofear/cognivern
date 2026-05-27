@@ -11,7 +11,7 @@ import { ChainGPTAuditService } from "./ChainGPTAuditService.js";
 const originalFetch = globalThis.fetch;
 let fetchCallCount = 0;
 
-async function mockFetch(url: string, options?: any) {
+async function mockFetch(url: string | URL | Request, options?: RequestInit) {
   fetchCallCount++;
   console.log(`  [Mock Fetch] Called: ${url}`);
 

@@ -66,11 +66,12 @@ export abstract class BaseService extends EventEmitter {
       this.logger.info(`${this.config.name} service initialized successfully`);
       this.emit("initialized");
     } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
         `Failed to initialize ${this.config.name} service:`,
-        error,
+        err,
       );
-      throw new ServiceError(`Service initialization failed: ${error.message}`);
+      throw new ServiceError(`Service initialization failed: ${err.message}`);
     }
   }
 
@@ -87,11 +88,12 @@ export abstract class BaseService extends EventEmitter {
       this.logger.info(`${this.config.name} service shut down successfully`);
       this.emit("shutdown");
     } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
         `Error during ${this.config.name} service shutdown:`,
-        error,
+        err,
       );
-      throw new ServiceError(`Service shutdown failed: ${error.message}`);
+      throw new ServiceError(`Service shutdown failed: ${err.message}`);
     }
   }
 
@@ -124,7 +126,8 @@ export abstract class BaseService extends EventEmitter {
     try {
       return validator(data);
     } catch (error) {
-      throw new ValidationError(`Validation failed: ${error.message}`);
+      const err = error instanceof Error ? error : new Error(String(error));
+      throw new ValidationError(`Validation failed: ${err.message}`);
     }
   }
 
@@ -151,14 +154,15 @@ export abstract class BaseService extends EventEmitter {
 
       return result;
     } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
       const duration = Date.now() - startTime;
       this.logger.error(`${operation} failed`, {
-        error: error.message,
+        error: err.message,
         duration,
         ...context,
       });
 
-      throw error;
+      throw err;
     }
   }
 
@@ -170,13 +174,13 @@ export abstract class BaseService extends EventEmitter {
     maxRetries = 3,
     baseDelay = 1000,
   ): Promise<T> {
-    let lastError: Error;
+    let lastError: Error = new Error("Unknown error");
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error) {
-        lastError = error;
+        lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt === maxRetries) {
           break;
@@ -186,7 +190,7 @@ export abstract class BaseService extends EventEmitter {
         this.logger.warn(
           `Operation failed, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`,
           {
-            error: error.message,
+            error: lastError.message,
           },
         );
 

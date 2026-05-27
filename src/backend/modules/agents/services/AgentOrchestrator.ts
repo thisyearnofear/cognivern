@@ -73,7 +73,8 @@ export class AgentOrchestrator extends BaseService {
       try {
         await agent.stop();
       } catch (error) {
-        this.logger.error(`Error stopping agent ${agent.id}:`, error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        this.logger.error(`Error stopping agent ${agent.id}:`, err);
       }
     }
     this.logger.info("Agent Orchestrator shut down");
@@ -144,7 +145,8 @@ export class AgentOrchestrator extends BaseService {
             decision,
           });
         } catch (error) {
-          this.logger.error(`Automated trade failed for ${agent.name}:`, error);
+          const err = error instanceof Error ? error : new Error(String(error));
+          this.logger.error(`Automated trade failed for ${agent.name}:`, err);
         }
       },
     });
@@ -399,8 +401,8 @@ export class AgentOrchestrator extends BaseService {
       config: this.orchestrationConfig,
       allocations: Array.from(this.allocations.entries()).map(
         ([id, allocation]) => ({
-          agentId: id,
           ...allocation,
+          agentId: id,
         }),
       ),
     };
@@ -412,7 +414,8 @@ export class AgentOrchestrator extends BaseService {
       try {
         await agent.stop();
       } catch (error) {
-        this.logger.error(`Error stopping agent ${agent.id}:`, error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        this.logger.error(`Error stopping agent ${agent.id}:`, err);
       }
     }
     await this.shutdown();

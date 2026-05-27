@@ -1,3 +1,4 @@
+// @ts-expect-error - no type declarations available for event-source-polyfill
 import { EventSourcePolyfill } from "event-source-polyfill";
 import logger from "../utils/logger.js";
 
@@ -69,13 +70,13 @@ export class MCPClientService {
         logger.info(`Connected to MCP server: ${this.serverUrl}`);
       };
 
-      this.eventSource.onerror = (error) => {
+      this.eventSource.onerror = (error: Event) => {
         logger.error("Error connecting to MCP server:", error);
         this.connected = false;
         this.handleReconnect();
       };
 
-      this.eventSource.onmessage = (event) => {
+      this.eventSource.onmessage = (event: MessageEvent) => {
         try {
           const message = JSON.parse(event.data) as MCPMessage;
           logger.debug("Received MCP message:", message);

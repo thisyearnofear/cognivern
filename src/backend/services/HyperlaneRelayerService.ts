@@ -72,7 +72,8 @@ export class HyperlaneRelayerService {
 
       return tx.hash;
     } catch (error) {
-      logger.error(`Failed to relay message to ${dest.name}`, error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error(`Failed to relay message to ${dest.name}`, err);
       throw error;
     }
   }

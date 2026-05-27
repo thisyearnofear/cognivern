@@ -32,7 +32,7 @@ export class ApiError extends Error {
       success: false,
       error: this.message,
       code: this.code,
-      ...(this.details && { details: this.details }),
+      ...(this.details != null && typeof this.details === "object" ? { details: this.details } : {}),
       timestamp: this.timestamp,
     };
   }

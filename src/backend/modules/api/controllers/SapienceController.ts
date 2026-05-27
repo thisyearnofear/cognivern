@@ -54,7 +54,8 @@ export class SapienceController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error("Failed to get Sapience status:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to get Sapience status:", err);
       res.status(500).json({
         error: "Failed to get status",
         message: error instanceof Error ? error.message : "Unknown error",
@@ -102,7 +103,8 @@ export class SapienceController {
         explorerUrl: `https://arbiscan.io/tx/${txHash}`,
       });
     } catch (error) {
-      logger.error("Failed to submit forecast:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to submit forecast:", err);
       res.status(500).json({
         error: "Failed to submit forecast",
         message: error instanceof Error ? error.message : "Unknown error",
@@ -133,7 +135,8 @@ export class SapienceController {
         });
       }
     } catch (error) {
-      logger.error("Failed to run automated forecast:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to run automated forecast:", err);
       res.status(500).json({
         error: "Failed to run automated forecast",
         message: error instanceof Error ? error.message : "Unknown error",
@@ -155,7 +158,8 @@ export class SapienceController {
         network: "arbitrum",
       });
     } catch (error) {
-      logger.error("Failed to get wallet info:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to get wallet info:", err);
       res.status(500).json({
         error: "Failed to get wallet info",
         message: error instanceof Error ? error.message : "Unknown error",
@@ -198,7 +202,8 @@ export class SapienceController {
 
       res.json({ success: true, decisions });
     } catch (error) {
-      logger.error("Failed to get Sapience decisions:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to get Sapience decisions:", err);
       res.status(500).json({ error: "Failed to get decisions" });
     }
   }

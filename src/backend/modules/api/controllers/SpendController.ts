@@ -140,7 +140,8 @@ export class SpendController {
         }
       }
     } catch (auditError) {
-      logger.warn("ChainGPT audit failed, continuing with spend:", auditError);
+      const auditErr = auditError instanceof Error ? auditError : new Error(String(auditError));
+      logger.warn("ChainGPT audit failed, continuing with spend:", auditErr);
     }
 
     const result = await owsWalletService.executeSpend(intent, {
@@ -449,9 +450,10 @@ export class SpendController {
           }
         }
       } catch (auditError) {
+        const auditErr = auditError instanceof Error ? auditError : new Error(String(auditError));
         logger.warn(
           "ChainGPT audit failed, continuing without audit:",
-          auditError,
+          auditErr,
         );
         contractAudit = {
           address: parse.data.recipient,

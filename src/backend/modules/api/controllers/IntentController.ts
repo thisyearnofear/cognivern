@@ -121,6 +121,7 @@ export class IntentController {
       aiProviderFailures: {},
       fallbackCount: 0,
       lastReset: Date.now(),
+      circuitBreakerState: "closed",
     };
     this.circuitBreaker = {
       failures: 0,
@@ -267,7 +268,8 @@ export class IntentController {
       });
     } catch (error) {
       this.recordFailure("multi-model-router");
-      logger.error("Intent processing failed:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Intent processing failed:", err);
       this.metrics.fallbackCount++;
 
       // Handle with fallback on error
@@ -388,7 +390,8 @@ export class IntentController {
       };
     } catch (error) {
       // Fallback to keyword-based classification
-      logger.warn("AI classification failed, using fallback:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.warn("AI classification failed, using fallback:", err);
       return this.fallbackClassification(query);
     }
   }
@@ -421,7 +424,8 @@ export class IntentController {
       };
     } catch (error) {
       // Fallback response
-      logger.warn("AI response generation failed, using fallback:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.warn("AI response generation failed, using fallback:", err);
       return {
         text: "I've analyzed your request. How can I help you further?",
         suggestions: ["Show audit logs", "Check agent status"],
