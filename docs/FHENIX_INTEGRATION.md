@@ -5,6 +5,7 @@
 This document describes how Cognivern adds **Fhenix (CoFHE)** as a third deployment layer alongside the existing X Layer (execution) and Filecoin (audit) layers — without removing or replacing either.
 
 In product terms, this supports Cognivern's unified operating model:
+
 - **Policy:** every spend/decision route stays governed.
 - **Privacy:** sensitive thresholds and inputs remain encrypted.
 - **Efficiency:** teams can add model/runtime spend optimization signals without leaking operational strategy.
@@ -14,12 +15,12 @@ In product terms, this supports Cognivern's unified operating model:
 
 ## 1. Layered Architecture (Updated)
 
-| Layer | Chain | Role | Status |
-|-------|-------|------|--------|
-| Execution & Public Policy Anchoring | X Layer Testnet (1952) | `GovernanceContract`, `AIGovernanceStorage` — public agent registry, policy hash anchoring, spend execution logs | **Existing — kept as-is** |
-| Live Audit Anchoring | 0G Newton Testnet | Real-time governance decision anchoring | **Existing — kept as-is** |
-| Audit Archive | Filecoin Calibration | Long-term immutable audit storage | **Existing — kept as-is** |
-| **Confidential Policy State** | **Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia)** | **Encrypted budgets, encrypted spend counters, sealed approval ciphertexts, FHE-evaluated policy checks** | **LIVE** |
+| Layer                               | Chain                                                  | Role                                                                                                             | Status                    |
+| ----------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| Execution & Public Policy Anchoring | X Layer Testnet (1952)                                 | `GovernanceContract`, `AIGovernanceStorage` — public agent registry, policy hash anchoring, spend execution logs | **Existing — kept as-is** |
+| Live Audit Anchoring                | 0G Newton Testnet                                      | Real-time governance decision anchoring                                                                          | **Existing — kept as-is** |
+| Audit Archive                       | Filecoin Calibration                                   | Long-term immutable audit storage                                                                                | **Existing — kept as-is** |
+| **Confidential Policy State**       | **Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia)** | **Encrypted budgets, encrypted spend counters, sealed approval ciphertexts, FHE-evaluated policy checks**        | **LIVE**                  |
 
 **Bridge pattern:** Fhenix computes the encrypted policy decision → **Hyperlane Mailbox** dispatches it to X Layer → X Layer **`GovernanceContract.handle()`** consumes it for execution and public anchoring.
 
@@ -29,14 +30,14 @@ This bridge is powered by the **Hyperlane Messaging Protocol**, selected for its
 
 ## 2. What Becomes Encrypted
 
-| Cognivern Concept | Today (plaintext) | With Fhenix (encrypted) |
-|-------------------|-------------------|--------------------------|
-| Per-agent daily budget | `uint256 dailyLimit` in policy JSON | `euint128 dailyLimit` on Fhenix |
-| Spend counter | `uint256 spentToday` in service memory | `euint128 spentToday` on Fhenix |
-| Vendor allowlist | `string[] allowedVendors` | `ebool isAllowed = vendorHash ∈ encryptedSet` |
-| Approval threshold | `uint256 approvalThreshold` | `euint128 approvalThreshold` |
-| Spend amount in `/api/spend` | Plaintext in request body | Client-side encrypted via `@cofhe/sdk` before submission |
-| Approval ciphertext | N/A | Sealed approval — only signer + auditor permits can decrypt |
+| Cognivern Concept            | Today (plaintext)                      | With Fhenix (encrypted)                                     |
+| ---------------------------- | -------------------------------------- | ----------------------------------------------------------- |
+| Per-agent daily budget       | `uint256 dailyLimit` in policy JSON    | `euint128 dailyLimit` on Fhenix                             |
+| Spend counter                | `uint256 spentToday` in service memory | `euint128 spentToday` on Fhenix                             |
+| Vendor allowlist             | `string[] allowedVendors`              | `ebool isAllowed = vendorHash ∈ encryptedSet`               |
+| Approval threshold           | `uint256 approvalThreshold`            | `euint128 approvalThreshold`                                |
+| Spend amount in `/api/spend` | Plaintext in request body              | Client-side encrypted via `@cofhe/sdk` before submission    |
+| Approval ciphertext          | N/A                                    | Sealed approval — only signer + auditor permits can decrypt |
 
 The **decision** (approve / hold / deny) is revealed publicly. The **inputs and thresholds** stay encrypted.
 
@@ -156,6 +157,7 @@ contract ConfidentialSpendPolicy {
 ```
 
 Key properties:
+
 - Budgets and amounts never appear in plaintext on-chain.
 - **Access control:** Only the contract owner or whitelisted evaluators can submit spend evaluations — prevents unauthorized actors from inflating encrypted counters.
 - **Two-step ownership transfer:** `transferOwnership` + `acceptOwnership` protects against accidental transfers and key loss.
@@ -174,7 +176,10 @@ Key properties:
 import { CofheClient } from "@cofhe/sdk";
 
 export class FhenixPolicyService {
-  constructor(private cofhe: CofheClient, private contractAddr: string) {}
+  constructor(
+    private cofhe: CofheClient,
+    private contractAddr: string,
+  ) {}
 
   /** Encrypts amount client-side, submits to Fhenix, returns decisionId. */
   async evaluateEncrypted(input: {
@@ -189,7 +194,9 @@ export class FhenixPolicyService {
   }
 
   /** Issue an auditor permit for selective disclosure. */
-  async issueAuditPermit(auditor: string, policyId: string): Promise<string> { /* ... */ }
+  async issueAuditPermit(auditor: string, policyId: string): Promise<string> {
+    /* ... */
+  }
 }
 ```
 
@@ -209,13 +216,13 @@ Add a `confidential: true` flag on policy definitions. When set, evaluation is d
 
 ### 4.4 New endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/governance/policies/confidential` | POST | Create encrypted policy on Fhenix |
-| `/api/governance/decisions/:decisionId` | GET | Retrieve FHE decision + cross-chain anchoring status |
-| `/api/spend/encrypted` | POST | Submit pre-encrypted spend (client used `useEncrypt`) |
-| `/api/audit/permits` | POST | Issue auditor decryption permit |
-| `/api/audit/logs/:decisionId/decrypt` | GET | Auditor-side decrypt with valid permit |
+| Endpoint                                | Method | Description                                           |
+| --------------------------------------- | ------ | ----------------------------------------------------- |
+| `/api/governance/policies/confidential` | POST   | Create encrypted policy on Fhenix                     |
+| `/api/governance/decisions/:decisionId` | GET    | Retrieve FHE decision + cross-chain anchoring status  |
+| `/api/spend/encrypted`                  | POST   | Submit pre-encrypted spend (client used `useEncrypt`) |
+| `/api/audit/permits`                    | POST   | Issue auditor decryption permit                       |
+| `/api/audit/logs/:decisionId/decrypt`   | GET    | Auditor-side decrypt with valid permit                |
 
 ---
 
@@ -228,16 +235,20 @@ import { useEncrypt, useWrite, useDecrypt } from "@cofhe/react";
 
 function SpendForm() {
   const { encrypt } = useEncrypt();
-  const { write }   = useWrite({ address: SPEND_POLICY_ADDR, abi });
+  const { write } = useWrite({ address: SPEND_POLICY_ADDR, abi });
 
   async function submit(amount: bigint) {
     const ct = await encrypt.uint256(amount);
-    await write({ functionName: "evaluateSpend", args: [agentId, policyId, ct, vendorHash] });
+    await write({
+      functionName: "evaluateSpend",
+      args: [agentId, policyId, ct, vendorHash],
+    });
   }
 }
 ```
 
 New surfaces:
+
 - **Confidential Policy editor** — operator sets encrypted budgets via `useEncrypt`.
 - **Auditor view** — paste permit → `useDecrypt` reveals scoped fields.
 - **Decision badge** — shows `confidential: true` on audit rows; amount displayed only with permit.
@@ -257,6 +268,7 @@ Design constraint: keep a **single enforcement plane** (no parallel decision sta
 ## 7. Privara Layer (Application Tooling)
 
 Use `@reineira-os/sdk` for the **payment-rails** half of `/api/spend`:
+
 - Confidential payroll to contractor wallets — agent-initiated, policy-gated, amount-encrypted.
 - Programmable transfer envelopes that carry the Fhenix `decisionId` as compliance proof.
 
@@ -266,7 +278,7 @@ This composes cleanly: Cognivern decides → Privara executes the confidential t
 
 ## 8. Hardhat Setup
 
-```js
+````js
 // contracts/fhenix/hardhat.config.cjs
 require("@fhenixprotocol/cofhe-hardhat-plugin");
 require("@fhenixprotocol/hardhat-fhenix");
@@ -291,7 +303,8 @@ Deploy:
 pnpm deploy:fhenix
 # or directly:
 npx hardhat run scripts/deploy-fhenix.ts --config contracts/fhenix/hardhat.config.cjs --network fhenixSepolia
-```
+````
+
 ```
 
 ---
@@ -299,30 +312,32 @@ npx hardhat run scripts/deploy-fhenix.ts --config contracts/fhenix/hardhat.confi
 ## 9. Cross-Chain Flow
 
 ```
+
 Frontend (useEncrypt amount)
-        │
-        ▼
-POST /api/spend/encrypted  ───────────────┐
-        │                                 │
-        ▼                                 │
-FhenixPolicyService.evaluateEncrypted     │
-        │                                 │
-        ▼                                 │
-[Fhenix] ConfidentialSpendPolicy          │
-   • FHE.lte / FHE.gt over euint128       │
-   • emits SpendEvaluated(decisionId,…)   │
-        │                                 │
-        ▼                                 │
-attestation + decisionId                  │
-        │                                 │
-        ▼                                 │
+│
+▼
+POST /api/spend/encrypted ───────────────┐
+│ │
+▼ │
+FhenixPolicyService.evaluateEncrypted │
+│ │
+▼ │
+[Fhenix] ConfidentialSpendPolicy │
+• FHE.lte / FHE.gt over euint128 │
+• emits SpendEvaluated(decisionId,…) │
+│ │
+▼ │
+attestation + decisionId │
+│ │
+▼ │
 [X Layer] GovernanceContract.handle(origin, sender, payload)
-        │
-        ▼
-[0G] live anchoring  ──►  [Filecoin] long-term archive
-        │
-        ▼
+│
+▼
+[0G] live anchoring ──► [Filecoin] long-term archive
+│
+▼
 Audit UI (operator sees outcome; auditor with permit sees amounts)
+
 ```
 
 ---
@@ -369,3 +384,4 @@ To support non-TypeScript agents (Python/Go), Cognivern provides a **Trusted Enc
 - Privara docs — https://reineira.xyz/docs
 - Privara SDK — `@reineira-os/sdk`
 - Examples — https://github.com/FhenixProtocol/awesome-fhenix
+```

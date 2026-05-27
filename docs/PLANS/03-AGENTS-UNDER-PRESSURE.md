@@ -24,27 +24,27 @@ This pairing is recommended by the hackathon brief itself and is the best fit fo
 
 ## Why Cognivern Is Positioned to Win
 
-| Primitive | Existing Endpoint / Module | Maps To |
-|-----------|---------------------------|---------|
-| NL intent routing | `POST /api/intent` | PromptOS kernel |
-| Agent orchestration | `src/backend/modules/agents`, Cloudflare Workers agents | DevFactory cores |
-| Run ledger | `GET /api/cre/runs` | Agent status grid |
-| Audit trail | `GET /api/audit/logs` | ChronosOS event log |
-| Policy engine | `POST /api/governance/evaluate` | JarvisOS identity filter |
-| Frontend | Next.js 16 + Tailwind v4 + Motion v12 | OS shell UI |
+| Primitive           | Existing Endpoint / Module                              | Maps To                  |
+| ------------------- | ------------------------------------------------------- | ------------------------ |
+| NL intent routing   | `POST /api/intent`                                      | PromptOS kernel          |
+| Agent orchestration | `src/backend/modules/agents`, Cloudflare Workers agents | DevFactory cores         |
+| Run ledger          | `GET /api/cre/runs`                                     | Agent status grid        |
+| Audit trail         | `GET /api/audit/logs`                                   | ChronosOS event log      |
+| Policy engine       | `POST /api/governance/evaluate`                         | JarvisOS identity filter |
+| Frontend            | Next.js 16 + Tailwind v4 + Motion v12                   | OS shell UI              |
 
 ---
 
 ## Stack Gap Analysis
 
-| Recommended | Status | Action |
-|-------------|--------|--------|
-| Next.js 15 | ✅ Have Next.js 16 | None |
-| xterm.js | ❌ Missing | `pnpm add xterm @xterm/addon-fit` |
-| Vercel AI SDK | ❌ Missing | `pnpm add ai @ai-sdk/openai` |
+| Recommended       | Status                | Action                               |
+| ----------------- | --------------------- | ------------------------------------ |
+| Next.js 15        | ✅ Have Next.js 16    | None                                 |
+| xterm.js          | ❌ Missing            | `pnpm add xterm @xterm/addon-fit`    |
+| Vercel AI SDK     | ❌ Missing            | `pnpm add ai @ai-sdk/openai`         |
 | Supabase Realtime | ❌ Missing (optional) | Only if adding ChaosOS viral element |
-| Tailwind v4 | ✅ Present | None |
-| Motion | ✅ Present (v12) | None |
+| Tailwind v4       | ✅ Present            | None                                 |
+| Motion            | ✅ Present (v12)      | None                                 |
 
 ---
 
@@ -161,40 +161,40 @@ This plan adheres to Cognivern's core principles:
 
 These aren't throwaway demo features. Each concept fills a real gap in Cognivern's product:
 
-| Concept | Hackathon Demo | Permanent Product Value |
-|---------|---------------|------------------------|
-| **PromptOS** | NL terminal UI | Unlocks non-developer users. Biggest TAM expansion. Lowers barrier from "read API docs" to "type a sentence." |
-| **DevFactory Grid** | Agent allocation map | Observability dashboard. #1 request in agent platforms. Converts invisible infra to visible trust. Drives retention. |
-| **ChronosOS** (stretch) | Timeline scrubber | Undo/replay for agent actions. Safety net that encourages bolder delegation. |
-| **JarvisOS** (stretch) | Identity file | Personalized agent behavior. Stickiness moat — switching costs skyrocket once the system learns your style. |
+| Concept                 | Hackathon Demo       | Permanent Product Value                                                                                              |
+| ----------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **PromptOS**            | NL terminal UI       | Unlocks non-developer users. Biggest TAM expansion. Lowers barrier from "read API docs" to "type a sentence."        |
+| **DevFactory Grid**     | Agent allocation map | Observability dashboard. #1 request in agent platforms. Converts invisible infra to visible trust. Drives retention. |
+| **ChronosOS** (stretch) | Timeline scrubber    | Undo/replay for agent actions. Safety net that encourages bolder delegation.                                         |
+| **JarvisOS** (stretch)  | Identity file        | Personalized agent behavior. Stickiness moat — switching costs skyrocket once the system learns your style.          |
 
 ### Before vs After
 
-| Dimension | Before | After |
-|-----------|--------|-------|
-| Who can use it | Developers with API knowledge | Anyone who can type intent |
-| Visibility | JSON logs, API responses | Real-time visual agent grid |
-| Interaction model | REST API calls | Conversational terminal + live dashboard |
-| Emotional response | "It works" | "This is magic" |
+| Dimension          | Before                        | After                                    |
+| ------------------ | ----------------------------- | ---------------------------------------- |
+| Who can use it     | Developers with API knowledge | Anyone who can type intent               |
+| Visibility         | JSON logs, API responses      | Real-time visual agent grid              |
+| Interaction model  | REST API calls                | Conversational terminal + live dashboard |
+| Emotional response | "It works"                    | "This is magic"                          |
 
 ---
 
 ## Effort Estimates
 
-| Component | Hours | Risk |
-|-----------|-------|------|
-| Phase 0: Audit & consolidate | 2 | Low |
-| xterm.js terminal component | 2 | Low |
-| Vercel AI SDK streaming | 2 | Low |
-| Intent → action schema enhancement | 3 | Medium |
-| Agent grid visualization | 4 | Medium |
-| Real-time agent status subscription | 2 | Low |
-| OS theme & animations | 3 | Low |
-| Testing (unit + integration) | 3 | Low |
-| Demo scripting & auto-demo mode | 3 | Low |
-| Integration & polish | 4 | Medium |
-| Deployment & submission | 2 | Low |
-| **Total** | **30** | — |
+| Component                           | Hours  | Risk   |
+| ----------------------------------- | ------ | ------ |
+| Phase 0: Audit & consolidate        | 2      | Low    |
+| xterm.js terminal component         | 2      | Low    |
+| Vercel AI SDK streaming             | 2      | Low    |
+| Intent → action schema enhancement  | 3      | Medium |
+| Agent grid visualization            | 4      | Medium |
+| Real-time agent status subscription | 2      | Low    |
+| OS theme & animations               | 3      | Low    |
+| Testing (unit + integration)        | 3      | Low    |
+| Demo scripting & auto-demo mode     | 3      | Low    |
+| Integration & polish                | 4      | Medium |
+| Deployment & submission             | 2      | Low    |
+| **Total**                           | **30** | —      |
 
 Buffer: 18 hours (of 48) for unknowns, sleep, and iteration.
 

@@ -31,6 +31,7 @@ Cognivern is a comprehensive governance platform for AI agents that provides rea
 - **Policy Override**: Audit findings can override policy decisions for enhanced security
 
 **Example Response:**
+
 ```json
 {
   "success": true,
@@ -41,7 +42,9 @@ Cognivern is a comprehensive governance platform for AI agents that provides rea
     "reason": "ChainGPT Audit: HIGH RISK: 1 high severity issue found",
     "simulation": {
       "wouldExecute": false,
-      "warnings": ["Contract audit requires review: HIGH RISK: 1 high severity issue found"]
+      "warnings": [
+        "Contract audit requires review: HIGH RISK: 1 high severity issue found"
+      ]
     },
     "contractAudit": {
       "address": "0x1234...5678",
@@ -120,6 +123,7 @@ Cognivern is a comprehensive governance platform for AI agents that provides rea
 ### Grant Request
 
 We are requesting **Builder Tier** access to:
+
 1. **ChainGPT Smart Contract Auditor API**: For production use in our governance platform
 2. **ChainGPT Governance API**: For enhanced exploit pattern detection
 3. **Technical Support**: For optimizing audit response times and accuracy
@@ -146,4 +150,4 @@ We are requesting **Builder Tier** access to:
 
 ---
 
-*Built with ❤️ by the Cognivern team, powered by ChainGPT AI*
+_Built with ❤️ by the Cognivern team, powered by ChainGPT AI_

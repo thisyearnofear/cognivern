@@ -11,21 +11,21 @@
 
 These are AI agent artifacts from various tools that touched this repo. 8 are already in `.gitignore` but take up mental space in the repo root:
 
-| Directory | Origin | Action |
-|---|---|---|
-| `.aider.tags.cache.v4/` | Aider (gitignored) | Delete locally, no commit needed |
-| `.blackbox/` | Blackbox AI (gitignored) | Delete locally |
-| `.blackboxcli/` | Blackbox CLI (gitignored) | Delete locally |
-| `.claude/` | Claude Code (committed) | Audit — may have project settings |
-| `.commandcode/` | Command Code (gitignored) | Delete locally |
-| `.junie/` | Junie (gitignored) | Delete locally |
-| `.qwen/` | Qwen (gitignored) | Delete locally |
-| `.zencoder/` | ZenCoder (gitignored) | Delete locally |
-| `.zenflow/` | ZenFlow (gitignored) | Delete locally |
-| `.artifacts/` | Unknown | Audit first |
-| `.vscode/` | VS Code settings | Keep, ensure gitignored |
-| `.github/` | CI/CD | Keep |
-| `.husky/` | Git hooks | Keep |
+| Directory               | Origin                    | Action                            |
+| ----------------------- | ------------------------- | --------------------------------- |
+| `.aider.tags.cache.v4/` | Aider (gitignored)        | Delete locally, no commit needed  |
+| `.blackbox/`            | Blackbox AI (gitignored)  | Delete locally                    |
+| `.blackboxcli/`         | Blackbox CLI (gitignored) | Delete locally                    |
+| `.claude/`              | Claude Code (committed)   | Audit — may have project settings |
+| `.commandcode/`         | Command Code (gitignored) | Delete locally                    |
+| `.junie/`               | Junie (gitignored)        | Delete locally                    |
+| `.qwen/`                | Qwen (gitignored)         | Delete locally                    |
+| `.zencoder/`            | ZenCoder (gitignored)     | Delete locally                    |
+| `.zenflow/`             | ZenFlow (gitignored)      | Delete locally                    |
+| `.artifacts/`           | Unknown                   | Audit first                       |
+| `.vscode/`              | VS Code settings          | Keep, ensure gitignored           |
+| `.github/`              | CI/CD                     | Keep                              |
+| `.husky/`               | Git hooks                 | Keep                              |
 
 ### 2. Backend Code Scattered Across `src/`
 
@@ -46,6 +46,7 @@ src/
 ```
 
 Should be:
+
 ```
 src/
 ├── frontend/          ← Next.js app
@@ -71,14 +72,14 @@ After migration, `config/vite.config.ts` and `config/ts/tsconfig.*.json` may be 
 
 ### 4. Stale Files at Root
 
-| File | Status | Action |
-|---|---|---|
-| `OPS.md` | Unknown — ops guide | Keep or move to `docs/` |
-| `vitest.config.ts` | Test config | Keep if tests exist, check |
-| `tsconfig.json` | Backend build config | Keep (backed still needs it) |
-| `.nvmrc` | Node version pin | Keep |
-| `.prettierignore` | Linting | Keep |
-| `.secrets.baseline` | Security | Keep (or move to `config/`) |
+| File                | Status               | Action                       |
+| ------------------- | -------------------- | ---------------------------- |
+| `OPS.md`            | Unknown — ops guide  | Keep or move to `docs/`      |
+| `vitest.config.ts`  | Test config          | Keep if tests exist, check   |
+| `tsconfig.json`     | Backend build config | Keep (backed still needs it) |
+| `.nvmrc`            | Node version pin     | Keep                         |
+| `.prettierignore`   | Linting              | Keep                         |
+| `.secrets.baseline` | Security             | Keep (or move to `config/`)  |
 
 ### 5. Frontend `package.json` Name
 
@@ -133,6 +134,7 @@ mv .secrets.baseline config/  # or keep at root if CI expects it there
 ```
 
 Update root `package.json`:
+
 ```diff
 - "build:frontend": "cd src/frontend && pnpm install && pnpm build",
 + "build:frontend": "cd src/frontend && npm run build",

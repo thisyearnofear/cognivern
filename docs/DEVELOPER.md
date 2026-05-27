@@ -46,19 +46,30 @@ GOVERNANCE_RATE_LIMIT_PER_MINUTE=60  # 60 requests/min for governance
 ```
 
 # Fhenix / CoFHE (optional — for confidential policy evaluation)
+
 FHENIX_RPC_URL=https://api.testnet.fhenix.zone
 FHENIX_SEPOLIA_RPC=https://api.testnet.fhenix.zone
 FHENIX_POLICY_CONTRACT=0xeA88BD6121d181cFD6F60997B4BDd0297CA432fE
+
 # Falls back to FILECOIN_PRIVATE_KEY if not set
+
 FHENIX_PRIVATE_KEY=
+
 # Optional: override chain ID (default: 84532 for Fhenix Base Sepolia)
+
 FHENIX_CHAIN_ID=84532
+
 # Optional: override individual CoFHE service URLs
+
 # FHENIX_COFHE_URL=https://testnet-cofhe.fhenix.zone
+
 # FHENIX_VERIFIER_URL=https://testnet-cofhe-vrf.fhenix.zone
+
 # FHENIX_TN_URL=https://testnet-cofhe-tn.fhenix.zone
+
 FHENIX_EVALUATE_TIMEOUT_MS=30000
-```
+
+````
 
 Fhenix variables can be left empty for local dev — the service falls back to a deny decision when the CoFHE client is unavailable. Contract addresses (`GOVERNANCE_CONTRACT_ADDRESS`, `STORAGE_CONTRACT_ADDRESS`) and `RECALL_API_KEY` can be left empty for local dev — they default to empty strings. AI provider keys enable the natural language intent system; without them, keyword-based fallback responses are used.
 
@@ -74,7 +85,7 @@ To deploy contracts (e.g. to Filecoin Calibration testnet):
 # Set FILECOIN_PRIVATE_KEY and FILECOIN_RPC_URL in .env
 npx hardhat compile
 npx hardhat run scripts/deploy-hardhat.cjs --network calibration
-```
+````
 
 The deployment script outputs contract addresses to add to your `.env`. See [Deployment](./DEPLOYMENT.md) for details.
 
@@ -82,26 +93,26 @@ The deployment script outputs contract addresses to add to your `.env`. See [Dep
 
 This is a pnpm monorepo with three packages:
 
-| Package | Path | Purpose |
-|---------|------|---------|
-| Root (backend) | `.` | Express API, agents, services |
-| Frontend | `src/frontend` | React dashboard |
-| Contracts | `contracts` | Hardhat Solidity contracts |
+| Package        | Path           | Purpose                       |
+| -------------- | -------------- | ----------------------------- |
+| Root (backend) | `.`            | Express API, agents, services |
+| Frontend       | `src/frontend` | React dashboard               |
+| Contracts      | `contracts`    | Hardhat Solidity contracts    |
 
 ## Core Services
 
-| Service | Responsibility |
-|---------|---------------|
-| `PolicyService` | Loads and stores local policies |
-| `PolicyEnforcementService` | Evaluates actions against policy rules, returns allow/deny decisions |
-| `FhenixPolicyService` | Evaluates confidential policy paths, normalizes encrypted decisions, and issues permit-ready evidence |
-| `AuditLogService` | Maps events into CRE-backed evidence records |
-| `IngestController` | Validates and stores BYO-agent runs, enforces ingest keys |
-| `CreController` | Exposes run ledger, event streams, retries, approvals |
-| `OwsLocalVaultService` | Encrypted local wallet storage, API-key issuance |
-| `OwsWalletService` | Spend execution, policy enforcement, signed authorizations |
-| `IntentController` | Natural language intent processing via AI with multi-provider routing |
-| `MultiModelRouter` | Routes AI requests across 6 providers with fallback logic and circuit breakers |
+| Service                    | Responsibility                                                                                        |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `PolicyService`            | Loads and stores local policies                                                                       |
+| `PolicyEnforcementService` | Evaluates actions against policy rules, returns allow/deny decisions                                  |
+| `FhenixPolicyService`      | Evaluates confidential policy paths, normalizes encrypted decisions, and issues permit-ready evidence |
+| `AuditLogService`          | Maps events into CRE-backed evidence records                                                          |
+| `IngestController`         | Validates and stores BYO-agent runs, enforces ingest keys                                             |
+| `CreController`            | Exposes run ledger, event streams, retries, approvals                                                 |
+| `OwsLocalVaultService`     | Encrypted local wallet storage, API-key issuance                                                      |
+| `OwsWalletService`         | Spend execution, policy enforcement, signed authorizations                                            |
+| `IntentController`         | Natural language intent processing via AI with multi-provider routing                                 |
+| `MultiModelRouter`         | Routes AI requests across 6 providers with fallback logic and circuit breakers                        |
 
 ### Product framing for contributors
 
@@ -150,38 +161,38 @@ Related: `GET/POST /api/governance/policies`, `GET /api/governance/health`
 
 ### OWS Wallet
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/ows/bootstrap` | POST | Bootstrap OWS wallet |
-| `/api/ows/wallets` | GET | List wallets |
-| `/api/ows/api-keys` | GET, POST | API key management |
+| Endpoint             | Method    | Description          |
+| -------------------- | --------- | -------------------- |
+| `/api/ows/bootstrap` | POST      | Bootstrap OWS wallet |
+| `/api/ows/wallets`   | GET       | List wallets         |
+| `/api/ows/api-keys`  | GET, POST | API key management   |
 
 ### Spend Execution
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/spend` | POST | Execute governed spend |
-| `/api/spend/encrypted` | POST | Execute confidential-policy spend with encrypted amount payload |
-| `/api/spend/preview` | POST | Simulate spend (dry-run) |
-| `/api/spend/status` | GET | Execution status |
+| Endpoint               | Method | Description                                                     |
+| ---------------------- | ------ | --------------------------------------------------------------- |
+| `/api/spend`           | POST   | Execute governed spend                                          |
+| `/api/spend/encrypted` | POST   | Execute confidential-policy spend with encrypted amount payload |
+| `/api/spend/preview`   | POST   | Simulate spend (dry-run)                                        |
+| `/api/spend/status`    | GET    | Execution status                                                |
 
 ### Audit & Run Ledger
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/audit/logs` | GET | Audit trail |
-| `/api/audit/insights` | GET | Audit insights |
-| `/api/audit/permits` | POST | Issue confidential audit decryption permits |
-| `/api/cre/runs` | GET | Run ledger |
-| `/api/cre/runs/:runId` | GET | Run details |
-| `/api/cre/runs/:runId/events/stream` | GET | SSE event stream |
+| Endpoint                             | Method | Description                                 |
+| ------------------------------------ | ------ | ------------------------------------------- |
+| `/api/audit/logs`                    | GET    | Audit trail                                 |
+| `/api/audit/insights`                | GET    | Audit insights                              |
+| `/api/audit/permits`                 | POST   | Issue confidential audit decryption permits |
+| `/api/cre/runs`                      | GET    | Run ledger                                  |
+| `/api/cre/runs/:runId`               | GET    | Run details                                 |
+| `/api/cre/runs/:runId/events/stream` | GET    | SSE event stream                            |
 
 ### AI Intent Processing
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/intent` | POST | Process natural language commands |
-| `/api/intent/metrics` | GET | Intent system metrics |
+| Endpoint              | Method | Description                       |
+| --------------------- | ------ | --------------------------------- |
+| `/api/intent`         | POST   | Process natural language commands |
+| `/api/intent/metrics` | GET    | Intent system metrics             |
 
 **`POST /api/intent`**
 

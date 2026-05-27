@@ -3,6 +3,7 @@
 > **Thesis:** Autonomous agents operating in Web3 need a governance copilot that speaks their language. ChainGPT's Web3-specialized LLM provides contract analysis, sanction checks, and calldata decoding natively — making it the perfect complement to Cognivern's policy engine.
 
 This document describes how Cognivern integrates ChainGPT across three key surfaces:
+
 1. **Web3 LLM Provider** — Governance-aware AI routing for Web3-specific queries
 2. **Smart Contract Auditor** — Runtime pre-spend defense (first production use of ChainGPT auditor for runtime, not CI)
 3. **AI Crypto News** — Live governance signal for policy auto-adjustment
@@ -11,13 +12,13 @@ This document describes how Cognivern integrates ChainGPT across three key surfa
 
 ## 1. Layered Architecture (ChainGPT Integration)
 
-| Layer | Chain | Role | Status |
-|-------|-------|------|--------|
-| Execution & Public Policy Anchoring | X Layer Testnet (1952) | `GovernanceContract`, `AIGovernanceStorage` | **Existing** |
-| Live Audit Anchoring | 0G Newton Testnet | Real-time governance decision anchoring | **Existing** |
-| Audit Archive | Filecoin Calibration | Long-term immutable audit storage | **Existing** |
-| **Web3 AI Governance** | **ChainGPT** | **Web3-specialized LLM for contract analysis, sanction checks, calldata decoding** | **NEW** |
-| Confidential Policy State | Fhenix | Encrypted budgets and spend counters | **Existing** |
+| Layer                               | Chain                  | Role                                                                               | Status       |
+| ----------------------------------- | ---------------------- | ---------------------------------------------------------------------------------- | ------------ |
+| Execution & Public Policy Anchoring | X Layer Testnet (1952) | `GovernanceContract`, `AIGovernanceStorage`                                        | **Existing** |
+| Live Audit Anchoring                | 0G Newton Testnet      | Real-time governance decision anchoring                                            | **Existing** |
+| Audit Archive                       | Filecoin Calibration   | Long-term immutable audit storage                                                  | **Existing** |
+| **Web3 AI Governance**              | **ChainGPT**           | **Web3-specialized LLM for contract analysis, sanction checks, calldata decoding** | **NEW**      |
+| Confidential Policy State           | Fhenix                 | Encrypted budgets and spend counters                                               | **Existing** |
 
 **Routing pattern:** Cognivern's `MultiModelRouter` routes Web3-specific queries to ChainGPT with governance context injection, while general-purpose queries route to other providers (Fireworks, Kilocode, etc.).
 
@@ -44,7 +45,15 @@ export class MultiModelRouter {
         // ... other providers
       },
       // ChainGPT first in fallback order for Web3 queries
-      fallbackOrder: ["chaingpt", "fireworks", "kilocode", "workers-ai", "openai", "gemini", "anthropic"],
+      fallbackOrder: [
+        "chaingpt",
+        "fireworks",
+        "kilocode",
+        "workers-ai",
+        "openai",
+        "gemini",
+        "anthropic",
+      ],
       // ...
     };
   }
@@ -113,13 +122,13 @@ Provide precise, actionable governance insights with Web3-specific terminology.`
 
 The Intent System routes queries to ChainGPT when they match Web3-specific patterns:
 
-| Query Pattern | Route To | Reason |
-|--------------|----------|--------|
-| "is this contract sanctioned?" | ChainGPT | Sanction list analysis |
-| "what does this calldata do?" | ChainGPT | Calldata decoding |
-| "analyze this contract for vulnerabilities" | ChainGPT | Smart contract analysis |
-| "should I approve this swap?" | General LLM | Policy-based, not Web3-specific |
-| "summarize my agent's recent activity" | General LLM | General reasoning |
+| Query Pattern                               | Route To    | Reason                          |
+| ------------------------------------------- | ----------- | ------------------------------- |
+| "is this contract sanctioned?"              | ChainGPT    | Sanction list analysis          |
+| "what does this calldata do?"               | ChainGPT    | Calldata decoding               |
+| "analyze this contract for vulnerabilities" | ChainGPT    | Smart contract analysis         |
+| "should I approve this swap?"               | General LLM | Policy-based, not Web3-specific |
+| "summarize my agent's recent activity"      | General LLM | General reasoning               |
 
 ---
 
@@ -150,7 +159,7 @@ export class ChainGPTAuditService {
    */
   async auditContract(
     contractAddress: string,
-    options?: { sourceCode?: string; bytecode?: string; skipCache?: boolean }
+    options?: { sourceCode?: string; bytecode?: string; skipCache?: boolean },
   ): Promise<{ decision: "approve" | "hold" | "deny"; audit: AuditResult }> {
     // Check cache first (5-minute TTL)
     // Call ChainGPT Auditor API
@@ -213,12 +222,12 @@ private async evaluateContractAuditRule(
 
 ### 3.3 Decision Logic
 
-| Severity | Action | Rationale |
-|----------|--------|-----------|
-| Critical | **Deny** | Immediate block — exploitable vulnerability |
-| High | **Deny** (configurable to Hold) | Strong vulnerability detected |
-| Medium | **Hold** | Requires operator review |
-| Low/Info | **Approve** | Minor concerns, acceptable risk |
+| Severity | Action                          | Rationale                                   |
+| -------- | ------------------------------- | ------------------------------------------- |
+| Critical | **Deny**                        | Immediate block — exploitable vulnerability |
+| High     | **Deny** (configurable to Hold) | Strong vulnerability detected               |
+| Medium   | **Hold**                        | Requires operator review                    |
+| Low/Info | **Approve**                     | Minor concerns, acceptable risk             |
 
 ---
 
@@ -276,8 +285,8 @@ CHAINGPT_AUDIT_CACHE_TTL_MS=300000
 
 ```typescript
 // src/di/container.ts
-import { ChainGPTAuditService } from '../services/ChainGPTAuditService.js';
-import { MultiModelRouter } from '../modules/cloudflare-agents/MultiModelRouter.js';
+import { ChainGPTAuditService } from "../services/ChainGPTAuditService.js";
+import { MultiModelRouter } from "../modules/cloudflare-agents/MultiModelRouter.js";
 
 // ChainGPT Audit Service
 container.registerSingleton(ChainGPTAuditService, () => {
@@ -312,6 +321,7 @@ Cognivern's ChainGPT integration will be published as a reusable middleware:
 **Repository:** `github:cognivern/agent-safety-middleware`
 
 This middleware provides:
+
 - ChainGPT Web3 LLM provider for governance analysis
 - Smart Contract Auditor pre-spend hook
 - News-driven policy auto-adjustment
@@ -322,12 +332,12 @@ License: MIT
 
 ## 7. Grant Alignment
 
-| Requirement | Cognivern Commitment |
-|-------------|---------------------|
-| Builder tier credits | $10K credits for ChainGPT API usage |
-| 12-month integration commitment | ChainGPT will remain in provider mix |
-| Open source contribution | `agent-safety-middleware` published |
-| PoC demonstration | Loom video showing: agent spend → ChainGPT Auditor flags vulnerable target → spend held → operator sees ChainGPT-powered reasoning |
+| Requirement                     | Cognivern Commitment                                                                                                               |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Builder tier credits            | $10K credits for ChainGPT API usage                                                                                                |
+| 12-month integration commitment | ChainGPT will remain in provider mix                                                                                               |
+| Open source contribution        | `agent-safety-middleware` published                                                                                                |
+| PoC demonstration               | Loom video showing: agent spend → ChainGPT Auditor flags vulnerable target → spend held → operator sees ChainGPT-powered reasoning |
 
 ---
 
@@ -377,19 +387,20 @@ All ChainGPT integrations emit structured logs for observability:
 
 ```typescript
 logger.info(`Auditing contract: ${contractAddress}`, {
-  provider: 'chaingpt',
+  provider: "chaingpt",
   ruleId: rule.id,
   agentId: action.metadata?.agentId,
 });
 
 logger.warn("ChainGPT API error", {
   error: error.message,
-  endpoint: 'audit/smart-contract',
+  endpoint: "audit/smart-contract",
   retry: attempt < maxRetries,
 });
 ```
 
 Metrics exported:
+
 - `chaingpt_requests_total` — Counter of all ChainGPT API calls
 - `chaingpt_audit_decisions` — Histogram of approve/hold/deny decisions
 - `chaingpt_latency_ms` — Histogram of API response times
@@ -398,12 +409,12 @@ Metrics exported:
 
 ## 10. Future Enhancements
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Multi-chain audit | Extend auditor to support more chains (Arbitrum, Base, etc.) | High |
-| Audit caching | Cross-node shared cache for audit results | Medium |
-| News sentiment | Use ChainGPT to analyze news sentiment for policy adjustment | Low |
-| Automated remediation | Allow ChainGPT to suggest policy modifications based on audit findings | Low |
+| Feature               | Description                                                            | Priority |
+| --------------------- | ---------------------------------------------------------------------- | -------- |
+| Multi-chain audit     | Extend auditor to support more chains (Arbitrum, Base, etc.)           | High     |
+| Audit caching         | Cross-node shared cache for audit results                              | Medium   |
+| News sentiment        | Use ChainGPT to analyze news sentiment for policy adjustment           | Low      |
+| Automated remediation | Allow ChainGPT to suggest policy modifications based on audit findings | Low      |
 
 ---
 
@@ -412,6 +423,7 @@ Metrics exported:
 **Overview:** Cognivern is a governance platform for AI agents providing real-time spend control, policy enforcement, and security auditing.
 
 **Key capabilities:**
+
 - Runtime contract auditing (pre-spend vulnerability checks)
 - Severity-based decisions (critical=deny, high=hold, low=approve)
 - Exploit pattern detection (reentrancy, flash loans, oracle manipulation)
