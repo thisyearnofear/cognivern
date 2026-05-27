@@ -140,7 +140,7 @@ export class ApiModule extends BaseService {
   protected async onShutdown(): Promise<void> {
     if (this.server) {
       await new Promise<void>((resolve) => {
-        this.server.close(() => {
+        this.server!.close(() => {
           this.logger.info("HTTP server closed");
           resolve();
         });

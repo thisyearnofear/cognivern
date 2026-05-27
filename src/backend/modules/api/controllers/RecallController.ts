@@ -70,7 +70,8 @@ export class RecallController {
 
       res.json({ success: true, id });
     } catch (error) {
-      logger.error("Failed to store memory:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to store memory:", err);
       res.status(500).json({ error: "Failed to store memory" });
     }
   }
@@ -95,7 +96,8 @@ export class RecallController {
 
       res.json({ results });
     } catch (error) {
-      logger.error("Failed to query memories:", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("Failed to query memories:", err);
       res.status(500).json({ error: "Failed to query memories" });
     }
   }

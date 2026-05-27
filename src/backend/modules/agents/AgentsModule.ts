@@ -24,9 +24,9 @@ import { getWorkerClient } from "../../services/CloudflareWorkerClient.js";
 
 export class AgentsModule extends BaseService {
   private agents: Map<string, TradingAgent> = new Map();
-  private orchestrator: AgentOrchestrator;
-  private tradingService: TradingService;
-  private governanceService: GovernanceService;
+  private orchestrator!: AgentOrchestrator;
+  private tradingService!: TradingService;
+  private governanceService!: GovernanceService;
   private workerClient = getWorkerClient();
   private isRunning = false;
 
@@ -65,7 +65,7 @@ export class AgentsModule extends BaseService {
     } catch (error) {
       dependencies.tradingService = {
         status: "unhealthy",
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
 
@@ -76,7 +76,7 @@ export class AgentsModule extends BaseService {
     } catch (error) {
       dependencies.governanceService = {
         status: "unhealthy",
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
 
@@ -90,7 +90,7 @@ export class AgentsModule extends BaseService {
       } catch (error) {
         dependencies[`agent_${agentId}`] = {
           status: "unhealthy",
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         };
       }
     }
@@ -147,7 +147,8 @@ export class AgentsModule extends BaseService {
           "SapienceTradingAgent initialized and added to registry",
         );
       } catch (error) {
-        this.logger.error("Failed to lazy-load SapienceTradingAgent:", error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        this.logger.error("Failed to lazy-load SapienceTradingAgent:", err);
       }
     } else {
       this.logger.info(
@@ -164,7 +165,8 @@ export class AgentsModule extends BaseService {
           `Agent ${agentId} initialized and started successfully`,
         );
       } catch (error) {
-        this.logger.error(`Failed to initialize agent ${agentId}:`, error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        this.logger.error(`Failed to initialize agent ${agentId}:`, err);
         // Remove failed agent
         this.agents.delete(agentId);
       }
@@ -218,9 +220,10 @@ export class AgentsModule extends BaseService {
           await agent.shutdown();
           this.logger.debug(`Agent ${agent.getId()} shut down successfully`);
         } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error));
           this.logger.error(
             `Error shutting down agent ${agent.getId()}:`,
-            error,
+            err,
           );
         }
       },
@@ -324,8 +327,9 @@ export class AgentsModule extends BaseService {
           },
         });
       } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
         this.logger.warn(
-          `Failed to register agent with Cloudflare Worker: ${error.message}`,
+          `Failed to register agent with Cloudflare Worker: ${err.message}`,
         );
       }
     }

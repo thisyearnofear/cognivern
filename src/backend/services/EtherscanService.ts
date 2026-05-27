@@ -82,7 +82,7 @@ export class EtherscanService {
 
     return {
       contract: contractInfo,
-      firstSeen: firstTx,
+      firstSeen: firstTx ?? undefined,
       recentActivity: recentTxs,
       tokenTransfers,
       securitySignals: {
@@ -90,8 +90,8 @@ export class EtherscanService {
         recentActivityCount: recentTxs.length,
         ageInDays,
         isVerified: contractInfo.verified,
-        hasProxy: contractInfo.isProxy,
-        hasSourceCode: contractInfo.sourceCode !== "",
+        hasProxy: !!contractInfo.isProxy,
+        hasSourceCode: !!contractInfo.sourceCode,
       },
     };
   }

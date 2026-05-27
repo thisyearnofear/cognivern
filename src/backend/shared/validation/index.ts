@@ -36,7 +36,7 @@ export const CommonValidators = {
   minLength:
     (min: number) =>
     (value: string): boolean => {
-      return value && value.length >= min;
+      return !!value && value.length >= min;
     },
 
   maxLength:
