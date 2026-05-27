@@ -61,7 +61,9 @@ export class UserTradingAgent implements TradingAgent {
 
   async initialize(): Promise<void> {
     this.status = "inactive";
-    logger.info(`User Agent ${this.name} (${this.id}) initialized at address ${this.address}`);
+    logger.info(
+      `User Agent ${this.name} (${this.id}) initialized at address ${this.address}`,
+    );
   }
 
   async start(): Promise<void> {
@@ -145,8 +147,12 @@ export class UserTradingAgent implements TradingAgent {
   }
 
   async getPerformance(): Promise<PerformanceMetrics> {
-    const lastTimestamp = this.history.length > 0 ? this.history[this.history.length - 1].timestamp : new Date();
-    const startDate = lastTimestamp instanceof Date ? lastTimestamp : new Date(lastTimestamp);
+    const lastTimestamp =
+      this.history.length > 0
+        ? this.history[this.history.length - 1].timestamp
+        : new Date();
+    const startDate =
+      lastTimestamp instanceof Date ? lastTimestamp : new Date(lastTimestamp);
 
     return {
       totalReturn: 0,
@@ -219,8 +225,8 @@ export class UserTradingAgent implements TradingAgent {
       metadata: {
         riskLevel: this.riskLevel,
         address: this.address,
-        owner: "user"
-      }
+        owner: "user",
+      },
     };
   }
 

@@ -136,20 +136,32 @@ export const blockchainConfig = {
 
 export const mantleConfig = {
   rpcUrl: process.env.MANTLE_RPC_URL || "https://rpc.mantle.xyz",
-  sepoliaRpcUrl: process.env.MANTLE_SEPOLIA_RPC_URL || "https://rpc.sepolia.mantle.xyz",
+  sepoliaRpcUrl:
+    process.env.MANTLE_SEPOLIA_RPC_URL || "https://rpc.sepolia.mantle.xyz",
   privateKey: process.env.MANTLE_PRIVATE_KEY || "",
   vaultAddress: process.env.MANTLE_VAULT_ADDRESS || "",
   chainId: { mainnet: 5000, sepolia: 5003 },
 };
 
 export const fhenixConfig = {
-  rpcUrl: process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
+  rpcUrl:
+    process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
   chainId: Number(process.env.FHENIX_CHAIN_ID || "421614"),
   contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
-  privateKey: process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
-  cofheUrl: process.env.FHENIX_COFHE_URL || process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
-  verifierUrl: process.env.FHENIX_VERIFIER_URL || process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
-  thresholdNetworkUrl: process.env.FHENIX_TN_URL || process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
+  privateKey:
+    process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
+  cofheUrl:
+    process.env.FHENIX_COFHE_URL ||
+    process.env.FHENIX_RPC_URL ||
+    "https://sepolia-rollup.arbitrum.io/rpc",
+  verifierUrl:
+    process.env.FHENIX_VERIFIER_URL ||
+    process.env.FHENIX_RPC_URL ||
+    "https://sepolia-rollup.arbitrum.io/rpc",
+  thresholdNetworkUrl:
+    process.env.FHENIX_TN_URL ||
+    process.env.FHENIX_RPC_URL ||
+    "https://sepolia-rollup.arbitrum.io/rpc",
 };
 
 export const monitoringConfig = {

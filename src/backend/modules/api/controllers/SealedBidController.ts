@@ -62,9 +62,17 @@ export class SealedBidController {
       }
 
       const { description, serviceCategory, deadline, maxBids } = parse.data;
-      const manager = req.body.manager || req.headers["x-api-key"] as string || "demo-manager";
+      const manager =
+        req.body.manager ||
+        (req.headers["x-api-key"] as string) ||
+        "demo-manager";
 
-      const request: CreateRoundRequest = { description, serviceCategory, deadline, maxBids };
+      const request: CreateRoundRequest = {
+        description,
+        serviceCategory,
+        deadline,
+        maxBids,
+      };
       const round = this.sealedBidService.createRound(request, manager);
 
       res.status(201).json({
@@ -118,7 +126,10 @@ export class SealedBidController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error(`SealedBid: submitBid failed for round ${req.params.roundId}`, error);
+      logger.error(
+        `SealedBid: submitBid failed for round ${req.params.roundId}`,
+        error,
+      );
       res.status(error.message?.includes("not found") ? 404 : 400).json({
         success: false,
         error: error.message || "Failed to submit bid",
@@ -134,7 +145,10 @@ export class SealedBidController {
   async closeRound(req: Request, res: Response) {
     try {
       const { roundId } = req.params;
-      const caller = req.body.manager || req.headers["x-api-key"] as string || "demo-manager";
+      const caller =
+        req.body.manager ||
+        (req.headers["x-api-key"] as string) ||
+        "demo-manager";
 
       const round = this.sealedBidService.closeRound(roundId, caller);
 
@@ -149,7 +163,10 @@ export class SealedBidController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error(`SealedBid: closeRound failed for ${req.params.roundId}`, error);
+      logger.error(
+        `SealedBid: closeRound failed for ${req.params.roundId}`,
+        error,
+      );
       res.status(error.message?.includes("not found") ? 404 : 400).json({
         success: false,
         error: error.message || "Failed to close round",
@@ -195,7 +212,10 @@ export class SealedBidController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error(`SealedBid: revealWinner failed for ${req.params.roundId}`, error);
+      logger.error(
+        `SealedBid: revealWinner failed for ${req.params.roundId}`,
+        error,
+      );
       res.status(error.message?.includes("not found") ? 404 : 400).json({
         success: false,
         error: error.message || "Failed to reveal winner",
@@ -228,7 +248,10 @@ export class SealedBidController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.error(`SealedBid: getRound failed for ${req.params.roundId}`, error);
+      logger.error(
+        `SealedBid: getRound failed for ${req.params.roundId}`,
+        error,
+      );
       res.status(500).json({
         success: false,
         error: error.message || "Failed to get round",

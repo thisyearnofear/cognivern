@@ -6,7 +6,14 @@
  */
 
 import { GovernanceAgent } from "./GovernanceAgent";
-import type { Ai, KVNamespace, D1Database, DurableObjectNamespace, ExecutionContext, ScheduledEvent } from "@cloudflare/workers-types";
+import type {
+  Ai,
+  KVNamespace,
+  D1Database,
+  DurableObjectNamespace,
+  ExecutionContext,
+  ScheduledEvent,
+} from "@cloudflare/workers-types";
 
 // Export for Durable Objects
 export { GovernanceAgent };
@@ -31,7 +38,11 @@ export default {
   /**
    * Handle incoming HTTP requests
    */
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
     const url = new URL(request.url);
 
     // Health check endpoint
@@ -61,11 +72,16 @@ export default {
   /**
    * Handle scheduled tasks (cron triggers)
    */
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(
+    event: ScheduledEvent,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<void> {
     console.log("Scheduled task triggered:", event.cron);
 
     // Trigger periodic governance audits
-    if (event.cron === "0 * * * *") { // Every hour
+    if (event.cron === "0 * * * *") {
+      // Every hour
       await triggerHourlyAudit(env);
     }
   },
@@ -86,39 +102,73 @@ async function handleAgentsAPI(request: Request, env: Env): Promise<Response> {
     }
 
     // GET /api/agents/:id - Get agent details
-    if (request.method === "GET" && pathParts.length === 3 && pathParts[0] === "api" && pathParts[1] === "agents") {
+    if (
+      request.method === "GET" &&
+      pathParts.length === 3 &&
+      pathParts[0] === "api" &&
+      pathParts[1] === "agents"
+    ) {
       const agentId = pathParts[2];
       const agent = await getAgentDetails(agentId, env);
       return Response.json({ success: true, data: agent });
     }
 
     // GET /api/agents/:id/thoughts - Get agent thought history
-    if (request.method === "GET" && pathParts.length === 4 && pathParts[0] === "api" && pathParts[1] === "agents" && pathParts[3] === "thoughts") {
+    if (
+      request.method === "GET" &&
+      pathParts.length === 4 &&
+      pathParts[0] === "api" &&
+      pathParts[1] === "agents" &&
+      pathParts[3] === "thoughts"
+    ) {
       const agentId = pathParts[2];
-      const thoughts = await getAgentThoughts(agentId, env, url.searchParams.get("limit"));
+      const thoughts = await getAgentThoughts(
+        agentId,
+        env,
+        url.searchParams.get("limit"),
+      );
       return Response.json({ success: true, data: thoughts });
     }
 
     // GET /api/agents/:id/metrics - Get agent metrics
-    if (request.method === "GET" && pathParts.length === 4 && pathParts[0] === "api" && pathParts[1] === "agents" && pathParts[3] === "metrics") {
+    if (
+      request.method === "GET" &&
+      pathParts.length === 4 &&
+      pathParts[0] === "api" &&
+      pathParts[1] === "agents" &&
+      pathParts[3] === "metrics"
+    ) {
       const agentId = pathParts[2];
       const metrics = await getAgentMetrics(agentId, env);
       return Response.json({ success: true, data: metrics });
     }
 
     // GET /api/agents/:id/actions - Get action log
-    if (request.method === "GET" && pathParts.length === 4 && pathParts[0] === "api" && pathParts[1] === "agents" && pathParts[3] === "actions") {
+    if (
+      request.method === "GET" &&
+      pathParts.length === 4 &&
+      pathParts[0] === "api" &&
+      pathParts[1] === "agents" &&
+      pathParts[3] === "actions"
+    ) {
       const agentId = pathParts[2];
       const actions = await getAgentActions(agentId, env, url.searchParams);
       return Response.json({ success: true, data: actions });
     }
 
     // GET /api/agents/:id/briefing - Get voice briefing
-    if (request.method === "GET" && pathParts.length === 4 && pathParts[0] === "api" && pathParts[1] === "agents" && pathParts[3] === "briefing") {
+    if (
+      request.method === "GET" &&
+      pathParts.length === 4 &&
+      pathParts[0] === "api" &&
+      pathParts[1] === "agents" &&
+      pathParts[3] === "briefing"
+    ) {
       const agentId = pathParts[2];
       const governanceAgent = await getGovernanceAgent(agentId, env);
 
-      const { script, audioResponse } = await governanceAgent.generateVoiceBriefing();
+      const { script, audioResponse } =
+        await governanceAgent.generateVoiceBriefing();
 
       // Proxy the audio stream with correct headers
       const response = new Response(audioResponse.body, {
@@ -143,8 +193,11 @@ async function handleAgentsAPI(request: Request, env: Env): Promise<Response> {
   } catch (error) {
     console.error("Agents API error:", error);
     return Response.json(
-      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }
@@ -152,7 +205,10 @@ async function handleAgentsAPI(request: Request, env: Env): Promise<Response> {
 /**
  * Handle governance evaluation requests
  */
-async function handleGovernanceEvaluate(request: Request, env: Env): Promise<Response> {
+async function handleGovernanceEvaluate(
+  request: Request,
+  env: Env,
+): Promise<Response> {
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
@@ -164,7 +220,7 @@ async function handleGovernanceEvaluate(request: Request, env: Env): Promise<Res
     if (!agentId || !action) {
       return Response.json(
         { success: false, error: "Missing agentId or action" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -181,8 +237,11 @@ async function handleGovernanceEvaluate(request: Request, env: Env): Promise<Res
   } catch (error) {
     console.error("Governance evaluation error:", error);
     return Response.json(
-      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }
@@ -205,7 +264,9 @@ async function getGovernanceAgent(agentId: string, env: Env) {
 async function listAgents(env: Env) {
   // Query D1 database for agent list
   if (env.D1) {
-    const result = await env.D1.prepare("SELECT * FROM agents ORDER BY lastActive DESC").all();
+    const result = await env.D1.prepare(
+      "SELECT * FROM agents ORDER BY lastActive DESC",
+    ).all();
     return result.results || [];
   }
 
@@ -218,7 +279,9 @@ async function listAgents(env: Env) {
  */
 async function getAgentDetails(agentId: string, env: Env) {
   if (env.D1) {
-    const result = await env.D1.prepare("SELECT * FROM agents WHERE id = ?").bind(agentId).first();
+    const result = await env.D1.prepare("SELECT * FROM agents WHERE id = ?")
+      .bind(agentId)
+      .first();
     return result;
   }
 
@@ -239,18 +302,22 @@ async function createAgent(agentData: any, env: Env) {
 
   // Store in D1
   if (env.D1) {
-    await env.D1.prepare(`
+    await env.D1.prepare(
+      `
       INSERT INTO agents (id, name, type, capabilities, status, createdAt, lastActive)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      agent.id,
-      agent.name,
-      agent.type,
-      JSON.stringify(agent.capabilities || []),
-      agent.status,
-      agent.createdAt,
-      agent.lastActive
-    ).run();
+    `,
+    )
+      .bind(
+        agent.id,
+        agent.name,
+        agent.type,
+        JSON.stringify(agent.capabilities || []),
+        agent.status,
+        agent.createdAt,
+        agent.lastActive,
+      )
+      .run();
   }
 
   return agent;
@@ -259,12 +326,18 @@ async function createAgent(agentData: any, env: Env) {
 /**
  * Get agent thought history
  */
-async function getAgentThoughts(agentId: string, env: Env, limit?: string | null): Promise<string[]> {
+async function getAgentThoughts(
+  agentId: string,
+  env: Env,
+  limit?: string | null,
+): Promise<string[]> {
   if (env.D1) {
     const limitNum = limit ? parseInt(limit) : 50;
     const result = await env.D1.prepare(
-      "SELECT thought FROM thought_history WHERE agentId = ? ORDER BY timestamp DESC LIMIT ?"
-    ).bind(agentId, limitNum).all();
+      "SELECT thought FROM thought_history WHERE agentId = ? ORDER BY timestamp DESC LIMIT ?",
+    )
+      .bind(agentId, limitNum)
+      .all();
     return (result.results || []).map((row: any) => row.thought);
   }
   return [];
@@ -276,8 +349,10 @@ async function getAgentThoughts(agentId: string, env: Env, limit?: string | null
 async function getAgentMetrics(agentId: string, env: Env) {
   if (env.D1) {
     const result = await env.D1.prepare(
-      "SELECT * FROM agent_metrics WHERE agentId = ?"
-    ).bind(agentId).first();
+      "SELECT * FROM agent_metrics WHERE agentId = ?",
+    )
+      .bind(agentId)
+      .first();
     return result;
   }
   return null;
@@ -286,7 +361,11 @@ async function getAgentMetrics(agentId: string, env: Env) {
 /**
  * Get agent actions
  */
-async function getAgentActions(agentId: string, env: Env, params: URLSearchParams) {
+async function getAgentActions(
+  agentId: string,
+  env: Env,
+  params: URLSearchParams,
+) {
   if (env.D1) {
     let query = "SELECT * FROM action_logs WHERE agentId = ?";
     const bindings: any[] = [agentId];
@@ -307,7 +386,9 @@ async function getAgentActions(agentId: string, env: Env, params: URLSearchParam
       bindings.push(parseInt(params.get("limit")!));
     }
 
-    const result = await env.D1.prepare(query).bind(...bindings).all();
+    const result = await env.D1.prepare(query)
+      .bind(...bindings)
+      .all();
     return result.results || [];
   }
   return [];

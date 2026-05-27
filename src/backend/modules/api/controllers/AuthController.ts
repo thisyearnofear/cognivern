@@ -11,7 +11,9 @@ function getJwtSecret(): Uint8Array {
     if (process.env.NODE_ENV === "production") {
       throw new Error("JWT_SECRET is required in production");
     }
-    return new TextEncoder().encode("cognivern-dev-jwt-secret-change-in-production");
+    return new TextEncoder().encode(
+      "cognivern-dev-jwt-secret-change-in-production",
+    );
   }
   return new TextEncoder().encode(secret);
 }
@@ -25,7 +27,10 @@ export class AuthController {
     const expiresAt = Date.now() + 5 * 60 * 1000;
 
     db.prepare("DELETE FROM nonces WHERE expires_at < ?").run(Date.now());
-    db.prepare("INSERT INTO nonces (nonce, expires_at) VALUES (?, ?)").run(nonce, expiresAt);
+    db.prepare("INSERT INTO nonces (nonce, expires_at) VALUES (?, ?)").run(
+      nonce,
+      expiresAt,
+    );
 
     res.json({ nonce });
   }
@@ -59,7 +64,9 @@ export class AuthController {
     const db = getDb();
     const stored = db
       .prepare("SELECT nonce, expires_at FROM nonces WHERE nonce = ?")
-      .get(siweMessage.nonce) as { nonce: string; expires_at: number } | undefined;
+      .get(siweMessage.nonce) as
+      | { nonce: string; expires_at: number }
+      | undefined;
 
     if (!stored || stored.expires_at < Date.now()) {
       db.prepare("DELETE FROM nonces WHERE nonce = ?").run(siweMessage.nonce);
@@ -75,20 +82,42 @@ export class AuthController {
     try {
       const result = await siweMessage.verify({ signature });
       if (!result.success) {
-        res.status(401).json({ success: false, error: "Signature verification failed" });
+        res
+          .status(401)
+          .json({ success: false, error: "Signature verification failed" });
         return;
       }
     } catch {
-      res.status(401).json({ success: false, error: "Signature verification failed" });
+      res
+        .status(401)
+        .json({ success: false, error: "Signature verification failed" });
       return;
     }
 
     const normalizedAddress = address.toLowerCase();
     let user = db
-      .prepare("SELECT id, wallet_address, created_at, last_login_at FROM users WHERE wallet_address = ?")
-      .get(normalizedAddress) as { id: string; wallet_address: string; created_at: string; last_login_at: string } | undefined;
+      .prepare(
+        "SELECT id, wallet_address, created_at, last_login_at FROM users WHERE wallet_address = ?",
+      )
+      .get(normalizedAddress) as
+      | {
+          id: string;
+          wallet_address: string;
+          created_at: string;
+          last_login_at: string;
+        }
+      | undefined;
 
-    let workspace: { id: string; name: string; owner_id: string; tier: string; created_at: string; updated_at: string } | undefined;
+    let workspace:
+      | {
+          id: string;
+          name: string;
+          owner_id: string;
+          tier: string;
+          created_at: string;
+          updated_at: string;
+        }
+      | undefined;
 
     if (!user) {
       const userId = randomUUID();
@@ -97,32 +126,58 @@ export class AuthController {
       const workspaceName = `${address.slice(0, 6)}...${address.slice(-4)}'s Workspace`;
 
       const insertUser = db.prepare(
-        "INSERT INTO users (id, wallet_address, created_at, last_login_at) VALUES (?, ?, ?, ?)"
+        "INSERT INTO users (id, wallet_address, created_at, last_login_at) VALUES (?, ?, ?, ?)",
       );
       const insertWorkspace = db.prepare(
-        "INSERT INTO workspaces (id, name, owner_id, tier, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
+        "INSERT INTO workspaces (id, name, owner_id, tier, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
       );
 
       const transaction = db.transaction(() => {
         insertUser.run(userId, normalizedAddress, now, now);
-        insertWorkspace.run(workspaceId, workspaceName, userId, "demo", now, now);
+        insertWorkspace.run(
+          workspaceId,
+          workspaceName,
+          userId,
+          "demo",
+          now,
+          now,
+        );
       });
       transaction();
 
-      user = { id: userId, wallet_address: normalizedAddress, created_at: now, last_login_at: now };
-      workspace = { id: workspaceId, name: workspaceName, owner_id: userId, tier: "demo", created_at: now, updated_at: now };
+      user = {
+        id: userId,
+        wallet_address: normalizedAddress,
+        created_at: now,
+        last_login_at: now,
+      };
+      workspace = {
+        id: workspaceId,
+        name: workspaceName,
+        owner_id: userId,
+        tier: "demo",
+        created_at: now,
+        updated_at: now,
+      };
     } else {
       const now = new Date().toISOString();
-      db.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").run(now, user.id);
+      db.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").run(
+        now,
+        user.id,
+      );
       user.last_login_at = now;
 
       workspace = db
-        .prepare("SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE owner_id = ?")
+        .prepare(
+          "SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE owner_id = ?",
+        )
         .get(user.id) as typeof workspace;
     }
 
     if (!workspace) {
-      res.status(500).json({ success: false, error: "No workspace found for user" });
+      res
+        .status(500)
+        .json({ success: false, error: "No workspace found for user" });
       return;
     }
 
@@ -166,15 +221,37 @@ export class AuthController {
 
     const db = getDb();
     const user = db
-      .prepare("SELECT id, wallet_address, created_at, last_login_at FROM users WHERE id = ?")
-      .get(userId) as { id: string; wallet_address: string; created_at: string; last_login_at: string } | undefined;
+      .prepare(
+        "SELECT id, wallet_address, created_at, last_login_at FROM users WHERE id = ?",
+      )
+      .get(userId) as
+      | {
+          id: string;
+          wallet_address: string;
+          created_at: string;
+          last_login_at: string;
+        }
+      | undefined;
 
     const workspace = db
-      .prepare("SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE id = ?")
-      .get(workspaceId) as { id: string; name: string; owner_id: string; tier: string; created_at: string; updated_at: string } | undefined;
+      .prepare(
+        "SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE id = ?",
+      )
+      .get(workspaceId) as
+      | {
+          id: string;
+          name: string;
+          owner_id: string;
+          tier: string;
+          created_at: string;
+          updated_at: string;
+        }
+      | undefined;
 
     if (!user || !workspace) {
-      res.status(404).json({ success: false, error: "User or workspace not found" });
+      res
+        .status(404)
+        .json({ success: false, error: "User or workspace not found" });
       return;
     }
 

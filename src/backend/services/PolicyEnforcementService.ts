@@ -20,7 +20,11 @@ export class PolicyEnforcementService {
   private rateLimitCounters: Map<string, { count: number; resetTime: number }> =
     new Map();
 
-  constructor(policyService?: PolicyService, fhenixPolicyService?: FhenixPolicyService, chainGPTAuditService?: ChainGPTAuditService) {
+  constructor(
+    policyService?: PolicyService,
+    fhenixPolicyService?: FhenixPolicyService,
+    chainGPTAuditService?: ChainGPTAuditService,
+  ) {
     this.policyService = policyService || null;
     this.fhenixPolicyService = fhenixPolicyService || null;
     this.chainGPTAuditService = chainGPTAuditService || null;
@@ -30,7 +34,11 @@ export class PolicyEnforcementService {
   /**
    * Initialize with PolicyService instance (for dependency injection)
    */
-  initialize(policyService: PolicyService, fhenixPolicyService?: FhenixPolicyService, chainGPTAuditService?: ChainGPTAuditService): void {
+  initialize(
+    policyService: PolicyService,
+    fhenixPolicyService?: FhenixPolicyService,
+    chainGPTAuditService?: ChainGPTAuditService,
+  ): void {
     this.policyService = policyService;
     if (fhenixPolicyService) {
       this.fhenixPolicyService = fhenixPolicyService;
@@ -91,7 +99,8 @@ export class PolicyEnforcementService {
         checks.push({
           policyId: rule.id,
           result: result.allowed,
-          reason: result.reason || (result.allowed ? "Rule passed" : "Rule failed"),
+          reason:
+            result.reason || (result.allowed ? "Rule passed" : "Rule failed"),
           metadata: result.metadata,
         });
       } catch (error) {
@@ -134,9 +143,7 @@ export class PolicyEnforcementService {
 
     // Check if all REQUIRE rules passed
     const allRequireRulesPassed = this.currentPolicy.rules
-      .filter(
-        (r: PolicyRule) => this.normalizeRuleType(r.type) === "require",
-      )
+      .filter((r: PolicyRule) => this.normalizeRuleType(r.type) === "require")
       .every(
         (r: PolicyRule) => checks.find((c) => c.policyId === r.id)?.result,
       );
@@ -155,7 +162,9 @@ export class PolicyEnforcementService {
         agentId: action.metadata?.agentId || action.id || "unknown",
         policyId: rule.id,
         amountWei: BigInt(action.metadata?.amountWei || 0),
-        vendorHash: action.metadata?.vendorHash || "0x0000000000000000000000000000000000000000000000000000000000000000",
+        vendorHash:
+          action.metadata?.vendorHash ||
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
       });
       return {
         allowed: decision.outcome === "approve",
@@ -194,12 +203,18 @@ export class PolicyEnforcementService {
     action: AgentAction,
   ): Promise<{ allowed: boolean; reason?: string; metadata?: any }> {
     if (!this.chainGPTAuditService) {
-      logger.warn("ChainGPT Audit service not configured - skipping contract audit");
-      return { allowed: true, reason: "Contract audit skipped (service not configured)" };
+      logger.warn(
+        "ChainGPT Audit service not configured - skipping contract audit",
+      );
+      return {
+        allowed: true,
+        reason: "Contract audit skipped (service not configured)",
+      };
     }
 
     // Extract target contract address from the action
-    const targetContract = action.metadata?.targetContract as string || undefined;
+    const targetContract =
+      (action.metadata?.targetContract as string) || undefined;
 
     if (!targetContract) {
       logger.debug("No target contract found in action - skipping audit");
@@ -212,7 +227,8 @@ export class PolicyEnforcementService {
         agentId: action.metadata?.agentId || action.id || "unknown",
       });
 
-      const auditResponse = await this.chainGPTAuditService.auditContract(targetContract);
+      const auditResponse =
+        await this.chainGPTAuditService.auditContract(targetContract);
       const { decision, audit } = auditResponse;
 
       const metadata = {
@@ -260,7 +276,8 @@ export class PolicyEnforcementService {
         reason: `Contract audit failed: ${error instanceof Error ? error.message : "Unknown error"}. Defaulting to hold for safety.`,
         metadata: {
           error: true,
-          originalError: error instanceof Error ? error.message : "Unknown error",
+          originalError:
+            error instanceof Error ? error.message : "Unknown error",
         },
       };
     }

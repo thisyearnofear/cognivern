@@ -4,7 +4,10 @@
 
 import { Request, Response } from "express";
 import { Logger } from "../../../shared/logging/Logger.js";
-import { PolicyService, sharedPolicyService } from "../../../services/PolicyService.js";
+import {
+  PolicyService,
+  sharedPolicyService,
+} from "../../../services/PolicyService.js";
 import { getWorkerClient } from "../../../services/CloudflareWorkerClient.js";
 
 const logger = new Logger("GovernanceController");
@@ -29,7 +32,10 @@ export class GovernanceController {
     this.auditLogService = auditLogService || new AuditLogService();
     this.policyEnforcementService =
       policyEnforcementService ||
-      new PolicyEnforcementService(this.policyService, sharedFhenixPolicyService);
+      new PolicyEnforcementService(
+        this.policyService,
+        sharedFhenixPolicyService,
+      );
   }
 
   /**
@@ -84,7 +90,10 @@ export class GovernanceController {
 
       // Try Worker first if enabled
       if (this.workerClient.isEnabled()) {
-        const decision = await this.workerClient.evaluateGovernance(agentId, action);
+        const decision = await this.workerClient.evaluateGovernance(
+          agentId,
+          action,
+        );
         if (decision) {
           res.json({
             success: true,
@@ -96,13 +105,16 @@ export class GovernanceController {
         }
       }
 
-      const policyId = await this.resolvePolicyId(req.body.policyId || action.policyId);
+      const policyId = await this.resolvePolicyId(
+        req.body.policyId || action.policyId,
+      );
       if (!policyId) {
         res.status(503).json({
           success: false,
           error: {
             code: "NO_ACTIVE_POLICY",
-            message: "No active governance policy is available for local evaluation",
+            message:
+              "No active governance policy is available for local evaluation",
           },
           timestamp: new Date().toISOString(),
         });
@@ -111,9 +123,8 @@ export class GovernanceController {
 
       await this.policyEnforcementService.loadPolicy(policyId);
       const normalizedAction = this.normalizeAction(agentId, action);
-      const decision = await this.policyEnforcementService.evaluateDecision(
-        normalizedAction,
-      );
+      const decision =
+        await this.policyEnforcementService.evaluateDecision(normalizedAction);
 
       await this.auditLogService.logAction(
         normalizedAction,
@@ -121,13 +132,15 @@ export class GovernanceController {
         decision.allowed,
       );
 
-      const failedChecks = decision.policyChecks.filter((check) => !check.result);
+      const failedChecks = decision.policyChecks.filter(
+        (check) => !check.result,
+      );
       const reason = failedChecks.length
         ? failedChecks.map((check) => check.reason || check.policyId).join("; ")
         : `Action approved under policy ${policyId}`;
 
       const confidentialChecks = decision.policyChecks.filter(
-        (check) => check.metadata?.confidential
+        (check) => check.metadata?.confidential,
       );
 
       const localDecision = {
@@ -140,9 +153,16 @@ export class GovernanceController {
         ...(confidentialChecks.length > 0 && {
           confidential: {
             fheEvaluated: true,
-            chain: process.env.FHENIX_CHAIN_ID === "84532" ? "fhenix-base-sepolia" : "fhenix-arbitrum-sepolia",
-            decisionIds: confidentialChecks.map((c) => c.metadata?.decisionId).filter(Boolean),
-            attestations: confidentialChecks.map((c) => c.metadata?.attestation).filter(Boolean),
+            chain:
+              process.env.FHENIX_CHAIN_ID === "84532"
+                ? "fhenix-base-sepolia"
+                : "fhenix-arbitrum-sepolia",
+            decisionIds: confidentialChecks
+              .map((c) => c.metadata?.decisionId)
+              .filter(Boolean),
+            attestations: confidentialChecks
+              .map((c) => c.metadata?.attestation)
+              .filter(Boolean),
           },
         }),
         timestamp: new Date().toISOString(),
@@ -241,7 +261,13 @@ export class GovernanceController {
 
   async createConfidentialPolicy(req: Request, res: Response): Promise<void> {
     try {
-      const { agentId, dailyLimit, perTxLimit, approvalThreshold, confidential } = req.body;
+      const {
+        agentId,
+        dailyLimit,
+        perTxLimit,
+        approvalThreshold,
+        confidential,
+      } = req.body;
 
       if (!agentId) {
         res.status(400).json({
@@ -260,13 +286,19 @@ export class GovernanceController {
             id: "fhe-budget-check",
             type: "deny",
             condition: "true",
-            action: { type: "block", parameters: { reason: "FHE evaluation required" } },
+            action: {
+              type: "block",
+              parameters: { reason: "FHE evaluation required" },
+            },
             metadata: { confidential: true },
           },
         ],
         {
           confidential: confidential !== false,
-          chain: process.env.FHENIX_CHAIN_ID === "84532" ? "fhenix-base-sepolia" : "fhenix-arbitrum-sepolia",
+          chain:
+            process.env.FHENIX_CHAIN_ID === "84532"
+              ? "fhenix-base-sepolia"
+              : "fhenix-arbitrum-sepolia",
           fheProvider: "cofhe-sdk",
           dailyLimit,
           perTxLimit,
@@ -312,7 +344,12 @@ export class GovernanceController {
         return;
       }
 
-      const policy = await this.policyService.createPolicy(name, description, rules || [], metadata);
+      const policy = await this.policyService.createPolicy(
+        name,
+        description,
+        rules || [],
+        metadata,
+      );
 
       res.status(201).json({
         success: true,
@@ -331,7 +368,9 @@ export class GovernanceController {
     }
   }
 
-  private async resolvePolicyId(explicitPolicyId?: string): Promise<string | null> {
+  private async resolvePolicyId(
+    explicitPolicyId?: string,
+  ): Promise<string | null> {
     if (explicitPolicyId) {
       const policy = await this.policyService.getPolicy(explicitPolicyId);
       return policy?.status === "active" ? policy.id : null;
@@ -342,7 +381,8 @@ export class GovernanceController {
       .filter((policy) => policy.status === "active" && policy.rules.length > 0)
       .sort(
         (left, right) =>
-          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+          new Date(right.updatedAt).getTime() -
+          new Date(left.updatedAt).getTime(),
       )[0];
 
     return activePolicy?.id || null;
@@ -383,7 +423,10 @@ export class GovernanceController {
     }
   }
 
-  private normalizeAction(agentId: string, action: Record<string, any>): AgentAction {
+  private normalizeAction(
+    agentId: string,
+    action: Record<string, any>,
+  ): AgentAction {
     const actionType = String(action.type || action.actionType || "unknown");
     const metadata = {
       ...(action.metadata || {}),

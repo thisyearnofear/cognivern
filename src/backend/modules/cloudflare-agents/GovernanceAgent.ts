@@ -6,7 +6,11 @@
  */
 
 import { Agent, callable, type AgentContext } from "agents";
-import type { GovernanceAgentState, GovernanceAction, PolicyDecision } from "./types";
+import type {
+  GovernanceAgentState,
+  GovernanceAction,
+  PolicyDecision,
+} from "./types";
 import { MultiModelRouter } from "./MultiModelRouter";
 import { ElevenLabsService } from "./ElevenLabsService";
 import type { Env } from "./worker";
@@ -93,7 +97,12 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
       // 1. Quick validation checks (fast path)
       const quickValidation = await this.quickValidation(action);
       if (!quickValidation.valid) {
-        return this.createDecision(action, false, quickValidation.reason, "quick_validation");
+        return this.createDecision(
+          action,
+          false,
+          quickValidation.reason,
+          "quick_validation",
+        );
       }
 
       // 2. AI-powered policy analysis (slow path)
@@ -106,14 +115,14 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
         approved,
         aiAnalysis.reasoning,
         "ai_analysis",
-        aiAnalysis
+        aiAnalysis,
       );
 
       // 4. Store action in memory log
       this.state.actionLog.push({
         ...action,
         timestamp: new Date().toISOString(),
-        decision
+        decision,
       });
       if (this.state.actionLog.length > 100) {
         this.state.actionLog.shift();
@@ -137,7 +146,7 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
         action,
         !failSafe,
         `Evaluation error: ${error instanceof Error ? error.message : "Unknown error"}`,
-        "error_failsafe"
+        "error_failsafe",
       );
     }
   }
@@ -150,7 +159,8 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
     const thoughts = this.state.thoughtHistory.slice(-(limit || 50));
 
     // Also check durable storage for older thoughts
-    const storedThoughts = await this.ctx.storage.get<string[]>("thoughtHistory");
+    const storedThoughts =
+      await this.ctx.storage.get<string[]>("thoughtHistory");
     if (storedThoughts) {
       return [...storedThoughts, ...thoughts].slice(-(limit || 50));
     }
@@ -172,13 +182,15 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
 
     if (filters) {
       if (filters.agentId) {
-        actions = actions.filter(a => a.agentId === filters.agentId);
+        actions = actions.filter((a) => a.agentId === filters.agentId);
       }
       if (filters.actionType) {
-        actions = actions.filter(a => a.actionType === filters.actionType);
+        actions = actions.filter((a) => a.actionType === filters.actionType);
       }
       if (filters.approved !== undefined) {
-        actions = actions.filter(a => a.decision?.approved === filters.approved);
+        actions = actions.filter(
+          (a) => a.decision?.approved === filters.approved,
+        );
       }
     }
 
@@ -197,7 +209,9 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
    * Update agent configuration
    */
   @callable()
-  async updateConfig(config: Partial<typeof this.state.configuration>): Promise<void> {
+  async updateConfig(
+    config: Partial<typeof this.state.configuration>,
+  ): Promise<void> {
     this.state.configuration = { ...this.state.configuration, ...config };
     await this.ctx.storage.put("config", this.state.configuration);
     this.addThought("Configuration updated", config);
@@ -207,7 +221,10 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
    * Generate a voice briefing of recent governance activity
    */
   @callable()
-  async generateVoiceBriefing(): Promise<{ script: string; audioResponse: Response }> {
+  async generateVoiceBriefing(): Promise<{
+    script: string;
+    audioResponse: Response;
+  }> {
     if (!this.state.configuration.enableVoiceBriefing) {
       throw new Error("Voice briefing is disabled in configuration");
     }
@@ -216,9 +233,14 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
     const now = Date.now();
     const oneHour = 60 * 60 * 1000;
 
-    if (this.state.lastBriefingAt && (now - this.state.lastBriefingAt < oneHour)) {
+    if (
+      this.state.lastBriefingAt &&
+      now - this.state.lastBriefingAt < oneHour
+    ) {
       if ((this.state.briefingCount || 0) >= 10) {
-        throw new Error("Governance briefing limit reached (10 per hour). Please try again later.");
+        throw new Error(
+          "Governance briefing limit reached (10 per hour). Please try again later.",
+        );
       }
       this.state.briefingCount = (this.state.briefingCount || 0) + 1;
     } else {
@@ -232,7 +254,7 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
     const script = await this.modelRouter.generateBriefingScript(
       this.state.thoughtHistory,
       this.state.actionLog,
-      this.state.configuration.modelPreference
+      this.state.configuration.modelPreference,
     );
 
     // 2. Persist the script for history/UI
@@ -258,8 +280,13 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
     console.info("Running scheduled governance cleanup");
 
     // 1. Trim thought history if exceeds max
-    if (this.state.thoughtHistory.length > this.state.configuration.maxThoughtHistory) {
-      const trimmed = this.state.thoughtHistory.slice(-this.state.configuration.maxThoughtHistory);
+    if (
+      this.state.thoughtHistory.length >
+      this.state.configuration.maxThoughtHistory
+    ) {
+      const trimmed = this.state.thoughtHistory.slice(
+        -this.state.configuration.maxThoughtHistory,
+      );
       this.state.thoughtHistory = trimmed;
       await this.ctx.storage.put("thoughtHistory", trimmed);
     }
@@ -276,31 +303,42 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
 
   // ========== Private Helper Methods ==========
 
-  private async quickValidation(action: GovernanceAction): Promise<{ valid: boolean; reason: string }> {
+  private async quickValidation(
+    action: GovernanceAction,
+  ): Promise<{ valid: boolean; reason: string }> {
     // Check required fields
     if (!action.agentId || !action.actionType) {
       return { valid: false, reason: "Missing required fields" };
     }
 
     // Check if agent is registered and active
-    const agentStatus = await this.ctx.storage.get<{ status: string }>(`agent:${action.agentId}:status`);
+    const agentStatus = await this.ctx.storage.get<{ status: string }>(
+      `agent:${action.agentId}:status`,
+    );
     if (!agentStatus || agentStatus.status !== "active") {
       return { valid: false, reason: "Agent not active" };
     }
 
     // Check rate limiting (simple in-memory + storage check)
     const rateKey = `rate:${action.agentId}`;
-    const rateData = await this.ctx.storage.get<{ count: number; resetAt: number }>(rateKey);
+    const rateData = await this.ctx.storage.get<{
+      count: number;
+      resetAt: number;
+    }>(rateKey);
     const now = Date.now();
 
     if (rateData && now < rateData.resetAt) {
-      if (rateData.count >= 100) { // 100 actions per minute
+      if (rateData.count >= 100) {
+        // 100 actions per minute
         return { valid: false, reason: "Rate limit exceeded" };
       }
       rateData.count++;
       await this.ctx.storage.put(rateKey, rateData);
     } else {
-      await this.ctx.storage.put(rateKey, { count: 1, resetAt: now + 60 * 1000 });
+      await this.ctx.storage.put(rateKey, {
+        count: 1,
+        resetAt: now + 60 * 1000,
+      });
     }
 
     return { valid: true, reason: "OK" };
@@ -316,7 +354,10 @@ export class GovernanceAgent extends Agent<Env, GovernanceAgentState> {
 
     // Route to appropriate model based on configuration
     const modelChoice = this.state.configuration.modelPreference;
-    const response = await this.modelRouter.analyzeGovernance(prompt, modelChoice);
+    const response = await this.modelRouter.analyzeGovernance(
+      prompt,
+      modelChoice,
+    );
 
     // Parse AI response
     const parsed = this.parseAIResponse(response);
@@ -385,7 +426,7 @@ Respond in JSON format:
     approved: boolean,
     reasoning: string,
     decisionType: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): PolicyDecision {
     return {
       id: crypto.randomUUID(),
@@ -429,10 +470,13 @@ Respond in JSON format:
     const total = this.state.metrics.totalDecisions;
     const prevAvg = this.state.metrics.avgDecisionTimeMs;
     this.state.metrics.avgDecisionTimeMs =
-      ((prevAvg * (total - 1)) + decisionTimeMs) / total;
+      (prevAvg * (total - 1) + decisionTimeMs) / total;
   }
 
-  private async logActionToStorage(action: GovernanceAction, decision: PolicyDecision): Promise<void> {
+  private async logActionToStorage(
+    action: GovernanceAction,
+    decision: PolicyDecision,
+  ): Promise<void> {
     const logKey = `action_log:${decision.id}`;
     await this.ctx.storage.put(logKey, {
       action,
@@ -450,7 +494,8 @@ Respond in JSON format:
   private async archiveOldActions(): Promise<void> {
     // Archive actions older than 30 days
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const index = (await this.ctx.storage.get<string[]>("action_log_index")) || [];
+    const index =
+      (await this.ctx.storage.get<string[]>("action_log_index")) || [];
 
     for (const key of index) {
       const entry = await this.ctx.storage.get<{ timestamp: string }>(key);

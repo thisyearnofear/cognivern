@@ -109,7 +109,7 @@ export class AuditLogService {
         cid: run.evidence?.cid,
         signature: run.evidence?.signature,
         signer: run.evidence?.signer,
-        artifactIds: run.artifacts.map(a => a.id),
+        artifactIds: run.artifacts.map((a) => a.id),
       },
     };
   }
@@ -142,13 +142,13 @@ export class AuditLogService {
       ok: true,
       status: "completed",
       metrics,
-      artifactHashes: [ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(artifact.data)))],
+      artifactHashes: [
+        ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(artifact.data))),
+      ],
     });
 
     const workflowType =
-      eventData.eventType === "agent_registration"
-        ? "registration"
-        : "generic";
+      eventData.eventType === "agent_registration" ? "registration" : "generic";
 
     const run: CreRun = {
       runId,
@@ -165,15 +165,17 @@ export class AuditLogService {
       },
       evidence,
       artifacts: [artifact],
-      steps: [{
-        kind: "compute",
-        name: "audit_log_event",
-        startedAt,
-        finishedAt,
-        ok: true,
-        summary: `${eventData.agentType} agent performed ${eventData.eventType}`,
-        details: eventData.details,
-      }],
+      steps: [
+        {
+          kind: "compute",
+          name: "audit_log_event",
+          startedAt,
+          finishedAt,
+          ok: true,
+          summary: `${eventData.agentType} agent performed ${eventData.eventType}`,
+          details: eventData.details,
+        },
+      ],
     };
 
     await this.creStore.add(run);
@@ -205,7 +207,9 @@ export class AuditLogService {
       ok: allowed,
       status: "completed",
       metrics,
-      artifactHashes: [ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(artifact.data)))],
+      artifactHashes: [
+        ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(artifact.data))),
+      ],
     });
 
     const run: CreRun = {
@@ -223,29 +227,35 @@ export class AuditLogService {
       },
       evidence,
       artifacts: [artifact],
-      steps: [{
-        kind: "evm_write",
-        name: action.type,
-        startedAt: action.timestamp || now,
-        finishedAt: now,
-        ok: allowed,
-        summary: action.description,
-        details: action.metadata,
-      }],
+      steps: [
+        {
+          kind: "evm_write",
+          name: action.type,
+          startedAt: action.timestamp || now,
+          finishedAt: now,
+          ok: allowed,
+          summary: action.description,
+          details: action.metadata,
+        },
+      ],
     };
 
     await this.creStore.add(run);
 
     // Anchor governance decision to 0G Storage (non-fatal, fire-and-forget)
-    zeroGStorageService.anchorAuditRecord({
-      runId,
-      workflow: "governance",
-      outcome: allowed ? "allowed" : "denied",
-      agentId: action.metadata?.agentId,
-      actionType: action.type,
-      timestamp: now,
-      evidenceHash: evidence.hash,
-    }).catch(() => { /* already logged inside ZeroGStorageService */ });
+    zeroGStorageService
+      .anchorAuditRecord({
+        runId,
+        workflow: "governance",
+        outcome: allowed ? "allowed" : "denied",
+        agentId: action.metadata?.agentId,
+        actionType: action.type,
+        timestamp: now,
+        evidenceHash: evidence.hash,
+      })
+      .catch(() => {
+        /* already logged inside ZeroGStorageService */
+      });
   }
 
   async getFilteredLogs(filters: {
@@ -257,7 +267,7 @@ export class AuditLogService {
     severity?: string;
   }): Promise<AuditLog[]> {
     const runs = await this.creStore.list();
-    let logs = runs.map(r => this.mapCreRunToAuditLog(r));
+    let logs = runs.map((r) => this.mapCreRunToAuditLog(r));
 
     if (filters.startDate) {
       const start = new Date(filters.startDate);
@@ -274,7 +284,9 @@ export class AuditLogService {
       logs = logs.filter((log) => log.actionType === filters.actionType);
     }
     if (filters.complianceStatus && filters.complianceStatus !== "all") {
-      logs = logs.filter((log) => log.complianceStatus === filters.complianceStatus);
+      logs = logs.filter(
+        (log) => log.complianceStatus === filters.complianceStatus,
+      );
     }
     if (filters.severity && filters.severity !== "all") {
       logs = logs.filter((log) => log.severity === filters.severity);

@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert";
 import { SealedBidService } from "../../src/services/SealedBidService.js";
-import type { CreateRoundRequest, SubmitBidRequest, RevealRequest } from "../../src/services/SealedBidService.js";
+import type {
+  CreateRoundRequest,
+  SubmitBidRequest,
+  RevealRequest,
+} from "../../src/services/SealedBidService.js";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -20,14 +24,18 @@ const defaultRound: CreateRoundRequest = {
   maxBids: 5,
 };
 
-const defaultBid = (overrides: Partial<SubmitBidRequest> = {}): SubmitBidRequest => ({
+const defaultBid = (
+  overrides: Partial<SubmitBidRequest> = {},
+): SubmitBidRequest => ({
   bidder: "0xVendorA",
   amountUsd: 15000,
   proposalDetails: "Full-stack development, 3-month engagement",
   ...overrides,
 });
 
-const defaultReveal = (overrides: Partial<RevealRequest> = {}): RevealRequest => ({
+const defaultReveal = (
+  overrides: Partial<RevealRequest> = {},
+): RevealRequest => ({
   selectionMethod: "lowest-bid",
   ...overrides,
 });
@@ -67,8 +75,14 @@ test("SealedBidService", async (t) => {
     const round = service.createRound(defaultRound, "manager-1");
     const bid = service.submitBid(round.roundId, defaultBid());
 
-    assert.ok(bid.encryptedAmount.startsWith("0x08"), "encryptedAmount should use ctHash prefix");
-    assert.ok(bid.proposalHash.startsWith("0x"), "proposalHash should be hex-prefixed");
+    assert.ok(
+      bid.encryptedAmount.startsWith("0x08"),
+      "encryptedAmount should use ctHash prefix",
+    );
+    assert.ok(
+      bid.proposalHash.startsWith("0x"),
+      "proposalHash should be hex-prefixed",
+    );
     assert.strictEqual(bid.status, "pending");
     assert.strictEqual(bid.index, 0);
     assert.strictEqual(bid.bidder, "0xVendorA");
@@ -118,7 +132,8 @@ test("SealedBidService", async (t) => {
     service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorB" }));
 
     assert.throws(
-      () => service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorC" })),
+      () =>
+        service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorC" })),
       /Max bids reached/,
     );
   });
@@ -130,38 +145,66 @@ test("SealedBidService", async (t) => {
     service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorA" }));
 
     assert.throws(
-      () => service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorA" })),
+      () =>
+        service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorA" })),
       /Bidder already submitted a bid/,
     );
   });
 
-  await t.test("submitBid without proposalDetails still generates a proposalHash", () => {
-    const service = new SealedBidService();
-    const round = service.createRound(defaultRound, "manager-1");
+  await t.test(
+    "submitBid without proposalDetails still generates a proposalHash",
+    () => {
+      const service = new SealedBidService();
+      const round = service.createRound(defaultRound, "manager-1");
 
-    const bid = service.submitBid(round.roundId, defaultBid({ proposalDetails: undefined }));
+      const bid = service.submitBid(
+        round.roundId,
+        defaultBid({ proposalDetails: undefined }),
+      );
 
-    assert.ok(bid.proposalHash.startsWith("0x"), "auto-generated proposalHash should be hex");
-  });
+      assert.ok(
+        bid.proposalHash.startsWith("0x"),
+        "auto-generated proposalHash should be hex",
+      );
+    },
+  );
 
-  await t.test("submitBid with proposalDetails has deterministic proposalHash", () => {
-    const service = new SealedBidService();
-    const round1 = service.createRound(defaultRound, "manager-1");
-    const round2 = service.createRound(defaultRound, "manager-1");
+  await t.test(
+    "submitBid with proposalDetails has deterministic proposalHash",
+    () => {
+      const service = new SealedBidService();
+      const round1 = service.createRound(defaultRound, "manager-1");
+      const round2 = service.createRound(defaultRound, "manager-1");
 
-    const bid1 = service.submitBid(round1.roundId, defaultBid({ proposalDetails: "Same proposal" }));
-    const bid2 = service.submitBid(round2.roundId, defaultBid({ proposalDetails: "Same proposal" }));
+      const bid1 = service.submitBid(
+        round1.roundId,
+        defaultBid({ proposalDetails: "Same proposal" }),
+      );
+      const bid2 = service.submitBid(
+        round2.roundId,
+        defaultBid({ proposalDetails: "Same proposal" }),
+      );
 
-    assert.strictEqual(bid1.proposalHash, bid2.proposalHash);
-  });
+      assert.strictEqual(bid1.proposalHash, bid2.proposalHash);
+    },
+  );
 
   await t.test("submitBid increments bid index correctly", () => {
     const service = new SealedBidService();
     const round = service.createRound(defaultRound, "manager-1");
 
-    const bid1 = service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorA" }));
-    const bid2 = service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorB" }));
-    const bid3 = service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorC" }));
+    const bid1 = service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorA" }),
+    );
+    const bid2 = service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorB" }),
+    );
+    const bid3 = service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorC" }),
+    );
 
     assert.strictEqual(bid1.index, 0);
     assert.strictEqual(bid2.index, 1);
@@ -215,12 +258,23 @@ test("SealedBidService", async (t) => {
     const service = new SealedBidService();
     const round = service.createRound(defaultRound, "manager-1");
 
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorA", amountUsd: 30000 }));
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorB", amountUsd: 12000 }));
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorC", amountUsd: 25000 }));
+    service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorA", amountUsd: 30000 }),
+    );
+    service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorB", amountUsd: 12000 }),
+    );
+    service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorC", amountUsd: 25000 }),
+    );
 
     service.closeRound(round.roundId, "manager-1");
-    const result = service.revealWinner(round.roundId, { selectionMethod: "lowest-bid" });
+    const result = service.revealWinner(round.roundId, {
+      selectionMethod: "lowest-bid",
+    });
 
     assert.strictEqual(result.winner, "0xVendorB");
     assert.strictEqual(result.winningBid, 12000);
@@ -231,11 +285,19 @@ test("SealedBidService", async (t) => {
     const service = new SealedBidService();
     const round = service.createRound(defaultRound, "manager-1");
 
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorA", amountUsd: 30000 }));
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorB", amountUsd: 12000 }));
+    service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorA", amountUsd: 30000 }),
+    );
+    service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorB", amountUsd: 12000 }),
+    );
 
     service.closeRound(round.roundId, "manager-1");
-    const result = service.revealWinner(round.roundId, { selectionMethod: "lowest-bid" });
+    const result = service.revealWinner(round.roundId, {
+      selectionMethod: "lowest-bid",
+    });
 
     assert.strictEqual(result.bids[0].status, "rejected");
     assert.strictEqual(result.bids[1].status, "selected");
@@ -247,12 +309,23 @@ test("SealedBidService", async (t) => {
     const service = new SealedBidService();
     const round = service.createRound(defaultRound, "manager-1");
 
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorA", amountUsd: 10000 }));
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorB", amountUsd: 50000 }));
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorC", amountUsd: 25000 }));
+    service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorA", amountUsd: 10000 }),
+    );
+    service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorB", amountUsd: 50000 }),
+    );
+    service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorC", amountUsd: 25000 }),
+    );
 
     service.closeRound(round.roundId, "manager-1");
-    const result = service.revealWinner(round.roundId, { selectionMethod: "highest-bid" });
+    const result = service.revealWinner(round.roundId, {
+      selectionMethod: "highest-bid",
+    });
 
     assert.strictEqual(result.winner, "0xVendorB");
     assert.strictEqual(result.winningBid, 50000);
@@ -264,8 +337,14 @@ test("SealedBidService", async (t) => {
     const service = new SealedBidService();
     const round = service.createRound(defaultRound, "manager-1");
 
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorA", amountUsd: 10000 }));
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorB", amountUsd: 50000 }));
+    service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorA", amountUsd: 10000 }),
+    );
+    service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorB", amountUsd: 50000 }),
+    );
 
     service.closeRound(round.roundId, "manager-1");
     const result = service.revealWinner(round.roundId, {
@@ -281,7 +360,10 @@ test("SealedBidService", async (t) => {
     const service = new SealedBidService();
     const round = service.createRound(defaultRound, "manager-1");
 
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorA", amountUsd: 10000 }));
+    service.submitBid(
+      round.roundId,
+      defaultBid({ bidder: "0xVendorA", amountUsd: 10000 }),
+    );
     service.closeRound(round.roundId, "manager-1");
 
     assert.throws(
@@ -294,22 +376,28 @@ test("SealedBidService", async (t) => {
     );
   });
 
-  await t.test("revealWinner specific throws if specificBidder not provided", () => {
-    const service = new SealedBidService();
-    const round = service.createRound(defaultRound, "manager-1");
+  await t.test(
+    "revealWinner specific throws if specificBidder not provided",
+    () => {
+      const service = new SealedBidService();
+      const round = service.createRound(defaultRound, "manager-1");
 
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xVendorA", amountUsd: 10000 }));
-    service.closeRound(round.roundId, "manager-1");
+      service.submitBid(
+        round.roundId,
+        defaultBid({ bidder: "0xVendorA", amountUsd: 10000 }),
+      );
+      service.closeRound(round.roundId, "manager-1");
 
-    assert.throws(
-      () =>
-        service.revealWinner(round.roundId, {
-          selectionMethod: "specific",
-          specificBidder: undefined,
-        }),
-      /specificBidder required/,
-    );
-  });
+      assert.throws(
+        () =>
+          service.revealWinner(round.roundId, {
+            selectionMethod: "specific",
+            specificBidder: undefined,
+          }),
+        /specificBidder required/,
+      );
+    },
+  );
 
   // ── revealWinner (error paths) ───────────────────────────────────────────
 
@@ -353,25 +441,40 @@ test("SealedBidService", async (t) => {
     assert.strictEqual(round, null);
   });
 
-  await t.test("getRound returns round with encrypted amounts by default", () => {
-    const service = new SealedBidService();
-    const created = service.createRound(defaultRound, "manager-1");
-    service.submitBid(created.roundId, defaultBid({ bidder: "0xVendorA", amountUsd: 15000 }));
+  await t.test(
+    "getRound returns round with encrypted amounts by default",
+    () => {
+      const service = new SealedBidService();
+      const created = service.createRound(defaultRound, "manager-1");
+      service.submitBid(
+        created.roundId,
+        defaultBid({ bidder: "0xVendorA", amountUsd: 15000 }),
+      );
 
-    const fetched = service.getRound(created.roundId);
-    assert.ok(fetched);
-    assert.ok(fetched.bids[0].encryptedAmount.startsWith("0x08"), "amount should be encrypted/ctHash");
-  });
+      const fetched = service.getRound(created.roundId);
+      assert.ok(fetched);
+      assert.ok(
+        fetched.bids[0].encryptedAmount.startsWith("0x08"),
+        "amount should be encrypted/ctHash",
+      );
+    },
+  );
 
-  await t.test("getRound with includeDecrypted=true shows decrypted amounts", () => {
-    const service = new SealedBidService();
-    const created = service.createRound(defaultRound, "manager-1");
-    service.submitBid(created.roundId, defaultBid({ bidder: "0xVendorA", amountUsd: 15000 }));
+  await t.test(
+    "getRound with includeDecrypted=true shows decrypted amounts",
+    () => {
+      const service = new SealedBidService();
+      const created = service.createRound(defaultRound, "manager-1");
+      service.submitBid(
+        created.roundId,
+        defaultBid({ bidder: "0xVendorA", amountUsd: 15000 }),
+      );
 
-    const fetched = service.getRound(created.roundId, true);
-    assert.ok(fetched);
-    assert.strictEqual(fetched.bids[0].encryptedAmount, "15000");
-  });
+      const fetched = service.getRound(created.roundId, true);
+      assert.ok(fetched);
+      assert.strictEqual(fetched.bids[0].encryptedAmount, "15000");
+    },
+  );
 
   // ── listRounds ───────────────────────────────────────────────────────────
 
@@ -386,8 +489,14 @@ test("SealedBidService", async (t) => {
   await t.test("listRounds returns all created rounds", () => {
     const service = new SealedBidService();
     service.createRound(defaultRound, "manager-1");
-    service.createRound({ ...defaultRound, description: "Marketing Q3" }, "manager-1");
-    service.createRound({ ...defaultRound, description: "Infra Q3" }, "manager-1");
+    service.createRound(
+      { ...defaultRound, description: "Marketing Q3" },
+      "manager-1",
+    );
+    service.createRound(
+      { ...defaultRound, description: "Infra Q3" },
+      "manager-1",
+    );
 
     const rounds = service.listRounds();
     assert.strictEqual(rounds.length, 3);
@@ -400,15 +509,48 @@ test("SealedBidService", async (t) => {
 
     // Create round
     const round = service.createRound(
-      { description: "Security Audit Q3", serviceCategory: "security", deadline: futureDate(), maxBids: 10 },
+      {
+        description: "Security Audit Q3",
+        serviceCategory: "security",
+        deadline: futureDate(),
+        maxBids: 10,
+      },
       "treasury-manager",
     );
 
     // Submit bids
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xAuditFirmA", amountUsd: 45000, proposalDetails: "Full audit, 2 weeks" }));
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xAuditFirmB", amountUsd: 28000, proposalDetails: "Automated + manual review" }));
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xAuditFirmC", amountUsd: 52000, proposalDetails: "Premium package" }));
-    service.submitBid(round.roundId, defaultBid({ bidder: "0xAuditFirmD", amountUsd: 31000, proposalDetails: "Standard engagement" }));
+    service.submitBid(
+      round.roundId,
+      defaultBid({
+        bidder: "0xAuditFirmA",
+        amountUsd: 45000,
+        proposalDetails: "Full audit, 2 weeks",
+      }),
+    );
+    service.submitBid(
+      round.roundId,
+      defaultBid({
+        bidder: "0xAuditFirmB",
+        amountUsd: 28000,
+        proposalDetails: "Automated + manual review",
+      }),
+    );
+    service.submitBid(
+      round.roundId,
+      defaultBid({
+        bidder: "0xAuditFirmC",
+        amountUsd: 52000,
+        proposalDetails: "Premium package",
+      }),
+    );
+    service.submitBid(
+      round.roundId,
+      defaultBid({
+        bidder: "0xAuditFirmD",
+        amountUsd: 31000,
+        proposalDetails: "Standard engagement",
+      }),
+    );
 
     // Verify bid count
     assert.strictEqual(service.getRound(round.roundId)!.bids.length, 4);
@@ -418,7 +560,9 @@ test("SealedBidService", async (t) => {
     assert.strictEqual(service.getRound(round.roundId)!.status, "closed");
 
     // Reveal lowest bidder
-    const result = service.revealWinner(round.roundId, { selectionMethod: "lowest-bid" });
+    const result = service.revealWinner(round.roundId, {
+      selectionMethod: "lowest-bid",
+    });
     assert.strictEqual(result.winner, "0xAuditFirmB");
     assert.strictEqual(result.winningBid, 28000);
 

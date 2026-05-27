@@ -6,7 +6,10 @@ import {
   SpendExecutionContext,
 } from "../../../services/OwsWalletService.js";
 import { sharedFhenixPolicyService } from "../../../services/FhenixPolicyService.js";
-import { getChainGPTAuditService, AuditResult } from "../../../services/ChainGPTAuditService.js";
+import {
+  getChainGPTAuditService,
+  AuditResult,
+} from "../../../services/ChainGPTAuditService.js";
 import crypto from "node:crypto";
 import { Logger } from "../../../shared/logging/Logger.js";
 
@@ -30,7 +33,10 @@ const encryptedSpendIntentSchema = spendIntentSchema.extend({
 const demoConfidentialSpendSchema = z.object({
   agentId: z.string().min(1),
   policyId: z.string().min(1).optional(),
-  amountUsd: z.number().or(z.string().transform((v) => Number(v))).optional(),
+  amountUsd: z
+    .number()
+    .or(z.string().transform((v) => Number(v)))
+    .optional(),
   vendorHash: z.string().min(1).optional(),
 });
 
@@ -196,7 +202,11 @@ export class SpendController {
     try {
       // Try demo confidential format first
       const demoParse = demoConfidentialSpendSchema.safeParse(req.body);
-      if (demoParse.success && demoParse.data.policyId && demoParse.data.amountUsd !== undefined) {
+      if (
+        demoParse.success &&
+        demoParse.data.policyId &&
+        demoParse.data.amountUsd !== undefined
+      ) {
         return await this.handleDemoConfidentialSpend(req, res, demoParse.data);
       }
 
@@ -256,7 +266,9 @@ export class SpendController {
     const agentId = payload.agentId;
     const policyId = payload.policyId!;
     const amountUsd = payload.amountUsd!;
-    const vendorHash = payload.vendorHash || "0x" + crypto.createHash("sha256").update("acme-corp").digest("hex");
+    const vendorHash =
+      payload.vendorHash ||
+      "0x" + crypto.createHash("sha256").update("acme-corp").digest("hex");
 
     // Convert USD amount to Wei (1 USD = 10^18 wei for demo purposes)
     const amountWei = BigInt(Math.floor(amountUsd * 1e18));
@@ -372,10 +384,7 @@ export class SpendController {
       );
       res.status(500).json({
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Contract scan failed",
+        error: error instanceof Error ? error.message : "Contract scan failed",
         timestamp: new Date().toISOString(),
       });
     }
@@ -435,12 +444,15 @@ export class SpendController {
             preview.reason = `ChainGPT Audit: ${contractAudit.summary}`;
             preview.simulation.wouldExecute = false;
             preview.simulation.warnings.push(
-              `Contract audit ${override.status === "denied" ? "failed" : "requires review"}: ${contractAudit.summary}`
+              `Contract audit ${override.status === "denied" ? "failed" : "requires review"}: ${contractAudit.summary}`,
             );
           }
         }
       } catch (auditError) {
-        logger.warn("ChainGPT audit failed, continuing without audit:", auditError);
+        logger.warn(
+          "ChainGPT audit failed, continuing without audit:",
+          auditError,
+        );
         contractAudit = {
           address: parse.data.recipient,
           error: "Audit service unavailable",

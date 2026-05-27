@@ -22,7 +22,10 @@ export class RecallCreRunPersistence implements CreRunPersistence {
         await this.recall.storeObject(`cre_run_${run.runId}`, run);
         logger.info(`Persisted CRE run ${run.runId} to Recall Network`);
       } catch (error) {
-        logger.error(`Failed to persist CRE run ${run.runId} to Recall:`, error);
+        logger.error(
+          `Failed to persist CRE run ${run.runId} to Recall:`,
+          error,
+        );
         // We don't throw here to avoid failing the local write if Recall is down
       }
     }

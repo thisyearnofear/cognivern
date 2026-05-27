@@ -10,7 +10,10 @@
 
 import { Request, Response } from "express";
 import { Logger } from "../../../shared/logging/Logger.js";
-import { PolicyService, sharedPolicyService } from "../../../services/PolicyService.js";
+import {
+  PolicyService,
+  sharedPolicyService,
+} from "../../../services/PolicyService.js";
 import { PolicyEnforcementService } from "../../../services/PolicyEnforcementService.js";
 import { AuditLogService } from "../../../services/AuditLogService.js";
 import { evaluatePolicyWithTogetherAI } from "../../../services/TogetherAIPolicyEvaluator.js";
@@ -69,7 +72,10 @@ const MCP_TOOL_MANIFEST = {
         },
         required: ["subject"],
       },
-      policyId: { type: "string", description: "Override policy ID (optional)" },
+      policyId: {
+        type: "string",
+        description: "Override policy ID (optional)",
+      },
       a2aTraceId: {
         type: "string",
         description: "A2A call-chain trace ID for multi-agent correlation",
@@ -106,12 +112,17 @@ export class McpGovernanceController {
     this.policyService = policyService || sharedPolicyService;
     this.auditLogService = auditLogService || new AuditLogService();
     this.policyEnforcementService =
-      policyEnforcementService || new PolicyEnforcementService(this.policyService);
+      policyEnforcementService ||
+      new PolicyEnforcementService(this.policyService);
   }
 
   /** GET /api/mcp/governance-check — return MCP tool manifest */
   async getManifest(_req: Request, res: Response): Promise<void> {
-    res.json({ success: true, data: MCP_TOOL_MANIFEST, timestamp: new Date().toISOString() });
+    res.json({
+      success: true,
+      data: MCP_TOOL_MANIFEST,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   /** POST /api/mcp/governance-check — evaluate governance and return MCP tool result */
@@ -120,18 +131,22 @@ export class McpGovernanceController {
     const timestamp = new Date().toISOString();
 
     try {
-      const { agentId, action, fhirContext, policyId, a2aTraceId } = req.body as {
-        agentId?: string;
-        action?: Partial<AgentAction>;
-        fhirContext?: SharpContext;
-        policyId?: string;
-        a2aTraceId?: string;
-      };
+      const { agentId, action, fhirContext, policyId, a2aTraceId } =
+        req.body as {
+          agentId?: string;
+          action?: Partial<AgentAction>;
+          fhirContext?: SharpContext;
+          policyId?: string;
+          a2aTraceId?: string;
+        };
 
       if (!agentId || !action) {
         res.status(400).json({
           success: false,
-          error: { code: "BAD_REQUEST", message: "Missing required fields: agentId, action" },
+          error: {
+            code: "BAD_REQUEST",
+            message: "Missing required fields: agentId, action",
+          },
           timestamp,
         });
         return;
@@ -142,10 +157,14 @@ export class McpGovernanceController {
       if (!resolvedPolicyId) {
         const policies = await this.policyService.listPolicies();
         const active = policies
-          .filter((candidate) => candidate.status === "active" && candidate.rules.length > 0)
+          .filter(
+            (candidate) =>
+              candidate.status === "active" && candidate.rules.length > 0,
+          )
           .sort(
             (left, right) =>
-              new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+              new Date(right.updatedAt).getTime() -
+              new Date(left.updatedAt).getTime(),
           )[0];
         resolvedPolicyId = active?.id;
       }
@@ -153,7 +172,10 @@ export class McpGovernanceController {
       if (!resolvedPolicyId) {
         res.status(503).json({
           success: false,
-          error: { code: "NO_ACTIVE_POLICY", message: "No active governance policy available" },
+          error: {
+            code: "NO_ACTIVE_POLICY",
+            message: "No active governance policy available",
+          },
           timestamp,
         });
         return;
@@ -163,7 +185,10 @@ export class McpGovernanceController {
       if (!policy) {
         res.status(404).json({
           success: false,
-          error: { code: "POLICY_NOT_FOUND", message: `Policy ${resolvedPolicyId} not found` },
+          error: {
+            code: "POLICY_NOT_FOUND",
+            message: `Policy ${resolvedPolicyId} not found`,
+          },
           timestamp,
         });
         return;
@@ -192,7 +217,8 @@ export class McpGovernanceController {
 
       // Prefer Together AI evaluator; fall back to enforcement service
       const useTogetherAI =
-        !!process.env.TOGETHER_API_KEY || process.env.TOGETHER_AI_ENABLED === "true";
+        !!process.env.TOGETHER_API_KEY ||
+        process.env.TOGETHER_AI_ENABLED === "true";
 
       let allowed: boolean;
       let reasoning: string;
@@ -213,7 +239,10 @@ export class McpGovernanceController {
         model = result.model;
       } else {
         await this.policyEnforcementService.loadPolicy(resolvedPolicyId);
-        const decision = await this.policyEnforcementService.evaluateDecision(normalizedAction);
+        const decision =
+          await this.policyEnforcementService.evaluateDecision(
+            normalizedAction,
+          );
         allowed = decision.allowed;
         reasoning = "";
         policyChecks = decision.policyChecks;
@@ -231,11 +260,17 @@ export class McpGovernanceController {
         );
       } catch (auditErr) {
         logger.warn("Audit log write failed (non-fatal)", {
-          error: auditErr instanceof Error ? auditErr.message : String(auditErr),
+          error:
+            auditErr instanceof Error ? auditErr.message : String(auditErr),
         });
       }
 
-      logger.info("MCP governance-check complete", { callId, agentId, allowed, provider });
+      logger.info("MCP governance-check complete", {
+        callId,
+        agentId,
+        allowed,
+        provider,
+      });
 
       res.json({
         success: true,

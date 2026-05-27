@@ -63,18 +63,19 @@ export class EtherscanService {
    * Get comprehensive contract analysis
    */
   async analyzeContract(address: string): Promise<EtherscanAnalysis> {
-    const [contractInfo, firstTx, recentTxs, tokenTransfers] = await Promise.all([
-      this.getContractInfo(address),
-      this.getFirstTransaction(address),
-      this.getRecentTransactions(address, 10),
-      this.getTokenTransfers(address, 10),
-    ]);
+    const [contractInfo, firstTx, recentTxs, tokenTransfers] =
+      await Promise.all([
+        this.getContractInfo(address),
+        this.getFirstTransaction(address),
+        this.getRecentTransactions(address, 10),
+        this.getTokenTransfers(address, 10),
+      ]);
 
     const ageInDays = firstTx
       ? Math.floor((Date.now() / 1000 - firstTx.timestamp) / 86400)
       : null;
 
-    const hasHighValueTransfers = recentTxs.some(tx => {
+    const hasHighValueTransfers = recentTxs.some((tx) => {
       const value = parseFloat(tx.value) / 1e18; // Convert wei to ETH
       return value > 10; // > 10 ETH
     });
@@ -119,7 +120,10 @@ export class EtherscanService {
       optimizationUsed: result.OptimizationUsed === "1",
       runs: result.Runs ? parseInt(result.Runs) : undefined,
       sourceCode: result.SourceCode || undefined,
-      abi: result.ABI !== "Contract source code not verified" ? result.ABI : undefined,
+      abi:
+        result.ABI !== "Contract source code not verified"
+          ? result.ABI
+          : undefined,
       implementation,
       isProxy,
     };
@@ -128,7 +132,9 @@ export class EtherscanService {
   /**
    * Get the first transaction for a contract (deployment)
    */
-  async getFirstTransaction(address: string): Promise<EtherscanTransactionInfo | null> {
+  async getFirstTransaction(
+    address: string,
+  ): Promise<EtherscanTransactionInfo | null> {
     const data = await this.fetchApi({
       module: "account",
       action: "txlist",
@@ -155,7 +161,10 @@ export class EtherscanService {
   /**
    * Get recent transactions for a contract
    */
-  async getRecentTransactions(address: string, limit: number = 10): Promise<EtherscanTransactionInfo[]> {
+  async getRecentTransactions(
+    address: string,
+    limit: number = 10,
+  ): Promise<EtherscanTransactionInfo[]> {
     const data = await this.fetchApi({
       module: "account",
       action: "txlist",
@@ -179,14 +188,19 @@ export class EtherscanService {
   /**
    * Get ERC20 token transfers for a contract
    */
-  async getTokenTransfers(address: string, limit: number = 10): Promise<Array<{
-    hash: string;
-    from: string;
-    to: string;
-    value: string;
-    tokenName: string;
-    tokenSymbol: string;
-  }>> {
+  async getTokenTransfers(
+    address: string,
+    limit: number = 10,
+  ): Promise<
+    Array<{
+      hash: string;
+      from: string;
+      to: string;
+      value: string;
+      tokenName: string;
+      tokenSymbol: string;
+    }>
+  > {
     const data = await this.fetchApi({
       module: "account",
       action: "tokentx",
@@ -239,9 +253,17 @@ export class EtherscanService {
    */
   calculateSecurityScore(analysis: EtherscanAnalysis): {
     score: number;
-    findings: Array<{ title: string; description: string; severity: "critical" | "high" | "medium" | "low" | "informational" }>;
+    findings: Array<{
+      title: string;
+      description: string;
+      severity: "critical" | "high" | "medium" | "low" | "informational";
+    }>;
   } {
-    const findings: Array<{ title: string; description: string; severity: "critical" | "high" | "medium" | "low" | "informational" }> = [];
+    const findings: Array<{
+      title: string;
+      description: string;
+      severity: "critical" | "high" | "medium" | "low" | "informational";
+    }> = [];
     let score = 70; // Base score
 
     // Verification status
@@ -255,7 +277,8 @@ export class EtherscanService {
     } else {
       findings.push({
         title: "Unverified Contract",
-        description: "Source code is not verified. Cannot inspect for vulnerabilities.",
+        description:
+          "Source code is not verified. Cannot inspect for vulnerabilities.",
         severity: "medium",
       });
       score -= 25;
@@ -311,14 +334,17 @@ export class EtherscanService {
     if (analysis.securitySignals.hasHighValueTransfers) {
       findings.push({
         title: "High Value Activity",
-        description: "Contract has recent transactions with >10 ETH. Active treasury.",
+        description:
+          "Contract has recent transactions with >10 ETH. Active treasury.",
         severity: "informational",
       });
     }
 
     // Compiler version check
     if (analysis.contract.compiler) {
-      const compilerVersion = parseFloat(analysis.contract.compiler.replace(/^v/, ""));
+      const compilerVersion = parseFloat(
+        analysis.contract.compiler.replace(/^v/, ""),
+      );
       if (compilerVersion < 0.8) {
         findings.push({
           title: "Older Solidity Version",

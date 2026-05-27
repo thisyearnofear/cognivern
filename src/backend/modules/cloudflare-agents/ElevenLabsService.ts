@@ -39,7 +39,7 @@ export class ElevenLabsService {
       headers: {
         "xi-api-key": this.config.apiKey,
         "Content-Type": "application/json",
-        "accept": "audio/mpeg",
+        accept: "audio/mpeg",
       },
       body: JSON.stringify({
         text,
@@ -55,7 +55,9 @@ export class ElevenLabsService {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`ElevenLabs API error (${response.status}): ${errorText}`);
+      throw new Error(
+        `ElevenLabs API error (${response.status}): ${errorText}`,
+      );
     }
 
     return response;

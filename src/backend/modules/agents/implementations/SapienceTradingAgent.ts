@@ -68,7 +68,10 @@ export class SapienceTradingAgent implements TradingAgent {
         sapienceService: this.sapienceService,
       });
     } catch (error) {
-      logger.error("Failed to load Sapience services", error instanceof Error ? error : undefined);
+      logger.error(
+        "Failed to load Sapience services",
+        error instanceof Error ? error : undefined,
+      );
       throw error;
     }
   }
@@ -158,7 +161,10 @@ export class SapienceTradingAgent implements TradingAgent {
         if (this.history.length > 50) this.history.pop();
       }
     } catch (error) {
-      logger.error("Agent forecast cycle failed", error instanceof Error ? error : undefined);
+      logger.error(
+        "Agent forecast cycle failed",
+        error instanceof Error ? error : undefined,
+      );
     }
   }
 
@@ -206,7 +212,10 @@ export class SapienceTradingAgent implements TradingAgent {
           },
         });
       } catch (recallError) {
-        logger.error("Failed to store memory in Recall", recallError instanceof Error ? recallError : undefined);
+        logger.error(
+          "Failed to store memory in Recall",
+          recallError instanceof Error ? recallError : undefined,
+        );
       }
 
       const tradeResult: TradeResult = {
@@ -363,7 +372,8 @@ export class SapienceTradingAgent implements TradingAgent {
   async getRecentDecisions(limit: number = 10): Promise<TradingDecision[]> {
     return this.history.slice(0, limit).map((d) => ({
       ...d,
-      timestamp: d.timestamp instanceof Date ? d.timestamp : new Date(d.timestamp),
+      timestamp:
+        d.timestamp instanceof Date ? d.timestamp : new Date(d.timestamp),
     })) as TradingDecision[];
   }
 }

@@ -3,6 +3,7 @@
  */
 
 import { Request, Response } from "express";
+import { Readable } from "node:stream";
 import { Logger } from "../../../shared/logging/Logger.js";
 import { AgentsModule } from "../../agents/AgentsModule.js";
 import { MarketDataService } from "../../../services/MarketDataService.js";
@@ -122,7 +123,10 @@ export class AgentsController {
           },
         });
       } catch (logError) {
-        logger.error("Failed to log agent registration", logError instanceof Error ? logError : undefined);
+        logger.error(
+          "Failed to log agent registration",
+          logError instanceof Error ? logError : undefined,
+        );
       }
 
       res.json({
@@ -132,7 +136,10 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error("Agent registration failed", error instanceof Error ? error : undefined);
+      logger.error(
+        "Agent registration failed",
+        error instanceof Error ? error : undefined,
+      );
       res.status(500).json({
         success: false,
         error: {
@@ -354,7 +361,11 @@ export class AgentsController {
       const limit = parseInt(req.query.limit as string) || 10;
 
       // Return mock decisions for demo agents
-      if (agentType === "governance" || agentType === "portfolio" || agentType === "sapience") {
+      if (
+        agentType === "governance" ||
+        agentType === "portfolio" ||
+        agentType === "sapience"
+      ) {
         const mockDecisions = [
           {
             id: `${agentType}-decision-1`,
@@ -771,7 +782,10 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error("Comparison API error", error instanceof Error ? error : undefined);
+      logger.error(
+        "Comparison API error",
+        error instanceof Error ? error : undefined,
+      );
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -812,7 +826,10 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error("Leaderboard API error", error instanceof Error ? error : undefined);
+      logger.error(
+        "Leaderboard API error",
+        error instanceof Error ? error : undefined,
+      );
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -840,7 +857,10 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error("Stats API error", error instanceof Error ? error : undefined);
+      logger.error(
+        "Stats API error",
+        error instanceof Error ? error : undefined,
+      );
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -882,7 +902,10 @@ export class AgentsController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error("Dashboard bundle error", error instanceof Error ? error : undefined);
+      logger.error(
+        "Dashboard bundle error",
+        error instanceof Error ? error : undefined,
+      );
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -1069,10 +1092,22 @@ export class AgentsController {
         return;
       }
 
-      res.json({
-        success: true,
-        data: result,
-      });
+      const { response: workerResponse, script } = result;
+
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("X-Briefing-Script", encodeURIComponent(script));
+      res.setHeader("Access-Control-Expose-Headers", "X-Briefing-Script");
+
+      if (!workerResponse.body) {
+        res.status(502).json({
+          success: false,
+          error: "Briefing stream unavailable",
+        });
+        return;
+      }
+
+      const nodeStream = Readable.fromWeb(workerResponse.body);
+      nodeStream.pipe(res);
     } catch (error) {
       res.status(500).json({
         success: false,

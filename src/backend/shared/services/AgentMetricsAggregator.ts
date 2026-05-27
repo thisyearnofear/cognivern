@@ -299,7 +299,10 @@ export class AgentMetricsAggregator {
         performance30d: this.calculateTimeBasedPerformance(agentHistory, 720),
       };
     } catch (error) {
-      logger.error(`Failed to fetch metrics for agent ${agentId}`, error instanceof Error ? error : undefined);
+      logger.error(
+        `Failed to fetch metrics for agent ${agentId}`,
+        error instanceof Error ? error : undefined,
+      );
       return null;
     }
   }

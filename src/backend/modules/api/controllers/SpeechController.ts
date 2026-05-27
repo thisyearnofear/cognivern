@@ -34,10 +34,13 @@ export class SpeechController {
       }
 
       if (!ELEVENLABS_API_KEY) {
-        logger.warn("ELEVENLABS_API_KEY not set; falling back to browser STT message");
+        logger.warn(
+          "ELEVENLABS_API_KEY not set; falling back to browser STT message",
+        );
         res.status(503).json({
           success: false,
-          error: "Speech-to-text is not configured on this instance. Set ELEVENLABS_API_KEY.",
+          error:
+            "Speech-to-text is not configured on this instance. Set ELEVENLABS_API_KEY.",
         });
         return;
       }
@@ -60,25 +63,30 @@ export class SpeechController {
       bodyParts.push(
         Buffer.from(
           `--${boundary}\r\nContent-Disposition: form-data; name="model_id"\r\n\r\nscribe_v2\r\n`,
-          "utf-8"
-        )
+          "utf-8",
+        ),
       );
 
       // tag_audio_events field (include non-speech sounds in transcript)
       bodyParts.push(
         Buffer.from(
           `--${boundary}\r\nContent-Disposition: form-data; name="tag_audio_events"\r\n\r\ntrue\r\n`,
-          "utf-8"
-        )
+          "utf-8",
+        ),
       );
 
       // audio file field
-      const ext = mimeType === "audio/webm" ? "webm" : mimeType === "audio/mp4" ? "mp4" : "webm";
+      const ext =
+        mimeType === "audio/webm"
+          ? "webm"
+          : mimeType === "audio/mp4"
+            ? "mp4"
+            : "webm";
       bodyParts.push(
         Buffer.from(
           `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="recording.${ext}"\r\nContent-Type: ${mimeType || "audio/webm"}\r\n\r\n`,
-          "utf-8"
-        )
+          "utf-8",
+        ),
       );
       bodyParts.push(audioBuffer);
       bodyParts.push(Buffer.from(`\r\n--${boundary}--\r\n`, "utf-8"));

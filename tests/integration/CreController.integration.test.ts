@@ -22,7 +22,9 @@ process.env.UX_EVENTS_FILE = path.join(
 const { CreController } = await import(
   "../../src/backend/modules/api/controllers/CreController.js"
 );
-const { creRunStore } = await import("../../src/backend/cre/storage/CreRunStore.js");
+const { creRunStore } = await import(
+  "../../src/backend/cre/storage/CreRunStore.js"
+);
 
 type MockReq = {
   params: Record<string, string>;

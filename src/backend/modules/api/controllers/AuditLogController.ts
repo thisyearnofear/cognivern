@@ -105,7 +105,9 @@ export class AuditLogController {
     const success = await this.auditLogService.resolveInsight(id);
     res.json({
       success,
-      message: success ? "Insight resolved successfully" : "Failed to resolve insight",
+      message: success
+        ? "Insight resolved successfully"
+        : "Failed to resolve insight",
       timestamp: new Date().toISOString(),
     });
   }
@@ -175,8 +177,10 @@ export class AuditLogController {
       success: true,
       data: {
         decisionId,
-        dailyLimit: "0x0800000000000010000000000000000000000000000000000000000000000000",
-        spentToday: "0x0800000000000000c80000000000000000000000000000000000000000000000",
+        dailyLimit:
+          "0x0800000000000010000000000000000000000000000000000000000000000000",
+        spentToday:
+          "0x0800000000000000c80000000000000000000000000000000000000000000000",
         outcome: "approve",
         note: "approvalThreshold not in permit scope — remains encrypted",
       },

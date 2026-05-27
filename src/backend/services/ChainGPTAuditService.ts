@@ -9,7 +9,10 @@
  */
 
 import logger from "../utils/logger.js";
-import { ContractSecurityFallback, getContractSecurityFallback } from "./ContractSecurityFallback.js";
+import {
+  ContractSecurityFallback,
+  getContractSecurityFallback,
+} from "./ContractSecurityFallback.js";
 
 export interface AuditResult {
   safe: boolean;
@@ -41,7 +44,8 @@ export interface AuditConfig {
 
 export class ChainGPTAuditService {
   private config: Required<AuditConfig>;
-  private cache: Map<string, { result: AuditResult; timestamp: number }> = new Map();
+  private cache: Map<string, { result: AuditResult; timestamp: number }> =
+    new Map();
   private cacheTimeoutMs = 5 * 60 * 1000; // 5 minute cache
 
   constructor(config: AuditConfig) {
@@ -65,7 +69,7 @@ export class ChainGPTAuditService {
       sourceCode?: string;
       bytecode?: string;
       skipCache?: boolean;
-    }
+    },
   ): Promise<{ decision: "approve" | "hold" | "deny"; audit: AuditResult }> {
     logger.info(`Auditing contract: ${contractAddress}`);
 
@@ -84,7 +88,10 @@ export class ChainGPTAuditService {
       audit = await this.callAuditor(contractAddress, options);
       audit.source = "chaingpt";
     } catch (chainGptError) {
-      logger.warn("ChainGPT audit failed, falling back to heuristic analysis:", chainGptError);
+      logger.warn(
+        "ChainGPT audit failed, falling back to heuristic analysis:",
+        chainGptError,
+      );
 
       // Fallback to heuristic analysis
       try {
@@ -94,7 +101,9 @@ export class ChainGPTAuditService {
           ...fallbackResult,
           source: "fallback",
         };
-        logger.info(`Fallback audit completed for ${contractAddress}: score=${audit.score}`);
+        logger.info(
+          `Fallback audit completed for ${contractAddress}: score=${audit.score}`,
+        );
       } catch (fallbackError) {
         logger.error("Fallback audit also failed:", fallbackError);
         throw chainGptError; // Throw original error if both fail
@@ -114,15 +123,20 @@ export class ChainGPTAuditService {
    * Batch audit multiple contracts
    */
   async auditContracts(
-    contracts: string[]
-  ): Promise<Map<string, { decision: "approve" | "hold" | "deny"; audit: AuditResult }>> {
-    const results = new Map<string, { decision: "approve" | "hold" | "deny"; audit: AuditResult }>();
+    contracts: string[],
+  ): Promise<
+    Map<string, { decision: "approve" | "hold" | "deny"; audit: AuditResult }>
+  > {
+    const results = new Map<
+      string,
+      { decision: "approve" | "hold" | "deny"; audit: AuditResult }
+    >();
 
     await Promise.all(
       contracts.map(async (address) => {
         const result = await this.auditContract(address);
         results.set(address.toLowerCase(), result);
-      })
+      }),
     );
 
     return results;
@@ -174,7 +188,10 @@ Respond with JSON: { "hasExploitRisk": boolean, "patterns": string[] }`;
       // Parse response and return pattern analysis
       return this.parseExploitResponse(response);
     } catch (error) {
-      logger.error(`Failed to check exploit patterns for ${contractAddress}:`, error);
+      logger.error(
+        `Failed to check exploit patterns for ${contractAddress}:`,
+        error,
+      );
       return { hasExploitRisk: false, patterns: [] };
     }
   }
@@ -183,8 +200,12 @@ Respond with JSON: { "hasExploitRisk": boolean, "patterns": string[] }`;
    * Get audit summary for display in UI
    */
   getAuditSummary(audit: AuditResult): string {
-    const criticalCount = audit.findings.filter(f => f.severity === "critical").length;
-    const highCount = audit.findings.filter(f => f.severity === "high").length;
+    const criticalCount = audit.findings.filter(
+      (f) => f.severity === "critical",
+    ).length;
+    const highCount = audit.findings.filter(
+      (f) => f.severity === "high",
+    ).length;
 
     if (criticalCount > 0) {
       return `CRITICAL: ${criticalCount} critical vulnerability${criticalCount > 1 ? "s" : ""} found`;
@@ -206,10 +227,13 @@ Respond with JSON: { "hasExploitRisk": boolean, "patterns": string[] }`;
 
   private async callAuditor(
     contractAddress: string,
-    options?: { sourceCode?: string; bytecode?: string }
+    options?: { sourceCode?: string; bytecode?: string },
   ): Promise<AuditResult> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      this.config.timeoutMs,
+    );
 
     try {
       // Build the audit prompt with strict output format
@@ -238,19 +262,21 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
         method: "POST",
         signal: controller.signal,
         headers: {
-          "Authorization": `Bearer ${this.config.apiKey}`,
+          Authorization: `Bearer ${this.config.apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           model: "smart_contract_auditor",
           question: auditPrompt,
-          chatHistory: "off"
+          chatHistory: "off",
         }),
       });
 
       if (!response.ok) {
         const error = await response.text();
-        throw new Error(`ChainGPT Audit API error: ${response.status} - ${error}`);
+        throw new Error(
+          `ChainGPT Audit API error: ${response.status} - ${error}`,
+        );
       }
 
       // Read streaming response
@@ -267,7 +293,6 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
       }
 
       return this.parseAuditText(fullResponse, contractAddress);
-
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         throw new Error("ChainGPT audit request timed out");
@@ -286,12 +311,15 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
     // Try structured format first (from our prompted output)
     const structuredScore = text.match(/SCORE:\s*(\d+)/i);
     const structuredSafe = text.match(/SAFE:\s*(true|false)/i);
-    const structuredSeverity = text.match(/SEVERITY:\s*(critical|high|medium|low|informational)/i);
+    const structuredSeverity = text.match(
+      /SEVERITY:\s*(critical|high|medium|low|informational)/i,
+    );
     const structuredSummary = text.match(/SUMMARY:\s*(.+?)(?:\n|$)/i);
 
     // Extract findings from structured format: "- [severity] | [title] | [description]"
     const findings: AuditFinding[] = [];
-    const structuredFindingPattern = /-\s*(critical|high|medium|low|informational)\s*\|\s*([^|]+)\|\s*([^\n]+)/gi;
+    const structuredFindingPattern =
+      /-\s*(critical|high|medium|low|informational)\s*\|\s*([^|]+)\|\s*([^\n]+)/gi;
     let match;
 
     while ((match = structuredFindingPattern.exec(text)) !== null) {
@@ -304,7 +332,8 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
 
     // Fallback: extract from markdown-style headers if structured format failed
     if (findings.length === 0) {
-      const markdownPattern = /(?:^|\n)#{1,3}\s*(?:\d+\.\s*)?([^\n]+?)(?:\n|$)/g;
+      const markdownPattern =
+        /(?:^|\n)#{1,3}\s*(?:\d+\.\s*)?([^\n]+?)(?:\n|$)/g;
       const severityInTitle = /(critical|high|medium|low|informational)/i;
 
       while ((match = markdownPattern.exec(text)) !== null) {
@@ -313,8 +342,12 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
 
         if (severityMatch) {
           findings.push({
-            severity: severityMatch[1].toLowerCase() as AuditFinding["severity"],
-            title: title.replace(severityMatch[0], '').replace(/[:\-]$/, '').trim(),
+            severity:
+              severityMatch[1].toLowerCase() as AuditFinding["severity"],
+            title: title
+              .replace(severityMatch[0], "")
+              .replace(/[:\-]$/, "")
+              .trim(),
             description: "",
           });
         }
@@ -323,11 +356,14 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
 
     // Fallback: look for bullet points with severity keywords
     if (findings.length === 0) {
-      const bulletPattern = /(?:[-•*]|\d+\.)\s*([^\n]*?(?:critical|high|medium|low|informational)[^\n]*)/gi;
+      const bulletPattern =
+        /(?:[-•*]|\d+\.)\s*([^\n]*?(?:critical|high|medium|low|informational)[^\n]*)/gi;
 
       while ((match = bulletPattern.exec(text)) !== null) {
         const line = match[1].trim();
-        const sevMatch = line.match(/(critical|high|medium|low|informational)/i);
+        const sevMatch = line.match(
+          /(critical|high|medium|low|informational)/i,
+        );
 
         if (sevMatch && line.length > 10) {
           findings.push({
@@ -345,16 +381,19 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
       : this.estimateScoreFromFindings(findings, text);
 
     // Determine overall severity
-    const hasCritical = findings.some(f => f.severity === "critical");
-    const hasHigh = findings.some(f => f.severity === "high");
-    const hasMedium = findings.some(f => f.severity === "medium");
+    const hasCritical = findings.some((f) => f.severity === "critical");
+    const hasHigh = findings.some((f) => f.severity === "high");
+    const hasMedium = findings.some((f) => f.severity === "medium");
 
     const severity = structuredSeverity
-      ? structuredSeverity[1].toLowerCase() as AuditResult["severity"]
-      : hasCritical ? "critical"
-      : hasHigh ? "high"
-      : hasMedium ? "medium"
-      : "low";
+      ? (structuredSeverity[1].toLowerCase() as AuditResult["severity"])
+      : hasCritical
+        ? "critical"
+        : hasHigh
+          ? "high"
+          : hasMedium
+            ? "medium"
+            : "low";
 
     // Determine safety
     const safe = structuredSafe
@@ -379,18 +418,25 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
   /**
    * Estimate score based on findings severity
    */
-  private estimateScoreFromFindings(findings: AuditFinding[], text: string): number {
+  private estimateScoreFromFindings(
+    findings: AuditFinding[],
+    text: string,
+  ): number {
     if (findings.length === 0) {
       // No findings - check if text suggests it's safe
-      if (/no.*(?:issues|vulnerabilities|findings)|secure|safe|well.*written/i.test(text)) {
+      if (
+        /no.*(?:issues|vulnerabilities|findings)|secure|safe|well.*written/i.test(
+          text,
+        )
+      ) {
         return 85;
       }
       return 70; // Default moderate
     }
 
-    const hasCritical = findings.some(f => f.severity === "critical");
-    const hasHigh = findings.some(f => f.severity === "high");
-    const hasMedium = findings.some(f => f.severity === "medium");
+    const hasCritical = findings.some((f) => f.severity === "critical");
+    const hasHigh = findings.some((f) => f.severity === "high");
+    const hasMedium = findings.some((f) => f.severity === "medium");
 
     if (hasCritical) return 25;
     if (hasHigh) return 40;
@@ -403,13 +449,15 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
    */
   private extractSummary(text: string): string {
     // Look for summary section
-    const summaryMatch = text.match(/(?:summary|conclusion|overview):\s*([^\n]+(?:\n[^\n]+)?)/i);
+    const summaryMatch = text.match(
+      /(?:summary|conclusion|overview):\s*([^\n]+(?:\n[^\n]+)?)/i,
+    );
     if (summaryMatch) {
       return summaryMatch[1].trim().substring(0, 300);
     }
 
     // Fallback: first substantial paragraph
-    const paragraphs = text.split('\n\n').filter(p => p.trim().length > 50);
+    const paragraphs = text.split("\n\n").filter((p) => p.trim().length > 50);
     if (paragraphs.length > 0) {
       return paragraphs[0].trim().substring(0, 300);
     }
@@ -419,20 +467,23 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
 
   private async callGovernanceAPI(prompt: string): Promise<string> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      this.config.timeoutMs,
+    );
 
     try {
       const response = await fetch(`${this.config.baseUrl}/chat/stream`, {
         method: "POST",
         signal: controller.signal,
         headers: {
-          "Authorization": `Bearer ${this.config.apiKey}`,
+          Authorization: `Bearer ${this.config.apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           model: "smart_contract_auditor",
           question: prompt,
-          chatHistory: "off"
+          chatHistory: "off",
         }),
       });
 
@@ -454,7 +505,6 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
       }
 
       return fullResponse || "{}";
-
     } finally {
       clearTimeout(timeoutId);
     }
@@ -471,17 +521,19 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
     }>;
 
     return {
-      safe: (data.score as number || 0) >= 70,
-      score: data.score as number || 50,
-      severity: this.normalizeSeverity(data.critical as string || data.severity as string || "medium"),
-      findings: findings.map(f => ({
+      safe: ((data.score as number) || 0) >= 70,
+      score: (data.score as number) || 50,
+      severity: this.normalizeSeverity(
+        (data.critical as string) || (data.severity as string) || "medium",
+      ),
+      findings: findings.map((f) => ({
         title: f.title || "Unknown finding",
         description: f.description || "",
         severity: this.normalizeSeverity(f.severity || "informational"),
         location: f.location,
         recommendation: f.recommendation,
       })),
-      summary: data.summary as string || "Audit completed",
+      summary: (data.summary as string) || "Audit completed",
       auditedAt: new Date().toISOString(),
     };
   }
@@ -495,15 +547,18 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
     return "informational";
   }
 
-  private makeDecision(audit: AuditResult): { decision: "approve" | "hold" | "deny"; audit: AuditResult } {
+  private makeDecision(audit: AuditResult): {
+    decision: "approve" | "hold" | "deny";
+    audit: AuditResult;
+  } {
     // Always block critical findings
-    const hasCritical = audit.findings.some(f => f.severity === "critical");
+    const hasCritical = audit.findings.some((f) => f.severity === "critical");
     if (hasCritical) {
       return { decision: "deny", audit };
     }
 
     // Block or hold on high severity based on config
-    const hasHigh = audit.findings.some(f => f.severity === "high");
+    const hasHigh = audit.findings.some((f) => f.severity === "high");
     if (hasHigh) {
       return {
         decision: this.config.blockOnSeverity === "high" ? "deny" : "hold",
@@ -512,7 +567,7 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
     }
 
     // Hold on medium if configured
-    const hasMedium = audit.findings.some(f => f.severity === "medium");
+    const hasMedium = audit.findings.some((f) => f.severity === "medium");
     if (hasMedium && this.config.holdOnMedium) {
       return { decision: "hold", audit };
     }
@@ -525,7 +580,10 @@ Analyze for: reentrancy, flash loan attacks, oracle manipulation, access control
     return /^0x[a-fA-F0-9]{40}$/.test(address);
   }
 
-  private parseExploitResponse(response: string): { hasExploitRisk: boolean; patterns: string[] } {
+  private parseExploitResponse(response: string): {
+    hasExploitRisk: boolean;
+    patterns: string[];
+  } {
     try {
       const parsed = JSON.parse(response);
       return {

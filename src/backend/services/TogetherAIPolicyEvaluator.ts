@@ -53,7 +53,10 @@ function buildUserPrompt(req: PolicyEvaluationRequest): string {
     : "";
 
   const rulesBlock = req.policy.rules
-    .map((r: PolicyRule) => `- [${r.id}] type=${r.type} condition="${r.condition}"`)
+    .map(
+      (r: PolicyRule) =>
+        `- [${r.id}] type=${r.type} condition="${r.condition}"`,
+    )
     .join("\n");
 
   return [

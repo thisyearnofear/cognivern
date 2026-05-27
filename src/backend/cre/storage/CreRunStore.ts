@@ -20,10 +20,12 @@ export class CreRunStore {
     this.maxRuns = params.maxRuns ?? 100;
 
     // Default to multi-layer persistence: [Local JSONL (hot), Recall (permanent)]
-    this.persistence = params.persistence || new MultiCreRunPersistence([
-      new JsonlCreRunPersistence(),
-      new RecallCreRunPersistence()
-    ]);
+    this.persistence =
+      params.persistence ||
+      new MultiCreRunPersistence([
+        new JsonlCreRunPersistence(),
+        new RecallCreRunPersistence(),
+      ]);
   }
 
   async ensureLoaded() {
