@@ -25,6 +25,7 @@ import {
   Trash2,
   ChevronRight,
   FileSearch,
+  Volume2,
 } from 'lucide-react';
 import { useAgent } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
@@ -57,6 +58,25 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
   const router = useRouter();
   const { data: agent, isLoading, error } = useAgent(agentId);
   const [toggling, setToggling] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+
+  const handleSpeak = useCallback(() => {
+    if (!agent) return;
+    if (speaking) {
+      window.speechSynthesis?.cancel();
+      setSpeaking(false);
+      return;
+    }
+    const text = [
+      `Agent ${agent.name}, ${agent.role}. Status: ${agent.status}.`,
+      `${agent.trades} trades executed. Budget: ${agent.budget}. Chain: ${agent.chain}.`,
+    ].join(' ');
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onend = () => setSpeaking(false);
+    window.speechSynthesis?.cancel();
+    window.speechSynthesis?.speak(utterance);
+    setSpeaking(true);
+  }, [agent, speaking]);
 
   const handleToggleStatus = useCallback(async () => {
     if (!agent) return;
@@ -130,6 +150,14 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant={speaking ? 'default' : 'outline'}
+            size="sm"
+            onClick={handleSpeak}
+            className={speaking ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+          >
+            <Volume2 className="h-4 w-4" /> {speaking ? 'Speaking...' : 'Listen'}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => router.push('/policies')}>
             <ShieldCheck className="h-4 w-4" /> View Policy
           </Button>
