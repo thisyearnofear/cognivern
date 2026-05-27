@@ -289,7 +289,7 @@ export function OsShell() {
   }, [recording]);
 
   return (
-    <div className="h-screen w-screen bg-[#0a0a0a] text-zinc-300 flex flex-col overflow-hidden">
+    <div className="h-full w-full bg-[#0a0a0a] text-zinc-300 flex flex-col overflow-hidden">
       {showOnboarding && booted && (
         <OsOnboardingOverlay
           onDismiss={() => setShowOnboarding(false)}
