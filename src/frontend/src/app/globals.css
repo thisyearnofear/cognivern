@@ -156,6 +156,16 @@
   border-radius: 3px;
 }
 
+/* iOS safe areas for full-bleed layouts */
+@supports (padding: env(safe-area-inset-top)) {
+  .os-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .os-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* CRT scanline overlay */
 .crt-effect::after {
   content: "";

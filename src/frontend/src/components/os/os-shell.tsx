@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Terminal, type TerminalHandle } from './Terminal';
-import { AgentGrid } from './AgentGrid';
-import { runAutoDemo } from './AutoDemo';
-import { OsOnboardingOverlay } from './OsOnboardingOverlay';
-import { Mic, MicOff, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { useState, useCallback, useRef, useEffect } from "react";
+import { Terminal, type TerminalHandle } from "./Terminal";
+import { AgentGrid } from "./AgentGrid";
+import { runAutoDemo } from "./AutoDemo";
+import { OsOnboardingOverlay } from "./OsOnboardingOverlay";
+import { Mic, MicOff, Loader2, Volume2, VolumeX } from "lucide-react";
 import {
   formatIntentError,
   formatIntentResult,
@@ -14,7 +14,7 @@ import {
   ONBOARDING_STORAGE_KEY,
   QUICK_PROMPTS,
   RECENT_PROMPTS_STORAGE_KEY,
-} from './os-content';
+} from "./os-content";
 
 interface HydraDBStatusData {
   configured: boolean;
@@ -23,19 +23,19 @@ interface HydraDBStatusData {
 }
 
 function readStoredBoolean(key: string) {
-  if (typeof window === 'undefined') return false;
-  return window.localStorage.getItem(key) === 'true';
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(key) === "true";
 }
 
 function readStoredPrompts() {
-  if (typeof window === 'undefined') return [] as string[];
+  if (typeof window === "undefined") return [] as string[];
 
   try {
     const raw = window.localStorage.getItem(RECENT_PROMPTS_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed)
-      ? parsed.filter((value): value is string => typeof value === 'string')
+      ? parsed.filter((value): value is string => typeof value === "string")
       : [];
   } catch {
     return [];
@@ -43,16 +43,22 @@ function readStoredPrompts() {
 }
 
 function stripAnsi(text: string): string {
-  return text.replace(/\x1b\[[0-9;]*m/g, '');
+  return text.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
 function storeRecentPrompts(prompts: string[]) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(RECENT_PROMPTS_STORAGE_KEY, JSON.stringify(prompts));
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    RECENT_PROMPTS_STORAGE_KEY,
+    JSON.stringify(prompts),
+  );
 }
 
 function buildRecentPrompts(current: string[], prompt: string) {
-  return [prompt, ...current.filter((item) => item !== prompt)].slice(0, MAX_RECENT_PROMPTS);
+  return [prompt, ...current.filter((item) => item !== prompt)].slice(
+    0,
+    MAX_RECENT_PROMPTS,
+  );
 }
 
 export function OsShell() {
@@ -62,16 +68,22 @@ export function OsShell() {
   const [showOnboarding, setShowOnboarding] = useState(
     () => !readStoredBoolean(ONBOARDING_STORAGE_KEY),
   );
-  const [recentPrompts, setRecentPrompts] = useState<string[]>(() => readStoredPrompts());
+  const [recentPrompts, setRecentPrompts] = useState<string[]>(() =>
+    readStoredPrompts(),
+  );
   const [activeIntentType, setActiveIntentType] = useState<string | null>(null);
   const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
   const [showWelcomeBack, setShowWelcomeBack] = useState(() =>
     readStoredBoolean(ONBOARDING_STORAGE_KEY),
   );
   const [welcomeBackFading, setWelcomeBackFading] = useState(false);
-  const [hydraStatus, setHydraStatus] = useState<HydraDBStatusData | null>(null);
+  const [hydraStatus, setHydraStatus] = useState<HydraDBStatusData | null>(
+    null,
+  );
   const terminalRef = useRef<TerminalHandle>(null);
-  const intentResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intentResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
@@ -82,21 +94,21 @@ export function OsShell() {
 
   useEffect(() => {
     if (!showOnboarding) {
-      window.localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+      window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
     }
   }, [showOnboarding]);
 
   // Fetch HydraDB status and recent memories on mount
   useEffect(() => {
     Promise.all([
-      fetch('/api/os/hydra'),
-      fetch('/api/os/hydra', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'recent', limit: 3 }),
+      fetch("/api/os/hydra"),
+      fetch("/api/os/hydra", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "recent", limit: 3 }),
       }).catch(() => null),
     ])
-      .then(async ([statusRes, recentRes]) => {
+      .then(async ([statusRes]) => {
         const statusData = (await statusRes.json()).data;
         if (statusData) {
           setHydraStatus(statusData);
@@ -130,63 +142,69 @@ export function OsShell() {
     };
   }, []);
 
-  const handleCommand = useCallback(async (command: string): Promise<string> => {
-    setCommandRunning(true);
+  const handleCommand = useCallback(
+    async (command: string): Promise<string> => {
+      setCommandRunning(true);
 
-    try {
-      const res = await fetch('/api/os/intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: command }),
-      });
-
-      const data = await res.json();
-
-      if (data.success && data.data) {
-        const result = formatIntentResult(data.data);
-
-        setActiveIntentType(result.type);
-        setFollowUpSuggestions(result.suggestions);
-        if (intentResetTimeoutRef.current) {
-          clearTimeout(intentResetTimeoutRef.current);
-        }
-        intentResetTimeoutRef.current = setTimeout(() => setActiveIntentType(null), 8000);
-
-        // TTS: speak the response if enabled
-        if (ttsEnabledRef.current && result.output) {
-          const clean = stripAnsi(result.output);
-          window.speechSynthesis?.cancel();
-          const utterance = new SpeechSynthesisUtterance(clean);
-          window.speechSynthesis?.speak(utterance);
-        }
-
-        // Fire-and-forget: store the command as a HydraDB memory
-        fetch('/api/os/hydra', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'memory',
-            text: `[intent] ${command}`,
-            title: `OS Command: ${command.slice(0, 60)}${command.length > 60 ? '...' : ''}`,
-          }),
-        }).catch(() => {
-          // Memory storage is best-effort
+      try {
+        const res = await fetch("/api/os/intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: command }),
         });
 
-        return result.output;
-      }
+        const data = await res.json();
 
-      setFollowUpSuggestions([]);
-      return formatIntentError(data.error || 'Unknown error').output;
-    } catch (err) {
-      setFollowUpSuggestions([]);
-      return formatIntentError(
-        `Failed to process command. ${err instanceof Error ? err.message : ''}`,
-      ).output;
-    } finally {
-      setCommandRunning(false);
-    }
-  }, []);
+        if (data.success && data.data) {
+          const result = formatIntentResult(data.data);
+
+          setActiveIntentType(result.type);
+          setFollowUpSuggestions(result.suggestions);
+          if (intentResetTimeoutRef.current) {
+            clearTimeout(intentResetTimeoutRef.current);
+          }
+          intentResetTimeoutRef.current = setTimeout(
+            () => setActiveIntentType(null),
+            8000,
+          );
+
+          // TTS: speak the response if enabled
+          if (ttsEnabledRef.current && result.output) {
+            const clean = stripAnsi(result.output);
+            window.speechSynthesis?.cancel();
+            const utterance = new SpeechSynthesisUtterance(clean);
+            window.speechSynthesis?.speak(utterance);
+          }
+
+          // Fire-and-forget: store the command as a HydraDB memory
+          fetch("/api/os/hydra", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "memory",
+              text: `[intent] ${command}`,
+              title: `OS Command: ${command.slice(0, 60)}${command.length > 60 ? "..." : ""}`,
+            }),
+          }).catch(() => {
+            // Memory storage is best-effort
+          });
+
+          return result.output;
+        }
+
+        setFollowUpSuggestions([]);
+        return formatIntentError(data.error || "Unknown error").output;
+      } catch (err) {
+        setFollowUpSuggestions([]);
+        return formatIntentError(
+          `Failed to process command. ${err instanceof Error ? err.message : ""}`,
+        ).output;
+      } finally {
+        setCommandRunning(false);
+      }
+    },
+    [],
+  );
 
   const handleBoot = useCallback(() => {
     setBooted(true);
@@ -239,12 +257,15 @@ export function OsShell() {
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : MediaRecorder.isTypeSupported('audio/mp4')
-          ? 'audio/mp4'
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
           : undefined;
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const recorder = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType } : undefined,
+      );
       mediaRecorderRef.current = recorder;
       recordedChunksRef.current = [];
 
@@ -255,7 +276,7 @@ export function OsShell() {
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(recordedChunksRef.current, {
-          type: mimeType || 'audio/webm',
+          type: mimeType || "audio/webm",
         });
         if (blob.size === 0) return;
 
@@ -263,14 +284,18 @@ export function OsShell() {
         try {
           const arrayBuffer = await blob.arrayBuffer();
           const bytes = new Uint8Array(arrayBuffer);
-          let binary = '';
-          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+          let binary = "";
+          for (let i = 0; i < bytes.byteLength; i++)
+            binary += String.fromCharCode(bytes[i]);
           const base64 = btoa(binary);
 
-          const res = await fetch('/api/speech/transcribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ audio: base64, mimeType: mimeType || 'audio/webm' }),
+          const res = await fetch("/api/speech/transcribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              audio: base64,
+              mimeType: mimeType || "audio/webm",
+            }),
           });
           const data = await res.json();
           if (data.success && data.data?.text) {
@@ -300,27 +325,29 @@ export function OsShell() {
       )}
 
       {/* Top bar */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60 bg-[#0a0a0a] shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex gap-1.5">
+      <header className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-zinc-800/60 bg-[#0a0a0a] shrink-0 gap-2 os-safe-top">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="flex gap-1.5 shrink-0">
             <div className="w-3 h-3 rounded-full bg-red-500/80" />
             <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
             <div className="w-3 h-3 rounded-full bg-green-500/80" />
           </div>
-          <span className="text-xs font-mono text-zinc-500">agent command center v0.1</span>
+          <span className="text-xs font-mono text-zinc-500 truncate hidden sm:inline">
+            agent command center v0.1
+          </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <button
             onClick={handleVoiceInput}
             disabled={!booted || commandRunning}
-            className={`flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border transition-colors ${
+            className={`flex items-center gap-1 text-[10px] font-mono px-1.5 sm:px-2 py-0.5 rounded border transition-colors ${
               recording
-                ? 'border-red-800 text-red-400 bg-red-950/40'
+                ? "border-red-800 text-red-400 bg-red-950/40"
                 : transcribing
-                  ? 'border-yellow-800 text-yellow-400 bg-yellow-950/40'
-                  : 'border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500'
+                  ? "border-yellow-800 text-yellow-400 bg-yellow-950/40"
+                  : "border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500"
             }`}
-            title={recording ? 'Stop recording' : 'Voice input'}
+            title={recording ? "Stop recording" : "Voice input"}
           >
             {transcribing ? (
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -329,40 +356,50 @@ export function OsShell() {
             ) : (
               <Mic className="h-3 w-3" />
             )}
-            {transcribing ? 'transcribing' : recording ? 'recording' : 'voice'}
+            <span className="hidden sm:inline">
+              {transcribing ? "transcribing" : recording ? "recording" : "voice"}
+            </span>
           </button>
           <button
             onClick={toggleTts}
             disabled={!booted}
-            className={`flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border transition-colors ${
+            className={`flex items-center gap-1 text-[10px] font-mono px-1.5 sm:px-2 py-0.5 rounded border transition-colors ${
               ttsEnabled
-                ? 'border-emerald-800 text-emerald-400 bg-emerald-950/40'
-                : 'border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500'
+                ? "border-emerald-800 text-emerald-400 bg-emerald-950/40"
+                : "border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500"
             }`}
-            title={ttsEnabled ? 'Mute speech' : 'Enable speech'}
+            title={ttsEnabled ? "Mute speech" : "Enable speech"}
           >
-            {ttsEnabled ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
-            {ttsEnabled ? 'speak' : 'muted'}
+            {ttsEnabled ? (
+              <Volume2 className="h-3 w-3" />
+            ) : (
+              <VolumeX className="h-3 w-3" />
+            )}
+            <span className="hidden sm:inline">{ttsEnabled ? "speak" : "muted"}</span>
           </button>
           <button
             onClick={startDemo}
             disabled={demoRunning || !booted || commandRunning}
-            className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-colors ${
+            className={`hidden sm:block text-[10px] font-mono px-2 py-0.5 rounded border transition-colors ${
               demoRunning
-                ? 'border-emerald-800 text-emerald-500 bg-emerald-950/50'
+                ? "border-emerald-800 text-emerald-500 bg-emerald-950/50"
                 : commandRunning
-                  ? 'border-sky-800 text-sky-400 bg-sky-950/40'
-                  : 'border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500'
+                  ? "border-sky-800 text-sky-400 bg-sky-950/40"
+                  : "border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500"
             }`}
           >
-            {demoRunning ? '[demo running]' : commandRunning ? '[command running]' : '[auto-demo]'}
+            {demoRunning
+              ? "[demo running]"
+              : commandRunning
+                ? "[command running]"
+                : "[auto-demo]"}
           </button>
-          <span className="text-[10px] font-mono text-zinc-600">
+          <span className="text-[10px] font-mono text-zinc-600 hidden md:inline">
             {new Date().toLocaleTimeString()}
           </span>
           <a
             href="/dashboard"
-            className="text-[10px] font-mono text-zinc-600 hover:text-zinc-400 transition-colors"
+            className="text-[10px] font-mono text-zinc-600 hover:text-zinc-400 transition-colors hidden sm:inline"
           >
             [dashboard]
           </a>
@@ -372,26 +409,29 @@ export function OsShell() {
       {/* Welcome-back banner for returning users */}
       {showWelcomeBack && (
         <div
-          className={`flex items-center justify-center gap-3 px-4 py-1.5 bg-emerald-950/25 border-b border-emerald-900/40 transition-all duration-500 ${
-            welcomeBackFading ? 'opacity-0 translate-y-[-4px]' : 'opacity-100 translate-y-0'
+          className={`flex items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 bg-emerald-950/25 border-b border-emerald-900/40 transition-all duration-500 ${
+            welcomeBackFading
+              ? "opacity-0 translate-y-[-4px]"
+              : "opacity-100 translate-y-0"
           }`}
         >
-          <span className="text-xs font-mono text-emerald-400/80">Welcome back</span>
-          <span className="text-[10px] font-mono text-emerald-500/50">&middot;</span>
+          <span className="text-xs font-mono text-emerald-400/80">
+            Welcome back
+          </span>
           {recentPrompts.length > 0 && (
-            <>
-              <span className="text-xs font-mono text-emerald-400/80">
-                {recentPrompts.length} recent prompt{recentPrompts.length === 1 ? '' : 's'} ready
-              </span>
-              <span className="text-[10px] font-mono text-emerald-500/50">&middot;</span>
-            </>
+            <span className="text-[10px] font-mono text-emerald-500/50 hidden sm:inline">
+              &middot; {recentPrompts.length} recent prompt
+              {recentPrompts.length === 1 ? "" : "s"} ready
+            </span>
           )}
           {hydraStatus?.configured && (
-            <span className="text-[10px] font-mono text-emerald-500/60">memory active</span>
+            <span className="text-[10px] font-mono text-emerald-500/60 hidden md:inline">
+              &middot; memory active
+            </span>
           )}
           {!hydraStatus?.configured && hydraStatus !== null && (
-            <span className="text-[10px] font-mono text-amber-500/60">
-              memory: configure HYDRA_DB_API_KEY
+            <span className="text-[10px] font-mono text-amber-500/60 hidden md:inline">
+              &middot; configure HYDRA_DB_API_KEY
             </span>
           )}
         </div>
@@ -400,8 +440,12 @@ export function OsShell() {
       {/* Main area */}
       <div className="flex-1 flex min-h-0">
         {/* Terminal panel */}
-        <div className="flex-1 flex flex-col min-h-0 border-r border-zinc-800/60">
-          <Terminal ref={terminalRef} onCommand={handleCommand} onBoot={handleBoot} />
+        <div className="flex-1 flex flex-col min-h-0 min-w-0 border-r border-zinc-800/60">
+          <Terminal
+            ref={terminalRef}
+            onCommand={handleCommand}
+            onBoot={handleBoot}
+          />
           <div className="lg:hidden border-t border-zinc-800/60 px-4 py-2 text-[10px] font-mono text-zinc-600">
             {MOBILE_PROMPT_HINT}
           </div>
@@ -425,8 +469,8 @@ export function OsShell() {
             ))}
           </div>
           <div className="text-[10px] font-mono text-zinc-600 leading-relaxed">
-            Start with a prompt or run the demo tour to inspect agents, audits, and governance
-            health.
+            Start with a prompt or run the demo tour to inspect agents, audits,
+            and governance health.
           </div>
 
           {recentPrompts.length > 0 && (
@@ -485,25 +529,25 @@ export function OsShell() {
       </div>
 
       {/* Bottom status bar */}
-      <footer className="flex items-center justify-between px-4 py-1.5 border-t border-zinc-800/60 bg-[#0a0a0a] shrink-0">
-        <div className="flex items-center gap-3">
+      <footer className="flex items-center justify-between px-3 sm:px-4 py-1.5 border-t border-zinc-800/60 bg-[#0a0a0a] shrink-0 gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <span className="text-[10px] font-mono text-zinc-600">
-            {booted ? 'ready' : 'booting...'}
+            {booted ? "ready" : "booting..."}
           </span>
           {hydraStatus && (
             <span className="flex items-center gap-1.5 text-[10px] font-mono">
               <span
                 className={`inline-block w-1.5 h-1.5 rounded-full ${
                   hydraStatus.configured && hydraStatus.tenantExists
-                    ? 'bg-emerald-500'
-                    : 'bg-amber-500'
+                    ? "bg-emerald-500"
+                    : "bg-amber-500"
                 }`}
               />
               <span
                 className={
                   hydraStatus.configured && hydraStatus.tenantExists
-                    ? 'text-emerald-500/70'
-                    : 'text-amber-500/70'
+                    ? "text-emerald-500/70"
+                    : "text-amber-500/70"
                 }
               >
                 hydra
@@ -511,8 +555,14 @@ export function OsShell() {
             </span>
           )}
         </div>
-        <span className="text-[10px] font-mono text-zinc-700">
-          TAB: autocomplete &middot; UP/DOWN: history &middot; CTRL+L: clear &middot; hydra: memory
+        <span className="text-[10px] font-mono text-zinc-700 truncate min-w-0 text-right">
+          <span className="hidden sm:inline">
+            TAB: autocomplete &middot; UP/DOWN: history &middot; CTRL+L: clear
+            &middot; hydra: memory
+          </span>
+          <span className="sm:hidden">
+            TAB &middot; UP/DOWN &middot; CTRL+L
+          </span>
         </span>
       </footer>
     </div>
