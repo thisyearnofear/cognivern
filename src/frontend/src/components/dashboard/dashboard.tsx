@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import {
   ShieldCheck,
   Users,
@@ -9,6 +10,9 @@ import {
   ArrowRight,
   Sparkles,
   Rocket,
+  TrendingUp,
+  TrendingDown,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,6 +21,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useAgents, useAuditLogs, usePolicies } from '@/hooks/use-api';
 import { useAppStore } from '@/stores/app-store';
+import { DecisionChart, type DecisionFilter } from './decision-chart';
+import { ActivityChart } from './activity-chart';
+import { AgentStatusChart } from './agent-status-chart';
+import { ApprovalSparkline } from './approval-sparkline';
+
+const ACTIVITY_PAGE_SIZE = 5;
+
+function normalizeStatus(l: { outcome?: string; complianceStatus?: string; decision?: string }): string {
+  const raw = l.outcome ?? l.complianceStatus ?? l.decision ?? '';
+  if (raw === 'approved' || raw === 'allowed' || raw === 'compliant') return 'approved';
+  if (raw === 'denied' || raw === 'non-compliant') return 'denied';
+  return 'held';
+}
 
 export function Dashboard() {
   const router = useRouter();
@@ -27,17 +44,36 @@ export function Dashboard() {
   const { data: logs, isLoading: logsLoading, error: logsError } = useAuditLogs();
   const { data: policies, isLoading: policiesLoading } = usePolicies();
 
+  // Cross-filtering state
+  const [decisionFilter, setDecisionFilter] = useState<DecisionFilter>(null);
+  // Progressive disclosure state
+  const [activityExpanded, setActivityExpanded] = useState(false);
+
   const agentList = agents || [];
-  const activity = Array.isArray(logs)
-    ? logs.map((l) => ({
-        id: l.id,
-        agent: l.agent ?? l.agentId,
-        action: l.actionType ?? l.action,
-        amount: '—',
-        time: l.time ?? new Date(l.timestamp).toLocaleString(),
-        status: l.outcome ?? l.complianceStatus ?? l.decision,
-      }))
-    : [];
+  const activity = useMemo(() => {
+    if (!Array.isArray(logs)) return [];
+    return logs.map((l) => ({
+      id: l.id,
+      agent: l.agent ?? l.agentId,
+      action: l.actionType ?? l.action,
+      amount: '—',
+      time: l.time ?? new Date(l.timestamp).toLocaleString(),
+      status: l.outcome ?? l.complianceStatus ?? l.decision,
+      _normalized: normalizeStatus(l),
+    }));
+  }, [logs]);
+
+  // Filtered activity based on donut cross-filter
+  const filteredActivity = useMemo(() => {
+    if (!decisionFilter) return activity;
+    return activity.filter((a) => a._normalized === decisionFilter);
+  }, [activity, decisionFilter]);
+
+  // Progressive disclosure slice
+  const visibleActivity = activityExpanded
+    ? filteredActivity
+    : filteredActivity.slice(0, ACTIVITY_PAGE_SIZE);
+
   const activeCount = agentList.filter((a) => a.status === 'active').length;
   const approvalRate = Array.isArray(logs)
     ? Math.round(
@@ -52,6 +88,24 @@ export function Dashboard() {
       )
     : 0;
   const decisions = Array.isArray(logs) ? logs.length : 0;
+
+  // Stat deltas (compare first half vs second half of logs for trend)
+  const { approvalDelta, decisionsDelta } = useMemo(() => {
+    if (!Array.isArray(logs) || logs.length < 4) return { approvalDelta: 0, decisionsDelta: 0 };
+    const mid = Math.floor(logs.length / 2);
+    const recentHalf = logs.slice(0, mid);
+    const olderHalf = logs.slice(mid);
+    const recentApproval = Math.round(
+      (recentHalf.filter((l) => normalizeStatus(l) === 'approved').length / recentHalf.length) * 100
+    );
+    const olderApproval = Math.round(
+      (olderHalf.filter((l) => normalizeStatus(l) === 'approved').length / olderHalf.length) * 100
+    );
+    return {
+      approvalDelta: recentApproval - olderApproval,
+      decisionsDelta: recentHalf.length - olderHalf.length,
+    };
+  }, [logs]);
 
   return (
     <div className="space-y-6">
@@ -163,14 +217,27 @@ export function Dashboard() {
             {logsLoading ? (
               <Skeleton className="h-12 w-24" />
             ) : (
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950">
-                  <Percent className="h-5 w-5 text-emerald-500" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950">
+                    <Percent className="h-5 w-5 text-emerald-500" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl font-bold">{approvalRate}%</span>
+                      {approvalDelta !== 0 && (
+                        <span className={`flex items-center text-[11px] font-medium ${
+                          approvalDelta > 0 ? 'text-emerald-600' : 'text-red-500'
+                        }`}>
+                          {approvalDelta > 0 ? <TrendingUp className="h-3 w-3 mr-0.5" /> : <TrendingDown className="h-3 w-3 mr-0.5" />}
+                          {approvalDelta > 0 ? '+' : ''}{approvalDelta}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Approval Rate</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-2xl font-bold">{approvalRate}%</div>
-                  <div className="text-xs text-muted-foreground">Approval Rate</div>
-                </div>
+                <ApprovalSparkline logs={Array.isArray(logs) ? logs : []} />
               </div>
             )}
           </CardContent>
@@ -185,13 +252,35 @@ export function Dashboard() {
                   <FileSearch className="h-5 w-5 text-amber-500" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">{decisions}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-bold">{decisions}</span>
+                    {decisionsDelta !== 0 && (
+                      <span className={`flex items-center text-[11px] font-medium ${
+                        decisionsDelta > 0 ? 'text-emerald-600' : 'text-red-500'
+                      }`}>
+                        {decisionsDelta > 0 ? <TrendingUp className="h-3 w-3 mr-0.5" /> : <TrendingDown className="h-3 w-3 mr-0.5" />}
+                        {decisionsDelta > 0 ? '+' : ''}{decisionsDelta}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-muted-foreground">Policy Decisions</div>
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <DecisionChart
+          logs={Array.isArray(logs) ? logs : []}
+          loading={logsLoading}
+          activeFilter={decisionFilter}
+          onFilterChange={setDecisionFilter}
+        />
+        <ActivityChart logs={Array.isArray(logs) ? logs : []} loading={logsLoading} />
+        <AgentStatusChart agents={agentList} loading={agentsLoading} />
       </div>
 
       {/* Governed Agents */}
@@ -256,7 +345,19 @@ export function Dashboard() {
       {/* Recent Activity */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">Recent Activity</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold">Recent Activity</h2>
+            {decisionFilter && (
+              <Badge variant="secondary" className="text-xs capitalize">
+                {decisionFilter} only
+              </Badge>
+            )}
+            {filteredActivity.length !== activity.length && (
+              <span className="text-xs text-muted-foreground">
+                {filteredActivity.length} of {activity.length}
+              </span>
+            )}
+          </div>
           <Button variant="ghost" size="sm" onClick={() => router.push('/audit')}>
             View All <ArrowRight className="h-3.5 w-3.5" />
           </Button>
@@ -271,13 +372,23 @@ export function Dashboard() {
           <div className="p-8 text-center text-muted-foreground border rounded-xl">
             <p>Failed to load activity</p>
           </div>
-        ) : activity.length === 0 ? (
+        ) : filteredActivity.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground border rounded-xl">
-            <p>No activity yet</p>
+            <p>{decisionFilter ? `No ${decisionFilter} decisions` : 'No activity yet'}</p>
+            {decisionFilter && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2"
+                onClick={() => setDecisionFilter(null)}
+              >
+                Clear filter
+              </Button>
+            )}
           </div>
         ) : (
           <div className="rounded-xl border border-border divide-y divide-border">
-            {activity.map((item) => (
+            {visibleActivity.map((item) => (
               <div
                 key={item.id}
                 className="flex flex-col sm:flex-row sm:items-center justify-between p-3 text-sm hover:bg-muted/50 transition-colors gap-2 sm:gap-0"
@@ -323,6 +434,18 @@ export function Dashboard() {
                 </div>
               </div>
             ))}
+            {filteredActivity.length > ACTIVITY_PAGE_SIZE && (
+              <button
+                type="button"
+                onClick={() => setActivityExpanded(!activityExpanded)}
+                className="w-full p-2.5 flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${activityExpanded ? 'rotate-180' : ''}`} />
+                {activityExpanded
+                  ? 'Show less'
+                  : `Show ${filteredActivity.length - ACTIVITY_PAGE_SIZE} more`}
+              </button>
+            )}
           </div>
         )}
       </div>

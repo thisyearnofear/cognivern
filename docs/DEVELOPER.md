@@ -230,11 +230,14 @@ pnpm lint
 
 ### Remaining (Platform)
 
-- [ ] User authentication (SIWE wallet + email) — see [Platform Onboarding Plan](./PLANS/02-PLATFORM-ONBOARDING.md)
-- [ ] Workspace multi-tenancy with data isolation
-- [ ] Per-workspace API key management
-- [ ] Demo data moved from frontend to backend DemoDataService
-- [ ] Real wallet connection in onboarding flow
+- [x] User authentication (SIWE wallet) — implemented via `AuthWatcher` + JWT
+- [x] Workspace multi-tenancy with data isolation — per-workspace SQLite tables
+- [x] Per-workspace API key management — `api_keys` table + middleware
+- [x] Demo data served from backend `DemoDataService` when `X-Workspace-Mode: sandbox`
+- [x] Real wallet connection in onboarding flow — RainbowKit + auto sign-in
+- [x] Mode system: Demo → Sandbox → Production with clear transitions
+- [ ] Self-service workspace tier upgrade (demo → live)
+- [ ] Email-based auth as alternative to wallet
 
 ## Related Docs
 

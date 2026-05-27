@@ -57,6 +57,8 @@ export function OnboardingWizard() {
   const router = useRouter();
   const updatePreferences = useAppStore((s) => s.updatePreferences);
   const enableDemoMode = useAppStore((s) => s.enableDemoMode);
+  const exitDemoMode = useAppStore((s) => s.exitDemoMode);
+  const demoMode = useAppStore((s) => s.demoMode);
   const { isConnected, address } = useAccount();
   const { signIn } = useAuth();
   const user = useAppStore((s) => s.user);
@@ -72,9 +74,11 @@ export function OnboardingWizard() {
 
   function handleFinish() {
     updatePreferences({ onboardingCompleted: true });
-    // If the user never connected a wallet, drop them into demo mode
-    // so they see a populated dashboard instead of empty states
-    if (!user.isConnected) {
+    if (user.isConnected && demoMode) {
+      // User connected wallet while in demo — transition to real mode
+      exitDemoMode();
+    } else if (!user.isConnected) {
+      // User never connected — give them demo data so dashboard isn't empty
       enableDemoMode();
     }
     router.push('/dashboard');
@@ -82,7 +86,9 @@ export function OnboardingWizard() {
 
   function handleSkip() {
     updatePreferences({ onboardingCompleted: true });
-    if (!user.isConnected) {
+    if (user.isConnected && demoMode) {
+      exitDemoMode();
+    } else if (!user.isConnected) {
       enableDemoMode();
     }
     router.push('/dashboard');

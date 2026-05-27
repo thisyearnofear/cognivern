@@ -137,9 +137,25 @@ These parts of the repo are considered transitional and should not be part of th
 | `/api/projects` | GET | Project list |
 | `/api/projects/:projectId/usage` | GET | Project usage |
 
+## Mode System
+
+Cognivern operates in three distinct modes:
+
+| Mode | Auth Required | Data Source | UI Indicator |
+|------|--------------|-------------|--------------|
+| **Demo** | No | Client-side fake data (`demo-data.ts`) | Amber "Demo Mode" badge in sidebar |
+| **Sandbox** | Yes (SIWE wallet) | Backend `DemoDataService` (canned responses) | Sandbox/Production toggle |
+| **Production** | Yes (SIWE wallet) | Backend `WorkspaceDataService` (live SQLite) | Sandbox/Production toggle |
+
+- The `login()` action automatically exits demo mode.
+- The backend `demoInterceptor` respects the workspace `tier` column: workspaces with `tier='demo'` always receive demo data regardless of the `X-Workspace-Mode` header.
+- The `X-Workspace-Mode` header (`sandbox` | `production`) only applies to workspaces with `tier='live'`.
+
 ## Current Limitations
 
-Cognivern currently has **no user authentication or multi-tenancy**. The frontend serves hardcoded demo data via client-side `mode === "demo"` ternaries. There is no way for a real team to sign up, create a workspace, or issue API keys to their agents. See the [Platform Onboarding Plan](./PLANS/02-PLATFORM-ONBOARDING.md) for the roadmap to fix this.
+- Workspace tiers are not yet self-service upgradeable (manual DB update required).
+- No email-based auth — wallet-only via SIWE.
+- See the [Platform Onboarding Plan](./PLANS/02-PLATFORM-ONBOARDING.md) for further roadmap.
 
 ## Related Docs
 
