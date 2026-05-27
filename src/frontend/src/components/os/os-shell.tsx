@@ -5,6 +5,7 @@ import { Terminal, type TerminalHandle } from './Terminal';
 import { AgentGrid } from './AgentGrid';
 import { runAutoDemo } from './AutoDemo';
 import { OsOnboardingOverlay } from './OsOnboardingOverlay';
+import { Mic, MicOff, Loader2, Volume2, VolumeX } from 'lucide-react';
 import {
   formatIntentError,
   formatIntentResult,
@@ -41,6 +42,10 @@ function readStoredPrompts() {
   }
 }
 
+function stripAnsi(text: string): string {
+  return text.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
 function storeRecentPrompts(prompts: string[]) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(RECENT_PROMPTS_STORAGE_KEY, JSON.stringify(prompts));
@@ -67,6 +72,13 @@ export function OsShell() {
   const [hydraStatus, setHydraStatus] = useState<HydraDBStatusData | null>(null);
   const terminalRef = useRef<TerminalHandle>(null);
   const intentResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const ttsEnabledRef = useRef(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (!showOnboarding) {
@@ -140,6 +152,14 @@ export function OsShell() {
         }
         intentResetTimeoutRef.current = setTimeout(() => setActiveIntentType(null), 8000);
 
+        // TTS: speak the response if enabled
+        if (ttsEnabledRef.current && result.output) {
+          const clean = stripAnsi(result.output);
+          window.speechSynthesis?.cancel();
+          const utterance = new SpeechSynthesisUtterance(clean);
+          window.speechSynthesis?.speak(utterance);
+        }
+
         // Fire-and-forget: store the command as a HydraDB memory
         fetch('/api/os/hydra', {
           method: 'POST',
@@ -202,6 +222,72 @@ export function OsShell() {
     });
   }, [demoRunning, booted, terminalRef]);
 
+  const toggleTts = useCallback(() => {
+    setTtsEnabled((prev) => {
+      const next = !prev;
+      ttsEnabledRef.current = next;
+      if (!next) window.speechSynthesis?.cancel();
+      return next;
+    });
+  }, []);
+
+  const handleVoiceInput = useCallback(async () => {
+    if (recording && mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setRecording(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+          ? 'audio/mp4'
+          : undefined;
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      mediaRecorderRef.current = recorder;
+      recordedChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(recordedChunksRef.current, {
+          type: mimeType || 'audio/webm',
+        });
+        if (blob.size === 0) return;
+
+        setTranscribing(true);
+        try {
+          const arrayBuffer = await blob.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+          const base64 = btoa(binary);
+
+          const res = await fetch('/api/speech/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audio: base64, mimeType: mimeType || 'audio/webm' }),
+          });
+          const data = await res.json();
+          if (data.success && data.data?.text) {
+            terminalRef.current?.setInputValue(data.data.text);
+          }
+        } finally {
+          setTranscribing(false);
+        }
+      };
+
+      recorder.start();
+      setRecording(true);
+    } catch {
+      // Microphone access denied
+    }
+  }, [recording]);
+
   return (
     <div className="h-screen w-screen bg-[#0a0a0a] text-zinc-300 flex flex-col overflow-hidden">
       {showOnboarding && booted && (
@@ -223,7 +309,41 @@ export function OsShell() {
           </div>
           <span className="text-xs font-mono text-zinc-500">agent command center v0.1</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleVoiceInput}
+            disabled={!booted || commandRunning}
+            className={`flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border transition-colors ${
+              recording
+                ? 'border-red-800 text-red-400 bg-red-950/40'
+                : transcribing
+                  ? 'border-yellow-800 text-yellow-400 bg-yellow-950/40'
+                  : 'border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500'
+            }`}
+            title={recording ? 'Stop recording' : 'Voice input'}
+          >
+            {transcribing ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : recording ? (
+              <MicOff className="h-3 w-3" />
+            ) : (
+              <Mic className="h-3 w-3" />
+            )}
+            {transcribing ? 'transcribing' : recording ? 'recording' : 'voice'}
+          </button>
+          <button
+            onClick={toggleTts}
+            disabled={!booted}
+            className={`flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded border transition-colors ${
+              ttsEnabled
+                ? 'border-emerald-800 text-emerald-400 bg-emerald-950/40'
+                : 'border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500'
+            }`}
+            title={ttsEnabled ? 'Mute speech' : 'Enable speech'}
+          >
+            {ttsEnabled ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
+            {ttsEnabled ? 'speak' : 'muted'}
+          </button>
           <button
             onClick={startDemo}
             disabled={demoRunning || !booted || commandRunning}
