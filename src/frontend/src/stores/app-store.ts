@@ -1,18 +1,25 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { AuthUser, Workspace, Agent, AuditLog, Policy, Run } from '@cognivern/shared';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type {
+  AuthUser,
+  Workspace,
+  Agent,
+  AuditLog,
+  Policy,
+  Run,
+} from "@cognivern/shared";
 import {
   DEMO_WORKSPACE,
   DEMO_AGENTS,
   DEMO_AUDIT_LOGS,
   DEMO_POLICIES,
   DEMO_RUNS,
-} from '@/lib/demo-data';
+} from "@/lib/demo-data";
 
 interface UserPreferences {
-  theme: 'light' | 'dark' | 'system';
+  theme: "light" | "dark" | "system";
   onboardingCompleted: boolean;
-  sidebarState: 'expanded' | 'collapsed';
+  sidebarState: "expanded" | "collapsed";
 }
 
 interface User {
@@ -21,7 +28,7 @@ interface User {
   authUser: AuthUser | null;
   workspace: Workspace | null;
   token: string | null;
-  workspaceMode: 'sandbox' | 'production';
+  workspaceMode: "sandbox" | "production";
 }
 
 interface DemoData {
@@ -38,7 +45,7 @@ interface AppState {
   demoData: DemoData;
   setUser: (user: Partial<User>) => void;
   updatePreferences: (prefs: Partial<UserPreferences>) => void;
-  setWorkspaceMode: (mode: 'sandbox' | 'production') => void;
+  setWorkspaceMode: (mode: "sandbox" | "production") => void;
   login: (token: string, authUser: AuthUser, workspace: Workspace) => void;
   logout: () => void;
   enableDemoMode: () => void;
@@ -47,9 +54,9 @@ interface AppState {
 }
 
 const defaultPreferences: UserPreferences = {
-  theme: 'dark',
+  theme: "dark",
   onboardingCompleted: false,
-  sidebarState: 'expanded',
+  sidebarState: "expanded",
 };
 
 const defaultUser: User = {
@@ -58,7 +65,7 @@ const defaultUser: User = {
   authUser: null,
   workspace: null,
   token: null,
-  workspaceMode: 'sandbox',
+  workspaceMode: "sandbox",
 };
 
 const defaultDemoData: DemoData = {
@@ -68,7 +75,7 @@ const defaultDemoData: DemoData = {
   runs: DEMO_RUNS,
 };
 
-const isBrowser = typeof window !== 'undefined';
+const isBrowser = typeof window !== "undefined";
 
 export const useAppStore = create<AppState>()(
   isBrowser
@@ -79,8 +86,10 @@ export const useAppStore = create<AppState>()(
           demoMode: false,
           demoData: defaultDemoData,
           setUser: (userData) => set({ user: { ...get().user, ...userData } }),
-          updatePreferences: (prefs) => set({ preferences: { ...get().preferences, ...prefs } }),
-          setWorkspaceMode: (mode) => set({ user: { ...get().user, workspaceMode: mode } }),
+          updatePreferences: (prefs) =>
+            set({ preferences: { ...get().preferences, ...prefs } }),
+          setWorkspaceMode: (mode) =>
+            set({ user: { ...get().user, workspaceMode: mode } }),
           login: (token: string, authUser: AuthUser, workspace: Workspace) => {
             set({
               demoMode: false,
@@ -90,16 +99,17 @@ export const useAppStore = create<AppState>()(
                 authUser,
                 workspace,
                 token,
-                workspaceMode: get().user.workspaceMode === 'sandbox' && get().demoMode
-                  ? 'sandbox'
-                  : get().user.workspaceMode,
+                workspaceMode:
+                  get().user.workspaceMode === "sandbox" && get().demoMode
+                    ? "sandbox"
+                    : get().user.workspaceMode,
               },
             });
-            localStorage.setItem('cognivern-token', token);
+            localStorage.setItem("cognivern-token", token);
           },
           logout: () => {
             set({ user: defaultUser });
-            localStorage.removeItem('cognivern-token');
+            localStorage.removeItem("cognivern-token");
           },
           enableDemoMode: () => {
             set({
@@ -107,7 +117,7 @@ export const useAppStore = create<AppState>()(
               user: {
                 ...defaultUser,
                 workspace: DEMO_WORKSPACE,
-                workspaceMode: 'sandbox',
+                workspaceMode: "sandbox",
               },
               demoData: defaultDemoData,
             });
@@ -131,7 +141,7 @@ export const useAppStore = create<AppState>()(
           },
         }),
         {
-          name: 'civern-app-store',
+          name: "civern-app-store",
           partialize: (state) => ({
             preferences: state.preferences,
             user: {
@@ -145,7 +155,7 @@ export const useAppStore = create<AppState>()(
           }),
         },
       )
-    : (set) => ({
+    : () => ({
         user: defaultUser,
         preferences: defaultPreferences,
         demoMode: false,

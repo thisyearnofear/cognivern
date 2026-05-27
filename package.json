@@ -41,8 +41,6 @@
     "deploy:build": "pnpm run build && pnpm run start",
     "deploy:lean": "./deploy/deploy-lean.sh",
     "deploy:bundle": "node deploy/build-bundle.mjs",
-    "deploy:hetzner": "./deploy/deploy.sh",
-    "deploy:monitor": "./deploy/monitor.sh",
     "deploy:workers": "wrangler deploy --config src/modules/cloudflare-agents/wrangler.toml",
     "deploy:workers:staging": "wrangler deploy --config src/modules/cloudflare-agents/wrangler.toml --environment staging",
     "deploy:workers:prod": "wrangler deploy --config src/modules/cloudflare-agents/wrangler.toml --environment production",

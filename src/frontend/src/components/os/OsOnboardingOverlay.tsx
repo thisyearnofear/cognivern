@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { QUICK_PROMPTS } from './os-content';
+import { QUICK_PROMPTS } from "./os-content";
 
 interface OsOnboardingOverlayProps {
   onDismiss: () => void;
@@ -16,22 +16,24 @@ export function OsOnboardingOverlay({
   disabled = false,
 }: OsOnboardingOverlayProps) {
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-[#0d0d0d] p-6 text-zinc-300 shadow-2xl">
-        <div className="mb-3 flex items-start justify-between gap-4">
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 p-3 sm:p-4 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-[#0d0d0d] p-4 sm:p-6 text-zinc-300 shadow-2xl my-auto">
+        <div className="mb-3 flex items-start justify-between gap-3 sm:gap-4">
           <div>
             <div className="text-xs font-mono uppercase tracking-[0.3em] text-zinc-500">
               First run
             </div>
-            <h2 className="mt-2 text-xl font-semibold text-zinc-100">Inspect Agents Live</h2>
+            <h2 className="mt-2 text-lg sm:text-xl font-semibold text-zinc-100">
+              Inspect Agents Live
+            </h2>
             <p className="mt-2 text-sm text-zinc-400">
-              Ask plain-English questions about agent status, audits, and governance health from one
-              command center.
+              Ask plain-English questions about agent status, audits, and
+              governance health from one command center.
             </p>
           </div>
           <button
             onClick={onDismiss}
-            className="rounded-md border border-zinc-800 px-3 py-1 text-xs font-mono text-zinc-500 transition-colors hover:border-zinc-600 hover:text-zinc-300"
+            className="rounded-md border border-zinc-800 px-2 sm:px-3 py-1 text-xs font-mono text-zinc-500 transition-colors hover:border-zinc-600 hover:text-zinc-300 shrink-0"
           >
             dismiss
           </button>
