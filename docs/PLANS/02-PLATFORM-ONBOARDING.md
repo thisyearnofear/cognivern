@@ -10,14 +10,14 @@
 
 Cognivern currently has no concept of users, authentication, or data isolation:
 
-| Current State | Target State |
-|---|---|
-| Demo data hardcoded in 10+ frontend components | Backend serves demo data for trial workspaces |
-| `mode === "demo" ? DEMO_DATA : liveData` ternaries everywhere | Components are mode-agnostic — they just call the API |
-| No signup, no login, no session | Wallet-based auth (SIWE) for humans, API keys for agents |
-| Single global API key in env | Per-workspace API keys scoped to user/agent |
-| All callers see the same data | Data isolated by `workspace_id` |
-| Onboarding wizard simulates wallet connection | Real wallet connection + workspace provisioning |
+| Current State                                                 | Target State                                             |
+| ------------------------------------------------------------- | -------------------------------------------------------- |
+| Demo data hardcoded in 10+ frontend components                | Backend serves demo data for trial workspaces            |
+| `mode === "demo" ? DEMO_DATA : liveData` ternaries everywhere | Components are mode-agnostic — they just call the API    |
+| No signup, no login, no session                               | Wallet-based auth (SIWE) for humans, API keys for agents |
+| Single global API key in env                                  | Per-workspace API keys scoped to user/agent              |
+| All callers see the same data                                 | Data isolated by `workspace_id`                          |
+| Onboarding wizard simulates wallet connection                 | Real wallet connection + workspace provisioning          |
 
 ## Why This Matters
 
@@ -70,6 +70,7 @@ The key insight: **demo should be a workspace tier, not a client-side toggle**. 
 ### Phase 0 — Auth & Workspace Isolation ✅
 
 **Backend (done):**
+
 - [x] SIWE middleware: `POST /api/auth/nonce`, `POST /api/auth/verify`
 - [x] Workspace model with `tier: "demo" | "live"`
 - [x] Auto-provisioned "demo" workspace on first sign-in
@@ -77,6 +78,7 @@ The key insight: **demo should be a workspace tier, not a client-side toggle**. 
 - [x] SQLite persistence via better-sqlite3 (users, workspaces, nonces survive restarts)
 
 **Frontend (done):**
+
 - [x] RainbowKit + wagmi 2.x for wallet connection (WalletConnect, Coinbase, injected)
 - [x] `useAuth` hook: signIn, logout, loading, error, isConnected, address
 - [x] Landing page: "Connect Wallet" (SIWE) as primary CTA
@@ -84,6 +86,7 @@ The key insight: **demo should be a workspace tier, not a client-side toggle**. 
 - [x] `app-store.ts` stripped of mode state, keeps auth state
 
 **Files created/modified:**
+
 - `src/backend/db/index.ts` — SQLite setup + auto-migration
 - `src/backend/middleware/authMiddleware.ts` — JWT verification
 - `src/backend/middleware/workspaceMiddleware.ts` — tier lookup from DB
@@ -99,11 +102,13 @@ The key insight: **demo should be a workspace tier, not a client-side toggle**. 
 ### Phase 1 — Demo Data Service ✅
 
 **Backend (done):**
+
 - [x] `src/backend/services/DemoDataService.ts` with agents, policies, audit logs, runs
 - [x] `src/backend/middleware/demoInterceptor.ts` intercepts API requests for demo-tier workspaces
 - [x] All `/api/*` endpoints Just Work for both tiers
 
 **Frontend (done):**
+
 - [x] All `DEMO_AGENT`, `DEMO_LOGS`, `DEMO_*` constants deleted from components
 - [x] All `mode === "demo" ? ...` ternaries removed
 - [x] Components call API via SWR hooks — they never know the data source
@@ -149,22 +154,22 @@ The key insight: **demo should be a workspace tier, not a client-side toggle**. 
 
 ## Architecture Decisions
 
-| Decision | Rationale |
-|---|---|
-| RainbowKit over ConnectKit | ConnectKit required React 17/18 + wagmi 2.x. RainbowKit supports React >=18, wagmi 2.x, and has better multi-chain UX |
-| better-sqlite3 over Turso | Local file-based, zero-config, synchronous API fits Express. Can migrate to Turso (libsql) later with same SQL schema |
-| Demo as workspace tier | Single code path — components are mode-agnostic. Backend controls what data a workspace sees |
-| JWT over sessions | Stateless auth fits serverless/edge deployment paths. 24h expiry. No session store needed |
-| demoInterceptor middleware | Transparent — sits before controllers, serves data for both tiers without touching existing controller logic |
-| WorkspaceDataService | Separate from AgentsModule (which runs background loops). Simple CRUD — agents are registered records, not active processes |
+| Decision                   | Rationale                                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| RainbowKit over ConnectKit | ConnectKit required React 17/18 + wagmi 2.x. RainbowKit supports React >=18, wagmi 2.x, and has better multi-chain UX       |
+| better-sqlite3 over Turso  | Local file-based, zero-config, synchronous API fits Express. Can migrate to Turso (libsql) later with same SQL schema       |
+| Demo as workspace tier     | Single code path — components are mode-agnostic. Backend controls what data a workspace sees                                |
+| JWT over sessions          | Stateless auth fits serverless/edge deployment paths. 24h expiry. No session store needed                                   |
+| demoInterceptor middleware | Transparent — sits before controllers, serves data for both tiers without touching existing controller logic                |
+| WorkspaceDataService       | Separate from AgentsModule (which runs background loops). Simple CRUD — agents are registered records, not active processes |
 
 ---
 
 ## Risk Assessment
 
-| Risk | Likelihood | Mitigation |
-|---|---|---|
-| Wallet-gating excludes non-crypto users | Medium | Offer email+password as secondary auth option later |
-| Breaking existing demo flow | Low | Demo still works — just served from backend instead of frontend |
-| SQLite single-writer bottleneck | Low | WAL mode handles reads concurrently; scale to Turso when needed |
-| Frontend component rewrites | Low (done) | All 10+ files already updated — mechanical deletion of DEMO constants |
+| Risk                                    | Likelihood | Mitigation                                                            |
+| --------------------------------------- | ---------- | --------------------------------------------------------------------- |
+| Wallet-gating excludes non-crypto users | Medium     | Offer email+password as secondary auth option later                   |
+| Breaking existing demo flow             | Low        | Demo still works — just served from backend instead of frontend       |
+| SQLite single-writer bottleneck         | Low        | WAL mode handles reads concurrently; scale to Turso when needed       |
+| Frontend component rewrites             | Low (done) | All 10+ files already updated — mechanical deletion of DEMO constants |

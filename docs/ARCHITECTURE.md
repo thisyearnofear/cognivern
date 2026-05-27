@@ -8,11 +8,11 @@ Cognivern is a control plane for OWS wallets that handles policy checks, approva
 
 ## Responsibility Boundary
 
-| OWS Owns | Cognivern Owns |
-|----------|----------------|
-| Wallet storage | Policy evaluation |
-| API-key issuance | Approval workflows |
-| Transaction signing | Audit-log indexing |
+| OWS Owns                   | Cognivern Owns         |
+| -------------------------- | ---------------------- |
+| Wallet storage             | Policy evaluation      |
+| API-key issuance           | Approval workflows     |
+| Transaction signing        | Audit-log indexing     |
 | Signing policy enforcement | Run ledger & analytics |
 
 ## System Overview
@@ -49,6 +49,7 @@ Project-scoped run submission with ingest key validation, quota metering, and no
 ### 2. Governance Evaluation
 
 `GovernanceController` exposes policy CRUD and evaluation:
+
 - `GET/POST /api/governance/policies`
 - `POST /api/governance/evaluate`
 
@@ -119,33 +120,33 @@ These parts of the repo are considered transitional and should not be part of th
 
 ## Key Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/ingest/runs` | POST | Project-scoped run ingestion |
-| `/api/governance/policies` | GET, POST | Policy management |
-| `/api/governance/evaluate` | POST | Evaluate action against policy |
-| `/api/ows/bootstrap` | POST | Bootstrap OWS wallet |
-| `/api/ows/api-keys` | GET, POST | API key management |
-| `/api/ows/wallets` | GET | List wallets |
-| `/api/spend` | POST | Execute governed spend |
-| `/api/spend/preview` | POST | Simulate spend (dry-run) |
-| `/api/spend/status` | GET | Execution layer status |
-| `/api/audit/logs` | GET | Audit trail |
-| `/api/audit/insights` | GET | Audit insights |
-| `/api/cre/runs` | GET | Run ledger |
-| `/api/cre/runs/:runId` | GET | Run details |
-| `/api/projects` | GET | Project list |
-| `/api/projects/:projectId/usage` | GET | Project usage |
+| Endpoint                         | Method    | Description                    |
+| -------------------------------- | --------- | ------------------------------ |
+| `/ingest/runs`                   | POST      | Project-scoped run ingestion   |
+| `/api/governance/policies`       | GET, POST | Policy management              |
+| `/api/governance/evaluate`       | POST      | Evaluate action against policy |
+| `/api/ows/bootstrap`             | POST      | Bootstrap OWS wallet           |
+| `/api/ows/api-keys`              | GET, POST | API key management             |
+| `/api/ows/wallets`               | GET       | List wallets                   |
+| `/api/spend`                     | POST      | Execute governed spend         |
+| `/api/spend/preview`             | POST      | Simulate spend (dry-run)       |
+| `/api/spend/status`              | GET       | Execution layer status         |
+| `/api/audit/logs`                | GET       | Audit trail                    |
+| `/api/audit/insights`            | GET       | Audit insights                 |
+| `/api/cre/runs`                  | GET       | Run ledger                     |
+| `/api/cre/runs/:runId`           | GET       | Run details                    |
+| `/api/projects`                  | GET       | Project list                   |
+| `/api/projects/:projectId/usage` | GET       | Project usage                  |
 
 ## Mode System
 
 Cognivern operates in three distinct modes:
 
-| Mode | Auth Required | Data Source | UI Indicator |
-|------|--------------|-------------|--------------|
-| **Demo** | No | Client-side fake data (`demo-data.ts`) | Amber "Demo Mode" badge in sidebar |
-| **Sandbox** | Yes (SIWE wallet) | Backend `DemoDataService` (canned responses) | Sandbox/Production toggle |
-| **Production** | Yes (SIWE wallet) | Backend `WorkspaceDataService` (live SQLite) | Sandbox/Production toggle |
+| Mode           | Auth Required     | Data Source                                  | UI Indicator                       |
+| -------------- | ----------------- | -------------------------------------------- | ---------------------------------- |
+| **Demo**       | No                | Client-side fake data (`demo-data.ts`)       | Amber "Demo Mode" badge in sidebar |
+| **Sandbox**    | Yes (SIWE wallet) | Backend `DemoDataService` (canned responses) | Sandbox/Production toggle          |
+| **Production** | Yes (SIWE wallet) | Backend `WorkspaceDataService` (live SQLite) | Sandbox/Production toggle          |
 
 - The `login()` action automatically exits demo mode.
 - The backend `demoInterceptor` respects the workspace `tier` column: workspaces with `tier='demo'` always receive demo data regardless of the `X-Workspace-Mode` header.
