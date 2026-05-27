@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState, useCallback, useRef, useMemo } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -26,51 +26,59 @@ import {
   Lock,
   Mic,
   MicOff,
-} from 'lucide-react';
-import { apiClient, type GovernanceEvaluation } from '@/lib/api-client';
-import { useAgents } from '@/hooks/use-api';
+} from "lucide-react";
+import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
+import { useAgents } from "@/hooks/use-api";
 
 const ACTION_TYPES = [
-  { type: 'swap', description: 'Swap tokens on a DEX' },
-  { type: 'stake', description: 'Stake tokens in a liquidity pool' },
-  { type: 'transfer', description: 'Transfer tokens to an external wallet' },
-  { type: 'mint', description: 'Mint tokens' },
-  { type: 'approve', description: 'Approve a spending cap' },
+  { type: "swap", description: "Swap tokens on a DEX" },
+  { type: "stake", description: "Stake tokens in a liquidity pool" },
+  { type: "transfer", description: "Transfer tokens to an external wallet" },
+  { type: "mint", description: "Mint tokens" },
+  { type: "approve", description: "Approve a spending cap" },
 ];
 
 /** Quick-select description chips per action type */
 const DESCRIPTION_CHIPS: Record<string, string[]> = {
   swap: [
-    'Swap ETH for USDC on Uniswap V3',
-    'Swap USDC for WBTC on Curve',
-    'Swap stETH for ETH on Lido',
-    'Arbitrage ETH/USDC across DEXs',
+    "Swap ETH for USDC on Uniswap V3",
+    "Swap USDC for WBTC on Curve",
+    "Swap stETH for ETH on Lido",
+    "Arbitrage ETH/USDC across DEXs",
   ],
   stake: [
-    'Stake USDC in Aave v3 lending pool',
-    'Stake ETH in Lido for stETH rewards',
-    'Deposit into Curve 3pool for CRV rewards',
-    'Restake ETH on EigenLayer',
+    "Stake USDC in Aave v3 lending pool",
+    "Stake ETH in Lido for stETH rewards",
+    "Deposit into Curve 3pool for CRV rewards",
+    "Restake ETH on EigenLayer",
   ],
   transfer: [
-    'Transfer USDC to treasury multisig',
-    'Bridge ETH to Arbitrum via native bridge',
-    'Withdraw to cold storage wallet',
-    'Pay vendor invoice in USDC',
+    "Transfer USDC to treasury multisig",
+    "Bridge ETH to Arbitrum via native bridge",
+    "Withdraw to cold storage wallet",
+    "Pay vendor invoice in USDC",
   ],
   mint: [
-    'Mint governance tokens for rewards distribution',
-    'Mint NFT collection for community airdrop',
-    'Mint stablecoin via CDP vault',
+    "Mint governance tokens for rewards distribution",
+    "Mint NFT collection for community airdrop",
+    "Mint stablecoin via CDP vault",
   ],
   approve: [
-    'Approve USDC spend cap for Aave v3',
-    'Approve WETH for Uniswap V3 router',
-    'Approve stablecoin for Curve gauge',
+    "Approve USDC spend cap for Aave v3",
+    "Approve WETH for Uniswap V3 router",
+    "Approve stablecoin for Curve gauge",
   ],
 };
 
-function CheckItem({ label, passed, detail }: { label: string; passed: boolean; detail: string }) {
+function CheckItem({
+  label,
+  passed,
+  detail,
+}: {
+  label: string;
+  passed: boolean;
+  detail: string;
+}) {
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
       {passed ? (
@@ -88,12 +96,12 @@ function CheckItem({ label, passed, detail }: { label: string; passed: boolean; 
 
 export function GovernanceCheck() {
   const { data: agents } = useAgents();
-  const [agentId, setAgentId] = useState('');
-  const [actionType, setActionType] = useState('swap');
+  const [agentId, setAgentId] = useState("");
+  const [actionType, setActionType] = useState("swap");
   const [actionDesc, setActionDesc] = useState(
-    ACTION_TYPES.find((a) => a.type === 'swap')?.description || ''
+    ACTION_TYPES.find((a) => a.type === "swap")?.description || "",
   );
-  const [amount, setAmount] = useState('200');
+  const [amount, setAmount] = useState("200");
   const [evaluating, setEvaluating] = useState(false);
   const [result, setResult] = useState<GovernanceEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +110,7 @@ export function GovernanceCheck() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
 
-  const agentList = agents || [];
+  const agentList = useMemo(() => agents || [], [agents]);
 
   const handleEvaluate = useCallback(async () => {
     setEvaluating(true);
@@ -110,21 +118,22 @@ export function GovernanceCheck() {
     setResult(null);
 
     try {
-      const selectedAgent = agentList.find((a) => a.id === agentId);
       const res = await apiClient.evaluateGovernance({
-        agentId: agentId || agentList[0]?.id || 'unknown',
+        agentId: agentId || agentList[0]?.id || "unknown",
         action: {
           type: actionType,
           description:
-            actionDesc || ACTION_TYPES.find((a) => a.type === actionType)?.description || '',
+            actionDesc ||
+            ACTION_TYPES.find((a) => a.type === actionType)?.description ||
+            "",
           amount: parseFloat(amount) || 200,
-          currency: 'USDC',
+          currency: "USDC",
         },
       });
       setResult(res.data || null);
-      if (!res.data) setError('No evaluation result returned');
+      if (!res.data) setError("No evaluation result returned");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Evaluation failed');
+      setError(err instanceof Error ? err.message : "Evaluation failed");
     } finally {
       setEvaluating(false);
     }
@@ -153,7 +162,10 @@ export function GovernanceCheck() {
                 <label htmlFor="agent" className="text-sm font-medium">
                   Agent
                 </label>
-                <Select value={agentId} onValueChange={(v) => v && setAgentId(v)}>
+                <Select
+                  value={agentId}
+                  onValueChange={(v) => v && setAgentId(v)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select an agent" />
                   </SelectTrigger>
@@ -211,18 +223,27 @@ export function GovernanceCheck() {
 
                       // Start recording
                       try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        const mimeType = MediaRecorder.isTypeSupported('audio/webm')
-                          ? 'audio/webm'
-                          : MediaRecorder.isTypeSupported('audio/mp4')
-                          ? 'audio/mp4'
-                          : undefined;
-                        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+                        const stream =
+                          await navigator.mediaDevices.getUserMedia({
+                            audio: true,
+                          });
+                        const mimeType = MediaRecorder.isTypeSupported(
+                          "audio/webm",
+                        )
+                          ? "audio/webm"
+                          : MediaRecorder.isTypeSupported("audio/mp4")
+                            ? "audio/mp4"
+                            : undefined;
+                        const recorder = new MediaRecorder(
+                          stream,
+                          mimeType ? { mimeType } : undefined,
+                        );
                         mediaRecorderRef.current = recorder;
                         recordedChunksRef.current = [];
 
                         recorder.ondataavailable = (e) => {
-                          if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+                          if (e.data.size > 0)
+                            recordedChunksRef.current.push(e.data);
                         };
 
                         recorder.onstop = async () => {
@@ -230,7 +251,7 @@ export function GovernanceCheck() {
                           stream.getTracks().forEach((t) => t.stop());
 
                           const blob = new Blob(recordedChunksRef.current, {
-                            type: mimeType || 'audio/webm',
+                            type: mimeType || "audio/webm",
                           });
                           if (blob.size === 0) return;
 
@@ -238,7 +259,7 @@ export function GovernanceCheck() {
                           try {
                             const arrayBuffer = await blob.arrayBuffer();
                             const bytes = new Uint8Array(arrayBuffer);
-                            let binary = '';
+                            let binary = "";
                             const len = bytes.byteLength;
                             for (let i = 0; i < len; i++) {
                               binary += String.fromCharCode(bytes[i]);
@@ -247,15 +268,19 @@ export function GovernanceCheck() {
 
                             const res = await apiClient.transcribeSpeech({
                               audio: base64,
-                              mimeType: mimeType || 'audio/webm',
+                              mimeType: mimeType || "audio/webm",
                             });
                             if (res.success && res.data?.text) {
                               setActionDesc(res.data.text);
                             } else {
-                              setError(res.error || 'Transcription failed');
+                              setError(res.error || "Transcription failed");
                             }
                           } catch (err) {
-                            setError(err instanceof Error ? err.message : 'Transcription failed');
+                            setError(
+                              err instanceof Error
+                                ? err.message
+                                : "Transcription failed",
+                            );
                           } finally {
                             setTranscribing(false);
                           }
@@ -264,15 +289,21 @@ export function GovernanceCheck() {
                         recorder.start();
                         setRecording(true);
                       } catch (err) {
-                        setError(err instanceof Error ? err.message : 'Microphone access denied');
+                        setError(
+                          err instanceof Error
+                            ? err.message
+                            : "Microphone access denied",
+                        );
                       }
                     }}
                     className={`flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors ${
                       recording
-                        ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                        : 'bg-muted text-muted-foreground hover:text-foreground'
+                        ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
                     }`}
-                    title={recording ? 'Stop recording' : 'Record voice description'}
+                    title={
+                      recording ? "Stop recording" : "Record voice description"
+                    }
                   >
                     {transcribing ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -281,7 +312,11 @@ export function GovernanceCheck() {
                     ) : (
                       <Mic className="h-3 w-3" />
                     )}
-                    {transcribing ? 'Transcribing…' : recording ? 'Recording...' : 'Voice'}
+                    {transcribing
+                      ? "Transcribing…"
+                      : recording
+                        ? "Recording..."
+                        : "Voice"}
                   </button>
                 </div>
                 <Textarea
@@ -300,8 +335,8 @@ export function GovernanceCheck() {
                       onClick={() => setActionDesc(chip)}
                       className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
                         actionDesc === chip
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
                       }`}
                     >
                       {chip}
@@ -323,7 +358,11 @@ export function GovernanceCheck() {
                 />
               </div>
 
-              <Button className="w-full" onClick={handleEvaluate} disabled={evaluating}>
+              <Button
+                className="w-full"
+                onClick={handleEvaluate}
+                disabled={evaluating}
+              >
                 {evaluating ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" /> Evaluating...
@@ -367,8 +406,8 @@ export function GovernanceCheck() {
                 <div
                   className={`p-4 rounded-xl flex items-center gap-3 ${
                     result.allowed
-                      ? 'bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900'
-                      : 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900'
+                      ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900"
+                      : "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900"
                   }`}
                 >
                   {result.allowed ? (
@@ -378,12 +417,12 @@ export function GovernanceCheck() {
                   )}
                   <div>
                     <div className="font-bold text-lg">
-                      {result.allowed ? 'Approved' : 'Denied'}
+                      {result.allowed ? "Approved" : "Denied"}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {result.allowed
-                        ? 'This spend action is permitted'
-                        : 'This spend action is blocked'}
+                        ? "This spend action is permitted"
+                        : "This spend action is blocked"}
                     </div>
                   </div>
                 </div>
@@ -411,7 +450,7 @@ export function GovernanceCheck() {
                 </div>
 
                 {/* FHE Confidential evaluation badge */}
-                {'confidential' in result &&
+                {"confidential" in result &&
                   (
                     result as GovernanceEvaluation & {
                       confidential?: {
@@ -445,7 +484,8 @@ export function GovernanceCheck() {
                             </div>
                           )}
                           <div className="text-[11px] text-amber-600 dark:text-amber-400">
-                            Budget limits evaluated in ciphertext — values never revealed to agent
+                            Budget limits evaluated in ciphertext — values never
+                            revealed to agent
                           </div>
                         </div>
                       </div>
@@ -454,7 +494,10 @@ export function GovernanceCheck() {
 
                 {/* Metadata */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Evaluated at: {new Date(result.timestamp).toLocaleTimeString()}</span>
+                  <span>
+                    Evaluated at:{" "}
+                    {new Date(result.timestamp).toLocaleTimeString()}
+                  </span>
                   {(result.provider || result.model) && (
                     <span>
                       {result.provider}/{result.model}
@@ -469,7 +512,9 @@ export function GovernanceCheck() {
             <div className="p-12 text-center text-muted-foreground border border-dashed rounded-xl h-full flex flex-col items-center justify-center">
               <ShieldCheck className="h-10 w-10 mb-3 opacity-30" />
               <p className="font-medium">No evaluation yet</p>
-              <p className="text-sm mt-1">Configure a spend action and click Evaluate</p>
+              <p className="text-sm mt-1">
+                Configure a spend action and click Evaluate
+              </p>
             </div>
           )}
         </div>

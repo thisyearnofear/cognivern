@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Component, type ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle } from 'lucide-react';
+import { Component, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('[ErrorBoundary]', error, info.componentStack);
+    console.error("[ErrorBoundary]", error, info.componentStack);
   }
 
   render() {
@@ -41,7 +41,8 @@ export class ErrorBoundary extends Component<Props, State> {
           <div>
             <h2 className="text-lg font-semibold">Something went wrong</h2>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              {this.state.error?.message || 'An unexpected error occurred while loading this page.'}
+              {this.state.error?.message ||
+                "An unexpected error occurred while loading this page."}
             </p>
           </div>
           <Button

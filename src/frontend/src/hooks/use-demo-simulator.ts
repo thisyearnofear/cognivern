@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
-import { useAppStore } from '@/stores/app-store';
-import { generateDemoAuditLog } from '@/lib/demo-data';
+import { useEffect, useRef } from "react";
+import { useAppStore } from "@/stores/app-store";
+import { generateDemoAuditLog } from "@/lib/demo-data";
 
 /**
  * Simulates live agent activity when the user is in demo mode.
@@ -27,9 +27,12 @@ export function useDemoSimulator() {
       addDemoAuditLog(generateDemoAuditLog());
     }
 
-    intervalRef.current = setInterval(() => {
-      addDemoAuditLog(generateDemoAuditLog());
-    }, 8000 + Math.random() * 7000);
+    intervalRef.current = setInterval(
+      () => {
+        addDemoAuditLog(generateDemoAuditLog());
+      },
+      8000 + Math.random() * 7000,
+    );
 
     return () => {
       if (intervalRef.current) {

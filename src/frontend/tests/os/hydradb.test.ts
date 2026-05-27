@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 /**
  * Tests for HydraDB integration — memory/recall service, API route, and CLI integration.
@@ -30,7 +30,7 @@ function isConfigured(apiKey?: string, tenantId?: string): boolean {
 async function getStatus(
   apiKey?: string,
   tenantId?: string,
-  mockTenantExists = false
+  mockTenantExists = false,
 ): Promise<HydraDBStatus> {
   if (!apiKey || !tenantId) {
     return {
@@ -50,7 +50,7 @@ async function getStatus(
 async function addMemory(
   apiKey?: string,
   tenantId?: string,
-  text?: string
+  text?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!apiKey || !tenantId) {
     return { ok: false, error: "HydraDB not configured" };
@@ -64,7 +64,7 @@ async function addMemory(
 async function fullRecall(
   apiKey?: string,
   tenantId?: string,
-  query?: string
+  query?: string,
 ): Promise<RecallResult> {
   if (!apiKey || !tenantId) {
     return { ok: false, error: "HydraDB not configured" };
@@ -97,12 +97,15 @@ async function handleHydraAction(
   action: HydraAction,
   body: Record<string, unknown>,
   apiKey?: string,
-  tenantId?: string
+  tenantId?: string,
 ): Promise<ActionResponse> {
   switch (action) {
     case "status": {
       const status = await getStatus(apiKey, tenantId);
-      return { success: true, data: status as unknown as Record<string, unknown> };
+      return {
+        success: true,
+        data: status as unknown as Record<string, unknown>,
+      };
     }
     case "memory": {
       const text = body.text as string | undefined;
@@ -110,7 +113,11 @@ async function handleHydraAction(
         return { success: false, error: "text is required" };
       }
       const result = await addMemory(apiKey, tenantId, text);
-      return { success: result.ok, data: result as unknown as Record<string, unknown>, error: result.error };
+      return {
+        success: result.ok,
+        data: result as unknown as Record<string, unknown>,
+        error: result.error,
+      };
     }
     case "recall": {
       const query = body.query as string | undefined;
@@ -118,7 +125,11 @@ async function handleHydraAction(
         return { success: false, error: "query is required" };
       }
       const result = await fullRecall(apiKey, tenantId, query);
-      return { success: result.ok, data: result as unknown as Record<string, unknown>, error: result.error };
+      return {
+        success: result.ok,
+        data: result as unknown as Record<string, unknown>,
+        error: result.error,
+      };
     }
     default:
       return { success: false, error: `Unknown action: ${action}` };
@@ -176,7 +187,11 @@ describe("HydraDB service — memory", () => {
 
 describe("HydraDB service — recall", () => {
   it("returns empty results for valid query", async () => {
-    const result = await fullRecall("key-123", "cognivern-os", "user preferences");
+    const result = await fullRecall(
+      "key-123",
+      "cognivern-os",
+      "user preferences",
+    );
     expect(result.ok).toBe(true);
     expect(result.results).toBeDefined();
     // RecallResult wraps results in a nested array
@@ -197,36 +212,66 @@ describe("HydraDB service — recall", () => {
 
 describe("HydraDB API route — action routing", () => {
   it("handles status action", async () => {
-    const res = await handleHydraAction("status", {}, "key-123", "cognivern-os");
+    const res = await handleHydraAction(
+      "status",
+      {},
+      "key-123",
+      "cognivern-os",
+    );
     expect(res.success).toBe(true);
     expect(res.data).toBeDefined();
   });
 
   it("handles memory action with valid text", async () => {
-    const res = await handleHydraAction("memory", { text: "hello world" }, "key-123", "cognivern-os");
+    const res = await handleHydraAction(
+      "memory",
+      { text: "hello world" },
+      "key-123",
+      "cognivern-os",
+    );
     expect(res.success).toBe(true);
   });
 
   it("rejects memory action without text", async () => {
-    const res = await handleHydraAction("memory", {}, "key-123", "cognivern-os");
+    const res = await handleHydraAction(
+      "memory",
+      {},
+      "key-123",
+      "cognivern-os",
+    );
     expect(res.success).toBe(false);
     expect(res.error).toContain("text is required");
   });
 
   it("handles recall action with valid query", async () => {
-    const res = await handleHydraAction("recall", { query: "preferences" }, "key-123", "cognivern-os");
+    const res = await handleHydraAction(
+      "recall",
+      { query: "preferences" },
+      "key-123",
+      "cognivern-os",
+    );
     expect(res.success).toBe(true);
     expect(res.data).toBeDefined();
   });
 
   it("rejects recall action without query", async () => {
-    const res = await handleHydraAction("recall", {}, "key-123", "cognivern-os");
+    const res = await handleHydraAction(
+      "recall",
+      {},
+      "key-123",
+      "cognivern-os",
+    );
     expect(res.success).toBe(false);
     expect(res.error).toContain("query is required");
   });
 
   it("rejects unknown actions", async () => {
-    const res = await handleHydraAction("unknown-action" as HydraAction, {}, "key-123", "cognivern-os");
+    const res = await handleHydraAction(
+      "unknown-action" as HydraAction,
+      {},
+      "key-123",
+      "cognivern-os",
+    );
     expect(res.success).toBe(false);
     expect(res.error).toContain("Unknown action");
   });
@@ -329,7 +374,7 @@ describe("HydraDB — terminal CLI integration", () => {
   });
 
   it("hydra memory subcommand extracts text correctly", () => {
-    const cmd = 'hydra memory I like dark mode';
+    const cmd = "hydra memory I like dark mode";
     const parts = cmd.slice("hydra".length).trim().split(/\s+/);
     expect(parts[0]).toBe("memory");
     expect(parts.slice(1).join(" ")).toBe("I like dark mode");

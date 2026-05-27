@@ -1,4 +1,4 @@
-import { HydraDBClient } from '@hydradb/sdk';
+import { HydraDBClient } from "@hydradb/sdk";
 
 export interface MemoryEntry {
   text: string;
@@ -52,18 +52,23 @@ export async function getStatus(): Promise<HydraDBStatus> {
       configured: false,
       tenantExists: false,
       tenantId,
-      error: !token ? 'HYDRA_DB_API_KEY not set' : 'HYDRA_TENANT_ID not set',
+      error: !token ? "HYDRA_DB_API_KEY not set" : "HYDRA_TENANT_ID not set",
     };
   }
 
   const client = getClient();
   if (!client) {
-    return { configured: false, tenantExists: false, tenantId, error: 'Failed to create client' };
+    return {
+      configured: false,
+      tenantExists: false,
+      tenantId,
+      error: "Failed to create client",
+    };
   }
 
   try {
     // Check if tenant exists by trying to get its infra status
-    const status = await client.tenant.getInfraStatus({ tenant_id: tenantId });
+    await client.tenant.getInfraStatus({ tenant_id: tenantId });
     return {
       configured: true,
       tenantExists: true,
@@ -72,8 +77,13 @@ export async function getStatus(): Promise<HydraDBStatus> {
   } catch (err: unknown) {
     // If tenant doesn't exist, offer to create it
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes('404') || msg.includes('not found')) {
-      return { configured: true, tenantExists: false, tenantId, error: 'Tenant not found' };
+    if (msg.includes("404") || msg.includes("not found")) {
+      return {
+        configured: true,
+        tenantExists: false,
+        tenantId,
+        error: "Tenant not found",
+      };
     }
     return { configured: true, tenantExists: false, tenantId, error: msg };
   }
@@ -87,10 +97,10 @@ export async function ensureTenant(): Promise<{ ok: boolean; error?: string }> {
   if (status.tenantExists) return { ok: true };
 
   const client = getClient();
-  if (!client) return { ok: false, error: 'HydraDB not configured' };
+  if (!client) return { ok: false, error: "HydraDB not configured" };
 
   const tenantId = getTenantId();
-  if (!tenantId) return { ok: false, error: 'HYDRA_TENANT_ID not set' };
+  if (!tenantId) return { ok: false, error: "HYDRA_TENANT_ID not set" };
 
   try {
     await client.tenant.create({ tenant_id: tenantId });
@@ -110,10 +120,10 @@ export async function addMemory(
   title?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const tenantId = getTenantId();
-  if (!tenantId) return { ok: false, error: 'HYDRA_TENANT_ID not set' };
+  if (!tenantId) return { ok: false, error: "HYDRA_TENANT_ID not set" };
 
   const client = getClient();
-  if (!client) return { ok: false, error: 'HydraDB not configured' };
+  if (!client) return { ok: false, error: "HydraDB not configured" };
 
   const memory: MemoryEntry = { text, title: title || undefined };
 
@@ -136,10 +146,10 @@ export async function fullRecall(
   query: string,
 ): Promise<{ ok: boolean; results?: RecallResult; error?: string }> {
   const tenantId = getTenantId();
-  if (!tenantId) return { ok: false, error: 'HYDRA_TENANT_ID not set' };
+  if (!tenantId) return { ok: false, error: "HYDRA_TENANT_ID not set" };
 
   const client = getClient();
-  if (!client) return { ok: false, error: 'HydraDB not configured' };
+  if (!client) return { ok: false, error: "HydraDB not configured" };
 
   try {
     const response = await client.recall.fullRecall({
@@ -160,10 +170,10 @@ export async function recallPreferences(
   query: string,
 ): Promise<{ ok: boolean; results?: RecallResult; error?: string }> {
   const tenantId = getTenantId();
-  if (!tenantId) return { ok: false, error: 'HYDRA_TENANT_ID not set' };
+  if (!tenantId) return { ok: false, error: "HYDRA_TENANT_ID not set" };
 
   const client = getClient();
-  if (!client) return { ok: false, error: 'HydraDB not configured' };
+  if (!client) return { ok: false, error: "HydraDB not configured" };
 
   try {
     const response = await client.recall.recallPreferences({
@@ -184,10 +194,10 @@ export async function qna(
   question: string,
 ): Promise<{ ok: boolean; answer?: string; error?: string }> {
   const tenantId = getTenantId();
-  if (!tenantId) return { ok: false, error: 'HYDRA_TENANT_ID not set' };
+  if (!tenantId) return { ok: false, error: "HYDRA_TENANT_ID not set" };
 
   const client = getClient();
-  if (!client) return { ok: false, error: 'HydraDB not configured' };
+  if (!client) return { ok: false, error: "HydraDB not configured" };
 
   try {
     const response = await client.recall.qna({
@@ -210,7 +220,7 @@ export async function getMetrics(): Promise<{
   error?: string;
 }> {
   const client = getClient();
-  if (!client) return { ok: false, error: 'HydraDB not configured' };
+  if (!client) return { ok: false, error: "HydraDB not configured" };
 
   try {
     const metrics = await client.metricsMetricsGet();
@@ -227,18 +237,22 @@ export async function getMetrics(): Promise<{
  */
 export async function getRecentMemories(
   limit: number = 5,
-): Promise<{ ok: boolean; results?: Array<{ text: string; score?: number }>; error?: string }> {
+): Promise<{
+  ok: boolean;
+  results?: Array<{ text: string; score?: number }>;
+  error?: string;
+}> {
   const tenantId = getTenantId();
-  if (!tenantId) return { ok: false, error: 'HYDRA_TENANT_ID not set' };
+  if (!tenantId) return { ok: false, error: "HYDRA_TENANT_ID not set" };
 
   const client = getClient();
-  if (!client) return { ok: false, error: 'HydraDB not configured' };
+  if (!client) return { ok: false, error: "HydraDB not configured" };
 
   try {
     // Use a broad recall to surface recent memories
     const response = await client.recall.fullRecall({
       tenant_id: tenantId,
-      query: '',
+      query: "",
       // @ts-expect-error top_k is accepted at runtime by the API
       top_k: limit,
     });

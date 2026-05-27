@@ -1,7 +1,13 @@
-import useSWR from 'swr';
-import { apiClient } from '@/lib/api-client';
-import { useAppStore } from '@/stores/app-store';
-import type { AuditLog, Run, Policy, Agent, OwsWallet } from '@cognivern/shared';
+import useSWR from "swr";
+import { apiClient } from "@/lib/api-client";
+import { useAppStore } from "@/stores/app-store";
+import type {
+  AuditLog,
+  Run,
+  Policy,
+  Agent,
+  OwsWallet,
+} from "@cognivern/shared";
 
 interface SWRResult<T> {
   data: T | undefined;
@@ -36,11 +42,11 @@ function useApiWithDemo<T>(
 export function useAuditLogs() {
   const demoLogs = useAppStore((s) => s.demoData.auditLogs);
   return useApiWithDemo<AuditLog[]>(
-    '/api/audit/logs',
+    "/api/audit/logs",
     async () => {
       const response = await apiClient.getAuditLogs();
       const data = response.data;
-      if (data && typeof data === 'object' && !Array.isArray(data)) {
+      if (data && typeof data === "object" && !Array.isArray(data)) {
         return ((data as Record<string, unknown>).logs || []) as AuditLog[];
       }
       return (data || []) as AuditLog[];
@@ -51,7 +57,7 @@ export function useAuditLogs() {
 
 export function useAuditInsights() {
   return useApiWithDemo(
-    '/api/audit/insights',
+    "/api/audit/insights",
     async () => (await apiClient.getAuditInsights()).data,
     { compliance: 94, trends: [] },
   );
@@ -62,10 +68,12 @@ export function useAuditInsights() {
 export function useRuns() {
   const demoRuns = useAppStore((s) => s.demoData.runs);
   return useApiWithDemo<Run[]>(
-    '/api/cre/runs',
+    "/api/cre/runs",
     async () => {
       const response = await apiClient.getRuns();
-      return ((response as unknown as Record<string, unknown>).runs || response.data || []) as Run[];
+      return ((response as unknown as Record<string, unknown>).runs ||
+        response.data ||
+        []) as Run[];
     },
     demoRuns,
   );
@@ -86,7 +94,7 @@ export function useRun(runId: string) {
 export function usePolicies() {
   const demoPolicies = useAppStore((s) => s.demoData.policies);
   return useApiWithDemo<Policy[]>(
-    '/api/governance/policies',
+    "/api/governance/policies",
     async () => ((await apiClient.getPolicies()).data || []) as Policy[],
     demoPolicies,
   );
@@ -97,7 +105,7 @@ export function usePolicies() {
 export function useAgents() {
   const demoAgents = useAppStore((s) => s.demoData.agents);
   return useApiWithDemo<Agent[]>(
-    '/api/agents',
+    "/api/agents",
     async () => ((await apiClient.getAgents()).data || []) as Agent[],
     demoAgents,
   );
@@ -117,19 +125,37 @@ export function useAgent(agentId: string) {
 
 export function useIntentMetrics() {
   return useApiWithDemo(
-    '/api/intent/metrics',
+    "/api/intent/metrics",
     async () => (await apiClient.getIntentMetrics()).data,
-    { totalIntents: 12, successRate: 0.92, averageLatency: 120, topActions: [] },
+    {
+      totalIntents: 12,
+      successRate: 0.92,
+      averageLatency: 120,
+      topActions: [],
+    },
   );
 }
 
 export function useWallets() {
   return useApiWithDemo<OwsWallet[]>(
-    '/api/ows/wallets',
-    async () => (((await apiClient.getWallets()).data || []) as unknown as OwsWallet[]),
+    "/api/ows/wallets",
+    async () =>
+      ((await apiClient.getWallets()).data || []) as unknown as OwsWallet[],
     [
-      { id: 'w-001', name: 'Demo Hot Wallet', chain: 'Ethereum', address: '0x742d...8fA3', createdAt: new Date().toISOString() },
-      { id: 'w-002', name: 'Demo Cold Wallet', chain: 'Arbitrum', address: '0x9a8b...2C4d', createdAt: new Date().toISOString() },
+      {
+        id: "w-001",
+        name: "Demo Hot Wallet",
+        chain: "Ethereum",
+        address: "0x742d...8fA3",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "w-002",
+        name: "Demo Cold Wallet",
+        chain: "Arbitrum",
+        address: "0x9a8b...2C4d",
+        createdAt: new Date().toISOString(),
+      },
     ],
   );
 }

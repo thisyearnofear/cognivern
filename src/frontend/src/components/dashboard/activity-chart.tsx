@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo } from "react";
 import {
   AreaChart,
   Area,
@@ -9,13 +9,13 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-} from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+} from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
-type TimeRange = '7d' | '14d' | '30d';
+type TimeRange = "7d" | "14d" | "30d";
 
-const RANGE_DAYS: Record<TimeRange, number> = { '7d': 7, '14d': 14, '30d': 30 };
+const RANGE_DAYS: Record<TimeRange, number> = { "7d": 7, "14d": 14, "30d": 30 };
 
 interface ActivityChartProps {
   logs: Array<{
@@ -28,30 +28,44 @@ interface ActivityChartProps {
 }
 
 export function ActivityChart({ logs, loading }: ActivityChartProps) {
-  const [range, setRange] = useState<TimeRange>('14d');
+  const [range, setRange] = useState<TimeRange>("14d");
 
   const data = useMemo(() => {
     if (!logs || logs.length === 0) return [];
 
     // Use most recent log as reference point (avoids impure Date.now() in render)
-    const latest = Math.max(...logs.map((l) => new Date(l.timestamp).getTime()));
+    const latest = Math.max(
+      ...logs.map((l) => new Date(l.timestamp).getTime()),
+    );
     const cutoff = latest - RANGE_DAYS[range] * 86_400_000;
 
-    const grouped = new Map<string, { date: string; total: number; approved: number; denied: number }>();
+    const grouped = new Map<
+      string,
+      { date: string; total: number; approved: number; denied: number }
+    >();
 
     logs
       .filter((l) => new Date(l.timestamp).getTime() >= cutoff)
       .forEach((l) => {
-        const date = new Date(l.timestamp).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
+        const date = new Date(l.timestamp).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
         });
-        const status = l.outcome ?? l.complianceStatus ?? l.decision ?? '';
-        const existing = grouped.get(date) || { date, total: 0, approved: 0, denied: 0 };
+        const status = l.outcome ?? l.complianceStatus ?? l.decision ?? "";
+        const existing = grouped.get(date) || {
+          date,
+          total: 0,
+          approved: 0,
+          denied: 0,
+        };
         existing.total++;
-        if (status === 'approved' || status === 'allowed' || status === 'compliant') {
+        if (
+          status === "approved" ||
+          status === "allowed" ||
+          status === "compliant"
+        ) {
           existing.approved++;
-        } else if (status === 'denied' || status === 'non-compliant') {
+        } else if (status === "denied" || status === "non-compliant") {
           existing.denied++;
         }
         grouped.set(date, existing);
@@ -91,15 +105,15 @@ export function ActivityChart({ logs, loading }: ActivityChartProps) {
       <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-medium">Activity Volume</CardTitle>
         <div className="flex gap-1">
-          {(['7d', '14d', '30d'] as TimeRange[]).map((r) => (
+          {(["7d", "14d", "30d"] as TimeRange[]).map((r) => (
             <button
               key={r}
               type="button"
               onClick={() => setRange(r)}
               className={`px-2 py-0.5 text-[11px] rounded-md transition-colors ${
                 range === r
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
               {r}
@@ -109,7 +123,10 @@ export function ActivityChart({ logs, loading }: ActivityChartProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={180}>
-          <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: -15 }}>
+          <AreaChart
+            data={data}
+            margin={{ top: 5, right: 5, bottom: 0, left: -15 }}
+          >
             <defs>
               <linearGradient id="approvedGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
@@ -120,25 +137,29 @@ export function ActivityChart({ logs, loading }: ActivityChartProps) {
                 <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="hsl(var(--border))"
+              vertical={false}
+            />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
               axisLine={false}
               tickLine={false}
               allowDecimals={false}
             />
             <Tooltip
               contentStyle={{
-                borderRadius: '8px',
-                border: '1px solid hsl(var(--border))',
-                background: 'hsl(var(--card))',
-                fontSize: '12px',
+                borderRadius: "8px",
+                border: "1px solid hsl(var(--border))",
+                background: "hsl(var(--card))",
+                fontSize: "12px",
               }}
             />
             <Area
