@@ -97,6 +97,7 @@ interface IntentMetrics {
   aiProviderFailures: Record<string, number>;
   fallbackCount: number;
   lastReset: number;
+  circuitBreakerState: "closed" | "open" | "half-open";
 }
 
 export class IntentController {
@@ -133,7 +134,7 @@ export class IntentController {
    * Get performance metrics for monitoring
    */
   getMetrics(): IntentMetrics {
-    return { ...this.metrics };
+    return { ...this.metrics, circuitBreakerState: this.circuitBreaker.state };
   }
 
   /**
@@ -148,6 +149,7 @@ export class IntentController {
       aiProviderFailures: {},
       fallbackCount: 0,
       lastReset: Date.now(),
+      circuitBreakerState: "closed",
     };
     this.circuitBreaker = { failures: 0, lastFailure: 0, state: "closed" };
   }
@@ -191,7 +193,7 @@ export class IntentController {
     if (this.circuitBreaker.failures >= 5) {
       this.circuitBreaker.state = "open";
       logger.warn(
-        `Circuit breaker opened after ${this.circuitBreaker.failures} failures`
+        `Circuit breaker opened after ${this.circuitBreaker.failures} failures`,
       );
     }
   }
@@ -238,7 +240,7 @@ export class IntentController {
       const response = await this.generateResponse(
         query,
         classification.type,
-        context
+        context,
       );
 
       // Log the intent for audit trail
@@ -280,7 +282,7 @@ export class IntentController {
     req: Request,
     res: Response,
     query: string,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): Promise<void> {
     this.metrics.fallbackCount++;
     const classification = this.fallbackClassification(query || "");
@@ -318,10 +320,14 @@ export class IntentController {
   /**
    * Get fallback response based on intent type
    */
-  private getFallbackResponse(
-    intentType: IntentType
-  ): { text: string; suggestions: string[] } {
-    const responses: Record<IntentType, { text: string; suggestions: string[] }> = {
+  private getFallbackResponse(intentType: IntentType): {
+    text: string;
+    suggestions: string[];
+  } {
+    const responses: Record<
+      IntentType,
+      { text: string; suggestions: string[] }
+    > = {
       forensic: {
         text: "I'm having trouble accessing the execution history right now. The AI analysis service is temporarily unavailable. Please try again in a moment.",
         suggestions: ["Show recent activity", "Check system status"],
@@ -367,7 +373,9 @@ export class IntentController {
   /**
    * Classify intent using AI
    */
-  private async classifyIntent(query: string): Promise<{ type: IntentType; reason: string }> {
+  private async classifyIntent(
+    query: string,
+  ): Promise<{ type: IntentType; reason: string }> {
     try {
       const prompt = CLASSIFICATION_PROMPT.replace("{query}", query);
       const result = await this.aiRouter.analyzeGovernance(prompt);
@@ -391,12 +399,15 @@ export class IntentController {
   private async generateResponse(
     query: string,
     intentType: IntentType,
-    context?: Record<string, any>
-  ): Promise<{ text: string; suggestions: string[]; context: Record<string, any> }> {
+    context?: Record<string, any>,
+  ): Promise<{
+    text: string;
+    suggestions: string[];
+    context: Record<string, any>;
+  }> {
     try {
       const contextStr = JSON.stringify(context || {});
-      const prompt = RESPONSE_PROMPT
-        .replace("{query}", query)
+      const prompt = RESPONSE_PROMPT.replace("{query}", query)
         .replace("{intent_type}", intentType)
         .replace("{context}", contextStr);
 
@@ -424,7 +435,7 @@ export class IntentController {
    */
   private buildComponent(
     intentType: IntentType,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): IntentResponse["component"] | undefined {
     switch (intentType) {
       case "forensic":
@@ -474,7 +485,7 @@ export class IntentController {
    */
   private extractContext(
     intentType: IntentType,
-    existingContext?: Record<string, any>
+    existingContext?: Record<string, any>,
   ): Record<string, any> {
     const newContext = { ...existingContext };
 
@@ -490,7 +501,10 @@ export class IntentController {
   /**
    * Fallback keyword-based classification
    */
-  private fallbackClassification(query: string): { type: IntentType; reason: string } {
+  private fallbackClassification(query: string): {
+    type: IntentType;
+    reason: string;
+  } {
     const lowercaseQuery = query.toLowerCase();
 
     if (
@@ -499,7 +513,10 @@ export class IntentController {
       lowercaseQuery.includes("explain") ||
       lowercaseQuery.includes("why")
     ) {
-      return { type: "forensic", reason: "query contains forensic/trace keywords" };
+      return {
+        type: "forensic",
+        reason: "query contains forensic/trace keywords",
+      };
     }
 
     if (
@@ -515,13 +532,13 @@ export class IntentController {
       lowercaseQuery.includes("health") ||
       lowercaseQuery.includes("score")
     ) {
-      return { type: "governance", reason: "query contains governance keywords" };
+      return {
+        type: "governance",
+        reason: "query contains governance keywords",
+      };
     }
 
-    if (
-      lowercaseQuery.includes("policy") ||
-      lowercaseQuery.includes("rules")
-    ) {
+    if (lowercaseQuery.includes("policy") || lowercaseQuery.includes("rules")) {
       return { type: "policy", reason: "query contains policy keywords" };
     }
 
@@ -529,7 +546,10 @@ export class IntentController {
       lowercaseQuery.includes("stats") ||
       lowercaseQuery.includes("performance")
     ) {
-      return { type: "stats", reason: "query contains stats/performance keywords" };
+      return {
+        type: "stats",
+        reason: "query contains stats/performance keywords",
+      };
     }
 
     if (
@@ -539,10 +559,7 @@ export class IntentController {
       return { type: "create", reason: "query requests agent creation" };
     }
 
-    if (
-      lowercaseQuery.includes("agent") ||
-      lowercaseQuery.includes("bot")
-    ) {
+    if (lowercaseQuery.includes("agent") || lowercaseQuery.includes("bot")) {
       return { type: "agent", reason: "query mentions agent/bot" };
     }
 

@@ -75,98 +75,88 @@ const defaultDemoData: DemoData = {
   runs: DEMO_RUNS,
 };
 
+const storeImpl = (set: (partial: Partial<AppState>) => void, get: () => AppState) => ({
+  user: defaultUser,
+  preferences: defaultPreferences,
+  demoMode: false,
+  demoData: defaultDemoData,
+  setUser: (userData: Partial<User>) =>
+    set({ user: { ...get().user, ...userData } }),
+  updatePreferences: (prefs: Partial<UserPreferences>) =>
+    set({ preferences: { ...get().preferences, ...prefs } }),
+  setWorkspaceMode: (mode: "sandbox" | "production") =>
+    set({ user: { ...get().user, workspaceMode: mode } }),
+  login: (token: string, authUser: AuthUser, workspace: Workspace) => {
+    set({
+      demoMode: false,
+      user: {
+        isConnected: true,
+        walletAddress: authUser.walletAddress,
+        authUser,
+        workspace,
+        token,
+        workspaceMode:
+          get().user.workspaceMode === "sandbox" && get().demoMode
+            ? "sandbox"
+            : get().user.workspaceMode,
+      },
+    });
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cognivern-token", token);
+    }
+  },
+  logout: () => {
+    set({ user: defaultUser });
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cognivern-token");
+    }
+  },
+  enableDemoMode: () => {
+    set({
+      demoMode: true,
+      user: {
+        ...defaultUser,
+        workspace: DEMO_WORKSPACE,
+        workspaceMode: "sandbox",
+      },
+      demoData: defaultDemoData,
+    });
+  },
+  exitDemoMode: () => {
+    const current = get().user;
+    if (current.isConnected) {
+      set({ demoMode: false });
+    } else {
+      set({ demoMode: false, user: defaultUser });
+    }
+  },
+  addDemoAuditLog: (log: AuditLog) => {
+    set({
+      demoData: {
+        ...get().demoData,
+        auditLogs: [log, ...get().demoData.auditLogs].slice(0, 100),
+      },
+    });
+  },
+});
+
 const isBrowser = typeof window !== "undefined";
 
 export const useAppStore = create<AppState>()(
   isBrowser
-    ? persist(
-        (set, get) => ({
-          user: defaultUser,
-          preferences: defaultPreferences,
-          demoMode: false,
-          demoData: defaultDemoData,
-          setUser: (userData) => set({ user: { ...get().user, ...userData } }),
-          updatePreferences: (prefs) =>
-            set({ preferences: { ...get().preferences, ...prefs } }),
-          setWorkspaceMode: (mode) =>
-            set({ user: { ...get().user, workspaceMode: mode } }),
-          login: (token: string, authUser: AuthUser, workspace: Workspace) => {
-            set({
-              demoMode: false,
-              user: {
-                isConnected: true,
-                walletAddress: authUser.walletAddress,
-                authUser,
-                workspace,
-                token,
-                workspaceMode:
-                  get().user.workspaceMode === "sandbox" && get().demoMode
-                    ? "sandbox"
-                    : get().user.workspaceMode,
-              },
-            });
-            localStorage.setItem("cognivern-token", token);
+    ? persist(storeImpl, {
+        name: "civern-app-store",
+        partialize: (state) => ({
+          preferences: state.preferences,
+          user: {
+            isConnected: state.user.isConnected,
+            walletAddress: state.user.walletAddress,
+            authUser: state.user.authUser,
+            workspace: state.user.workspace,
+            workspaceMode: state.user.workspaceMode,
           },
-          logout: () => {
-            set({ user: defaultUser });
-            localStorage.removeItem("cognivern-token");
-          },
-          enableDemoMode: () => {
-            set({
-              demoMode: true,
-              user: {
-                ...defaultUser,
-                workspace: DEMO_WORKSPACE,
-                workspaceMode: "sandbox",
-              },
-              demoData: defaultDemoData,
-            });
-          },
-          exitDemoMode: () => {
-            const current = get().user;
-            // If user is authenticated, preserve their session; otherwise reset
-            if (current.isConnected) {
-              set({ demoMode: false });
-            } else {
-              set({ demoMode: false, user: defaultUser });
-            }
-          },
-          addDemoAuditLog: (log) => {
-            set({
-              demoData: {
-                ...get().demoData,
-                auditLogs: [log, ...get().demoData.auditLogs].slice(0, 100),
-              },
-            });
-          },
+          demoMode: state.demoMode,
         }),
-        {
-          name: "civern-app-store",
-          partialize: (state) => ({
-            preferences: state.preferences,
-            user: {
-              isConnected: state.user.isConnected,
-              walletAddress: state.user.walletAddress,
-              authUser: state.user.authUser,
-              workspace: state.user.workspace,
-              workspaceMode: state.user.workspaceMode,
-            },
-            demoMode: state.demoMode,
-          }),
-        },
-      )
-    : () => ({
-        user: defaultUser,
-        preferences: defaultPreferences,
-        demoMode: false,
-        demoData: defaultDemoData,
-        setUser: () => {},
-        updatePreferences: () => {},
-        setWorkspaceMode: () => {},
-        login: () => {},
-        logout: () => {},
-        enableDemoMode: () => {},
-        exitDemoMode: () => {},
-        addDemoAuditLog: () => {},
-      }),
+      })
+    : storeImpl,
 );
