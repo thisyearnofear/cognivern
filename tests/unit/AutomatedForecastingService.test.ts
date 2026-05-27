@@ -1,7 +1,6 @@
-import test from "node:test";
-import assert from "node:assert";
-import { AutomatedForecastingService } from "../../src/services/AutomatedForecastingService.js";
-import { SapienceService } from "../../src/services/SapienceService.js";
+import { describe, it, expect } from "vitest";
+import { AutomatedForecastingService } from "../../src/backend/services/AutomatedForecastingService.js";
+import { SapienceService } from "../../src/backend/services/SapienceService.js";
 
 // Simple mock for SapienceService
 const mockSapienceService = {
@@ -9,13 +8,13 @@ const mockSapienceService = {
   submitForecast: async () => "0xhash",
 } as any;
 
-test("AutomatedForecastingService - Horizon Sorting Logic", async (t) => {
-  const service = new AutomatedForecastingService({
-    sapienceService: mockSapienceService,
-    llmApiKey: "test-key", // pragma: allowlist secret
-  });
+describe("AutomatedForecastingService - Horizon Sorting Logic", () => {
+  it("it should sort markets by horizon descending", async () => {
+    const service = new AutomatedForecastingService({
+      sapienceService: mockSapienceService,
+      llmApiKey: "test-key", // pragma: allowlist secret
+    });
 
-  await t.test("it should sort markets by horizon descending", async () => {
     const now = Math.floor(Date.now() / 1000);
 
     // Mocking the behavior by overriding the internal fetchOptimalCondition or similar
@@ -33,8 +32,8 @@ test("AutomatedForecastingService - Horizon Sorting Logic", async (t) => {
 
     conditions.sort((a, b) => b.endTime - a.endTime);
 
-    assert.strictEqual(conditions[0].id, "long");
-    assert.strictEqual(conditions[1].id, "medium");
-    assert.strictEqual(conditions[2].id, "short");
+    expect(conditions[0].id).toBe("long");
+    expect(conditions[1].id).toBe("medium");
+    expect(conditions[2].id).toBe("short");
   });
 });
