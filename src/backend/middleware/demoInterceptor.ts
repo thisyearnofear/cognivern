@@ -214,6 +214,15 @@ function serveLiveData(method: string, path: string, workspaceId: string, body: 
       return { success: true, data: agent, _status: 201 };
     }
 
+    if (path === "/agents/connect" || path === "/agents/connect/") {
+      const { name, role, chain, walletAddress, budget, webhookUrl } = body || {};
+      if (!name || !role || !chain || !walletAddress) {
+        return { success: false, error: "name, role, chain, and walletAddress are required", _status: 400 };
+      }
+      const agent = WorkspaceDataService.createAgent(workspaceId, { name, role, chain, walletAddress, budget, source: 'external', webhookUrl });
+      return { success: true, data: agent, _status: 201 };
+    }
+
     if (path === "/governance/policies" || path === "/governance/policies/") {
       const { name, type, description, rules } = body || {};
       if (!name || !type) {

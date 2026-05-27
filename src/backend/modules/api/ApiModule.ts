@@ -40,6 +40,7 @@ import { IntentController } from "./controllers/IntentController.js";
 import { McpGovernanceController } from "./controllers/McpGovernanceController.js";
 import { PayrollController } from "./controllers/PayrollController.js";
 import { SealedBidController } from "./controllers/SealedBidController.js";
+import { SpeechController } from "./controllers/SpeechController.js";
 import { AuthController } from "./controllers/AuthController.js";
 import { WorkspaceController } from "./controllers/WorkspaceController.js";
 import { ApiKeyController, resolveWorkspaceFromApiKey } from "./controllers/ApiKeyController.js";
@@ -73,6 +74,7 @@ interface ControllerRegistry {
   mcpGovernance: McpGovernanceController;
   payroll: PayrollController;
   sealedBid: SealedBidController;
+  speech: SpeechController;
   auth: AuthController;
   workspace: WorkspaceController;
   apiKey: ApiKeyController;
@@ -442,6 +444,7 @@ export class ApiModule extends BaseService {
     this.controllers.mcpGovernance = new McpGovernanceController(policyService);
     this.controllers.payroll = new PayrollController();
     this.controllers.sealedBid = new SealedBidController();
+    this.controllers.speech = new SpeechController();
     this.controllers.auth = new AuthController();
     this.controllers.workspace = new WorkspaceController();
     this.controllers.apiKey = new ApiKeyController();
@@ -520,7 +523,8 @@ export class ApiModule extends BaseService {
       this.ctrl("fhenix"),
       this.ctrl("intent"),
       this.ctrl("payroll"),
-      this.ctrl("sealedBid")
+      this.ctrl("sealedBid"),
+      this.ctrl("speech")
     ));
 
     // Sapience routes (conditional)

@@ -5,6 +5,7 @@ import type { FhenixController } from "../controllers/FhenixController.js";
 import type { IntentController } from "../controllers/IntentController.js";
 import type { PayrollController } from "../controllers/PayrollController.js";
 import type { SealedBidController } from "../controllers/SealedBidController.js";
+import type { SpeechController } from "../controllers/SpeechController.js";
 
 export function createMiscRoutes(
   ingestController: IngestController,
@@ -12,7 +13,8 @@ export function createMiscRoutes(
   fhenixController: FhenixController,
   intentController: IntentController,
   payrollController: PayrollController,
-  sealedBidController: SealedBidController
+  sealedBidController: SealedBidController,
+  speechController: SpeechController
 ): Router {
   const router = Router();
 
@@ -50,6 +52,9 @@ export function createMiscRoutes(
   router.post("/vendor/sealed-bid/rounds/:roundId/reveal", (req, res) => sealedBidController.revealWinner(req, res));
   router.get("/vendor/sealed-bid/rounds/:roundId", (req, res) => sealedBidController.getRound(req, res));
   router.get("/vendor/sealed-bid/rounds", (req, res) => sealedBidController.listRounds(req, res));
+
+  // Speech-to-text (ElevenLabs proxy)
+  router.post("/speech/transcribe", (req, res) => speechController.transcribe(req, res));
 
   return router;
 }
