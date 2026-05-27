@@ -1,3 +1,13 @@
 node_modules/
 dist/
 build/
+coverage/
+data/
+logs/
+deploy-bundle/
+.next/
+contracts/build/
+*.tsbuildinfo
+pnpm-lock.yaml
+*.min.js
+*.min.css
