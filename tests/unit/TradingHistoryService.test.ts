@@ -1,7 +1,6 @@
-import test from "node:test";
-import assert from "node:assert";
-import { TradingHistoryService } from "../../src/services/TradingHistoryService.js";
-import { TradingDecision } from "../../src/types/Agent.js";
+import { describe, it, expect } from "vitest";
+import { TradingHistoryService } from "../../src/backend/services/TradingHistoryService.js";
+import { TradingDecision } from "../../src/backend/types/Agent.js";
 
 function makeDecision(
   overrides: Partial<TradingDecision> = {},
@@ -18,13 +17,13 @@ function makeDecision(
   };
 }
 
-test("TradingHistoryService", async (t) => {
-  await t.test("should initialize with empty history", () => {
+describe("TradingHistoryService", () => {
+  it("should initialize with empty history", () => {
     const service = new TradingHistoryService();
-    assert.deepStrictEqual(service.getHistory(), []);
+    expect(service.getHistory()).toEqual([]);
   });
 
-  await t.test("addDecision and getHistory", () => {
+  it("addDecision and getHistory", () => {
     const service = new TradingHistoryService();
     const d1 = makeDecision({ id: "t1" });
     const d2 = makeDecision({ id: "t2" });
@@ -33,34 +32,34 @@ test("TradingHistoryService", async (t) => {
     service.addDecision(d2);
 
     const history = service.getHistory();
-    assert.strictEqual(history.length, 2);
+    expect(history.length).toBe(2);
     // Most recent first
-    assert.strictEqual(history[0].id, "t2");
-    assert.strictEqual(history[1].id, "t1");
+    expect(history[0].id).toBe("t2");
+    expect(history[1].id).toBe("t1");
   });
 
-  await t.test("getHistory with limit", () => {
+  it("getHistory with limit", () => {
     const service = new TradingHistoryService();
     for (let i = 0; i < 5; i++) {
       service.addDecision(makeDecision({ id: `t${i}` }));
     }
 
-    assert.strictEqual(service.getHistory(3).length, 3);
-    assert.strictEqual(service.getHistory(10).length, 5);
+    expect(service.getHistory(3).length).toBe(3);
+    expect(service.getHistory(10).length).toBe(5);
   });
 
-  await t.test("calculatePerformance returns zero for empty history", () => {
+  it("calculatePerformance returns zero for empty history", () => {
     const service = new TradingHistoryService();
     const perf = service.calculatePerformance();
 
-    assert.strictEqual(perf.totalTrades, 0);
-    assert.strictEqual(perf.winRate, 0);
-    assert.strictEqual(perf.totalReturn, 0);
-    assert.strictEqual(perf.sharpeRatio, 0);
-    assert.strictEqual(perf.maxDrawdown, 0);
+    expect(perf.totalTrades).toBe(0);
+    expect(perf.winRate).toBe(0);
+    expect(perf.totalReturn).toBe(0);
+    expect(perf.sharpeRatio).toBe(0);
+    expect(perf.maxDrawdown).toBe(0);
   });
 
-  await t.test("calculatePerformance with mixed trades", () => {
+  it("calculatePerformance with mixed trades", () => {
     const service = new TradingHistoryService();
     const trades: TradingDecision[] = [
       makeDecision({ confidence: 0.8 }),
@@ -72,14 +71,14 @@ test("TradingHistoryService", async (t) => {
 
     const perf = service.calculatePerformance(trades);
 
-    assert.strictEqual(perf.totalTrades, 5);
-    assert.strictEqual(perf.winningTrades, 2);
-    assert.strictEqual(perf.losingTrades, 2);
-    assert.strictEqual(perf.winRate, 0.4);
-    assert.ok(perf.totalReturn > 0);
+    expect(perf.totalTrades).toBe(5);
+    expect(perf.winningTrades).toBe(2);
+    expect(perf.losingTrades).toBe(2);
+    expect(perf.winRate).toBe(0.4);
+    expect(perf.totalReturn > 0).toBeTruthy();
   });
 
-  await t.test("calculatePerformance with all wins", () => {
+  it("calculatePerformance with all wins", () => {
     const service = new TradingHistoryService();
     const trades: TradingDecision[] = [
       makeDecision({ confidence: 0.5 }),
@@ -88,12 +87,12 @@ test("TradingHistoryService", async (t) => {
 
     const perf = service.calculatePerformance(trades);
 
-    assert.strictEqual(perf.winningTrades, 2);
-    assert.strictEqual(perf.losingTrades, 0);
-    assert.strictEqual(perf.winRate, 1);
+    expect(perf.winningTrades).toBe(2);
+    expect(perf.losingTrades).toBe(0);
+    expect(perf.winRate).toBe(1);
   });
 
-  await t.test("calculateHistoryStats groups by day", () => {
+  it("calculateHistoryStats groups by day", () => {
     const service = new TradingHistoryService();
     const today = new Date().toISOString().split("T")[0];
 
@@ -105,42 +104,42 @@ test("TradingHistoryService", async (t) => {
     );
 
     const stats = service.calculateHistoryStats();
-    assert.ok(stats.performanceByDay[today]);
-    assert.strictEqual(stats.performanceByDay[today].totalTrades, 2);
+    expect(stats.performanceByDay[today]).toBeTruthy();
+    expect(stats.performanceByDay[today].totalTrades).toBe(2);
   });
 
-  await t.test("clearHistory empties the store", () => {
+  it("clearHistory empties the store", () => {
     const service = new TradingHistoryService();
     service.addDecision(makeDecision());
     service.addDecision(makeDecision());
 
-    assert.strictEqual(service.getHistory().length, 2);
+    expect(service.getHistory().length).toBe(2);
     service.clearHistory();
-    assert.strictEqual(service.getHistory().length, 0);
+    expect(service.getHistory().length).toBe(0);
   });
 
-  await t.test("importHistory and exportHistory roundtrip", () => {
+  it("importHistory and exportHistory roundtrip", () => {
     const service = new TradingHistoryService();
     const trades = [makeDecision({ id: "a" }), makeDecision({ id: "b" })];
 
     service.importHistory(trades);
     const exported = service.exportHistory();
 
-    assert.strictEqual(exported.length, 2);
-    assert.strictEqual(exported[0].id, "a");
+    expect(exported.length).toBe(2);
+    expect(exported[0].id).toBe("a");
   });
 
-  await t.test("generateChartData returns empty for no history", () => {
+  it("generateChartData returns empty for no history", () => {
     const service = new TradingHistoryService();
     const data = service.generateChartData();
 
-    assert.deepStrictEqual(data.equityCurve, []);
-    assert.deepStrictEqual(data.drawdownCurve, []);
-    assert.deepStrictEqual(data.returnDistribution, []);
-    assert.deepStrictEqual(data.winLossRatio, []);
+    expect(data.equityCurve).toEqual([]);
+    expect(data.drawdownCurve).toEqual([]);
+    expect(data.returnDistribution).toEqual([]);
+    expect(data.winLossRatio).toEqual([]);
   });
 
-  await t.test("generateChartData builds equity curve", () => {
+  it("generateChartData builds equity curve", () => {
     const service = new TradingHistoryService();
     service.addDecision(
       makeDecision({ confidence: 0.5, timestamp: "2024-01-01T00:00:00Z" }),
@@ -150,7 +149,7 @@ test("TradingHistoryService", async (t) => {
     );
 
     const data = service.generateChartData();
-    assert.strictEqual(data.equityCurve.length, 2);
-    assert.strictEqual(data.winLossRatio.length, 1); // All wins
+    expect(data.equityCurve.length).toBe(2);
+    expect(data.winLossRatio.length).toBe(1); // All wins
   });
 });

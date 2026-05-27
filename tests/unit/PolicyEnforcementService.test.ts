@@ -1,8 +1,7 @@
-import test from "node:test";
-import assert from "node:assert";
-import { PolicyEnforcementService } from "../../src/services/PolicyEnforcementService.js";
-import { Policy, PolicyRule } from "../../src/types/Policy.js";
-import { AgentAction } from "../../src/types/Agent.js";
+import { describe, it, expect } from "vitest";
+import { PolicyEnforcementService } from "../../src/backend/services/PolicyEnforcementService.js";
+import { Policy, PolicyRule } from "../../src/backend/types/Policy.js";
+import { AgentAction } from "../../src/backend/types/Agent.js";
 
 function makeRule(overrides: Partial<PolicyRule> = {}): PolicyRule {
   return {
@@ -48,44 +47,43 @@ const mockPolicyService = {
   },
 } as any;
 
-test("PolicyEnforcementService", async (t) => {
-  await t.test("should throw if no policy loaded when evaluating", async () => {
+describe("PolicyEnforcementService", () => {
+  it("should throw if no policy loaded when evaluating", async () => {
     const service = new PolicyEnforcementService();
-    await assert.rejects(
-      () => service.evaluateAction(makeAction()),
+    await expect(() => service.evaluateAction(makeAction())).rejects.toThrow(
       /No policy loaded/,
     );
   });
 
-  await t.test("should throw if no policy loaded when enforcing", async () => {
+  it("should throw if no policy loaded when enforcing", async () => {
     const service = new PolicyEnforcementService();
-    await assert.rejects(
-      () => service.enforcePolicy(makeAction()),
+    await expect(() => service.enforcePolicy(makeAction())).rejects.toThrow(
       /No policy loaded/,
     );
   });
 
-  await t.test("loadPolicy throws without PolicyService", async () => {
+  it("loadPolicy throws without PolicyService", async () => {
     const service = new PolicyEnforcementService();
-    await assert.rejects(
-      () => service.loadPolicy("any-id"),
+    await expect(() => service.loadPolicy("any-id")).rejects.toThrow(
       /PolicyService not initialized/,
     );
   });
 
-  await t.test("loadPolicy succeeds with PolicyService", async () => {
+  it("loadPolicy succeeds with PolicyService", async () => {
     const service = new PolicyEnforcementService(mockPolicyService);
     await service.loadPolicy("test-policy");
-    assert.ok(service.getCurrentPolicy());
-    assert.strictEqual(service.getCurrentPolicy()?.id, "test-policy");
+    expect(service.getCurrentPolicy()).toBeTruthy();
+    expect(service.getCurrentPolicy()?.id).toBe("test-policy");
   });
 
-  await t.test("loadPolicy throws for non-existent policy", async () => {
+  it("loadPolicy throws for non-existent policy", async () => {
     const service = new PolicyEnforcementService(mockPolicyService);
-    await assert.rejects(() => service.loadPolicy("missing"), /not found/);
+    await expect(() => service.loadPolicy("missing")).rejects.toThrow(
+      /not found/,
+    );
   });
 
-  await t.test("evaluateAction returns checks for each rule", async () => {
+  it("evaluateAction returns checks for each rule", async () => {
     const service = new PolicyEnforcementService();
     const policy = makePolicy([
       makeRule({ id: "r1", type: "allow" }),
@@ -95,11 +93,11 @@ test("PolicyEnforcementService", async (t) => {
     (service as any).currentPolicy = policy;
 
     const checks = await service.evaluateAction(makeAction());
-    assert.strictEqual(checks.length, 2);
-    assert.ok(checks.every((c) => typeof c.result === "boolean"));
+    expect(checks.length).toBe(2);
+    expect(checks.every((c) => typeof c.result === "boolean")).toBeTruthy();
   });
 
-  await t.test("evaluateAction fails non-matching expressions", async () => {
+  it("evaluateAction fails non-matching expressions", async () => {
     const service = new PolicyEnforcementService();
     (service as any).currentPolicy = makePolicy([
       makeRule({
@@ -112,53 +110,50 @@ test("PolicyEnforcementService", async (t) => {
     const [check] = await service.evaluateAction(
       makeAction({ type: "analysis" }),
     );
-    assert.strictEqual(check.result, false);
+    expect(check.result).toBe(false);
   });
 
-  await t.test(
-    "evaluateAction supports arithmetic and includes expressions",
-    async () => {
-      const service = new PolicyEnforcementService();
-      (service as any).currentPolicy = makePolicy([
-        makeRule({
-          id: "r1",
-          type: "deny",
-          condition:
-            "['ETH', 'BTC'].includes(action.metadata.symbol) && action.metadata.quantity * action.metadata.price > 1000",
-        }),
-      ]);
+  it("evaluateAction supports arithmetic and includes expressions", async () => {
+    const service = new PolicyEnforcementService();
+    (service as any).currentPolicy = makePolicy([
+      makeRule({
+        id: "r1",
+        type: "deny",
+        condition:
+          "['ETH', 'BTC'].includes(action.metadata.symbol) && action.metadata.quantity * action.metadata.price > 1000",
+      }),
+    ]);
 
-      const checks = await service.evaluateAction(
-        makeAction({
-          type: "trade",
-          metadata: { symbol: "ETH", quantity: 2, price: 600 },
-        }),
-      );
-      assert.strictEqual(checks[0].result, false);
-    },
-  );
+    const checks = await service.evaluateAction(
+      makeAction({
+        type: "trade",
+        metadata: { symbol: "ETH", quantity: 2, price: 600 },
+      }),
+    );
+    expect(checks[0].result).toBe(false);
+  });
 
-  await t.test("enforcePolicy passes for allow rules", async () => {
+  it("enforcePolicy passes for allow rules", async () => {
     const service = new PolicyEnforcementService();
     (service as any).currentPolicy = makePolicy([
       makeRule({ id: "r1", type: "allow" }),
     ]);
 
     const result = await service.enforcePolicy(makeAction());
-    assert.strictEqual(result, true);
+    expect(result).toBe(true);
   });
 
-  await t.test("enforcePolicy fails when deny rule triggers", async () => {
+  it("enforcePolicy fails when deny rule triggers", async () => {
     const service = new PolicyEnforcementService();
     (service as any).currentPolicy = makePolicy([
       makeRule({ id: "r1", type: "deny" }),
     ]);
 
     const result = await service.enforcePolicy(makeAction());
-    assert.strictEqual(result, false);
+    expect(result).toBe(false);
   });
 
-  await t.test("rate limit rule allows within limit", async () => {
+  it("rate limit rule allows within limit", async () => {
     const service = new PolicyEnforcementService();
     (service as any).currentPolicy = makePolicy([
       makeRule({
@@ -170,34 +165,31 @@ test("PolicyEnforcementService", async (t) => {
 
     const action = makeAction();
     const result1 = await service.enforcePolicy(action);
-    assert.strictEqual(result1, true);
+    expect(result1).toBe(true);
 
     const result2 = await service.enforcePolicy(action);
-    assert.strictEqual(result2, true);
+    expect(result2).toBe(true);
   });
 
-  await t.test(
-    "rate limit rule blocks when exceeded (via evaluateAction)",
-    async () => {
-      const service = new PolicyEnforcementService();
-      (service as any).currentPolicy = makePolicy([
-        makeRule({
-          id: "rl2",
-          type: "rate_limit",
-          metadata: { windowMs: 60000, maxRequests: 1 },
-        }),
-      ]);
+  it("rate limit rule blocks when exceeded (via evaluateAction)", async () => {
+    const service = new PolicyEnforcementService();
+    (service as any).currentPolicy = makePolicy([
+      makeRule({
+        id: "rl2",
+        type: "rate_limit",
+        metadata: { windowMs: 60000, maxRequests: 1 },
+      }),
+    ]);
 
-      const action = makeAction();
-      const checks1 = await service.evaluateAction(action);
-      assert.strictEqual(checks1[0].result, true); // 1st allowed
+    const action = makeAction();
+    const checks1 = await service.evaluateAction(action);
+    expect(checks1[0].result).toBe(true); // 1st allowed
 
-      const checks2 = await service.evaluateAction(action);
-      assert.strictEqual(checks2[0].result, false); // 2nd blocked
-    },
-  );
+    const checks2 = await service.evaluateAction(action);
+    expect(checks2[0].result).toBe(false); // 2nd blocked
+  });
 
-  await t.test("clearRateLimitCounters resets state", async () => {
+  it("clearRateLimitCounters resets state", async () => {
     const service = new PolicyEnforcementService();
     (service as any).currentPolicy = makePolicy([
       makeRule({
@@ -213,11 +205,11 @@ test("PolicyEnforcementService", async (t) => {
 
     service.clearRateLimitCounters();
     const result = await service.enforcePolicy(action); // allowed again
-    assert.strictEqual(result, true);
+    expect(result).toBe(true);
   });
 
-  await t.test("getCurrentPolicy returns null initially", () => {
+  it("getCurrentPolicy returns null initially", () => {
     const service = new PolicyEnforcementService();
-    assert.strictEqual(service.getCurrentPolicy(), null);
+    expect(service.getCurrentPolicy()).toBeNull();
   });
 });

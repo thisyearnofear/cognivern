@@ -1,5 +1,4 @@
-import test from "node:test";
-import assert from "node:assert/strict";
+import { describe, it, expect } from "vitest";
 
 const { AuditLogController } = await import(
   "../../src/backend/modules/api/controllers/AuditLogController.js"
@@ -27,39 +26,41 @@ function makeReq(body: any = {}) {
   return { body } as any;
 }
 
-test("AuditLogController.issuePermit returns permit payload", async () => {
-  const controller = new AuditLogController();
-  const res = new MockRes();
+describe("AuditLogController", () => {
+  it("issuePermit returns permit payload", async () => {
+    const controller = new AuditLogController();
+    const res = new MockRes();
 
-  const originalIssue = owsWalletService.issueAuditPermit;
-  owsWalletService.issueAuditPermit = (async () => "0xabc123") as any;
+    const originalIssue = owsWalletService.issueAuditPermit;
+    owsWalletService.issueAuditPermit = (async () => "0xabc123") as any;
 
-  try {
+    try {
+      await controller.issuePermit(
+        makeReq({
+          auditor: "0xAuditor",
+          policyId: "policy-confidential",
+        }),
+        res as any,
+      );
+    } finally {
+      owsWalletService.issueAuditPermit = originalIssue;
+    }
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload?.success).toBe(true);
+    expect(res.payload?.data?.permit).toBe("0xabc123");
+  });
+
+  it("issuePermit validates payload", async () => {
+    const controller = new AuditLogController();
+    const res = new MockRes();
+
     await controller.issuePermit(
-      makeReq({
-        auditor: "0xAuditor",
-        policyId: "policy-confidential",
-      }),
+      makeReq({ policyId: "missing-auditor" }),
       res as any,
     );
-  } finally {
-    owsWalletService.issueAuditPermit = originalIssue;
-  }
 
-  assert.equal(res.statusCode, 200);
-  assert.equal(res.payload?.success, true);
-  assert.equal(res.payload?.data?.permit, "0xabc123");
-});
-
-test("AuditLogController.issuePermit validates payload", async () => {
-  const controller = new AuditLogController();
-  const res = new MockRes();
-
-  await controller.issuePermit(
-    makeReq({ policyId: "missing-auditor" }),
-    res as any,
-  );
-
-  assert.equal(res.statusCode, 400);
-  assert.equal(res.payload?.success, false);
+    expect(res.statusCode).toBe(400);
+    expect(res.payload?.success).toBe(false);
+  });
 });
