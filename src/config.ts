@@ -43,7 +43,9 @@ const envSchema = z.object({
     .default("https://api.calibration.node.glif.io/rpc/v1"),
   GOVERNANCE_CONTRACT_ADDRESS: z.string().default(""),
   STORAGE_CONTRACT_ADDRESS: z.string().default(""),
-  USDFC_TOKEN_ADDRESS: z.string().default("0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9"),
+  USDFC_TOKEN_ADDRESS: z
+    .string()
+    .default("0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9"),
   SPARK_API_URL: z.string().default("https://api.filspark.com"),
   FILECOIN_NETWORK: z.enum(["mainnet", "calibration"]).default("calibration"),
 
@@ -103,7 +105,9 @@ const envSchema = z.object({
 
   // Fhenix / CoFHE (Confidential Policy Evaluation)
   FHENIX_RPC_URL: z.string().default("https://sepolia-rollup.arbitrum.io/rpc"),
-  FHENIX_SEPOLIA_RPC: z.string().default("https://sepolia-rollup.arbitrum.io/rpc"),
+  FHENIX_SEPOLIA_RPC: z
+    .string()
+    .default("https://sepolia-rollup.arbitrum.io/rpc"),
   FHENIX_COFHE_URL: z.string().optional(),
   FHENIX_VERIFIER_URL: z.string().optional(),
   FHENIX_TN_URL: z.string().optional(),
