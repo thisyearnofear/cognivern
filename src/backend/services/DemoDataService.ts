@@ -15,9 +15,24 @@ function demoAgents(): Agent[] {
       budget: "$25,000",
       chain: "Ethereum",
       spendHistory: [
-        { amount: 1200, currency: "USDC", timestamp: hoursAgo(2), decision: "approved" },
-        { amount: 800, currency: "USDC", timestamp: hoursAgo(5), decision: "approved" },
-        { amount: 5000, currency: "USDC", timestamp: hoursAgo(8), decision: "denied" },
+        {
+          amount: 1200,
+          currency: "USDC",
+          timestamp: hoursAgo(2),
+          decision: "approved",
+        },
+        {
+          amount: 800,
+          currency: "USDC",
+          timestamp: hoursAgo(5),
+          decision: "approved",
+        },
+        {
+          amount: 5000,
+          currency: "USDC",
+          timestamp: hoursAgo(8),
+          decision: "denied",
+        },
       ],
     },
     {
@@ -29,8 +44,18 @@ function demoAgents(): Agent[] {
       budget: "$15,000",
       chain: "Arbitrum",
       spendHistory: [
-        { amount: 3000, currency: "USDC", timestamp: hoursAgo(1), decision: "approved" },
-        { amount: 750, currency: "ETH", timestamp: hoursAgo(4), decision: "approved" },
+        {
+          amount: 3000,
+          currency: "USDC",
+          timestamp: hoursAgo(1),
+          decision: "approved",
+        },
+        {
+          amount: 750,
+          currency: "ETH",
+          timestamp: hoursAgo(4),
+          decision: "approved",
+        },
       ],
     },
     {
@@ -42,7 +67,12 @@ function demoAgents(): Agent[] {
       budget: "$5,000",
       chain: "Base",
       spendHistory: [
-        { amount: 400, currency: "USDC", timestamp: hoursAgo(12), decision: "approved" },
+        {
+          amount: 400,
+          currency: "USDC",
+          timestamp: hoursAgo(12),
+          decision: "approved",
+        },
       ],
     },
     {
@@ -54,8 +84,18 @@ function demoAgents(): Agent[] {
       budget: "$10,000",
       chain: "Ethereum",
       spendHistory: [
-        { amount: 2500, currency: "USDC", timestamp: hoursAgo(3), decision: "approved" },
-        { amount: 1800, currency: "DAI", timestamp: hoursAgo(7), decision: "approved" },
+        {
+          amount: 2500,
+          currency: "USDC",
+          timestamp: hoursAgo(3),
+          decision: "approved",
+        },
+        {
+          amount: 1800,
+          currency: "DAI",
+          timestamp: hoursAgo(7),
+          decision: "approved",
+        },
       ],
     },
   ];
@@ -73,8 +113,16 @@ function demoAuditLogs(): AuditLog[] {
       timestamp: hoursAgo(2),
       latency: "45ms",
       policyChecks: [
-        { policyId: "pol-budget-001", result: true, reason: "Within daily limit" },
-        { policyId: "pol-vendor-001", result: true, reason: "Uniswap is allowlisted" },
+        {
+          policyId: "pol-budget-001",
+          result: true,
+          reason: "Within daily limit",
+        },
+        {
+          policyId: "pol-vendor-001",
+          result: true,
+          reason: "Uniswap is allowlisted",
+        },
       ],
     },
     {
@@ -87,7 +135,11 @@ function demoAuditLogs(): AuditLog[] {
       timestamp: hoursAgo(8),
       latency: "32ms",
       policyChecks: [
-        { policyId: "pol-budget-001", result: false, reason: "Exceeds $3000 single transaction limit" },
+        {
+          policyId: "pol-budget-001",
+          result: false,
+          reason: "Exceeds $3000 single transaction limit",
+        },
       ],
     },
     {
@@ -100,8 +152,16 @@ function demoAuditLogs(): AuditLog[] {
       timestamp: hoursAgo(1),
       latency: "28ms",
       policyChecks: [
-        { policyId: "pol-budget-001", result: true, reason: "Within daily limit" },
-        { policyId: "pol-chain-001", result: true, reason: "Arbitrum is allowed" },
+        {
+          policyId: "pol-budget-001",
+          result: true,
+          reason: "Within daily limit",
+        },
+        {
+          policyId: "pol-chain-001",
+          result: true,
+          reason: "Arbitrum is allowed",
+        },
       ],
     },
     {
@@ -114,8 +174,16 @@ function demoAuditLogs(): AuditLog[] {
       timestamp: hoursAgo(3),
       latency: "51ms",
       policyChecks: [
-        { policyId: "pol-budget-001", result: true, reason: "Within daily limit" },
-        { policyId: "pol-vendor-001", result: true, reason: "Compound is allowlisted" },
+        {
+          policyId: "pol-budget-001",
+          result: true,
+          reason: "Within daily limit",
+        },
+        {
+          policyId: "pol-vendor-001",
+          result: true,
+          reason: "Compound is allowlisted",
+        },
       ],
     },
     {
@@ -129,7 +197,11 @@ function demoAuditLogs(): AuditLog[] {
       latency: "39ms",
       policyChecks: [
         { policyId: "pol-budget-001", result: true, reason: "Within limit" },
-        { policyId: "pol-approval-001", result: false, reason: "New token requires human approval" },
+        {
+          policyId: "pol-approval-001",
+          result: false,
+          reason: "New token requires human approval",
+        },
       ],
     },
   ];
@@ -141,12 +213,18 @@ function demoPolicies(): Policy[] {
       id: "pol-budget-001",
       name: "Daily Spend Limit",
       type: "budget",
-      description: "Enforces per-agent daily spend caps and single-transaction limits",
+      description:
+        "Enforces per-agent daily spend caps and single-transaction limits",
       status: "active",
       agents: 4,
       violations: 3,
       rules: [
-        { id: "r1", condition: "amount > 3000", action: "deny", params: { currency: "USDC" } },
+        {
+          id: "r1",
+          condition: "amount > 3000",
+          action: "deny",
+          params: { currency: "USDC" },
+        },
         { id: "r2", condition: "dailyTotal > 10000", action: "deny" },
       ],
     },
@@ -171,14 +249,19 @@ function demoPolicies(): Policy[] {
       agents: 3,
       violations: 1,
       rules: [
-        { id: "r4", condition: "chain NOT IN [ethereum, arbitrum, base]", action: "deny" },
+        {
+          id: "r4",
+          condition: "chain NOT IN [ethereum, arbitrum, base]",
+          action: "deny",
+        },
       ],
     },
     {
       id: "pol-approval-001",
       name: "Human Approval Threshold",
       type: "approval",
-      description: "Requires human sign-off for novel tokens or high-risk operations",
+      description:
+        "Requires human sign-off for novel tokens or high-risk operations",
       status: "active",
       agents: 2,
       violations: 0,

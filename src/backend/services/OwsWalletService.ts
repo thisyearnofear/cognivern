@@ -12,7 +12,11 @@ import {
   owsLocalVaultService,
   OwsResolvedAccess,
 } from "./OwsLocalVaultService.js";
-import { FhenixPolicyService, FhenixClientAdapter, sharedFhenixPolicyService } from "./FhenixPolicyService.js";
+import {
+  FhenixPolicyService,
+  FhenixClientAdapter,
+  sharedFhenixPolicyService,
+} from "./FhenixPolicyService.js";
 
 export interface SpendIntent {
   id: string;
@@ -52,13 +56,22 @@ export class OwsWalletService {
   private policyEnforcement: PolicyEnforcementService;
   private fhenixPolicyService: FhenixPolicyService;
 
-  constructor(policyService?: PolicyService, fhenixPolicyService?: FhenixPolicyService) {
+  constructor(
+    policyService?: PolicyService,
+    fhenixPolicyService?: FhenixPolicyService,
+  ) {
     this.policyService = policyService || sharedPolicyService;
     this.fhenixPolicyService = fhenixPolicyService || sharedFhenixPolicyService;
-    this.policyEnforcement = new PolicyEnforcementService(this.policyService, this.fhenixPolicyService);
+    this.policyEnforcement = new PolicyEnforcementService(
+      this.policyService,
+      this.fhenixPolicyService,
+    );
   }
 
-  public async issueAuditPermit(auditor: string, policyId: string): Promise<string> {
+  public async issueAuditPermit(
+    auditor: string,
+    policyId: string,
+  ): Promise<string> {
     return this.fhenixPolicyService.issueAuditPermit(auditor, policyId);
   }
 
@@ -158,7 +171,8 @@ export class OwsWalletService {
         );
       }
 
-      const decision = policyDecision || this.classifyDecision(activePolicy, policyChecks);
+      const decision =
+        policyDecision || this.classifyDecision(activePolicy, policyChecks);
       const failedChecks = policyChecks.filter((check) => !check.result);
       step.end({
         ok: decision.status === "approved",
@@ -614,12 +628,13 @@ export class OwsWalletService {
         ? intent.metadata.vendorHash
         : `0x${createHash("sha256").update(intent.recipient).digest("hex")}`);
 
-    const confidentialDecision = await this.fhenixPolicyService.evaluateEncrypted({
-      agentId: intent.agentId,
-      policyId: activePolicy.id,
-      amountWei,
-      vendorHash,
-    });
+    const confidentialDecision =
+      await this.fhenixPolicyService.evaluateEncrypted({
+        agentId: intent.agentId,
+        policyId: activePolicy.id,
+        amountWei,
+        vendorHash,
+      });
 
     const decisionByOutcome: Record<
       typeof confidentialDecision.outcome,
@@ -652,7 +667,6 @@ export class OwsWalletService {
       },
     };
   }
-
 
   /**
    * Preview a spend without executing - returns policy evaluation without signing
@@ -737,7 +751,12 @@ export class OwsWalletService {
     amountWei: bigint;
     target: string;
     data: string;
-  }): Promise<{ success: boolean; decisionId?: string; txHash?: string; error?: string }> {
+  }): Promise<{
+    success: boolean;
+    decisionId?: string;
+    txHash?: string;
+    error?: string;
+  }> {
     try {
       logger.info(`Executing governed DeFi action for agent ${params.agentId}`);
 
@@ -755,7 +774,8 @@ export class OwsWalletService {
         txHash: result.txHash,
       };
     } catch (error) {
-      const errMsg = error instanceof Error ? error.message : "DeFi execution failed";
+      const errMsg =
+        error instanceof Error ? error.message : "DeFi execution failed";
       logger.error(`DeFi action failed: ${errMsg}`);
       return { success: false, error: errMsg };
     }

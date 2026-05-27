@@ -47,16 +47,20 @@ export class CircuitBreaker {
 
       if (timeSinceFailure < this.resetAfterMs) {
         if (this.enableLogging) {
-          logger.warn(`Circuit breaker OPEN for ${this.serviceName}, rejecting request`);
+          logger.warn(
+            `Circuit breaker OPEN for ${this.serviceName}, rejecting request`,
+          );
         }
         throw new Error(
-          `${this.serviceName} circuit breaker is open - service temporarily unavailable`
+          `${this.serviceName} circuit breaker is open - service temporarily unavailable`,
         );
       }
 
       // Half-open state: try one request
       if (this.enableLogging) {
-        logger.info(`Circuit breaker HALF-OPEN for ${this.serviceName}, attempting recovery`);
+        logger.info(
+          `Circuit breaker HALF-OPEN for ${this.serviceName}, attempting recovery`,
+        );
       }
     }
 
@@ -81,7 +85,7 @@ export class CircuitBreaker {
       this.isOpen = true;
       if (this.enableLogging) {
         logger.error(
-          `Circuit breaker OPENED for ${this.serviceName} after ${this.failures} failures`
+          `Circuit breaker OPENED for ${this.serviceName} after ${this.failures} failures`,
         );
       }
     }
@@ -93,7 +97,9 @@ export class CircuitBreaker {
   private reset(): void {
     if (this.isOpen || this.failures > 0) {
       if (this.enableLogging) {
-        logger.info(`Circuit breaker CLOSED for ${this.serviceName}, service recovered`);
+        logger.info(
+          `Circuit breaker CLOSED for ${this.serviceName}, service recovered`,
+        );
       }
     }
     this.failures = 0;
@@ -132,7 +138,16 @@ export class CircuitBreaker {
  * Circuit breaker instances for common external services
  */
 export const circuitBreakers = {
-  recall: new CircuitBreaker('RecallNetwork', { threshold: 5, resetAfterMs: 30000 }),
-  sapience: new CircuitBreaker('SapienceProtocol', { threshold: 3, resetAfterMs: 60000 }),
-  blockchain: new CircuitBreaker('BlockchainRPC', { threshold: 5, resetAfterMs: 45000 }),
+  recall: new CircuitBreaker("RecallNetwork", {
+    threshold: 5,
+    resetAfterMs: 30000,
+  }),
+  sapience: new CircuitBreaker("SapienceProtocol", {
+    threshold: 3,
+    resetAfterMs: 60000,
+  }),
+  blockchain: new CircuitBreaker("BlockchainRPC", {
+    threshold: 5,
+    resetAfterMs: 45000,
+  }),
 };

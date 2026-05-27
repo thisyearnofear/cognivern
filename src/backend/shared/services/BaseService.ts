@@ -288,7 +288,9 @@ export abstract class BaseService extends EventEmitter {
 
     // Check if circuit is open
     if (circuit.isOpen && Date.now() - circuit.lastFailure < resetAfterMs) {
-      this.logger.warn(`Circuit breaker OPEN for ${serviceName}, rejecting request`);
+      this.logger.warn(
+        `Circuit breaker OPEN for ${serviceName}, rejecting request`,
+      );
       throw new ServiceError(
         `${serviceName} circuit breaker is open - service temporarily unavailable`,
       );
@@ -296,7 +298,9 @@ export abstract class BaseService extends EventEmitter {
 
     // If circuit was open but reset period passed, try to close it
     if (circuit.isOpen) {
-      this.logger.info(`Circuit breaker HALF-OPEN for ${serviceName}, attempting recovery`);
+      this.logger.info(
+        `Circuit breaker HALF-OPEN for ${serviceName}, attempting recovery`,
+      );
     }
 
     try {
@@ -346,7 +350,9 @@ export abstract class BaseService extends EventEmitter {
   private resetCircuit(serviceName: string): void {
     const circuit = this.getCircuit(serviceName);
     if (circuit.isOpen || circuit.failures > 0) {
-      this.logger.info(`Circuit breaker CLOSED for ${serviceName}, service recovered`);
+      this.logger.info(
+        `Circuit breaker CLOSED for ${serviceName}, service recovered`,
+      );
       this.emit("circuit:close", { serviceName });
     }
     circuit.failures = 0;

@@ -8,23 +8,28 @@ export interface WorkspaceContext {
 
 export function getWorkspaceTier(workspaceId: string): "demo" | "live" {
   const db = getDb();
-  const row = db.prepare("SELECT tier FROM workspaces WHERE id = ?").get(workspaceId) as { tier: string } | undefined;
+  const row = db
+    .prepare("SELECT tier FROM workspaces WHERE id = ?")
+    .get(workspaceId) as { tier: string } | undefined;
   return (row?.tier as "demo" | "live") || "demo";
 }
 
-export function setWorkspaceTier(workspaceId: string, tier: "demo" | "live"): void {
+export function setWorkspaceTier(
+  workspaceId: string,
+  tier: "demo" | "live",
+): void {
   const db = getDb();
   db.prepare("UPDATE workspaces SET tier = ?, updated_at = ? WHERE id = ?").run(
     tier,
     new Date().toISOString(),
-    workspaceId
+    workspaceId,
   );
 }
 
 export async function workspaceMiddleware(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   const workspaceId = req.workspaceId;
 

@@ -2,7 +2,15 @@ import { createCofheClient, createCofheConfig } from "@cofhe/sdk/node";
 import { CofheClient, Encryptable, FheTypes } from "@cofhe/sdk";
 import type { UnsealedItem } from "@cofhe/sdk";
 import { PermitUtils } from "@cofhe/sdk/permits";
-import { createPublicClient, createWalletClient, http, parseAbi, Hex, decodeEventLog, Chain } from "viem";
+import {
+  createPublicClient,
+  createWalletClient,
+  http,
+  parseAbi,
+  Hex,
+  decodeEventLog,
+  Chain,
+} from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia, arbitrumSepolia } from "viem/chains";
 import logger from "../utils/logger.js";
@@ -93,21 +101,27 @@ function resolveViemChain(chainId: number): Chain {
   if (chainId === 84532) return baseSepolia;
   if (chainId === 421614) return arbitrumSepolia;
 
-  logger.warn(`No viem chain entry for chainId ${chainId}, using arbitrumSepolia fallback`);
+  logger.warn(
+    `No viem chain entry for chainId ${chainId}, using arbitrumSepolia fallback`,
+  );
   return arbitrumSepolia;
 }
 
 export function createFhenixConfig() {
-  const rpcUrl = process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc";
+  const rpcUrl =
+    process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc";
   return {
     rpcUrl,
     contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
-    privateKey: process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
+    privateKey:
+      process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
     chainId: Number(process.env.FHENIX_CHAIN_ID || "421614"),
     cofheUrl: process.env.FHENIX_COFHE_URL || rpcUrl,
     verifierUrl: process.env.FHENIX_VERIFIER_URL || rpcUrl,
     thresholdNetworkUrl: process.env.FHENIX_TN_URL || rpcUrl,
-    evaluateTimeoutMs: Number(process.env.FHENIX_EVALUATE_TIMEOUT_MS || "30000"),
+    evaluateTimeoutMs: Number(
+      process.env.FHENIX_EVALUATE_TIMEOUT_MS || "30000",
+    ),
   };
 }
 
@@ -124,9 +138,18 @@ export class FhenixPolicyService {
     }
 
     const chainId = config.chainId ?? 421614;
-    const coFheUrl = config.cofheUrl || config.rpcUrl || "https://sepolia-rollup.arbitrum.io/rpc";
-    const verifierUrl = config.verifierUrl || config.rpcUrl || "https://sepolia-rollup.arbitrum.io/rpc";
-    const thresholdNetworkUrl = config.thresholdNetworkUrl || config.rpcUrl || "https://sepolia-rollup.arbitrum.io/rpc";
+    const coFheUrl =
+      config.cofheUrl ||
+      config.rpcUrl ||
+      "https://sepolia-rollup.arbitrum.io/rpc";
+    const verifierUrl =
+      config.verifierUrl ||
+      config.rpcUrl ||
+      "https://sepolia-rollup.arbitrum.io/rpc";
+    const thresholdNetworkUrl =
+      config.thresholdNetworkUrl ||
+      config.rpcUrl ||
+      "https://sepolia-rollup.arbitrum.io/rpc";
 
     const chainName = chainId === 84532 ? "Base Sepolia" : "Arbitrum Sepolia";
     const networkName = chainId === 84532 ? "base-sepolia" : "arbitrum-sepolia";
@@ -165,7 +188,9 @@ export class FhenixPolicyService {
       // Connect the CoFHE client asynchronously; failures are non-fatal
       // (the client will be in disconnected state and operations will throw)
       this.connectClient().catch((err) => {
-        logger.warn(`CoFHE client connection failed: ${err instanceof Error ? err.message : String(err)}`);
+        logger.warn(
+          `CoFHE client connection failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
       });
     }
   }
@@ -183,15 +208,17 @@ export class FhenixPolicyService {
       await this.connectClient();
     }
     if (!this.client.connected) {
-      throw new Error("CoFHE client failed to connect — check RPC and private key configuration");
+      throw new Error(
+        "CoFHE client failed to connect — check RPC and private key configuration",
+      );
     }
   }
 
   async evaluateEncrypted(
-    input: ConfidentialSpendInput
+    input: ConfidentialSpendInput,
   ): Promise<ConfidentialSpendDecision> {
     logger.info(
-      `Evaluating encrypted spend on Fhenix: agent=${input.agentId}, policy=${input.policyId}`
+      `Evaluating encrypted spend on Fhenix: agent=${input.agentId}, policy=${input.policyId}`,
     );
 
     // Use adapter if provided (for testing or alternative implementations)
@@ -219,7 +246,7 @@ export class FhenixPolicyService {
         .encryptInputs([Encryptable.uint128(input.amountWei)])
         .setChainId(this.config.chainId ?? 421614)
         .execute(),
-      this.config.evaluateTimeoutMs || 30000
+      this.config.evaluateTimeoutMs || 30000,
     );
 
     const amountCt = encryptedInputs[0];
@@ -254,15 +281,17 @@ export class FhenixPolicyService {
 
     for (const log of receipt.logs) {
       if (
-        log.address.toLowerCase() ===
-        this.config.contractAddress.toLowerCase()
+        log.address.toLowerCase() === this.config.contractAddress.toLowerCase()
       ) {
         try {
           const decoded = decodeEventLog({
             abi: ABI,
             data: log.data,
             topics: log.topics,
-          }) as { eventName: string; args: { decisionId: string; outcome: number; attestation: string } };
+          }) as {
+            eventName: string;
+            args: { decisionId: string; outcome: number; attestation: string };
+          };
           if (decoded.eventName === "SpendEvaluated") {
             decisionId = decoded.args.decisionId;
             outcome = Number(decoded.args.outcome);
@@ -277,7 +306,7 @@ export class FhenixPolicyService {
 
     if (decisionId === "0x") {
       logger.warn(
-        "SpendEvaluated event not found, synthesizing decisionId from hash"
+        "SpendEvaluated event not found, synthesizing decisionId from hash",
       );
       decisionId = hash;
       outcome = 2; // Default to Approve for demo
@@ -294,7 +323,7 @@ export class FhenixPolicyService {
   }
 
   private async evaluateWithAdapter(
-    input: ConfidentialSpendInput
+    input: ConfidentialSpendInput,
   ): Promise<ConfidentialSpendDecision> {
     if (!this.adapter) {
       throw new Error("Adapter not configured");
@@ -305,7 +334,7 @@ export class FhenixPolicyService {
     // Encrypt via adapter
     const ctHash = await this.withTimeout(
       this.adapter.encryptUint256(input.amountWei),
-      timeoutMs
+      timeoutMs,
     );
 
     const amountCt = {
@@ -323,7 +352,7 @@ export class FhenixPolicyService {
         amountCt,
         vendorHash: input.vendorHash,
       }),
-      timeoutMs
+      timeoutMs,
     );
 
     return {
@@ -352,7 +381,9 @@ export class FhenixPolicyService {
 
     await this.ensureConnected();
 
-    const account = this.config.privateKey ? privateKeyToAccount(this.config.privateKey as Hex).address : undefined;
+    const account = this.config.privateKey
+      ? privateKeyToAccount(this.config.privateKey as Hex).address
+      : undefined;
     if (!account) {
       throw new Error("Private key not configured for permit creation");
     }
@@ -365,7 +396,7 @@ export class FhenixPolicyService {
       {
         publicClient: this.publicClient,
         walletClient: this.walletClient,
-      }
+      },
     );
     return JSON.stringify(permit);
   }
@@ -387,17 +418,14 @@ export class FhenixPolicyService {
     }
   }
 
-  private async withTimeout<T>(
-    promise: Promise<T>,
-    ms: number
-  ): Promise<T> {
+  private async withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
     return Promise.race([
       promise,
       new Promise<T>((_, reject) =>
         setTimeout(
           () => reject(new Error(`Operation timed out after ${ms}ms`)),
-          ms
-        )
+          ms,
+        ),
       ),
     ]);
   }
@@ -418,7 +446,7 @@ export class FhenixPolicyService {
   async unsealValue(
     contractAddress: string,
     encryptedValue: string,
-    permit: string
+    permit: string,
   ): Promise<string> {
     if (!this.client) {
       throw new Error("CoFHE client not available");
@@ -450,7 +478,7 @@ export class FhenixPolicyService {
     }
 
     logger.info(
-      `Unsealing ctHash=${ctHash} utype=${utype} chainId=${chainId} contract=${contractAddress}`
+      `Unsealing ctHash=${ctHash} utype=${utype} chainId=${chainId} contract=${contractAddress}`,
     );
 
     const unsealedItem = await this.withTimeout(
@@ -459,10 +487,14 @@ export class FhenixPolicyService {
         .setChainId(chainId)
         .withPermit(parsedPermit)
         .execute(),
-      this.config.evaluateTimeoutMs || 30000
+      this.config.evaluateTimeoutMs || 30000,
     );
 
-    if (unsealedItem != null && typeof unsealedItem === "object" && "value" in (unsealedItem as object)) {
+    if (
+      unsealedItem != null &&
+      typeof unsealedItem === "object" &&
+      "value" in (unsealedItem as object)
+    ) {
       return String((unsealedItem as { value: unknown }).value);
     }
 
@@ -486,7 +518,7 @@ export class FhenixPolicyService {
         ctHash,
         securityZone: 0,
         utype: 2,
-        signature: "0x"
+        signature: "0x",
       };
     }
 
@@ -501,7 +533,7 @@ export class FhenixPolicyService {
         .encryptInputs([Encryptable.uint128(amountWei)])
         .setChainId(this.config.chainId ?? 421614)
         .execute(),
-      this.config.evaluateTimeoutMs || 30000
+      this.config.evaluateTimeoutMs || 30000,
     );
 
     return encryptedInputs[0];
@@ -518,7 +550,7 @@ export class FhenixPolicyService {
     data: string;
   }): Promise<{ decisionId: string; txHash: string }> {
     logger.info(
-      `Requesting DeFi action on Fhenix: agent=${input.agentId}, target=${input.target}`
+      `Requesting DeFi action on Fhenix: agent=${input.agentId}, target=${input.target}`,
     );
 
     if (!this.client) {
@@ -533,7 +565,7 @@ export class FhenixPolicyService {
         .encryptInputs([Encryptable.uint128(input.amountWei)])
         .setChainId(this.config.chainId ?? 421614)
         .execute(),
-      this.config.evaluateTimeoutMs || 30000
+      this.config.evaluateTimeoutMs || 30000,
     );
     const amountCt = encryptedInputs[0];
 
@@ -563,4 +595,6 @@ export class FhenixPolicyService {
   }
 }
 
-export const sharedFhenixPolicyService = new FhenixPolicyService(createFhenixConfig());
+export const sharedFhenixPolicyService = new FhenixPolicyService(
+  createFhenixConfig(),
+);

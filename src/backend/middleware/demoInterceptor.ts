@@ -5,13 +5,13 @@ import { DemoDataService } from "../services/DemoDataService.js";
 import { WorkspaceDataService } from "../services/WorkspaceDataService.js";
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "cognivern-dev-jwt-secret-change-in-production"
+  process.env.JWT_SECRET || "cognivern-dev-jwt-secret-change-in-production",
 );
 
 export async function demoInterceptor(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
@@ -37,12 +37,16 @@ export async function demoInterceptor(
     // 1. If workspace tier is 'demo' in DB, always serve demo data (free tier)
     // 2. If tier is 'live', respect the X-Workspace-Mode header for sandbox testing
     const tier = getWorkspaceTier(workspaceId);
-    const headerMode = (req.headers["x-workspace-mode"] as string) === "sandbox" ? "sandbox" : "production";
+    const headerMode =
+      (req.headers["x-workspace-mode"] as string) === "sandbox"
+        ? "sandbox"
+        : "production";
     const effectiveMode = tier === "demo" ? "sandbox" : headerMode;
-    
-    const response = effectiveMode === "sandbox"
-      ? serveDemoData(req.method, req.path, req.body)
-      : serveLiveData(req.method, req.path, workspaceId, req.body);
+
+    const response =
+      effectiveMode === "sandbox"
+        ? serveDemoData(req.method, req.path, req.body)
+        : serveLiveData(req.method, req.path, workspaceId, req.body);
 
     if (response) {
       const status = (response as any)._status || 200;
@@ -57,13 +61,21 @@ export async function demoInterceptor(
   }
 }
 
-function serveDemoData(method: string, path: string, body?: any): object | null {
+function serveDemoData(
+  method: string,
+  path: string,
+  body?: any,
+): object | null {
   // POST handlers for demo tier
   if (method === "POST") {
     if (path === "/governance/evaluate" || path === "/governance/evaluate/") {
       const { agentId, action } = body || {};
       if (!agentId || !action) {
-        return { success: false, error: "agentId and action are required", _status: 400 };
+        return {
+          success: false,
+          error: "agentId and action are required",
+          _status: 400,
+        };
       }
       const agent = DemoDataService.getAgent(agentId);
       const policies = DemoDataService.getPolicies();
@@ -77,9 +89,12 @@ function serveDemoData(method: string, path: string, body?: any): object | null 
       const policyChecks = policies.map((p) => ({
         policyId: p.id,
         result: p.type === "budget" ? !denied : true,
-        reason: p.type === "budget"
-          ? denied ? `Amount ${amount} exceeds $${budgetLimit} single transaction limit` : "Within daily limit"
-          : `${p.name} check passed`,
+        reason:
+          p.type === "budget"
+            ? denied
+              ? `Amount ${amount} exceeds $${budgetLimit} single transaction limit`
+              : "Within daily limit"
+            : `${p.name} check passed`,
       }));
 
       return {
@@ -118,7 +133,8 @@ function serveDemoData(method: string, path: string, body?: any): object | null 
         logs,
         summary: {
           totalActions: logs.length,
-          compliantActions: logs.filter((l) => l.decision === "approved").length,
+          compliantActions: logs.filter((l) => l.decision === "approved")
+            .length,
           complianceRate: 80,
           avgResponseTime: 39,
           criticalIssues: 0,
@@ -148,11 +164,19 @@ function serveDemoData(method: string, path: string, body?: any): object | null 
   return null;
 }
 
-function serveLiveData(method: string, path: string, workspaceId: string, body: any): object | null {
+function serveLiveData(
+  method: string,
+  path: string,
+  workspaceId: string,
+  body: any,
+): object | null {
   // GET endpoints
   if (method === "GET") {
     if (path === "/agents" || path === "/agents/") {
-      return { success: true, data: WorkspaceDataService.getAgents(workspaceId) };
+      return {
+        success: true,
+        data: WorkspaceDataService.getAgents(workspaceId),
+      };
     }
 
     if (path.match(/^\/agents\/agent-[a-z0-9-]+$/)) {
@@ -172,7 +196,8 @@ function serveLiveData(method: string, path: string, workspaceId: string, body: 
           summary: {
             totalActions: logs.length,
             compliantActions: approved,
-            complianceRate: logs.length > 0 ? Math.round((approved / logs.length) * 100) : 0,
+            complianceRate:
+              logs.length > 0 ? Math.round((approved / logs.length) * 100) : 0,
             avgResponseTime: 35,
             criticalIssues: 0,
           },
@@ -185,12 +210,19 @@ function serveLiveData(method: string, path: string, workspaceId: string, body: 
       const approved = logs.filter((l) => l.decision === "approved").length;
       return {
         success: true,
-        data: { compliance: logs.length > 0 ? Math.round((approved / logs.length) * 100) : 0, trends: [] },
+        data: {
+          compliance:
+            logs.length > 0 ? Math.round((approved / logs.length) * 100) : 0,
+          trends: [],
+        },
       };
     }
 
     if (path === "/governance/policies" || path === "/governance/policies/") {
-      return { success: true, data: WorkspaceDataService.getPolicies(workspaceId) };
+      return {
+        success: true,
+        data: WorkspaceDataService.getPolicies(workspaceId),
+      };
     }
 
     if (path === "/cre/runs" || path === "/cre/runs/") {
@@ -212,36 +244,76 @@ function serveLiveData(method: string, path: string, workspaceId: string, body: 
     if (path === "/agents/register" || path === "/agents/register/") {
       const { name, role, chain, walletAddress, budget } = body || {};
       if (!name || !role || !chain) {
-        return { success: false, error: "name, role, and chain are required", _status: 400 };
+        return {
+          success: false,
+          error: "name, role, and chain are required",
+          _status: 400,
+        };
       }
-      const agent = WorkspaceDataService.createAgent(workspaceId, { name, role, chain, walletAddress, budget });
+      const agent = WorkspaceDataService.createAgent(workspaceId, {
+        name,
+        role,
+        chain,
+        walletAddress,
+        budget,
+      });
       return { success: true, data: agent, _status: 201 };
     }
 
     if (path === "/agents/connect" || path === "/agents/connect/") {
-      const { name, role, chain, walletAddress, budget, webhookUrl } = body || {};
+      const { name, role, chain, walletAddress, budget, webhookUrl } =
+        body || {};
       if (!name || !role || !chain || !walletAddress) {
-        return { success: false, error: "name, role, chain, and walletAddress are required", _status: 400 };
+        return {
+          success: false,
+          error: "name, role, chain, and walletAddress are required",
+          _status: 400,
+        };
       }
-      const agent = WorkspaceDataService.createAgent(workspaceId, { name, role, chain, walletAddress, budget, source: 'external', webhookUrl });
+      const agent = WorkspaceDataService.createAgent(workspaceId, {
+        name,
+        role,
+        chain,
+        walletAddress,
+        budget,
+        source: "external",
+        webhookUrl,
+      });
       return { success: true, data: agent, _status: 201 };
     }
 
     if (path === "/governance/policies" || path === "/governance/policies/") {
       const { name, type, description, rules } = body || {};
       if (!name || !type) {
-        return { success: false, error: "name and type are required", _status: 400 };
+        return {
+          success: false,
+          error: "name and type are required",
+          _status: 400,
+        };
       }
-      const policy = WorkspaceDataService.createPolicy(workspaceId, { name, type, description: description || "", rules });
+      const policy = WorkspaceDataService.createPolicy(workspaceId, {
+        name,
+        type,
+        description: description || "",
+        rules,
+      });
       return { success: true, data: policy, _status: 201 };
     }
 
     if (path === "/governance/evaluate" || path === "/governance/evaluate/") {
       const { agentId, action, policyId } = body || {};
       if (!agentId || !action) {
-        return { success: false, error: "agentId and action are required", _status: 400 };
+        return {
+          success: false,
+          error: "agentId and action are required",
+          _status: 400,
+        };
       }
-      const evaluation = WorkspaceDataService.evaluateAction(workspaceId, { agentId, action, policyId });
+      const evaluation = WorkspaceDataService.evaluateAction(workspaceId, {
+        agentId,
+        action,
+        policyId,
+      });
       return { success: true, data: evaluation };
     }
 
@@ -254,10 +326,19 @@ function serveLiveData(method: string, path: string, workspaceId: string, body: 
     if (agentMatch) {
       const { status } = body || {};
       if (!status || !["active", "paused", "inactive"].includes(status)) {
-        return { success: false, error: "status must be active, paused, or inactive", _status: 400 };
+        return {
+          success: false,
+          error: "status must be active, paused, or inactive",
+          _status: 400,
+        };
       }
-      const updated = WorkspaceDataService.updateAgentStatus(workspaceId, agentMatch[1], status);
-      if (!updated) return { success: false, error: "Agent not found", _status: 404 };
+      const updated = WorkspaceDataService.updateAgentStatus(
+        workspaceId,
+        agentMatch[1],
+        status,
+      );
+      if (!updated)
+        return { success: false, error: "Agent not found", _status: 404 };
       return { success: true, data: { id: agentMatch[1], status } };
     }
 

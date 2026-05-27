@@ -7,7 +7,9 @@ function getJwtSecret(): Uint8Array {
     if (process.env.NODE_ENV === "production") {
       throw new Error("JWT_SECRET is required in production");
     }
-    return new TextEncoder().encode("cognivern-dev-jwt-secret-change-in-production");
+    return new TextEncoder().encode(
+      "cognivern-dev-jwt-secret-change-in-production",
+    );
   }
   return new TextEncoder().encode(secret);
 }
@@ -33,7 +35,7 @@ declare global {
 export async function authMiddleware(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> {
   const authHeader = req.headers.authorization;
 

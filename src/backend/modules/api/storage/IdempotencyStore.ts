@@ -19,7 +19,10 @@ type IdempotencyCacheRecord = TtlRecord<IdempotencyRecord>;
  * Idempotency store for deduplicating API requests
  * Extends BaseStore for shared persistence and caching logic
  */
-export class IdempotencyStore extends BaseStore<IdempotencyRecord, IdempotencyCacheRecord> {
+export class IdempotencyStore extends BaseStore<
+  IdempotencyRecord,
+  IdempotencyCacheRecord
+> {
   constructor(params: { filePath?: string } = {}) {
     super({
       filePath: params.filePath,
@@ -34,7 +37,9 @@ export class IdempotencyStore extends BaseStore<IdempotencyRecord, IdempotencyCa
   /**
    * Parse JSON line into cache record
    */
-  protected parseLine(line: string): { key: string; record: IdempotencyCacheRecord } | null {
+  protected parseLine(
+    line: string,
+  ): { key: string; record: IdempotencyCacheRecord } | null {
     try {
       const parsed = JSON.parse(line);
       // Handle both old format (direct record) and new format (with key)
@@ -48,7 +53,11 @@ export class IdempotencyStore extends BaseStore<IdempotencyRecord, IdempotencyCa
         const data = parsed[key] as IdempotencyRecord;
         return {
           key,
-          record: { data, createdAt: data.createdAtMs, ttlMs: this.defaultTtlMs },
+          record: {
+            data,
+            createdAt: data.createdAtMs,
+            ttlMs: this.defaultTtlMs,
+          },
         };
       }
       return null;
@@ -60,7 +69,10 @@ export class IdempotencyStore extends BaseStore<IdempotencyRecord, IdempotencyCa
   /**
    * Serialize cache record to JSON line
    */
-  protected serializeRecord(key: string, record: IdempotencyCacheRecord): string {
+  protected serializeRecord(
+    key: string,
+    record: IdempotencyCacheRecord,
+  ): string {
     return JSON.stringify({ key, record });
   }
 

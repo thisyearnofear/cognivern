@@ -72,11 +72,13 @@ export class ContractSecurityFallback {
         safe: true,
         score: knownContract.score,
         severity: "informational",
-        findings: [{
-          title: `Known Protocol: ${knownContract.name}`,
-          description: `This is the ${knownContract.name} contract from a major protocol with extensive usage and audits.`,
-          severity: "informational",
-        }],
+        findings: [
+          {
+            title: `Known Protocol: ${knownContract.name}`,
+            description: `This is the ${knownContract.name} contract from a major protocol with extensive usage and audits.`,
+            severity: "informational",
+          },
+        ],
         summary: `Known safe contract (${knownContract.name})`,
         source: "heuristic",
         auditedAt: new Date().toISOString(),
@@ -87,7 +89,8 @@ export class ContractSecurityFallback {
     try {
       const etherscan = getEtherscanService();
       etherscanAnalysis = await etherscan.analyzeContract(address);
-      const etherscanScore = etherscan.calculateSecurityScore(etherscanAnalysis);
+      const etherscanScore =
+        etherscan.calculateSecurityScore(etherscanAnalysis);
 
       findings.push(...etherscanScore.findings);
       score = etherscanScore.score;
@@ -103,7 +106,7 @@ export class ContractSecurityFallback {
         const monitorResult = await defender.monitorContract(address);
 
         if (monitorResult.alerts.length > 0) {
-          monitorAlerts = monitorResult.alerts.map(a => ({
+          monitorAlerts = monitorResult.alerts.map((a) => ({
             severity: a.severity,
             message: `${a.type}: Alert at ${a.timestamp}`,
           }));
@@ -139,11 +142,17 @@ export class ContractSecurityFallback {
     score = Math.max(0, Math.min(100, score));
 
     // Determine overall severity
-    const hasCritical = findings.some(f => f.severity === "critical");
-    const hasHigh = findings.some(f => f.severity === "high");
-    const hasMedium = findings.some(f => f.severity === "medium");
+    const hasCritical = findings.some((f) => f.severity === "critical");
+    const hasHigh = findings.some((f) => f.severity === "high");
+    const hasMedium = findings.some((f) => f.severity === "medium");
 
-    const severity = hasCritical ? "critical" : hasHigh ? "high" : hasMedium ? "medium" : "low";
+    const severity = hasCritical
+      ? "critical"
+      : hasHigh
+        ? "high"
+        : hasMedium
+          ? "medium"
+          : "low";
     const safe = score >= 70 && !hasCritical && !hasHigh;
 
     return {
@@ -191,7 +200,8 @@ export class ContractSecurityFallback {
       if (!bytecode || bytecode === "0x") {
         findings.push({
           title: "EOA Address",
-          description: "This is an externally owned account (EOA), not a smart contract.",
+          description:
+            "This is an externally owned account (EOA), not a smart contract.",
           severity: "informational",
         });
         scoreAdjustment = 20;
@@ -202,7 +212,8 @@ export class ContractSecurityFallback {
       if (bytecode.includes("ff")) {
         findings.push({
           title: "Self-Destruct Capability",
-          description: "Contract contains SELFDESTRUCT opcode. Funds may be permanently lost if triggered.",
+          description:
+            "Contract contains SELFDESTRUCT opcode. Funds may be permanently lost if triggered.",
           severity: "high",
         });
         scoreAdjustment -= 25;
@@ -225,7 +236,6 @@ export class ContractSecurityFallback {
         });
         scoreAdjustment -= 5;
       }
-
     } catch (error) {
       logger.warn("Bytecode fetch failed:", error);
     }
@@ -239,11 +249,13 @@ export class ContractSecurityFallback {
   private generateSummary(
     findings: FallbackAuditResult["findings"],
     score: number,
-    source: FallbackAuditResult["source"]
+    source: FallbackAuditResult["source"],
   ): string {
-    const criticalCount = findings.filter(f => f.severity === "critical").length;
-    const highCount = findings.filter(f => f.severity === "high").length;
-    const mediumCount = findings.filter(f => f.severity === "medium").length;
+    const criticalCount = findings.filter(
+      (f) => f.severity === "critical",
+    ).length;
+    const highCount = findings.filter((f) => f.severity === "high").length;
+    const mediumCount = findings.filter((f) => f.severity === "medium").length;
 
     const sourceLabel = {
       etherscan: "Etherscan",

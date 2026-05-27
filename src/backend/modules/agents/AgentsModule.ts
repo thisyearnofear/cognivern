@@ -143,12 +143,16 @@ export class AgentsModule extends BaseService {
 
         // Register agents
         this.agents.set(sapienceAgent.getId(), sapienceAgent);
-        this.logger.info("SapienceTradingAgent initialized and added to registry");
+        this.logger.info(
+          "SapienceTradingAgent initialized and added to registry",
+        );
       } catch (error) {
         this.logger.error("Failed to lazy-load SapienceTradingAgent:", error);
       }
     } else {
-      this.logger.info("SapienceTradingAgent disabled (set SAPIENCE_ENABLED=true to enable)");
+      this.logger.info(
+        "SapienceTradingAgent disabled (set SAPIENCE_ENABLED=true to enable)",
+      );
     }
 
     // Initialize all agents

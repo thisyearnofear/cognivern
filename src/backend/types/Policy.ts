@@ -92,5 +92,10 @@ export interface PolicyAction {
   parameters: Record<string, any>;
 }
 
-export type PolicyRuleType = "allow" | "deny" | "require" | "rate_limit" | "contract_audit";
+export type PolicyRuleType =
+  | "allow"
+  | "deny"
+  | "require"
+  | "rate_limit"
+  | "contract_audit";
 export type PolicyActionType = "block" | "log" | "notify" | "escalate";

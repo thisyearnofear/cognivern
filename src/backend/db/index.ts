@@ -4,7 +4,8 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, "../../../data/cognivern.db");
+const DB_PATH =
+  process.env.DB_PATH || path.join(__dirname, "../../../data/cognivern.db");
 
 let db: Database.Database | null = null;
 
@@ -97,11 +98,17 @@ function migrate(db: Database.Database): void {
 
   // Migration: add source / webhook_url to workspace_agents (idempotent)
   try {
-    db.exec(`ALTER TABLE workspace_agents ADD COLUMN source TEXT NOT NULL DEFAULT 'managed'`);
-  } catch { /* already exists */ }
+    db.exec(
+      `ALTER TABLE workspace_agents ADD COLUMN source TEXT NOT NULL DEFAULT 'managed'`,
+    );
+  } catch {
+    /* already exists */
+  }
   try {
     db.exec(`ALTER TABLE workspace_agents ADD COLUMN webhook_url TEXT`);
-  } catch { /* already exists */ }
+  } catch {
+    /* already exists */
+  }
 }
 
 export function closeDb(): void {

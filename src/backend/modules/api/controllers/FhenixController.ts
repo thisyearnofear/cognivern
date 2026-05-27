@@ -18,7 +18,8 @@ export class FhenixController {
       if (!permit || !encryptedValue || !contractAddress) {
         res.status(400).json({
           success: false,
-          error: "Missing required fields: permit, encryptedValue, or contractAddress"
+          error:
+            "Missing required fields: permit, encryptedValue, or contractAddress",
         });
         return;
       }
@@ -29,20 +30,20 @@ export class FhenixController {
       const value = await fhenixPolicyService.unsealValue(
         contractAddress,
         encryptedValue,
-        permit
+        permit,
       );
 
       res.json({
         success: true,
         data: { value },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
       logger.error("Decryption failed", error);
       res.status(500).json({
         success: false,
         error: error.message || "Decryption failed",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }
@@ -54,7 +55,8 @@ export class FhenixController {
     try {
       const provider = fhenixPolicyService.getProvider();
       const configuredChainId = process.env.FHENIX_CHAIN_ID || "421614";
-      const chainName = configuredChainId === "84532" ? "base-sepolia" : "arbitrum-sepolia";
+      const chainName =
+        configuredChainId === "84532" ? "base-sepolia" : "arbitrum-sepolia";
       if (!provider) {
         res.json({
           success: true,
@@ -62,8 +64,8 @@ export class FhenixController {
             chainId: configuredChainId,
             name: chainName,
             fhenixEnabled: false,
-            reason: "CoFHE client not initialized (missing RPC or key)"
-          }
+            reason: "CoFHE client not initialized (missing RPC or key)",
+          },
         });
         return;
       }
@@ -75,13 +77,13 @@ export class FhenixController {
           chainId: chainId.toString(),
           name: chainName,
           fhenixEnabled: true,
-          contract: process.env.FHENIX_POLICY_CONTRACT || "not set"
-        }
+          contract: process.env.FHENIX_POLICY_CONTRACT || "not set",
+        },
       });
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -97,7 +99,7 @@ export class FhenixController {
       if (amount === undefined || amount === null) {
         res.status(400).json({
           success: false,
-          error: "Missing required field: amount"
+          error: "Missing required field: amount",
         });
         return;
       }
@@ -115,7 +117,7 @@ export class FhenixController {
         // the agent provides Wei-scaled integers.
         res.status(400).json({
           success: false,
-          error: "amount must be a valid integer string (Wei)"
+          error: "amount must be a valid integer string (Wei)",
         });
         return;
       }
@@ -125,7 +127,7 @@ export class FhenixController {
       res.json({
         success: true,
         data: encryptedData,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
       logger.warn(`Sidecar encryption failed: ${error.message}`);
@@ -141,7 +143,7 @@ export class FhenixController {
           signature: "0x",
           note: "Agent passes this handle directly to /api/spend/encrypted",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }

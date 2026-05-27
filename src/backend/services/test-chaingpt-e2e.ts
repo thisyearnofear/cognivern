@@ -42,7 +42,7 @@ interface SpendPreviewResponse {
 
 async function testSpendPreview(
   recipient: string,
-  description: string
+  description: string,
 ): Promise<SpendPreviewResponse | null> {
   console.log(`\n📋 Test: ${description}`);
   console.log(`   Recipient: ${recipient}`);
@@ -72,7 +72,9 @@ async function testSpendPreview(
     const data = await response.json();
     return data as SpendPreviewResponse;
   } catch (error) {
-    console.log(`   ❌ Error: ${error instanceof Error ? error.message : "Unknown"}`);
+    console.log(
+      `   ❌ Error: ${error instanceof Error ? error.message : "Unknown"}`,
+    );
     return null;
   }
 }
@@ -86,23 +88,27 @@ async function runE2ETests() {
   // Test 1: EOA address (should skip audit)
   const eoaResult = await testSpendPreview(
     "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-    "EOA address (no audit needed)"
+    "EOA address (no audit needed)",
   );
 
   if (eoaResult) {
     console.log(`   ✓ Status: ${eoaResult.data.status}`);
-    console.log(`   ✓ Contract Audit: ${eoaResult.data.contractAudit ? "Present" : "Skipped (correct)"}`);
+    console.log(
+      `   ✓ Contract Audit: ${eoaResult.data.contractAudit ? "Present" : "Skipped (correct)"}`,
+    );
   }
 
   // Test 2: Contract address (should trigger audit)
   const contractResult = await testSpendPreview(
     "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC on Ethereum
-    "USDC contract (should trigger audit)"
+    "USDC contract (should trigger audit)",
   );
 
   if (contractResult) {
     console.log(`   ✓ Status: ${contractResult.data.status}`);
-    console.log(`   ✓ Would Execute: ${contractResult.data.simulation.wouldExecute}`);
+    console.log(
+      `   ✓ Would Execute: ${contractResult.data.simulation.wouldExecute}`,
+    );
 
     if (contractResult.data.contractAudit) {
       const audit = contractResult.data.contractAudit;
@@ -116,12 +122,14 @@ async function runE2ETests() {
   // Test 3: Unknown contract (potentially risky)
   const unknownResult = await testSpendPreview(
     "0x1234567890abcdef1234567890abcdef12345678",
-    "Unknown contract (potentially risky)"
+    "Unknown contract (potentially risky)",
   );
 
   if (unknownResult) {
     console.log(`   ✓ Status: ${unknownResult.data.status}`);
-    console.log(`   ✓ Would Execute: ${unknownResult.data.simulation.wouldExecute}`);
+    console.log(
+      `   ✓ Would Execute: ${unknownResult.data.simulation.wouldExecute}`,
+    );
 
     if (unknownResult.data.contractAudit) {
       const audit = unknownResult.data.contractAudit;
@@ -136,8 +144,16 @@ async function runE2ETests() {
 
   const tests = [
     { name: "EOA Address", result: eoaResult, expected: "approved" },
-    { name: "USDC Contract", result: contractResult, expected: "approved or held" },
-    { name: "Unknown Contract", result: unknownResult, expected: "held or denied" },
+    {
+      name: "USDC Contract",
+      result: contractResult,
+      expected: "approved or held",
+    },
+    {
+      name: "Unknown Contract",
+      result: unknownResult,
+      expected: "held or denied",
+    },
   ];
 
   let passed = 0;
@@ -146,7 +162,9 @@ async function runE2ETests() {
     const hasAudit = !!test.result?.data.contractAudit;
     const success = test.result?.success === true;
 
-    console.log(`${success ? "✓" : "✗"} ${test.name}: ${status} (audit: ${hasAudit ? "yes" : "no"})`);
+    console.log(
+      `${success ? "✓" : "✗"} ${test.name}: ${status} (audit: ${hasAudit ? "yes" : "no"})`,
+    );
     if (success) passed++;
   }
 

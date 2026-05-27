@@ -72,7 +72,10 @@ export async function runForecastingWorkflow(
       nowSec: Math.floor(Date.now() / 1000),
       take: 50,
     });
-    await recorder.addArtifact({ type: "sapience_conditions", data: conditions });
+    await recorder.addArtifact({
+      type: "sapience_conditions",
+      data: conditions,
+    });
     s1.end({ ok: true, summary: `Fetched ${conditions.length} conditions` });
 
     // Step 2: select market
@@ -89,7 +92,10 @@ export async function runForecastingWorkflow(
     const priceFeeds = feeds.length
       ? await evm.readPriceFeeds({ rpcUrl: arbitrumRpcUrl, feeds })
       : [];
-    await recorder.addArtifact({ type: "chainlink_price_feeds", data: priceFeeds });
+    await recorder.addArtifact({
+      type: "chainlink_price_feeds",
+      data: priceFeeds,
+    });
     s3.end({ ok: true, summary: `Read ${priceFeeds.length} feeds` });
 
     // Step 4: confidential LLM forecast (local adapter for now)
@@ -109,7 +115,9 @@ export async function runForecastingWorkflow(
         "submit_attestation_via_sapience",
       );
 
-      const { SapienceService } = await import("../../services/SapienceService.js");
+      const { SapienceService } = await import(
+        "../../services/SapienceService.js"
+      );
       const sapience = new SapienceService();
       const req: AttestationRequest = {
         conditionId: condition.id as `0x${string}`,

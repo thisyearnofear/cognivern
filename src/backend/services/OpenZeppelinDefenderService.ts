@@ -52,7 +52,8 @@ export class OpenZeppelinDefenderService {
 
   constructor(config?: Partial<DefenderConfig>) {
     this.apiKey = config?.apiKey || process.env.OZ_DEFENDER_API_KEY || "";
-    this.apiSecret = config?.apiSecret || process.env.OZ_DEFENDER_API_SECRET || "";
+    this.apiSecret =
+      config?.apiSecret || process.env.OZ_DEFENDER_API_SECRET || "";
     this.baseUrl = config?.baseUrl || "https://api.defender.openzeppelin.com";
   }
 
@@ -93,13 +94,15 @@ export class OpenZeppelinDefenderService {
       }
 
       const data = await response.json();
-      return data.sentinelIds?.map((id: string, i: number) => ({
-        id,
-        name: data.sentinelNames?.[i] || "",
-        type: data.types?.[i] || "CONTRACT",
-        status: data.statuses?.[i] || "active",
-        addresses: data.addresses?.[i] || [],
-      })) || [];
+      return (
+        data.sentinelIds?.map((id: string, i: number) => ({
+          id,
+          name: data.sentinelNames?.[i] || "",
+          type: data.types?.[i] || "CONTRACT",
+          status: data.statuses?.[i] || "active",
+          addresses: data.addresses?.[i] || [],
+        })) || []
+      );
     } catch (error) {
       logger.error("Failed to list sentinels:", error);
       return [];
@@ -109,7 +112,10 @@ export class OpenZeppelinDefenderService {
   /**
    * Get recent alerts for a contract address
    */
-  async getAlertsForContract(address: string, limit: number = 10): Promise<AlertNotification[]> {
+  async getAlertsForContract(
+    address: string,
+    limit: number = 10,
+  ): Promise<AlertNotification[]> {
     if (!this.isConfigured()) {
       return [];
     }
@@ -119,7 +125,7 @@ export class OpenZeppelinDefenderService {
         `${this.baseUrl}/sentinel/reports?limit=${limit}`,
         {
           headers: this.getHeaders(),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -140,12 +146,14 @@ export class OpenZeppelinDefenderService {
           type: report.type || "UNKNOWN",
           severity: this.mapSeverity(report.severity),
           timestamp: report.timestamp || new Date().toISOString(),
-          transaction: report.transaction ? {
-            hash: report.transaction.hash,
-            from: report.transaction.from,
-            to: report.transaction.to,
-            value: report.transaction.value,
-          } : undefined,
+          transaction: report.transaction
+            ? {
+                hash: report.transaction.hash,
+                from: report.transaction.from,
+                to: report.transaction.to,
+                value: report.transaction.value,
+              }
+            : undefined,
           metadata: report.metadata,
         }));
     } catch (error) {
@@ -186,9 +194,10 @@ export class OpenZeppelinDefenderService {
       safe,
       alerts,
       riskScore,
-      summary: alerts.length > 0
-        ? `Found ${alerts.length} alert(s) for this contract`
-        : "No alerts found - contract appears clean",
+      summary:
+        alerts.length > 0
+          ? `Found ${alerts.length} alert(s) for this contract`
+          : "No alerts found - contract appears clean",
     };
   }
 
@@ -250,7 +259,7 @@ export class OpenZeppelinDefenderService {
             status: "paused",
             pausedReason: reason || "Paused by Cognivern",
           }),
-        }
+        },
       );
 
       return response.ok;
@@ -277,7 +286,7 @@ export class OpenZeppelinDefenderService {
           body: JSON.stringify({
             status: "active",
           }),
-        }
+        },
       );
 
       return response.ok;
@@ -290,7 +299,9 @@ export class OpenZeppelinDefenderService {
   /**
    * Map Defender severity to our severity levels
    */
-  private mapSeverity(severity: string): "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" {
+  private mapSeverity(
+    severity: string,
+  ): "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" {
     const map: Record<string, "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"> = {
       info: "LOW",
       low: "LOW",

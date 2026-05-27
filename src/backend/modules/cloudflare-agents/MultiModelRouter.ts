@@ -62,7 +62,17 @@ export class MultiModelRouter {
         },
       },
       // Default fallback order: Fireworks (DeepSeek) → Groq → Venice → OpenAI → Gemini → Anthropic
-      fallbackOrder: ["fireworks", "groq", "venice", "openai", "gemini", "anthropic", "kilocode", "chaingpt", "workers-ai"],
+      fallbackOrder: [
+        "fireworks",
+        "groq",
+        "venice",
+        "openai",
+        "gemini",
+        "anthropic",
+        "kilocode",
+        "chaingpt",
+        "workers-ai",
+      ],
       timeoutMs: 30000,
       userApiKeys: {},
       ...config,
@@ -74,7 +84,10 @@ export class MultiModelRouter {
    */
   private getApiKey(provider: string): string | undefined {
     // Check user-provided keys first
-    const userKey = this.config.userApiKeys?.[provider as keyof typeof this.config.userApiKeys];
+    const userKey =
+      this.config.userApiKeys?.[
+        provider as keyof typeof this.config.userApiKeys
+      ];
     if (userKey) return userKey;
 
     // Fall back to environment variables
@@ -98,11 +111,18 @@ export class MultiModelRouter {
    */
   async analyzeGovernance(
     prompt: string,
-    preference: "auto" | "workers-ai" | "fireworks" | "kilocode" | "openai" | "gemini" | "anthropic" | "chaingpt" = "auto"
+    preference:
+      | "auto"
+      | "workers-ai"
+      | "fireworks"
+      | "kilocode"
+      | "openai"
+      | "gemini"
+      | "anthropic"
+      | "chaingpt" = "auto",
   ): Promise<string> {
-    const provider = preference === "auto"
-      ? this.config.fallbackOrder[0]
-      : preference;
+    const provider =
+      preference === "auto" ? this.config.fallbackOrder[0] : preference;
 
     return this.executeWithFallback(prompt, provider, "governance");
   }
@@ -123,7 +143,7 @@ export class MultiModelRouter {
       currentBudget?: string;
       allowedVendors?: string[];
       holdThreshold?: string;
-    }
+    },
   ): Promise<string> {
     const apiKey = this.getApiKey("chaingpt");
     if (!apiKey) {
@@ -131,25 +151,30 @@ export class MultiModelRouter {
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      this.config.timeoutMs,
+    );
 
     try {
       // Inject governance context into the system prompt
-      const systemContext = policyContext ? `
+      const systemContext = policyContext
+        ? `
 You are Cognivern's governance copilot. Cognivern is the control plane for autonomous Web3 agents:
 - Policy: enforcing spend limits, vendor allowlists, and approval thresholds
 - Privacy: Fhenix-encrypted confidential policy evaluation
 - Audit: cryptographic proof of every governance decision
 
 Current governance context:
-- Agent: ${policyContext.agentId || 'unknown'}
-- Policy: ${policyContext.policyId || 'unknown'}
-- Budget: ${policyContext.currentBudget || 'unknown'}
-- Allowed Vendors: ${policyContext.allowedVendors?.join(", ") || 'all'}
-- Hold Threshold: ${policyContext.holdThreshold || 'unknown'}
+- Agent: ${policyContext.agentId || "unknown"}
+- Policy: ${policyContext.policyId || "unknown"}
+- Budget: ${policyContext.currentBudget || "unknown"}
+- Allowed Vendors: ${policyContext.allowedVendors?.join(", ") || "all"}
+- Hold Threshold: ${policyContext.holdThreshold || "unknown"}
 
 Provide governance-aware analysis with specific references to policy rules being evaluated.
-` : `You are Cognivern's Web3 governance copilot, specialized in:
+`
+        : `You are Cognivern's Web3 governance copilot, specialized in:
 - Smart contract analysis and vulnerability detection
 - EVM opcode and calldata decoding
 - Sanction and risk assessment for contract addresses
@@ -158,24 +183,27 @@ Provide governance-aware analysis with specific references to policy rules being
 
 Provide precise, actionable governance insights with Web3-specific terminology.`;
 
-      const response = await fetch("https://api.chaingpt.org/api/v1/chat/completions", {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-          "Accept": "application/json",
+      const response = await fetch(
+        "https://api.chaingpt.org/api/v1/chat/completions",
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            model: this.config.providers.chaingpt!.model,
+            messages: [
+              { role: "system", content: systemContext },
+              { role: "user", content: prompt },
+            ],
+            temperature: 0.3,
+            max_tokens: 2048,
+          }),
         },
-        body: JSON.stringify({
-          model: this.config.providers.chaingpt!.model,
-          messages: [
-            { role: "system", content: systemContext },
-            { role: "user", content: prompt },
-          ],
-          temperature: 0.3,
-          max_tokens: 2048,
-        }),
-      });
+      );
 
       if (!response.ok) {
         const error = await response.text();
@@ -183,7 +211,10 @@ Provide precise, actionable governance insights with Web3-specific terminology.`
       }
 
       const data = await response.json();
-      return data.choices[0]?.message?.content || JSON.stringify({ score: 50, reasoning: "No response" });
+      return (
+        data.choices[0]?.message?.content ||
+        JSON.stringify({ score: 50, reasoning: "No response" })
+      );
     } finally {
       clearTimeout(timeoutId);
     }
@@ -195,11 +226,17 @@ Provide precise, actionable governance insights with Web3-specific terminology.`
   async generateBriefingScript(
     thoughts: string[],
     actions: any[],
-    preference: "auto" | "workers-ai" | "fireworks" | "kilocode" | "openai" | "gemini" | "anthropic" = "auto"
+    preference:
+      | "auto"
+      | "workers-ai"
+      | "fireworks"
+      | "kilocode"
+      | "openai"
+      | "gemini"
+      | "anthropic" = "auto",
   ): Promise<string> {
-    const provider = preference === "auto"
-      ? this.config.fallbackOrder[0]
-      : preference;
+    const provider =
+      preference === "auto" ? this.config.fallbackOrder[0] : preference;
 
     const prompt = `
 Recent Thoughts:
@@ -222,7 +259,7 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
     prompt: string,
     initialProvider: string,
     taskType: "governance" | "briefing",
-    attempt = 0
+    attempt = 0,
   ): Promise<string> {
     const provider = this.config.fallbackOrder[attempt] || initialProvider;
 
@@ -234,12 +271,17 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
 
       // Try next provider in fallback chain
       if (attempt < this.config.fallbackOrder.length - 1) {
-        return this.executeWithFallback(prompt, initialProvider, taskType, attempt + 1);
+        return this.executeWithFallback(
+          prompt,
+          initialProvider,
+          taskType,
+          attempt + 1,
+        );
       }
 
       // All providers failed
       throw new Error(
-        `All AI providers failed (attempted: ${this.config.fallbackOrder.join(", ")})`
+        `All AI providers failed (attempted: ${this.config.fallbackOrder.join(", ")})`,
       );
     }
   }
@@ -250,10 +292,13 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
   private async executeWithProvider(
     prompt: string,
     provider: string,
-    taskType: "governance" | "briefing"
+    taskType: "governance" | "briefing",
   ): Promise<string> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      this.config.timeoutMs,
+    );
 
     try {
       switch (provider) {
@@ -289,7 +334,7 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
   private async executeGroq(
     prompt: string,
     signal: AbortSignal,
-    taskType: "governance" | "briefing"
+    taskType: "governance" | "briefing",
   ): Promise<string> {
     const apiKey = this.getApiKey("groq");
 
@@ -297,24 +342,30 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
       throw new Error("Groq API key not configured");
     }
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      signal,
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: this.config.providers.groq!.model,
+          messages: [
+            { role: "system", content: this.getSystemPrompt(taskType) },
+            { role: "user", content: prompt },
+          ],
+          temperature: taskType === "briefing" ? 0.7 : 0.3,
+          max_tokens: taskType === "briefing" ? 1024 : 2048,
+          response_format:
+            taskType === "governance"
+              ? { type: "json_object" }
+              : { type: "text" },
+        }),
       },
-      body: JSON.stringify({
-        model: this.config.providers.groq!.model,
-        messages: [
-          { role: "system", content: this.getSystemPrompt(taskType) },
-          { role: "user", content: prompt },
-        ],
-        temperature: taskType === "briefing" ? 0.7 : 0.3,
-        max_tokens: taskType === "briefing" ? 1024 : 2048,
-        response_format: taskType === "governance" ? { type: "json_object" } : { type: "text" },
-      }),
-    });
+    );
 
     if (!response.ok) {
       const err = await response.text();
@@ -322,7 +373,12 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
     }
 
     const data = await response.json();
-    return data.choices[0].message.content || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
+    return (
+      data.choices[0].message.content ||
+      (taskType === "briefing"
+        ? "No response"
+        : JSON.stringify({ score: 50, reasoning: "No response" }))
+    );
   }
 
   /**
@@ -331,7 +387,7 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
   private async executeVenice(
     prompt: string,
     signal: AbortSignal,
-    taskType: "governance" | "briefing"
+    taskType: "governance" | "briefing",
   ): Promise<string> {
     const apiKey = this.getApiKey("venice");
 
@@ -339,23 +395,26 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
       throw new Error("Venice API key not configured");
     }
 
-    const response = await fetch("https://api.venice.ai/api/v1/chat/completions", {
-      method: "POST",
-      signal,
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "https://api.venice.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: this.config.providers.venice!.model,
+          messages: [
+            { role: "system", content: this.getSystemPrompt(taskType) },
+            { role: "user", content: prompt },
+          ],
+          temperature: taskType === "briefing" ? 0.7 : 0.3,
+          max_tokens: taskType === "briefing" ? 1024 : 2048,
+        }),
       },
-      body: JSON.stringify({
-        model: this.config.providers.venice!.model,
-        messages: [
-          { role: "system", content: this.getSystemPrompt(taskType) },
-          { role: "user", content: prompt },
-        ],
-        temperature: taskType === "briefing" ? 0.7 : 0.3,
-        max_tokens: taskType === "briefing" ? 1024 : 2048,
-      }),
-    });
+    );
 
     if (!response.ok) {
       const err = await response.text();
@@ -363,7 +422,12 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
     }
 
     const data = await response.json();
-    return data.choices[0].message.content || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
+    return (
+      data.choices[0].message.content ||
+      (taskType === "briefing"
+        ? "No response"
+        : JSON.stringify({ score: 50, reasoning: "No response" }))
+    );
   }
 
   /**
@@ -372,7 +436,7 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
   private async executeFireworks(
     prompt: string,
     signal: AbortSignal,
-    taskType: "governance" | "briefing"
+    taskType: "governance" | "briefing",
   ): Promise<string> {
     const apiKey = this.getApiKey("fireworks");
 
@@ -380,35 +444,45 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
       throw new Error("Fireworks API key not configured");
     }
 
-    const response = await fetch("https://api.fireworks.ai/inference/v1/chat/completions", {
-      method: "POST",
-      signal,
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
+    const response = await fetch(
+      "https://api.fireworks.ai/inference/v1/chat/completions",
+      {
+        method: "POST",
+        signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          model: this.config.providers.fireworks!.model,
+          messages: [
+            { role: "system", content: this.getSystemPrompt(taskType) },
+            { role: "user", content: prompt },
+          ],
+          temperature: taskType === "briefing" ? 0.7 : 0.3,
+          max_tokens: 4096,
+          top_p: 1,
+          top_k: 40,
+          presence_penalty: 0,
+          frequency_penalty: 0,
+        }),
       },
-      body: JSON.stringify({
-        model: this.config.providers.fireworks!.model,
-        messages: [
-          { role: "system", content: this.getSystemPrompt(taskType) },
-          { role: "user", content: prompt },
-        ],
-        temperature: taskType === "briefing" ? 0.7 : 0.3,
-        max_tokens: 4096,
-        top_p: 1,
-        top_k: 40,
-        presence_penalty: 0,
-        frequency_penalty: 0,
-      }),
-    });
+    );
 
     if (!response.ok) {
-      throw new Error(`Fireworks API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Fireworks API error: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
-    return data.choices[0].message.content || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
+    return (
+      data.choices[0].message.content ||
+      (taskType === "briefing"
+        ? "No response"
+        : JSON.stringify({ score: 50, reasoning: "No response" }))
+    );
   }
 
   /**
@@ -421,7 +495,7 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
   private async executeChainGPT(
     prompt: string,
     signal: AbortSignal,
-    taskType: "governance" | "briefing"
+    taskType: "governance" | "briefing",
   ): Promise<string> {
     const apiKey = this.getApiKey("chaingpt");
 
@@ -430,11 +504,12 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
     }
 
     // ChainGPT-specific system prompt with Web3 context
-    const systemPrompt = taskType === "briefing"
-      ? `You are the "Voice of Governance" for Cognivern, a Web3 agent spend control plane.
+    const systemPrompt =
+      taskType === "briefing"
+        ? `You are the "Voice of Governance" for Cognivern, a Web3 agent spend control plane.
 Your goal is to synthesize complex governance logs into a short, conversational, and authoritative briefing script.
 Keep it under 200 words, professional, and focused on Web3 agent operations.`
-      : `You are Cognivern's governance evaluator for autonomous Web3 agents. Cognivern is the control plane for agent operations:
+        : `You are Cognivern's governance evaluator for autonomous Web3 agents. Cognivern is the control plane for agent operations:
 - Policy: enforcing spend limits, vendor allowlists, and approval thresholds
 - Privacy: Fhenix-encrypted confidential policy evaluation
 - Audit: cryptographic proof of every governance decision
@@ -463,31 +538,41 @@ Scoring guidelines:
 
 Be strict but fair. When in doubt, lean toward caution.`;
 
-    const response = await fetch("https://api.chaingpt.org/api/v1/chat/completions", {
-      method: "POST",
-      signal,
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
+    const response = await fetch(
+      "https://api.chaingpt.org/api/v1/chat/completions",
+      {
+        method: "POST",
+        signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          model: this.config.providers.chaingpt!.model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt },
+          ],
+          temperature: taskType === "briefing" ? 0.7 : 0.3,
+          max_tokens: 2048,
+        }),
       },
-      body: JSON.stringify({
-        model: this.config.providers.chaingpt!.model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-        temperature: taskType === "briefing" ? 0.7 : 0.3,
-        max_tokens: 2048,
-      }),
-    });
+    );
 
     if (!response.ok) {
-      throw new Error(`ChainGPT API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `ChainGPT API error: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
-    return data.choices[0]?.message?.content || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
+    return (
+      data.choices[0]?.message?.content ||
+      (taskType === "briefing"
+        ? "No response"
+        : JSON.stringify({ score: 50, reasoning: "No response" }))
+    );
   }
 
   /**
@@ -496,7 +581,7 @@ Be strict but fair. When in doubt, lean toward caution.`;
   private async executeKilocode(
     prompt: string,
     signal: AbortSignal,
-    taskType: "governance" | "briefing"
+    taskType: "governance" | "briefing",
   ): Promise<string> {
     const apiKey = this.getApiKey("kilocode");
 
@@ -504,31 +589,41 @@ Be strict but fair. When in doubt, lean toward caution.`;
       throw new Error("Kilocode API key not configured");
     }
 
-    const response = await fetch("https://api.kilo.ai/api/openrouter/v1/chat/completions", {
-      method: "POST",
-      signal,
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
+    const response = await fetch(
+      "https://api.kilo.ai/api/openrouter/v1/chat/completions",
+      {
+        method: "POST",
+        signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          model: this.config.providers.kilocode!.model,
+          messages: [
+            { role: "system", content: this.getSystemPrompt(taskType) },
+            { role: "user", content: prompt },
+          ],
+          temperature: taskType === "briefing" ? 0.7 : 0.3,
+          max_tokens: 1024,
+        }),
       },
-      body: JSON.stringify({
-        model: this.config.providers.kilocode!.model,
-        messages: [
-          { role: "system", content: this.getSystemPrompt(taskType) },
-          { role: "user", content: prompt },
-        ],
-        temperature: taskType === "briefing" ? 0.7 : 0.3,
-        max_tokens: 1024,
-      }),
-    });
+    );
 
     if (!response.ok) {
-      throw new Error(`Kilocode API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Kilocode API error: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
-    return data.choices[0].message.content || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
+    return (
+      data.choices[0].message.content ||
+      (taskType === "briefing"
+        ? "No response"
+        : JSON.stringify({ score: 50, reasoning: "No response" }))
+    );
   }
 
   /**
@@ -537,7 +632,7 @@ Be strict but fair. When in doubt, lean toward caution.`;
   private async executeWorkersAI(
     prompt: string,
     signal: AbortSignal,
-    taskType: "governance" | "briefing"
+    taskType: "governance" | "briefing",
   ): Promise<string> {
     // This will be called from a Worker with AI binding
     // @ts-ignore - AI binding is available in Worker environment
@@ -557,14 +652,17 @@ Be strict but fair. When in doubt, lean toward caution.`;
         temperature: taskType === "briefing" ? 0.7 : 0.3,
         max_tokens: 1024,
       },
-      { signal }
+      { signal },
     );
 
     if (taskType === "briefing") {
       return response.response || "I have no briefing at this time.";
     }
 
-    return response.response || JSON.stringify({ score: 50, reasoning: "No response" });
+    return (
+      response.response ||
+      JSON.stringify({ score: 50, reasoning: "No response" })
+    );
   }
 
   /**
@@ -573,7 +671,7 @@ Be strict but fair. When in doubt, lean toward caution.`;
   private async executeOpenAI(
     prompt: string,
     signal: AbortSignal,
-    taskType: "governance" | "briefing"
+    taskType: "governance" | "briefing",
   ): Promise<string> {
     const apiKey = this.getApiKey("openai");
 
@@ -585,7 +683,7 @@ Be strict but fair. When in doubt, lean toward caution.`;
       method: "POST",
       signal,
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -596,16 +694,26 @@ Be strict but fair. When in doubt, lean toward caution.`;
         ],
         temperature: taskType === "briefing" ? 0.7 : 0.3,
         max_tokens: 1024,
-        response_format: taskType === "governance" ? { type: "json_object" } : { type: "text" },
+        response_format:
+          taskType === "governance"
+            ? { type: "json_object" }
+            : { type: "text" },
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `OpenAI API error: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
-    return data.choices[0].message.content || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
+    return (
+      data.choices[0].message.content ||
+      (taskType === "briefing"
+        ? "No response"
+        : JSON.stringify({ score: 50, reasoning: "No response" }))
+    );
   }
 
   /**
@@ -614,7 +722,7 @@ Be strict but fair. When in doubt, lean toward caution.`;
   private async executeGemini(
     prompt: string,
     signal: AbortSignal,
-    taskType: "governance" | "briefing"
+    taskType: "governance" | "briefing",
   ): Promise<string> {
     const apiKey = this.getApiKey("gemini");
 
@@ -642,18 +750,26 @@ Be strict but fair. When in doubt, lean toward caution.`;
           generationConfig: {
             temperature: taskType === "briefing" ? 0.7 : 0.3,
             maxOutputTokens: 1024,
-            responseMimeType: taskType === "governance" ? "application/json" : "text/plain",
+            responseMimeType:
+              taskType === "governance" ? "application/json" : "text/plain",
           },
         }),
-      }
+      },
     );
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Gemini API error: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
+    return (
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      (taskType === "briefing"
+        ? "No response"
+        : JSON.stringify({ score: 50, reasoning: "No response" }))
+    );
   }
 
   /**
@@ -662,7 +778,7 @@ Be strict but fair. When in doubt, lean toward caution.`;
   private async executeAnthropic(
     prompt: string,
     signal: AbortSignal,
-    taskType: "governance" | "briefing"
+    taskType: "governance" | "briefing",
   ): Promise<string> {
     const apiKey = this.getApiKey("anthropic");
 
@@ -682,18 +798,23 @@ Be strict but fair. When in doubt, lean toward caution.`;
         model: this.config.providers.anthropic!.model,
         max_tokens: 1024,
         system: this.getSystemPrompt(taskType),
-        messages: [
-          { role: "user", content: prompt },
-        ],
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Anthropic API error: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
-    return data.content?.[0]?.text || (taskType === "briefing" ? "No response" : JSON.stringify({ score: 50, reasoning: "No response" }));
+    return (
+      data.content?.[0]?.text ||
+      (taskType === "briefing"
+        ? "No response"
+        : JSON.stringify({ score: 50, reasoning: "No response" }))
+    );
   }
 
   /**

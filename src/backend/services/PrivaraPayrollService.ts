@@ -62,13 +62,11 @@ export interface PrivaraPayrollServiceConfig {
 export function createPrivaraConfig(): PrivaraPayrollServiceConfig {
   return {
     rpcUrl:
-      process.env.PRIVARA_RPC_URL ||
-      "https://sepolia-rollup.arbitrum.io/rpc",
+      process.env.PRIVARA_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
     privateKey:
-      process.env.PRIVARA_PRIVATE_KEY ||
-      process.env.FHENIX_PRIVATE_KEY ||
-      "",
-    network: (process.env.PRIVARA_NETWORK as "testnet" | "mainnet") || "testnet",
+      process.env.PRIVARA_PRIVATE_KEY || process.env.FHENIX_PRIVATE_KEY || "",
+    network:
+      (process.env.PRIVARA_NETWORK as "testnet" | "mainnet") || "testnet",
   };
 }
 
@@ -153,10 +151,7 @@ export class PrivaraPayrollService {
 
     try {
       // Convert USD amount to USDC units (6 decimals on Arbitrum)
-      const amountUnits = ethers.parseUnits(
-        request.amountUsd.toString(),
-        6,
-      );
+      const amountUnits = ethers.parseUnits(request.amountUsd.toString(), 6);
 
       // Build and create the encrypted escrow via Privara SDK builder
       const escrow = await this.sdk.escrow
@@ -171,7 +166,9 @@ export class PrivaraPayrollService {
       // Fund the escrow with the payment amount
       const fundResult = await escrow.fund(amountUnits);
 
-      const txHash = fundResult?.tx?.hash?.toString() || `0x${escrowId.toString().padStart(64, "0")}`;
+      const txHash =
+        fundResult?.tx?.hash?.toString() ||
+        `0x${escrowId.toString().padStart(64, "0")}`;
 
       logger.info(
         `PrivaraPayroll: escrow ${escrowId} created and funded for ${request.contractorWallet}`,

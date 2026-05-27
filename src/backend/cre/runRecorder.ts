@@ -207,7 +207,9 @@ export class CreRunRecorder {
       approvalState: this.run.approvalState,
       approvalReason: reason,
       metrics: this.run.metrics,
-      artifactHashes: this.run.artifacts.map((artifact) => artifact.evidence?.hash),
+      artifactHashes: this.run.artifacts.map(
+        (artifact) => artifact.evidence?.hash,
+      ),
     };
 
     this.run.evidence = await this.signEvidence(summaryToSign);

@@ -29,8 +29,7 @@ export class ProjectRegistry {
   constructor() {
     const projectsSpec =
       process.env.COGNIVERN_PROJECTS || "default:Default Project";
-    const ingestSpec =
-      process.env.COGNIVERN_INGEST_KEYS || "";
+    const ingestSpec = process.env.COGNIVERN_INGEST_KEYS || "";
 
     ingestSpec
       .split(",")
@@ -69,7 +68,9 @@ export class ProjectRegistry {
       this.projects.set("default", {
         projectId: "default",
         name: "Default Project",
-        ingestKey: this.ingestKeys.get("default")?.[0] || crypto.randomBytes(24).toString("hex"),
+        ingestKey:
+          this.ingestKeys.get("default")?.[0] ||
+          crypto.randomBytes(24).toString("hex"),
       });
     }
   }

@@ -49,7 +49,9 @@ async function testChainGPTAuditService() {
   // Test 1: Audit a contract
   console.log("Test 1: Audit a contract address");
   fetchCallCount = 0;
-  const result1 = await service.auditContract("0x1234567890abcdef1234567890abcdef12345678");
+  const result1 = await service.auditContract(
+    "0x1234567890abcdef1234567890abcdef12345678",
+  );
   console.log(`  Decision: ${result1.decision}`);
   console.log(`  Score: ${result1.audit.score}`);
   console.log(`  Findings: ${result1.audit.findings.length}`);
@@ -59,7 +61,9 @@ async function testChainGPTAuditService() {
   // Test 2: Cache hit
   console.log("Test 2: Cache hit test");
   fetchCallCount = 0;
-  const result2 = await service.auditContract("0x1234567890abcdef1234567890abcdef12345678");
+  const result2 = await service.auditContract(
+    "0x1234567890abcdef1234567890abcdef12345678",
+  );
   console.log(`  Decision: ${result2.decision}`);
   console.log(`  API calls: ${fetchCallCount} (should be 0 - cache hit)`);
   console.log(`  ✓ Expected: 0 API calls (cached)\n`);
@@ -67,7 +71,10 @@ async function testChainGPTAuditService() {
   // Test 3: Skip cache
   console.log("Test 3: Skip cache test");
   fetchCallCount = 0;
-  const result3 = await service.auditContract("0x1234567890abcdef1234567890abcdef12345678", { skipCache: true });
+  const result3 = await service.auditContract(
+    "0x1234567890abcdef1234567890abcdef12345678",
+    { skipCache: true },
+  );
   console.log(`  Decision: ${result3.decision}`);
   console.log(`  API calls: ${fetchCallCount} (should be 1 - cache skipped)`);
   console.log(`  ✓ Expected: 1 API call\n`);

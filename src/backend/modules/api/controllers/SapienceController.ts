@@ -25,10 +25,11 @@ export class SapienceController {
       return;
     }
 
-    const [{ SapienceService }, { AutomatedForecastingService }] = await Promise.all([
-      import("../../../services/SapienceService.js"),
-      import("../../../services/AutomatedForecastingService.js"),
-    ]);
+    const [{ SapienceService }, { AutomatedForecastingService }] =
+      await Promise.all([
+        import("../../../services/SapienceService.js"),
+        import("../../../services/AutomatedForecastingService.js"),
+      ]);
 
     this.sapienceService = new SapienceService();
     this.forecastingService = new AutomatedForecastingService({
@@ -165,7 +166,9 @@ export class SapienceController {
   /**
    * Start continuous forecasting
    */
-  async startContinuousForecasting(intervalMinutes: number = 60): Promise<void> {
+  async startContinuousForecasting(
+    intervalMinutes: number = 60,
+  ): Promise<void> {
     await this.ensureServices();
     logger.info(
       `Starting continuous forecasting service (interval: ${intervalMinutes} minutes)`,
@@ -190,7 +193,7 @@ export class SapienceController {
           reasoning: "Sapience Oracle: Forecasting active on Arbitrum markets.",
           riskScore: 0.05,
           timestamp: new Date().toISOString(),
-        }
+        },
       ];
 
       res.json({ success: true, decisions });

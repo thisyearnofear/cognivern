@@ -17,7 +17,9 @@ const BASE_URL = "https://api.chaingpt.org";
 
 async function testChainGPTAPI() {
   console.log("🔑 Testing ChainGPT API with live key\n");
-  console.log(`API Key: ${API_KEY ? API_KEY.substring(0, 8) + "..." : "NOT SET"}\n`);
+  console.log(
+    `API Key: ${API_KEY ? API_KEY.substring(0, 8) + "..." : "NOT SET"}\n`,
+  );
 
   if (!API_KEY) {
     console.error("❌ CHAINGPT_API_KEY not found in .env");
@@ -30,7 +32,7 @@ async function testChainGPTAPI() {
     const response = await fetch(`${BASE_URL}/chat/stream`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${API_KEY}`,
+        Authorization: `Bearer ${API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -51,7 +53,7 @@ contract SimpleVault {
         balances[msg.sender] -= amount;
     }
 }`,
-        chatHistory: "off"
+        chatHistory: "off",
       }),
     });
 
@@ -78,7 +80,9 @@ contract SimpleVault {
 
           // Print first few chunks to show progress
           if (totalChunks <= 3) {
-            console.log(`  Chunk ${totalChunks}: ${chunk.substring(0, 100)}...`);
+            console.log(
+              `  Chunk ${totalChunks}: ${chunk.substring(0, 100)}...`,
+            );
           }
         }
 
@@ -88,7 +92,9 @@ contract SimpleVault {
       }
     }
   } catch (error) {
-    console.log(`  ❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    console.log(
+      `  ❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 
   // Test 2: Check credits/balance
@@ -97,7 +103,7 @@ contract SimpleVault {
     const response = await fetch(`${BASE_URL}/chat/chatHistory?limit=1`, {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${API_KEY}`,
+        Authorization: `Bearer ${API_KEY}`,
       },
     });
 
@@ -110,7 +116,9 @@ contract SimpleVault {
       console.log(`  History entries: ${data.data?.rows?.length || 0}`);
     }
   } catch (error) {
-    console.log(`  ❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    console.log(
+      `  ❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 
   console.log("\n✅ API key test complete!");

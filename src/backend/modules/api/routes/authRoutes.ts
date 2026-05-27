@@ -7,7 +7,9 @@ export function createAuthRoutes(authController: AuthController): Router {
 
   router.post("/auth/nonce", (req, res) => authController.getNonce(req, res));
   router.post("/auth/verify", (req, res) => authController.verify(req, res));
-  router.get("/auth/me", authMiddleware, (req, res) => authController.getMe(req, res));
+  router.get("/auth/me", authMiddleware, (req, res) =>
+    authController.getMe(req, res),
+  );
 
   return router;
 }

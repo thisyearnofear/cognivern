@@ -118,7 +118,12 @@ export class RecallController {
       // Transform to TradingDecision format
       const decisions = results.map((r: any) => ({
         id: r.id,
-        action: r.type === "trade" ? (r.content.includes("buy") ? "buy" : "sell") : "hold",
+        action:
+          r.type === "trade"
+            ? r.content.includes("buy")
+              ? "buy"
+              : "sell"
+            : "hold",
         symbol: "ETH/USD",
         quantity: 1,
         price: 2500,
@@ -158,7 +163,7 @@ export class RecallController {
         reasoning: "Wait for breakout above 66k resistance before entering.",
         riskScore: 0.1,
         timestamp: new Date(Date.now() - 3600000).toISOString(),
-      }
+      },
     ];
   }
 }

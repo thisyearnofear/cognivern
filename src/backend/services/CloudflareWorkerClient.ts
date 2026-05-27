@@ -281,10 +281,11 @@ export class CloudflareWorkerClient {
 
   /**
    * Get voice briefing audio from Worker (ElevenLabs TTS)
+   * Returns the raw Response so the caller can stream audio directly to the client.
    */
   async getVoiceBriefing(
     agentId: string,
-  ): Promise<{ audioUrl: string; script: string } | null> {
+  ): Promise<{ response: Response; script: string } | null> {
     if (!this.enabled) {
       return null;
     }
@@ -304,12 +305,8 @@ export class CloudflareWorkerClient {
       const script = decodeURIComponent(
         response.headers.get("X-Briefing-Script") || "",
       );
-      const audioBlob = await response.blob();
 
-      return {
-        audioUrl: URL.createObjectURL(audioBlob),
-        script,
-      };
+      return { response, script };
     } catch (error) {
       logger.warn("Worker getVoiceBriefing failed");
       return null;

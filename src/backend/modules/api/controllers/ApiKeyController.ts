@@ -21,7 +21,7 @@ export class ApiKeyController {
     const db = getDb();
     const rows = db
       .prepare(
-        "SELECT id, name, key_prefix, scopes, last_used_at, created_at, revoked_at FROM api_keys WHERE workspace_id = ? ORDER BY created_at DESC"
+        "SELECT id, name, key_prefix, scopes, last_used_at, created_at, revoked_at FROM api_keys WHERE workspace_id = ? ORDER BY created_at DESC",
       )
       .all(workspaceId) as Array<{
       id: string;
@@ -60,19 +60,33 @@ export class ApiKeyController {
       return;
     }
 
-    const validScopes = ["agents:read", "agents:write", "governance:read", "governance:write", "audit:read", "spend:execute"];
-    const keyScopes = (scopes || ["agents:read", "governance:read", "audit:read"]).filter((s) =>
-      validScopes.includes(s)
-    );
+    const validScopes = [
+      "agents:read",
+      "agents:write",
+      "governance:read",
+      "governance:write",
+      "audit:read",
+      "spend:execute",
+    ];
+    const keyScopes = (
+      scopes || ["agents:read", "governance:read", "audit:read"]
+    ).filter((s) => validScopes.includes(s));
 
     const db = getDb();
 
     const existingCount = db
-      .prepare("SELECT COUNT(*) as count FROM api_keys WHERE workspace_id = ? AND revoked_at IS NULL")
+      .prepare(
+        "SELECT COUNT(*) as count FROM api_keys WHERE workspace_id = ? AND revoked_at IS NULL",
+      )
       .get(workspaceId) as { count: number };
 
     if (existingCount.count >= 10) {
-      res.status(400).json({ success: false, error: "Maximum 10 active API keys per workspace" });
+      res
+        .status(400)
+        .json({
+          success: false,
+          error: "Maximum 10 active API keys per workspace",
+        });
       return;
     }
 
@@ -83,8 +97,16 @@ export class ApiKeyController {
     const now = new Date().toISOString();
 
     db.prepare(
-      "INSERT INTO api_keys (id, workspace_id, name, key_hash, key_prefix, scopes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    ).run(id, workspaceId, name.trim(), keyHash, keyPrefix, JSON.stringify(keyScopes), now);
+      "INSERT INTO api_keys (id, workspace_id, name, key_hash, key_prefix, scopes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    ).run(
+      id,
+      workspaceId,
+      name.trim(),
+      keyHash,
+      keyPrefix,
+      JSON.stringify(keyScopes),
+      now,
+    );
 
     res.status(201).json({
       success: true,
@@ -114,16 +136,26 @@ export class ApiKeyController {
 
     const db = getDb();
     const row = db
-      .prepare("SELECT id FROM api_keys WHERE id = ? AND workspace_id = ? AND revoked_at IS NULL")
+      .prepare(
+        "SELECT id FROM api_keys WHERE id = ? AND workspace_id = ? AND revoked_at IS NULL",
+      )
       .get(keyId, workspaceId) as { id: string } | undefined;
 
     if (!row) {
-      res.status(404).json({ success: false, error: "API key not found or already revoked" });
+      res
+        .status(404)
+        .json({
+          success: false,
+          error: "API key not found or already revoked",
+        });
       return;
     }
 
     const now = new Date().toISOString();
-    db.prepare("UPDATE api_keys SET revoked_at = ? WHERE id = ?").run(now, keyId);
+    db.prepare("UPDATE api_keys SET revoked_at = ? WHERE id = ?").run(
+      now,
+      keyId,
+    );
 
     res.json({ success: true, data: { id: keyId, revokedAt: now } });
   }
@@ -133,11 +165,16 @@ export function resolveWorkspaceFromApiKey(key: string): string | null {
   const db = getDb();
   const keyHash = hashKey(key);
   const row = db
-    .prepare("SELECT workspace_id, id FROM api_keys WHERE key_hash = ? AND revoked_at IS NULL")
+    .prepare(
+      "SELECT workspace_id, id FROM api_keys WHERE key_hash = ? AND revoked_at IS NULL",
+    )
     .get(keyHash) as { workspace_id: string; id: string } | undefined;
 
   if (!row) return null;
 
-  db.prepare("UPDATE api_keys SET last_used_at = ? WHERE id = ?").run(new Date().toISOString(), row.id);
+  db.prepare("UPDATE api_keys SET last_used_at = ? WHERE id = ?").run(
+    new Date().toISOString(),
+    row.id,
+  );
   return row.workspace_id;
 }

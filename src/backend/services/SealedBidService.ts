@@ -134,7 +134,11 @@ export class SealedBidService {
 
     // Hash proposal details if provided
     const proposalHash = request.proposalDetails
-      ? "0x" + crypto.createHash("sha256").update(request.proposalDetails).digest("hex")
+      ? "0x" +
+        crypto
+          .createHash("sha256")
+          .update(request.proposalDetails)
+          .digest("hex")
       : "0x" + crypto.randomBytes(32).toString("hex");
 
     const bid: BidRecord = {
@@ -208,24 +212,31 @@ export class SealedBidService {
 
     switch (request.selectionMethod) {
       case "lowest-bid":
-        winnerIdx = decryptedBids.reduce((best, current, idx) =>
-          current.amount < decryptedBids[best].amount ? idx : best,
-        0);
+        winnerIdx = decryptedBids.reduce(
+          (best, current, idx) =>
+            current.amount < decryptedBids[best].amount ? idx : best,
+          0,
+        );
         break;
       case "highest-bid":
-        winnerIdx = decryptedBids.reduce((best, current, idx) =>
-          current.amount > decryptedBids[best].amount ? idx : best,
-        0);
+        winnerIdx = decryptedBids.reduce(
+          (best, current, idx) =>
+            current.amount > decryptedBids[best].amount ? idx : best,
+          0,
+        );
         break;
       case "specific": {
         if (!request.specificBidder) {
           throw new Error("specificBidder required for 'specific' selection");
         }
         const found = decryptedBids.findIndex(
-          (b) => b.bidder.toLowerCase() === request.specificBidder!.toLowerCase(),
+          (b) =>
+            b.bidder.toLowerCase() === request.specificBidder!.toLowerCase(),
         );
         if (found === -1) {
-          throw new Error(`Bidder ${request.specificBidder} not found in round`);
+          throw new Error(
+            `Bidder ${request.specificBidder} not found in round`,
+          );
         }
         winnerIdx = found;
         break;
@@ -259,7 +270,10 @@ export class SealedBidService {
    * When includeDecrypted is false, bids show encrypted amounts (privacy preserved).
    * When includeDecrypted is true (owner/manager only), bids show decrypted amounts.
    */
-  getRound(roundId: string, includeDecrypted: boolean = false): SealedBidRound | null {
+  getRound(
+    roundId: string,
+    includeDecrypted: boolean = false,
+  ): SealedBidRound | null {
     const round = this.rounds.get(roundId);
     if (!round) return null;
 

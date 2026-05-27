@@ -61,7 +61,9 @@ export class AutomatedForecastingService {
     this.sapienceService = config.sapienceService;
     this.marketDataService =
       config.marketDataService || new MarketDataService();
-    logger.info("Initialized with Multi-LLM Fallback and Market Data Integration");
+    logger.info(
+      "Initialized with Multi-LLM Fallback and Market Data Integration",
+    );
   }
 
   private recordThought(thought: string) {
@@ -167,7 +169,10 @@ export class AutomatedForecastingService {
       candidates.sort((a, b) => b.endTime - a.endTime);
       return candidates[0];
     } catch (error) {
-      logger.error("GraphQL fetch failed", error instanceof Error ? error : undefined);
+      logger.error(
+        "GraphQL fetch failed",
+        error instanceof Error ? error : undefined,
+      );
       throw error;
     }
   }
@@ -353,14 +358,18 @@ export class AutomatedForecastingService {
               forecast.probability,
               marketPrice,
             );
-            logger.info(`Market price - YES: ${marketPrice.yesPrice}, NO: ${marketPrice.noPrice}, Edge: ${edge.toFixed(4)}`);
+            logger.info(
+              `Market price - YES: ${marketPrice.yesPrice}, NO: ${marketPrice.noPrice}, Edge: ${edge.toFixed(4)}`,
+            );
 
             // Trade if edge > 10%
             if (Math.abs(edge) > 0.1) {
               const side = edge > 0 ? "YES" : "NO";
               const tradeAmount = "10.0"; // Start with 10 USDe per trade
 
-              logger.info(`Significant edge detected (${(edge * 100).toFixed(1)}%). Executing ${side} trade...`);
+              logger.info(
+                `Significant edge detected (${(edge * 100).toFixed(1)}%). Executing ${side} trade...`,
+              );
               this.recordThought(
                 `Executing ${side} trade with ${edge > 0 ? "positive" : "negative"} edge...`,
               );
@@ -397,7 +406,10 @@ export class AutomatedForecastingService {
             logger.debug("Could not fetch market price. Skipping trade.");
           }
         } catch (tradeError) {
-          logger.error("Trading failed", tradeError instanceof Error ? tradeError : undefined);
+          logger.error(
+            "Trading failed",
+            tradeError instanceof Error ? tradeError : undefined,
+          );
           this.recordThought(
             "Trading attempt failed. Continuing with forecast only.",
           );
@@ -419,7 +431,10 @@ export class AutomatedForecastingService {
         traded: false,
       };
     } catch (error) {
-      logger.error("Forecasting cycle failed", error instanceof Error ? error : undefined);
+      logger.error(
+        "Forecasting cycle failed",
+        error instanceof Error ? error : undefined,
+      );
       this.recordThought("Last cycle failed. Recovering for next attempt.");
       return { success: false, error: "Internal" };
     }

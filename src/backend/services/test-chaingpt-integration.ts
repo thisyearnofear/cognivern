@@ -33,8 +33,10 @@ async function testChainGPTIntegration() {
   // Test 1: Audit a contract (vulnerable vault)
   console.log("Test 1: Audit vulnerable contract");
   try {
-    const result = await service.auditContract("0x1234567890abcdef1234567890abcdef12345678", {
-      sourceCode: `pragma solidity ^0.8.0;
+    const result = await service.auditContract(
+      "0x1234567890abcdef1234567890abcdef12345678",
+      {
+        sourceCode: `pragma solidity ^0.8.0;
 contract VulnerableVault {
     mapping(address => uint256) public balances;
 
@@ -49,8 +51,9 @@ contract VulnerableVault {
         require(success, "Transfer failed");
         balances[msg.sender] -= amount;
     }
-}`
-    });
+}`,
+      },
+    );
 
     console.log(`  ✓ Decision: ${result.decision}`);
     console.log(`  Score: ${result.audit.score}`);
@@ -68,14 +71,18 @@ contract VulnerableVault {
     const summary = service.getAuditSummary(result.audit);
     console.log(`  Summary: ${summary}`);
   } catch (error) {
-    console.log(`  ❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    console.log(
+      `  ❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 
   // Test 2: Audit a safe contract
   console.log("\nTest 2: Audit safe contract");
   try {
-    const result = await service.auditContract("0xabcdef1234567890abcdef1234567890abcdef12", {
-      sourceCode: `pragma solidity ^0.8.0;
+    const result = await service.auditContract(
+      "0xabcdef1234567890abcdef1234567890abcdef12",
+      {
+        sourceCode: `pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract SafeVault is ReentrancyGuard {
@@ -91,15 +98,18 @@ contract SafeVault is ReentrancyGuard {
         (bool success, ) = msg.sender.call{value: amount}("");
         require(success, "Transfer failed");
     }
-}`
-    });
+}`,
+      },
+    );
 
     console.log(`  ✓ Decision: ${result.decision}`);
     console.log(`  Score: ${result.audit.score}`);
     console.log(`  Safe: ${result.audit.safe}`);
     console.log(`  Summary: ${service.getAuditSummary(result.audit)}`);
   } catch (error) {
-    console.log(`  ❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    console.log(
+      `  ❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 
   // Test 3: Cache test
@@ -110,7 +120,9 @@ contract SafeVault is ReentrancyGuard {
     const elapsed = Date.now() - start;
     console.log(`  ✓ Cached response time: ${elapsed}ms (should be <50ms)`);
   } catch (error) {
-    console.log(`  ❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    console.log(
+      `  ❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 
   console.log("\n✅ Integration test complete!");

@@ -31,7 +31,7 @@ export class ZeroGStorageService {
       logger.info("ZeroGStorageService initialized (0G Newton Testnet)");
     } else {
       logger.info(
-        "ZeroGStorageService: ZEROG_PRIVATE_KEY not set — running in log-only mode"
+        "ZeroGStorageService: ZEROG_PRIVATE_KEY not set — running in log-only mode",
       );
     }
   }
@@ -41,7 +41,7 @@ export class ZeroGStorageService {
    * Returns a ZeroGUploadResult on success, or null if not configured / upload fails.
    */
   async anchorAuditRecord(
-    record: Record<string, unknown>
+    record: Record<string, unknown>,
   ): Promise<ZeroGUploadResult | null> {
     if (!this.enabled) return null;
 
@@ -54,7 +54,7 @@ export class ZeroGStorageService {
       formData.append(
         "file",
         new Blob([bytes], { type: "application/json" }),
-        "audit.json"
+        "audit.json",
       );
 
       const response = await fetch(`${ZEROG_INDEXER_URL}/upload`, {
@@ -65,7 +65,7 @@ export class ZeroGStorageService {
 
       if (!response.ok) {
         logger.warn(
-          `ZeroGStorageService: upload returned ${response.status} — skipping anchor`
+          `ZeroGStorageService: upload returned ${response.status} — skipping anchor`,
         );
         return null;
       }
@@ -78,7 +78,9 @@ export class ZeroGStorageService {
 
       const rootHash = result.root || result.rootHash || "pending";
 
-      logger.info(`ZeroGStorageService: anchored audit record — root=${rootHash}`);
+      logger.info(
+        `ZeroGStorageService: anchored audit record — root=${rootHash}`,
+      );
 
       return {
         rootHash,
@@ -89,7 +91,7 @@ export class ZeroGStorageService {
     } catch (err) {
       // Non-fatal — governance pipeline must not fail due to storage issues
       logger.warn(
-        `ZeroGStorageService: anchor failed (non-fatal) — ${(err as Error).message}`
+        `ZeroGStorageService: anchor failed (non-fatal) — ${(err as Error).message}`,
       );
       return null;
     }

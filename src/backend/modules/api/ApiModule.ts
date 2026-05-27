@@ -43,7 +43,10 @@ import { SealedBidController } from "./controllers/SealedBidController.js";
 import { SpeechController } from "./controllers/SpeechController.js";
 import { AuthController } from "./controllers/AuthController.js";
 import { WorkspaceController } from "./controllers/WorkspaceController.js";
-import { ApiKeyController, resolveWorkspaceFromApiKey } from "./controllers/ApiKeyController.js";
+import {
+  ApiKeyController,
+  resolveWorkspaceFromApiKey,
+} from "./controllers/ApiKeyController.js";
 import { demoInterceptor } from "../../middleware/demoInterceptor.js";
 import type { Server } from "node:http";
 
@@ -56,7 +59,10 @@ interface ControllerRegistry {
   sapience?: {
     getStatus(req: express.Request, res: express.Response): Promise<void>;
     submitForecast(req: express.Request, res: express.Response): Promise<void>;
-    submitAutomatedForecast(req: express.Request, res: express.Response): Promise<void>;
+    submitAutomatedForecast(
+      req: express.Request,
+      res: express.Response,
+    ): Promise<void>;
     getWallet(req: express.Request, res: express.Response): Promise<void>;
     getDecisions(req: express.Request, res: express.Response): Promise<void>;
   };
@@ -92,7 +98,9 @@ export class ApiModule extends BaseService {
   private controllers = {} as ControllerRegistry;
 
   /** Type-safe controller accessor */
-  private ctrl<K extends keyof ControllerRegistry>(key: K): NonNullable<ControllerRegistry[K]> {
+  private ctrl<K extends keyof ControllerRegistry>(
+    key: K,
+  ): NonNullable<ControllerRegistry[K]> {
     const controller = this.controllers[key];
     if (!controller) {
       throw new Error(`Controller '${String(key)}' is not enabled`);
@@ -344,7 +352,8 @@ export class ApiModule extends BaseService {
     if (!apiKey) {
       res.status(401).json({
         success: false,
-        error: "Authentication required. Provide a Bearer token or x-api-key header.",
+        error:
+          "Authentication required. Provide a Bearer token or x-api-key header.",
         timestamp: new Date().toISOString(),
       });
       return;
@@ -367,9 +376,14 @@ export class ApiModule extends BaseService {
 
     // Legacy global API key check — timing-safe hash comparison
     if (apiConfig.apiKey) {
-      const expected = Buffer.from(createHash("sha256").update(apiConfig.apiKey).digest());
+      const expected = Buffer.from(
+        createHash("sha256").update(apiConfig.apiKey).digest(),
+      );
       const actual = Buffer.from(createHash("sha256").update(apiKey).digest());
-      if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
+      if (
+        expected.length !== actual.length ||
+        !timingSafeEqual(expected, actual)
+      ) {
         res.status(401).json({
           success: false,
           error: "Invalid API key",
@@ -422,13 +436,20 @@ export class ApiModule extends BaseService {
       undefined, // Will initialize its own unified AuditLogService
       policyService,
     );
-    this.controllers.governance = new GovernanceController(policyService, undefined);
+    this.controllers.governance = new GovernanceController(
+      policyService,
+      undefined,
+    );
     this.controllers.metrics = new MetricsController();
     if (sapienceEnabled) {
-      const { SapienceController } = await import("./controllers/SapienceController.js");
+      const { SapienceController } = await import(
+        "./controllers/SapienceController.js"
+      );
       this.controllers.sapience = new SapienceController();
     } else {
-      this.logger.info("SapienceController disabled (set SAPIENCE_ENABLED=true to enable)");
+      this.logger.info(
+        "SapienceController disabled (set SAPIENCE_ENABLED=true to enable)",
+      );
     }
     this.controllers.recall = new RecallController();
     this.controllers.auditLog = new AuditLogController();
@@ -506,26 +527,35 @@ export class ApiModule extends BaseService {
     // Mount feature-based route modules
     apiRouter.use(createHealthRoutes(this.ctrl("health")));
     apiRouter.use(createAgentRoutes(this.ctrl("agents")));
-    apiRouter.use(createGovernanceRoutes(this.ctrl("governance"), this.ctrl("mcpGovernance")));
+    apiRouter.use(
+      createGovernanceRoutes(
+        this.ctrl("governance"),
+        this.ctrl("mcpGovernance"),
+      ),
+    );
     apiRouter.use(createMetricsRoutes(this.ctrl("metrics")));
     apiRouter.use(createAuditRoutes(this.ctrl("auditLog")));
     apiRouter.use(createCreRoutes(this.ctrl("cre")));
-    apiRouter.use(createSpendRoutes(
-      this.ctrl("spend"),
-      this.ctrl("ows"),
-      this.ctrl("owsWallet"),
-      this.ctrl("owsApiKey"),
-      this.ctrl("owsPermissions")
-    ));
-    apiRouter.use(createMiscRoutes(
-      this.ctrl("ingest"),
-      this.ctrl("recall"),
-      this.ctrl("fhenix"),
-      this.ctrl("intent"),
-      this.ctrl("payroll"),
-      this.ctrl("sealedBid"),
-      this.ctrl("speech")
-    ));
+    apiRouter.use(
+      createSpendRoutes(
+        this.ctrl("spend"),
+        this.ctrl("ows"),
+        this.ctrl("owsWallet"),
+        this.ctrl("owsApiKey"),
+        this.ctrl("owsPermissions"),
+      ),
+    );
+    apiRouter.use(
+      createMiscRoutes(
+        this.ctrl("ingest"),
+        this.ctrl("recall"),
+        this.ctrl("fhenix"),
+        this.ctrl("intent"),
+        this.ctrl("payroll"),
+        this.ctrl("sealedBid"),
+        this.ctrl("speech"),
+      ),
+    );
 
     // Sapience routes (conditional)
     if (this.controllers.sapience) {
@@ -562,28 +592,35 @@ export class ApiModule extends BaseService {
     });
 
     // Error handler
-    this.app.use((error: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
-      this.logger.error(`API Error: ${error.message}`, error);
+    this.app.use(
+      (
+        error: Error,
+        req: express.Request,
+        res: express.Response,
+        _next: express.NextFunction,
+      ) => {
+        this.logger.error(`API Error: ${error.message}`, error);
 
-      if (error.name === "ZodError") {
-        return res.status(422).json({
+        if (error.name === "ZodError") {
+          return res.status(422).json({
+            success: false,
+            error: "Validation failed",
+            code: "VALIDATION_ERROR",
+            details: error,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        const httpError = error as HttpError;
+        const statusCode = httpError.statusCode || 500;
+        return res.status(statusCode).json({
           success: false,
-          error: "Validation failed",
-          code: "VALIDATION_ERROR",
-          details: error,
+          error: error.message || "Internal server error",
+          code: httpError.code || "INTERNAL_ERROR",
           timestamp: new Date().toISOString(),
         });
-      }
-
-      const httpError = error as HttpError;
-      const statusCode = httpError.statusCode || 500;
-      return res.status(statusCode).json({
-        success: false,
-        error: error.message || "Internal server error",
-        code: httpError.code || "INTERNAL_ERROR",
-        timestamp: new Date().toISOString(),
-      });
-    });
+      },
+    );
   }
 
   private async startServer(): Promise<void> {
