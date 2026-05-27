@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useCallback, useState } from 'react';
-import { useAccount, useSignMessage, useDisconnect } from 'wagmi';
-import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { useAppStore } from '@/stores/app-store';
-import { generateSiweMessage, fetchNonce, verifySignature } from '@/lib/auth';
+import { useCallback, useState } from "react";
+import { useAccount, useSignMessage, useDisconnect } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { useAppStore } from "@/stores/app-store";
+import { generateSiweMessage, fetchNonce, verifySignature } from "@/lib/auth";
 
 export function useAuth() {
   const { address, isConnected } = useAccount();
@@ -28,10 +28,14 @@ export function useAuth() {
       const nonce = await fetchNonce();
       const message = generateSiweMessage(address, nonce);
       const signature = await signMessageAsync({ message });
-      const { token, user, workspace } = await verifySignature(message, signature, address);
+      const { token, user, workspace } = await verifySignature(
+        message,
+        signature,
+        address,
+      );
       login(token, user, workspace);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Sign in failed';
+      const msg = err instanceof Error ? err.message : "Sign in failed";
       setError(msg);
       throw err;
     } finally {

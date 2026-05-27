@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo } from "react";
 import {
   ShieldCheck,
   Users,
@@ -13,26 +13,31 @@ import {
   TrendingUp,
   TrendingDown,
   ChevronDown,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter } from 'next/navigation';
-import { useAgents, useAuditLogs, usePolicies } from '@/hooks/use-api';
-import { useAppStore } from '@/stores/app-store';
-import { DecisionChart, type DecisionFilter } from './decision-chart';
-import { ActivityChart } from './activity-chart';
-import { AgentStatusChart } from './agent-status-chart';
-import { ApprovalSparkline } from './approval-sparkline';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
+import { useAgents, useAuditLogs, usePolicies } from "@/hooks/use-api";
+import { useAppStore } from "@/stores/app-store";
+import { DecisionChart, type DecisionFilter } from "./decision-chart";
+import { ActivityChart } from "./activity-chart";
+import { AgentStatusChart } from "./agent-status-chart";
+import { ApprovalSparkline } from "./approval-sparkline";
 
 const ACTIVITY_PAGE_SIZE = 5;
 
-function normalizeStatus(l: { outcome?: string; complianceStatus?: string; decision?: string }): string {
-  const raw = l.outcome ?? l.complianceStatus ?? l.decision ?? '';
-  if (raw === 'approved' || raw === 'allowed' || raw === 'compliant') return 'approved';
-  if (raw === 'denied' || raw === 'non-compliant') return 'denied';
-  return 'held';
+function normalizeStatus(l: {
+  outcome?: string;
+  complianceStatus?: string;
+  decision?: string;
+}): string {
+  const raw = l.outcome ?? l.complianceStatus ?? l.decision ?? "";
+  if (raw === "approved" || raw === "allowed" || raw === "compliant")
+    return "approved";
+  if (raw === "denied" || raw === "non-compliant") return "denied";
+  return "held";
 }
 
 export function Dashboard() {
@@ -40,8 +45,16 @@ export function Dashboard() {
   const user = useAppStore((s) => s.user);
   const demoMode = useAppStore((s) => s.demoMode);
   const workspace = user.workspace;
-  const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
-  const { data: logs, isLoading: logsLoading, error: logsError } = useAuditLogs();
+  const {
+    data: agents,
+    isLoading: agentsLoading,
+    error: agentsError,
+  } = useAgents();
+  const {
+    data: logs,
+    isLoading: logsLoading,
+    error: logsError,
+  } = useAuditLogs();
   const { data: policies, isLoading: policiesLoading } = usePolicies();
 
   // Cross-filtering state
@@ -56,7 +69,7 @@ export function Dashboard() {
       id: l.id,
       agent: l.agent ?? l.agentId,
       action: l.actionType ?? l.action,
-      amount: '—',
+      amount: "—",
       time: l.time ?? new Date(l.timestamp).toLocaleString(),
       status: l.outcome ?? l.complianceStatus ?? l.decision,
       _normalized: normalizeStatus(l),
@@ -74,14 +87,14 @@ export function Dashboard() {
     ? filteredActivity
     : filteredActivity.slice(0, ACTIVITY_PAGE_SIZE);
 
-  const activeCount = agentList.filter((a) => a.status === 'active').length;
+  const activeCount = agentList.filter((a) => a.status === "active").length;
   const approvalRate = Array.isArray(logs)
     ? Math.round(
         (logs.filter(
           (l) =>
-            l.outcome === 'allowed' ||
-            l.complianceStatus === 'compliant' ||
-            l.decision === 'approved',
+            l.outcome === "allowed" ||
+            l.complianceStatus === "compliant" ||
+            l.decision === "approved",
         ).length /
           logs.length) *
           100,
@@ -91,15 +104,20 @@ export function Dashboard() {
 
   // Stat deltas (compare first half vs second half of logs for trend)
   const { approvalDelta, decisionsDelta } = useMemo(() => {
-    if (!Array.isArray(logs) || logs.length < 4) return { approvalDelta: 0, decisionsDelta: 0 };
+    if (!Array.isArray(logs) || logs.length < 4)
+      return { approvalDelta: 0, decisionsDelta: 0 };
     const mid = Math.floor(logs.length / 2);
     const recentHalf = logs.slice(0, mid);
     const olderHalf = logs.slice(mid);
     const recentApproval = Math.round(
-      (recentHalf.filter((l) => normalizeStatus(l) === 'approved').length / recentHalf.length) * 100
+      (recentHalf.filter((l) => normalizeStatus(l) === "approved").length /
+        recentHalf.length) *
+        100,
     );
     const olderApproval = Math.round(
-      (olderHalf.filter((l) => normalizeStatus(l) === 'approved').length / olderHalf.length) * 100
+      (olderHalf.filter((l) => normalizeStatus(l) === "approved").length /
+        olderHalf.length) *
+        100,
     );
     return {
       approvalDelta: recentApproval - olderApproval,
@@ -116,14 +134,21 @@ export function Dashboard() {
           {demoMode && workspace && (
             <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
               <Sparkles className="h-3 w-3" />
-              <span>Exploring <span className="font-medium">{workspace.name}</span> — sample data</span>
+              <span>
+                Exploring <span className="font-medium">{workspace.name}</span>{" "}
+                — sample data
+              </span>
             </div>
           )}
           {!demoMode && workspace && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>
-                Connected as <span className="font-mono">{useAppStore.getState().user.walletAddress?.slice(0, 6)}...{useAppStore.getState().user.walletAddress?.slice(-4)}</span>
+                Connected as{" "}
+                <span className="font-mono">
+                  {useAppStore.getState().user.walletAddress?.slice(0, 6)}...
+                  {useAppStore.getState().user.walletAddress?.slice(-4)}
+                </span>
               </span>
             </div>
           )}
@@ -137,40 +162,46 @@ export function Dashboard() {
           <Button size="sm" variant="outline" onClick={() => router.refresh()}>
             Refresh
           </Button>
-          <Button size="sm" onClick={() => router.push('/governance/check')}>
+          <Button size="sm" onClick={() => router.push("/governance/check")}>
             Governance Check
           </Button>
         </div>
       </div>
 
       {/* Activation Hero — shown for production mode with no agents */}
-      {user.workspaceMode === 'production' && !agentsLoading && agentList.length === 0 && (
-        <Card className="border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 dark:from-emerald-950/20 dark:to-teal-950/20">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-xl bg-emerald-100 dark:bg-emerald-900/50">
-                <Rocket className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
-                  Ready for Production
-                </h2>
-                <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1 max-w-xl">
-                  Your production workspace is ready. Register your first agent to start enforcing governance policies on live data.
-                </p>
-                <div className="flex gap-3 mt-4">
-                  <Button onClick={() => router.push('/agents/workshop')}>
-                    Register Your First Agent
-                  </Button>
-                  <Button variant="outline" onClick={() => router.push('/policies')}>
-                    Define Policies
-                  </Button>
+      {user.workspaceMode === "production" &&
+        !agentsLoading &&
+        agentList.length === 0 && (
+          <Card className="border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 dark:from-emerald-950/20 dark:to-teal-950/20">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-emerald-100 dark:bg-emerald-900/50">
+                  <Rocket className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
+                    Ready for Production
+                  </h2>
+                  <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1 max-w-xl">
+                    Your production workspace is ready. Register your first
+                    agent to start enforcing governance policies on live data.
+                  </p>
+                  <div className="flex gap-3 mt-4">
+                    <Button onClick={() => router.push("/agents/workshop")}>
+                      Register Your First Agent
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/policies")}
+                    >
+                      Define Policies
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -187,7 +218,9 @@ export function Dashboard() {
                   <div className="text-2xl font-bold">
                     {activeCount}/{agentList.length}
                   </div>
-                  <div className="text-xs text-muted-foreground">Agents Online</div>
+                  <div className="text-xs text-muted-foreground">
+                    Agents Online
+                  </div>
                 </div>
               </div>
             )}
@@ -204,9 +237,14 @@ export function Dashboard() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold">
-                    {(policies || []).filter((p) => p.status === 'active').length}
+                    {
+                      (policies || []).filter((p) => p.status === "active")
+                        .length
+                    }
                   </div>
-                  <div className="text-xs text-muted-foreground">Active Policies</div>
+                  <div className="text-xs text-muted-foreground">
+                    Active Policies
+                  </div>
                 </div>
               </div>
             )}
@@ -224,17 +262,30 @@ export function Dashboard() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold">{approvalRate}%</span>
+                      <span className="text-2xl font-bold">
+                        {approvalRate}%
+                      </span>
                       {approvalDelta !== 0 && (
-                        <span className={`flex items-center text-[11px] font-medium ${
-                          approvalDelta > 0 ? 'text-emerald-600' : 'text-red-500'
-                        }`}>
-                          {approvalDelta > 0 ? <TrendingUp className="h-3 w-3 mr-0.5" /> : <TrendingDown className="h-3 w-3 mr-0.5" />}
-                          {approvalDelta > 0 ? '+' : ''}{approvalDelta}%
+                        <span
+                          className={`flex items-center text-[11px] font-medium ${
+                            approvalDelta > 0
+                              ? "text-emerald-600"
+                              : "text-red-500"
+                          }`}
+                        >
+                          {approvalDelta > 0 ? (
+                            <TrendingUp className="h-3 w-3 mr-0.5" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3 mr-0.5" />
+                          )}
+                          {approvalDelta > 0 ? "+" : ""}
+                          {approvalDelta}%
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground">Approval Rate</div>
+                    <div className="text-xs text-muted-foreground">
+                      Approval Rate
+                    </div>
                   </div>
                 </div>
                 <ApprovalSparkline logs={Array.isArray(logs) ? logs : []} />
@@ -255,15 +306,26 @@ export function Dashboard() {
                   <div className="flex items-center gap-2">
                     <span className="text-2xl font-bold">{decisions}</span>
                     {decisionsDelta !== 0 && (
-                      <span className={`flex items-center text-[11px] font-medium ${
-                        decisionsDelta > 0 ? 'text-emerald-600' : 'text-red-500'
-                      }`}>
-                        {decisionsDelta > 0 ? <TrendingUp className="h-3 w-3 mr-0.5" /> : <TrendingDown className="h-3 w-3 mr-0.5" />}
-                        {decisionsDelta > 0 ? '+' : ''}{decisionsDelta}
+                      <span
+                        className={`flex items-center text-[11px] font-medium ${
+                          decisionsDelta > 0
+                            ? "text-emerald-600"
+                            : "text-red-500"
+                        }`}
+                      >
+                        {decisionsDelta > 0 ? (
+                          <TrendingUp className="h-3 w-3 mr-0.5" />
+                        ) : (
+                          <TrendingDown className="h-3 w-3 mr-0.5" />
+                        )}
+                        {decisionsDelta > 0 ? "+" : ""}
+                        {decisionsDelta}
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground">Policy Decisions</div>
+                  <div className="text-xs text-muted-foreground">
+                    Policy Decisions
+                  </div>
                 </div>
               </div>
             )}
@@ -279,7 +341,10 @@ export function Dashboard() {
           activeFilter={decisionFilter}
           onFilterChange={setDecisionFilter}
         />
-        <ActivityChart logs={Array.isArray(logs) ? logs : []} loading={logsLoading} />
+        <ActivityChart
+          logs={Array.isArray(logs) ? logs : []}
+          loading={logsLoading}
+        />
         <AgentStatusChart agents={agentList} loading={agentsLoading} />
       </div>
 
@@ -287,7 +352,11 @@ export function Dashboard() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">Governed Agents</h2>
-          <Button variant="ghost" size="sm" onClick={() => router.push('/agents')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/agents")}
+          >
             View All <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -304,7 +373,12 @@ export function Dashboard() {
         ) : agentsError ? (
           <div className="p-8 text-center text-muted-foreground">
             <p>Failed to load agents</p>
-            <Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => router.refresh()}
+            >
               Retry
             </Button>
           </div>
@@ -320,12 +394,14 @@ export function Dashboard() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div
-                        className={`w-2 h-2 rounded-full ${agent.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                        className={`w-2 h-2 rounded-full ${agent.status === "active" ? "bg-emerald-500" : "bg-amber-500"}`}
                       />
                       <span className="font-medium text-sm">{agent.name}</span>
                     </div>
                     <Badge
-                      variant={agent.status === 'active' ? 'secondary' : 'outline'}
+                      variant={
+                        agent.status === "active" ? "secondary" : "outline"
+                      }
                       className="text-xs"
                     >
                       {agent.status}
@@ -358,7 +434,11 @@ export function Dashboard() {
               </span>
             )}
           </div>
-          <Button variant="ghost" size="sm" onClick={() => router.push('/audit')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/audit")}
+          >
             View All <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -374,7 +454,11 @@ export function Dashboard() {
           </div>
         ) : filteredActivity.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground border rounded-xl">
-            <p>{decisionFilter ? `No ${decisionFilter} decisions` : 'No activity yet'}</p>
+            <p>
+              {decisionFilter
+                ? `No ${decisionFilter} decisions`
+                : "No activity yet"}
+            </p>
             {decisionFilter && (
               <Button
                 variant="ghost"
@@ -396,16 +480,19 @@ export function Dashboard() {
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className={`p-1.5 rounded-md flex-shrink-0 ${
-                      item.status === 'allowed' || item.status === 'compliant'
-                        ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600'
-                        : item.status === 'denied' || item.status === 'non-compliant'
-                          ? 'bg-red-100 dark:bg-red-950 text-red-600'
-                          : 'bg-blue-100 dark:bg-blue-950 text-blue-600'
+                      item.status === "allowed" || item.status === "compliant"
+                        ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600"
+                        : item.status === "denied" ||
+                            item.status === "non-compliant"
+                          ? "bg-red-100 dark:bg-red-950 text-red-600"
+                          : "bg-blue-100 dark:bg-blue-950 text-blue-600"
                     }`}
                   >
-                    {item.status === 'allowed' || item.status === 'compliant' ? (
+                    {item.status === "allowed" ||
+                    item.status === "compliant" ? (
                       <ShieldCheck className="h-3.5 w-3.5" />
-                    ) : item.status === 'denied' || item.status === 'non-compliant' ? (
+                    ) : item.status === "denied" ||
+                      item.status === "non-compliant" ? (
                       <Activity className="h-3.5 w-3.5" />
                     ) : (
                       <FileSearch className="h-3.5 w-3.5" />
@@ -413,24 +500,29 @@ export function Dashboard() {
                   </div>
                   <div className="min-w-0">
                     <div className="font-medium truncate">{item.agent}</div>
-                    <div className="text-muted-foreground text-xs truncate">{item.action}</div>
+                    <div className="text-muted-foreground text-xs truncate">
+                      {item.action}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0 sm:ml-4 pl-8 sm:pl-0">
                   <span className="font-mono text-xs">{item.amount}</span>
                   <Badge
                     variant={
-                      item.status === 'allowed' || item.status === 'compliant'
-                        ? 'secondary'
-                        : item.status === 'denied' || item.status === 'non-compliant'
-                          ? 'destructive'
-                          : 'outline'
+                      item.status === "allowed" || item.status === "compliant"
+                        ? "secondary"
+                        : item.status === "denied" ||
+                            item.status === "non-compliant"
+                          ? "destructive"
+                          : "outline"
                     }
                     className="text-xs"
                   >
                     {item.status}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">{item.time}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {item.time}
+                  </span>
                 </div>
               </div>
             ))}
@@ -440,9 +532,11 @@ export function Dashboard() {
                 onClick={() => setActivityExpanded(!activityExpanded)}
                 className="w-full p-2.5 flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${activityExpanded ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform ${activityExpanded ? "rotate-180" : ""}`}
+                />
                 {activityExpanded
-                  ? 'Show less'
+                  ? "Show less"
                   : `Show ${filteredActivity.length - ACTIVITY_PAGE_SIZE} more`}
               </button>
             )}
@@ -453,36 +547,44 @@ export function Dashboard() {
       {/* Quick Actions */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <button
-          onClick={() => router.push('/governance/check')}
+          onClick={() => router.push("/governance/check")}
           className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
         >
           <ShieldCheck className="h-5 w-5 text-primary mb-2" />
           <div className="font-medium text-sm">Governance Check</div>
-          <div className="text-xs text-muted-foreground mt-1">Test policies live</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Test policies live
+          </div>
         </button>
         <button
-          onClick={() => router.push('/os')}
+          onClick={() => router.push("/os")}
           className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
         >
           <Rocket className="h-5 w-5 text-violet-500 mb-2" />
           <div className="font-medium text-sm">Open Agent Command Center</div>
-          <div className="text-xs text-muted-foreground mt-1">Inspect agents live</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Inspect agents live
+          </div>
         </button>
         <button
-          onClick={() => router.push('/agents/workshop')}
+          onClick={() => router.push("/agents/workshop")}
           className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
         >
           <Sparkles className="h-5 w-5 text-sky-500 mb-2" />
           <div className="font-medium text-sm">Add Agent</div>
-          <div className="text-xs text-muted-foreground mt-1">Onboard new agents</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Onboard new agents
+          </div>
         </button>
         <button
-          onClick={() => router.push('/audit')}
+          onClick={() => router.push("/audit")}
           className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
         >
           <FileSearch className="h-5 w-5 text-amber-500 mb-2" />
           <div className="font-medium text-sm">Audit Trail</div>
-          <div className="text-xs text-muted-foreground mt-1">Review all decisions</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Review all decisions
+          </div>
         </button>
       </div>
     </div>

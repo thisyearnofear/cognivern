@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronDown } from 'lucide-react';
+import { useState } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronDown } from "lucide-react";
 
-export type DecisionFilter = 'approved' | 'denied' | 'held' | null;
+export type DecisionFilter = "approved" | "denied" | "held" | null;
 
 interface DecisionChartProps {
   logs: Array<{
@@ -20,19 +20,26 @@ interface DecisionChartProps {
 }
 
 const COLORS = {
-  approved: '#10b981', // emerald-500
-  denied: '#ef4444',   // red-500
-  held: '#f59e0b',     // amber-500
+  approved: "#10b981", // emerald-500
+  denied: "#ef4444", // red-500
+  held: "#f59e0b", // amber-500
 };
 
-export function DecisionChart({ logs, loading, activeFilter, onFilterChange }: DecisionChartProps) {
+export function DecisionChart({
+  logs,
+  loading,
+  activeFilter,
+  onFilterChange,
+}: DecisionChartProps) {
   const [expanded, setExpanded] = useState(false);
 
   if (loading) {
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Decision Breakdown</CardTitle>
+          <CardTitle className="text-sm font-medium">
+            Decision Breakdown
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-48 w-full" />
@@ -43,10 +50,14 @@ export function DecisionChart({ logs, loading, activeFilter, onFilterChange }: D
 
   const counts = { approved: 0, denied: 0, held: 0 };
   logs.forEach((l) => {
-    const status = l.outcome ?? l.complianceStatus ?? l.decision ?? '';
-    if (status === 'approved' || status === 'allowed' || status === 'compliant') {
+    const status = l.outcome ?? l.complianceStatus ?? l.decision ?? "";
+    if (
+      status === "approved" ||
+      status === "allowed" ||
+      status === "compliant"
+    ) {
       counts.approved++;
-    } else if (status === 'denied' || status === 'non-compliant') {
+    } else if (status === "denied" || status === "non-compliant") {
       counts.denied++;
     } else {
       counts.held++;
@@ -56,16 +67,18 @@ export function DecisionChart({ logs, loading, activeFilter, onFilterChange }: D
   const total = counts.approved + counts.denied + counts.held;
 
   const data = [
-    { name: 'Approved', value: counts.approved, color: COLORS.approved },
-    { name: 'Denied', value: counts.denied, color: COLORS.denied },
-    { name: 'Held', value: counts.held, color: COLORS.held },
+    { name: "Approved", value: counts.approved, color: COLORS.approved },
+    { name: "Denied", value: counts.denied, color: COLORS.denied },
+    { name: "Held", value: counts.held, color: COLORS.held },
   ].filter((d) => d.value > 0);
 
   if (total === 0) {
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Decision Breakdown</CardTitle>
+          <CardTitle className="text-sm font-medium">
+            Decision Breakdown
+          </CardTitle>
         </CardHeader>
         <CardContent className="h-48 flex items-center justify-center text-sm text-muted-foreground">
           No decisions yet
@@ -87,7 +100,9 @@ export function DecisionChart({ logs, loading, activeFilter, onFilterChange }: D
   return (
     <Card>
       <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-sm font-medium">Decision Breakdown</CardTitle>
+        <CardTitle className="text-sm font-medium">
+          Decision Breakdown
+        </CardTitle>
         {activeFilter && (
           <button
             type="button"
@@ -120,7 +135,7 @@ export function DecisionChart({ logs, loading, activeFilter, onFilterChange }: D
                   fill={entry.color}
                   opacity={activeFilter && activeIndex !== index ? 0.3 : 1}
                   strokeWidth={activeIndex === index ? 2 : 0}
-                  stroke={activeIndex === index ? entry.color : 'none'}
+                  stroke={activeIndex === index ? entry.color : "none"}
                 />
               ))}
             </Pie>
@@ -130,10 +145,10 @@ export function DecisionChart({ logs, loading, activeFilter, onFilterChange }: D
                 name,
               ]}
               contentStyle={{
-                borderRadius: '8px',
-                border: '1px solid hsl(var(--border))',
-                background: 'hsl(var(--card))',
-                fontSize: '12px',
+                borderRadius: "8px",
+                border: "1px solid hsl(var(--border))",
+                background: "hsl(var(--card))",
+                fontSize: "12px",
               }}
             />
           </PieChart>
@@ -148,7 +163,7 @@ export function DecisionChart({ logs, loading, activeFilter, onFilterChange }: D
                 type="button"
                 onClick={() => onFilterChange?.(isActive ? null : filterKey)}
                 className={`flex items-center gap-1.5 transition-opacity ${
-                  activeFilter && !isActive ? 'opacity-40' : 'opacity-100'
+                  activeFilter && !isActive ? "opacity-40" : "opacity-100"
                 }`}
               >
                 <div
@@ -167,15 +182,23 @@ export function DecisionChart({ logs, loading, activeFilter, onFilterChange }: D
           onClick={() => setExpanded(!expanded)}
           className="w-full mt-3 flex items-center justify-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ChevronDown className={`h-3 w-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-          {expanded ? 'Hide counts' : 'Show counts'}
+          <ChevronDown
+            className={`h-3 w-3 transition-transform ${expanded ? "rotate-180" : ""}`}
+          />
+          {expanded ? "Hide counts" : "Show counts"}
         </button>
         {expanded && (
           <div className="mt-3 pt-3 border-t border-border space-y-1.5">
             {data.map((d) => (
-              <div key={d.name} className="flex items-center justify-between text-xs">
+              <div
+                key={d.name}
+                className="flex items-center justify-between text-xs"
+              >
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: d.color }}
+                  />
                   <span>{d.name}</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">

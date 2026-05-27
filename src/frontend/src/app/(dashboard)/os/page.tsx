@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Suspense } from 'react';
-import { OsShell } from '@/components/os/os-shell';
+import { Suspense } from "react";
+import { OsShell } from "@/components/os/os-shell";
 
 export default function OsPage() {
   return (

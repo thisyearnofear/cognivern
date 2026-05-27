@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -13,7 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   ArrowLeft,
   Users,
@@ -26,24 +26,24 @@ import {
   ChevronRight,
   FileSearch,
   Volume2,
-} from 'lucide-react';
-import { useAgent } from '@/hooks/use-api';
-import { apiClient } from '@/lib/api-client';
-import { mutate } from 'swr';
+} from "lucide-react";
+import { useAgent } from "@/hooks/use-api";
+import { apiClient } from "@/lib/api-client";
+import { mutate } from "swr";
 
 function Breadcrumbs({ agentName }: { agentName: string }) {
   const router = useRouter();
   return (
     <nav className="flex items-center gap-1 text-sm text-muted-foreground">
       <button
-        onClick={() => router.push('/dashboard')}
+        onClick={() => router.push("/dashboard")}
         className="hover:text-foreground transition-colors"
       >
         Dashboard
       </button>
       <ChevronRight className="h-3 w-3" />
       <button
-        onClick={() => router.push('/agents')}
+        onClick={() => router.push("/agents")}
         className="hover:text-foreground transition-colors"
       >
         Agents
@@ -70,7 +70,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
     const text = [
       `Agent ${agent.name}, ${agent.role}. Status: ${agent.status}.`,
       `${agent.trades} trades executed. Budget: ${agent.budget}. Chain: ${agent.chain}.`,
-    ].join(' ');
+    ].join(" ");
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.onend = () => setSpeaking(false);
     window.speechSynthesis?.cancel();
@@ -82,10 +82,10 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
     if (!agent) return;
     setToggling(true);
     try {
-      const newStatus = agent.status === 'active' ? 'paused' : 'active';
+      const newStatus = agent.status === "active" ? "paused" : "active";
       await apiClient.updateAgentStatus(agentId, newStatus);
       mutate(`/api/agents/${agentId}`);
-      mutate('/api/agents');
+      mutate("/api/agents");
     } finally {
       setToggling(false);
     }
@@ -93,10 +93,10 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
 
   const handleRevoke = useCallback(async () => {
     if (!agent) return;
-    await apiClient.updateAgentStatus(agentId, 'inactive');
+    await apiClient.updateAgentStatus(agentId, "inactive");
     mutate(`/api/agents/${agentId}`);
-    mutate('/api/agents');
-    router.push('/agents');
+    mutate("/api/agents");
+    router.push("/agents");
   }, [agent, agentId, router]);
 
   if (isLoading) {
@@ -112,7 +112,11 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
   if (error || !agent) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" size="sm" onClick={() => router.push('/agents')}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push("/agents")}
+        >
           <ArrowLeft className="h-4 w-4" /> Back to Agents
         </Button>
         <Card>
@@ -120,9 +124,11 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
             <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">Agent Not Found</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              {error ? error.message : 'The agent could not be loaded.'}
+              {error ? error.message : "The agent could not be loaded."}
             </p>
-            <Button onClick={() => router.push('/agents')}>Back to Agents</Button>
+            <Button onClick={() => router.push("/agents")}>
+              Back to Agents
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -137,9 +143,9 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
         <div className="flex items-center gap-3">
           <div
             className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              agent.status === 'active'
-                ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600'
-                : 'bg-amber-100 dark:bg-amber-950 text-amber-600'
+              agent.status === "active"
+                ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600"
+                : "bg-amber-100 dark:bg-amber-950 text-amber-600"
             }`}
           >
             <Users className="h-6 w-6" />
@@ -151,29 +157,36 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button
-            variant={speaking ? 'default' : 'outline'}
+            variant={speaking ? "default" : "outline"}
             size="sm"
             onClick={handleSpeak}
-            className={speaking ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+            className={speaking ? "bg-emerald-600 hover:bg-emerald-700" : ""}
           >
-            <Volume2 className="h-4 w-4" /> {speaking ? 'Speaking...' : 'Listen'}
+            <Volume2 className="h-4 w-4" />{" "}
+            {speaking ? "Speaking..." : "Listen"}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => router.push('/policies')}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/policies")}
+          >
             <ShieldCheck className="h-4 w-4" /> View Policy
           </Button>
           <Button
-            variant={agent.status === 'active' ? 'outline' : 'default'}
+            variant={agent.status === "active" ? "outline" : "default"}
             size="sm"
             onClick={handleToggleStatus}
-            disabled={toggling || agent.status === 'inactive'}
+            disabled={toggling || agent.status === "inactive"}
           >
-            {agent.status === 'active' ? (
+            {agent.status === "active" ? (
               <>
-                <Pause className="h-4 w-4" /> {toggling ? 'Pausing...' : 'Pause'}
+                <Pause className="h-4 w-4" />{" "}
+                {toggling ? "Pausing..." : "Pause"}
               </>
             ) : (
               <>
-                <Play className="h-4 w-4" /> {toggling ? 'Resuming...' : 'Resume'}
+                <Play className="h-4 w-4" />{" "}
+                {toggling ? "Resuming..." : "Resume"}
               </>
             )}
           </Button>
@@ -181,7 +194,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
             variant="destructive"
             size="sm"
             onClick={handleRevoke}
-            disabled={agent.status === 'inactive'}
+            disabled={agent.status === "inactive"}
           >
             <Trash2 className="h-4 w-4" /> Revoke
           </Button>
@@ -197,7 +210,9 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
               </div>
               <div>
                 <div className="text-2xl font-bold">{agent.trades}</div>
-                <div className="text-xs text-muted-foreground">Total Trades</div>
+                <div className="text-xs text-muted-foreground">
+                  Total Trades
+                </div>
               </div>
             </div>
           </CardContent>
@@ -210,7 +225,9 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
               </div>
               <div>
                 <div className="text-lg font-bold">{agent.budget}</div>
-                <div className="text-xs text-muted-foreground">Budget Limit</div>
+                <div className="text-xs text-muted-foreground">
+                  Budget Limit
+                </div>
               </div>
             </div>
           </CardContent>
@@ -234,12 +251,16 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
               <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950">
                 <div
                   className={`w-3 h-3 rounded-full ${
-                    agent.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'
+                    agent.status === "active"
+                      ? "bg-emerald-500"
+                      : "bg-amber-500"
                   }`}
                 />
               </div>
               <div>
-                <div className="text-lg font-bold capitalize">{agent.status}</div>
+                <div className="text-lg font-bold capitalize">
+                  {agent.status}
+                </div>
                 <div className="text-xs text-muted-foreground">Status</div>
               </div>
             </div>
@@ -250,7 +271,11 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">Spend History</h2>
-          <Button variant="ghost" size="sm" onClick={() => router.push('/audit')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/audit")}
+          >
             View Audit Log <FileSearch className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -278,11 +303,11 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
                       <TableCell>
                         <Badge
                           variant={
-                            tx.decision === 'approved'
-                              ? 'secondary'
-                              : tx.decision === 'denied'
-                                ? 'destructive'
-                                : 'outline'
+                            tx.decision === "approved"
+                              ? "secondary"
+                              : tx.decision === "denied"
+                                ? "destructive"
+                                : "outline"
                           }
                         >
                           {tx.decision}
@@ -298,7 +323,9 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
           <Card>
             <CardContent className="p-12 text-center">
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-sm text-muted-foreground">No spend history yet.</p>
+              <p className="text-sm text-muted-foreground">
+                No spend history yet.
+              </p>
             </CardContent>
           </Card>
         )}

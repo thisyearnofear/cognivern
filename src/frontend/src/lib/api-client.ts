@@ -1,6 +1,6 @@
 // Typed API client for Cognivern backend
 
-import { useAppStore } from '@/stores/app-store';
+import { useAppStore } from "@/stores/app-store";
 import type {
   ApiResponse,
   AuditLog,
@@ -13,12 +13,12 @@ import type {
   ApiKey,
   ApiKeyCreateResponse,
   Workspace,
-} from '@cognivern/shared';
+} from "@cognivern/shared";
 
 // Get token from localStorage for auth
 function getAuthToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('cognivern-token');
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("cognivern-token");
   }
   return null;
 }
@@ -43,7 +43,7 @@ class ApiClient {
   private apiKey: string | null;
 
   constructor() {
-    this.baseUrl = '';
+    this.baseUrl = "";
     this.apiKey = null;
   }
 
@@ -51,22 +51,26 @@ class ApiClient {
     this.apiKey = key;
   }
 
-  private async fetch<T>(endpoint: string, options: RequestInit = {}, retries = 2): Promise<T> {
+  private async fetch<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    retries = 2,
+  ): Promise<T> {
     const { user } = useAppStore.getState();
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'X-Workspace-Mode': user.workspaceMode,
+      "Content-Type": "application/json",
+      "X-Workspace-Mode": user.workspaceMode,
     };
 
     // Add API key if set
     if (this.apiKey) {
-      headers['x-api-key'] = this.apiKey;
+      headers["x-api-key"] = this.apiKey;
     }
 
     // Add auth token from localStorage
     const token = getAuthToken();
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${token}`;
     }
 
     try {
@@ -82,8 +86,14 @@ class ApiClient {
 
       return await response.json();
     } catch (error) {
-      if (retries > 0 && error instanceof Error && !error.message.includes('4')) {
-        await new Promise((resolve) => setTimeout(resolve, 1000 * (3 - retries)));
+      if (
+        retries > 0 &&
+        error instanceof Error &&
+        !error.message.includes("4")
+      ) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * (3 - retries)),
+        );
         return this.fetch(endpoint, options, retries - 1);
       }
       throw error;
@@ -92,16 +102,16 @@ class ApiClient {
 
   // Audit Logs
   async getAuditLogs(): Promise<ApiResponse<AuditLog[]>> {
-    return this.fetch('/api/audit/logs');
+    return this.fetch("/api/audit/logs");
   }
 
   async getAuditInsights(): Promise<ApiResponse<AuditInsights>> {
-    return this.fetch('/api/audit/insights');
+    return this.fetch("/api/audit/insights");
   }
 
   // Runs
   async getRuns(): Promise<ApiResponse<Run[]>> {
-    return this.fetch('/api/cre/runs');
+    return this.fetch("/api/cre/runs");
   }
 
   async getRun(runId: string): Promise<ApiResponse<Run>> {
@@ -110,12 +120,12 @@ class ApiClient {
 
   // Policies
   async getPolicies(): Promise<ApiResponse<Policy[]>> {
-    return this.fetch('/api/governance/policies');
+    return this.fetch("/api/governance/policies");
   }
 
   async createPolicy(policy: Partial<Policy>): Promise<ApiResponse<Policy>> {
-    return this.fetch('/api/governance/policies', {
-      method: 'POST',
+    return this.fetch("/api/governance/policies", {
+      method: "POST",
       body: JSON.stringify(policy),
     });
   }
@@ -130,15 +140,15 @@ class ApiClient {
     };
     policyId?: string;
   }): Promise<ApiResponse<GovernanceEvaluation>> {
-    return this.fetch('/api/governance/evaluate', {
-      method: 'POST',
+    return this.fetch("/api/governance/evaluate", {
+      method: "POST",
       body: JSON.stringify(params),
     });
   }
 
   // Agents
   async getAgents(): Promise<ApiResponse<Agent[]>> {
-    return this.fetch('/api/agents');
+    return this.fetch("/api/agents");
   }
 
   async getAgent(agentId: string): Promise<ApiResponse<Agent>> {
@@ -152,8 +162,8 @@ class ApiClient {
     currency: string;
     description: string;
   }): Promise<ApiResponse<GovernanceEvaluation>> {
-    return this.fetch('/api/spend/preview', {
-      method: 'POST',
+    return this.fetch("/api/spend/preview", {
+      method: "POST",
       body: JSON.stringify(params),
     });
   }
@@ -164,20 +174,22 @@ class ApiClient {
     currency: string;
     description: string;
   }): Promise<ApiResponse<Record<string, unknown>>> {
-    return this.fetch('/api/spend', {
-      method: 'POST',
+    return this.fetch("/api/spend", {
+      method: "POST",
       body: JSON.stringify(params),
     });
   }
 
   // Intent
   async getIntentMetrics(): Promise<ApiResponse<IntentMetrics>> {
-    return this.fetch('/api/intent/metrics');
+    return this.fetch("/api/intent/metrics");
   }
 
-  async processIntent(text: string): Promise<ApiResponse<Record<string, unknown>>> {
-    return this.fetch('/api/intent', {
-      method: 'POST',
+  async processIntent(
+    text: string,
+  ): Promise<ApiResponse<Record<string, unknown>>> {
+    return this.fetch("/api/intent", {
+      method: "POST",
       body: JSON.stringify({ text }),
     });
   }
@@ -187,52 +199,54 @@ class ApiClient {
     name: string;
     chain: string;
   }): Promise<ApiResponse<Record<string, unknown>>> {
-    return this.fetch('/api/ows/bootstrap', {
-      method: 'POST',
+    return this.fetch("/api/ows/bootstrap", {
+      method: "POST",
       body: JSON.stringify(params),
     });
   }
 
   async getWallets(): Promise<ApiResponse<Array<Record<string, unknown>>>> {
-    return this.fetch('/api/ows/wallets');
+    return this.fetch("/api/ows/wallets");
   }
 
   async createApiKey(params: {
     walletId: string;
     scopes: string[];
   }): Promise<ApiResponse<Record<string, unknown>>> {
-    return this.fetch('/api/ows/api-keys', {
-      method: 'POST',
+    return this.fetch("/api/ows/api-keys", {
+      method: "POST",
       body: JSON.stringify(params),
     });
   }
 
   // Workspace API Keys
   async getApiKeys(): Promise<ApiResponse<ApiKey[]>> {
-    return this.fetch('/api-keys');
+    return this.fetch("/api-keys");
   }
 
   async createWorkspaceApiKey(params: {
     name: string;
     scopes: string[];
   }): Promise<ApiResponse<ApiKeyCreateResponse>> {
-    return this.fetch('/api-keys', {
-      method: 'POST',
+    return this.fetch("/api-keys", {
+      method: "POST",
       body: JSON.stringify(params),
     });
   }
 
-  async revokeApiKey(keyId: string): Promise<ApiResponse<{ id: string; revokedAt: string }>> {
-    return this.fetch(`/api-keys/${keyId}`, { method: 'DELETE' });
+  async revokeApiKey(
+    keyId: string,
+  ): Promise<ApiResponse<{ id: string; revokedAt: string }>> {
+    return this.fetch(`/api-keys/${keyId}`, { method: "DELETE" });
   }
 
   // Workspace
   async updateWorkspace(params: {
     name?: string;
-    tier?: 'demo' | 'live';
+    tier?: "demo" | "live";
   }): Promise<ApiResponse<Workspace>> {
-    return this.fetch('/workspace', {
-      method: 'PUT',
+    return this.fetch("/workspace", {
+      method: "PUT",
       body: JSON.stringify(params),
     });
   }
@@ -245,8 +259,8 @@ class ApiClient {
     walletAddress?: string;
     budget?: string;
   }): Promise<ApiResponse<Agent>> {
-    return this.fetch('/api/agents/register', {
-      method: 'POST',
+    return this.fetch("/api/agents/register", {
+      method: "POST",
       body: JSON.stringify(params),
     });
   }
@@ -259,8 +273,8 @@ class ApiClient {
     budget?: string;
     webhookUrl?: string;
   }): Promise<ApiResponse<Agent>> {
-    return this.fetch('/api/agents/connect', {
-      method: 'POST',
+    return this.fetch("/api/agents/connect", {
+      method: "POST",
       body: JSON.stringify(params),
     });
   }
@@ -273,8 +287,8 @@ class ApiClient {
     rules?: Array<Record<string, unknown>>;
     metadata?: Record<string, unknown>;
   }): Promise<ApiResponse<Policy>> {
-    return this.fetch('/api/governance/policies', {
-      method: 'POST',
+    return this.fetch("/api/governance/policies", {
+      method: "POST",
       body: JSON.stringify(params),
     });
   }
@@ -284,8 +298,8 @@ class ApiClient {
     audio: string; // base64
     mimeType?: string;
   }): Promise<ApiResponse<{ text: string; language?: string }>> {
-    return this.fetch('/api/speech/transcribe', {
-      method: 'POST',
+    return this.fetch("/api/speech/transcribe", {
+      method: "POST",
       body: JSON.stringify(params),
     });
   }
@@ -293,10 +307,10 @@ class ApiClient {
   // Agent status update
   async updateAgentStatus(
     agentId: string,
-    status: 'active' | 'paused' | 'inactive',
+    status: "active" | "paused" | "inactive",
   ): Promise<ApiResponse<{ id: string; status: string }>> {
     return this.fetch(`/api/agents/${agentId}/status`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify({ status }),
     });
   }

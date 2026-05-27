@@ -1,12 +1,19 @@
-'use client';
+"use client";
 
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter } from 'next/navigation';
-import { Activity, RefreshCw, CheckCircle2, Clock, AlertTriangle, PlayCircle } from 'lucide-react';
-import { useRuns } from '@/hooks/use-api';
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
+import {
+  Activity,
+  RefreshCw,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  PlayCircle,
+} from "lucide-react";
+import { useRuns } from "@/hooks/use-api";
 
 export function RunsPage() {
   const router = useRouter();
@@ -35,7 +42,9 @@ export function RunsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Runs</h1>
-          <p className="text-sm text-muted-foreground mt-1">Agent workflow execution traces</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Agent workflow execution traces
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {error && (
@@ -69,7 +78,9 @@ export function RunsPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <Activity className="h-5 w-5 text-primary" />
               <div>
-                <div className="text-xl font-bold">{statuses['running'] || 0}</div>
+                <div className="text-xl font-bold">
+                  {statuses["running"] || 0}
+                </div>
                 <div className="text-xs text-muted-foreground">Active</div>
               </div>
             </CardContent>
@@ -78,7 +89,9 @@ export function RunsPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               <div>
-                <div className="text-xl font-bold">{statuses['completed'] || 0}</div>
+                <div className="text-xl font-bold">
+                  {statuses["completed"] || 0}
+                </div>
                 <div className="text-xs text-muted-foreground">Completed</div>
               </div>
             </CardContent>
@@ -87,7 +100,9 @@ export function RunsPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <Clock className="h-5 w-5 text-sky-500" />
               <div>
-                <div className="text-xl font-bold">{statuses['paused_for_approval'] || 0}</div>
+                <div className="text-xl font-bold">
+                  {statuses["paused_for_approval"] || 0}
+                </div>
                 <div className="text-xs text-muted-foreground">Awaiting</div>
               </div>
             </CardContent>
@@ -96,7 +111,9 @@ export function RunsPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <AlertTriangle className="h-5 w-5 text-red-500" />
               <div>
-                <div className="text-xl font-bold">{statuses['failed'] || 0}</div>
+                <div className="text-xl font-bold">
+                  {statuses["failed"] || 0}
+                </div>
                 <div className="text-xs text-muted-foreground">Failed</div>
               </div>
             </CardContent>
@@ -109,7 +126,11 @@ export function RunsPage() {
         <Button size="sm" variant="outline" onClick={() => router.refresh()}>
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
         </Button>
-        <Button size="sm" variant="default" onClick={() => router.push('/governance/check')}>
+        <Button
+          size="sm"
+          variant="default"
+          onClick={() => router.push("/governance/check")}
+        >
           <PlayCircle className="h-3.5 w-3.5" /> New Evaluation
         </Button>
       </div>
@@ -119,8 +140,13 @@ export function RunsPage() {
         <div className="p-12 text-center text-muted-foreground border rounded-xl">
           <Activity className="h-8 w-8 mx-auto mb-3 opacity-50" />
           <p className="font-medium">No runs yet</p>
-          <p className="text-sm mt-1">Run a governance check to see execution traces here</p>
-          <Button className="mt-4" onClick={() => router.push('/governance/check')}>
+          <p className="text-sm mt-1">
+            Run a governance check to see execution traces here
+          </p>
+          <Button
+            className="mt-4"
+            onClick={() => router.push("/governance/check")}
+          >
             <PlayCircle className="h-3.5 w-3.5" /> Run a Check
           </Button>
         </div>
@@ -137,19 +163,21 @@ export function RunsPage() {
                   <div className="flex items-center gap-3 flex-wrap">
                     <Badge
                       variant={
-                        run.status === 'completed'
-                          ? 'secondary'
-                          : run.status === 'running'
-                            ? 'default'
-                            : run.status === 'failed'
-                              ? 'destructive'
-                              : 'outline'
+                        run.status === "completed"
+                          ? "secondary"
+                          : run.status === "running"
+                            ? "default"
+                            : run.status === "failed"
+                              ? "destructive"
+                              : "outline"
                       }
                     >
                       {run.status.toUpperCase()}
                     </Badge>
                     <span className="font-medium text-sm">{run.workflow}</span>
-                    <span className="text-xs text-muted-foreground">{run.mode}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {run.mode}
+                    </span>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                     <span>{run.steps} steps</span>

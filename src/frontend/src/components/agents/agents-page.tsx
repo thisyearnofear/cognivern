@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter } from 'next/navigation';
-import { Users, PlusCircle } from 'lucide-react';
-import { useAgents } from '@/hooks/use-api';
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
+import { Users, PlusCircle } from "lucide-react";
+import { useAgents } from "@/hooks/use-api";
 
 export function AgentsPage() {
   const router = useRouter();
@@ -19,7 +19,9 @@ export function AgentsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Agents</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage and monitor governed agents</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage and monitor governed agents
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {error && (
@@ -27,7 +29,7 @@ export function AgentsPage() {
               Error
             </Badge>
           )}
-          <Button onClick={() => router.push('/agents/workshop')}>
+          <Button onClick={() => router.push("/agents/workshop")}>
             <PlusCircle className="h-4 w-4" /> Add Agent
           </Button>
         </div>
@@ -46,7 +48,12 @@ export function AgentsPage() {
       ) : error ? (
         <div className="p-12 text-center text-muted-foreground border rounded-xl">
           <p>Failed to load agents</p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={() => router.refresh()}
+          >
             Retry
           </Button>
         </div>
@@ -55,7 +62,10 @@ export function AgentsPage() {
           <Users className="h-8 w-8 mx-auto mb-3 opacity-50" />
           <p className="font-medium">No agents yet</p>
           <p className="text-sm mt-1">Create your first agent to get started</p>
-          <Button className="mt-4" onClick={() => router.push('/agents/workshop')}>
+          <Button
+            className="mt-4"
+            onClick={() => router.push("/agents/workshop")}
+          >
             <PlusCircle className="h-4 w-4" /> Create Agent
           </Button>
         </div>
@@ -72,27 +82,29 @@ export function AgentsPage() {
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        agent.status === 'active'
-                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600'
-                          : agent.status === 'paused'
-                            ? 'bg-amber-100 dark:bg-amber-950 text-amber-600'
-                            : 'bg-stone-100 dark:bg-stone-800 text-stone-400'
+                        agent.status === "active"
+                          ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600"
+                          : agent.status === "paused"
+                            ? "bg-amber-100 dark:bg-amber-950 text-amber-600"
+                            : "bg-stone-100 dark:bg-stone-800 text-stone-400"
                       }`}
                     >
                       <Users className="h-5 w-5" />
                     </div>
                     <div>
                       <div className="font-semibold">{agent.name}</div>
-                      <div className="text-xs text-muted-foreground">{agent.role}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {agent.role}
+                      </div>
                     </div>
                   </div>
                   <Badge
                     variant={
-                      agent.status === 'active'
-                        ? 'secondary'
-                        : agent.status === 'paused'
-                          ? 'outline'
-                          : 'outline'
+                      agent.status === "active"
+                        ? "secondary"
+                        : agent.status === "paused"
+                          ? "outline"
+                          : "outline"
                     }
                   >
                     {agent.status}

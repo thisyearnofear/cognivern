@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 interface ApprovalSparklineProps {
   logs: Array<{
@@ -16,16 +16,16 @@ export function ApprovalSparkline({ logs }: ApprovalSparklineProps) {
 
   // Sort by timestamp and calculate rolling approval rate
   const sorted = [...logs].sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
 
   const data = sorted.map((l, i) => {
     const slice = sorted.slice(0, i + 1);
     const approved = slice.filter(
       (s) =>
-        s.outcome === 'allowed' ||
-        s.complianceStatus === 'compliant' ||
-        s.decision === 'approved',
+        s.outcome === "allowed" ||
+        s.complianceStatus === "compliant" ||
+        s.decision === "approved",
     ).length;
     return {
       index: i,
@@ -36,7 +36,10 @@ export function ApprovalSparkline({ logs }: ApprovalSparklineProps) {
   return (
     <div className="h-8 w-24">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+        <LineChart
+          data={data}
+          margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
+        >
           <Line
             type="monotone"
             dataKey="rate"

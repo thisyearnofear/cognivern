@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 import {
   getStatus,
   ensureTenant,
@@ -8,7 +8,7 @@ import {
   getRecentMemories,
   qna,
   getMetrics,
-} from '@/lib/hydradb-service';
+} from "@/lib/hydradb-service";
 
 /**
  * GET /api/os/hydra
@@ -39,17 +39,20 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action } = body;
 
-    if (!action || typeof action !== 'string') {
-      return NextResponse.json({ success: false, error: 'Action is required' }, { status: 400 });
+    if (!action || typeof action !== "string") {
+      return NextResponse.json(
+        { success: false, error: "Action is required" },
+        { status: 400 },
+      );
     }
 
     switch (action) {
-      case 'status': {
+      case "status": {
         const status = await getStatus();
         return NextResponse.json({ success: true, data: status });
       }
 
-      case 'ensure-tenant': {
+      case "ensure-tenant": {
         const result = await ensureTenant();
         return NextResponse.json({
           success: result.ok,
@@ -58,10 +61,13 @@ export async function POST(request: Request) {
         });
       }
 
-      case 'memory': {
+      case "memory": {
         const { text, title } = body;
-        if (!text || typeof text !== 'string') {
-          return NextResponse.json({ success: false, error: 'text is required' }, { status: 400 });
+        if (!text || typeof text !== "string") {
+          return NextResponse.json(
+            { success: false, error: "text is required" },
+            { status: 400 },
+          );
         }
         const result = await addMemory(text, title);
         return NextResponse.json({
@@ -71,11 +77,14 @@ export async function POST(request: Request) {
         });
       }
 
-      case 'recall':
-      case 'search': {
+      case "recall":
+      case "search": {
         const { query } = body;
-        if (!query || typeof query !== 'string') {
-          return NextResponse.json({ success: false, error: 'query is required' }, { status: 400 });
+        if (!query || typeof query !== "string") {
+          return NextResponse.json(
+            { success: false, error: "query is required" },
+            { status: 400 },
+          );
         }
         const result = await fullRecall(query);
         return NextResponse.json({
@@ -85,8 +94,11 @@ export async function POST(request: Request) {
         });
       }
 
-      case 'recent': {
-        const limit = typeof body.limit === 'number' ? Math.min(Math.max(1, body.limit), 20) : 5;
+      case "recent": {
+        const limit =
+          typeof body.limit === "number"
+            ? Math.min(Math.max(1, body.limit), 20)
+            : 5;
         const result = await getRecentMemories(limit);
         return NextResponse.json({
           success: result.ok,
@@ -95,10 +107,13 @@ export async function POST(request: Request) {
         });
       }
 
-      case 'preferences': {
+      case "preferences": {
         const { query } = body;
-        if (!query || typeof query !== 'string') {
-          return NextResponse.json({ success: false, error: 'query is required' }, { status: 400 });
+        if (!query || typeof query !== "string") {
+          return NextResponse.json(
+            { success: false, error: "query is required" },
+            { status: 400 },
+          );
         }
         const result = await recallPreferences(query);
         return NextResponse.json({
@@ -108,11 +123,11 @@ export async function POST(request: Request) {
         });
       }
 
-      case 'qna': {
+      case "qna": {
         const { question } = body;
-        if (!question || typeof question !== 'string') {
+        if (!question || typeof question !== "string") {
           return NextResponse.json(
-            { success: false, error: 'question is required' },
+            { success: false, error: "question is required" },
             { status: 400 },
           );
         }
@@ -124,7 +139,7 @@ export async function POST(request: Request) {
         });
       }
 
-      case 'metrics': {
+      case "metrics": {
         const result = await getMetrics();
         return NextResponse.json({
           success: result.ok,

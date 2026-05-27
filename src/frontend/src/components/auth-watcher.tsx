@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
-import { useAccount } from 'wagmi';
-import { useAppStore } from '@/stores/app-store';
-import { useAuth } from '@/hooks/use-auth';
+import { useEffect, useRef } from "react";
+import { useAccount } from "wagmi";
+import { useAppStore } from "@/stores/app-store";
+import { useAuth } from "@/hooks/use-auth";
 
 /**
  * Watcher component that auto-triggers the Sign-In flow
@@ -33,11 +33,17 @@ export function AuthWatcher() {
     // 2. App is NOT authenticated
     // 3. We haven't attempted auto-signin for this session yet
     // 4. Not currently loading
-    if (isConnected && address && !user.isConnected && !autoSignInAttempted.current && !loading) {
-      console.log('[AuthWatcher] Auto-triggering Sign In for', address);
+    if (
+      isConnected &&
+      address &&
+      !user.isConnected &&
+      !autoSignInAttempted.current &&
+      !loading
+    ) {
+      console.log("[AuthWatcher] Auto-triggering Sign In for", address);
       autoSignInAttempted.current = true;
       signIn().catch((err) => {
-        console.error('[AuthWatcher] Auto Sign In failed:', err);
+        console.error("[AuthWatcher] Auto Sign In failed:", err);
         // We don't reset the ref here to prevent infinite retry loops on failure
       });
     }
