@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { DemoBanner } from '@/components/layout/demo-banner';
@@ -13,16 +14,21 @@ function DemoSimulator() {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isOsPage = pathname === '/os';
+
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="flex flex-col">
-        <header className="flex items-center gap-2 px-4 pt-2 md:hidden">
-          <SidebarTrigger aria-label="Toggle sidebar navigation" />
-        </header>
-        <DemoBanner />
-        <DemoSimulator />
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        {isOsPage ? null : (
+          <header className="flex items-center gap-2 px-4 pt-2 md:hidden">
+            <SidebarTrigger aria-label="Toggle sidebar navigation" />
+          </header>
+        )}
+        {isOsPage ? null : <DemoBanner />}
+        {isOsPage ? null : <DemoSimulator />}
+        <main className={`flex-1 overflow-auto ${isOsPage ? 'p-0' : 'p-4 md:p-6'}`}>
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
       </SidebarInset>

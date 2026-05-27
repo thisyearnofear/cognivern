@@ -13,7 +13,7 @@ export default function OsPage() {
 
 function OsBootFallback() {
   return (
-    <div className="h-screen w-screen bg-black flex items-center justify-center">
+    <div className="h-full w-full bg-[#0a0a0a] flex items-center justify-center">
       <div className="font-mono text-green-500 text-sm animate-pulse">
         cognivern os: loading kernel...
       </div>
