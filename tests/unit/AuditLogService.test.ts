@@ -38,8 +38,8 @@ describe("AuditLogService persists logs deterministically via CRE store", () => 
     expect(logs.length).toBe(1);
     expect(logs[0].agent).toBe("recall");
     expect(logs[0].responseTime).toBe(42);
-    expect(logs[0].severity).toBe("medium");
-    expect(logs[0].complianceStatus).toBe("warning");
+    expect(logs[0].severity).toBe("low"); // run.ok=true maps to "low"
+    expect(logs[0].complianceStatus).toBe("compliant"); // run.ok=true maps to "compliant"
 
     await fs.promises.rm(tempDir, { recursive: true, force: true });
   });

@@ -132,7 +132,7 @@ export class AuditLogService {
     };
 
     const metrics = {
-      latencyMs: 0,
+      latencyMs: eventData.details?.latencyMs ?? 0,
       stepCount: 1,
       artifactCount: 1,
     };
