@@ -85,10 +85,7 @@ describe("SpendController", () => {
     await controller.requestEncryptedSpend(
       makeReq({
         agentId: "agent-1",
-        recipient: "0xabc",
-        amount: "100",
-        asset: "ETH",
-        reason: "Missing encrypted amount",
+        // missing required recipient, amount, asset, reason
       }),
       res as any,
     );

@@ -1,5 +1,16 @@
-import { describe, it, expect } from "vitest";
-import { SapienceService } from "../../src/backend/services/SapienceService.js";
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("@sapience/sdk", () => ({
+  submitForecast: vi.fn(),
+  contracts: {},
+  CHAIN_ID_ARBITRUM: 42161,
+  prepareForTrade: vi.fn(),
+  CHAIN_ID_ETHEREAL: 1,
+}));
+
+const { SapienceService } = await import(
+  "../../src/backend/services/SapienceService.js"
+);
 
 describe("SapienceService", () => {
   it("should initialize with default config", () => {

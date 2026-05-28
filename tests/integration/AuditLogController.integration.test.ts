@@ -56,7 +56,7 @@ describe("AuditLogController", () => {
     const res = new MockRes();
 
     await controller.issuePermit(
-      makeReq({ policyId: "missing-auditor" }),
+      makeReq({ auditor: "0xAuditor" }), // missing required policyId
       res as any,
     );
 
