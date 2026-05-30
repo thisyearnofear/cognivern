@@ -109,6 +109,45 @@ function migrate(db: Database.Database): void {
   } catch {
     /* already exists */
   }
+
+  // Migration: add email auth fields to users (idempotent)
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN email TEXT UNIQUE`);
+  } catch {
+    /* already exists */
+  }
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN password_hash TEXT`);
+  } catch {
+    /* already exists */
+  }
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0`);
+  } catch {
+    /* already exists */
+  }
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN verification_token TEXT`);
+  } catch {
+    /* already exists */
+  }
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN reset_token TEXT`);
+  } catch {
+    /* already exists */
+  }
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN reset_token_expires_at TEXT`);
+  } catch {
+    /* already exists */
+  }
+
+  // Migration: add auth method to users (idempotent)
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN auth_method TEXT NOT NULL DEFAULT 'wallet'`);
+  } catch {
+    /* already exists */
+  }
 }
 
 export function closeDb(): void {

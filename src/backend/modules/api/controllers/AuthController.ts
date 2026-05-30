@@ -2,8 +2,35 @@ import { Request, Response } from "express";
 import { SiweMessage, generateNonce } from "siwe";
 import { SignJWT } from "jose";
 import { randomUUID } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import type { AuthUser, Workspace } from "@cognivern/shared";
 import { getDb } from "../../../db/index.js";
+
+// Simple bcrypt-like hashing using scrypt (built into Node.js crypto)
+async function hashPassword(password: string): Promise<string> {
+  const { scryptSync, randomBytes } = await import("node:crypto");
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+async function verifyPassword(
+  password: string,
+  storedHash: string,
+): Promise<boolean> {
+  const { scryptSync } = await import("node:crypto");
+  const [salt, hash] = storedHash.split(":");
+  const verifyHash = scryptSync(password, salt, 64).toString("hex");
+  return hash === verifyHash;
+}
+
+function generateToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
 function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -270,6 +297,348 @@ export class AuthController {
         createdAt: workspace.created_at,
         updatedAt: workspace.updated_at,
       } as Workspace,
+    });
+  }
+
+  async register(req: Request, res: Response): Promise<void> {
+    const { email, password } = req.body as { email: string; password: string };
+
+    if (!email || !password) {
+      res.status(400).json({
+        success: false,
+        error: "Email and password are required",
+      });
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid email format",
+      });
+      return;
+    }
+
+    if (password.length < 8) {
+      res.status(400).json({
+        success: false,
+        error: "Password must be at least 8 characters",
+      });
+      return;
+    }
+
+    const db = getDb();
+    const normalizedEmail = email.toLowerCase();
+
+    // Check if user already exists
+    const existing = db
+      .prepare("SELECT id FROM users WHERE email = ?")
+      .get(normalizedEmail);
+    if (existing) {
+      res.status(409).json({
+        success: false,
+        error: "An account with this email already exists",
+      });
+      return;
+    }
+
+    const userId = randomUUID();
+    const workspaceId = randomUUID();
+    const now = new Date().toISOString();
+    const verificationToken = generateToken();
+    const passwordHash = await hashPassword(password);
+
+    // Extract name from email for workspace
+    const workspaceName = `${normalizedEmail.split("@")[0]}'s Workspace`;
+
+    const transaction = db.transaction(() => {
+      db.prepare(
+        "INSERT INTO users (id, email, password_hash, auth_method, verification_token, email_verified, created_at, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      ).run(
+        userId,
+        normalizedEmail,
+        passwordHash,
+        "email",
+        verificationToken,
+        0,
+        now,
+        now,
+      );
+
+      db.prepare(
+        "INSERT INTO workspaces (id, name, owner_id, tier, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+      ).run(workspaceId, workspaceName, userId, "demo", now, now);
+    });
+
+    try {
+      transaction();
+    } catch (err) {
+      console.error("Registration error:", err);
+      res.status(500).json({
+        success: false,
+        error: "Failed to create account",
+      });
+      return;
+    }
+
+    // In production, send verification email here
+    // For now, we'll auto-verify in demo mode
+    if (process.env.NODE_ENV !== "production") {
+      db.prepare("UPDATE users SET email_verified = 1 WHERE id = ?").run(userId);
+    }
+
+    res.status(201).json({
+      success: true,
+      message:
+        process.env.NODE_ENV === "production"
+          ? "Account created. Please check your email to verify your account."
+          : "Account created successfully.",
+      userId,
+      email: normalizedEmail,
+    });
+  }
+
+  async login(req: Request, res: Response): Promise<void> {
+    const { email, password } = req.body as { email: string; password: string };
+
+    if (!email || !password) {
+      res.status(400).json({
+        success: false,
+        error: "Email and password are required",
+      });
+      return;
+    }
+
+    const db = getDb();
+    const normalizedEmail = email.toLowerCase();
+
+    const user = db
+      .prepare(
+        "SELECT id, email, password_hash, auth_method, email_verified, wallet_address, created_at, last_login_at FROM users WHERE email = ?",
+      )
+      .get(normalizedEmail) as
+      | {
+          id: string;
+          email: string;
+          password_hash: string;
+          auth_method: string;
+          email_verified: number;
+          wallet_address: string | null;
+          created_at: string;
+          last_login_at: string;
+        }
+      | undefined;
+
+    if (!user || user.auth_method !== "email") {
+      res.status(401).json({
+        success: false,
+        error: "Invalid email or password",
+      });
+      return;
+    }
+
+    const isValid = await verifyPassword(password, user.password_hash);
+    if (!isValid) {
+      res.status(401).json({
+        success: false,
+        error: "Invalid email or password",
+      });
+      return;
+    }
+
+    // Get workspace
+    const workspace = db
+      .prepare(
+        "SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE owner_id = ?",
+      )
+      .get(user.id) as
+      | {
+          id: string;
+          name: string;
+          owner_id: string;
+          tier: string;
+          created_at: string;
+          updated_at: string;
+        }
+      | undefined;
+
+    if (!workspace) {
+      res.status(500).json({
+        success: false,
+        error: "No workspace found for user",
+      });
+      return;
+    }
+
+    // Update last login
+    const now = new Date().toISOString();
+    db.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").run(
+      now,
+      user.id,
+    );
+
+    const authUser: AuthUser = {
+      id: user.id,
+      email: user.email,
+      emailVerified: user.email_verified === 1,
+      authMethod: user.auth_method,
+      createdAt: user.created_at,
+      lastLoginAt: now,
+    };
+
+    const authWorkspace: Workspace = {
+      id: workspace.id,
+      name: workspace.name,
+      ownerId: workspace.owner_id,
+      tier: workspace.tier as "demo" | "live",
+      createdAt: workspace.created_at,
+      updatedAt: workspace.updated_at,
+    };
+
+    const token = await new SignJWT({
+      sub: authUser.id,
+      email: authUser.email,
+      workspaceId: authWorkspace.id,
+      authMethod: authUser.authMethod,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("24h")
+      .sign(JWT_SECRET);
+
+    res.json({ token, user: authUser, workspace: authWorkspace });
+  }
+
+  async verifyEmail(req: Request, res: Response): Promise<void> {
+    const { token } = req.body as { token: string };
+
+    if (!token) {
+      res.status(400).json({
+        success: false,
+        error: "Verification token is required",
+      });
+      return;
+    }
+
+    const db = getDb();
+    const user = db
+      .prepare(
+        "SELECT id, verification_token FROM users WHERE verification_token = ?",
+      )
+      .get(token) as { id: string; verification_token: string } | undefined;
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: "Invalid or expired verification token",
+      });
+      return;
+    }
+
+    db.prepare(
+      "UPDATE users SET email_verified = 1, verification_token = NULL WHERE id = ?",
+    ).run(user.id);
+
+    res.json({
+      success: true,
+      message: "Email verified successfully",
+    });
+  }
+
+  async forgotPassword(req: Request, res: Response): Promise<void> {
+    const { email } = req.body as { email: string };
+
+    if (!email) {
+      res.status(400).json({
+        success: false,
+        error: "Email is required",
+      });
+      return;
+    }
+
+    const db = getDb();
+    const normalizedEmail = email.toLowerCase();
+
+    const user = db
+      .prepare("SELECT id FROM users WHERE email = ? AND auth_method = 'email'")
+      .get(normalizedEmail);
+
+    // Always return success to prevent email enumeration
+    res.json({
+      success: true,
+      message:
+        "If an account exists with this email, you will receive a password reset link.",
+    });
+
+    if (!user) {
+      return;
+    }
+
+    const resetToken = generateToken();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+
+    db.prepare(
+      "UPDATE users SET reset_token = ?, reset_token_expires_at = ? WHERE id = ?",
+    ).run(resetToken, expiresAt, (user as { id: string }).id);
+
+    // In production, send email with reset link
+    console.log(
+      `Password reset token for ${normalizedEmail}: ${resetToken}`,
+    );
+  }
+
+  async resetPassword(req: Request, res: Response): Promise<void> {
+    const { token, password } = req.body as { token: string; password: string };
+
+    if (!token || !password) {
+      res.status(400).json({
+        success: false,
+        error: "Token and new password are required",
+      });
+      return;
+    }
+
+    if (password.length < 8) {
+      res.status(400).json({
+        success: false,
+        error: "Password must be at least 8 characters",
+      });
+      return;
+    }
+
+    const db = getDb();
+    const user = db
+      .prepare(
+        "SELECT id, reset_token_expires_at FROM users WHERE reset_token = ?",
+      )
+      .get(token) as
+      | { id: string; reset_token_expires_at: string }
+      | undefined;
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: "Invalid or expired reset token",
+      });
+      return;
+    }
+
+    if (new Date(user.reset_token_expires_at) < new Date()) {
+      res.status(400).json({
+        success: false,
+        error: "Reset token has expired",
+      });
+      return;
+    }
+
+    const passwordHash = await hashPassword(password);
+    db.prepare(
+      "UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires_at = NULL WHERE id = ?",
+    ).run(passwordHash, user.id);
+
+    res.json({
+      success: true,
+      message: "Password reset successfully",
     });
   }
 }

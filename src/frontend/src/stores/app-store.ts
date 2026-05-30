@@ -91,7 +91,7 @@ const storeImpl = (set: (partial: Partial<AppState>) => void, get: () => AppStat
       demoMode: false,
       user: {
         isConnected: true,
-        walletAddress: authUser.walletAddress,
+        walletAddress: authUser.walletAddress ?? null,
         authUser,
         workspace,
         token,

@@ -131,8 +131,20 @@
 }
 
 /* PromptOS terminal styles */
+.os-terminal {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
 .os-terminal .xterm {
-  padding: 12px;
+  padding: 16px;
+}
+
+.os-terminal .xterm-viewport {
+  padding-bottom: 8px;
 }
 
 .os-terminal .xterm-cursor {
@@ -199,4 +211,20 @@
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: #27272a;
   border-radius: 2px;
+}
+
+/* Demo mode pulse animation */
+@keyframes pulse-bg {
+  0%, 100% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(100%);
+  }
+}
+
+.animate-\[pulse-bg_2s_ease-in-out_infinite\] {
+  animation: pulse-bg 2s ease-in-out infinite;
 }

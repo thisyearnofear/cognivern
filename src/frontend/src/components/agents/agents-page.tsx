@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState, EmptyState } from "@/components/ui/error-state";
 import { useRouter } from "next/navigation";
 import { Users, PlusCircle } from "lucide-react";
 import { useAgents } from "@/hooks/use-api";
@@ -46,29 +47,23 @@ export function AgentsPage() {
           ))}
         </div>
       ) : error ? (
-        <div className="p-12 text-center text-muted-foreground border rounded-xl">
-          <p>Failed to load agents</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2"
-            onClick={() => router.refresh()}
-          >
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          title="Failed to load agents"
+          message={error?.message || "We couldn't load your agents. Please try again."}
+          onRetry={() => router.refresh()}
+        />
       ) : agentList.length === 0 ? (
-        <div className="p-12 text-center text-muted-foreground border rounded-xl">
-          <Users className="h-8 w-8 mx-auto mb-3 opacity-50" />
-          <p className="font-medium">No agents yet</p>
-          <p className="text-sm mt-1">Create your first agent to get started</p>
-          <Button
-            className="mt-4"
-            onClick={() => router.push("/agents/workshop")}
-          >
-            <PlusCircle className="h-4 w-4" /> Create Agent
-          </Button>
-        </div>
+        <EmptyState
+          icon={<Users className="h-8 w-8 text-muted-foreground" />}
+          title="No agents yet"
+          description="Create your first agent to start governing spend."
+          action={{
+            label: "Create Agent",
+            onClick: () => router.push("/agents/workshop"),
+            icon: <PlusCircle className="h-4 w-4" />,
+          }}
+          className="border rounded-xl"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {agentList.map((agent) => (
