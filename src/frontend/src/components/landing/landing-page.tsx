@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
@@ -11,9 +11,13 @@ import {
   Eye,
   Shield,
   Sparkles,
+  FileText,
+  HelpCircle,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShieldLogo } from "@/components/landing/shield-logo";
+import { AuthModal } from "@/components/auth/auth-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppStore } from "@/stores/app-store";
 
@@ -25,6 +29,7 @@ export function LandingPage() {
   const onboardingCompleted = useAppStore(
     (s) => s.preferences.onboardingCompleted,
   );
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Redirect onboarded or demo-mode users straight to the dashboard
   useEffect(() => {
@@ -56,10 +61,26 @@ export function LandingPage() {
           Cognivern
         </div>
         <div className="flex items-center gap-3">
-          <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 bg-stone-100 dark:bg-stone-800 text-stone-500 rounded-full text-xs">
+          <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 bg-stone-100 dark:bg-stone-800 text-stone-500 rounded-full text-xs group relative">
             <Shield size={10} />
             OWS
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
+              Open Wallet Standard — decentralized key custody for agents
+              <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-stone-900 dark:border-t-stone-100"></span>
+            </span>
           </span>
+          <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 rounded-full text-xs">
+            ✦ Cogni-vern: governance for the cognitive age
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAuthModal(true)}
+            className="gap-1.5"
+          >
+            <User className="h-4 w-4" />
+            Sign In
+          </Button>
           {loading ? (
             <Button variant="default" size="sm" disabled>
               Connecting...
@@ -327,6 +348,82 @@ export function LandingPage() {
           </div>
         </div>
 
+        {/* FHE Education */}
+        <div className="mt-16 text-left">
+          <div className="flex items-center gap-2 mb-6">
+            <Lock size={20} className="text-primary" />
+            <h2 className="text-xl font-bold text-foreground">
+              Built on Confidential Computing
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="p-6 rounded-xl bg-white dark:bg-stone-900 border border-border">
+              <h3 className="font-semibold text-foreground mb-3">
+                What is FHE?
+              </h3>
+              <p className="text-sm text-stone-500 mb-4">
+                Fully Homomorphic Encryption lets computations run on encrypted data 
+                without ever decrypting it. Your financial data stays private — 
+                even from Cognivern servers.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-2 py-1 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 text-xs rounded-md">
+                  Privacy by default
+                </span>
+                <span className="px-2 py-1 bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 text-xs rounded-md">
+                  Cryptographically secure
+                </span>
+                <span className="px-2 py-1 bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 text-xs rounded-md">
+                  &lt;100ms evaluation
+                </span>
+              </div>
+            </div>
+            <div className="p-6 rounded-xl bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30 border border-sky-100 dark:border-sky-800">
+              <h3 className="font-semibold text-foreground mb-3">
+                How it protects you
+              </h3>
+              <ul className="space-y-2 text-sm text-stone-500">
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-500 mt-0.5">✓</span>
+                  Transaction amounts encrypted end-to-end
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-500 mt-0.5">✓</span>
+                  Wallet balances never exposed to servers
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-500 mt-0.5">✓</span>
+                  Policy logic evaluated on encrypted inputs
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-500 mt-0.5">✓</span>
+                  Verifiable proofs without data exposure
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-4 flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.open("https://docs.cognivern.xyz/fhe", "_blank")}
+              className="gap-2 text-sky-600 dark:text-sky-400"
+            >
+              <HelpCircle className="h-4 w-4" />
+              Learn more about FHE
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.open("https://docs.cognivern.xyz/architecture", "_blank")}
+              className="gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Technical docs
+            </Button>
+          </div>
+        </div>
+
         {/* CTA */}
         <div className="mt-16 text-center">
           <h2 className="text-xl font-bold text-foreground mb-3">
@@ -373,6 +470,12 @@ export function LandingPage() {
           — Built for autonomous agent governance
         </div>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal
+        open={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { Component, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, RefreshCw, HelpCircle, Mail } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -34,9 +34,9 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
       return (
-        <div className="flex flex-col items-center justify-center gap-4 p-12 text-center">
-          <div className="p-4 rounded-full bg-red-100 dark:bg-red-950">
-            <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
+        <div className="flex flex-col items-center justify-center gap-4 p-12 text-center border border-destructive/20 rounded-xl bg-destructive/5">
+          <div className="p-4 rounded-full bg-destructive/10">
+            <AlertTriangle className="h-8 w-8 text-destructive" />
           </div>
           <div>
             <h2 className="text-lg font-semibold">Something went wrong</h2>
@@ -45,14 +45,35 @@ export class ErrorBoundary extends Component<Props, State> {
                 "An unexpected error occurred while loading this page."}
             </p>
           </div>
-          <Button
-            onClick={() => {
-              this.setState({ hasError: false, error: undefined });
-              window.location.reload();
-            }}
-          >
-            Reload Page
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            <Button
+              variant="outline"
+              onClick={() => {
+                this.setState({ hasError: false, error: undefined });
+                window.location.reload();
+              }}
+              className="gap-1.5"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Reload Page
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => window.open("https://docs.cognivern.xyz", "_blank")}
+              className="gap-1.5"
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+              View Docs
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => window.open("mailto:support@cognivern.xyz", "_blank")}
+              className="gap-1.5"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              Contact Support
+            </Button>
+          </div>
         </div>
       );
     }

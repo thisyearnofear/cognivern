@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   ArrowRight,
   ArrowLeft,
+  Sparkles,
 } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
@@ -183,8 +184,34 @@ export function OnboardingWizard() {
                   </span>
                 </div>
               ) : (
-                <div className="flex justify-center">
-                  <ConnectButton />
+                <div className="space-y-3">
+                  <div className="flex justify-center">
+                    <ConnectButton />
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">
+                        or
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      enableDemoMode();
+                      handleFinish();
+                    }}
+                    className="w-full gap-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Start with Demo Data
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Explore Cognivern with sample data. No wallet required.
+                  </p>
                 </div>
               )}
             </div>

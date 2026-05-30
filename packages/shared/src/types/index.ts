@@ -175,7 +175,10 @@ export interface CreateApiKeyRequest {
 // Auth types
 export interface AuthUser {
   id: string;
-  walletAddress: string;
+  walletAddress?: string;
+  email?: string;
+  emailVerified?: boolean;
+  authMethod?: "wallet" | "email";
   createdAt: string;
   lastLoginAt: string;
 }
@@ -210,6 +213,43 @@ export interface VerifyResponse {
   token: string;
   user: AuthUser;
   workspace: Workspace;
+}
+
+// Email auth types
+export interface RegisterRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+  userId?: string;
+  email?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: AuthUser;
+  workspace: Workspace;
+}
+
+export interface VerifyEmailRequest {
+  token: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
 }
 
 export interface WalletConfig {
