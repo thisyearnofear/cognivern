@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { toast } from "sonner";
 import { useSocketEvent } from "@/hooks/use-socket";
 import { useAppStore } from "@/stores/app-store";

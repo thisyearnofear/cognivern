@@ -10,7 +10,6 @@ import {
   formatIntentError,
   formatIntentResult,
   MAX_RECENT_PROMPTS,
-  MOBILE_PROMPT_HINT,
   ONBOARDING_STORAGE_KEY,
   QUICK_PROMPTS,
   RECENT_PROMPTS_STORAGE_KEY,
