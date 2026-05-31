@@ -94,10 +94,10 @@ export function LandingPage() {
       </header>
 
       {/* Hero */}
-      <main className="max-w-2xl mx-auto pt-32 pb-20 px-6 text-center">
+      <main className="max-w-2xl mx-auto pt-32 pb-24 px-6 text-center">
         {/* Shield Logo */}
         <motion.div
-          className="w-24 h-28 mx-auto mb-10"
+          className="w-24 h-28 mx-auto mb-12"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -105,21 +105,21 @@ export function LandingPage() {
           <ShieldLogo />
         </motion.div>
 
-        <span className="inline-block px-3 py-1.5 bg-stone-900 dark:bg-stone-50 text-sky-400 dark:text-sky-500 rounded-full text-sm font-semibold mb-6">
+        <span className="inline-block px-3 py-1.5 bg-stone-900 dark:bg-stone-50 text-sky-400 dark:text-sky-500 rounded-full text-sm font-semibold mb-8">
           For teams running AI agents that move money
         </span>
 
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-stone-900 dark:text-stone-50 leading-tight mb-4">
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-stone-900 dark:text-stone-50 leading-tight mb-6">
           Govern every agent transaction.{" "}
           <span className="text-primary">Without slowing builders down.</span>
         </h1>
 
-        <p className="text-lg text-stone-500 max-w-lg mx-auto mb-8">
+        <p className="text-lg text-stone-500 max-w-lg mx-auto mb-10">
           Checks every spend against your policy, holds risky moves for review,
           and gives you cryptographic audit evidence — in under 100ms.
         </p>
 
-        <div className="flex gap-4 justify-center flex-wrap mb-8">
+        <div className="flex gap-4 justify-center flex-wrap mb-10">
           <Button
             variant="default"
             size="lg"
@@ -145,7 +145,7 @@ export function LandingPage() {
           </Button>
         </div>
 
-        <div className="text-xs text-stone-400 mb-12">
+        <div className="text-xs text-stone-400 mb-16">
           <span className="text-emerald-500">✓</span> Demo opens instantly.
           <span className="font-semibold text-primary">
             {" "}
@@ -155,7 +155,7 @@ export function LandingPage() {
         </div>
 
         {/* Stats */}
-        <div className="flex justify-center gap-10 flex-wrap mb-16">
+        <div className="flex justify-center gap-14 flex-wrap mb-20">
           {[
             { label: "Multi-Chain", value: "4 Networks" },
             { label: "Avg. Response", value: "<100ms" },
@@ -163,7 +163,7 @@ export function LandingPage() {
           ].map((s) => (
             <div key={s.label} className="text-center">
               <div className="text-2xl font-bold text-primary">{s.value}</div>
-              <div className="text-sm text-stone-500">{s.label}</div>
+              <div className="text-sm text-stone-500 mt-1">{s.label}</div>
             </div>
           ))}
         </div>
@@ -206,11 +206,11 @@ export function LandingPage() {
         </div>
 
         {/* Use Cases */}
-        <div className="mt-16 text-left">
-          <h2 className="text-xl font-bold text-foreground mb-2">
+        <div className="mt-24 text-left">
+          <h2 className="text-xl font-bold text-foreground mb-3">
             Built for agents that move value
           </h2>
-          <p className="text-sm text-stone-500 mb-6">
+          <p className="text-sm text-stone-500 mb-8">
             Any autonomous agent that spends, swaps, stakes, or transfers
             on-chain can be governed by Cognivern.
           </p>
@@ -264,8 +264,8 @@ export function LandingPage() {
         </div>
 
         {/* Who is this for + Trust signals merged */}
-        <div className="mt-16 text-left">
-          <h2 className="text-xl font-bold text-foreground mb-6">
+        <div className="mt-24 text-left">
+          <h2 className="text-xl font-bold text-foreground mb-8">
             Who uses Cognivern?
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -308,7 +308,7 @@ export function LandingPage() {
         </div>
 
         {/* Multi-Chain */}
-        <div className="mt-16 p-8 rounded-2xl bg-stone-900 dark:bg-stone-900 border border-stone-800 text-left">
+        <div className="mt-24 p-8 rounded-2xl bg-stone-900 dark:bg-stone-900 border border-stone-800 text-left">
           <div className="flex items-center gap-2 mb-6">
             <Globe size={20} className="text-sky-400" />
             <h2 className="text-lg font-semibold text-sky-400">
@@ -349,8 +349,8 @@ export function LandingPage() {
         </div>
 
         {/* FHE Education */}
-        <div className="mt-16 text-left">
-          <div className="flex items-center gap-2 mb-6">
+        <div className="mt-24 text-left">
+          <div className="flex items-center gap-2 mb-8">
             <Lock size={20} className="text-primary" />
             <h2 className="text-xl font-bold text-foreground">
               Built on Confidential Computing
@@ -402,7 +402,7 @@ export function LandingPage() {
               </ul>
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mt-6 flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -425,11 +425,11 @@ export function LandingPage() {
         </div>
 
         {/* CTA */}
-        <div className="mt-16 text-center">
-          <h2 className="text-xl font-bold text-foreground mb-3">
+        <div className="mt-24 text-center">
+          <h2 className="text-xl font-bold text-foreground mb-4">
             See it before you set it up.
           </h2>
-          <p className="text-stone-500 max-w-md mx-auto mb-6">
+          <p className="text-stone-500 max-w-md mx-auto mb-8">
             Watch a live spend-flow demo — see how policies, governance checks,
             and audit trails work in real-time. When you&apos;re ready, the same
             screens work with your own treasury.

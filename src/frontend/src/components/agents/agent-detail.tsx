@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +26,10 @@ import {
   ChevronRight,
   FileSearch,
   Volume2,
+  TrendingUp,
+  DollarSign,
 } from "lucide-react";
-import { useAgent } from "@/hooks/use-api";
+import { useAgent, usePolicies } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
 
@@ -57,8 +59,34 @@ function Breadcrumbs({ agentName }: { agentName: string }) {
 export function AgentDetailPage({ agentId }: { agentId: string }) {
   const router = useRouter();
   const { data: agent, isLoading, error } = useAgent(agentId);
+  const { data: policies } = usePolicies();
   const [toggling, setToggling] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+
+  const linkedPolicy = useMemo(() => {
+    if (!agent || !Array.isArray(policies)) return null;
+    return policies.find(
+      (p) => p.agents > 0 && p.status === "active",
+    ) || null;
+  }, [agent, policies]);
+
+  const spendChartData = useMemo(() => {
+    if (!agent?.spendHistory?.length) return [];
+    return agent.spendHistory
+      .slice()
+      .reverse()
+      .map((tx) => ({
+        amount: tx.amount,
+        approved: tx.decision === "approved",
+      }));
+  }, [agent]);
+
+  const totalSpend = useMemo(() => {
+    if (!agent?.spendHistory?.length) return 0;
+    return agent.spendHistory
+      .filter((tx) => tx.decision === "approved")
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  }, [agent]);
 
   const handleSpeak = useCallback(() => {
     if (!agent) return;
@@ -264,6 +292,101 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
                 <div className="text-xs text-muted-foreground">Status</div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Spend Chart + Policy Link */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <Card className="lg:col-span-2">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Spend Trend
+              </h3>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <DollarSign className="h-3 w-3" />
+                Total approved: {totalSpend.toLocaleString()} USDC
+              </div>
+            </div>
+            {spendChartData.length > 0 ? (
+              <div className="flex items-end gap-1 h-24">
+                {spendChartData.map((d, i) => {
+                  const max = Math.max(
+                    ...spendChartData.map((x) => x.amount),
+                    1,
+                  );
+                  const height = Math.max(8, (d.amount / max) * 100);
+                  return (
+                    <div
+                      key={i}
+                      className="flex-1 flex flex-col items-center gap-1"
+                    >
+                      <div
+                        className={`w-full rounded-t transition-all ${
+                          d.approved
+                            ? "bg-emerald-400 dark:bg-emerald-600"
+                            : "bg-red-400 dark:bg-red-600"
+                        }`}
+                        style={{ height: `${height}%` }}
+                        title={`${d.amount} — ${d.approved ? "approved" : "denied"}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="h-24 flex items-center justify-center text-xs text-muted-foreground">
+                No spend data yet
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-sky-500" />
+              Linked Policy
+            </h3>
+            {linkedPolicy ? (
+              <div className="space-y-2">
+                <div className="font-medium text-sm">{linkedPolicy.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {linkedPolicy.description || linkedPolicy.type}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {linkedPolicy.type}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {linkedPolicy.status}
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push("/policies")}
+                  className="w-full mt-1"
+                >
+                  View Policy
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-2">
+                <p className="text-xs text-muted-foreground mb-2">
+                  No active policy linked
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push("/policies")}
+                  className="text-xs"
+                >
+                  Create Policy
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

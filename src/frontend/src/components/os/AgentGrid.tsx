@@ -56,9 +56,13 @@ const CORE_DEFINITIONS: Omit<AgentCore, "state" | "task" | "lastActivity">[] = [
 
 export interface AgentGridProps {
   activeIntentType?: string | null;
+  onRunGovernanceCheck?: () => void;
 }
 
-export function AgentGrid({ activeIntentType }: AgentGridProps) {
+export function AgentGrid({
+  activeIntentType,
+  onRunGovernanceCheck,
+}: AgentGridProps) {
   const [cores, setCores] = useState<AgentCore[]>(() =>
     CORE_DEFINITIONS.map((c) => ({
       ...c,
@@ -389,6 +393,16 @@ export function AgentGrid({ activeIntentType }: AgentGridProps) {
               </div>
             )}
         </div>
+      </div>
+
+      {/* Quick governance check */}
+      <div className="border-t border-zinc-800 px-3 py-2">
+        <button
+          onClick={onRunGovernanceCheck}
+          className="w-full text-left px-2 py-1.5 rounded text-[10px] font-mono text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 transition-colors"
+        >
+          <span className="text-sky-500">&#9655;</span> Quick Governance Check
+        </button>
       </div>
     </div>
   );
