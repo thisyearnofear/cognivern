@@ -4,14 +4,6 @@ import { useState, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -34,7 +26,6 @@ export function QuickCheck() {
   const router = useRouter();
   const demoMode = useAppStore((s) => s.demoMode);
   const { data: agents } = useAgents();
-  const [agentId, setAgentId] = useState("");
   const [actionType, setActionType] = useState("swap");
   const [amount, setAmount] = useState("500");
   const [evaluating, setEvaluating] = useState(false);
@@ -73,7 +64,7 @@ export function QuickCheck() {
           });
         } else {
           const res = await apiClient.evaluateGovernance({
-            agentId: agentId || agentList[0]?.id || "unknown",
+            agentId: agentList[0]?.id || "unknown",
             action: {
               type: checkType,
               description: `Quick ${checkType} check`,
@@ -90,7 +81,7 @@ export function QuickCheck() {
         setEvaluating(false);
       }
     },
-    [agentId, agentList, actionType, amount, demoMode],
+    [agentList, actionType, amount, demoMode],
   );
 
   return (
