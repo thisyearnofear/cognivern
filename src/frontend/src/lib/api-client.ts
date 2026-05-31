@@ -13,6 +13,7 @@ import type {
   ApiKey,
   ApiKeyCreateResponse,
   Workspace,
+  PolicyVersion,
 } from "@cognivern/shared";
 
 // Get token from localStorage for auth
@@ -36,6 +37,7 @@ export type {
   ApiKey,
   ApiKeyCreateResponse,
   Workspace,
+  PolicyVersion,
 };
 
 class ApiClient {
@@ -248,6 +250,45 @@ class ApiClient {
     return this.fetch("/workspace", {
       method: "PUT",
       body: JSON.stringify(params),
+    });
+  }
+
+  // Multi-workspace
+  async listWorkspaces(): Promise<ApiResponse<Workspace[]>> {
+    return this.fetch("/workspaces");
+  }
+
+  async createWorkspace(params: {
+    name: string;
+  }): Promise<ApiResponse<Workspace>> {
+    return this.fetch("/workspaces", {
+      method: "POST",
+      body: JSON.stringify(params),
+    });
+  }
+
+  async switchWorkspace(
+    workspaceId: string,
+  ): Promise<ApiResponse<{ token: string; workspace: Workspace }>> {
+    return this.fetch(`/workspaces/${workspaceId}/switch`, {
+      method: "POST",
+    });
+  }
+
+  // Policy versioning
+  async getPolicyVersions(
+    policyId: string,
+  ): Promise<ApiResponse<PolicyVersion[]>> {
+    return this.fetch(`/governance/policies/${policyId}/versions`);
+  }
+
+  async rollbackPolicy(
+    policyId: string,
+    versionId: string,
+  ): Promise<ApiResponse<{ id: string; rolledBackToVersion: number }>> {
+    return this.fetch(`/governance/policies/${policyId}/rollback`, {
+      method: "POST",
+      body: JSON.stringify({ versionId }),
     });
   }
 

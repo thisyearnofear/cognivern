@@ -234,6 +234,11 @@ export class AuthController {
       .setExpirationTime("24h")
       .sign(JWT_SECRET);
 
+    // Ensure owner is in workspace_members
+    db.prepare(
+      "INSERT OR IGNORE INTO workspace_members (workspace_id, user_id, role, created_at) VALUES (?, ?, 'owner', ?)",
+    ).run(authWorkspace.id, authUser.id, new Date().toISOString());
+
     res.json({ token, user: authUser, workspace: authWorkspace });
   }
 

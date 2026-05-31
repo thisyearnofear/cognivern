@@ -14,5 +14,16 @@ export function createWorkspaceRoutes(
     workspaceController.updateWorkspace(req, res),
   );
 
+  // Multi-workspace endpoints
+  router.get("/workspaces", authMiddleware, (req, res) =>
+    workspaceController.listWorkspaces(req, res),
+  );
+  router.post("/workspaces", authMiddleware, (req, res) =>
+    workspaceController.createWorkspace(req, res),
+  );
+  router.post("/workspaces/:workspaceId/switch", authMiddleware, (req, res) =>
+    workspaceController.switchWorkspace(req, res),
+  );
+
   return router;
 }

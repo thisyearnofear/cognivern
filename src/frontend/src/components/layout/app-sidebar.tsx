@@ -34,6 +34,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion } from "framer-motion";
 import { useAppStore } from "@/stores/app-store";
 import { useAuth } from "@/hooks/use-auth";
+import { WorkspaceSwitcher } from "./workspace-switcher";
 
 const navItems = [
   {
@@ -122,6 +123,11 @@ export function AppSidebar() {
             </div>
           </div>
         ) : (
+          <>
+            <WorkspaceSwitcher />
+          </>
+        )}
+        {!demoMode && (
           <div className="relative grid grid-cols-2 p-1 bg-muted rounded-lg border border-border/50">
             <motion.div
               className="absolute inset-y-1 w-[calc(50%-8px)] rounded-md bg-background shadow-sm"

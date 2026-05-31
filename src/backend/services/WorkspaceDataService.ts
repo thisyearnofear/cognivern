@@ -137,6 +137,21 @@ export const WorkspaceDataService = {
       now,
     );
 
+    // Create initial version snapshot
+    db.prepare(
+      `INSERT INTO policy_versions (id, policy_id, workspace_id, version, name, type, description, status, rules, snapshot_at)
+       VALUES (?, ?, ?, 1, ?, ?, ?, 'active', ?, ?)`,
+    ).run(
+      `pv-${randomUUID().slice(0, 8)}`,
+      id,
+      workspaceId,
+      params.name,
+      params.type,
+      params.description,
+      JSON.stringify(rules),
+      now,
+    );
+
     return {
       id,
       name: params.name,
@@ -149,6 +164,182 @@ export const WorkspaceDataService = {
         id: `r${i}`,
         condition: r.condition,
         action: r.action as any,
+        params: r.params,
+      })),
+    };
+  },
+
+  updatePolicy(
+    workspaceId: string,
+    policyId: string,
+    updates: {
+      name?: string;
+      description?: string;
+      rules?: Array<{
+        condition: string;
+        action: string;
+        params?: Record<string, unknown>;
+      }>;
+      status?: string;
+    },
+  ): Policy | null {
+    const db = getDb();
+    const existing = db
+      .prepare(
+        "SELECT * FROM workspace_policies WHERE id = ? AND workspace_id = ?",
+      )
+      .get(policyId, workspaceId) as any | undefined;
+
+    if (!existing) return null;
+
+    const now = new Date().toISOString();
+    const name = updates.name ?? existing.name;
+    const description = updates.description ?? existing.description;
+    const rules = updates.rules ?? JSON.parse(existing.rules || "[]");
+    const status = updates.status ?? existing.status;
+
+    // Snapshot current version before updating
+    const latestVersion = db
+      .prepare(
+        "SELECT MAX(version) as max_ver FROM policy_versions WHERE policy_id = ?",
+      )
+      .get(policyId) as { max_ver: number } | undefined;
+    const nextVersion = (latestVersion?.max_ver || 0) + 1;
+
+    db.prepare(
+      `INSERT INTO policy_versions (id, policy_id, workspace_id, version, name, type, description, status, rules, snapshot_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      `pv-${randomUUID().slice(0, 8)}`,
+      policyId,
+      workspaceId,
+      nextVersion,
+      name,
+      existing.type,
+      description,
+      status,
+      JSON.stringify(rules),
+      now,
+    );
+
+    // Update the policy
+    db.prepare(
+      "UPDATE workspace_policies SET name = ?, description = ?, rules = ?, status = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+    ).run(name, description, JSON.stringify(rules), status, now, policyId, workspaceId);
+
+    return {
+      id: policyId,
+      name,
+      type: existing.type,
+      description,
+      status: status as any,
+      agents: 0,
+      violations: 0,
+      rules: rules.map((r: any, i: number) => ({
+        id: `r${i}`,
+        condition: r.condition,
+        action: r.action,
+        params: r.params,
+      })),
+    };
+  },
+
+  getPolicyVersions(
+    workspaceId: string,
+    policyId: string,
+  ): Array<{
+    id: string;
+    version: number;
+    name: string;
+    description: string;
+    status: string;
+    rules: any[];
+    snapshotAt: string;
+  }> {
+    const db = getDb();
+    const rows = db
+      .prepare(
+        "SELECT * FROM policy_versions WHERE policy_id = ? AND workspace_id = ? ORDER BY version DESC",
+      )
+      .all(policyId, workspaceId) as any[];
+
+    return rows.map((row) => ({
+      id: row.id,
+      version: row.version,
+      name: row.name,
+      description: row.description,
+      status: row.status,
+      rules: JSON.parse(row.rules || "[]"),
+      snapshotAt: row.snapshot_at,
+    }));
+  },
+
+  rollbackPolicy(
+    workspaceId: string,
+    policyId: string,
+    versionId: string,
+  ): Policy | null {
+    const db = getDb();
+    const version = db
+      .prepare(
+        "SELECT * FROM policy_versions WHERE id = ? AND policy_id = ? AND workspace_id = ?",
+      )
+      .get(versionId, policyId, workspaceId) as any | undefined;
+
+    if (!version) return null;
+
+    const now = new Date().toISOString();
+    const rules = JSON.parse(version.rules || "[]");
+
+    // Snapshot the current state as a new version before rolling back
+    const latestVersion = db
+      .prepare(
+        "SELECT MAX(version) as max_ver FROM policy_versions WHERE policy_id = ?",
+      )
+      .get(policyId) as { max_ver: number } | undefined;
+    const nextVersion = (latestVersion?.max_ver || 0) + 1;
+
+    db.prepare(
+      `INSERT INTO policy_versions (id, policy_id, workspace_id, version, name, type, description, status, rules, snapshot_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      `pv-${randomUUID().slice(0, 8)}`,
+      policyId,
+      workspaceId,
+      nextVersion,
+      version.name,
+      version.type,
+      version.description,
+      version.status,
+      version.rules,
+      now,
+    );
+
+    // Apply the rollback
+    db.prepare(
+      "UPDATE workspace_policies SET name = ?, description = ?, rules = ?, status = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+    ).run(
+      version.name,
+      version.description,
+      version.rules,
+      version.status,
+      now,
+      policyId,
+      workspaceId,
+    );
+
+    return {
+      id: policyId,
+      name: version.name,
+      type: version.type,
+      description: version.description,
+      status: version.status,
+      agents: 0,
+      violations: 0,
+      rules: rules.map((r: any, i: number) => ({
+        id: `r${i}`,
+        condition: r.condition,
+        action: r.action,
         params: r.params,
       })),
     };

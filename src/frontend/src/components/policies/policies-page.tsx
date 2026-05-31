@@ -15,7 +15,9 @@ import {
   EyeOff,
   Zap,
   Loader2,
+  History,
 } from "lucide-react";
+import { PolicyVersionHistory } from "./policy-version-history";
 import {
   Select,
   SelectContent,
@@ -78,6 +80,10 @@ export function PoliciesPage() {
   const { data: rawPolicies, isLoading, error } = usePolicies();
   const [showCreate, setShowCreate] = useState(false);
   const [quickCreating, setQuickCreating] = useState<string | null>(null);
+  const [historyPolicy, setHistoryPolicy] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const policies = Array.isArray(rawPolicies)
     ? rawPolicies.map((p) => ({
@@ -265,28 +271,50 @@ export function PoliciesPage() {
                     <span>Budget limits encrypted on-chain via Fhenix FHE</span>
                   </div>
                 )}
-                <div className="flex items-center gap-6 text-sm">
-                  <div>
-                    <span className="text-muted-foreground text-xs">
-                      Agents:
-                    </span>{" "}
-                    <span className="font-medium">{policy.agents}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6 text-sm">
+                    <div>
+                      <span className="text-muted-foreground text-xs">
+                        Agents:
+                      </span>{" "}
+                      <span className="font-medium">{policy.agents}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">
+                        Violations:
+                      </span>{" "}
+                      <span
+                        className={`font-medium ${policy.violations > 0 ? "text-amber-500" : ""}`}
+                      >
+                        {policy.violations}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground text-xs">
-                      Violations:
-                    </span>{" "}
-                    <span
-                      className={`font-medium ${policy.violations > 0 ? "text-amber-500" : ""}`}
-                    >
-                      {policy.violations}
-                    </span>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setHistoryPolicy({ id: policy.id, name: policy.name })
+                    }
+                    className="h-7 gap-1 text-xs"
+                  >
+                    <History className="h-3 w-3" />
+                    History
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
+      )}
+
+      {historyPolicy && (
+        <PolicyVersionHistory
+          policyId={historyPolicy.id}
+          policyName={historyPolicy.name}
+          open={!!historyPolicy}
+          onClose={() => setHistoryPolicy(null)}
+        />
       )}
     </div>
   );

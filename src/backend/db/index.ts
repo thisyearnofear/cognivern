@@ -148,6 +148,43 @@ function migrate(db: Database.Database): void {
   } catch {
     /* already exists */
   }
+
+  // Migration: workspace_members (multi-workspace support)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS workspace_members (
+      workspace_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'owner',
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (workspace_id, user_id),
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+  // Backfill existing owners into workspace_members
+  db.exec(`
+    INSERT OR IGNORE INTO workspace_members (workspace_id, user_id, role, created_at)
+    SELECT id, owner_id, 'owner', created_at FROM workspaces;
+  `);
+
+  // Migration: policy_versions (policy versioning support)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS policy_versions (
+      id TEXT PRIMARY KEY,
+      policy_id TEXT NOT NULL,
+      workspace_id TEXT NOT NULL,
+      version INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'active',
+      rules TEXT NOT NULL DEFAULT '[]',
+      snapshot_at TEXT NOT NULL,
+      FOREIGN KEY (policy_id) REFERENCES workspace_policies(id),
+      FOREIGN KEY (workspace_id) REFERENCES workspace_policies(workspace_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_policy_versions_policy ON policy_versions(policy_id);
+  `);
 }
 
 export function closeDb(): void {
