@@ -6,6 +6,7 @@ import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthWatcher } from "@/components/auth-watcher";
+import { NotificationsProvider } from "@/components/layout/notifications-provider";
 import { config } from "@/lib/wagmi";
 import "@rainbow-me/rainbowkit/styles.css";
 
@@ -18,6 +19,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <RainbowKitProvider theme={darkTheme({ accentColor: "#7c3aed" })}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <AuthWatcher />
+            <NotificationsProvider />
             {children}
             <Toaster />
           </ThemeProvider>

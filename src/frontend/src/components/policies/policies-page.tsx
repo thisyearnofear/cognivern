@@ -7,7 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, PlusCircle, X, Lock, EyeOff } from "lucide-react";
+import {
+  ShieldCheck,
+  PlusCircle,
+  X,
+  Lock,
+  EyeOff,
+  Zap,
+  Loader2,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -19,10 +27,57 @@ import { usePolicies } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
 
+const POLICY_TEMPLATES = [
+  {
+    id: "strict-budget",
+    name: "Strict Budget",
+    desc: "Max $100/day, deny above $500 per tx",
+    icon: "🔒",
+    type: "budget",
+    rules: [
+      { condition: "amount > 500", action: "deny" },
+      { condition: "daily_total > 100", action: "deny" },
+    ],
+  },
+  {
+    id: "moderate-budget",
+    name: "Moderate Budget",
+    desc: "Max $500/day, flag above $1,000",
+    icon: "⚖️",
+    type: "budget",
+    rules: [
+      { condition: "amount > 1000", action: "deny" },
+      { condition: "daily_total > 500", action: "flag" },
+    ],
+  },
+  {
+    id: "dex-only",
+    name: "DEX Allowlist",
+    desc: "Only Uniswap, Curve, Sushi allowed",
+    icon: "📋",
+    type: "allowlist",
+    rules: [
+      {
+        condition: "vendor NOT IN [uniswap, curve, sushiswap]",
+        action: "deny",
+      },
+    ],
+  },
+  {
+    id: "human-approval",
+    name: "Human Approval",
+    desc: "Require approval above $500",
+    icon: "👤",
+    type: "approval",
+    rules: [{ condition: "amount > 500", action: "flag" }],
+  },
+];
+
 export function PoliciesPage() {
   const router = useRouter();
   const { data: rawPolicies, isLoading, error } = usePolicies();
   const [showCreate, setShowCreate] = useState(false);
+  const [quickCreating, setQuickCreating] = useState<string | null>(null);
 
   const policies = Array.isArray(rawPolicies)
     ? rawPolicies.map((p) => ({
@@ -36,6 +91,24 @@ export function PoliciesPage() {
         confidential: p.metadata?.confidential === true,
       }))
     : [];
+
+  const handleQuickCreate = useCallback(
+    async (template: (typeof POLICY_TEMPLATES)[number]) => {
+      setQuickCreating(template.id);
+      try {
+        await apiClient.createGovernancePolicy({
+          name: template.name,
+          type: template.type,
+          description: template.desc,
+          rules: template.rules,
+        });
+        mutate("/api/governance/policies");
+      } finally {
+        setQuickCreating(null);
+      }
+    },
+    [],
+  );
 
   return (
     <div className="space-y-6">
@@ -57,6 +130,40 @@ export function PoliciesPage() {
           </Button>
         </div>
       </div>
+
+      {/* Quick-create templates */}
+      {policies.length === 0 && !isLoading && !error && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-medium">Quick Start Templates</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {POLICY_TEMPLATES.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => handleQuickCreate(t)}
+                disabled={quickCreating !== null}
+                className="p-4 rounded-xl border border-border text-left hover:border-primary/50 hover:bg-muted/50 transition-colors disabled:opacity-50"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">{t.icon}</span>
+                  <span className="text-sm font-medium">{t.name}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">{t.desc}</p>
+                {quickCreating === t.id ? (
+                  <div className="flex items-center gap-1.5 text-xs text-primary">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Creating...
+                  </div>
+                ) : (
+                  <span className="text-xs text-primary">Click to create</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {showCreate && <CreatePolicyForm onClose={() => setShowCreate(false)} />}
 

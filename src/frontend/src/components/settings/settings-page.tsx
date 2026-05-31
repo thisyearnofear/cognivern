@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -95,18 +96,27 @@ function WorkspaceCard({
     }>,
   ) => void;
 }) {
+  const router = useRouter();
   const [upgrading, setUpgrading] = useState(false);
   const [upgraded, setUpgraded] = useState(false);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
   const handleGoLive = useCallback(async () => {
     if (!workspace) return;
     setUpgrading(true);
+    setUpgradeError(null);
     try {
       const res = await apiClient.updateWorkspace({ tier: "live" });
       if (res.success && res.data) {
         setUser({ workspace: res.data });
         setUpgraded(true);
+      } else {
+        setUpgradeError(res.error || "Failed to upgrade workspace");
       }
+    } catch (err) {
+      setUpgradeError(
+        err instanceof Error ? err.message : "Failed to upgrade workspace",
+      );
     } finally {
       setUpgrading(false);
     }
@@ -133,7 +143,7 @@ function WorkspaceCard({
           </Badge>
         </div>
 
-        {workspace?.tier === "demo" && (
+        {workspace?.tier === "demo" && !upgraded && (
           <div className="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/30 p-4 space-y-3">
             <div>
               <div className="text-sm font-medium">Ready to go live?</div>
@@ -143,29 +153,31 @@ function WorkspaceCard({
                 agents.
               </div>
             </div>
+            {upgradeError && (
+              <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/30 text-xs text-red-600 dark:text-red-400">
+                {upgradeError}
+              </div>
+            )}
             <Button
               size="sm"
               onClick={handleGoLive}
-              disabled={upgrading || upgraded}
+              disabled={upgrading}
               className="gap-2"
             >
-              {upgraded ? (
-                <>
-                  <Check className="h-3.5 w-3.5" /> Upgraded
-                </>
-              ) : (
-                <>
-                  <Rocket className="h-3.5 w-3.5" />{" "}
-                  {upgrading ? "Upgrading..." : "Go Live"}
-                </>
-              )}
+              <Rocket className="h-3.5 w-3.5" />{" "}
+              {upgrading ? "Upgrading..." : "Go Live"}
             </Button>
           </div>
         )}
 
-        {workspace?.tier === "live" && (
-          <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 p-4 space-y-2">
-            <div className="text-sm font-medium">Workspace is live</div>
+        {(workspace?.tier === "live" || upgraded) && (
+          <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-emerald-500" />
+              <div className="text-sm font-medium">
+                {upgraded ? "Upgraded successfully!" : "Workspace is live"}
+              </div>
+            </div>
             <div className="text-xs text-muted-foreground">
               Register agents, create API keys below, and{" "}
               <a
@@ -176,6 +188,23 @@ function WorkspaceCard({
               </a>{" "}
               into your agent code.
             </div>
+            {upgraded && (
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => router.push("/agents/workshop")}
+                >
+                  Register Agent
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => router.push("/policies")}
+                >
+                  Create Policy
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

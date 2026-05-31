@@ -437,6 +437,22 @@ export function OsShell() {
         </div>
       )}
 
+      {/* Mobile quick prompts — only on small screens */}
+      <div className="lg:hidden border-b border-zinc-800/60 px-3 py-2 bg-[#0d0d0d] overflow-x-auto scrollbar-thin">
+        <div className="flex gap-2 min-w-max">
+          {QUICK_PROMPTS.map((prompt) => (
+            <button
+              key={prompt}
+              onClick={() => runPrompt(prompt)}
+              disabled={!booted || demoRunning || commandRunning}
+              className="shrink-0 rounded-md border border-zinc-800 bg-zinc-950/60 px-2.5 py-1.5 text-[10px] font-mono text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition-colors disabled:opacity-50"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Main area */}
       <div className="flex-1 flex min-h-0">
         {/* Terminal panel */}
@@ -446,12 +462,9 @@ export function OsShell() {
             onCommand={handleCommand}
             onBoot={handleBoot}
           />
-          <div className="lg:hidden border-t border-zinc-800/60 px-4 py-2 text-[10px] font-mono text-zinc-600">
-            {MOBILE_PROMPT_HINT}
-          </div>
         </div>
 
-        {/* Starter prompts — hidden on small screens */}
+        {/* Starter prompts — horizontal scroll on mobile, sidebar on desktop */}
         <div className="hidden lg:flex w-64 shrink-0 flex-col gap-3 p-3 border-r border-zinc-800/60 bg-[#0d0d0d]">
           <div className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">
             Starter prompts
@@ -524,13 +537,18 @@ export function OsShell() {
 
         {/* Agent grid panel — hidden on small screens */}
         <div className="hidden md:flex w-80 shrink-0 flex-col bg-[#0d0d0d] border-zinc-800/60">
-          <AgentGrid activeIntentType={activeIntentType} />
+          <AgentGrid
+            activeIntentType={activeIntentType}
+            onRunGovernanceCheck={() =>
+              runPrompt("check governance for a $500 swap")
+            }
+          />
         </div>
       </div>
 
       {/* Bottom status bar */}
       <footer className="flex items-center justify-between px-3 sm:px-4 py-1.5 border-t border-zinc-800/60 bg-[#0a0a0a] shrink-0 gap-3">
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <span className="text-[10px] font-mono text-zinc-600">
             {booted ? "ready" : "booting..."}
           </span>
@@ -552,6 +570,12 @@ export function OsShell() {
               >
                 hydra
               </span>
+            </span>
+          )}
+          {commandRunning && (
+            <span className="flex items-center gap-1 text-[10px] font-mono text-sky-400">
+              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+              processing
             </span>
           )}
         </div>
