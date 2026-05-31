@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
   Lock,
   Mic,
   MicOff,
+  Sparkles,
 } from "lucide-react";
 import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
@@ -95,6 +97,7 @@ function CheckItem({
 }
 
 export function GovernanceCheck() {
+  const router = useRouter();
   const { data: agents } = useAgents();
   const [agentId, setAgentId] = useState("");
   const [actionType, setActionType] = useState("swap");
@@ -141,11 +144,24 @@ export function GovernanceCheck() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Governance Check</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Evaluate a spend action against your active policies
-        </p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Governance Check
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Evaluate a spend action against your active policies
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push("/os")}
+          className="gap-2"
+        >
+          <Sparkles className="h-4 w-4" />
+          Try Command Center
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

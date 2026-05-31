@@ -25,6 +25,7 @@ import { DecisionChart, type DecisionFilter } from "./decision-chart";
 import { ActivityChart } from "./activity-chart";
 import { AgentStatusChart } from "./agent-status-chart";
 import { ApprovalSparkline } from "./approval-sparkline";
+import { QuickCheck } from "./quick-check";
 
 const ACTIVITY_PAGE_SIZE = 5;
 
@@ -347,6 +348,9 @@ export function Dashboard() {
         />
         <AgentStatusChart agents={agentList} loading={agentsLoading} />
       </div>
+
+      {/* Quick Check */}
+      <QuickCheck />
 
       {/* Governed Agents */}
       <div>

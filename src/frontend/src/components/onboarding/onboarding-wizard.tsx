@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,14 @@ import {
   ArrowRight,
   ArrowLeft,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 import { useAppStore } from "@/stores/app-store";
 import { useAuth } from "@/hooks/use-auth";
+import { apiClient } from "@/lib/api-client";
+import { mutate } from "swr";
 
 const STEPS = [
   {
@@ -53,13 +56,35 @@ const POLICY_TEMPLATES = [
     id: "strict",
     name: "Strict",
     desc: "Max $100/day, manual approval above $500",
+    type: "budget",
+    dailyLimit: 100,
+    approvalThreshold: 500,
+    rules: [
+      { condition: "amount > 500", action: "deny" },
+      { condition: "daily_total > 100", action: "deny" },
+    ],
   },
   {
     id: "moderate",
     name: "Moderate",
     desc: "Max $500/day, auto-approve under $1,000",
+    type: "budget",
+    dailyLimit: 500,
+    approvalThreshold: 1000,
+    rules: [
+      { condition: "amount > 1000", action: "deny" },
+      { condition: "daily_total > 500", action: "flag" },
+    ],
   },
-  { id: "relaxed", name: "Relaxed", desc: "Max $2,000/day, auto-approve all" },
+  {
+    id: "relaxed",
+    name: "Relaxed",
+    desc: "Max $2,000/day, auto-approve all",
+    type: "budget",
+    dailyLimit: 2000,
+    approvalThreshold: 10000,
+    rules: [{ condition: "daily_total > 2000", action: "deny" }],
+  },
 ];
 
 export function OnboardingWizard() {
@@ -74,6 +99,8 @@ export function OnboardingWizard() {
   const [step, setStep] = useState(0);
   const [selectedPolicy, setSelectedPolicy] = useState("moderate");
   const [agentName, setAgentName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isConnected && !user.isConnected && address) {
@@ -81,17 +108,68 @@ export function OnboardingWizard() {
     }
   }, [isConnected, user.isConnected, address, signIn]);
 
-  function handleFinish() {
-    updatePreferences({ onboardingCompleted: true });
-    if (user.isConnected && demoMode) {
-      // User connected wallet while in demo — transition to real mode
-      exitDemoMode();
-    } else if (!user.isConnected) {
-      // User never connected — give them demo data so dashboard isn't empty
-      enableDemoMode();
+  const handleFinish = useCallback(async () => {
+    setCreating(true);
+    setError(null);
+
+    try {
+      // Only create real resources if user is connected (not demo mode)
+      if (user.isConnected && !demoMode) {
+        const template = POLICY_TEMPLATES.find((t) => t.id === selectedPolicy);
+        if (template) {
+          // Create the policy
+          const policyRes = await apiClient.createGovernancePolicy({
+            name: `${template.name} Spend Policy`,
+            type: template.type,
+            description: template.desc,
+            rules: template.rules,
+          });
+
+          if (!policyRes.success) {
+            console.warn("Failed to create policy:", policyRes.error);
+          }
+
+          // Register the agent if name provided
+          if (agentName.trim()) {
+            const agentRes = await apiClient.registerAgent({
+              name: agentName.trim(),
+              role: "General Purpose Agent",
+              chain: "Ethereum",
+              budget: `$${template.dailyLimit}/day`,
+            });
+
+            if (!agentRes.success) {
+              console.warn("Failed to register agent:", agentRes.error);
+            }
+          }
+
+          // Refresh SWR caches
+          mutate("/api/governance/policies");
+          mutate("/api/agents");
+        }
+      }
+
+      updatePreferences({ onboardingCompleted: true });
+      if (user.isConnected && demoMode) {
+        exitDemoMode();
+      } else if (!user.isConnected) {
+        enableDemoMode();
+      }
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Setup failed");
+      setCreating(false);
     }
-    router.push("/dashboard");
-  }
+  }, [
+    user.isConnected,
+    demoMode,
+    selectedPolicy,
+    agentName,
+    updatePreferences,
+    exitDemoMode,
+    enableDemoMode,
+    router,
+  ]);
 
   function handleSkip() {
     updatePreferences({ onboardingCompleted: true });
@@ -323,11 +401,19 @@ export function OnboardingWizard() {
         </CardContent>
       </Card>
 
+      {/* Error */}
+      {error && (
+        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 text-sm text-red-600 dark:text-red-400">
+          {error}
+        </div>
+      )}
+
       {/* Navigation */}
       <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
         <Button
           variant="ghost"
           onClick={handleSkip}
+          disabled={creating}
           className="w-full sm:w-auto"
         >
           Skip setup
@@ -337,6 +423,7 @@ export function OnboardingWizard() {
             <Button
               variant="outline"
               onClick={() => setStep((s) => s - 1)}
+              disabled={creating}
               className="flex-1 sm:flex-initial"
             >
               <ArrowLeft className="h-4 w-4" /> Back
@@ -350,8 +437,20 @@ export function OnboardingWizard() {
               Continue <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleFinish} className="flex-1 sm:flex-initial">
-              Go to Dashboard <ArrowRight className="h-4 w-4" />
+            <Button
+              onClick={handleFinish}
+              disabled={creating}
+              className="flex-1 sm:flex-initial"
+            >
+              {creating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Setting up...
+                </>
+              ) : (
+                <>
+                  Go to Dashboard <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Button>
           )}
         </div>

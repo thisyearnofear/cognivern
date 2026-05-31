@@ -43,7 +43,6 @@ const navItems = [
     href: "/dashboard",
   },
   { id: "agents", label: "Agents", icon: Users, href: "/agents" },
-  { id: "os", label: "Command Center", icon: PlayCircle, href: "/os" },
   { id: "policies", label: "Policies", icon: ShieldCheck, href: "/policies" },
   { id: "audit", label: "Audit", icon: FileSearch, href: "/audit" },
   { id: "runs", label: "Runs", icon: Activity, href: "/runs" },
@@ -52,10 +51,18 @@ const navItems = [
     label: "Governance Check",
     icon: PlayCircle,
     href: "/governance/check",
+    description: "Test policies",
+  },
+  {
+    id: "os",
+    label: "Command Center",
+    icon: Sparkles,
+    href: "/os",
+    description: "Terminal UI",
   },
   {
     id: "workshop",
-    label: "Agent Workshop",
+    label: "Register Agent",
     icon: PlusCircle,
     href: "/agents/workshop",
   },
@@ -175,6 +182,7 @@ export function AppSidebar() {
                       isActive={isActive}
                       className="h-9 rounded-lg px-3 font-normal text-muted-foreground"
                       aria-label={`Navigate to ${item.label}`}
+                      tooltip={item.description}
                     >
                       <item.icon className="h-[18px] w-[18px]" />
                       <span>{item.label}</span>
