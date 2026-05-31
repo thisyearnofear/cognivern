@@ -27,6 +27,7 @@ interface User {
   walletAddress: string | null;
   authUser: AuthUser | null;
   workspace: Workspace | null;
+  workspaces: Workspace[];
   token: string | null;
   workspaceMode: "sandbox" | "production";
 }
@@ -46,6 +47,8 @@ interface AppState {
   setUser: (user: Partial<User>) => void;
   updatePreferences: (prefs: Partial<UserPreferences>) => void;
   setWorkspaceMode: (mode: "sandbox" | "production") => void;
+  setWorkspaces: (workspaces: Workspace[]) => void;
+  switchWorkspace: (workspace: Workspace, token: string) => void;
   login: (token: string, authUser: AuthUser, workspace: Workspace) => void;
   logout: () => void;
   enableDemoMode: () => void;
@@ -64,6 +67,7 @@ const defaultUser: User = {
   walletAddress: null,
   authUser: null,
   workspace: null,
+  workspaces: [],
   token: null,
   workspaceMode: "sandbox",
 };
@@ -86,6 +90,20 @@ const storeImpl = (set: (partial: Partial<AppState>) => void, get: () => AppStat
     set({ preferences: { ...get().preferences, ...prefs } }),
   setWorkspaceMode: (mode: "sandbox" | "production") =>
     set({ user: { ...get().user, workspaceMode: mode } }),
+  setWorkspaces: (workspaces: Workspace[]) =>
+    set({ user: { ...get().user, workspaces } }),
+  switchWorkspace: (workspace: Workspace, token: string) => {
+    set({
+      user: {
+        ...get().user,
+        workspace,
+        token,
+      },
+    });
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cognivern-token", token);
+    }
+  },
   login: (token: string, authUser: AuthUser, workspace: Workspace) => {
     set({
       demoMode: false,

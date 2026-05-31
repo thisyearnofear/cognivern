@@ -188,8 +188,19 @@ export interface Workspace {
   name: string;
   ownerId: string;
   tier: "demo" | "live";
+  role?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PolicyVersion {
+  id: string;
+  version: number;
+  name: string;
+  description: string;
+  status: string;
+  rules: PolicyRule[];
+  snapshotAt: string;
 }
 
 export interface AuthSession {
