@@ -8,7 +8,7 @@ Cognivern is a control plane for agent operations: governed wallet spend plus AI
 
 [![Powered by ChainGPT AI](https://img.shields.io/badge/Powered%20by-ChainGPT%20AI-7B61FF?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iIzdiNjFGZiIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkNIQUlOR1BUPC90ZXh0Pjwvc3ZnPg==)](https://chaingpt.org)
 
-**Live:** [Frontend](https://cognivern.vercel.app) · [API](https://api.thisyearnofear.com) · [PromptOS Terminal](https://cognivern.vercel.app/os)
+**Live:** [Frontend](https://cognivern.vercel.app) · [API](https://cognivern.thisyearnofear.com) · [PromptOS Terminal](https://cognivern.vercel.app/os)
 
 ## Quick Start
 
@@ -57,11 +57,14 @@ Cognivern solves a common agentic scaling problem: teams can ship quickly, but s
 ## Demo
 
 ```bash
-# Terminal 1
+# Terminal 1 — start the server
 pnpm start
 
-# Terminal 2
+# Terminal 2 — standard spend flow
 pnpm demo:live
+
+# Terminal 2 — Fhenix encrypted spend flow (requires Fhenix testnet credentials)
+pnpm demo:fhenix
 ```
 
 ## Documentation
@@ -102,12 +105,13 @@ Cognivern uses multi-provider AI routing for governance analysis:
 
 The spend control plane is live: policy evaluation, signed approvals, held actions, denials, and persisted run evidence. Contracts deployed on X Layer testnet and Filecoin Calibration. Fhenix integration live for privacy-native operations.
 
-### Recent Updates (2026-05)
+### Recent Updates (2026-06)
 
-- **ChainGPT Integration** — Added Web3-native AI governance: ChainGPT Web3 LLM as primary provider with governance context injection, Smart Contract Auditor as runtime pre-spend defense (contract_audit policy rule)
-- **AI Intent System** — Natural language command processing via multi-provider AI routing (7 providers: ChainGPT, Fireworks, Kilocode, Workers AI, OpenAI, Gemini, Anthropic) with circuit breaker protection and graceful fallback
-- **Compact UI** — Reduced visual density across dashboard, cards, and navigation with smooth transitions
-- **Responsive Improvements** — Better mobile/tablet layouts with minimal agent display variants
+- **Production Hardening** — Per-workspace and per-API-key rate limiters with sliding windows, deep health checks, circuit-breaker patterns, 172 tests (unit + integration + E2E via Playwright), TypeScript strict mode, unified CI pipeline
+- **Multi-Workspace & Policy Versioning** — Workspace-scoped policy management with independent API keys, rate limits, and policy history per team
+- **Fhenix Wave 5-7** — Full institutional demo with encrypted policies, MEV-protected execution, selective auditor disclosure; testnet migration from Helium to Arbitrum Sepolia; two-phase FHE resolution with `resolveDecision`; sealed-bid vendor selection; Privara confidential payroll
+- **Operator UX** — PromptOS terminal integrated into sidebar, voice capabilities (ElevenLabs STT/TOS), self-service onboarding, animated workspace mode toggles, full mobile responsiveness
+- **ChainGPT Integration** — Web3-native AI governance: ChainGPT Web3 LLM as primary provider with governance context injection, Smart Contract Auditor as runtime pre-spend defense
 
 ### Production Readiness: ~93%
 

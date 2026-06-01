@@ -120,23 +120,32 @@ These parts of the repo are considered transitional and should not be part of th
 
 ## Key Endpoints
 
-| Endpoint                         | Method    | Description                    |
-| -------------------------------- | --------- | ------------------------------ |
-| `/ingest/runs`                   | POST      | Project-scoped run ingestion   |
-| `/api/governance/policies`       | GET, POST | Policy management              |
-| `/api/governance/evaluate`       | POST      | Evaluate action against policy |
-| `/api/ows/bootstrap`             | POST      | Bootstrap OWS wallet           |
-| `/api/ows/api-keys`              | GET, POST | API key management             |
-| `/api/ows/wallets`               | GET       | List wallets                   |
-| `/api/spend`                     | POST      | Execute governed spend         |
-| `/api/spend/preview`             | POST      | Simulate spend (dry-run)       |
-| `/api/spend/status`              | GET       | Execution layer status         |
-| `/api/audit/logs`                | GET       | Audit trail                    |
-| `/api/audit/insights`            | GET       | Audit insights                 |
-| `/api/cre/runs`                  | GET       | Run ledger                     |
-| `/api/cre/runs/:runId`           | GET       | Run details                    |
-| `/api/projects`                  | GET       | Project list                   |
-| `/api/projects/:projectId/usage` | GET       | Project usage                  |
+| Endpoint                                 | Method    | Description                                    |
+| ---------------------------------------- | --------- | ---------------------------------------------- |
+| `/ingest/runs`                           | POST      | Project-scoped run ingestion                   |
+| `/api/governance/policies`               | GET, POST | Policy management                              |
+| `/api/governance/policies/confidential`  | POST      | Create encrypted policy on Fhenix              |
+| `/api/governance/evaluate`               | POST      | Evaluate action against policy                 |
+| `/api/governance/decisions/:decisionId`  | GET       | FHE decision + cross-chain anchoring status    |
+| `/api/ows/bootstrap`                     | POST      | Bootstrap OWS wallet                           |
+| `/api/ows/api-keys`                      | GET, POST | API key management                             |
+| `/api/ows/wallets`                       | GET       | List wallets                                   |
+| `/api/spend`                             | POST      | Execute governed spend                         |
+| `/api/spend/encrypted`                   | POST      | Submit pre-encrypted spend (FHE)               |
+| `/api/spend/preview`                     | POST      | Simulate spend (dry-run)                       |
+| `/api/spend/status`                      | GET       | Execution layer status                         |
+| `/api/audit/logs`                        | GET       | Audit trail                                    |
+| `/api/audit/permits`                     | POST      | Issue auditor decryption permit (CoFHE)        |
+| `/api/audit/logs/:decisionId/decrypt`    | GET       | Auditor decrypt with valid permit              |
+| `/api/audit/insights`                    | GET       | Audit insights                                 |
+| `/api/cre/runs`                          | GET       | Run ledger                                     |
+| `/api/cre/runs/:runId`                   | GET       | Run details                                    |
+| `/api/projects`                          | GET       | Project list                                   |
+| `/api/projects/:projectId/usage`         | GET       | Project usage                                  |
+| `/api/payroll/confidential`              | POST      | Privara confidential payroll                   |
+| `/api/vendor/sealed-bid/rounds`          | POST      | Create sealed-bid vendor selection round       |
+| `/api/fhenix/encrypt`                    | POST      | Trusted encryption sidecar (non-TS agents)     |
+| `/api/intent`                            | POST      | Natural language intent processing             |
 
 ## Mode System
 
