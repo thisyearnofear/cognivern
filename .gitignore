@@ -112,3 +112,4 @@ scripts/monitoring/monitor-api.sh
 
 # ── External repos ─────────────────────────────────────────────────
 remix-smart-bin-monitoring-das/
+.qoder/

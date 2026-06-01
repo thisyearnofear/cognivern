@@ -2,12 +2,14 @@ import Database from "better-sqlite3";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
+import { drizzle } from "drizzle-orm/better-sqlite3";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH =
   process.env.DB_PATH || path.join(__dirname, "../../../data/cognivern.db");
 
 let db: Database.Database | null = null;
+let drizzleDb: ReturnType<typeof drizzle> | null = null;
 
 export function getDb(): Database.Database {
   if (!db) {
@@ -18,6 +20,18 @@ export function getDb(): Database.Database {
     migrate(db);
   }
   return db;
+}
+
+/**
+ * Returns a Drizzle ORM instance for type-safe queries.
+ * Uses the same underlying SQLite database as getDb().
+ */
+export function getDrizzleDb() {
+  if (!drizzleDb) {
+    const raw = getDb();
+    drizzleDb = drizzle(raw);
+  }
+  return drizzleDb;
 }
 
 function migrate(db: Database.Database): void {
@@ -191,5 +205,6 @@ export function closeDb(): void {
   if (db) {
     db.close();
     db = null;
+    drizzleDb = null;
   }
 }

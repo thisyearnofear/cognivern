@@ -145,6 +145,9 @@ export interface AgentInfo {
   owner: string;
   capabilities: string[];
   registeredAt: string;
+  chain?: string;
+  budget?: string;
+  trades?: number;
 }
 
 // AgentStatus is imported from shared types

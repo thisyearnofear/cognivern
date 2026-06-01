@@ -1,4 +1,5 @@
 import { ApiModule } from "./backend/modules/api/ApiModule.js";
+import { NotificationService } from "./backend/services/NotificationService.js";
 import logger from "./backend/utils/logger.js";
 
 // Fix EventEmitter memory leak warnings
@@ -39,6 +40,9 @@ function installShutdownHandlers() {
 export async function startServer(): Promise<void> {
   try {
     logger.info("🚀 Starting Cognivern AI Agent Governance Platform...");
+
+    // Ensure notification tables exist
+    NotificationService.ensureTable();
 
     // Initialize our modular API system
     logger.info("🔧 Creating ApiModule instance");

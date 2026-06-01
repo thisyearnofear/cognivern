@@ -14,6 +14,7 @@ import {
   DependencyHealth,
   Agent,
   TradingDecision,
+  BaseAgent,
 } from "../../shared/index.js";
 import { TradingAgent } from "./types/TradingAgent.js";
 import { UserTradingAgent } from "./implementations/UserTradingAgent.js";
@@ -21,6 +22,28 @@ import { AgentOrchestrator } from "./services/AgentOrchestrator.js";
 import { TradingService } from "./services/TradingService.js";
 import { GovernanceService } from "./services/GovernanceService.js";
 import { getWorkerClient } from "../../services/CloudflareWorkerClient.js";
+import { getDb } from "../../db/index.js";
+
+/**
+ * Database row shape for the `workspace_agents` table.
+ * Mirrors the Drizzle schema in `src/backend/db/schema.ts`.
+ */
+interface WorkspaceAgentRow {
+  id: string;
+  workspace_id: string;
+  name: string;
+  role: string;
+  status: string;
+  chain: string;
+  wallet_address: string | null;
+  budget: string | null;
+  trades: number;
+  spend_history: string;
+  source: string;
+  webhook_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export class AgentsModule extends BaseService {
   private agents: Map<string, TradingAgent> = new Map();
@@ -118,6 +141,9 @@ export class AgentsModule extends BaseService {
 
   private async initializeAgents(): Promise<void> {
     this.logger.info("Initializing trading agents...");
+
+    // Load persisted agents from database first
+    await this.loadAgentsFromDb();
 
     const sapienceEnabled =
       (process.env.SAPIENCE_ENABLED || "false").toLowerCase() === "true";
@@ -349,6 +375,10 @@ export class AgentsModule extends BaseService {
     this.agents.set(id, agent);
     this.logger.info(`User agent ${id} registered and started`);
 
+    // Persist to database (default-workspace for now; multi-workspace support planned)
+    const workspaceId = process.env.WORKSPACE_ID || "default-workspace";
+    this.persistAgent(workspaceId, id, params.name, params.type, "Ethereum", params.address, "unlimited");
+
     return agent.getInfo();
   }
 
@@ -357,5 +387,70 @@ export class AgentsModule extends BaseService {
    */
   get running(): boolean {
     return this.isRunning;
+  }
+
+  /**
+   * Load agents from the database on startup
+   */
+  private async loadAgentsFromDb(): Promise<void> {
+    try {
+      const db = getDb();
+      const agents = db.prepare(
+        "SELECT * FROM workspace_agents WHERE status != 'deleted' ORDER BY created_at",
+      ).all() as WorkspaceAgentRow[];
+
+      for (const row of agents) {
+        const id = row.id;
+        // Skip if already in memory (from hardcoded agents)
+        if (this.agents.has(id)) continue;
+
+        const agent = new UserTradingAgent({
+          id,
+          name: row.name,
+          type: row.role,
+          address: row.wallet_address || "",
+          description: row.role,
+          riskLevel: "medium",
+        });
+
+        // Restore additional state
+        // Status is a known union; assert it explicitly since the DB stores plain strings.
+        agent.getInfo().status = row.status as BaseAgent["status"];
+        agent.getInfo().chain = row.chain;
+        agent.getInfo().budget = row.budget ?? undefined;
+        agent.getInfo().trades = row.trades || 0;
+
+        this.agents.set(id, agent);
+        this.logger.info(`Loaded agent ${id} (${row.name}) from database`);
+      }
+
+      this.logger.info(`Loaded ${agents.length} agents from database`);
+    } catch (error) {
+      this.logger.warn(`Failed to load agents from database: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Persist an agent to the database
+   */
+  private persistAgent(
+    workspaceId: string,
+    id: string,
+    name: string,
+    role: string,
+    chain: string,
+    walletAddress: string,
+    budget: string,
+  ): void {
+    try {
+      const db = getDb();
+      db.prepare(
+        `INSERT INTO workspace_agents (id, workspace_id, name, role, status, chain, wallet_address, budget, trades, spend_history, created_at, updated_at, source)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, '[]', datetime('now'), datetime('now'), 'managed')`,
+      ).run(id, workspaceId, name, role, "active", chain, walletAddress, budget);
+      this.logger.info(`Persisted agent ${id} (workspace: ${workspaceId}) to database`);
+    } catch (error) {
+      this.logger.warn(`Failed to persist agent ${id}: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 }

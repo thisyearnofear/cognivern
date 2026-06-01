@@ -2,11 +2,14 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, XCircle, Clock, FileSearch } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, FileSearch, PlayCircle, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAuditLogs } from "@/hooks/use-api";
 
 export function AuditPage() {
+  const router = useRouter();
   const { data: rawLogs, isLoading, error } = useAuditLogs();
 
   const logs = Array.isArray(rawLogs)
@@ -102,12 +105,20 @@ export function AuditPage() {
 
       {/* Log Timeline */}
       {!error && logs.length === 0 && !isLoading ? (
-        <div className="p-12 text-center text-muted-foreground border rounded-xl">
-          <FileSearch className="h-8 w-8 mx-auto mb-3 opacity-50" />
+        <div className="p-12 text-center border rounded-xl">
+          <FileSearch className="h-8 w-8 mx-auto mb-3 opacity-50 text-muted-foreground" />
           <p className="font-medium">No audit logs yet</p>
-          <p className="text-sm mt-1">
-            Activity will appear here as agents execute spends
+          <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+            Activity will appear here as governed agents execute spends. Register an agent and run a governance check to see your first audit entry.
           </p>
+          <div className="flex items-center justify-center gap-3 mt-6">
+            <Button variant="outline" onClick={() => router.push("/governance/check")}>
+              <PlayCircle className="h-3.5 w-3.5 mr-1.5" /> Run a Check
+            </Button>
+            <Button variant="outline" onClick={() => router.push("/agents/workshop")}>
+              <Users className="h-3.5 w-3.5 mr-1.5" /> Register Agent
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="space-y-2">

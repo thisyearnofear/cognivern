@@ -30,6 +30,12 @@ import {
   Sparkles,
   ArrowRight,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion } from "framer-motion";
 import { useAppStore } from "@/stores/app-store";
@@ -95,12 +101,24 @@ export function AppSidebar() {
           </div>
         </div>
         <div className="px-1">
-          <span className="text-[10px] text-muted-foreground/60">
-            Powered by{" "}
-            <span className="text-primary/70 hover:text-primary cursor-help underline decoration-dotted" title="Open Wallet Standard — decentralized key custody for agents">
-              OWS
-            </span>
-          </span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <span className="text-[10px] text-muted-foreground/60 cursor-help">
+                  Powered by{" "}
+                  <span className="text-primary/70 hover:text-primary underline decoration-dotted">
+                    OWS
+                  </span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-[240px] text-xs">
+                <p className="font-medium mb-1">Open Wallet Standard</p>
+                <p className="text-muted-foreground">
+                  Decentralized key custody for AI agents. Each agent gets its own scoped wallet with revocable permissions — no shared keys, no single point of failure.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {demoMode ? (
@@ -128,32 +146,52 @@ export function AppSidebar() {
           </>
         )}
         {!demoMode && (
-          <div className="relative grid grid-cols-2 p-1 bg-muted rounded-lg border border-border/50">
-            <motion.div
-              className="absolute inset-y-1 w-[calc(50%-8px)] rounded-md bg-background shadow-sm"
-              animate={{ x: isSandbox ? 4 : "calc(100% + 4px)" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            />
-            <button
-              onClick={() => setWorkspaceMode("sandbox")}
-              className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                isSandbox
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Sandbox
-            </button>
-            <button
-              onClick={() => setWorkspaceMode("production")}
-              className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                !isSandbox
-                  ? "text-emerald-600"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Production
-            </button>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[10px] text-muted-foreground/60">Environment</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <HelpCircle className="h-3 w-3 text-muted-foreground/50 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[220px] text-xs">
+                    <p className="font-medium mb-1">Sandbox vs Production</p>
+                    <p className="text-muted-foreground">
+                      <strong>Sandbox</strong> — test with demo data, no real transactions.
+                      <br />
+                      <strong>Production</strong> — connect live agents and enforce real policies on-chain.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="relative grid grid-cols-2 p-1 bg-muted rounded-lg border border-border/50">
+              <motion.div
+                className="absolute inset-y-1 w-[calc(50%-8px)] rounded-md bg-background shadow-sm"
+                animate={{ x: isSandbox ? 4 : "calc(100% + 4px)" }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              />
+              <button
+                onClick={() => setWorkspaceMode("sandbox")}
+                className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  isSandbox
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Sandbox
+              </button>
+              <button
+                onClick={() => setWorkspaceMode("production")}
+                className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  !isSandbox
+                    ? "text-emerald-600"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Production
+              </button>
+            </div>
           </div>
         )}
       </SidebarHeader>
