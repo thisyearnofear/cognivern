@@ -163,15 +163,27 @@ export class PrivaraPayrollService {
       // The escrow instance has the id property directly
       const escrowId = escrow.id;
 
-      // Fund the escrow with the payment amount
-      const fundResult = await escrow.fund(amountUnits);
+      let txHash: string;
+      let funded = false;
 
-      const txHash =
-        fundResult?.tx?.hash?.toString() ||
-        `0x${escrowId.toString().padStart(64, "0")}`;
+      try {
+        // Fund the escrow with autoApprove (handles USDC token approval in one call)
+        const fundResult = await escrow.fund(amountUnits, {
+          autoApprove: true,
+        });
+        txHash = fundResult?.tx?.hash?.toString() || "";
+        funded = true;
+      } catch (fundErr) {
+        // Escrow created but funding failed (e.g. cUSDC operator approval not
+        // available on this network). Return escrow creation as partial success.
+        logger.warn(
+          `PrivaraPayroll: escrow ${escrowId} created but funding failed: ${fundErr instanceof Error ? fundErr.message : String(fundErr)}`,
+        );
+        txHash = escrow.createTx?.hash?.toString() || "";
+      }
 
       logger.info(
-        `PrivaraPayroll: escrow ${escrowId} created and funded for ${request.contractorWallet}`,
+        `PrivaraPayroll: escrow ${escrowId} created${funded ? " and funded" : ""} for ${request.contractorWallet}`,
       );
 
       return {
@@ -181,7 +193,9 @@ export class PrivaraPayrollService {
         contractorWallet: request.contractorWallet,
         amountUsd: request.amountUsd,
         timestamp: new Date().toISOString(),
-        note: `Privara executed confidential transfer — escrow ${escrowId} created and funded, decisionId ${request.decisionId} carried as compliance proof`,
+        note: funded
+          ? `Privara executed confidential transfer — escrow ${escrowId} created and funded, decisionId ${request.decisionId} carried as compliance proof`
+          : `Privara escrow ${escrowId} created — funding requires cUSDC operator approval on this network. decisionId ${request.decisionId} carried as compliance proof`,
       };
     } catch (error) {
       logger.error(

@@ -7,7 +7,7 @@ Cognivern runs as a Node.js backend served from a VPS (e.g. Hetzner), with the f
 | Layer       | URL                                         |
 | ----------- | ------------------------------------------- |
 | Frontend    | https://cognivern.vercel.app                |
-| Backend API | https://api.thisyearnofear.com              |
+| Backend API | https://cognivern.thisyearnofear.com        |
 | Repository  | https://github.com/thisyearnofear/cognivern |
 
 ## Architecture
@@ -67,6 +67,10 @@ Optional integrations:
 | `XLAYER_STORAGE_CONTRACT`     | Deployed storage contract address (X Layer)                                          |
 | `XLAYER_PRIVATE_KEY`          | Wallet private key for X Layer deployment                                            |
 | `RECALL_API_KEY`              | Recall network API key                                                               |
+| `FHENIX_PRIVATE_KEY`          | Wallet for Fhenix confidential policy ops (Arbitrum Sepolia)                         |
+| `FHENIX_POLICY_CONTRACT`      | `ConfidentialSpendPolicy` contract address on Fhenix                                 |
+| `FHENIX_CHAIN_ID`             | Fhenix chain ID (default: 421614 for Arbitrum Sepolia)                               |
+| `PRIVARA_PRIVATE_KEY`         | Wallet for Privara confidential payroll (falls back to `FHENIX_PRIVATE_KEY`)          |
 
 ## Shared runtime paths
 
@@ -81,30 +85,54 @@ PM2 should provide explicit paths for all file-backed runtime state:
 
 ## Lightweight deployment flow
 
-Build and deploy the backend artifact:
+Build and deploy the backend as a single bundled file:
 
 ```bash
-bash scripts/deploy/build-backend-artifact.sh
-bash scripts/deploy/deploy-backend-artifact-hetzner.sh
+# 1. Build the bundle locally (esbuild → deploy-bundle/server.mjs)
+node deploy/build-bundle.mjs
+
+# 2. Upload to server
+scp deploy-bundle/server.mjs snel-bot:/opt/cognivern/app/bundle/server.mjs
+
+# 3. Restart PM2
+ssh snel-bot "pm2 restart cognivern-backend"
 ```
 
 What this flow does:
 
-1. builds the backend locally
-2. creates a backend-only tarball
-3. uploads it to `/opt/cognivern/app`
-4. installs runtime dependencies in place on the server
-5. restarts PM2 app `cognivern-backend`
-6. verifies `/health`
+1. Bundles the entire backend into a single `server.mjs` via esbuild
+2. Native modules (`better-sqlite3`, `@cofhe/sdk`, etc.) are marked external and installed separately on the server
+3. Uploads the bundle to `/opt/cognivern/app/bundle/server.mjs`
+4. Restarts PM2 — the process runs from `/opt/cognivern/app/bundle/`
+
+### Production server layout
+
+```text
+/opt/cognivern/
+  app/
+    bundle/
+      server.mjs        # esbuild bundle (main entry)
+      package.json       # native deps only
+      node_modules/      # installed on server
+    config/
+    .env -> /opt/cognivern/shared/.env
+    data -> /opt/cognivern/shared/data
+    logs -> /opt/cognivern/shared/logs
+  shared/
+    .env                 # production secrets
+    data/                # SQLite, vault, telemetry
+    logs/                # PM2 log output
+```
 
 ## PM2 Configuration
 
-The PM2 config is at `config/ecosystem.config.cjs`.
+The PM2 process runs from `/opt/cognivern/app/bundle/` with env loaded from `/opt/cognivern/shared/.env`.
 
 Key settings:
 
 - app name: `cognivern-backend`
-- cwd: `/opt/cognivern/app`
+- script: `/opt/cognivern/app/bundle/server.mjs`
+- cwd: `/opt/cognivern/app/bundle`
 - env file: `/opt/cognivern/shared/.env`
 - logs: `/opt/cognivern/shared/logs`
 - memory restart: `512M`
@@ -136,13 +164,23 @@ Recommended settings:
 ## Health Checks
 
 ```bash
-curl http://127.0.0.1:10000/health
+# From server
+curl http://127.0.0.1:3087/health
+
+# From outside
+curl https://cognivern.thisyearnofear.com/health
 ```
 
 Expected response shape:
 
 ```json
 {"status":"ok","message":"Server is running","timestamp":"...","uptime":...}
+```
+
+Deep health check (SQLite + notifications table):
+
+```bash
+curl https://cognivern.thisyearnofear.com/health?deep=true
 ```
 
 ## Security Notes

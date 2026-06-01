@@ -4,7 +4,7 @@ Cognivern has been submitted to multiple hackathons. This doc tracks them.
 
 | Hackathon                                 | Track                             | Date    | Status                |
 | ----------------------------------------- | --------------------------------- | ------- | --------------------- |
-| Fhenix Privacy-by-Design Buildathon       | Confidential Policy State         | 2026-Q2 | Submitted (Waves 1-6) |
+| Fhenix Privacy-by-Design Buildathon       | Confidential Policy State         | 2026-Q2 | Submitted (Waves 1-7) |
 | X Layer Arena                             | Agent Spend Governance            | 2026-Q2 | Submitted             |
 | 0G APAC — Track 3                         | Agentic Economy / Autonomous Apps | 2026-Q2 | Submitted             |
 | OWS Hackathon — Track 02                  | Agent Spend Governance & Identity | 2026-Q2 | Submitted             |
@@ -23,6 +23,8 @@ Each hackathon contributed a specific integration. See the respective docs:
 
 ## Demo Flow
 
+### Standard Spend Flow
+
 ```
 Policy → Preview (simulate) → Execute (sign) → Audit (review)
 ```
@@ -34,12 +36,20 @@ Policy → Preview (simulate) → Execute (sign) → Audit (review)
 5. **Execute Spend** — `POST /api/spend`
 6. **Review Audit** — `GET /api/audit/logs`
 
+### Fhenix Encrypted Spend Flow
+
+```bash
+COGNIVERN_URL=https://cognivern.thisyearnofear.com COGNIVERN_API_KEY=sapience-hackathon-key pnpm demo:fhenix
+```
+
+9-step end-to-end demo: encrypted policy creation, FHE spend evaluation, cross-chain anchoring, auditor permits, selective disclosure, encryption sidecar, Privara payroll, sealed-bid vendor selection.
+
 ## Deployments
 
 | Layer                 | URL                                         |
 | --------------------- | ------------------------------------------- |
 | Frontend (Vercel)     | https://cognivern.vercel.app                |
-| Backend API (Hetzner) | https://api.thisyearnofear.com              |
+| Backend API (Hetzner) | https://cognivern.thisyearnofear.com              |
 | PromptOS Terminal     | https://cognivern.vercel.app/os             |
 | Repository            | https://github.com/thisyearnofear/cognivern |
 
