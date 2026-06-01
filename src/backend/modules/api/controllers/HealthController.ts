@@ -1,9 +1,20 @@
 /**
  * Health Controller
+ *
+ * Supports `?deep=true` query parameter for dependency checks:
+ *   - SQLite database connectivity
+ *   - Notifications table existence
  */
 
 import { Request, Response } from "express";
 import { AgentsModule } from "../../agents/AgentsModule.js";
+
+export interface DependencyCheck {
+  name: string;
+  status: "healthy" | "unhealthy";
+  latencyMs: number;
+  error?: string;
+}
 
 export class HealthController {
   private agentsModule: AgentsModule;
@@ -13,12 +24,97 @@ export class HealthController {
   }
 
   async getHealth(req: Request, res: Response): Promise<void> {
-    res.json({
+    const deep = req.query.deep === "true";
+
+    const response: Record<string, unknown> = {
       status: "ok",
       message: "Server is running",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-    });
+    };
+
+    if (deep) {
+      const dependencies = await this.checkDependencies();
+      const allHealthy = dependencies.every((d) => d.status === "healthy");
+      response.dependencies = dependencies;
+      response.status = allHealthy ? "ok" : "degraded";
+      response.message = allHealthy
+        ? "All dependencies healthy"
+        : "One or more dependencies unhealthy";
+    }
+
+    res.json(response);
+  }
+
+  /**
+   * Run deep dependency checks. Each check is individually timed.
+   */
+  private async checkDependencies(): Promise<DependencyCheck[]> {
+    const results: DependencyCheck[] = [];
+
+    // 1. SQLite database connectivity
+    results.push(await this.checkDatabase());
+    // 2. Notifications table existence
+    results.push(await this.checkNotificationsTable());
+
+    return results;
+  }
+
+  private async checkDatabase(): Promise<DependencyCheck> {
+    const name = "sqlite";
+    const start = Date.now();
+    try {
+      const { getDb } = await import("../../../db/index.js");
+      const db = getDb();
+      // Execute a simple query to verify connectivity
+      db.prepare("SELECT 1 as alive").get();
+      return {
+        name,
+        status: "healthy",
+        latencyMs: Date.now() - start,
+      };
+    } catch (err) {
+      return {
+        name,
+        status: "unhealthy",
+        latencyMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  private async checkNotificationsTable(): Promise<DependencyCheck> {
+    const name = "notifications_table";
+    const start = Date.now();
+    try {
+      const { getDb } = await import("../../../db/index.js");
+      const db = getDb();
+      const row = db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='notifications'",
+        )
+        .get() as { name: string } | undefined;
+      if (!row) {
+        return {
+          name,
+          status: "unhealthy",
+          latencyMs: Date.now() - start,
+          error: "notifications table not found",
+        };
+      }
+      return {
+        name,
+        status: "healthy",
+        latencyMs: Date.now() - start,
+      };
+    } catch (err) {
+      return {
+        name,
+        status: "unhealthy",
+        latencyMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
   }
 
   async getReadiness(req: Request, res: Response): Promise<void> {

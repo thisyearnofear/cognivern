@@ -60,6 +60,8 @@
     "deploy-contracts": "npx hardhat run scripts/deploy-hardhat.cjs --network calibration",
     "upload-policy": "tsx scripts/tests/upload-test-policy.ts",
     "clean:build": "rm -rf build/artifacts/* build/cache/*",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "test:integration": "tsx --test tests/integration/*.test.ts",
     "demo:reset": "tsx scripts/demo/demo-reset.ts",
     "demo:seed": "tsx scripts/demo/demo-seed.ts",
@@ -104,6 +106,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@cloudflare/workers-types": "^4.20250109.0",
     "@ensdomains/buffer": "0.1.3",
     "@eslint/js": "^9.31.0",

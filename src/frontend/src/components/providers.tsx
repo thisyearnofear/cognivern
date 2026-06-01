@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthWatcher } from "@/components/auth-watcher";
 import { NotificationsProvider } from "@/components/layout/notifications-provider";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { config } from "@/lib/wagmi";
 import "@rainbow-me/rainbowkit/styles.css";
 
@@ -20,7 +21,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <AuthWatcher />
             <NotificationsProvider />
-            {children}
+            <ErrorBoundary>{children}</ErrorBoundary>
             <Toaster />
           </ThemeProvider>
         </RainbowKitProvider>
