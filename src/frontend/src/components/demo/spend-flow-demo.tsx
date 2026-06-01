@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Clock,
   Activity,
+  Lock,
 } from "lucide-react";
 
 interface StepState {
@@ -30,21 +31,21 @@ const INITIAL_STEPS: StepState[] = [
     label: "Policy Created",
     icon: ShieldCheck,
     status: "pending",
-    detail: "Daily limit: 500 MNT, Compliance check enabled",
+    detail: "Daily limit: 500 MNT (encrypted), compliance check enabled",
   },
   {
     id: "request",
     label: "Agent Requests Spend",
     icon: Activity,
     status: "pending",
-    detail: "YieldHunter-01 requests 200 MNT for LP staking",
+    detail: "YieldHunter-01 requests 200 MNT for LP staking (encrypted client-side)",
   },
   {
     id: "evaluate",
     label: "Policy Evaluated",
     icon: FileSearch,
     status: "pending",
-    detail: "Checking 3 active policies...",
+    detail: "FHE comparisons on encrypted values — budget and amount never in plaintext",
   },
   {
     id: "decision",
@@ -221,6 +222,12 @@ export function SpendFlowDemo() {
                   >
                     {step.label}
                   </span>
+                  {(step.id === "policy" || step.id === "request" || step.id === "evaluate") && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+                      <Lock className="h-2.5 w-2.5" />
+                      Encrypted
+                    </span>
+                  )}
                   {step.status === "active" && (
                     <span className="flex items-center gap-1 text-xs text-primary">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
@@ -241,9 +248,9 @@ export function SpendFlowDemo() {
                 <p className="text-xs text-muted-foreground">{step.detail}</p>
                 {step.status === "passed" && idx === 3 && approved && (
                   <div className="mt-2 flex items-center gap-2 text-xs">
-                    <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                    <span className="text-emerald-600 dark:text-emerald-400">
-                      200 MNT within daily budget
+                    <Lock className="h-3 w-3 text-blue-500" />
+                    <span className="text-blue-600 dark:text-blue-400">
+                      200 MNT within encrypted daily budget
                     </span>
                     <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-2" />
                     <span className="text-emerald-600 dark:text-emerald-400">
@@ -303,14 +310,16 @@ export function SpendFlowDemo() {
       {/* How it works */}
       <Card className="bg-muted/20">
         <CardContent className="p-4">
-          <div className="text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">
-              Behind the scenes:
-            </span>{" "}
-            Every spend goes through this flow in under 100ms. Policy checks use
-            FHE (Fully Homomorphic Encryption) on Fhenix, audit evidence is
-            stored on 0G for fast retrieval and Filecoin for permanent archive,
-            and cross-chain communication is handled by Hyperlane.
+          <div className="flex items-start gap-2">
+            <Lock className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">
+                Privacy by design:
+              </span>{" "}
+              Budgets, limits, and spend amounts are evaluated while encrypted —
+              the policy engine sees compliance, not your numbers. Audit evidence
+              is stored immutably on 0G and Filecoin.
+            </div>
           </div>
         </CardContent>
       </Card>
