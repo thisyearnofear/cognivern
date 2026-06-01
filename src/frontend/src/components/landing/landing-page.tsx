@@ -50,7 +50,7 @@ export function LandingPage() {
 
   const handleTryDemo = () => {
     enableDemoMode();
-    router.push("/dashboard");
+    router.push("/demo/spend");
   };
 
   return (

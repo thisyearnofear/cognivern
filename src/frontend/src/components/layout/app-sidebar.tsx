@@ -76,6 +76,16 @@ const navItems = [
   { id: "integrate", label: "Integrate", icon: Code2, href: "/integrate" },
 ];
 
+const demoNavItems = [
+  {
+    id: "demo-spend",
+    label: "Spend Flow Demo",
+    icon: PlayCircle,
+    href: "/demo/spend",
+    description: "Watch the spend flow in action",
+  },
+];
+
 export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -234,6 +244,30 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 );
               })}
+              {demoMode && (
+                <>
+                  <SidebarSeparator className="my-1" />
+                  {demoNavItems.map((item) => {
+                    const isActive =
+                      pathname === item.href ||
+                      pathname.startsWith(item.href + "/");
+                    return (
+                      <SidebarMenuItem key={item.id}>
+                        <SidebarMenuButton
+                          onClick={() => router.push(item.href)}
+                          isActive={isActive}
+                          className="h-9 rounded-lg px-3 font-normal text-amber-600 dark:text-amber-400"
+                          aria-label={`Navigate to ${item.label}`}
+                          tooltip={item.description}
+                        >
+                          <item.icon className="h-[18px] w-[18px]" />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -261,6 +295,20 @@ export function AppSidebar() {
               <span>Help</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {!demoMode && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => {
+                  useAppStore.getState().enableDemoMode();
+                  router.push("/demo/spend");
+                }}
+                className="h-9 rounded-lg px-3 text-amber-600 dark:text-amber-400"
+              >
+                <PlayCircle className="h-[18px] w-[18px]" />
+                <span>Try Demo</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
 
         <SidebarSeparator className="my-2" />
