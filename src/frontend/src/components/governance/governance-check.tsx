@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
+import { useVoiceInput } from "@/hooks/use-voice-input";
 
 const ACTION_TYPES = [
   { type: "swap", description: "Swap tokens on a DEX" },
@@ -108,12 +109,42 @@ export function GovernanceCheck() {
   const [evaluating, setEvaluating] = useState(false);
   const [result, setResult] = useState<GovernanceEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
+  const [nlInput, setNlInput] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const {
+    recording,
+    transcribing,
+    startRecording: toggleVoiceInput,
+  } = useVoiceInput({
+    onResult: (text) => setActionDesc(text),
+    onError: (err) => setError(err),
+  });
 
   const agentList = useMemo(() => agents || [], [agents]);
+
+  // Simple NL parser: extracts amount and infers action type from keywords
+  const parseNlInput = useCallback((input: string) => {
+    const lower = input.toLowerCase();
+    let parsedType = actionType;
+    let parsedAmount = amount;
+    const parsedDesc = input;
+
+    // Infer action type from keywords
+    if (/\b(swap|exchange|trade|convert)\b/.test(lower)) parsedType = "swap";
+    else if (/\b(stake|deposit|lend|yield)\b/.test(lower)) parsedType = "stake";
+    else if (/\b(transfer|send|pay|withdraw|bridge)\b/.test(lower)) parsedType = "transfer";
+    else if (/\b(mint|create|issue)\b/.test(lower)) parsedType = "mint";
+    else if (/\b(approve|allow|permit)\b/.test(lower)) parsedType = "approve";
+
+    // Extract amount (e.g. $500, 500, 2000)
+    const amountMatch = input.match(/\$?\s*(\d+(?:,\d+)*(?:\.\d+)?)\b/);
+    if (amountMatch) {
+      parsedAmount = amountMatch[1].replace(/,/g, "");
+    }
+
+    return { type: parsedType, amount: parsedAmount, desc: parsedDesc };
+  }, [actionType, amount]);
 
   const handleEvaluate = useCallback(async () => {
     setEvaluating(true);
@@ -121,15 +152,18 @@ export function GovernanceCheck() {
     setResult(null);
 
     try {
+      const parsed = nlInput.trim() ? parseNlInput(nlInput) : null;
+
       const res = await apiClient.evaluateGovernance({
         agentId: agentId || agentList[0]?.id || "unknown",
         action: {
-          type: actionType,
+          type: parsed?.type || actionType,
           description:
+            parsed?.desc ||
             actionDesc ||
-            ACTION_TYPES.find((a) => a.type === actionType)?.description ||
+            ACTION_TYPES.find((a) => a.type === (parsed?.type || actionType))?.description ||
             "",
-          amount: parseFloat(amount) || 200,
+          amount: parseFloat(parsed?.amount || amount) || 200,
           currency: "USDC",
         },
       });
@@ -140,7 +174,7 @@ export function GovernanceCheck() {
     } finally {
       setEvaluating(false);
     }
-  }, [agentId, agentList, actionType, actionDesc, amount]);
+  }, [nlInput, agentId, agentList, actionType, actionDesc, amount, parseNlInput]);
 
   return (
     <div className="space-y-6">
@@ -174,204 +208,166 @@ export function GovernanceCheck() {
                 Configure Spend Action
               </h2>
 
+              {/* Natural Language Input — Primary */}
               <div className="space-y-2">
-                <label htmlFor="agent" className="text-sm font-medium">
-                  Agent
+                <label htmlFor="nl-input" className="text-sm font-medium">
+                  Describe in plain English
                 </label>
-                <Select
-                  value={agentId}
-                  onValueChange={(v) => v && setAgentId(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an agent" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {agentList.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.name} ({a.chain})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="action-type" className="text-sm font-medium">
-                  Action Type
-                </label>
-                <Select
-                  value={actionType}
-                  onValueChange={(v) => {
-                    if (!v) return;
-                    setActionType(v);
-                    const action = ACTION_TYPES.find((a) => a.type === v);
-                    if (action) setActionDesc(action.description);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select action type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACTION_TYPES.map((a) => (
-                      <SelectItem key={a.type} value={a.type}>
-                        {a.type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="desc" className="text-sm font-medium">
-                    Description
-                  </label>
+                <div className="flex gap-2">
+                  <Input
+                    id="nl-input"
+                    value={nlInput}
+                    onChange={(e) => setNlInput(e.target.value)}
+                    placeholder="e.g. Swap $500 USDC for ETH on Uniswap"
+                    className="flex-1"
+                  />
                   <button
                     type="button"
                     disabled={transcribing}
-                    onClick={async () => {
-                      if (recording && mediaRecorderRef.current) {
-                        // Stop recording
-                        mediaRecorderRef.current.stop();
-                        setRecording(false);
-                        return;
-                      }
-
-                      // Start recording
-                      try {
-                        const stream =
-                          await navigator.mediaDevices.getUserMedia({
-                            audio: true,
-                          });
-                        const mimeType = MediaRecorder.isTypeSupported(
-                          "audio/webm",
-                        )
-                          ? "audio/webm"
-                          : MediaRecorder.isTypeSupported("audio/mp4")
-                            ? "audio/mp4"
-                            : undefined;
-                        const recorder = new MediaRecorder(
-                          stream,
-                          mimeType ? { mimeType } : undefined,
-                        );
-                        mediaRecorderRef.current = recorder;
-                        recordedChunksRef.current = [];
-
-                        recorder.ondataavailable = (e) => {
-                          if (e.data.size > 0)
-                            recordedChunksRef.current.push(e.data);
-                        };
-
-                        recorder.onstop = async () => {
-                          // Stop all tracks to release mic
-                          stream.getTracks().forEach((t) => t.stop());
-
-                          const blob = new Blob(recordedChunksRef.current, {
-                            type: mimeType || "audio/webm",
-                          });
-                          if (blob.size === 0) return;
-
-                          setTranscribing(true);
-                          try {
-                            const arrayBuffer = await blob.arrayBuffer();
-                            const bytes = new Uint8Array(arrayBuffer);
-                            let binary = "";
-                            const len = bytes.byteLength;
-                            for (let i = 0; i < len; i++) {
-                              binary += String.fromCharCode(bytes[i]);
-                            }
-                            const base64 = btoa(binary);
-
-                            const res = await apiClient.transcribeSpeech({
-                              audio: base64,
-                              mimeType: mimeType || "audio/webm",
-                            });
-                            if (res.success && res.data?.text) {
-                              setActionDesc(res.data.text);
-                            } else {
-                              setError(res.error || "Transcription failed");
-                            }
-                          } catch (err) {
-                            setError(
-                              err instanceof Error
-                                ? err.message
-                                : "Transcription failed",
-                            );
-                          } finally {
-                            setTranscribing(false);
-                          }
-                        };
-
-                        recorder.start();
-                        setRecording(true);
-                      } catch (err) {
-                        setError(
-                          err instanceof Error
-                            ? err.message
-                            : "Microphone access denied",
-                        );
-                      }
-                    }}
-                    className={`flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors ${
+                    onClick={toggleVoiceInput}
+                    className={`flex items-center justify-center gap-1 text-xs px-3 py-2 rounded-md border transition-colors shrink-0 ${
                       recording
-                        ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-                        : "bg-muted text-muted-foreground hover:text-foreground"
+                        ? "border-red-200 bg-red-50 text-red-600 dark:border-red-800 dark:bg-red-900/30 dark:text-red-400"
+                        : transcribing
+                          ? "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                          : "border-border text-muted-foreground hover:text-foreground"
                     }`}
-                    title={
-                      recording ? "Stop recording" : "Record voice description"
-                    }
+                    title={recording ? "Stop recording" : "Voice input"}
                   >
                     {transcribing ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : recording ? (
-                      <MicOff className="h-3 w-3" />
+                      <MicOff className="h-3.5 w-3.5" />
                     ) : (
-                      <Mic className="h-3 w-3" />
+                      <Mic className="h-3.5 w-3.5" />
                     )}
-                    {transcribing
-                      ? "Transcribing…"
-                      : recording
-                        ? "Recording..."
-                        : "Voice"}
                   </button>
                 </div>
-                <Textarea
-                  id="desc"
-                  value={actionDesc}
-                  onChange={(e) => setActionDesc(e.target.value)}
-                  placeholder="Describe the spend action or pick a chip below..."
-                  rows={2}
-                />
-                {/* Quick-select chips */}
-                <div className="flex flex-wrap gap-1.5">
-                  {(DESCRIPTION_CHIPS[actionType] || []).map((chip) => (
-                    <button
-                      key={chip}
-                      type="button"
-                      onClick={() => setActionDesc(chip)}
-                      className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
-                        actionDesc === chip
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                      }`}
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
+                {nlInput && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(() => {
+                      const parsed = parseNlInput(nlInput);
+                      return (
+                        <>
+                          <Badge variant="outline" className="text-[10px]">
+                            Type: {parsed.type}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px]">
+                            Amount: ${parsed.amount}
+                          </Badge>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="amount" className="text-sm font-medium">
-                  Amount (USDC)
-                </label>
-                <Input
-                  id="amount"
-                  type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="200"
-                />
+              {/* Advanced Fields — Collapsible */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                >
+                  {showAdvanced ? "Hide" : "Show"} advanced fields
+                  <svg className={`h-3 w-3 transition-transform ${showAdvanced ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+
+                {showAdvanced && (
+                  <div className="space-y-4 mt-4 pt-4 border-t border-border">
+                    <div className="space-y-2">
+                      <label htmlFor="agent" className="text-sm font-medium">
+                        Agent
+                      </label>
+                      <Select
+                        value={agentId}
+                        onValueChange={(v) => v && setAgentId(v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an agent" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {agentList.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.name} ({a.chain})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="action-type" className="text-sm font-medium">
+                        Action Type
+                      </label>
+                      <Select
+                        value={actionType}
+                        onValueChange={(v) => {
+                          if (!v) return;
+                          setActionType(v);
+                          const action = ACTION_TYPES.find((a) => a.type === v);
+                          if (action) setActionDesc(action.description);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select action type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ACTION_TYPES.map((a) => (
+                            <SelectItem key={a.type} value={a.type}>
+                              {a.type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="desc" className="text-sm font-medium">
+                        Description
+                      </label>
+                      <Textarea
+                        id="desc"
+                        value={actionDesc}
+                        onChange={(e) => setActionDesc(e.target.value)}
+                        placeholder="Describe the spend action or pick a chip below..."
+                        rows={2}
+                      />
+                      {/* Quick-select chips */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {(DESCRIPTION_CHIPS[actionType] || []).map((chip) => (
+                          <button
+                            key={chip}
+                            type="button"
+                            onClick={() => setActionDesc(chip)}
+                            className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                              actionDesc === chip
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                            }`}
+                          >
+                            {chip}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="amount" className="text-sm font-medium">
+                        Amount (USDC)
+                      </label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="200"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <Button

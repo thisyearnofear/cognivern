@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ShieldLogo } from "@/components/landing/shield-logo";
 import { AuthModal } from "@/components/auth/auth-modal";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppStore } from "@/stores/app-store";
 
@@ -68,9 +69,6 @@ export function LandingPage() {
               Open Wallet Standard — decentralized key custody for agents
               <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-stone-900 dark:border-t-stone-100"></span>
             </span>
-          </span>
-          <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 rounded-full text-xs">
-            ✦ Cogni-vern: governance for the cognitive age
           </span>
           <Button
             variant="ghost"
@@ -123,25 +121,25 @@ export function LandingPage() {
           <Button
             variant="default"
             size="lg"
-            onClick={handleConnectWallet}
+            onClick={handleTryDemo}
             className="bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 shadow-lg"
           >
-            Connect Wallet <ArrowRight />
+            <Sparkles className="h-4 w-4 mr-1" /> Try Demo — No Signup
           </Button>
           <Button
             variant="outline"
             size="lg"
-            onClick={() => router.push("/onboarding")}
+            onClick={handleConnectWallet}
           >
-            Set Up My Treasury <Zap />
+            Connect Wallet <ArrowRight />
           </Button>
           <Button
             variant="secondary"
             size="lg"
-            onClick={handleTryDemo}
+            onClick={() => router.push("/onboarding")}
             className="border-sky-200 dark:border-sky-800"
           >
-            <Sparkles className="h-4 w-4 mr-1" /> Try Demo
+            Set Up My Treasury <Zap />
           </Button>
         </div>
 
@@ -205,106 +203,114 @@ export function LandingPage() {
           ))}
         </div>
 
-        {/* Use Cases */}
+        {/* Use Cases + Who It's For — Tabbed */}
         <div className="mt-24 text-left">
-          <h2 className="text-xl font-bold text-foreground mb-3">
-            Built for agents that move value
-          </h2>
-          <p className="text-sm text-stone-500 mb-8">
-            Any autonomous agent that spends, swaps, stakes, or transfers
-            on-chain can be governed by Cognivern.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              {
-                title: "DeFi Trading Bots",
-                desc: "Enforce per-trade limits, restrict to allowlisted DEXs, cap daily volume.",
-                example: "Swap 2,000 USDC → ETH on Uniswap",
-              },
-              {
-                title: "Yield Optimizers",
-                desc: "Approve deposit/withdraw within budget, block unknown protocols.",
-                example: "Deposit 10,000 USDC into Aave v3",
-              },
-              {
-                title: "Portfolio Rebalancers",
-                desc: "Gate rebalances above a threshold, require multi-sig for large moves.",
-                example: "Rebalance $50k across 4 vaults",
-              },
-              {
-                title: "Payment Agents",
-                desc: "Cap per-payment and daily totals, restrict recipient addresses.",
-                example: "Pay 500 USDC to vendor wallet",
-              },
-              {
-                title: "DAO Treasury Agents",
-                desc: "Enforce proposal-linked budgets, require quorum for large disbursements.",
-                example: "Fund grant #42 with 3 ETH",
-              },
-              {
-                title: "Cross-Chain Bridges",
-                desc: "Limit bridge amounts, restrict destination chains, flag unusual routes.",
-                example: "Bridge 5,000 USDC to Arbitrum",
-              },
-            ].map((uc) => (
-              <div
-                key={uc.title}
-                className="p-5 rounded-xl bg-white dark:bg-stone-900 border border-border hover:border-primary/30 transition-colors"
-              >
-                <h3 className="font-semibold text-sm text-foreground mb-1">
-                  {uc.title}
-                </h3>
-                <p className="text-xs text-stone-500 mb-3">{uc.desc}</p>
-                <div className="text-[11px] font-mono text-primary/70 bg-primary/5 rounded px-2 py-1.5">
-                  {uc.example}
-                </div>
+          <Tabs defaultValue="use-cases" className="w-full">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">
+                  Built for agents that move value
+                </h2>
+                <p className="text-sm text-stone-500 mt-1">
+                  Any autonomous agent that spends, swaps, stakes, or transfers on-chain
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
+              <TabsList>
+                <TabsTrigger value="use-cases">Use Cases</TabsTrigger>
+                <TabsTrigger value="who">Who It&apos;s For</TabsTrigger>
+              </TabsList>
+            </div>
 
-        {/* Who is this for + Trust signals merged */}
-        <div className="mt-24 text-left">
-          <h2 className="text-xl font-bold text-foreground mb-8">
-            Who uses Cognivern?
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              {
-                who: "Crypto Funds",
-                why: "Constrain trading bots to pre-approved strategies and limits before they touch the treasury.",
-                signal: "Cryptographic audit proof for every decision",
-              },
-              {
-                who: "Agent Developers",
-                why: "Ship autonomous agents that customers trust — governance is built in, not bolted on.",
-                signal: "Real-time policy enforcement in <100ms",
-              },
-              {
-                who: "DAOs & Multisigs",
-                why: "Let operational agents execute within proposal-linked budgets without manual signing.",
-                signal: "Human-in-the-loop for high-value moves",
-              },
-            ].map((persona) => (
-              <div
-                key={persona.who}
-                className="p-5 rounded-xl bg-white dark:bg-stone-900 border border-border space-y-3"
-              >
-                <div className="text-sm font-semibold text-foreground">
-                  {persona.who}
-                </div>
-                <p className="text-xs text-stone-500">{persona.why}</p>
-                <div className="flex items-center gap-2 pt-2 border-t border-border">
-                  <div className="text-emerald-600 flex-shrink-0 text-xs">
-                    ✓
+            <TabsContent value="use-cases" className="mt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  {
+                    title: "DeFi Trading Bots",
+                    desc: "Enforce per-trade limits, restrict to allowlisted DEXs, cap daily volume.",
+                    example: "Swap 2,000 USDC → ETH on Uniswap",
+                  },
+                  {
+                    title: "Yield Optimizers",
+                    desc: "Approve deposit/withdraw within budget, block unknown protocols.",
+                    example: "Deposit 10,000 USDC into Aave v3",
+                  },
+                  {
+                    title: "Portfolio Rebalancers",
+                    desc: "Gate rebalances above a threshold, require multi-sig for large moves.",
+                    example: "Rebalance $50k across 4 vaults",
+                  },
+                  {
+                    title: "Payment Agents",
+                    desc: "Cap per-payment and daily totals, restrict recipient addresses.",
+                    example: "Pay 500 USDC to vendor wallet",
+                  },
+                  {
+                    title: "DAO Treasury Agents",
+                    desc: "Enforce proposal-linked budgets, require quorum for large disbursements.",
+                    example: "Fund grant #42 with 3 ETH",
+                  },
+                  {
+                    title: "Cross-Chain Bridges",
+                    desc: "Limit bridge amounts, restrict destination chains, flag unusual routes.",
+                    example: "Bridge 5,000 USDC to Arbitrum",
+                  },
+                ].map((uc) => (
+                  <div
+                    key={uc.title}
+                    className="p-5 rounded-xl bg-white dark:bg-stone-900 border border-border hover:border-primary/30 transition-colors"
+                  >
+                    <h3 className="font-semibold text-sm text-foreground mb-1">
+                      {uc.title}
+                    </h3>
+                    <p className="text-xs text-stone-500 mb-3">{uc.desc}</p>
+                    <div className="text-[11px] font-mono text-primary/70 bg-primary/5 rounded px-2 py-1.5">
+                      {uc.example}
+                    </div>
                   </div>
-                  <span className="text-[11px] text-stone-500">
-                    {persona.signal}
-                  </span>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </TabsContent>
+
+            <TabsContent value="who" className="mt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[
+                  {
+                    who: "Crypto Funds",
+                    why: "Constrain trading bots to pre-approved strategies and limits before they touch the treasury.",
+                    signal: "Cryptographic audit proof for every decision",
+                  },
+                  {
+                    who: "Agent Developers",
+                    why: "Ship autonomous agents that customers trust — governance is built in, not bolted on.",
+                    signal: "Real-time policy enforcement in <100ms",
+                  },
+                  {
+                    who: "DAOs & Multisigs",
+                    why: "Let operational agents execute within proposal-linked budgets without manual signing.",
+                    signal: "Human-in-the-loop for high-value moves",
+                  },
+                ].map((persona) => (
+                  <div
+                    key={persona.who}
+                    className="p-5 rounded-xl bg-white dark:bg-stone-900 border border-border space-y-3"
+                  >
+                    <div className="text-sm font-semibold text-foreground">
+                      {persona.who}
+                    </div>
+                    <p className="text-xs text-stone-500">{persona.why}</p>
+                    <div className="flex items-center gap-2 pt-2 border-t border-border">
+                      <div className="text-emerald-600 flex-shrink-0 text-xs">
+                        ✓
+                      </div>
+                      <span className="text-[11px] text-stone-500">
+                        {persona.signal}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Multi-Chain */}

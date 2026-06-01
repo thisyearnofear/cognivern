@@ -8,6 +8,7 @@ import type {
   GovernanceEvaluation,
   PolicyCheck,
 } from "@cognivern/shared";
+import { NotificationService } from "./NotificationService.js";
 
 export const WorkspaceDataService = {
   // --- Agents ---
@@ -514,6 +515,30 @@ export const WorkspaceDataService = {
     db.prepare(
       "UPDATE workspace_agents SET spend_history = ?, trades = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
     ).run(JSON.stringify(trimmed), newTrades, timestamp, agentId, workspaceId);
+
+    // Fire notifications for denied/flagged decisions
+    if (decision === "denied" || decision === "flagged") {
+      const agent = db
+        .prepare(
+          "SELECT name FROM workspace_agents WHERE id = ? AND workspace_id = ?",
+        )
+        .get(agentId, workspaceId) as { name?: string } | undefined;
+
+      NotificationService.fireDecisionNotification({
+        event: "governance:decision",
+        timestamp,
+        workspaceId,
+        agentId,
+        agentName: agent?.name,
+        action: action.type,
+        decision,
+        reason: decision === "denied" ? "Blocked by governance policy" : "Flagged for review",
+        amount: action.amount,
+        currency: action.currency,
+      }).catch((err) => {
+        console.warn("[notifications] Failed to fire notification:", err);
+      });
+    }
   },
 
   // --- Runs (placeholder for live) ---

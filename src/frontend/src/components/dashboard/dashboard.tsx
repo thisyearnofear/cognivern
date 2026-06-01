@@ -26,6 +26,7 @@ import { ActivityChart } from "./activity-chart";
 import { AgentStatusChart } from "./agent-status-chart";
 import { ApprovalSparkline } from "./approval-sparkline";
 import { QuickCheck } from "./quick-check";
+import { formatBudget } from "@/lib/budget-format";
 
 const ACTIVITY_PAGE_SIZE = 5;
 
@@ -413,7 +414,7 @@ export function Dashboard() {
                   </div>
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>{agent.trades} trades</span>
-                    <span>{agent.budget}</span>
+                    <span className="font-medium">{formatBudget(agent.budget)}</span>
                   </div>
                 </CardContent>
               </Card>

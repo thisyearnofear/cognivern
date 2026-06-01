@@ -14,6 +14,7 @@ import {
   QUICK_PROMPTS,
   RECENT_PROMPTS_STORAGE_KEY,
 } from "./os-content";
+import { useVoiceInput } from "@/hooks/use-voice-input";
 
 interface HydraDBStatusData {
   configured: boolean;
@@ -84,12 +85,18 @@ export function OsShell() {
     null,
   );
 
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const ttsEnabledRef = useRef(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
+
+  const {
+    recording,
+    transcribing,
+    startRecording: startVoiceInput,
+  } = useVoiceInput({
+    onResult: (text) => {
+      terminalRef.current?.setInputValue(text);
+    },
+  });
 
   useEffect(() => {
     if (!showOnboarding) {
@@ -248,69 +255,9 @@ export function OsShell() {
     });
   }, []);
 
-  const handleVoiceInput = useCallback(async () => {
-    if (recording && mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setRecording(false);
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : MediaRecorder.isTypeSupported("audio/mp4")
-          ? "audio/mp4"
-          : undefined;
-      const recorder = new MediaRecorder(
-        stream,
-        mimeType ? { mimeType } : undefined,
-      );
-      mediaRecorderRef.current = recorder;
-      recordedChunksRef.current = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
-      };
-
-      recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(recordedChunksRef.current, {
-          type: mimeType || "audio/webm",
-        });
-        if (blob.size === 0) return;
-
-        setTranscribing(true);
-        try {
-          const arrayBuffer = await blob.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuffer);
-          let binary = "";
-          for (let i = 0; i < bytes.byteLength; i++)
-            binary += String.fromCharCode(bytes[i]);
-          const base64 = btoa(binary);
-
-          const res = await fetch("/api/speech/transcribe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              audio: base64,
-              mimeType: mimeType || "audio/webm",
-            }),
-          });
-          const data = await res.json();
-          if (data.success && data.data?.text) {
-            terminalRef.current?.setInputValue(data.data.text);
-          }
-        } finally {
-          setTranscribing(false);
-        }
-      };
-
-      recorder.start();
-      setRecording(true);
-    } catch {
-      // Microphone access denied
-    }
-  }, [recording]);
+  const handleVoiceInput = useCallback(() => {
+    void startVoiceInput();
+  }, [startVoiceInput]);
 
   return (
     <div className="h-full w-full bg-[#0a0a0a] text-zinc-300 flex flex-col overflow-hidden">
@@ -331,7 +278,17 @@ export function OsShell() {
             <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
             <div className="w-3 h-3 rounded-full bg-green-500/80" />
           </div>
-          <span className="text-xs font-mono text-zinc-500 truncate hidden sm:inline">
+          <a
+            href="/dashboard"
+            className="flex items-center gap-2 text-xs font-mono text-zinc-400 hover:text-zinc-200 transition-colors shrink-0"
+            title="Back to Dashboard"
+          >
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            <span className="hidden sm:inline">Dashboard</span>
+          </a>
+          <span className="text-xs font-mono text-zinc-600 truncate hidden md:inline">
             agent command center v0.1
           </span>
         </div>
@@ -396,12 +353,6 @@ export function OsShell() {
           <span className="text-[10px] font-mono text-zinc-600 hidden md:inline">
             {new Date().toLocaleTimeString()}
           </span>
-          <a
-            href="/dashboard"
-            className="text-[10px] font-mono text-zinc-600 hover:text-zinc-400 transition-colors hidden sm:inline"
-          >
-            [dashboard]
-          </a>
         </div>
       </header>
 

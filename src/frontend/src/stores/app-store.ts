@@ -112,6 +112,7 @@ const storeImpl = (set: (partial: Partial<AppState>) => void, get: () => AppStat
         walletAddress: authUser.walletAddress ?? null,
         authUser,
         workspace,
+        workspaces: get().user.workspaces ?? [],
         token,
         workspaceMode:
           get().user.workspaceMode === "sandbox" && get().demoMode

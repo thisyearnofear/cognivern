@@ -12,7 +12,13 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "tests/**/*.test.ts"],
+    // Frontend tests need jsdom — they're run from src/frontend/vitest.config.ts
+    // which provides that. Exclude them here to avoid the wrong environment.
+    include: [
+      "src/backend/**/*.test.ts",
+      "src/backend/**/*.test.tsx",
+      "tests/**/*.test.ts",
+    ],
     coverage: {
       reporter: ["text", "json", "html"],
       exclude: ["node_modules/", "dist/"],
