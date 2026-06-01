@@ -51,7 +51,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Typecheck root
-        run: pnpm exec tsc --noEmit -p tsconfig.json
+        run: pnpm typecheck
 
       - name: Typecheck frontend
         working-directory: src/frontend

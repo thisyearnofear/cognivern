@@ -12,7 +12,8 @@ git diff --cached --name-only --diff-filter=A | while read -r file; do
   fi
 done
 
-echo "▶ typecheck (frontend)..."
+echo "▶ typecheck (root + frontend)..."
+pnpm typecheck
 pnpm --filter ./src/frontend run typecheck
 
 echo "▶ lint (frontend)..."
