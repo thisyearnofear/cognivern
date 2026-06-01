@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Pre-commit checks: typecheck, lint, secrets scanning
+# Pre-commit checks: typecheck, lint, secrets scanning, db schema check
 
 echo "▶ secrets scan..."
 git diff --cached --name-only --diff-filter=A | while read -r file; do
@@ -17,5 +17,15 @@ pnpm --filter ./src/frontend run typecheck
 
 echo "▶ lint (frontend)..."
 pnpm --filter ./src/frontend run lint
+
+# Only run db:check when the schema or migrations have changed.
+# This is fast when the snapshot is current and loud when it isn't.
+if git diff --cached --name-only | grep -qE '^(drizzle\.config\.ts|src/backend/db/schema\.ts|src/backend/db/migrations/)'; then
+  echo "▶ db schema check (Drizzle)..."
+  pnpm db:check || {
+    echo "❌ Drizzle schema drift detected. Run 'pnpm db:generate' and commit the new migration."
+    exit 1
+  }
+fi
 
 echo "✓ pre-commit checks passed"
