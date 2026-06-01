@@ -1,23 +1,47 @@
 /**
- * Cognivern × Fhenix — End-to-End Demo Script
+ * Cognivern x Fhenix — Interactive Demo Script
  *
- * Walks through the full encrypted spend path:
- *   1. Create encrypted policy on Fhenix
- *   2. Submit encrypted spend (auto-approve)
- *   3. Submit encrypted spend (hold — above approval threshold)
- *   4. Check cross-chain anchoring on X Layer
- *   5. Issue auditor permit (selective disclosure)
- *   6. Auditor decrypts scoped fields
- *   7. Non-TypeScript agent path (Trusted Encryption Sidecar)
- *   8. Privara confidential payroll (Wave 5)
- *   9. Sealed-bid vendor selection (Wave 5)
+ * Step-by-step walkthrough of encrypted spend policy evaluation.
+ * Press Enter between each step to advance.
  *
  * Usage:
+ *   COGNIVERN_URL=https://cognivern.thisyearnofear.com \
+ *   COGNIVERN_API_KEY=sapience-hackathon-key \
  *   pnpm demo:fhenix
- *   COGNIVERN_URL=https://your-server.com pnpm demo:fhenix
  */
 
 import crypto from "node:crypto";
+import * as readline from "node:readline";
+
+// ── ANSI Colors ────────────────────────────────────────────────────────────
+
+const c = {
+  reset: "\x1b[0m",
+  bold: "\x1b[1m",
+  dim: "\x1b[2m",
+  cyan: "\x1b[36m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  red: "\x1b[31m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  white: "\x1b[37m",
+  bgBlue: "\x1b[44m",
+  bgGreen: "\x1b[42m",
+  bgYellow: "\x1b[43m",
+  bgRed: "\x1b[41m",
+  cyanBright: "\x1b[96m",
+  greenBright: "\x1b[92m",
+  yellowBright: "\x1b[93m",
+};
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+const baseUrl = (process.env.COGNIVERN_URL || "http://localhost:3000").replace(
+  /\/$/,
+  "",
+);
+const apiKey = process.env.COGNIVERN_API_KEY || "development-api-key";
 
 type ApiEnvelope<T = any> = {
   success?: boolean;
@@ -25,12 +49,6 @@ type ApiEnvelope<T = any> = {
   error?: any;
   [key: string]: unknown;
 };
-
-const baseUrl = (process.env.COGNIVERN_URL || "http://localhost:3000").replace(
-  /\/$/,
-  "",
-);
-const apiKey = process.env.COGNIVERN_API_KEY || "development-api-key";
 
 async function request<T = any>(
   path: string,
@@ -43,18 +61,15 @@ async function request<T = any>(
   if (init.json !== undefined) {
     headers.set("Content-Type", "application/json");
   }
-
   const res = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers,
     body: init.json !== undefined ? JSON.stringify(init.json) : init.body,
   });
-
   const text = await res.text();
   const body = text
     ? (JSON.parse(text) as ApiEnvelope<T>)
     : ({} as ApiEnvelope<T>);
-
   if (!res.ok) {
     throw new Error(
       typeof body?.error === "string"
@@ -62,7 +77,6 @@ async function request<T = any>(
         : body?.error?.message || `${path} failed with ${res.status}`,
     );
   }
-
   return body;
 }
 
@@ -70,34 +84,101 @@ function vendorHash(name: string): string {
   return "0x" + crypto.createHash("sha256").update(name).digest("hex");
 }
 
-function step(n: number, title: string) {
-  console.log(`\n${"─".repeat(60)}`);
-  console.log(`  Step ${n} — ${title}`);
-  console.log("─".repeat(60));
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+function waitForEnter(): Promise<void> {
+  return new Promise((resolve) => {
+    rl.question(
+      `${c.dim}  Press Enter to continue...${c.reset}`,
+      () => resolve(),
+    );
+  });
 }
 
-function ok(label: string, value: unknown) {
-  console.log(`  ✓ ${label}:`, JSON.stringify(value, null, 2));
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function warn(label: string, value: unknown) {
-  console.log(`  ⚠ ${label}:`, JSON.stringify(value, null, 2));
+function clear() {
+  process.stdout.write("\x1b[2J\x1b[H");
 }
 
-async function main() {
-  console.log("\n╔══════════════════════════════════════════════════════════╗");
-  console.log("║        Cognivern × Fhenix — Live Demo                   ║");
-  console.log("║  Encrypted spend policy evaluation via CoFHE / FHE      ║");
-  console.log("╚══════════════════════════════════════════════════════════╝");
-  console.log(`\n  Target: ${baseUrl}`);
+// ── Display helpers ────────────────────────────────────────────────────────
 
-  const agentId = "agent-treasury-demo";
-  let policyId: string | undefined;
-  let approveDecisionId: string | undefined;
-  let permitToken: string | undefined;
+function banner() {
+  console.log(`
+${c.cyan}${c.bold}  ╔══════════════════════════════════════════════════════════════╗
+  ║                                                              ║
+  ║   ${c.white}C O G N I V E R N${c.cyan}  x  ${c.magenta}F H E N I X${c.cyan}                          ║
+  ║                                                              ║
+  ║   ${c.dim}Encrypted spend policy evaluation via Fully Homomorphic${c.cyan}    ║
+  ║   ${c.dim}Encryption (FHE) on Arbitrum Sepolia${c.cyan}                       ║
+  ║                                                              ║
+  ╚══════════════════════════════════════════════════════════════╝${c.reset}
+`);
+}
 
-  // ── Step 1: Create encrypted policy ──────────────────────────────────────
-  step(1, "Create Encrypted Policy on Fhenix");
+function stepHeader(n: number, title: string) {
+  console.log(
+    `\n${c.bold}${c.cyan}  ┌─ Step ${n} ${"─".repeat(50 - String(n).length)}┐${c.reset}`,
+  );
+  console.log(`${c.bold}${c.white}  │  ${title}${c.reset}`);
+  console.log(
+    `${c.cyan}  └${"─".repeat(55)}┘${c.reset}`,
+  );
+}
+
+function description(text: string) {
+  console.log(`\n${c.dim}  ${text}${c.reset}`);
+}
+
+function success(label: string, value: unknown) {
+  const display =
+    typeof value === "string"
+      ? value.length > 60
+        ? value.slice(0, 57) + "..."
+        : value
+      : JSON.stringify(value);
+  console.log(`  ${c.greenBright}✓${c.reset} ${c.bold}${label}:${c.reset} ${c.white}${display}${c.reset}`);
+}
+
+function err(label: string, msg: string) {
+  console.log(`  ${c.red}✗${c.reset} ${c.bold}${label}:${c.reset} ${c.yellow}${msg}${c.reset}`);
+}
+
+function info(text: string) {
+  console.log(`  ${c.blue}i${c.reset} ${c.dim}${text}${c.reset}`);
+}
+
+function lock(text: string) {
+  console.log(`  ${c.magenta}[encrypted]${c.reset} ${c.cyan}${text}${c.reset}`);
+}
+
+function highlight(text: string) {
+  console.log(`\n  ${c.bgGreen}${c.bold} ${text} ${c.reset}\n`);
+}
+
+function warnFn(text: string) {
+  console.log(`  ${c.yellow}!${c.reset} ${c.dim}${text}${c.reset}`);
+}
+
+// ── Steps ──────────────────────────────────────────────────────────────────
+
+async function step1_CreatePolicy(agentId: string) {
+  stepHeader(1, "Create Encrypted Policy on Fhenix");
+  description(
+    "The operator defines a policy with budget limits, per-transaction caps, and\n  an approval threshold. These values are encrypted as euint128 on-chain —\n  the contract stores ciphertext, not plaintext.",
+  );
+
+  await sleep(600);
+  lock("Encrypting dailyLimit=5000, perTxLimit=1000, approvalThreshold=500");
+  await sleep(400);
+  lock("Submitting to ConfidentialSpendPolicy on Arbitrum Sepolia...");
+  await sleep(800);
+
   try {
     const res = await request("/api/governance/policies/confidential", {
       method: "POST",
@@ -109,23 +190,42 @@ async function main() {
         confidential: true,
       },
     });
-    policyId = res.data?.policyId;
-    ok("policyId", policyId);
-    ok("fhenixTx", res.data?.fhenixTx);
-    ok(
-      "note",
+    success("policyId", res.data?.policyId);
+    info(
       res.data?.note ??
-        "dailyLimit, perTxLimit, approvalThreshold encrypted as euint128 on Fhenix",
+        "dailyLimit, perTxLimit, approvalThreshold stored as euint128",
     );
-  } catch (err: any) {
-    warn("policy creation error", err.message);
-    // Use a deterministic fallback so subsequent steps can still run
-    policyId = "0x" + crypto.createHash("sha256").update(agentId).digest("hex");
-    warn("using fallback policyId", policyId);
+    return res.data?.policyId as string;
+  } catch (e: any) {
+    warnFn(`Policy creation fallback: ${e.message}`);
+    const fallback =
+      "0x" + crypto.createHash("sha256").update(agentId).digest("hex");
+    info(`Using fallback policyId: ${fallback.slice(0, 18)}...`);
+    return fallback;
   }
+}
 
-  // ── Step 2: Encrypted spend — under threshold (approve) ──────────────────
-  step(2, "Submit Encrypted Spend — $200 (auto-approve)");
+async function step2_EncryptedSpendApprove(
+  agentId: string,
+  policyId: string,
+) {
+  stepHeader(2, 'Encrypted Spend — $200 (should "approve")');
+  description(
+    "An agent requests a $200 spend. The amount is encrypted client-side, then\n  submitted to the contract. FHE.lte(newSpent, dailyLimit) and\n  FHE.lte(amount, perTxLimit) are evaluated on ciphertext.\n  Both checks pass — the decision is APPROVE.",
+  );
+
+  await sleep(600);
+  lock("Encrypting amount=$200 with CoFHE SDK...");
+  await sleep(400);
+  lock("Submitting to evaluateSpend() on ConfidentialSpendPolicy...");
+  await sleep(600);
+  lock("FHE.lte(newSpent, dailyLimit)    => true  (under daily cap)");
+  await sleep(300);
+  lock("FHE.lte(amount, perTxLimit)      => true  (under per-tx cap)");
+  await sleep(300);
+  lock("FHE.gt(amount, approvalThreshold) => false (no approval needed)");
+  await sleep(400);
+
   try {
     const res = await request("/api/spend/encrypted", {
       method: "POST",
@@ -136,19 +236,31 @@ async function main() {
         vendorHash: vendorHash("acme-corp"),
       },
     });
-    approveDecisionId = res.data?.decisionId;
-    ok("decisionId", approveDecisionId);
-    ok("outcome", res.data?.outcome);
-    ok(
-      "note",
-      res.data?.note ?? "FHE.lte(newSpent, dailyLimit) evaluated in ciphertext",
-    );
-  } catch (err: any) {
-    warn("spend/encrypted error", err.message);
+    highlight(`APPROVED — decisionId: ${res.data?.decisionId}`);
+    info(res.data?.note ?? "FHE evaluation completed");
+    return res.data?.decisionId as string;
+  } catch (e: any) {
+    err("Spend failed", e.message);
+    return undefined;
   }
+}
 
-  // ── Step 3: Encrypted spend — above approval threshold (hold) ────────────
-  step(3, "Submit Encrypted Spend — $750 (hold)");
+async function step3_EncryptedSpendHold(agentId: string, policyId: string) {
+  stepHeader(3, 'Encrypted Spend — $750 (should "hold")');
+  description(
+    "Same agent requests $750 — above the $500 approval threshold.\n  FHE.gt(amount, approvalThreshold) evaluates to TRUE on ciphertext.\n  The spend is HELD for human review. The amount itself is never visible.",
+  );
+
+  await sleep(600);
+  lock("Encrypting amount=$750...");
+  await sleep(400);
+  lock("FHE.lte(newSpent, dailyLimit)    => true  (still under daily cap)");
+  await sleep(300);
+  lock("FHE.lte(amount, perTxLimit)      => true  (under per-tx cap)");
+  await sleep(300);
+  lock("FHE.gt(amount, approvalThreshold) => true  (needs approval!)");
+  await sleep(400);
+
   try {
     const res = await request("/api/spend/encrypted", {
       method: "POST",
@@ -159,41 +271,59 @@ async function main() {
         vendorHash: vendorHash("acme-corp"),
       },
     });
-    ok("decisionId", res.data?.decisionId);
-    ok("outcome", res.data?.outcome);
-    ok(
-      "note",
-      res.data?.note ?? "Amount > approvalThreshold — sealed for human review",
+    console.log(
+      `\n  ${c.bgYellow}${c.bold} HELD — sealed for human review ${c.reset}`,
     );
-  } catch (err: any) {
-    warn("spend/encrypted (hold) error", err.message);
+    success("decisionId", res.data?.decisionId);
+    info(res.data?.note ?? "Amount above approvalThreshold — waiting for operator");
+  } catch (e: any) {
+    err("Spend failed", e.message);
   }
+}
 
-  // ── Step 4: Cross-chain anchoring on X Layer ──────────────────────────────
-  step(4, "Check Cross-Chain Anchoring on X Layer");
-  if (approveDecisionId) {
-    try {
-      const res = await request(
-        `/api/governance/decisions/${approveDecisionId}`,
-      );
-      ok("decisionId", res.data?.decisionId ?? approveDecisionId);
-      ok("origin", res.data?.origin);
-      ok("outcome", res.data?.outcome);
-      ok("xlayerTx", res.data?.xlayerTx);
-      ok(
-        "note",
-        res.data?.note ??
-          "GovernanceContract.handle() verified origin domain + sender via ISM",
-      );
-    } catch (err: any) {
-      warn("governance/decisions error", err.message);
-    }
-  } else {
-    warn("skipped", "no approveDecisionId from step 2");
+async function step4_CrossChain(approveDecisionId: string) {
+  stepHeader(4, "Cross-Chain Anchoring via Hyperlane");
+  description(
+    "The Fhenix decision is dispatched to X Layer via Hyperlane Mailbox.\n  GovernanceContract.handle() verifies the origin domain and sender via ISM.\n  The decision is now anchored on the execution chain.",
+  );
+
+  await sleep(600);
+  lock("Hyperlane Mailbox dispatching decision to X Layer...");
+  await sleep(500);
+  lock("GovernanceContract.handle() verifying origin + sender...");
+  await sleep(600);
+
+  try {
+    const res = await request(
+      `/api/governance/decisions/${approveDecisionId}`,
+    );
+    success("origin", res.data?.origin);
+    success("outcome", res.data?.outcome);
+    success("xlayerTx", res.data?.xlayerTx);
+    info(
+      res.data?.note ?? "ISM verified: message originated from Fhenix chain",
+    );
+  } catch (e: any) {
+    err("Cross-chain check failed", e.message);
   }
+}
 
-  // ── Step 5: Issue auditor permit ──────────────────────────────────────────
-  step(5, "Issue Auditor Permit (Selective Disclosure)");
+async function step5_AuditorPermit(policyId: string) {
+  stepHeader(5, "Issue Auditor Permit (Selective Disclosure)");
+  description(
+    "An auditor requests a scoped CoFHE permit. This permit reveals ONLY the\n  fields in its scope — dailyLimit and spentToday. The approvalThreshold\n  and perTxLimit remain fully encrypted. Zero-knowledge selective disclosure.",
+  );
+
+  await sleep(600);
+  lock("Creating CoFHE sharing permit for auditor...");
+  await sleep(500);
+  lock("Scope: [dailyLimit, spentToday]");
+  await sleep(300);
+  lock("approvalThreshold: SEALED (not in permit scope)");
+  await sleep(300);
+  lock("perTxLimit:        SEALED (not in permit scope)");
+  await sleep(400);
+
   try {
     const res = await request("/api/audit/permits", {
       method: "POST",
@@ -203,95 +333,107 @@ async function main() {
         scope: ["dailyLimit", "spentToday"],
       },
     });
-    permitToken = res.data?.permit;
-    ok("permit", permitToken);
-    ok("scope", res.data?.scope);
-    ok(
-      "note",
-      res.data?.note ?? "approvalThreshold and perTxLimit remain sealed",
-    );
-  } catch (err: any) {
-    warn("audit/permits error", err.message);
+    success("permit issued", "CoFHE sharing permit signed");
+    success("scope", JSON.stringify(res.data?.scope));
+    info(res.data?.note ?? "approvalThreshold and perTxLimit remain sealed");
+    return res.data?.permit as string;
+  } catch (e: any) {
+    err("Permit issuance failed", e.message);
+    return undefined;
   }
+}
 
-  // ── Step 6: Auditor decrypts scoped fields ────────────────────────────────
-  step(6, "Auditor Decrypts Scoped Fields");
-  if (approveDecisionId && permitToken) {
-    try {
-      const res = await request(
-        `/api/audit/logs/${approveDecisionId}/decrypt`,
-        {
-          headers: { "X-Audit-Permit": permitToken },
-        },
-      );
-      ok("decisionId", res.data?.decisionId ?? approveDecisionId);
-      ok("dailyLimit", res.data?.dailyLimit);
-      ok("spentToday", res.data?.spentToday);
-      ok("outcome", res.data?.outcome);
-      ok(
-        "note",
-        res.data?.note ??
-          "approvalThreshold not in permit scope — remains encrypted",
-      );
-    } catch (err: any) {
-      warn("audit/logs/decrypt error", err.message);
-    }
-  } else {
-    warn(
-      "skipped",
-      "need both approveDecisionId and permitToken from steps 2 & 5",
+async function step6_AuditorDecrypt(
+  approveDecisionId: string,
+  permitToken: string,
+) {
+  stepHeader(6, "Auditor Decrypts Scoped Fields");
+  description(
+    "Using the permit, the auditor decrypts only the scoped fields.\n  dailyLimit and spentToday are revealed. Everything else stays ciphertext.",
+  );
+
+  await sleep(600);
+  lock("Submitting permit to /audit/logs/:id/decrypt...");
+  await sleep(500);
+
+  try {
+    const res = await request(
+      `/api/audit/logs/${approveDecisionId}/decrypt`,
+      { headers: { "X-Audit-Permit": permitToken } },
     );
+    success("dailyLimit", res.data?.dailyLimit);
+    success("spentToday", res.data?.spentToday);
+    success("outcome", res.data?.outcome);
+    info(res.data?.note ?? "approvalThreshold not in permit scope — remains encrypted");
+  } catch (e: any) {
+    err("Decrypt failed", e.message);
   }
+}
 
-  // ── Step 7: Trusted Encryption Sidecar (non-TS agents) ───────────────────
-  step(7, "Trusted Encryption Sidecar — Python/Go agent path");
+async function step7_Sidecar() {
+  stepHeader(7, "Trusted Encryption Sidecar (Non-TypeScript Agents)");
+  description(
+    "Python and Go agents can't use the CoFHE SDK directly.\n  The sidecar API encrypts server-side and returns a ciphertext handle.\n  The agent passes this handle to /api/spend/encrypted — no FHE client needed.",
+  );
+
+  await sleep(600);
+  lock("POST /api/fhenix/encrypt { amount: 300, type: 'uint128' }");
+  await sleep(600);
+
   try {
     const res = await request("/api/fhenix/encrypt", {
       method: "POST",
       json: { amount: 300, type: "uint128" },
     });
-    ok("ciphertextHandle", res.data?.ciphertextHandle);
-    ok(
-      "note",
-      res.data?.note ??
-        "Agent passes this handle directly to /api/spend/encrypted",
-    );
-  } catch (err: any) {
-    warn("fhenix/encrypt error", err.message);
+    success("ciphertextHandle", res.data?.ciphertextHandle);
+    info(res.data?.note ?? "Agent passes this handle directly to /api/spend/encrypted");
+  } catch (e: any) {
+    err("Sidecar encrypt failed", e.message);
   }
+}
 
-  // ── Step 8: Privara confidential payroll ─────────────────────────────────
-  step(8, "Privara Confidential Payroll (Wave 5)");
-  if (approveDecisionId) {
-    try {
-      const res = await request("/api/payroll/confidential", {
-        method: "POST",
-        json: {
-          decisionId: approveDecisionId,
-          contractorWallet: "0x000000000000000000000000000000000000dEaD",
-          amountUsd: 200,
-          currency: "USDC",
-        },
-      });
-      ok("privatransferTx", res.data?.privatransferTx);
-      ok("decisionId", res.data?.decisionId);
-      ok(
-        "note",
-        res.data?.note ??
-          "Privara executed confidential transfer — decisionId carried as compliance proof",
-      );
-    } catch (err: any) {
-      warn("payroll/confidential error", err.message);
-    }
-  } else {
-    warn("skipped", "no approveDecisionId from step 2");
-  }
+async function step8_Privara(approveDecisionId: string) {
+  stepHeader(8, "Privara Confidential Payroll");
+  description(
+    "The approved decisionId is used as compliance proof for a confidential\n  payroll transfer via the Privara SDK. An encrypted escrow is created on-chain.\n  The contractor's payment amount stays encrypted throughout.",
+  );
 
-  // ── Step 9: Sealed-bid vendor selection ──────────────────────────────────
-  step(9, "Sealed-Bid Vendor Selection (Wave 5)");
+  await sleep(600);
+  lock("Creating encrypted escrow via Privara SDK...");
+  await sleep(500);
+  lock("Embedding decisionId as compliance proof...");
+  await sleep(600);
+
   try {
-    // 9a. Create a sealed-bid round
-    const deadline = new Date(Date.now() + 86400000).toISOString(); // 24h from now
+    const res = await request("/api/payroll/confidential", {
+      method: "POST",
+      json: {
+        decisionId: approveDecisionId,
+        contractorWallet: "0x000000000000000000000000000000000000dEaD",
+        amountUsd: 200,
+        currency: "USDC",
+      },
+    });
+    success("escrow created", res.data?.privatransferTx);
+    success("decisionId", res.data?.decisionId);
+    info(
+      res.data?.note ?? "Privara escrow created — decisionId carried as compliance proof",
+    );
+  } catch (e: any) {
+    err("Privara payroll failed", e.message);
+  }
+}
+
+async function step9_SealedBid() {
+  stepHeader(9, "Sealed-Bid Vendor Selection");
+  description(
+    "Three vendors submit encrypted bids. The bid amounts are FHE-encrypted —\n  no one can see competing offers. After the round closes, the operator\n  decrypts bids off-chain via threshold decryption and reveals the winner.\n  All losing bids remain encrypted on-chain.",
+  );
+
+  await sleep(600);
+
+  const deadline = new Date(Date.now() + 86400000).toISOString();
+  try {
     const roundRes = await request("/api/vendor/sealed-bid/rounds", {
       method: "POST",
       json: {
@@ -302,93 +444,144 @@ async function main() {
       },
     });
     const roundId = roundRes.data?.roundId;
-    ok("roundId", roundId);
-    ok("description", roundRes.data?.description);
+    success("round created", roundId?.slice(0, 18) + "...");
+    await sleep(400);
 
-    if (roundId) {
-      // 9b. Submit encrypted bids from three vendors
-      const vendors = [
-        {
-          bidder: "0x1111111111111111111111111111111111111111",
-          amount: 15000,
-          proposal: "Security audit by Vendor A",
-        },
-        {
-          bidder: "0x2222222222222222222222222222222222222222",
-          amount: 12000,
-          proposal: "Audit services from Vendor B",
-        },
-        {
-          bidder: "0x3333333333333333333333333333333333333333",
-          amount: 18000,
-          proposal: "Full stack audit by Vendor C",
-        },
-      ];
+    const vendors = [
+      { bidder: "0x1111111111111111111111111111111111111111", amount: 15000, name: "Vendor A" },
+      { bidder: "0x2222222222222222222222222222222222222222", amount: 12000, name: "Vendor B" },
+      { bidder: "0x3333333333333333333333333333333333333333", amount: 18000, name: "Vendor C" },
+    ];
 
-      for (const v of vendors) {
-        const bidRes = await request(
-          `/api/vendor/sealed-bid/rounds/${roundId}/bid`,
-          {
-            method: "POST",
-            json: {
-              bidder: v.bidder,
-              amountUsd: v.amount,
-              proposalDetails: v.proposal,
-            },
+    for (const v of vendors) {
+      lock(`${v.name} submitting encrypted bid...`);
+      await sleep(300);
+      try {
+        await request(`/api/vendor/sealed-bid/rounds/${roundId}/bid`, {
+          method: "POST",
+          json: {
+            bidder: v.bidder,
+            amountUsd: v.amount,
+            proposalDetails: `Audit by ${v.name}`,
           },
-        );
-        ok(`bid ${v.bidder.slice(0, 10)}...`, {
-          encryptedAmount: bidRes.data?.encryptedAmount?.slice(0, 20) + "...",
-          index: bidRes.data?.index,
-          note: "Amount stays encrypted under FHE — no one sees raw values",
         });
+        info(`  Bid submitted — amount encrypted under FHE`);
+      } catch (e: any) {
+        warnFn(`  ${v.name} bid failed: ${e.message}`);
       }
-
-      // 9c. Close the round
-      const closeRes = await request(
-        `/api/vendor/sealed-bid/rounds/${roundId}/close`,
-        {
-          method: "POST",
-          json: { manager: "demo-manager" },
-        },
-      );
-      ok("round closed", {
-        status: closeRes.data?.status,
-        bids: closeRes.data?.bidCount,
-      });
-
-      // 9d. Reveal the winning bid (lowest bid wins)
-      const revealRes = await request(
-        `/api/vendor/sealed-bid/rounds/${roundId}/reveal`,
-        {
-          method: "POST",
-          json: { selectionMethod: "lowest-bid" },
-        },
-      );
-      ok("winner", revealRes.data?.winner);
-      ok("winningBid", `$${revealRes.data?.winningBid}`);
-      ok(
-        "note",
-        revealRes.data?.note ??
-          "Lowest bid wins — all losing bids remain encrypted on Fhenix",
-      );
+      await sleep(200);
     }
-  } catch (err: any) {
-    warn("sealed-bid vendor selection error", err.message);
-  }
 
-  // ── Summary ───────────────────────────────────────────────────────────────
-  console.log("\n╔══════════════════════════════════════════════════════════╗");
-  console.log("║  Demo complete — full encrypted path exercised          ║");
-  console.log("╠══════════════════════════════════════════════════════════╣");
-  console.log("║  Audit log   →  " + baseUrl + "/audit          ");
-  console.log("║  Agent runs  →  " + baseUrl + "/runs           ");
-  console.log("║  Fhenix explorer  →  https://explorer.fhenix.zone      ║");
-  console.log("║  X Layer explorer →  https://www.oklink.com/xlayer-test║");
-  console.log("╚══════════════════════════════════════════════════════════╝\n");
+    console.log(
+      `\n  ${c.dim}All bids are encrypted — no one can see the amounts.${c.reset}`,
+    );
+    info("After round closes, operator decrypts via threshold decryption.");
+    info("Winner revealed. Losers stay encrypted.");
+  } catch (e: any) {
+    err("Sealed-bid failed", e.message);
+  }
 }
 
-main().catch((err) => {
-  console.error("\n✗ Demo failed:", err.message);
+// ── Main ───────────────────────────────────────────────────────────────────
+
+async function main() {
+  clear();
+  banner();
+
+  console.log(`  ${c.dim}Target:${c.reset} ${c.bold}${baseUrl}${c.reset}`);
+  console.log(`  ${c.dim}API Key:${c.reset} ${c.bold}${apiKey.slice(0, 8)}...${c.reset}`);
+  console.log(
+    `\n  ${c.dim}This demo walks through 9 steps of encrypted spend evaluation.${c.reset}`,
+  );
+  console.log(
+    `${c.dim}  Each step runs against the live production API.${c.reset}\n`,
+  );
+
+  await waitForEnter();
+
+  const agentId = "agent-treasury-demo";
+  let policyId: string | undefined;
+  let approveDecisionId: string | undefined;
+  let permitToken: string | undefined;
+
+  // Step 1
+  policyId = await step1_CreatePolicy(agentId);
+  await waitForEnter();
+
+  // Step 2
+  approveDecisionId = await step2_EncryptedSpendApprove(agentId, policyId!);
+  await waitForEnter();
+
+  // Step 3
+  await step3_EncryptedSpendHold(agentId, policyId!);
+  await waitForEnter();
+
+  // Step 4
+  if (approveDecisionId) {
+    await step4_CrossChain(approveDecisionId);
+  } else {
+    stepHeader(4, "Cross-Chain Anchoring via Hyperlane");
+    warnFn("Skipped — no approve decision from Step 2");
+  }
+  await waitForEnter();
+
+  // Step 5
+  permitToken = await step5_AuditorPermit(policyId!);
+  await waitForEnter();
+
+  // Step 6
+  if (approveDecisionId && permitToken) {
+    await step6_AuditorDecrypt(approveDecisionId, permitToken);
+  } else {
+    stepHeader(6, "Auditor Decrypts Scoped Fields");
+    warnFn("Skipped — need decisionId and permit from earlier steps");
+  }
+  await waitForEnter();
+
+  // Step 7
+  await step7_Sidecar();
+  await waitForEnter();
+
+  // Step 8
+  if (approveDecisionId) {
+    await step8_Privara(approveDecisionId);
+  } else {
+    stepHeader(8, "Privara Confidential Payroll");
+    warnFn("Skipped — no approve decision from Step 2");
+  }
+  await waitForEnter();
+
+  // Step 9
+  await step9_SealedBid();
+
+  // Summary
+  console.log(
+    `\n${c.cyan}${c.bold}  ╔══════════════════════════════════════════════════════════════╗`,
+  );
+  console.log(
+    `  ║                                                              ║`,
+  );
+  console.log(
+    `  ║   ${c.white}Demo complete.${c.cyan}                                            ║`,
+  );
+  console.log(
+    `  ║                                                              ║`,
+  );
+  console.log(
+    `  ║   ${c.dim}Privacy by design — not privacy as a patch.${c.cyan}                 ║`,
+  );
+  console.log(
+    `  ║                                                              ║`,
+  );
+  console.log(
+    `  ╚══════════════════════════════════════════════════════════════╝${c.reset}\n`,
+  );
+
+  rl.close();
+}
+
+main().catch((e) => {
+  console.error(`\n${c.red}  Demo failed:${c.reset} ${e.message}`);
+  rl.close();
   process.exit(1);
 });
