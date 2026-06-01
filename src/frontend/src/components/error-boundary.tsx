@@ -2,8 +2,32 @@
 
 import { Component, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, RefreshCw, HelpCircle, Mail } from "lucide-react";
+import {
+  AlertTriangle,
+  RefreshCw,
+  Copy,
+  Check,
+  HelpCircle,
+} from "lucide-react";
 
+/* ------------------------------------------------------------------ */
+/*  onError — reusable callback for external logging (Sentry, etc.)  */
+/* ------------------------------------------------------------------ */
+export function onError(error: Error, info: React.ErrorInfo) {
+  // Log to console in development
+  if (process.env.NODE_ENV === "development") {
+    console.error(
+      "[ErrorBoundary]",
+      error.message,
+      "\nComponent stack:",
+      info.componentStack,
+    );
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  ErrorBoundary                                                     */
+/* ------------------------------------------------------------------ */
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
@@ -12,71 +36,123 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  copied: boolean;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, copied: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, copied: false };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("[ErrorBoundary]", error, info.componentStack);
+    onError(error, info);
   }
+
+  private handleCopyError = async () => {
+    const { error } = this.state;
+    const text = error
+      ? `${error.name}: ${error.message}\n\n${error.stack ?? ""}`
+      : "Unknown error";
+    try {
+      await navigator.clipboard.writeText(text);
+      this.setState({ copied: true });
+      setTimeout(() => this.setState({ copied: false }), 2000);
+    } catch {
+      // Fallback for older browsers / insecure contexts
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      this.setState({ copied: true });
+      setTimeout(() => this.setState({ copied: false }), 2000);
+    }
+  };
+
+  private handleReload = () => {
+    this.setState({ hasError: false, error: undefined, copied: false });
+    window.location.reload();
+  };
 
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
       }
+
+      const errorMessage =
+        this.state.error?.message ||
+        "An unexpected error occurred while loading this page.";
+
       return (
-        <div className="flex flex-col items-center justify-center gap-4 p-12 text-center border border-destructive/20 rounded-xl bg-destructive/5">
-          <div className="p-4 rounded-full bg-destructive/10">
-            <AlertTriangle className="h-8 w-8 text-destructive" />
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-5 p-8 text-center bg-zinc-900 rounded-xl border border-zinc-800">
+          {/* Icon */}
+          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-zinc-800 border border-zinc-700">
+            <AlertTriangle className="w-7 h-7 text-amber-400" />
           </div>
-          <div>
-            <h2 className="text-lg font-semibold">Something went wrong</h2>
-            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-              {this.state.error?.message ||
-                "An unexpected error occurred while loading this page."}
+
+          {/* Heading & message */}
+          <div className="space-y-2 max-w-md">
+            <h2 className="text-xl font-semibold text-zinc-100 tracking-tight">
+              Something went wrong
+            </h2>
+            <p className="text-sm leading-relaxed text-zinc-400 font-[family-name:var(--font-geist-mono)]">
+              {errorMessage}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-center">
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-3 flex-wrap justify-center">
             <Button
               variant="outline"
-              onClick={() => {
-                this.setState({ hasError: false, error: undefined });
-                window.location.reload();
-              }}
-              className="gap-1.5"
+              onClick={this.handleReload}
+              className="gap-2 bg-zinc-800 border-zinc-700 text-zinc-100 hover:bg-zinc-700 hover:text-white"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Reload Page
+              <RefreshCw className="w-4 h-4" />
+              Reload page
             </Button>
+
+            <Button
+              variant="outline"
+              onClick={this.handleCopyError}
+              className="gap-2 bg-zinc-800 border-zinc-700 text-zinc-100 hover:bg-zinc-700 hover:text-white"
+            >
+              {this.state.copied ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  Copy error
+                </>
+              )}
+            </Button>
+
             <Button
               variant="ghost"
-              onClick={() => window.open("https://docs.cognivern.xyz", "_blank")}
-              className="gap-1.5"
+              onClick={() =>
+                window.open("https://docs.cognivern.xyz", "_blank")
+              }
+              className="gap-2 text-zinc-400 hover:text-zinc-100"
             >
-              <HelpCircle className="h-3.5 w-3.5" />
-              View Docs
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => window.open("mailto:support@cognivern.xyz", "_blank")}
-              className="gap-1.5"
-            >
-              <Mail className="h-3.5 w-3.5" />
-              Contact Support
+              <HelpCircle className="w-4 h-4" />
+              Docs
             </Button>
           </div>
         </div>
       );
     }
+
     return this.props.children;
   }
 }
