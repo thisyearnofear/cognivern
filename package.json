@@ -10,6 +10,7 @@
   "scripts": {
     "postinstall": "",
     "lint": "eslint --config ./config/eslint.config.mjs src/frontend/src",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "build": "pnpm run build:clean && pnpm run build:backend",

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "NODE_ENV=production next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "1.5.0",
