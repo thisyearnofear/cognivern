@@ -20,6 +20,8 @@ module.exports = {
         CRE_RUNS_FILE: '/opt/cognivern/shared/data/cre-runs.jsonl',
         UX_EVENTS_FILE: '/opt/cognivern/shared/data/ux-events.jsonl',
         IDEMPOTENCY_STORE_FILE: '/opt/cognivern/shared/data/idempotency-store.json',
+        RATE_LIMIT_STORE_FILE: '/opt/cognivern/shared/data/rate-limit-store.jsonl',
+        TOKEN_BLACKLIST_FILE: '/opt/cognivern/shared/data/token-blacklist.jsonl',
         OWS_VAULT_PATH: '/opt/cognivern/shared/data/ows-vault.json',
         COGNIVERN_TOKEN_TELEMETRY_FILE: '/opt/cognivern/shared/data/token-telemetry.json',
         COGNIVERN_USAGE_FILE: '/opt/cognivern/shared/data/usage.json',
