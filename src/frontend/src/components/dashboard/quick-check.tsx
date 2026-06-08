@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
 import { useAppStore } from "@/stores/app-store";
+import { HelpIcon } from "@/components/ui/help-icon";
 
 const QUICK_ACTIONS = [
   { type: "swap", label: "Swap", amount: "500" },
@@ -91,6 +92,7 @@ export function QuickCheck() {
           <h3 className="font-semibold flex items-center gap-2 text-sm">
             <ShieldCheck className="h-4 w-4 text-primary" />
             Quick Check
+            <HelpIcon helpKey="governance:quick-check" />
           </h3>
           <Button
             variant="ghost"

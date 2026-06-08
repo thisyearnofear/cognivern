@@ -1,4 +1,5 @@
-import useSWR from "swr";
+import { useEffect } from "react";
+import useSWR, { useSWRConfig } from "swr";
 import { apiClient } from "@/lib/api-client";
 import { useAppStore } from "@/stores/app-store";
 import type {
@@ -14,6 +15,17 @@ interface SWRResult<T> {
   isLoading: boolean;
   error: Error | undefined;
   mutate: (data?: T) => Promise<unknown>;
+}
+
+export function useNetworkStatus() {
+  const { mutate } = useSWRConfig();
+  useEffect(() => {
+    function handleOnline() {
+      mutate(() => true);
+    }
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [mutate]);
 }
 
 function useApiWithDemo<T>(

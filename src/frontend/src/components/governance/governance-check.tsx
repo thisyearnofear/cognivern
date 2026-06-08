@@ -32,6 +32,18 @@ import {
 import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
 import { useVoiceInput } from "@/hooks/use-voice-input";
+import { HelpIcon } from "@/components/ui/help-icon";
+
+function getSuggestion(reason: string): string {
+  const lower = reason.toLowerCase();
+  if (lower.includes("exceed") || lower.includes("limit") || lower.includes("daily") || lower.includes("threshold"))
+    return "Try reducing the amount or increase your daily limit in Policies";
+  if (lower.includes("allowlist") || lower.includes("not in") || lower.includes("not allowed"))
+    return "Add this vendor or protocol to your allowlist in Policies";
+  if (lower.includes("chain"))
+    return "Allow this chain in your Chain Restriction policy";
+  return "Review this policy in Policies and adjust the rule condition";
+}
 
 const ACTION_TYPES = [
   { type: "swap", description: "Swap tokens on a DEX" },
@@ -176,6 +188,38 @@ export function GovernanceCheck() {
     }
   }, [nlInput, agentId, agentList, actionType, actionDesc, amount, parseNlInput]);
 
+  const handleRetryWithAmount = useCallback(
+    (newAmount: number) => {
+      setAmount(String(newAmount));
+      setNlInput("");
+      setEvaluating(true);
+      setError(null);
+      setResult(null);
+      apiClient
+        .evaluateGovernance({
+          agentId: agentId || agentList[0]?.id || "unknown",
+          action: {
+            type: actionType,
+            description:
+              actionDesc ||
+              ACTION_TYPES.find((a) => a.type === actionType)?.description ||
+              "",
+            amount: newAmount,
+            currency: "USDC",
+          },
+        })
+        .then((res) => {
+          setResult(res.data || null);
+          if (!res.data) setError("No evaluation result returned");
+        })
+        .catch((err) =>
+          setError(err instanceof Error ? err.message : "Evaluation failed"),
+        )
+        .finally(() => setEvaluating(false));
+    },
+    [agentId, agentList, actionType, actionDesc],
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -210,8 +254,9 @@ export function GovernanceCheck() {
 
               {/* Natural Language Input — Primary */}
               <div className="space-y-2">
-                <label htmlFor="nl-input" className="text-sm font-medium">
+                <label htmlFor="nl-input" className="text-sm font-medium flex items-center gap-1.5">
                   Describe in plain English
+                  <HelpIcon helpKey="governance:nl-input" />
                 </label>
                 <div className="flex gap-2">
                   <Input
@@ -461,32 +506,83 @@ export function GovernanceCheck() {
                   </div>
                 </div>
 
-                {/* FHE Confidential evaluation badge */}
-                {"confidential" in result &&
-                  (
-                    result as GovernanceEvaluation & {
-                      confidential?: {
-                        fheEvaluated: boolean;
-                        chain: string;
-                        decisionIds?: string[];
-                      };
-                    }
-                  ).confidential?.fheEvaluated &&
-                  (() => {
-                    const conf = (
-                      result as GovernanceEvaluation & {
-                        confidential: {
-                          fheEvaluated: boolean;
-                          chain: string;
-                          decisionIds?: string[];
-                        };
-                      }
-                    ).confidential;
+                {/* Suggestions for denied results */}
+                {!result.allowed &&
+                  (result.policyChecks || []).some((c) => !c.result) && (
+                    <div className="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50/50 dark:bg-sky-950/20 p-4 space-y-2">
+                      <h3 className="font-semibold text-sm flex items-center gap-2 text-sky-700 dark:text-sky-300">
+                        <AlertTriangle className="h-4 w-4" />
+                        How to fix this
+                      </h3>
+                      <ul className="space-y-1.5">
+                        {(result.policyChecks || [])
+                          .filter((c) => !c.result)
+                          .map((check) => (
+                            <li
+                              key={check.policyId}
+                              className="text-xs text-muted-foreground flex items-start gap-2"
+                            >
+                              <ArrowRight className="h-3 w-3 mt-0.5 shrink-0 text-sky-500" />
+                              <span>
+                                <span className="font-medium text-foreground">
+                                  {check.policyId}:
+                                </span>{" "}
+                                {getSuggestion(check.reason)}
+                              </span>
+                            </li>
+                          ))}
+                      </ul>
+                      <button
+                        type="button"
+                        onClick={() => router.push("/policies")}
+                        className="text-xs text-primary hover:underline mt-1"
+                      >
+                        Go to Policies →
+                      </button>
+                    </div>
+                  )}
+
+                {/* Try again with lower amounts */}
+                {!result.allowed && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground">
+                      Try again with:
+                    </span>
+                    {[100, 50, 10].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => handleRetryWithAmount(amt)}
+                        disabled={evaluating}
+                        className="text-xs px-2.5 py-1 rounded-full border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+                      >
+                        ${amt}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Evaluation Privacy indicator — always shown */}
+                {(() => {
+                  const conf =
+                    "confidential" in result
+                      ? (
+                          result as GovernanceEvaluation & {
+                            confidential?: {
+                              fheEvaluated: boolean;
+                              chain: string;
+                              decisionIds?: string[];
+                            };
+                          }
+                        ).confidential
+                      : undefined;
+
+                  if (conf?.fheEvaluated) {
                     return (
                       <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
                         <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
                           <Lock className="h-4 w-4" />
-                          Confidential Evaluation (Fhenix FHE)
+                          Encrypted Evaluation (Fhenix FHE)
                         </div>
                         <div className="text-xs text-muted-foreground space-y-1">
                           <div>Chain: {conf.chain}</div>
@@ -502,7 +598,27 @@ export function GovernanceCheck() {
                         </div>
                       </div>
                     );
-                  })()}
+                  }
+
+                  return (
+                    <div className="rounded-lg border border-border bg-muted/20 p-3">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Lock className="h-3.5 w-3.5" />
+                        <span>
+                          Standard evaluation — consider{" "}
+                          <button
+                            type="button"
+                            onClick={() => router.push("/policies")}
+                            className="text-primary hover:underline"
+                          >
+                            encrypting sensitive policies
+                          </button>{" "}
+                          for production use
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Metadata */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -534,7 +650,7 @@ export function GovernanceCheck() {
 
       {/* Quick Reference */}
       <Card className="bg-muted/20">
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-2">
           <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
             <span className="font-medium text-foreground">How it works:</span>
             <span className="flex items-center gap-1">
@@ -551,6 +667,10 @@ export function GovernanceCheck() {
               <ArrowRight className="h-3 w-3" /> Audit Logged
             </span>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Every spend is evaluated against your active policies in under 100ms.
+            Encrypted policies evaluate without exposing amounts to agents.
+          </p>
         </CardContent>
       </Card>
     </div>
