@@ -79,6 +79,8 @@ PM2 should provide explicit paths for all file-backed runtime state:
 - `CRE_RUNS_FILE=/opt/cognivern/shared/data/cre-runs.jsonl`
 - `UX_EVENTS_FILE=/opt/cognivern/shared/data/ux-events.jsonl`
 - `IDEMPOTENCY_STORE_FILE=/opt/cognivern/shared/data/idempotency-store.json`
+- `RATE_LIMIT_STORE_FILE=/opt/cognivern/shared/data/rate-limit-store.jsonl`
+- `TOKEN_BLACKLIST_FILE=/opt/cognivern/shared/data/token-blacklist.jsonl`
 - `OWS_VAULT_PATH=/opt/cognivern/shared/data/ows-vault.json`
 - `COGNIVERN_TOKEN_TELEMETRY_FILE=/opt/cognivern/shared/data/token-telemetry.json`
 - `COGNIVERN_USAGE_FILE=/opt/cognivern/shared/data/usage.json`
@@ -190,3 +192,22 @@ curl https://cognivern.thisyearnofear.com/health?deep=true
 - Use strong, unique values for `API_KEY`
 - Restrict `CORS_ORIGIN` to your actual frontend domain in production
 - Keep mutable secrets and runtime data in `/opt/cognivern/shared/`
+- API keys are hashed with scrypt before storage (migrated from SHA-256)
+- JWT tokens are revocable via server-side blacklist (logout invalidates tokens)
+- Rate limiting is persistent across restarts (file-backed stores under `shared/data/`)
+- SIWE authentication uses nonce replay protection with expiration
+- Contract addresses are automatically audited via ChainGPT before spend execution
+- Helmet CSP, CORS, body size limits, and trust-proxy are configured for production
+
+### Artifact deploy flow (alternative)
+
+Build a self-contained `.tgz` artifact and deploy to Hetzner:
+
+```bash
+# Build artifact + deploy in one command
+bash scripts/deploy/deploy-latest-hetzner.sh
+```
+
+This runs two steps:
+1. `build-backend-artifact.sh` — builds locally, creates `.artifacts/cognivern-backend-{timestamp}-{hash}.tgz`
+2. `deploy-backend-artifact-hetzner.sh` — scp to server, extract, `npm install --omit=dev`, PM2 restart, health check
