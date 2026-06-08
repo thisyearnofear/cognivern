@@ -241,7 +241,6 @@ export function AppSidebar() {
               {({
                 account,
                 chain,
-                openConnectModal,
                 openAccountModal,
                 mounted,
               }) => {
