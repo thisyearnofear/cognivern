@@ -13,6 +13,7 @@ import {
   TrendingUp,
   TrendingDown,
   ChevronDown,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -157,9 +158,17 @@ export function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           {agentsError && (
-            <Badge variant="destructive" className="text-xs">
-              API Error
-            </Badge>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-xs">
+              <span className="font-medium">Unable to reach API</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => router.refresh()}
+              >
+                Retry
+              </Button>
+            </div>
           )}
           <Button size="sm" variant="outline" onClick={() => router.refresh()}>
             Refresh
@@ -170,34 +179,69 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Activation Hero — shown for production mode with no agents */}
-      {user.workspaceMode === "production" &&
+      {/* Getting Started Checklist — shown for non-demo users with incomplete setup */}
+      {!demoMode &&
         !agentsLoading &&
-        agentList.length === 0 && (
-          <Card className="border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 dark:from-emerald-950/20 dark:to-teal-950/20">
+        !policiesLoading &&
+        (agentList.length === 0 ||
+          (policies || []).filter((p) => p.status === "active").length === 0) && (
+          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-sky-500/5">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-emerald-100 dark:bg-emerald-900/50">
-                  <Rocket className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                <div className="p-3 rounded-xl bg-primary/10">
+                  <Rocket className="h-6 w-6 text-primary" />
                 </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
-                    Ready for Production
-                  </h2>
-                  <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1 max-w-xl">
-                    Your production workspace is ready. Register your first
-                    agent to start enforcing governance policies on live data.
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold">Get Started</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Set up your governance in 3 steps
                   </p>
-                  <div className="flex gap-3 mt-4">
-                    <Button onClick={() => router.push("/agents/workshop")}>
-                      Register Your First Agent
-                    </Button>
-                    <Button
-                      variant="outline"
+                  <div className="mt-4 space-y-3">
+                    <button
                       onClick={() => router.push("/policies")}
+                      className="flex items-center gap-3 w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors"
                     >
-                      Define Policies
-                    </Button>
+                      {(policies || []).filter((p) => p.status === "active")
+                        .length > 0 ? (
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                      ) : (
+                        <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+                      )}
+                      <div>
+                        <div className="text-sm font-medium">Create a policy</div>
+                        <div className="text-xs text-muted-foreground">
+                          Set spending limits and rules for your agents
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => router.push("/agents/workshop")}
+                      className="flex items-center gap-3 w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      {agentList.length > 0 ? (
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                      ) : (
+                        <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+                      )}
+                      <div>
+                        <div className="text-sm font-medium">Register an agent</div>
+                        <div className="text-xs text-muted-foreground">
+                          Give an agent a wallet and budget to govern
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => router.push("/settings")}
+                      className="flex items-center gap-3 w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+                      <div>
+                        <div className="text-sm font-medium">Get your API key</div>
+                        <div className="text-xs text-muted-foreground">
+                          Connect the governance API to your agent code
+                        </div>
+                      </div>
+                    </button>
                   </div>
                 </div>
               </div>

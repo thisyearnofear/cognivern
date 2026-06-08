@@ -88,11 +88,9 @@ class ApiClient {
 
       return await response.json();
     } catch (error) {
-      if (
-        retries > 0 &&
-        error instanceof Error &&
-        !error.message.includes("4")
-      ) {
+      const isClientError =
+        error instanceof Error && /API error 4\d\d/.test(error.message);
+      if (retries > 0 && !isClientError) {
         await new Promise((resolve) =>
           setTimeout(resolve, 1000 * (3 - retries)),
         );

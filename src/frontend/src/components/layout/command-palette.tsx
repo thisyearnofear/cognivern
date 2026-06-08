@@ -10,48 +10,13 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import {
-  LayoutDashboard,
-  Users,
-  ShieldCheck,
-  FileSearch,
-  Activity,
-  PlayCircle,
-  PlusCircle,
-  Settings,
-} from "lucide-react";
+import { Settings, ShieldCheck } from "lucide-react";
+import { ALL_NAV_ITEMS, DEMO_NAV_ITEMS } from "@/lib/nav-items";
 
-const NAV_ITEMS = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  { id: "agents", label: "Agents", href: "/agents", icon: Users },
-  { id: "policies", label: "Policies", href: "/policies", icon: ShieldCheck },
-  { id: "audit", label: "Audit Logs", href: "/audit", icon: FileSearch },
-  { id: "runs", label: "Runs", href: "/runs", icon: Activity },
-  {
-    id: "governance",
-    label: "Governance Check",
-    href: "/governance/check",
-    icon: PlayCircle,
-  },
-  {
-    id: "workshop",
-    label: "Agent Workshop",
-    href: "/agents/workshop",
-    icon: PlusCircle,
-  },
+const EXTRA_ITEMS = [
   { id: "settings", label: "Settings", href: "/settings", icon: Settings },
-  {
-    id: "onboarding",
-    label: "Set Up Treasury",
-    href: "/onboarding",
-    icon: ShieldCheck,
-  },
-  { id: "demo", label: "Spend Flow Demo", href: "/demo/spend", icon: Activity },
+  { id: "onboarding", label: "Set Up Treasury", href: "/onboarding", icon: ShieldCheck },
+  ...DEMO_NAV_ITEMS,
 ];
 
 export function CommandPalette() {
@@ -90,7 +55,18 @@ export function CommandPalette() {
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Navigation">
-          {NAV_ITEMS.map((item) => {
+          {ALL_NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <CommandItem key={item.id} onSelect={() => runCommand(item.href)}>
+                <Icon className="mr-2 h-4 w-4" />
+                <span>{item.label}</span>
+              </CommandItem>
+            );
+          })}
+        </CommandGroup>
+        <CommandGroup heading="More">
+          {EXTRA_ITEMS.map((item) => {
             const Icon = item.icon;
             return (
               <CommandItem key={item.id} onSelect={() => runCommand(item.href)}>

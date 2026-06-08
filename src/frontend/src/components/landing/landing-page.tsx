@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
   ArrowRight,
-  Zap,
   Globe,
   Lock,
   Eye,
@@ -13,18 +12,15 @@ import {
   Sparkles,
   FileText,
   HelpCircle,
-  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShieldLogo } from "@/components/landing/shield-logo";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/hooks/use-auth";
 import { useAppStore } from "@/stores/app-store";
 
 export function LandingPage() {
   const router = useRouter();
-  const { signIn, loading } = useAuth();
   const enableDemoMode = useAppStore((s) => s.enableDemoMode);
   const demoMode = useAppStore((s) => s.demoMode);
   const onboardingCompleted = useAppStore(
@@ -32,21 +28,11 @@ export function LandingPage() {
   );
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Redirect onboarded or demo-mode users straight to the dashboard
   useEffect(() => {
     if (demoMode || onboardingCompleted) {
       router.push("/dashboard");
     }
   }, [demoMode, onboardingCompleted, router]);
-
-  const handleConnectWallet = async () => {
-    try {
-      await signIn();
-      router.push("/dashboard");
-    } catch (err) {
-      console.error("Login failed:", err);
-    }
-  };
 
   const handleTryDemo = () => {
     enableDemoMode();
@@ -71,23 +57,12 @@ export function LandingPage() {
             </span>
           </span>
           <Button
-            variant="ghost"
+            variant="default"
             size="sm"
             onClick={() => setShowAuthModal(true)}
-            className="gap-1.5"
           >
-            <User className="h-4 w-4" />
             Sign In
           </Button>
-          {loading ? (
-            <Button variant="default" size="sm" disabled>
-              Connecting...
-            </Button>
-          ) : (
-            <Button variant="default" size="sm" onClick={handleConnectWallet}>
-              Connect Wallet
-            </Button>
-          )}
         </div>
       </header>
 
@@ -121,25 +96,17 @@ export function LandingPage() {
           <Button
             variant="default"
             size="lg"
-            onClick={handleTryDemo}
-            className="bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 shadow-lg"
+            onClick={() => setShowAuthModal(true)}
           >
-            <Sparkles className="h-4 w-4 mr-1" /> Try Demo — No Signup
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={handleConnectWallet}
-          >
-            Connect Wallet <ArrowRight />
+            Get Started <ArrowRight />
           </Button>
           <Button
             variant="secondary"
             size="lg"
-            onClick={() => router.push("/onboarding")}
+            onClick={handleTryDemo}
             className="border-sky-200 dark:border-sky-800"
           >
-            Set Up My Treasury <Zap />
+            <Sparkles className="h-4 w-4 mr-1" /> Try Demo — No Signup
           </Button>
         </div>
 
@@ -412,7 +379,7 @@ export function LandingPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => window.open("https://docs.cognivern.xyz/fhe", "_blank")}
+              onClick={() => window.open("https://github.com/thisyearnofear/cognivern/blob/main/docs/FHENIX_INTEGRATION.md", "_blank")}
               className="gap-2 text-sky-600 dark:text-sky-400"
             >
               <HelpCircle className="h-4 w-4" />
@@ -421,7 +388,7 @@ export function LandingPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => window.open("https://docs.cognivern.xyz/architecture", "_blank")}
+              onClick={() => window.open("https://github.com/thisyearnofear/cognivern/blob/main/docs/ARCHITECTURE.md", "_blank")}
               className="gap-2"
             >
               <FileText className="h-4 w-4" />
