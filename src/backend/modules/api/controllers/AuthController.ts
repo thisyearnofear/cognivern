@@ -305,6 +305,19 @@ export class AuthController {
     });
   }
 
+  async logout(req: Request, res: Response): Promise<void> {
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      const tokenHash = createHash("sha256").update(token).digest("hex");
+      const { tokenBlacklistStore } = await import(
+        "../../../shared/storage/TokenBlacklistStore.js"
+      );
+      await tokenBlacklistStore.blacklist(tokenHash);
+    }
+    res.json({ success: true });
+  }
+
   async register(req: Request, res: Response): Promise<void> {
     const { email, password } = req.body as { email: string; password: string };
 

@@ -27,10 +27,6 @@ export function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
-export function sanitizeString(str: string): string {
-  return str.replace(/[<>]/g, "");
-}
-
 export function deepClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
 }

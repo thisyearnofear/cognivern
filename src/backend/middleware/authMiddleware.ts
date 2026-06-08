@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { jwtVerify } from "jose";
+import { createHash } from "node:crypto";
+import { tokenBlacklistStore } from "../shared/storage/TokenBlacklistStore.js";
 
 function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -57,6 +59,15 @@ export async function authMiddleware(
       res.status(401).json({
         success: false,
         error: "Invalid token payload",
+      });
+      return;
+    }
+
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+    if (await tokenBlacklistStore.isBlacklisted(tokenHash)) {
+      res.status(401).json({
+        success: false,
+        error: "Token has been revoked",
       });
       return;
     }
