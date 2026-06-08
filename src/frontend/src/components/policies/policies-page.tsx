@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import {
   Zap,
   Loader2,
   History,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { PolicyVersionHistory } from "./policy-version-history";
 import {
@@ -25,9 +27,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { usePolicies } from "@/hooks/use-api";
+import { usePolicies, useAuditLogs } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
+import { HelpIcon } from "@/components/ui/help-icon";
 
 const POLICY_TEMPLATES = [
   {
@@ -78,6 +81,7 @@ const POLICY_TEMPLATES = [
 export function PoliciesPage() {
   const router = useRouter();
   const { data: rawPolicies, isLoading, error } = usePolicies();
+  const { data: auditLogs } = useAuditLogs();
   const [showCreate, setShowCreate] = useState(false);
   const [quickCreating, setQuickCreating] = useState<string | null>(null);
   const [historyPolicy, setHistoryPolicy] = useState<{
@@ -97,6 +101,18 @@ export function PoliciesPage() {
         confidential: p.metadata?.confidential === true,
       }))
     : [];
+
+  const triggerCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (Array.isArray(auditLogs)) {
+      for (const log of auditLogs) {
+        for (const check of log.policyChecks || []) {
+          counts[check.policyId] = (counts[check.policyId] || 0) + 1;
+        }
+      }
+    }
+    return counts;
+  }, [auditLogs]);
 
   const handleQuickCreate = useCallback(
     async (template: (typeof POLICY_TEMPLATES)[number]) => {
@@ -289,6 +305,16 @@ export function PoliciesPage() {
                         {policy.violations}
                       </span>
                     </div>
+                    {(triggerCounts[policy.id] ?? 0) > 0 && (
+                      <div>
+                        <span className="text-muted-foreground text-xs">
+                          Triggered:
+                        </span>{" "}
+                        <span className="font-medium">
+                          {triggerCounts[policy.id]}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <Button
                     variant="ghost"
@@ -321,23 +347,41 @@ export function PoliciesPage() {
 }
 
 const POLICY_TYPES = [
-  { id: "budget", label: "Budget / Spend Limit" },
-  { id: "confidential-budget", label: "Confidential Budget (FHE)" },
-  { id: "allowlist", label: "Vendor Allowlist" },
-  { id: "chain", label: "Chain Restriction" },
-  { id: "approval", label: "Human Approval" },
+  { id: "budget", label: "Budget / Spend Limit", helpKey: "policy:budget" },
+  { id: "allowlist", label: "Vendor Allowlist", helpKey: "policy:allowlist" },
+  { id: "chain", label: "Chain Restriction", helpKey: "policy:chain" },
+  { id: "approval", label: "Human Approval", helpKey: "policy:approval" },
 ];
+
+const RULE_PRESETS = [
+  { label: "Amount > $500", condition: "amount > 500" },
+  { label: "Amount > $1000", condition: "amount > 1000" },
+  { label: "Daily total > $2000", condition: "daily_total > 2000" },
+  { label: "Not in allowlist", condition: "vendor NOT IN allowlist" },
+  { label: "Unknown chain", condition: "chain NOT IN [ethereum, arbitrum, base]" },
+];
+
+interface PolicyRule {
+  condition: string;
+  action: string;
+}
 
 function CreatePolicyForm({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [type, setType] = useState("budget");
   const [description, setDescription] = useState("");
-  const [ruleCondition, setRuleCondition] = useState("");
-  const [ruleAction, setRuleAction] = useState("deny");
+  const [encrypted, setEncrypted] = useState(false);
+  const [rules, setRules] = useState<PolicyRule[]>([
+    { condition: "", action: "deny" },
+  ]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isConfidential = type === "confidential-budget";
+  const addRule = () => setRules((r) => [...r, { condition: "", action: "deny" }]);
+  const removeRule = (idx: number) =>
+    setRules((r) => r.filter((_, i) => i !== idx));
+  const updateRule = (idx: number, field: keyof PolicyRule, value: string) =>
+    setRules((r) => r.map((rule, i) => (i === idx ? { ...rule, [field]: value } : rule)));
 
   const handleCreate = useCallback(async () => {
     if (!name.trim() || !type) return;
@@ -345,7 +389,7 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
     setError(null);
 
     try {
-      const rules = isConfidential
+      const policyRules = encrypted
         ? [
             {
               id: "fhe-budget-check",
@@ -358,11 +402,11 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
               metadata: { confidential: true },
             },
           ]
-        : ruleCondition.trim()
-          ? [{ condition: ruleCondition.trim(), action: ruleAction }]
-          : [];
+        : rules
+            .filter((r) => r.condition.trim())
+            .map((r) => ({ condition: r.condition.trim(), action: r.action }));
 
-      const metadata = isConfidential
+      const metadata = encrypted
         ? {
             confidential: true,
             chain: "fhenix-arbitrum-sepolia",
@@ -372,11 +416,11 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
 
       const res = await apiClient.createGovernancePolicy({
         name: name.trim(),
-        type: isConfidential ? "budget" : type,
+        type,
         description:
           description.trim() ||
           `${POLICY_TYPES.find((t) => t.id === type)?.label} policy`,
-        rules,
+        rules: policyRules,
         metadata,
       });
 
@@ -391,24 +435,18 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
     } finally {
       setCreating(false);
     }
-  }, [
-    name,
-    type,
-    description,
-    ruleCondition,
-    ruleAction,
-    isConfidential,
-    onClose,
-  ]);
+  }, [name, type, description, encrypted, rules, onClose]);
+
+  const selectedType = POLICY_TYPES.find((t) => t.id === type);
 
   return (
     <Card
-      className={`${isConfidential ? "border-amber-200 dark:border-amber-800" : "border-sky-200 dark:border-sky-800"}`}
+      className={`${encrypted ? "border-amber-200 dark:border-amber-800" : "border-sky-200 dark:border-sky-800"}`}
     >
       <CardContent className="p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold flex items-center gap-2">
-            {isConfidential && <Lock className="h-4 w-4 text-amber-500" />}
+            {encrypted && <Lock className="h-4 w-4 text-amber-500" />}
             Create Policy
           </h3>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -423,14 +461,17 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={
-                isConfidential
+                encrypted
                   ? "e.g. Encrypted DeFi Budget"
                   : "e.g. Daily Spend Limit"
               }
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Type</label>
+            <label className="text-sm font-medium flex items-center gap-1.5">
+              Type
+              {selectedType && <HelpIcon helpKey={selectedType.helpKey} />}
+            </label>
             <Select value={type} onValueChange={(v) => v && setType(v)}>
               <SelectTrigger>
                 <SelectValue />
@@ -452,19 +493,50 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={
-              isConfidential
+              encrypted
                 ? "Encrypted budget enforced on-chain — agent cannot see limits"
                 : "What does this policy enforce?"
             }
           />
         </div>
 
-        {isConfidential ? (
-          <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
-              <Lock className="h-4 w-4" />
-              Confidential Policy (Fhenix FHE)
+        {/* Encryption toggle */}
+        <button
+          type="button"
+          onClick={() => setEncrypted(!encrypted)}
+          className={`flex items-center gap-3 w-full p-3 rounded-lg border transition-colors text-left ${
+            encrypted
+              ? "border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20"
+              : "border-border hover:border-primary/30"
+          }`}
+        >
+          <Lock
+            className={`h-4 w-4 shrink-0 ${encrypted ? "text-amber-500" : "text-muted-foreground"}`}
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium">
+                Encrypt this policy (FHE)
+              </span>
+              <HelpIcon helpKey="policy:encrypt" />
             </div>
+            <p className="text-xs text-muted-foreground">
+              {encrypted
+                ? "Budget limits encrypted on-chain — agent cannot see caps"
+                : "Enable to hide spending limits from agents using Fhenix FHE"}
+            </p>
+          </div>
+          <div
+            className={`w-9 h-5 rounded-full transition-colors shrink-0 flex items-center ${
+              encrypted ? "bg-amber-500 justify-end" : "bg-muted justify-start"
+            }`}
+          >
+            <div className="w-4 h-4 mx-0.5 rounded-full bg-white shadow-sm" />
+          </div>
+        </button>
+
+        {encrypted ? (
+          <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
             <p className="text-xs text-muted-foreground">
               Budget limits are encrypted on-chain using Fully Homomorphic
               Encryption. The agent cannot see its spending caps — evaluations
@@ -477,11 +549,7 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
                   Daily limit (encrypted)
                 </label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    disabled
-                    placeholder="Set on-chain"
-                    className="text-xs"
-                  />
+                  <Input disabled placeholder="Set on-chain" className="text-xs" />
                   <EyeOff className="h-4 w-4 text-amber-500 shrink-0" />
                 </div>
               </div>
@@ -490,11 +558,7 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
                   Per-tx limit (encrypted)
                 </label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    disabled
-                    placeholder="Set on-chain"
-                    className="text-xs"
-                  />
+                  <Input disabled placeholder="Set on-chain" className="text-xs" />
                   <EyeOff className="h-4 w-4 text-amber-500 shrink-0" />
                 </div>
               </div>
@@ -508,33 +572,79 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="md:col-span-2 space-y-1.5">
-              <label className="text-sm font-medium">
-                Rule condition (optional)
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                Rules
+                <span className="text-xs text-muted-foreground font-normal">
+                  ({rules.length})
+                </span>
               </label>
-              <Input
-                value={ruleCondition}
-                onChange={(e) => setRuleCondition(e.target.value)}
-                placeholder="e.g. amount > 3000"
-              />
+              {rules.length < 5 && (
+                <button
+                  type="button"
+                  onClick={addRule}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Plus className="h-3 w-3" /> Add rule
+                </button>
+              )}
             </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Action</label>
-              <Select
-                value={ruleAction}
-                onValueChange={(v) => v && setRuleAction(v)}
+            {rules.map((rule, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 items-start p-3 rounded-lg bg-muted/30"
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="deny">Deny</SelectItem>
-                  <SelectItem value="flag">Flag for review</SelectItem>
-                  <SelectItem value="allow">Allow</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="space-y-1.5">
+                  <Input
+                    value={rule.condition}
+                    onChange={(e) => updateRule(idx, "condition", e.target.value)}
+                    placeholder="e.g. amount > 3000"
+                    className="text-sm"
+                  />
+                  {idx === 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {RULE_PRESETS.map((p) => (
+                        <button
+                          key={p.condition}
+                          type="button"
+                          onClick={() => updateRule(idx, "condition", p.condition)}
+                          className={`text-[10px] px-1.5 py-0.5 rounded-full border transition-colors ${
+                            rule.condition === p.condition
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Select
+                  value={rule.action}
+                  onValueChange={(v) => v && updateRule(idx, "action", v)}
+                >
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="deny">Deny</SelectItem>
+                    <SelectItem value="flag">Flag for review</SelectItem>
+                    <SelectItem value="allow">Allow</SelectItem>
+                  </SelectContent>
+                </Select>
+                {rules.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeRule(idx)}
+                    className="p-2 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
@@ -555,8 +665,8 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
           >
             {creating
               ? "Creating..."
-              : isConfidential
-                ? "Create Confidential Policy"
+              : encrypted
+                ? "Create Encrypted Policy"
                 : "Create Policy"}
           </Button>
         </div>

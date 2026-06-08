@@ -14,13 +14,14 @@ import {
   TrendingDown,
   ChevronDown,
   CheckCircle2,
+  ShieldX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
-import { useAgents, useAuditLogs, usePolicies } from "@/hooks/use-api";
+import { useAgents, useAuditLogs, usePolicies, useNetworkStatus } from "@/hooks/use-api";
 import { useAppStore } from "@/stores/app-store";
 import { DecisionChart, type DecisionFilter } from "./decision-chart";
 import { ActivityChart } from "./activity-chart";
@@ -48,6 +49,7 @@ export function Dashboard() {
   const user = useAppStore((s) => s.user);
   const demoMode = useAppStore((s) => s.demoMode);
   const workspace = user.workspace;
+  useNetworkStatus();
   const {
     data: agents,
     isLoading: agentsLoading,
@@ -104,6 +106,14 @@ export function Dashboard() {
       )
     : 0;
   const decisions = Array.isArray(logs) ? logs.length : 0;
+  const blockedCount = Array.isArray(logs)
+    ? logs.filter(
+        (l) =>
+          l.outcome === "denied" ||
+          l.complianceStatus === "non-compliant" ||
+          l.decision === "denied",
+      ).length
+    : 0;
 
   // Stat deltas (compare first half vs second half of logs for trend)
   const { approvalDelta, decisionsDelta } = useMemo(() => {
@@ -250,7 +260,7 @@ export function Dashboard() {
         )}
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <Card>
           <CardContent className="p-4">
             {agentsLoading ? (
@@ -372,6 +382,23 @@ export function Dashboard() {
                   <div className="text-xs text-muted-foreground">
                     Policy Decisions
                   </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            {logsLoading ? (
+              <Skeleton className="h-12 w-24" />
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950">
+                  <ShieldX className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{blockedCount}</div>
+                  <div className="text-xs text-muted-foreground">Blocked</div>
                 </div>
               </div>
             )}

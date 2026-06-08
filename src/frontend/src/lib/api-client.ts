@@ -58,18 +58,20 @@ class ApiClient {
     options: RequestInit = {},
     retries = 2,
   ): Promise<T> {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      throw new Error("You are offline. Check your connection and try again.");
+    }
+
     const { user } = useAppStore.getState();
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "X-Workspace-Mode": user.workspaceMode,
     };
 
-    // Add API key if set
     if (this.apiKey) {
       headers["x-api-key"] = this.apiKey;
     }
 
-    // Add auth token from localStorage
     const token = getAuthToken();
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
@@ -79,6 +81,7 @@ class ApiClient {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers,
+        signal: options.signal,
       });
 
       if (!response.ok) {
@@ -88,12 +91,18 @@ class ApiClient {
 
       return await response.json();
     } catch (error) {
+      if (
+        error instanceof DOMException &&
+        error.name === "AbortError"
+      ) {
+        throw error;
+      }
+
       const isClientError =
         error instanceof Error && /API error 4\d\d/.test(error.message);
       if (retries > 0 && !isClientError) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000 * (3 - retries)),
-        );
+        const delay = Math.min(1000 * Math.pow(2, 3 - retries), 8000);
+        await new Promise((resolve) => setTimeout(resolve, delay));
         return this.fetch(endpoint, options, retries - 1);
       }
       throw error;

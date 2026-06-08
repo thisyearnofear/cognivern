@@ -15,6 +15,8 @@ import {
   Clock,
   Activity,
   Lock,
+  ShieldOff,
+  AlertTriangle,
 } from "lucide-react";
 
 interface StepState {
@@ -63,26 +65,59 @@ const INITIAL_STEPS: StepState[] = [
   },
 ];
 
+const UNGOVERNED_STEPS: StepState[] = [
+  {
+    id: "request",
+    label: "Agent Requests Spend",
+    icon: Activity,
+    status: "pending",
+    detail: "YieldHunter-01 requests 200 MNT for LP staking — no policy check",
+  },
+  {
+    id: "execute",
+    label: "Executes Immediately",
+    icon: AlertTriangle,
+    status: "pending",
+    detail: "Transaction sent directly to the blockchain with no guardrails",
+  },
+  {
+    id: "no-audit",
+    label: "No Audit Trail",
+    icon: XCircle,
+    status: "pending",
+    detail: "No record of policy compliance — no evidence of approval",
+  },
+];
+
 export function SpendFlowDemo() {
+  const [governed, setGoverned] = useState(true);
   const [steps, setSteps] = useState<StepState[]>(INITIAL_STEPS);
   const [currentStep, setCurrentStep] = useState(0);
   const [running, setRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [approved, setApproved] = useState(true);
 
+  const activeSteps = governed ? INITIAL_STEPS : UNGOVERNED_STEPS;
+
   const advanceStep = useCallback(() => {
+    const isUngoverned = !governed;
+    const decisionIdx = isUngoverned ? 1 : 3;
+
     setSteps((prev) =>
       prev.map((s, i) => {
         if (i === currentStep) {
-          if (i === 3) {
+          if (i === decisionIdx) {
+            if (isUngoverned) {
+              return { ...s, status: "passed" as const };
+            }
             const isApproved = Math.random() > 0.3;
             setApproved(isApproved);
             return {
               ...s,
               status: isApproved ? ("passed" as const) : ("failed" as const),
               detail: isApproved
-                ? "Approved \u2014 all checks passed"
-                : "Denied \u2014 exceeds daily limit",
+                ? "Approved — all checks passed"
+                : "Denied — exceeds daily limit",
             };
           }
           return { ...s, status: "passed" as const };
@@ -104,7 +139,7 @@ export function SpendFlowDemo() {
       setCompleted(true);
       setRunning(false);
     }
-  }, [currentStep, steps.length]);
+  }, [currentStep, steps.length, governed]);
 
   useEffect(() => {
     if (!running || completed) return;
@@ -114,7 +149,7 @@ export function SpendFlowDemo() {
 
   function handleStart() {
     setSteps(
-      INITIAL_STEPS.map((s, i) =>
+      activeSteps.map((s, i) =>
         i === 0 ? { ...s, status: "active" as const } : s,
       ),
     );
@@ -125,11 +160,20 @@ export function SpendFlowDemo() {
   }
 
   function handleReset() {
-    setSteps(INITIAL_STEPS);
+    setSteps(activeSteps);
     setCurrentStep(0);
     setCompleted(false);
     setRunning(false);
     setApproved(true);
+  }
+
+  function toggleGoverned() {
+    if (running) return;
+    setGoverned(!governed);
+    setCompleted(false);
+    setApproved(true);
+    setSteps(!governed ? INITIAL_STEPS : UNGOVERNED_STEPS);
+    setCurrentStep(0);
   }
 
   return (
@@ -162,10 +206,40 @@ export function SpendFlowDemo() {
         </div>
       </div>
 
+      {/* Governance toggle */}
+      <div className="flex items-center justify-center gap-3 p-3 rounded-xl border border-border bg-muted/20">
+        <ShieldOff
+          className={`h-4 w-4 ${!governed ? "text-red-500" : "text-muted-foreground"}`}
+        />
+        <button
+          type="button"
+          onClick={toggleGoverned}
+          className={`relative w-12 h-6 rounded-full transition-colors ${
+            governed ? "bg-emerald-500" : "bg-red-400"
+          }`}
+        >
+          <div
+            className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+              governed ? "translate-x-6" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+        <ShieldCheck
+          className={`h-4 w-4 ${governed ? "text-emerald-500" : "text-muted-foreground"}`}
+        />
+        <span className="text-sm font-medium">
+          Governance:{" "}
+          <span className={governed ? "text-emerald-500" : "text-red-500"}>
+            {governed ? "ON" : "OFF"}
+          </span>
+        </span>
+      </div>
+
       {/* Flow visualization */}
       <div className="space-y-0">
         {steps.map((step, idx) => {
           const Icon = step.icon;
+          const isUngoverned = !governed;
           return (
             <div key={step.id} className="flex gap-4">
               <div className="flex flex-col items-center">
@@ -174,15 +248,18 @@ export function SpendFlowDemo() {
                     step.status === "active"
                       ? "bg-primary text-primary-foreground scale-110 shadow-lg ring-2 ring-primary/30"
                       : step.status === "passed"
-                        ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-500"
+                        ? isUngoverned
+                          ? "bg-red-100 dark:bg-red-950 text-red-500"
+                          : "bg-emerald-100 dark:bg-emerald-950 text-emerald-500"
                         : step.status === "failed"
                           ? "bg-red-100 dark:bg-red-950 text-red-500"
                           : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  {step.status === "passed" ||
-                  (step.status === "failed" && idx === 3) ? (
-                    step.status === "failed" ? (
+                  {step.status === "passed" || step.status === "failed" ? (
+                    isUngoverned && step.status === "passed" ? (
+                      <AlertTriangle className="h-5 w-5" />
+                    ) : step.status === "failed" ? (
                       <XCircle className="h-5 w-5" />
                     ) : (
                       <CheckCircle2 className="h-5 w-5" />
@@ -195,7 +272,9 @@ export function SpendFlowDemo() {
                   <div
                     className={`w-0.5 h-8 my-1 transition-colors duration-500 ${
                       step.status === "passed"
-                        ? "bg-emerald-300"
+                        ? isUngoverned
+                          ? "bg-red-300"
+                          : "bg-emerald-300"
                         : step.status === "active"
                           ? "bg-primary/30"
                           : "bg-border"
@@ -222,31 +301,34 @@ export function SpendFlowDemo() {
                   >
                     {step.label}
                   </span>
-                  {(step.id === "policy" || step.id === "request" || step.id === "evaluate") && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
-                      <Lock className="h-2.5 w-2.5" />
-                      Encrypted
-                    </span>
-                  )}
+                  {governed &&
+                    (step.id === "policy" ||
+                      step.id === "request" ||
+                      step.id === "evaluate") && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+                        <Lock className="h-2.5 w-2.5" />
+                        Encrypted
+                      </span>
+                    )}
                   {step.status === "active" && (
                     <span className="flex items-center gap-1 text-xs text-primary">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                       In progress
                     </span>
                   )}
-                  {step.status === "passed" && idx === 3 && (
+                  {step.status === "passed" && idx === 3 && governed && (
                     <Badge variant="secondary" className="text-xs">
                       Approved
                     </Badge>
                   )}
-                  {step.status === "failed" && idx === 3 && (
+                  {step.status === "failed" && idx === 3 && governed && (
                     <Badge variant="destructive" className="text-xs">
                       Denied
                     </Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">{step.detail}</p>
-                {step.status === "passed" && idx === 3 && approved && (
+                {step.status === "passed" && idx === 3 && approved && governed && (
                   <div className="mt-2 flex items-center gap-2 text-xs">
                     <Lock className="h-3 w-3 text-blue-500" />
                     <span className="text-blue-600 dark:text-blue-400">
@@ -265,7 +347,7 @@ export function SpendFlowDemo() {
       </div>
 
       {/* Summary */}
-      {completed && (
+      {completed && governed && (
         <Card
           className={`border-2 ${
             approved
@@ -307,18 +389,67 @@ export function SpendFlowDemo() {
         </Card>
       )}
 
+      {completed && !governed && (
+        <Card className="border-2 border-red-200 dark:border-red-900">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <AlertTriangle className="h-6 w-6 text-red-500" />
+              <div>
+                <div className="font-bold text-lg text-red-600 dark:text-red-400">
+                  No Governance
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  $200 spent with no guardrails. No policy evaluated. No audit
+                  evidence. If this were a malicious or erroneous transaction, it
+                  would be irreversible.
+                </div>
+              </div>
+            </div>
+            <Separator className="my-3" />
+            <div className="flex flex-wrap items-center gap-4 text-sm text-red-500">
+              <span>
+                <strong>Policies checked:</strong> 0
+              </span>
+              <span>
+                <strong>Audit trail:</strong> None
+              </span>
+              <span>
+                <strong>Recovery:</strong> Impossible
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* How it works */}
       <Card className="bg-muted/20">
         <CardContent className="p-4">
           <div className="flex items-start gap-2">
-            <Lock className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+            {governed ? (
+              <Lock className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+            ) : (
+              <ShieldOff className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+            )}
             <div className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">
-                Privacy by design:
-              </span>{" "}
-              Budgets, limits, and spend amounts are evaluated while encrypted —
-              the policy engine sees compliance, not your numbers. Audit evidence
-              is stored immutably on 0G and Filecoin.
+              {governed ? (
+                <>
+                  <span className="font-medium text-foreground">
+                    Privacy by design:
+                  </span>{" "}
+                  Budgets, limits, and spend amounts are evaluated while encrypted —
+                  the policy engine sees compliance, not your numbers. Audit evidence
+                  is stored immutably on 0G and Filecoin.
+                </>
+              ) : (
+                <>
+                  <span className="font-medium text-red-500">
+                    Without governance:
+                  </span>{" "}
+                  Agents execute directly with no policy checks, no encryption, and
+                  no audit trail. Errors and malicious transactions are irreversible.
+                  Toggle governance ON to see the difference.
+                </>
+              )}
             </div>
           </div>
         </CardContent>
