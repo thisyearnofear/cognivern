@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Sparkles,
   Loader2,
+  Mail,
 } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
@@ -23,6 +24,7 @@ import { useAppStore } from "@/stores/app-store";
 import { useAuth } from "@/hooks/use-auth";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
+import { AuthModal } from "@/components/auth/auth-modal";
 
 const STEPS = [
   {
@@ -101,6 +103,7 @@ export function OnboardingWizard() {
   const [agentName, setAgentName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     if (isConnected && !user.isConnected && address) {
@@ -278,6 +281,14 @@ export function OnboardingWizard() {
                   </div>
                   <Button
                     variant="outline"
+                    onClick={() => setShowAuthModal(true)}
+                    className="w-full gap-2"
+                  >
+                    <Mail className="h-4 w-4" />
+                    Continue with Email
+                  </Button>
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       enableDemoMode();
                       handleFinish();
@@ -288,7 +299,7 @@ export function OnboardingWizard() {
                     Start with Demo Data
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    Explore Cognivern with sample data. No wallet required.
+                    Demo mode lets you explore with sample data. No wallet or account required.
                   </p>
                 </div>
               )}
@@ -455,6 +466,8 @@ export function OnboardingWizard() {
           )}
         </div>
       </div>
+
+      <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 }

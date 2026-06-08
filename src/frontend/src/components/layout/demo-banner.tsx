@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Sparkles, ArrowRight, Zap } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
 import { Button } from "@/components/ui/button";
+import { AuthModal } from "@/components/auth/auth-modal";
 
 export function DemoBanner() {
-  const router = useRouter();
   const [dismissed, setDismissed] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const workspace = useAppStore((s) => s.user.workspace);
 
   if (workspace?.tier === "live") {
@@ -37,37 +37,40 @@ export function DemoBanner() {
   }
 
   return (
-    <div
-      role="status"
-      className="flex items-center justify-between gap-4 px-6 py-2.5 max-h-14 overflow-hidden bg-gradient-to-r from-sky-600 to-blue-600 text-white text-sm shadow-md flex-shrink-0 max-sm:flex-col max-sm:max-h-none max-sm:py-3"
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <Sparkles size={16} aria-hidden />
-        <span className="font-semibold">Demo workspace</span>
-        <span className="opacity-90 truncate">
-          — Explore agent governance with sample data
-        </span>
-      </div>
+    <>
+      <div
+        role="status"
+        className="flex items-center justify-between gap-4 px-6 py-2.5 max-h-14 overflow-hidden bg-gradient-to-r from-sky-600 to-blue-600 text-white text-sm shadow-md flex-shrink-0 max-sm:flex-col max-sm:max-h-none max-sm:py-3"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Sparkles size={16} aria-hidden />
+          <span className="font-semibold">Demo workspace</span>
+          <span className="opacity-90 truncate">
+            — Explore agent governance with sample data
+          </span>
+        </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => router.push("/onboarding")}
-          className="bg-white text-blue-700 hover:bg-neutral-100"
-        >
-          Set Up Treasury
-          <ArrowRight size={14} />
-        </Button>
-        <button
-          type="button"
-          aria-label="Dismiss demo banner"
-          onClick={() => setDismissed(true)}
-          className="bg-transparent border-none text-white cursor-pointer px-1 rounded-md flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity text-xs"
-        >
-          Continue exploring
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowAuthModal(true)}
+            className="bg-white text-blue-700 hover:bg-neutral-100"
+          >
+            Sign In for Real Data
+            <ArrowRight size={14} />
+          </Button>
+          <button
+            type="button"
+            aria-label="Dismiss demo banner"
+            onClick={() => setDismissed(true)}
+            className="bg-transparent border-none text-white cursor-pointer px-1 rounded-md flex items-center justify-center opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity text-xs"
+          >
+            Continue exploring
+          </button>
+        </div>
       </div>
-    </div>
+      <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />
+    </>
   );
 }

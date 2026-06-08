@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
@@ -15,20 +17,14 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  LayoutDashboard,
-  Users,
   ShieldCheck,
-  FileSearch,
-  Activity,
-  PlayCircle,
-  PlusCircle,
-  Code2,
   Search,
   Settings,
   HelpCircle,
   LogOut,
   Sparkles,
   ArrowRight,
+  PlayCircle,
 } from "lucide-react";
 import {
   Tooltip,
@@ -37,62 +33,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { motion } from "framer-motion";
 import { useAppStore } from "@/stores/app-store";
 import { useAuth } from "@/hooks/use-auth";
 import { WorkspaceSwitcher } from "./workspace-switcher";
-
-const navItems = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/dashboard",
-  },
-  { id: "agents", label: "Agents", icon: Users, href: "/agents" },
-  { id: "policies", label: "Policies", icon: ShieldCheck, href: "/policies" },
-  { id: "audit", label: "Audit", icon: FileSearch, href: "/audit" },
-  { id: "runs", label: "Runs", icon: Activity, href: "/runs" },
-  {
-    id: "governance",
-    label: "Governance Check",
-    icon: PlayCircle,
-    href: "/governance/check",
-    description: "Test policies",
-  },
-  {
-    id: "os",
-    label: "Command Center",
-    icon: Sparkles,
-    href: "/os",
-    description: "Terminal UI",
-  },
-  {
-    id: "workshop",
-    label: "Register Agent",
-    icon: PlusCircle,
-    href: "/agents/workshop",
-  },
-  { id: "integrate", label: "Integrate", icon: Code2, href: "/integrate" },
-];
-
-const demoNavItems = [
-  {
-    id: "demo-spend",
-    label: "Spend Flow Demo",
-    icon: PlayCircle,
-    href: "/demo/spend",
-    description: "Watch the spend flow in action",
-  },
-];
+import { AuthModal } from "@/components/auth/auth-modal";
+import { NAV_GROUPS, DEMO_NAV_ITEMS } from "@/lib/nav-items";
 
 export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, setWorkspaceMode, demoMode, exitDemoMode } = useAppStore();
+  const { user, demoMode, exitDemoMode } = useAppStore();
   const { logout, signIn, loading: signingIn } = useAuth();
-
-  const isSandbox = user.workspaceMode === "sandbox";
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   return (
     <Sidebar className="border-border/40 border-r-0 shadow-none">
@@ -104,7 +56,6 @@ export function AppSidebar() {
           <div className="flex flex-col relative">
             <span className="text-sm font-semibold">Cognivern</span>
             <span className="text-xs text-muted-foreground">AI Governance</span>
-            {/* Tooltip for Cognivern name */}
             <span className="absolute left-0 top-full mt-1 px-2 py-1 bg-foreground text-background text-[10px] rounded-md opacity-0 group-hover/brand:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-lg">
               Cogni-vern: governance for the cognitive age
             </span>
@@ -133,12 +84,10 @@ export function AppSidebar() {
 
         {demoMode ? (
           <div className="relative flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 overflow-hidden">
-            {/* Animated background pulse */}
             <div className="absolute inset-0 bg-gradient-to-r from-amber-100/0 via-amber-100/50 to-amber-100/0 dark:from-amber-900/0 dark:via-amber-900/30 dark:to-amber-900/0 animate-[pulse-bg_2s_ease-in-out_infinite]" />
             <div className="relative flex items-center gap-2">
               <div className="relative">
                 <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                {/* Pulse dot */}
                 <span className="absolute -top-0.5 -right-0.5 h-2 w-2 bg-amber-400 rounded-full animate-ping" />
                 <span className="absolute -top-0.5 -right-0.5 h-2 w-2 bg-amber-400 rounded-full" />
               </div>
@@ -151,58 +100,7 @@ export function AppSidebar() {
             </div>
           </div>
         ) : (
-          <>
-            <WorkspaceSwitcher />
-          </>
-        )}
-        {!demoMode && (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[10px] text-muted-foreground/60">Environment</span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <HelpCircle className="h-3 w-3 text-muted-foreground/50 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-[220px] text-xs">
-                    <p className="font-medium mb-1">Sandbox vs Production</p>
-                    <p className="text-muted-foreground">
-                      <strong>Sandbox</strong> — test with demo data, no real transactions.
-                      <br />
-                      <strong>Production</strong> — connect live agents and enforce real policies on-chain.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <div className="relative grid grid-cols-2 p-1 bg-muted rounded-lg border border-border/50">
-              <motion.div
-                className="absolute inset-y-1 w-[calc(50%-8px)] rounded-md bg-background shadow-sm"
-                animate={{ x: isSandbox ? 4 : "calc(100% + 4px)" }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              />
-              <button
-                onClick={() => setWorkspaceMode("sandbox")}
-                className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  isSandbox
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Sandbox
-              </button>
-              <button
-                onClick={() => setWorkspaceMode("production")}
-                className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  !isSandbox
-                    ? "text-emerald-600"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Production
-              </button>
-            </div>
-          </div>
+          <WorkspaceSwitcher />
         )}
       </SidebarHeader>
 
@@ -222,55 +120,63 @@ export function AppSidebar() {
           </div>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  pathname.startsWith(item.href + "/");
-                return (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      onClick={() => router.push(item.href)}
-                      isActive={isActive}
-                      className="h-9 rounded-lg px-3 font-normal text-muted-foreground"
-                      aria-label={`Navigate to ${item.label}`}
-                      tooltip={item.description}
-                    >
-                      <item.icon className="h-[18px] w-[18px]" />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-              {demoMode && (
-                <>
-                  <SidebarSeparator className="my-1" />
-                  {demoNavItems.map((item) => {
-                    const isActive =
-                      pathname === item.href ||
-                      pathname.startsWith(item.href + "/");
-                    return (
-                      <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton
-                          onClick={() => router.push(item.href)}
-                          isActive={isActive}
-                          className="h-9 rounded-lg px-3 font-normal text-amber-600 dark:text-amber-400"
-                          aria-label={`Navigate to ${item.label}`}
-                          tooltip={item.description}
-                        >
-                          <item.icon className="h-[18px] w-[18px]" />
-                          <span>{item.label}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {NAV_GROUPS.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    pathname.startsWith(item.href + "/");
+                  return (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton
+                        onClick={() => router.push(item.href)}
+                        isActive={isActive}
+                        className="h-9 rounded-lg px-3 font-normal text-muted-foreground"
+                        aria-label={`Navigate to ${item.label}`}
+                        tooltip={item.description}
+                      >
+                        <item.icon className="h-[18px] w-[18px]" />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+
+        {demoMode && (
+          <SidebarGroup>
+            <SidebarSeparator className="my-1" />
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {DEMO_NAV_ITEMS.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    pathname.startsWith(item.href + "/");
+                  return (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton
+                        onClick={() => router.push(item.href)}
+                        isActive={isActive}
+                        className="h-9 rounded-lg px-3 font-normal text-amber-600 dark:text-amber-400"
+                        aria-label={`Navigate to ${item.label}`}
+                        tooltip={item.description}
+                      >
+                        <item.icon className="h-[18px] w-[18px]" />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border/40 p-2">
@@ -287,7 +193,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() =>
-                window.open("https://docs.cognivern.xyz", "_blank")
+                window.open("https://github.com/thisyearnofear/cognivern#readme", "_blank")
               }
               className="h-9 rounded-lg px-3 text-muted-foreground"
             >
@@ -317,11 +223,11 @@ export function AppSidebar() {
           {demoMode ? (
             <div className="space-y-2">
               <button
-                onClick={() => router.push("/onboarding")}
+                onClick={() => setShowAuthModal(true)}
                 type="button"
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
               >
-                Connect Wallet <ArrowRight className="h-3.5 w-3.5" />
+                Sign In <ArrowRight className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={exitDemoMode}
@@ -348,21 +254,21 @@ export function AppSidebar() {
                     <div className="h-10 w-full animate-pulse bg-muted rounded-lg" />
                   );
 
-                if (!walletConnected) {
+                if (!walletConnected && !appAuthenticated) {
                   return (
                     <button
-                      onClick={openConnectModal}
+                      onClick={() => setShowAuthModal(true)}
                       type="button"
                       className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
                     >
                       <ShieldCheck className="h-4 w-4" />
-                      Connect Wallet
+                      Sign In
                     </button>
                   );
                 }
 
                 if (!appAuthenticated) {
-                  const shortAddress = account.displayName;
+                  const shortAddress = account?.displayName ?? "Unknown";
                   return (
                     <div className="space-y-2">
                       <button
@@ -397,15 +303,15 @@ export function AppSidebar() {
                     >
                       <Avatar className="h-8 w-8 border border-border/50">
                         <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold uppercase">
-                          {account.address.slice(2, 4)}
+                          {account?.address?.slice(2, 4) ?? "??"}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col min-w-0">
                         <span className="text-sm font-semibold truncate">
-                          {account.displayName}
+                          {account?.displayName ?? "User"}
                         </span>
                         <span className="text-[10px] text-muted-foreground uppercase tracking-tight font-medium">
-                          {isSandbox ? "Sandbox Mode" : "Production Mode"}
+                          {user.workspace?.name ?? "Workspace"}
                         </span>
                       </div>
                     </button>
@@ -423,6 +329,8 @@ export function AppSidebar() {
           )}
         </div>
       </SidebarFooter>
+
+      <AuthModal open={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </Sidebar>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Mail, Wallet } from "lucide-react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { EmailAuthForm } from "./email-auth-form";
 
 interface AuthModalProps {
@@ -11,21 +12,18 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ open, onClose, defaultMode = "login" }: AuthModalProps) {
-  const [showEmailAuth, setShowEmailAuth] = useState(false);
+  const [activeTab, setActiveTab] = useState<"email" | "wallet">("email");
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Modal */}
       <div className="relative z-10 w-full max-w-md mx-4 animate-in fade-in zoom-in-95 duration-200">
-        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute -top-12 right-0 text-white/80 hover:text-white transition-colors"
@@ -33,58 +31,56 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: AuthModalPro
           <X className="h-6 w-6" />
         </button>
 
-        {showEmailAuth ? (
-          <EmailAuthForm
-            mode={defaultMode}
-            onSuccess={onClose}
-            onWalletFallback={() => setShowEmailAuth(false)}
-          />
-        ) : (
-          <div className="bg-card rounded-xl border border-border p-6 shadow-xl">
-            <div className="text-center mb-6">
-              <h2 className="text-xl font-semibold">Sign in to Cognivern</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Connect your wallet or use email
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <button
-                onClick={() => setShowEmailAuth(true)}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border border-border hover:bg-accent transition-colors"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span className="font-medium">Continue with Email</span>
-              </button>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">
-                    or
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-center text-sm text-muted-foreground">
-                For wallet connection, please use the{" "}
-                <a href="/onboarding" className="text-primary hover:underline">
-                  onboarding flow
-                </a>
-              </p>
-            </div>
+        <div className="bg-card rounded-xl border border-border p-6 shadow-xl">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-semibold">Sign in to Cognivern</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Choose how you want to authenticate
+            </p>
           </div>
-        )}
+
+          <div className="grid grid-cols-2 gap-1 p-1 bg-muted rounded-lg mb-5">
+            <button
+              onClick={() => setActiveTab("email")}
+              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === "email"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Mail className="h-4 w-4" />
+              Email
+            </button>
+            <button
+              onClick={() => setActiveTab("wallet")}
+              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === "wallet"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Wallet className="h-4 w-4" />
+              Wallet
+            </button>
+          </div>
+
+          {activeTab === "email" ? (
+            <EmailAuthForm
+              mode={defaultMode}
+              onSuccess={onClose}
+            />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-center py-4">
+                <ConnectButton />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Connect your wallet and sign a message to authenticate.
+                Your wallet serves as your identity.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -40,7 +40,7 @@ export function ErrorState({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => window.open("https://docs.cognivern.xyz", "_blank")}
+          onClick={() => window.open("https://github.com/thisyearnofear/cognivern", "_blank")}
           className="gap-1.5"
         >
           <HelpCircle className="h-3.5 w-3.5" />
@@ -49,11 +49,11 @@ export function ErrorState({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => window.open("mailto:support@cognivern.xyz", "_blank")}
+          onClick={() => window.open("https://github.com/thisyearnofear/cognivern/issues", "_blank")}
           className="gap-1.5"
         >
           <Mail className="h-3.5 w-3.5" />
-          Contact Support
+          Report Issue
         </Button>
       </div>
     </div>
