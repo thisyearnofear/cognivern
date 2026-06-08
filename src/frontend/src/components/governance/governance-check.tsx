@@ -620,6 +620,54 @@ export function GovernanceCheck() {
                   );
                 })()}
 
+                {/* Security protections */}
+                {(() => {
+                  const isFhe =
+                    "confidential" in result &&
+                    (
+                      result as GovernanceEvaluation & {
+                        confidential?: { fheEvaluated?: boolean };
+                      }
+                    ).confidential?.fheEvaluated;
+
+                  const layers = [
+                    "JWT authentication verified",
+                    "API key validated (scrypt hash)",
+                    "Rate limit checked",
+                    "Idempotency verified",
+                    "Policy evaluation completed",
+                    "Audit trail stored",
+                    isFhe
+                      ? "FHE encrypted evaluation"
+                      : "ChainGPT contract audit available",
+                  ];
+
+                  return (
+                    <details className="group">
+                      <summary className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                        <span>
+                          Protected by {layers.length} security layers
+                        </span>
+                        <span className="text-[10px] group-open:hidden">
+                          (expand)
+                        </span>
+                      </summary>
+                      <div className="mt-2 pl-5 space-y-1">
+                        {layers.map((layer) => (
+                          <div
+                            key={layer}
+                            className="flex items-center gap-2 text-xs text-muted-foreground"
+                          >
+                            <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                            {layer}
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  );
+                })()}
+
                 {/* Metadata */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>

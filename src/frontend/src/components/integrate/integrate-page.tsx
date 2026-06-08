@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Check, Terminal, Code2, Zap, ArrowRight } from "lucide-react";
+import { Copy, Check, Terminal, Code2, Zap, ArrowRight, Shield } from "lucide-react";
+import { HelpIcon } from "@/components/ui/help-icon";
 
 function CodeBlock({ code, language }: { code: string; language: string }) {
   const [copied, setCopied] = useState(false);
@@ -225,6 +226,7 @@ cvn_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345`}
               <h3 className="font-semibold flex items-center gap-2">
                 <Terminal className="h-4 w-4" />
                 Authentication
+                <HelpIcon helpKey="security:apikeys" />
               </h3>
               <p className="text-sm text-muted-foreground">
                 All requests require an{" "}
@@ -241,6 +243,42 @@ cvn_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345`}
                 language="http"
                 code={`x-api-key: cvn_YOUR_KEY_HERE`}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-5 space-y-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Shield className="h-4 w-4 text-emerald-500" />
+                Security Features
+              </h3>
+              <ul className="text-sm text-muted-foreground space-y-2">
+                <li className="flex items-start gap-2">
+                  <Check className="h-3.5 w-3.5 mt-0.5 text-emerald-500 shrink-0" />
+                  API keys hashed with scrypt — only the prefix is visible after creation
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-3.5 w-3.5 mt-0.5 text-emerald-500 shrink-0" />
+                  Rate limiting: 50 req/min per key, 100/min per workspace, persistent across restarts
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-3.5 w-3.5 mt-0.5 text-emerald-500 shrink-0" />
+                  Nonce-based SIWE authentication prevents replay attacks
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-3.5 w-3.5 mt-0.5 text-emerald-500 shrink-0" />
+                  <code className="text-xs bg-muted px-1 py-0.5 rounded">Idempotency-Key</code>{" "}
+                  header prevents duplicate spend execution (24h TTL)
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-3.5 w-3.5 mt-0.5 text-emerald-500 shrink-0" />
+                  Contract addresses automatically audited via ChainGPT before spend
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-3.5 w-3.5 mt-0.5 text-emerald-500 shrink-0" />
+                  Body limits: 512KB (data plane), 10MB (control plane) — Helmet CSP enabled
+                </li>
+              </ul>
             </CardContent>
           </Card>
 

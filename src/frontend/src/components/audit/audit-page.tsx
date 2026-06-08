@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, XCircle, Clock, FileSearch, PlayCircle, Users } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, FileSearch, PlayCircle, Users, Shield, Lock, Fingerprint } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuditLogs } from "@/hooks/use-api";
 
@@ -102,6 +102,37 @@ export function AuditPage() {
           </>
         )}
       </div>
+
+      {/* Security Architecture */}
+      <Card className="bg-muted/20">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield className="h-4 w-4 text-emerald-500" />
+            <h2 className="font-semibold text-sm">Security Architecture</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+            {[
+              { icon: Fingerprint, label: "Auth", value: "SIWE + JWT with nonce replay" },
+              { icon: Lock, label: "API Keys", value: "scrypt hashed, scoped permissions" },
+              { icon: Shield, label: "Rate Limiting", value: "3 layers (global, workspace, per-key)" },
+              { icon: Lock, label: "Encryption", value: "Fhenix FHE on-chain evaluation" },
+              { icon: Shield, label: "Audit", value: "Immutable on Filecoin / 0G" },
+              { icon: Shield, label: "Contract Audit", value: "ChainGPT scan on recipients" },
+            ].map(({ icon: Icon, label, value }) => (
+              <div
+                key={label}
+                className="flex items-center gap-2 text-muted-foreground"
+              >
+                <Icon className="h-3 w-3 text-emerald-500 shrink-0" />
+                <span>
+                  <span className="font-medium text-foreground">{label}:</span>{" "}
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Log Timeline */}
       {!error && logs.length === 0 && !isLoading ? (

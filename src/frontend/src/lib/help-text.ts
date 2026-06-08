@@ -27,4 +27,20 @@ export const HELP_TEXT: Record<string, { title: string; body: string }> = {
     title: "Quick Check",
     body: "Instantly test a spend action against your active policies. Use this to calibrate limits before deploying agents.",
   },
+  "security:auth": {
+    title: "Authentication",
+    body: "SIWE (Sign-In With Ethereum) with nonce replay protection. JWT tokens verified server-side and revocable.",
+  },
+  "security:apikeys": {
+    title: "API Key Security",
+    body: "Keys are hashed with scrypt before storage. Only the cvn_ prefix is visible after creation. Scoped permissions per key.",
+  },
+  "security:ratelimit": {
+    title: "Rate Limiting",
+    body: "3 layers: global IP limit, per-workspace (100/min), per-API-key (50/min). Persistent across server restarts.",
+  },
+  "security:idempotency": {
+    title: "Idempotency",
+    body: "Send an Idempotency-Key header with spend requests to prevent duplicate execution. Keys valid for 24 hours.",
+  },
 };

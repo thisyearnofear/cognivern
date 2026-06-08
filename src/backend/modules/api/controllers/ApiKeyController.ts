@@ -1,9 +1,26 @@
 import { Request, Response } from "express";
-import { randomUUID, randomBytes, createHash } from "node:crypto";
+import { randomUUID, randomBytes, createHash, scryptSync, timingSafeEqual } from "node:crypto";
 import { getDb } from "../../../db/index.js";
 
-function hashKey(key: string): string {
+function hashKeySha256(key: string): string {
   return createHash("sha256").update(key).digest("hex");
+}
+
+function hashKeyScrypt(key: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(key, salt, 64).toString("hex");
+  return `scrypt:${salt}:${hash}`;
+}
+
+function verifyScrypt(key: string, stored: string): boolean {
+  const parts = stored.split(":");
+  if (parts.length !== 3 || parts[0] !== "scrypt") return false;
+  const [, salt, expectedHash] = parts;
+  const derived = scryptSync(key, salt, 64).toString("hex");
+  const a = Buffer.from(derived, "hex");
+  const b = Buffer.from(expectedHash, "hex");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 function generateApiKey(): string {
@@ -92,7 +109,7 @@ export class ApiKeyController {
 
     const id = randomUUID();
     const rawKey = generateApiKey();
-    const keyHash = hashKey(rawKey);
+    const keyHash = hashKeyScrypt(rawKey);
     const keyPrefix = rawKey.slice(0, 8);
     const now = new Date().toISOString();
 
@@ -163,18 +180,36 @@ export class ApiKeyController {
 
 export function resolveWorkspaceFromApiKey(key: string): string | null {
   const db = getDb();
-  const keyHash = hashKey(key);
-  const row = db
+  const keyPrefix = key.slice(0, 8);
+
+  const scryptRows = db
+    .prepare(
+      "SELECT workspace_id, id, key_hash FROM api_keys WHERE key_prefix = ? AND revoked_at IS NULL AND key_hash LIKE 'scrypt:%'",
+    )
+    .all(keyPrefix) as Array<{ workspace_id: string; id: string; key_hash: string }>;
+
+  for (const row of scryptRows) {
+    if (verifyScrypt(key, row.key_hash)) {
+      db.prepare("UPDATE api_keys SET last_used_at = ? WHERE id = ?").run(
+        new Date().toISOString(),
+        row.id,
+      );
+      return row.workspace_id;
+    }
+  }
+
+  const legacyHash = hashKeySha256(key);
+  const legacyRow = db
     .prepare(
       "SELECT workspace_id, id FROM api_keys WHERE key_hash = ? AND revoked_at IS NULL",
     )
-    .get(keyHash) as { workspace_id: string; id: string } | undefined;
+    .get(legacyHash) as { workspace_id: string; id: string } | undefined;
 
-  if (!row) return null;
+  if (!legacyRow) return null;
 
   db.prepare("UPDATE api_keys SET last_used_at = ? WHERE id = ?").run(
     new Date().toISOString(),
-    row.id,
+    legacyRow.id,
   );
-  return row.workspace_id;
+  return legacyRow.workspace_id;
 }
