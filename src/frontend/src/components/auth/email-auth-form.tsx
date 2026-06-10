@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 
 interface EmailAuthFormProps {
   mode?: "login" | "register";
@@ -28,8 +29,8 @@ export function EmailAuthForm({
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  const login = useAppStore((s) => s.login);
-  const updatePreferences = useAppStore((s) => s.updatePreferences);
+  const login = useAuthStore((s) => s.login);
+  const updatePreferences = usePreferencesStore((s) => s.updatePreferences);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

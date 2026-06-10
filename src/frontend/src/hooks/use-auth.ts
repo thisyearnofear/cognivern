@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { useAccount, useSignMessage, useDisconnect } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { generateSiweMessage, fetchNonce, verifySignature } from "@/lib/auth";
 
 export function useAuth() {
@@ -11,7 +11,7 @@ export function useAuth() {
   const { signMessageAsync } = useSignMessage();
   const { disconnect } = useDisconnect();
   const { openConnectModal } = useConnectModal();
-  const { login, logout: storeLogout } = useAppStore();
+  const { login, logout: storeLogout } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

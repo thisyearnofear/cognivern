@@ -17,14 +17,15 @@ import { Button } from "@/components/ui/button";
 import { ShieldLogo } from "@/components/landing/shield-logo";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAppStore } from "@/stores/app-store";
+import { useDemoStore } from "@/stores/demo-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 
 export function LandingPage() {
   const router = useRouter();
-  const enableDemoMode = useAppStore((s) => s.enableDemoMode);
-  const demoMode = useAppStore((s) => s.demoMode);
-  const onboardingCompleted = useAppStore(
-    (s) => s.preferences.onboardingCompleted,
+  const enableDemoMode = useDemoStore((s) => s.enableDemoMode);
+  const demoMode = useDemoStore((s) => s.demoMode);
+  const onboardingCompleted = usePreferencesStore(
+    (s) => s.onboardingCompleted,
   );
   const [showAuthModal, setShowAuthModal] = useState(false);
 
@@ -290,32 +291,38 @@ export function LandingPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {[
-              { chain: "X Layer", role: "Execution", color: "text-sky-400" },
+              { chain: "X Layer", role: "Execution", desc: "Policy enforcement & transactions", color: "text-sky-400" },
               {
                 chain: "Filecoin",
                 role: "Audit Archive",
+                desc: "Immutable long-term evidence storage",
                 color: "text-purple-400",
               },
               {
                 chain: "0G Network",
                 role: "Live Audit",
+                desc: "Real-time audit streaming",
                 color: "text-emerald-400",
               },
               {
                 chain: "Fhenix",
                 role: "Confidential Compute",
+                desc: "Encrypted policy evaluation",
                 color: "text-amber-400",
               },
             ].map((c) => (
-              <div key={c.chain} className="flex items-start gap-2">
-                <div>
+              <div key={c.chain} className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
                   <span className={`font-semibold text-sm ${c.color}`}>
                     {c.chain}
                   </span>
-                  <span className="text-stone-500 text-sm ml-1">
+                  <span className="text-stone-500 text-sm">
                     ({c.role})
                   </span>
                 </div>
+                <p className="text-xs text-stone-600 dark:text-stone-400">
+                  {c.desc}
+                </p>
               </div>
             ))}
           </div>

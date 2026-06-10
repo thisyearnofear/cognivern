@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { useAccount } from "wagmi";
-import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
+import { useDemoStore } from "@/stores/demo-store";
 import { useAuth } from "@/hooks/use-auth";
 
 /**
@@ -12,8 +13,8 @@ import { useAuth } from "@/hooks/use-auth";
 export function AuthWatcher() {
   const { isConnected, address } = useAccount();
   const { signIn, loading } = useAuth();
-  const user = useAppStore((s) => s.user);
-  const demoMode = useAppStore((s) => s.demoMode);
+  const isAppConnected = useAuthStore((s) => s.isConnected);
+  const demoMode = useDemoStore((s) => s.demoMode);
   const autoSignInAttempted = useRef(false);
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export function AuthWatcher() {
     if (
       isConnected &&
       address &&
-      !user.isConnected &&
+      !isAppConnected &&
       !autoSignInAttempted.current &&
       !loading
     ) {
@@ -47,7 +48,7 @@ export function AuthWatcher() {
         // We don't reset the ref here to prevent infinite retry loops on failure
       });
     }
-  }, [isConnected, address, user.isConnected, signIn, loading, demoMode]);
+  }, [isConnected, address, isAppConnected, signIn, loading, demoMode]);
 
   return null;
 }

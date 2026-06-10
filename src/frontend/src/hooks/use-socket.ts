@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 import { io, type Socket } from "socket.io-client";
-import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
 
 let socket: Socket | null = null;
 
 export function useSocket(): Socket | null {
-  const isConnected = useAppStore((s) => s.user.isConnected);
+  const isConnected = useAuthStore((s) => s.isConnected);
 
   useEffect(() => {
     if (!isConnected) {

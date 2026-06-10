@@ -21,7 +21,7 @@ import {
   Rocket,
   Check,
 } from "lucide-react";
-import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { apiClient } from "@/lib/api-client";
 import type { ApiKey, ApiKeyCreateResponse } from "@/lib/api-client";
 import useSWR, { mutate } from "swr";
@@ -37,8 +37,8 @@ const AVAILABLE_SCOPES = [
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const workspace = useAppStore((s) => s.user.workspace);
-  const setUser = useAppStore((s) => s.setUser);
+  const workspace = useAuthStore((s) => s.workspace);
+  const setWorkspace = useAuthStore((s) => s.setWorkspace);
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -57,7 +57,7 @@ export function SettingsPage() {
         </TabsList>
 
         <TabsContent value="workspace" className="space-y-4">
-          <WorkspaceCard workspace={workspace} setUser={setUser} />
+          <WorkspaceCard workspace={workspace} setWorkspace={setWorkspace} />
           <ChainsCard />
         </TabsContent>
 
@@ -80,21 +80,17 @@ export function SettingsPage() {
 
 function WorkspaceCard({
   workspace,
-  setUser,
+  setWorkspace,
 }: {
   workspace: { id: string; name: string; tier: string } | null;
-  setUser: (
-    u: Partial<{
-      workspace: {
-        id: string;
-        name: string;
-        ownerId: string;
-        tier: "demo" | "live";
-        createdAt: string;
-        updatedAt: string;
-      };
-    }>,
-  ) => void;
+  setWorkspace: (w: {
+    id: string;
+    name: string;
+    ownerId: string;
+    tier: "demo" | "live";
+    createdAt: string;
+    updatedAt: string;
+  }) => void;
 }) {
   const router = useRouter();
   const [upgrading, setUpgrading] = useState(false);
@@ -108,7 +104,7 @@ function WorkspaceCard({
     try {
       const res = await apiClient.updateWorkspace({ tier: "live" });
       if (res.success && res.data) {
-        setUser({ workspace: res.data });
+        setWorkspace(res.data);
         setUpgraded(true);
       } else {
         setUpgradeError(res.error || "Failed to upgrade workspace");
@@ -120,7 +116,7 @@ function WorkspaceCard({
     } finally {
       setUpgrading(false);
     }
-  }, [workspace, setUser]);
+  }, [workspace, setWorkspace]);
 
   return (
     <Card>

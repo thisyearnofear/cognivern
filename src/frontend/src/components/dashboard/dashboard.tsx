@@ -16,38 +16,29 @@ import {
   CheckCircle2,
   ShieldX,
 } from "lucide-react";
+import type { AuditLog } from "@cognivern/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
 import { useAgents, useAuditLogs, usePolicies, useNetworkStatus } from "@/hooks/use-api";
-import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
+import { useDemoStore } from "@/stores/demo-store";
 import { DecisionChart, type DecisionFilter } from "./decision-chart";
 import { ActivityChart } from "./activity-chart";
 import { AgentStatusChart } from "./agent-status-chart";
 import { ApprovalSparkline } from "./approval-sparkline";
 import { QuickCheck } from "./quick-check";
 import { formatBudget } from "@/lib/budget-format";
+import { normalizeAuditLogs } from "@/lib/normalizers";
 
 const ACTIVITY_PAGE_SIZE = 5;
 
-function normalizeStatus(l: {
-  outcome?: string;
-  complianceStatus?: string;
-  decision?: string;
-}): string {
-  const raw = l.outcome ?? l.complianceStatus ?? l.decision ?? "";
-  if (raw === "approved" || raw === "allowed" || raw === "compliant")
-    return "approved";
-  if (raw === "denied" || raw === "non-compliant") return "denied";
-  return "held";
-}
-
 export function Dashboard() {
   const router = useRouter();
-  const user = useAppStore((s) => s.user);
-  const demoMode = useAppStore((s) => s.demoMode);
+  const user = useAuthStore((s) => s);
+  const demoMode = useDemoStore((s) => s.demoMode);
   const workspace = user.workspace;
   useNetworkStatus();
   const {
@@ -66,20 +57,25 @@ export function Dashboard() {
   const [decisionFilter, setDecisionFilter] = useState<DecisionFilter>(null);
   // Progressive disclosure state
   const [activityExpanded, setActivityExpanded] = useState(false);
+  // Focus mode — reduces dashboard density for new users
+  const [focusMode, setFocusMode] = useState(false);
 
   const agentList = agents || [];
-  const activity = useMemo(() => {
-    if (!Array.isArray(logs)) return [];
-    return logs.map((l) => ({
-      id: l.id,
-      agent: l.agent ?? l.agentId,
-      action: l.actionType ?? l.action,
-      amount: "—",
-      time: l.time ?? new Date(l.timestamp).toLocaleString(),
-      status: l.outcome ?? l.complianceStatus ?? l.decision,
-      _normalized: normalizeStatus(l),
-    }));
+  const normalizedLogs = useMemo(() => {
+    return normalizeAuditLogs(logs as AuditLog[]);
   }, [logs]);
+
+  const activity = useMemo(() => {
+    return normalizedLogs.map((l) => ({
+      id: l.id,
+      agent: l.agent,
+      action: l.action,
+      amount: "—",
+      time: l.time,
+      status: l.decision,
+      _normalized: l.decision,
+    }));
+  }, [normalizedLogs]);
 
   // Filtered activity based on donut cross-filter
   const filteredActivity = useMemo(() => {
@@ -93,42 +89,30 @@ export function Dashboard() {
     : filteredActivity.slice(0, ACTIVITY_PAGE_SIZE);
 
   const activeCount = agentList.filter((a) => a.status === "active").length;
-  const approvalRate = Array.isArray(logs)
+  const approvalRate = normalizedLogs.length > 0
     ? Math.round(
-        (logs.filter(
-          (l) =>
-            l.outcome === "allowed" ||
-            l.complianceStatus === "compliant" ||
-            l.decision === "approved",
-        ).length /
-          logs.length) *
+        (normalizedLogs.filter((l) => l.decision === "approved").length /
+          normalizedLogs.length) *
           100,
       )
     : 0;
-  const decisions = Array.isArray(logs) ? logs.length : 0;
-  const blockedCount = Array.isArray(logs)
-    ? logs.filter(
-        (l) =>
-          l.outcome === "denied" ||
-          l.complianceStatus === "non-compliant" ||
-          l.decision === "denied",
-      ).length
-    : 0;
+  const decisions = normalizedLogs.length;
+  const blockedCount = normalizedLogs.filter((l) => l.decision === "denied").length;
 
   // Stat deltas (compare first half vs second half of logs for trend)
   const { approvalDelta, decisionsDelta } = useMemo(() => {
-    if (!Array.isArray(logs) || logs.length < 4)
+    if (normalizedLogs.length < 4)
       return { approvalDelta: 0, decisionsDelta: 0 };
-    const mid = Math.floor(logs.length / 2);
-    const recentHalf = logs.slice(0, mid);
-    const olderHalf = logs.slice(mid);
+    const mid = Math.floor(normalizedLogs.length / 2);
+    const recentHalf = normalizedLogs.slice(0, mid);
+    const olderHalf = normalizedLogs.slice(mid);
     const recentApproval = Math.round(
-      (recentHalf.filter((l) => normalizeStatus(l) === "approved").length /
+      (recentHalf.filter((l) => l.decision === "approved").length /
         recentHalf.length) *
         100,
     );
     const olderApproval = Math.round(
-      (olderHalf.filter((l) => normalizeStatus(l) === "approved").length /
+      (olderHalf.filter((l) => l.decision === "approved").length /
         olderHalf.length) *
         100,
     );
@@ -136,7 +120,7 @@ export function Dashboard() {
       approvalDelta: recentApproval - olderApproval,
       decisionsDelta: recentHalf.length - olderHalf.length,
     };
-  }, [logs]);
+  }, [normalizedLogs]);
 
   return (
     <div className="space-y-6">
@@ -159,8 +143,8 @@ export function Dashboard() {
               <span>
                 Connected as{" "}
                 <span className="font-mono">
-                  {useAppStore.getState().user.walletAddress?.slice(0, 6)}...
-                  {useAppStore.getState().user.walletAddress?.slice(-4)}
+                  {useAuthStore.getState().walletAddress?.slice(0, 6)}...
+                  {useAuthStore.getState().walletAddress?.slice(-4)}
                 </span>
               </span>
             </div>
@@ -180,6 +164,14 @@ export function Dashboard() {
               </Button>
             </div>
           )}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setFocusMode(!focusMode)}
+            className="text-xs"
+          >
+            {focusMode ? "Expand" : "Focus"}
+          </Button>
           <Button size="sm" variant="outline" onClick={() => router.refresh()}>
             Refresh
           </Button>
@@ -406,26 +398,28 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <DecisionChart
-          logs={Array.isArray(logs) ? logs : []}
-          loading={logsLoading}
-          activeFilter={decisionFilter}
-          onFilterChange={setDecisionFilter}
-        />
-        <ActivityChart
-          logs={Array.isArray(logs) ? logs : []}
-          loading={logsLoading}
-        />
-        <AgentStatusChart agents={agentList} loading={agentsLoading} />
-      </div>
+      {/* Charts Row — hidden in focus mode */}
+      {!focusMode && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <DecisionChart
+            logs={Array.isArray(logs) ? logs : []}
+            loading={logsLoading}
+            activeFilter={decisionFilter}
+            onFilterChange={setDecisionFilter}
+          />
+          <ActivityChart
+            logs={Array.isArray(logs) ? logs : []}
+            loading={logsLoading}
+          />
+          <AgentStatusChart agents={agentList} loading={agentsLoading} />
+        </div>
+      )}
 
       {/* Quick Check */}
       <QuickCheck />
 
-      {/* Governed Agents */}
-      <div>
+      {/* Governed Agents — hidden in focus mode */}
+      {!focusMode && <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">Governed Agents</h2>
           <Button
@@ -492,7 +486,7 @@ export function Dashboard() {
             ))}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Recent Activity */}
       <div>
@@ -556,19 +550,16 @@ export function Dashboard() {
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className={`p-1.5 rounded-md flex-shrink-0 ${
-                      item.status === "allowed" || item.status === "compliant"
+                      item.status === "approved"
                         ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600"
-                        : item.status === "denied" ||
-                            item.status === "non-compliant"
+                        : item.status === "denied"
                           ? "bg-red-100 dark:bg-red-950 text-red-600"
                           : "bg-blue-100 dark:bg-blue-950 text-blue-600"
                     }`}
                   >
-                    {item.status === "allowed" ||
-                    item.status === "compliant" ? (
+                    {item.status === "approved" ? (
                       <ShieldCheck className="h-3.5 w-3.5" />
-                    ) : item.status === "denied" ||
-                      item.status === "non-compliant" ? (
+                    ) : item.status === "denied" ? (
                       <Activity className="h-3.5 w-3.5" />
                     ) : (
                       <FileSearch className="h-3.5 w-3.5" />
@@ -585,10 +576,9 @@ export function Dashboard() {
                   <span className="font-mono text-xs">{item.amount}</span>
                   <Badge
                     variant={
-                      item.status === "allowed" || item.status === "compliant"
+                      item.status === "approved"
                         ? "secondary"
-                        : item.status === "denied" ||
-                            item.status === "non-compliant"
+                        : item.status === "denied"
                           ? "destructive"
                           : "outline"
                     }

@@ -20,7 +20,9 @@ import {
 } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
-import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
+import { useDemoStore } from "@/stores/demo-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import { useAuth } from "@/hooks/use-auth";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
@@ -91,13 +93,13 @@ const POLICY_TEMPLATES = [
 
 export function OnboardingWizard() {
   const router = useRouter();
-  const updatePreferences = useAppStore((s) => s.updatePreferences);
-  const enableDemoMode = useAppStore((s) => s.enableDemoMode);
-  const exitDemoMode = useAppStore((s) => s.exitDemoMode);
-  const demoMode = useAppStore((s) => s.demoMode);
-  const { isConnected, address } = useAccount();
+  const updatePreferences = usePreferencesStore((s) => s.updatePreferences);
+  const enableDemoMode = useDemoStore((s) => s.enableDemoMode);
+  const exitDemoMode = useDemoStore((s) => s.exitDemoMode);
+  const demoMode = useDemoStore((s) => s.demoMode);
+  const { isConnected: wagmiConnected, address } = useAccount();
   const { signIn } = useAuth();
-  const user = useAppStore((s) => s.user);
+  const isAppConnected = useAuthStore((s) => s.isConnected);
   const [step, setStep] = useState(0);
   const [selectedPolicy, setSelectedPolicy] = useState("moderate");
   const [agentName, setAgentName] = useState("");
@@ -106,10 +108,10 @@ export function OnboardingWizard() {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
-    if (isConnected && !user.isConnected && address) {
+    if (wagmiConnected && !isAppConnected && address) {
       signIn().catch(() => {});
     }
-  }, [isConnected, user.isConnected, address, signIn]);
+  }, [wagmiConnected, isAppConnected, address, signIn]);
 
   const handleFinish = useCallback(async () => {
     setCreating(true);
@@ -117,7 +119,7 @@ export function OnboardingWizard() {
 
     try {
       // Only create real resources if user is connected (not demo mode)
-      if (user.isConnected && !demoMode) {
+      if (isAppConnected && !demoMode) {
         const template = POLICY_TEMPLATES.find((t) => t.id === selectedPolicy);
         if (template) {
           // Create the policy
@@ -153,9 +155,9 @@ export function OnboardingWizard() {
       }
 
       updatePreferences({ onboardingCompleted: true });
-      if (user.isConnected && demoMode) {
+      if (isAppConnected && demoMode) {
         exitDemoMode();
-      } else if (!user.isConnected) {
+      } else if (!isAppConnected) {
         enableDemoMode();
       }
       router.push("/dashboard");
@@ -164,7 +166,7 @@ export function OnboardingWizard() {
       setCreating(false);
     }
   }, [
-    user.isConnected,
+    isAppConnected,
     demoMode,
     selectedPolicy,
     agentName,
@@ -176,9 +178,9 @@ export function OnboardingWizard() {
 
   function handleSkip() {
     updatePreferences({ onboardingCompleted: true });
-    if (user.isConnected && demoMode) {
+    if (isAppConnected && demoMode) {
       exitDemoMode();
-    } else if (!user.isConnected) {
+    } else if (!isAppConnected) {
       enableDemoMode();
     }
     router.push("/dashboard");
@@ -256,12 +258,12 @@ export function OnboardingWizard() {
                   Link a wallet to create and manage governance policies
                 </p>
               </div>
-              {user.isConnected ? (
+              {isAppConnected ? (
                 <div className="flex items-center justify-center gap-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
                   <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                   <span className="font-medium">
-                    Wallet connected: {user.walletAddress?.slice(0, 6)}...
-                    {user.walletAddress?.slice(-4)}
+                    Wallet connected: {useAuthStore.getState().walletAddress?.slice(0, 6)}...
+                    {useAuthStore.getState().walletAddress?.slice(-4)}
                   </span>
                 </div>
               ) : (

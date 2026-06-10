@@ -167,6 +167,21 @@ Cognivern operates in three distinct modes:
 - No email-based auth — wallet-only via SIWE.
 - See the [Platform Onboarding Plan](./PLANS/02-PLATFORM-ONBOARDING.md) for further roadmap.
 
+### Security Roadmap (current: 8/10 hardening, 7.5/10 surfacing)
+
+**Hardening (8 → 10):**
+- Redis rate limiting — replace file-backed store for multi-instance deployment
+- Argon2id for API keys — stronger KDF than scrypt, requires native module
+- JWT key rotation — automated signing key rollover
+- Certificate pinning — pin API certificate in agent SDKs to prevent MITM
+- Real-time threat detection — anomaly detection on spend patterns (unusual amounts, velocity spikes, geographic anomalies)
+- SOC 2 / third-party security audit
+
+**Surfacing (7.5 → 9):**
+- Prominent security stack breakdown — move from collapsible `<details>` to always-visible section
+- Trust badge — persistent security indicator visible on all pages
+- Real-time security metrics — requests blocked, rate limits hit, tokens revoked on audit page
+
 ## Related Docs
 
 - [Hackathon Brief](./HACKATHON.md) — Demo story and submission

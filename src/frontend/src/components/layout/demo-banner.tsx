@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { Sparkles, ArrowRight, Zap } from "lucide-react";
-import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
 
 export function DemoBanner() {
   const [dismissed, setDismissed] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const workspace = useAppStore((s) => s.user.workspace);
+  const workspace = useAuthStore((s) => s.workspace);
 
   if (workspace?.tier === "live") {
     return (
