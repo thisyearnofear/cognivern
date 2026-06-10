@@ -107,6 +107,19 @@ services:
     networks:
       - cognivern-network
 
+  # Speculos — hardware emulator for sandbox/CI signing (dev profile only)
+  speculos:
+    profiles: ["sandbox"]
+    image: ghcr.io/ledgerhq/speculos:latest
+    container_name: cognivern-speculos
+    ports:
+      - "5000:5000"
+    environment:
+      - SPECULOS_MODEL=nanosp
+      - SPECULOS_APP=ethereum
+    networks:
+      - cognivern-network
+
 networks:
   cognivern-network:
     driver: bridge

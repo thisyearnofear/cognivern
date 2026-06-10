@@ -12,6 +12,7 @@ import {
   owsLocalVaultService,
   OwsResolvedAccess,
 } from "./OwsLocalVaultService.js";
+import { ledgerSigningProvider } from "../signing/LedgerSigningProvider.js";
 import {
   FhenixPolicyService,
   FhenixClientAdapter,
@@ -268,36 +269,73 @@ export class OwsWalletService {
     let signature: string;
     let signer: string;
 
-    // Check if this is an external wallet and use external signing
-    if (access.wallet.metadata?.externalSource) {
-      const externalSignResult =
-        await owsLocalVaultService.signWithExternalWallet({
-          walletId: access.wallet.id,
-          message: payload,
-        });
+    // Dispatch to the right signing provider based on wallet metadata
+    // Fallback: if externalSource is set but no signingProvider, treat as ows_remote (backward compat)
+    const metadata = access.wallet.metadata || {};
+    const provider = (metadata.signingProvider as string) ||
+      (metadata.externalSource ? "ows_remote" : "local");
 
-      if (!externalSignResult) {
-        s.end({ ok: false, summary: "External wallet signing failed" });
-        return await this.handleHold(
-          intent,
-          recorder,
-          "External wallet signing failed. Spend held for manual review.",
-          policyId,
-          access,
-        );
+    switch (provider) {
+      case "ledger": {
+        try {
+          const result = await ledgerSigningProvider.sign({
+            walletId: access.wallet.id,
+            message: payload,
+          });
+          signature = result.signature;
+          signer = result.signer;
+        } catch (error) {
+          s.end({ ok: false, summary: "Ledger hardware signing failed" });
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Unknown Ledger error";
+          return await this.handleHold(
+            intent,
+            recorder,
+            `Ledger signing failed: ${message}. ` +
+              "Connect and unlock your Ledger device, open the Ethereum app, and try again.",
+            policyId,
+            access,
+          );
+        }
+        break;
       }
 
-      signature = externalSignResult.signature;
-      signer = externalSignResult.signer;
-    } else {
-      // Use local signing
-      const localSignResult = await owsLocalVaultService.signMessage({
-        walletId: access.wallet.id,
-        message: payload,
-        apiKeyToken,
-      });
-      signature = localSignResult.signature;
-      signer = localSignResult.signer;
+      case "speculos":
+      case "ows_remote": {
+        const externalResult =
+          await owsLocalVaultService.signWithExternalWallet({
+            walletId: access.wallet.id,
+            message: payload,
+          });
+
+        if (!externalResult) {
+          s.end({ ok: false, summary: "External wallet signing failed" });
+          return await this.handleHold(
+            intent,
+            recorder,
+            "External wallet signing failed. Spend held for manual review.",
+            policyId,
+            access,
+          );
+        }
+
+        signature = externalResult.signature;
+        signer = externalResult.signer;
+        break;
+      }
+
+      default: {
+        const localResult = await owsLocalVaultService.signMessage({
+          walletId: access.wallet.id,
+          message: payload,
+          apiKeyToken,
+        });
+        signature = localResult.signature;
+        signer = localResult.signer;
+        break;
+      }
     }
 
     const txHash = ethers.keccak256(ethers.toUtf8Bytes(signature));
@@ -305,6 +343,7 @@ export class OwsWalletService {
     await recorder.addArtifact({
       type: "attestation_result",
       data: {
+        signingProvider: provider,
         txHash,
         signature,
         intentId: intent.id,

@@ -19,6 +19,7 @@ export interface AuditLog {
   policyChecks: PolicyCheck[];
   outcome: "allowed" | "denied";
   metadata: Record<string, any>;
+  signingProvider?: "local" | "ledger" | "speculos" | "ows_remote";
   evidence: {
     hash: string;
     cid?: string;
@@ -99,6 +100,7 @@ export class AuditLogService {
       },
       policyChecks: [],
       outcome: run.ok ? "allowed" : "denied",
+      signingProvider: extractSigningProvider(run),
       metadata: {
         mode: run.mode,
         source: run.provenance?.source,
@@ -322,4 +324,21 @@ export class AuditLogService {
     const logs = await this.getFilteredLogs({ startDate, endDate });
     return { format, data: logs };
   }
+}
+
+function extractSigningProvider(run: CreRun): AuditLog["signingProvider"] {
+  const artifact = run.artifacts.find(
+    (a) => a.type === "attestation_result",
+  );
+  if (!artifact) return undefined;
+  const sp = (artifact.data as Record<string, unknown>)?.signingProvider;
+  if (
+    sp === "local" ||
+    sp === "ledger" ||
+    sp === "speculos" ||
+    sp === "ows_remote"
+  ) {
+    return sp;
+  }
+  return undefined;
 }

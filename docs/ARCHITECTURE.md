@@ -8,12 +8,14 @@ Cognivern is a control plane for OWS wallets that handles policy checks, approva
 
 ## Responsibility Boundary
 
-| OWS Owns                   | Cognivern Owns         |
-| -------------------------- | ---------------------- |
-| Wallet storage             | Policy evaluation      |
-| API-key issuance           | Approval workflows     |
-| Transaction signing        | Audit-log indexing     |
-| Signing policy enforcement | Run ledger & analytics |
+| OWS Owns                   | Cognivern Owns                     | Swappable Via              |
+| -------------------------- | ---------------------------------- | -------------------------- |
+| Wallet storage             | Policy evaluation                  | —                          |
+| API-key issuance           | Approval workflows                 | —                          |
+| Transaction signing        | Audit-log indexing / signing layer | SigningProvider adapter    |
+| Signing policy enforcement | Run ledger & analytics             | —                          |
+
+The signing layer is abstracted behind a `SigningProvider` interface. The default provider uses the local OWS vault (`OwsLocalVaultService`). Alternative providers — **Ledger DMK** (hardware signing for high-value transactions) and **Speculos** (emulated signing for sandbox/CI) — slot in without changing the governance or audit path. See [Signing Provider Abstraction](#signing-provider-abstraction).
 
 ## System Overview
 
@@ -29,7 +31,7 @@ Cognivern Evaluation Layer
   │   ├── confidential rule → FhenixPolicyService → Fhenix FHE
   │   └── contract_audit rule → ChainGPTAuditService
   │
-  +--> approve → OWS signs and sends
+  +--> approve → SigningProvider.dispatch()  ← Ledger / Speculos / Local / OWS Remote
   +--> hold    → human or second wallet approves
   +--> deny    → no signing
   |
@@ -52,6 +54,11 @@ Agent action
       ├─ confidential rule → FhenixPolicyService → Fhenix FHE
       └─ contract_audit rule → ChainGPTAuditService
   → decision: approve / hold / deny
+  → [on approve] SigningProvider.dispatch(wallet.metadata.signingProvider)
+      ├─ "local"     → OwsLocalVaultService.signMessage()
+      ├─ "ledger"    → LedgerSigningProvider.sign()  ← DMK, device must confirm
+      ├─ "speculos"  → OwsLocalVaultService.signWithExternalWallet(Speculos HTTP API)
+      └─ "ows_remote"→ OwsLocalVaultService.signWithExternalWallet(remote URL)
   → AuditLogService.logAction()
   → [optional] Filecoin evidence anchoring via ZeroGStorageService
   → [optional] X Layer execution dispatch via HyperlaneRelayerService
@@ -92,7 +99,35 @@ Project-scoped run submission with ingest key validation, quota metering, and no
 
 `OwsWalletService` exposes `/api/spend`, enforces spend policies, produces approve/hold/deny outcomes, signs approved spend envelopes, and persists runs to the CRE ledger.
 
-### 5. Frontend Control Plane
+### 5. Signing Provider Abstraction
+
+The signing layer is swappable via a `SigningProvider` interface. The dispatch happens in `OwsWalletService.handleApprove()` based on `wallet.metadata.signingProvider`:
+
+| Provider | Value | Backend | Use Case |
+|---|---|---|---|
+| **Local** | `"local"` (default) | `OwsLocalVaultService.signMessage()` — decrypted local key | Development, low-value, personal agents |
+| **OWS Remote** | `"ows_remote"` | `OwsLocalVaultService.signWithExternalWallet()` — HTTP POST to remote signing service | Multi-instance deployments |
+| **Ledger DMK** | `"ledger"` | `LedgerSigningProvider` — `@ledgerhq/device-management-kit` via USB/WebHID | Production high-value transactions, hardware-gated |
+| **Speculos** | `"speculos"` | `OwsLocalVaultService.signWithExternalWallet()` — HTTP POST to Speculos API | Sandbox/CI, no hardware needed |
+
+The backend wallet descriptor (`OwsWalletDescriptor.metadata`) carries the provider selection:
+
+```typescript
+// Local wallet (existing)
+{ metadata: {} }
+
+// Ledger hardware wallet
+{ metadata: { signingProvider: "ledger" } }
+
+// Speculos emulated wallet (sandbox)
+{ metadata: { signingProvider: "speculos", externalSource: "http://speculos:5000" } }
+```
+
+**Sandbox integration:** Speculos runs as a Docker container alongside the backend. In sandbox mode (controlled by `demoInterceptor.ts`), wallets are created with `signingProvider: "speculos"` and `externalSource` pointing at the Speculos HTTP API. The existing `signWithExternalWallet()` method handles the HTTP transport — zero new code for the basic case. This lets CI run full governance→signing→audit cycles with hardware-accurate signing but zero asset risk.
+
+**Production Ledger flow:** An agent requests a high-value spend → policy evaluates and approves → `handleApprove()` dispatches to `LedgerSigningProvider` → DMK discovers the device → user confirms on physical Ledger → signature returned → audit-logged as before. The governance and audit pipeline never changes — only the signing step swaps.
+
+### 6. Frontend Control Plane
 
 The frontend contains surfaces for policy management, audit logs, run ledger, agent monitoring, governance checks, and the Command Center terminal UI.
 
@@ -107,6 +142,8 @@ Each partner network plays a specific role in the product. This table is the sin
 | **Filecoin** | Durable evidence anchoring for audit logs. Long-term immutable storage of governance decisions and evidence hashes. | Yes — evidence link per decision in audit entry | Calibration testnet |
 | **0G** | Real-time governance decision anchoring alongside Filecoin for immediate availability. | Transparently layered with Filecoin | Newton testnet |
 | **ChainGPT** | Web3-specialized LLM for smart contract auditing at runtime (pre-spend vulnerability scan) and governance-copilot queries. | Yes — Contract Audit badge on policy checks with ChainGPT metadata | **Live** — via `ChainGPTAuditService` |
+| **Speculos** | Ledger device emulator for sandbox/CI signing. Runs as a Docker container; acts as an HTTP signing endpoint for the existing `signWithExternalWallet()` path. | No — infra only | **Planned** — Docker Compose add |
+| **Ledger DMK** | Hardware signing provider for high-value transactions. User confirms on physical Ledger device before any signature is produced. | Yes — "Hardware Signed" badge on audit decisions | **Planned** — `LedgerSigningProvider` |
 
 ## Confidential Policy Layer (Fhenix)
 
@@ -253,6 +290,7 @@ Fhenix FHE evaluations can take 10-30 seconds (CoFHE encryption + on-chain confi
 
 - File-backed stores (rate limiting, idempotency, telemetry) are single-instance — need Redis/Postgres before horizontal scaling. The `BaseStore` interface exists to make this a single-adapter swap.
 - Email auth is supported alongside SIWE (wallet-primary); the SIWE path is more battle-tested in production.
+- **Ledger signing requires USB/WebHID access**, which limits deployment to single-instance or co-located with the hardware. The Speculos sandbox path avoids this in testing.
 - See the [Deployment Guide](./DEPLOYMENT.md) for operations
 
 ## Security Architecture
@@ -274,3 +312,4 @@ The product implements layered security:
 - [Deployment](./DEPLOYMENT.md) — Production deployment and operations
 - [Fhenix Integration](./FHENIX_INTEGRATION.md) — Encrypted policy evaluation
 - [ChainGPT Integration](./CHAINGPT_INTEGRATION.md) — Web3 AI governance & contract auditing
+- [Ledger Integration](./LEDGER_INTEGRATION.md) — Hardware signing provider, Speculos sandbox, implementation plan
