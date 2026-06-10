@@ -15,6 +15,7 @@ import {
   ChevronDown,
   CheckCircle2,
   ShieldX,
+  Clock,
 } from "lucide-react";
 import type { AuditLog } from "@cognivern/shared";
 import { Button } from "@/components/ui/button";
@@ -25,13 +26,35 @@ import { useRouter } from "next/navigation";
 import { useAgents, useAuditLogs, usePolicies, useNetworkStatus } from "@/hooks/use-api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDemoStore } from "@/stores/demo-store";
+import dynamic from "next/dynamic";
 import { DecisionChart, type DecisionFilter } from "./decision-chart";
-import { ActivityChart } from "./activity-chart";
-import { AgentStatusChart } from "./agent-status-chart";
 import { ApprovalSparkline } from "./approval-sparkline";
+
+const ActivityChart = dynamic(
+  () => import("./activity-chart").then((m) => ({ default: m.ActivityChart })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-48 rounded-xl border border-border bg-card animate-pulse" />
+    ),
+  },
+);
+
+const AgentStatusChart = dynamic(
+  () =>
+    import("./agent-status-chart").then((m) => ({
+      default: m.AgentStatusChart,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-48 rounded-xl border border-border bg-card animate-pulse" />
+    ),
+  },
+);
 import { QuickCheck } from "./quick-check";
 import { formatBudget } from "@/lib/budget-format";
-import { normalizeAuditLogs } from "@/lib/normalizers";
+import { normalizeAuditLogs, computeAverageLatency } from "@/lib/normalizers";
 
 const ACTIVITY_PAGE_SIZE = 5;
 
@@ -98,6 +121,7 @@ export function Dashboard() {
     : 0;
   const decisions = normalizedLogs.length;
   const blockedCount = normalizedLogs.filter((l) => l.decision === "denied").length;
+  const avgLatency = computeAverageLatency(normalizedLogs);
 
   // Stat deltas (compare first half vs second half of logs for trend)
   const { approvalDelta, decisionsDelta } = useMemo(() => {
@@ -244,6 +268,18 @@ export function Dashboard() {
                         </div>
                       </div>
                     </button>
+                    <button
+                      onClick={() => router.push("/demo/spend")}
+                      className="flex items-center gap-3 w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+                      <div>
+                        <div className="text-sm font-medium">Watch how it works</div>
+                        <div className="text-xs text-muted-foreground">
+                          See the governed vs ungoverned spend flow demo
+                        </div>
+                      </div>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -252,7 +288,7 @@ export function Dashboard() {
         )}
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         <Card>
           <CardContent className="p-4">
             {agentsLoading ? (
@@ -391,6 +427,25 @@ export function Dashboard() {
                 <div>
                   <div className="text-2xl font-bold">{blockedCount}</div>
                   <div className="text-xs text-muted-foreground">Blocked</div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            {logsLoading ? (
+              <Skeleton className="h-12 w-24" />
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950">
+                  <Clock className="h-5 w-5 text-slate-500" />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{avgLatency}ms</div>
+                  <div className="text-xs text-muted-foreground">
+                    Avg Latency
+                  </div>
                 </div>
               </div>
             )}

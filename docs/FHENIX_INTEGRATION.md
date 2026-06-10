@@ -219,10 +219,28 @@ Add a `confidential: true` flag on policy definitions. When set, evaluation is d
 | Endpoint                                | Method | Description                                           |
 | --------------------------------------- | ------ | ----------------------------------------------------- |
 | `/api/governance/policies/confidential` | POST   | Create encrypted policy on Fhenix                     |
+| `/api/governance/evaluate`              | POST   | Returns **202 Accepted** with `runId` for confidential policies (async FHE eval with SSE progress) |
+| `/api/governance/evaluate/:runId/result` | GET   | Retrieve completed FHE evaluation result              |
 | `/api/governance/decisions/:decisionId` | GET    | Retrieve FHE decision + cross-chain anchoring status  |
 | `/api/spend/encrypted`                  | POST   | Submit pre-encrypted spend (client used `useEncrypt`) |
 | `/api/audit/permits`                    | POST   | Issue auditor decryption permit                       |
 | `/api/audit/logs/:decisionId/decrypt`   | GET    | Auditor-side decrypt with valid permit                |
+
+### 4.5 Async FHE Evaluation UX
+
+FHE evaluations can take 10-30 seconds (encryption + on-chain confirmation). Rather than making the user stare at a loading spinner, the system now uses an async pattern:
+
+1. **Backend** detects `policy.metadata.confidential === true` in `GovernanceController.evaluateAction()`
+2. Returns **202 Accepted** with `{ runId, status: "running", type: "fhe_evaluation" }`
+3. A background **governance workflow** (`src/backend/cre/workflows/governance.ts`) runs the evaluation using `CreRunRecorder`, tracking 4 steps:
+   - `load_policy` → `encrypt_params` → `submit_to_fhenix` → `record_audit`
+4. Each step is persisted to `CreRunStore` as it completes
+5. **Frontend** connects to the existing SSE endpoint `GET /api/cre/runs/:runId/events/stream`
+6. An animated **4-step progress panel** shows which phase is active with live status icons (pending → spinner → checkmark/error)
+7. On `run_finished`, the evaluation result transitions into the decision panel
+8. The shared `useFheProgress` React hook (`src/frontend/src/hooks/use-fhe-progress.ts`) encapsulates the SSE connection and step transitions for reuse across components
+
+**Files:** `src/backend/cre/workflows/governance.ts`, `src/frontend/src/hooks/use-fhe-progress.ts`
 
 ---
 

@@ -57,20 +57,12 @@ export class AgentsController {
 
   async getAgents(req: Request, res: Response): Promise<void> {
     try {
-      // Get our showcase agents for AI governance platform
       const agents = await this.agentsModule.getAgents();
 
       res.json({
         success: true,
         data: agents,
         count: agents.length,
-        showcase: {
-          description: "AI Agent Governance Platform - Showcase Agents",
-          agents: [
-            "Sapience Forecasting Agent - Automated prediction markets with EAS attestations",
-            "Filecoin Governance Agent - Policy enforcement and audit storage",
-          ],
-        },
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
@@ -201,7 +193,7 @@ export class AgentsController {
           success: false,
           error: {
             code: "NOT_FOUND",
-            message: `Showcase agent with id ${id} not found. Available agents: sapience-agent-1, filecoin-agent-1`,
+            message: `Agent with id ${id} not found`,
           },
           timestamp: new Date().toISOString(),
         });

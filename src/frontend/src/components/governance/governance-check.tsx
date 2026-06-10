@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ import {
 import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
 import { useVoiceInput } from "@/hooks/use-voice-input";
+import { useFheProgress } from "@/hooks/use-fhe-progress";
 import { HelpIcon } from "@/components/ui/help-icon";
 
 function getSuggestion(reason: string): string {
@@ -121,8 +122,22 @@ export function GovernanceCheck() {
   const [evaluating, setEvaluating] = useState(false);
   const [result, setResult] = useState<GovernanceEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  // Async FHE evaluation state (shared hook)
+  const {
+    fheRunId,
+    setFheRunId,
+    fheSteps,
+    resetFheSteps,
+    connectToFheSse,
+  } = useFheProgress();
   const [nlInput, setNlInput] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [debouncedNlParsed, setDebouncedNlParsed] = useState<{
+    type: string;
+    amount: string;
+  } | null>(null);
+  const nlDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     recording,
@@ -158,15 +173,41 @@ export function GovernanceCheck() {
     return { type: parsedType, amount: parsedAmount, desc: parsedDesc };
   }, [actionType, amount]);
 
+  // Debounced NL parser — avoids running parseNlInput on every keystroke
+  const parseNlInputRef = useRef(parseNlInput);
+  useEffect(() => {
+    parseNlInputRef.current = parseNlInput;
+  }, [parseNlInput]);
+
+  useEffect(() => {
+    if (nlDebounceRef.current) {
+      clearTimeout(nlDebounceRef.current);
+    }
+    if (!nlInput.trim()) {
+      nlDebounceRef.current = setTimeout(() => {
+        setDebouncedNlParsed(null);
+      });
+      return;
+    }
+    nlDebounceRef.current = setTimeout(() => {
+      setDebouncedNlParsed(parseNlInputRef.current(nlInput));
+    }, 250);
+    return () => {
+      if (nlDebounceRef.current) clearTimeout(nlDebounceRef.current);
+    };
+  }, [nlInput]);
+
   const handleEvaluate = useCallback(async () => {
     setEvaluating(true);
     setError(null);
+    setErrorCode(null);
     setResult(null);
+    setFheRunId(null);
+    resetFheSteps();
 
     try {
       const parsed = nlInput.trim() ? parseNlInput(nlInput) : null;
-
-      const res = await apiClient.evaluateGovernance({
+      const evalParams = {
         agentId: agentId || agentList[0]?.id || "unknown",
         action: {
           type: parsed?.type || actionType,
@@ -178,15 +219,63 @@ export function GovernanceCheck() {
           amount: parseFloat(parsed?.amount || amount) || 200,
           currency: "USDC",
         },
-      });
-      setResult(res.data || null);
-      if (!res.data) setError("No evaluation result returned");
+      };
+
+      // Use the FHE-aware endpoint to detect async (202) vs sync (200) responses
+      const { status, data } = await apiClient.evaluateGovernanceFhe(evalParams);
+      const body = data as { success?: boolean; data?: Record<string, unknown> } | null;
+
+      if (status === 202) {
+        // Async FHE evaluation — connect to SSE stream for progress
+        const runId = body?.data?.runId as string | undefined;
+        if (!runId) {
+          throw new Error("No runId returned for FHE evaluation");
+        }
+        setFheRunId(runId);
+
+        // Connect to SSE — the hook manages step transitions automatically
+        connectToFheSse(runId, {
+          onComplete: (resultData) => {
+            if (resultData) {
+              setResult(resultData as unknown as GovernanceEvaluation);
+            }
+            setFheRunId(null);
+            setEvaluating(false);
+          },
+          onError: (errMsg) => {
+            setError(`FHE evaluation error: ${errMsg}`);
+            setFheRunId(null);
+            setEvaluating(false);
+          },
+        });
+      } else {
+        // Sync evaluation (non-confidential) — use data directly
+        const resultData = body?.data;
+        setResult((resultData as GovernanceEvaluation) || null);
+        if (!resultData) setError("No evaluation result returned");
+        setEvaluating(false);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Evaluation failed");
-    } finally {
+      const message = err instanceof Error ? err.message : "Evaluation failed";
+      // Detect NO_ACTIVE_POLICY from backend 503 response
+      if (message.includes("NO_ACTIVE_POLICY")) {
+        setErrorCode("NO_ACTIVE_POLICY");
+      }
+      setError(message);
       setEvaluating(false);
     }
-  }, [nlInput, agentId, agentList, actionType, actionDesc, amount, parseNlInput]);
+  }, [
+    nlInput,
+    agentId,
+    agentList,
+    actionType,
+    actionDesc,
+    amount,
+    parseNlInput,
+    setFheRunId,
+    resetFheSteps,
+    connectToFheSse,
+  ]);
 
   const handleRetryWithAmount = useCallback(
     (newAmount: number) => {
@@ -288,21 +377,14 @@ export function GovernanceCheck() {
                     )}
                   </button>
                 </div>
-                {nlInput && (
+                {debouncedNlParsed && (
                   <div className="flex flex-wrap gap-1.5">
-                    {(() => {
-                      const parsed = parseNlInput(nlInput);
-                      return (
-                        <>
-                          <Badge variant="outline" className="text-[10px]">
-                            Type: {parsed.type}
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px]">
-                            Amount: ${parsed.amount}
-                          </Badge>
-                        </>
-                      );
-                    })()}
+                    <Badge variant="outline" className="text-[10px]">
+                      Type: {debouncedNlParsed.type}
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      Amount: ${debouncedNlParsed.amount}
+                    </Badge>
                   </div>
                 )}
               </div>
@@ -436,7 +518,42 @@ export function GovernanceCheck() {
 
         {/* Result Panel */}
         <div className="space-y-4">
-          {error && (
+          {errorCode === "NO_ACTIVE_POLICY" ? (
+            <div className="p-5 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 space-y-4">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-amber-500" />
+                <div className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                  No active policy found
+                </div>
+              </div>
+              <p className="text-sm text-amber-600/80 dark:text-amber-400/80">
+                You need an active policy before you can evaluate spend actions.
+                Create one in about 2 minutes — start with a template or build
+                your own rules.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => router.push("/policies")}
+                  className="gap-1.5"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Create a Policy
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setError(null);
+                    setErrorCode(null);
+                  }}
+                  className="text-xs"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+          ) : error && (
             <div className="p-4 rounded-xl border border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30">
               <div className="flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
                 <AlertTriangle className="h-4 w-4" />
@@ -445,7 +562,69 @@ export function GovernanceCheck() {
             </div>
           )}
 
-          {evaluating && (
+          {/* FHE Progress Panel — shown during async confidential evaluation */}
+          {evaluating && fheRunId && (
+            <Card className="border-amber-200 dark:border-amber-800">
+              <CardContent className="p-5 space-y-4">
+                <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
+                  <Lock className="h-4 w-4" />
+                  FHE Confidential Evaluation
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Policy thresholds are being evaluated in ciphertext on the
+                  Fhenix network. Your budget limits stay encrypted throughout.
+                </p>
+                <div className="space-y-0.5">
+                  {fheSteps.map((step, i) => (
+                    <div key={step.label} className="flex items-center gap-3 py-1.5">
+                      {/* Step indicator */}
+                      <div className="flex-shrink-0 w-6 flex justify-center">
+                        {step.status === "done" ? (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        ) : step.status === "active" ? (
+                          <Loader2 className="h-4 w-4 text-amber-500 animate-spin" />
+                        ) : step.status === "error" ? (
+                          <XCircle className="h-4 w-4 text-red-500" />
+                        ) : (
+                          <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/20" />
+                        )}
+                      </div>
+                      {/* Step label */}
+                      <span
+                        className={`text-xs transition-colors ${
+                          step.status === "done"
+                            ? "text-foreground"
+                            : step.status === "active"
+                              ? "text-amber-600 dark:text-amber-400 font-medium"
+                              : step.status === "error"
+                                ? "text-red-500"
+                                : "text-muted-foreground/50"
+                        }`}
+                      >
+                        {step.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {/* Live progress timestamp */}
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Evaluation in progress
+                  {fheSteps.some((s) => s.status === "active") && (
+                    <span className="text-amber-500">
+                      ·{" "}
+                      {
+                        fheSteps.find((s) => s.status === "active")?.label
+                      }
+                    </span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Standard loading skeleton — shown during sync evaluation */}
+          {evaluating && !fheRunId && (
             <Card>
               <CardContent className="p-5 space-y-3">
                 <Skeleton className="h-6 w-48" />
@@ -563,110 +742,92 @@ export function GovernanceCheck() {
                 )}
 
                 {/* Evaluation Privacy indicator — always shown */}
-                {(() => {
-                  const conf =
-                    "confidential" in result
-                      ? (
-                          result as GovernanceEvaluation & {
-                            confidential?: {
-                              fheEvaluated: boolean;
-                              chain: string;
-                              decisionIds?: string[];
-                            };
-                          }
-                        ).confidential
-                      : undefined;
-
-                  if (conf?.fheEvaluated) {
-                    return (
-                      <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
-                        <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
-                          <Lock className="h-4 w-4" />
-                          Encrypted Evaluation (Fhenix FHE)
-                        </div>
-                        <div className="text-xs text-muted-foreground space-y-1">
-                          <div>Chain: {conf.chain}</div>
-                          {conf.decisionIds && conf.decisionIds.length > 0 && (
-                            <div className="font-mono break-all">
-                              Decision: {conf.decisionIds[0]}
-                            </div>
-                          )}
-                          <div className="text-[11px] text-amber-600 dark:text-amber-400">
-                            Budget limits evaluated in ciphertext — values never
-                            revealed to agent
+                {result.confidential?.fheEvaluated && (
+                  <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
+                      <Lock className="h-4 w-4" />
+                      Encrypted Evaluation (Fhenix FHE)
+                    </div>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <div>Chain: {result.confidential.chain}</div>
+                      {result.confidential.decisionIds &&
+                        result.confidential.decisionIds.length > 0 && (
+                          <div className="font-mono break-all">
+                            Decision: {result.confidential.decisionIds[0]}
                           </div>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="rounded-lg border border-border bg-muted/20 p-3">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Lock className="h-3.5 w-3.5" />
-                        <span>
-                          Standard evaluation — consider{" "}
-                          <button
-                            type="button"
-                            onClick={() => router.push("/policies")}
-                            className="text-primary hover:underline"
-                          >
-                            encrypting sensitive policies
-                          </button>{" "}
-                          for production use
-                        </span>
+                        )}
+                      <div className="text-[11px] text-amber-600 dark:text-amber-400">
+                        Budget limits evaluated in ciphertext — values never
+                        revealed to agent
                       </div>
                     </div>
-                  );
-                })()}
+                  </div>
+                )}
+
+                {!result.confidential?.fheEvaluated && (
+                  <div className="rounded-lg border border-border bg-muted/20 p-3">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>
+                        Standard evaluation — consider{" "}
+                        <button
+                          type="button"
+                          onClick={() => router.push("/policies")}
+                          className="text-primary hover:underline"
+                        >
+                          encrypting sensitive policies
+                        </button>{" "}
+                        for production use
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Security protections */}
-                {(() => {
-                  const isFhe =
-                    "confidential" in result &&
-                    (
-                      result as GovernanceEvaluation & {
-                        confidential?: { fheEvaluated?: boolean };
-                      }
-                    ).confidential?.fheEvaluated;
-
-                  const layers = [
-                    "JWT authentication verified",
-                    "API key validated (scrypt hash)",
-                    "Rate limit checked",
-                    "Idempotency verified",
-                    "Policy evaluation completed",
-                    "Audit trail stored",
-                    isFhe
-                      ? "FHE encrypted evaluation"
-                      : "ChainGPT contract audit available",
-                  ];
-
-                  return (
-                    <details className="group">
-                      <summary className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-                        <span>
-                          Protected by {layers.length} security layers
-                        </span>
-                        <span className="text-[10px] group-open:hidden">
-                          (expand)
-                        </span>
-                      </summary>
-                      <div className="mt-2 pl-5 space-y-1">
-                        {layers.map((layer) => (
-                          <div
-                            key={layer}
-                            className="flex items-center gap-2 text-xs text-muted-foreground"
-                          >
-                            <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
-                            {layer}
-                          </div>
-                        ))}
+                <details className="group">
+                  <summary className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>
+                      Protected by{" "}
+                      {[
+                        "JWT authentication verified",
+                        "API key validated (scrypt hash)",
+                        "Rate limit checked",
+                        "Idempotency verified",
+                        "Policy evaluation completed",
+                        "Audit trail stored",
+                        result.confidential?.fheEvaluated
+                          ? "FHE encrypted evaluation"
+                          : "ChainGPT contract audit available",
+                      ].length}{" "}
+                      security layers
+                    </span>
+                    <span className="text-[10px] group-open:hidden">
+                      (expand)
+                    </span>
+                  </summary>
+                  <div className="mt-2 pl-5 space-y-1">
+                    {[
+                      "JWT authentication verified",
+                      "API key validated (scrypt hash)",
+                      "Rate limit checked",
+                      "Idempotency verified",
+                      "Policy evaluation completed",
+                      "Audit trail stored",
+                      result.confidential?.fheEvaluated
+                        ? "FHE encrypted evaluation"
+                        : "ChainGPT contract audit available",
+                    ].map((layer) => (
+                      <div
+                        key={layer}
+                        className="flex items-center gap-2 text-xs text-muted-foreground"
+                      >
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                        {layer}
                       </div>
-                    </details>
-                  );
-                })()}
+                    ))}
+                  </div>
+                </details>
 
                 {/* Metadata */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">

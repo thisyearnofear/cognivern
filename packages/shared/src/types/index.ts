@@ -30,6 +30,7 @@ export interface PolicyCheck {
   policyId: string;
   result: boolean;
   reason: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Run {
@@ -90,11 +91,19 @@ export interface SpendEntry {
   decision: string;
 }
 
+export interface FhenixConfidential {
+  fheEvaluated: boolean;
+  chain: string;
+  decisionIds?: string[];
+  attestations?: string[];
+}
+
 export interface GovernanceEvaluation {
   allowed: boolean;
   reasoning: string;
   policyChecks: PolicyCheck[];
   auditLogId?: string;
+  confidential?: FhenixConfidential;
   provider?: string;
   model?: string;
   timestamp: string;

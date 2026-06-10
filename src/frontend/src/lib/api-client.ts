@@ -299,6 +299,164 @@ class ApiClient {
     });
   }
 
+  // ── Async FHE Evaluation (SSE-based progress streaming) ──────────────
+
+  /**
+   * Evaluate governance with confidential (FHE) policies.
+   * Returns a 202 Accepted with a runId for SSE progress tracking,
+   * or a 200 with the result for non-confidential evaluations.
+   */
+  async evaluateGovernanceFhe(params: {
+    agentId: string;
+    action: {
+      type: string;
+      description: string;
+      amount: number;
+      currency: string;
+    };
+    policyId?: string;
+  }): Promise<{ status: number; data: unknown }> {
+    const { workspaceMode } = useAuthStore.getState();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Workspace-Mode": workspaceMode,
+    };
+    const token = getAuthToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const response = await fetch(`/api/governance/evaluate`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(params),
+    });
+
+    const body = await response.json();
+    return { status: response.status, data: body };
+  }
+
+  /**
+   * Get the final result of a completed FHE evaluation run.
+   */
+  async getGovernanceEvaluationResult(
+    runId: string,
+  ): Promise<ApiResponse<Record<string, unknown>>> {
+    return this.fetch(`/api/governance/evaluate/${runId}/result`);
+  }
+
+  /**
+   * Connect to the SSE stream for an async FHE evaluation run.
+   * Calls onEvent for each run_event and onComplete when finished.
+   * Returns an abort function to disconnect.
+   */
+  connectFheSse(
+    runId: string,
+    callbacks: {
+      onEvent: (event: { type: string; stepName?: string; payload?: Record<string, unknown> }) => void;
+      onComplete: (result: Record<string, unknown>) => void;
+      onError: (error: string) => void;
+    },
+  ): AbortController {
+    const controller = new AbortController();
+    const token = getAuthToken();
+
+    this.connectSseStream(runId, token, controller, callbacks).catch(
+      (err) =>
+        callbacks.onError(err instanceof Error ? err.message : String(err)),
+    );
+
+    return controller;
+  }
+
+  /**
+   * Read an SSE stream via fetch + ReadableStream (supports auth headers).
+   */
+  private async connectSseStream(
+    runId: string,
+    token: string | null,
+    controller: AbortController,
+    callbacks: {
+      onEvent: (event: { type: string; stepName?: string; payload?: Record<string, unknown> }) => void;
+      onComplete: (result: Record<string, unknown>) => void;
+      onError: (error: string) => void;
+    },
+  ): Promise<void> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(
+      `/api/cre/runs/${runId}/events/stream`,
+      {
+        headers,
+        signal: controller.signal,
+      },
+    );
+
+    if (!response.ok || !response.body) {
+      throw new Error(
+        `SSE connection failed: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let currentEvent = "";
+    let currentData = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (line.startsWith("event: ")) {
+          currentEvent = line.slice(7).trim();
+        } else if (line.startsWith("data: ")) {
+          currentData = line.slice(6).trim();
+        } else if (line === "" && currentData) {
+          // Empty line = event delimiter
+          try {
+            const parsed = JSON.parse(currentData);
+            if (currentEvent === "run_event") {
+              callbacks.onEvent({
+                type: (parsed.type || parsed.eventName || "") as string,
+                stepName: parsed.stepName as string | undefined,
+                payload: parsed.payload as Record<string, unknown> | undefined,
+              });
+
+              // Detect completion from run_event payload
+              if (
+                parsed.type === "run_finished" &&
+                parsed.payload?.result
+              ) {
+                callbacks.onComplete(
+                  parsed.payload.result as Record<string, unknown>,
+                );
+              } else if (parsed.type === "run_failed") {
+                callbacks.onError(
+                  "FHE evaluation failed on the network" as string,
+                );
+              }
+            }
+          } catch {
+            // Ignore parse errors on malformed SSE data
+          }
+          currentEvent = "";
+          currentData = "";
+        } else if (line.startsWith(": ")) {
+          // Comment / heartbeat — ignore
+        }
+      }
+    }
+  }
+
   // Agent registration (live workspaces)
   async registerAgent(params: {
     name: string;
