@@ -14,7 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
-import { useAppStore } from "@/stores/app-store";
+import { useDemoStore } from "@/stores/demo-store";
 import { HelpIcon } from "@/components/ui/help-icon";
 
 const QUICK_ACTIONS = [
@@ -25,7 +25,7 @@ const QUICK_ACTIONS = [
 
 export function QuickCheck() {
   const router = useRouter();
-  const demoMode = useAppStore((s) => s.demoMode);
+  const demoMode = useDemoStore((s) => s.demoMode);
   const { data: agents } = useAgents();
   const [actionType, setActionType] = useState("swap");
   const [amount, setAmount] = useState("500");

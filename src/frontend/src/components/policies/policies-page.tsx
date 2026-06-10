@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ShieldCheck,
   PlusCircle,
@@ -18,6 +18,8 @@ import {
   History,
   Plus,
   Trash2,
+  Share2,
+  Check,
 } from "lucide-react";
 import { PolicyVersionHistory } from "./policy-version-history";
 import {
@@ -80,6 +82,7 @@ const POLICY_TEMPLATES = [
 
 export function PoliciesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: rawPolicies, isLoading, error } = usePolicies();
   const { data: auditLogs } = useAuditLogs();
   const [showCreate, setShowCreate] = useState(false);
@@ -88,6 +91,32 @@ export function PoliciesPage() {
     id: string;
     name: string;
   } | null>(null);
+  const [copiedPolicyId, setCopiedPolicyId] = useState<string | null>(null);
+  const [importedTemplate, setImportedTemplate] = useState<null | {
+    name: string;
+    type: string;
+    description: string;
+    rules: { condition: string; action: string }[];
+  }>(null);
+
+  // Import shared policy from URL query param
+  const templateParam = searchParams.get("template");
+  const parsedTemplate = (() => {
+    if (!templateParam) return null;
+    try {
+      const decoded = JSON.parse(atob(templateParam));
+      if (decoded?.name && decoded?.type) return decoded;
+    } catch {
+      // Malformed template — ignore silently
+    }
+    return null;
+  })();
+
+  // Sync parsed template to state once on mount
+  if (parsedTemplate && !importedTemplate) {
+    setImportedTemplate(parsedTemplate);
+    setShowCreate(true);
+  }
 
   const policies = Array.isArray(rawPolicies)
     ? rawPolicies.map((p) => ({
@@ -99,6 +128,7 @@ export function PoliciesPage() {
         status: p.status,
         desc: p.description,
         confidential: p.metadata?.confidential === true,
+        rules: p.rules || [],
       }))
     : [];
 
@@ -131,6 +161,21 @@ export function PoliciesPage() {
     },
     [],
   );
+
+  const handleSharePolicy = useCallback((policy: (typeof policies)[number]) => {
+    const shareable = {
+      name: policy.name,
+      type: policy.type,
+      description: policy.desc,
+      rules: policy.rules || [],
+    };
+    const encoded = btoa(JSON.stringify(shareable));
+    const url = `${window.location.origin}/policies?template=${encoded}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedPolicyId(policy.id);
+      setTimeout(() => setCopiedPolicyId(null), 2000);
+    });
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -187,7 +232,15 @@ export function PoliciesPage() {
         </div>
       )}
 
-      {showCreate && <CreatePolicyForm onClose={() => setShowCreate(false)} />}
+      {showCreate && (
+        <CreatePolicyForm
+          onClose={() => {
+            setShowCreate(false);
+            setImportedTemplate(null);
+          }}
+          initialTemplate={importedTemplate ?? undefined}
+        />
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -316,17 +369,38 @@ export function PoliciesPage() {
                       </div>
                     )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setHistoryPolicy({ id: policy.id, name: policy.name })
-                    }
-                    className="h-7 gap-1 text-xs"
-                  >
-                    <History className="h-3 w-3" />
-                    History
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSharePolicy(policy)}
+                      className="h-7 gap-1 text-xs"
+                      title="Copy shareable link"
+                    >
+                      {copiedPolicyId === policy.id ? (
+                        <>
+                          <Check className="h-3 w-3 text-green-500" />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <Share2 className="h-3 w-3" />
+                          Share
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setHistoryPolicy({ id: policy.id, name: policy.name })
+                      }
+                      className="h-7 gap-1 text-xs"
+                    >
+                      <History className="h-3 w-3" />
+                      History
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -366,14 +440,75 @@ interface PolicyRule {
   action: string;
 }
 
-function CreatePolicyForm({ onClose }: { onClose: () => void }) {
-  const [name, setName] = useState("");
-  const [type, setType] = useState("budget");
-  const [description, setDescription] = useState("");
+interface VisualRule {
+  field: string;
+  operator: string;
+  value: string;
+  action: string;
+}
+
+const RULE_FIELDS = [
+  { id: "amount", label: "Amount", type: "number" },
+  { id: "daily_total", label: "Daily Total", type: "number" },
+  { id: "vendor", label: "Vendor", type: "text" },
+  { id: "chain", label: "Chain", type: "text" },
+];
+
+const RULE_OPERATORS = [
+  { id: ">", label: "greater than" },
+  { id: "<", label: "less than" },
+  { id: "===", label: "equals" },
+  { id: "NOT IN", label: "not in" },
+  { id: "IN", label: "in" },
+];
+
+const RULE_ACTIONS = [
+  { id: "deny", label: "Deny" },
+  { id: "flag", label: "Flag for review" },
+  { id: "allow", label: "Allow" },
+];
+
+function conditionFromVisual(rule: VisualRule): string {
+  if (!rule.field || !rule.operator || !rule.value) return "";
+  if (rule.operator === "NOT IN" || rule.operator === "IN") {
+    return `${rule.field} ${rule.operator} [${rule.value}]`;
+  }
+  return `${rule.field} ${rule.operator} ${rule.value}`;
+}
+
+function visualFromCondition(condition: string): VisualRule {
+  const match = condition.match(/^(\w+)\s*(>|<|===|NOT IN|IN)\s*(.*)$/);
+  if (!match) return { field: "", operator: ">", value: "", action: "deny" };
+  const [, field, operator, value] = match;
+  let cleanValue = value;
+  if (operator === "NOT IN" || operator === "IN") {
+    cleanValue = value.replace(/^\[|\]$/g, "");
+  }
+  return { field, operator, value: cleanValue, action: "deny" };
+}
+
+function CreatePolicyForm({
+  onClose,
+  initialTemplate,
+}: {
+  onClose: () => void;
+  initialTemplate?: {
+    name: string;
+    type: string;
+    description: string;
+    rules: { condition: string; action: string }[];
+  };
+}) {
+  const [name, setName] = useState(initialTemplate?.name ?? "");
+  const [type, setType] = useState(initialTemplate?.type ?? "budget");
+  const [description, setDescription] = useState(initialTemplate?.description ?? "");
   const [encrypted, setEncrypted] = useState(false);
-  const [rules, setRules] = useState<PolicyRule[]>([
-    { condition: "", action: "deny" },
-  ]);
+  const [rules, setRules] = useState<PolicyRule[]>(
+    initialTemplate?.rules?.length
+      ? initialTemplate.rules
+      : [{ condition: "", action: "deny" }],
+  );
+  const [visualMode, setVisualMode] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -382,6 +517,12 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
     setRules((r) => r.filter((_, i) => i !== idx));
   const updateRule = (idx: number, field: keyof PolicyRule, value: string) =>
     setRules((r) => r.map((rule, i) => (i === idx ? { ...rule, [field]: value } : rule)));
+
+  const updateVisualRule = (idx: number, visual: Partial<VisualRule>) => {
+    const current = visualFromCondition(rules[idx].condition);
+    const next = { ...current, ...visual };
+    updateRule(idx, "condition", conditionFromVisual(next));
+  };
 
   const handleCreate = useCallback(async () => {
     if (!name.trim() || !type) return;
@@ -574,12 +715,21 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
         ) : (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium flex items-center gap-1.5">
-                Rules
-                <span className="text-xs text-muted-foreground font-normal">
-                  ({rules.length})
-                </span>
-              </label>
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium flex items-center gap-1.5">
+                  Rules
+                  <span className="text-xs text-muted-foreground font-normal">
+                    ({rules.length})
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setVisualMode(!visualMode)}
+                  className="text-[10px] px-2 py-0.5 rounded-full border border-border hover:border-primary/50 transition-colors"
+                >
+                  {visualMode ? "Text Mode" : "Visual Mode"}
+                </button>
+              </div>
               {rules.length < 5 && (
                 <button
                   type="button"
@@ -590,61 +740,141 @@ function CreatePolicyForm({ onClose }: { onClose: () => void }) {
                 </button>
               )}
             </div>
-            {rules.map((rule, idx) => (
-              <div
-                key={idx}
-                className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 items-start p-3 rounded-lg bg-muted/30"
-              >
-                <div className="space-y-1.5">
-                  <Input
-                    value={rule.condition}
-                    onChange={(e) => updateRule(idx, "condition", e.target.value)}
-                    placeholder="e.g. amount > 3000"
-                    className="text-sm"
-                  />
-                  {idx === 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {RULE_PRESETS.map((p) => (
+            {rules.map((rule, idx) => {
+              const visual = visualFromCondition(rule.condition);
+              return (
+                <div
+                  key={idx}
+                  className="p-3 rounded-lg bg-muted/30 space-y-3"
+                >
+                  {visualMode ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr_auto_auto] gap-2 items-start">
+                      <Select
+                        value={visual.field}
+                        onValueChange={(v) => v && updateVisualRule(idx, { field: v })}
+                      >
+                        <SelectTrigger className="text-sm">
+                          <SelectValue placeholder="Field" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {RULE_FIELDS.map((f) => (
+                            <SelectItem key={f.id} value={f.id}>
+                              {f.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={visual.operator}
+                        onValueChange={(v) => v && updateVisualRule(idx, { operator: v })}
+                      >
+                        <SelectTrigger className="text-sm w-[140px]">
+                          <SelectValue placeholder="Operator" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {RULE_OPERATORS.map((o) => (
+                            <SelectItem key={o.id} value={o.id}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <Input
+                        value={visual.value}
+                        onChange={(e) => updateVisualRule(idx, { value: e.target.value })}
+                        placeholder={visual.operator === "NOT IN" || visual.operator === "IN" ? "a, b, c" : "500"}
+                        className="text-sm"
+                      />
+
+                      <Select
+                        value={rule.action}
+                        onValueChange={(v) => v && updateRule(idx, "action", v)}
+                      >
+                        <SelectTrigger className="text-sm w-[130px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {RULE_ACTIONS.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {rules.length > 1 && (
                         <button
-                          key={p.condition}
                           type="button"
-                          onClick={() => updateRule(idx, "condition", p.condition)}
-                          className={`text-[10px] px-1.5 py-0.5 rounded-full border transition-colors ${
-                            rule.condition === p.condition
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                          }`}
+                          onClick={() => removeRule(idx)}
+                          className="p-2 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                         >
-                          {p.label}
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
-                      ))}
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 items-start">
+                      <div className="space-y-1.5">
+                        <Input
+                          value={rule.condition}
+                          onChange={(e) => updateRule(idx, "condition", e.target.value)}
+                          placeholder="e.g. amount > 3000"
+                          className="text-sm"
+                        />
+                        {idx === 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {RULE_PRESETS.map((p) => (
+                              <button
+                                key={p.condition}
+                                type="button"
+                                onClick={() => updateRule(idx, "condition", p.condition)}
+                                className={`text-[10px] px-1.5 py-0.5 rounded-full border transition-colors ${
+                                  rule.condition === p.condition
+                                    ? "border-primary bg-primary/10 text-primary"
+                                    : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                                }`}
+                              >
+                                {p.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <Select
+                        value={rule.action}
+                        onValueChange={(v) => v && updateRule(idx, "action", v)}
+                      >
+                        <SelectTrigger className="w-[130px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="deny">Deny</SelectItem>
+                          <SelectItem value="flag">Flag for review</SelectItem>
+                          <SelectItem value="allow">Allow</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {rules.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeRule(idx)}
+                          className="p-2 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {rule.condition && (
+                    <div className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded">
+                      Generated: {rule.condition} → {rule.action}
                     </div>
                   )}
                 </div>
-                <Select
-                  value={rule.action}
-                  onValueChange={(v) => v && updateRule(idx, "action", v)}
-                >
-                  <SelectTrigger className="w-[130px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="deny">Deny</SelectItem>
-                    <SelectItem value="flag">Flag for review</SelectItem>
-                    <SelectItem value="allow">Allow</SelectItem>
-                  </SelectContent>
-                </Select>
-                {rules.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeRule(idx)}
-                    className="p-2 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

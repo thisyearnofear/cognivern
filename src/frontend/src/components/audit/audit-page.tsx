@@ -7,39 +7,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle2, XCircle, Clock, FileSearch, PlayCircle, Users, Shield, Lock, Fingerprint } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuditLogs } from "@/hooks/use-api";
+import {
+  normalizeAuditLogs,
+  computeComplianceRate,
+  computeAverageLatency,
+} from "@/lib/normalizers";
 
 export function AuditPage() {
   const router = useRouter();
   const { data: rawLogs, isLoading, error } = useAuditLogs();
 
-  const logs = Array.isArray(rawLogs)
-    ? rawLogs.map((l) => ({
-        id: l.id,
-        agent: l.agent ?? l.agentId,
-        action: l.actionType ?? l.action,
-        desc: l.desc ?? l.description,
-        decision: l.outcome ?? l.complianceStatus ?? l.decision,
-        chain: l.chain ?? "—",
-        time: l.time ?? new Date(l.timestamp).toLocaleString(),
-        latency: l.responseTime ?? l.latency ?? "—",
-      }))
-    : [];
-
+  const logs = normalizeAuditLogs(rawLogs);
   const total = logs.length;
-  const isRejected = (d: string) => d === "denied" || d === "non-compliant";
-  const compliance =
-    total > 0
-      ? Math.round(
-          (logs.filter((l) => !isRejected(l.decision)).length / total) * 100,
-        )
-      : 0;
-  const avgLatency =
-    total > 0
-      ? Math.round(
-          logs.reduce((s, l) => s + (parseFloat(l.latency) || 0), 0) / total,
-        )
-      : 0;
-  const critical = logs.filter((l) => isRejected(l.decision)).length;
+  const compliance = computeComplianceRate(logs);
+  const avgLatency = computeAverageLatency(logs);
+  const critical = logs.filter((l) => l.decision === "denied").length;
 
   return (
     <div className="space-y-6">
@@ -161,19 +143,16 @@ export function AuditPage() {
               <div className="flex items-start gap-3 sm:gap-4">
                 <div
                   className={`p-2 rounded-lg flex-shrink-0 ${
-                    log.decision === "allowed" || log.decision === "compliant"
+                    log.decision === "approved"
                       ? "bg-emerald-100 dark:bg-emerald-950"
-                      : log.decision === "denied" ||
-                          log.decision === "non-compliant"
+                      : log.decision === "denied"
                         ? "bg-red-100 dark:bg-red-950"
                         : "bg-amber-100 dark:bg-amber-950"
                   }`}
                 >
-                  {log.decision === "allowed" ||
-                  log.decision === "compliant" ? (
+                  {log.decision === "approved" ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  ) : log.decision === "denied" ||
-                    log.decision === "non-compliant" ? (
+                  ) : log.decision === "denied" ? (
                     <XCircle className="h-4 w-4 text-red-600" />
                   ) : (
                     <Clock className="h-4 w-4 text-amber-600" />
@@ -190,17 +169,16 @@ export function AuditPage() {
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {log.desc}
+                    {log.description}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0 sm:ml-auto pl-10 sm:pl-0">
                 <Badge
                   variant={
-                    log.decision === "allowed" || log.decision === "compliant"
+                    log.decision === "approved"
                       ? "secondary"
-                      : log.decision === "denied" ||
-                          log.decision === "non-compliant"
+                      : log.decision === "denied"
                         ? "destructive"
                         : "outline"
                   }

@@ -1,6 +1,6 @@
 // Typed API client for Cognivern backend
 
-import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
 import type {
   ApiResponse,
   AuditLog,
@@ -62,10 +62,10 @@ class ApiClient {
       throw new Error("You are offline. Check your connection and try again.");
     }
 
-    const { user } = useAppStore.getState();
+    const { workspaceMode } = useAuthStore.getState();
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      "X-Workspace-Mode": user.workspaceMode,
+      "X-Workspace-Mode": workspaceMode,
     };
 
     if (this.apiKey) {

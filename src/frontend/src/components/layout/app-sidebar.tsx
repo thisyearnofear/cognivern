@@ -33,7 +33,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
+import { useDemoStore } from "@/stores/demo-store";
 import { useAuth } from "@/hooks/use-auth";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { AuthModal } from "@/components/auth/auth-modal";
@@ -42,7 +43,8 @@ import { NAV_GROUPS, DEMO_NAV_ITEMS } from "@/lib/nav-items";
 export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, demoMode, exitDemoMode } = useAppStore();
+  const user = useAuthStore((s) => s);
+  const { demoMode, exitDemoMode } = useDemoStore();
   const { logout, signIn, loading: signingIn } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
@@ -205,7 +207,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={() => {
-                  useAppStore.getState().enableDemoMode();
+                  useDemoStore.getState().enableDemoMode();
                   router.push("/demo/spend");
                 }}
                 className="h-9 rounded-lg px-3 text-amber-600 dark:text-amber-400"

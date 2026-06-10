@@ -18,15 +18,16 @@ import {
   Loader2,
   Building2,
 } from "lucide-react";
-import { useAppStore } from "@/stores/app-store";
+import { useAuthStore } from "@/stores/auth-store";
+import { useDemoStore } from "@/stores/demo-store";
 import { apiClient, type Workspace } from "@/lib/api-client";
 import { mutate } from "swr";
 
 export function WorkspaceSwitcher() {
-  const user = useAppStore((s) => s.user);
-  const setWorkspaces = useAppStore((s) => s.setWorkspaces);
-  const switchWorkspace = useAppStore((s) => s.switchWorkspace);
-  const demoMode = useAppStore((s) => s.demoMode);
+  const user = useAuthStore((s) => s);
+  const setWorkspaces = useAuthStore((s) => s.setWorkspaces);
+  const switchWorkspace = useAuthStore((s) => s.switchWorkspace);
+  const demoMode = useDemoStore((s) => s.demoMode);
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);

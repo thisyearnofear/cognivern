@@ -1,7 +1,13 @@
 import { useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { apiClient } from "@/lib/api-client";
-import { useAppStore } from "@/stores/app-store";
+import { useDemoStore } from "@/stores/demo-store";
+import {
+  AGENT_SWR_CONFIG,
+  AUDIT_SWR_CONFIG,
+  POLICY_SWR_CONFIG,
+  RUNS_SWR_CONFIG,
+} from "@/lib/swr-config";
 import type {
   AuditLog,
   Run,
@@ -32,11 +38,12 @@ function useApiWithDemo<T>(
   key: string | null,
   fetcher: () => Promise<T>,
   demoData: T,
+  config?: Record<string, unknown>,
 ): SWRResult<T> {
-  const demoMode = useAppStore((s) => s.demoMode);
+  const demoMode = useDemoStore((s) => s.demoMode);
   const effectiveKey = demoMode ? null : key;
 
-  const swr = useSWR(effectiveKey, fetcher);
+  const swr = useSWR(effectiveKey, fetcher, config);
 
   if (demoMode) {
     return {
@@ -52,7 +59,7 @@ function useApiWithDemo<T>(
 /* ── Audit ── */
 
 export function useAuditLogs() {
-  const demoLogs = useAppStore((s) => s.demoData.auditLogs);
+  const demoLogs = useDemoStore((s) => s.demoData.auditLogs);
   return useApiWithDemo<AuditLog[]>(
     "/api/audit/logs",
     async () => {
@@ -64,6 +71,7 @@ export function useAuditLogs() {
       return (data || []) as AuditLog[];
     },
     demoLogs,
+    AUDIT_SWR_CONFIG,
   );
 }
 
@@ -78,7 +86,7 @@ export function useAuditInsights() {
 /* ── Runs ── */
 
 export function useRuns() {
-  const demoRuns = useAppStore((s) => s.demoData.runs);
+  const demoRuns = useDemoStore((s) => s.demoData.runs);
   return useApiWithDemo<Run[]>(
     "/api/cre/runs",
     async () => {
@@ -88,11 +96,12 @@ export function useRuns() {
         []) as Run[];
     },
     demoRuns,
+    RUNS_SWR_CONFIG,
   );
 }
 
 export function useRun(runId: string) {
-  const demoRuns = useAppStore((s) => s.demoData.runs);
+  const demoRuns = useDemoStore((s) => s.demoData.runs);
   const demoData = demoRuns.find((r) => r.id === runId);
   return useApiWithDemo<Run | undefined>(
     runId ? `/api/cre/runs/${runId}` : null,
@@ -104,27 +113,29 @@ export function useRun(runId: string) {
 /* ── Governance ── */
 
 export function usePolicies() {
-  const demoPolicies = useAppStore((s) => s.demoData.policies);
+  const demoPolicies = useDemoStore((s) => s.demoData.policies);
   return useApiWithDemo<Policy[]>(
     "/api/governance/policies",
     async () => ((await apiClient.getPolicies()).data || []) as Policy[],
     demoPolicies,
+    POLICY_SWR_CONFIG,
   );
 }
 
 /* ── Agents ── */
 
 export function useAgents() {
-  const demoAgents = useAppStore((s) => s.demoData.agents);
+  const demoAgents = useDemoStore((s) => s.demoData.agents);
   return useApiWithDemo<Agent[]>(
     "/api/agents",
     async () => ((await apiClient.getAgents()).data || []) as Agent[],
     demoAgents,
+    AGENT_SWR_CONFIG,
   );
 }
 
 export function useAgent(agentId: string) {
-  const demoAgents = useAppStore((s) => s.demoData.agents);
+  const demoAgents = useDemoStore((s) => s.demoData.agents);
   const demoData = demoAgents.find((a) => a.id === agentId);
   return useApiWithDemo<Agent | undefined>(
     agentId ? `/api/agents/${agentId}` : null,

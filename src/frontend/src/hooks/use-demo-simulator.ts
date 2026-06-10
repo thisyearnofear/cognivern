@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useAppStore } from "@/stores/app-store";
+import { useDemoStore } from "@/stores/demo-store";
 import { generateDemoAuditLog } from "@/lib/demo-data";
 
 /**
@@ -9,8 +9,8 @@ import { generateDemoAuditLog } from "@/lib/demo-data";
  * Generates a new audit log entry every 8–15 seconds so the dashboard feels alive.
  */
 export function useDemoSimulator() {
-  const demoMode = useAppStore((s) => s.demoMode);
-  const addDemoAuditLog = useAppStore((s) => s.addDemoAuditLog);
+  const demoMode = useDemoStore((s) => s.demoMode);
+  const addDemoAuditLog = useDemoStore((s) => s.addDemoAuditLog);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {

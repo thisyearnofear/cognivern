@@ -2,7 +2,7 @@
 
 import { toast } from "sonner";
 import { useSocketEvent } from "@/hooks/use-socket";
-import { useAppStore } from "@/stores/app-store";
+import { useDemoStore } from "@/stores/demo-store";
 import { ShieldCheck, AlertTriangle, Activity } from "lucide-react";
 
 interface AuditEvent {
@@ -22,7 +22,7 @@ interface AgentStatusEvent {
 }
 
 export function NotificationsProvider() {
-  const demoMode = useAppStore((s) => s.demoMode);
+  const demoMode = useDemoStore((s) => s.demoMode);
 
   // Audit log events
   useSocketEvent<AuditEvent>("audit:log", (event) => {
