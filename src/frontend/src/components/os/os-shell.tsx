@@ -80,6 +80,7 @@ export function OsShell() {
   const [hydraStatus, setHydraStatus] = useState<HydraDBStatusData | null>(
     null,
   );
+  const hydraFetchedRef = useRef(false);
   const terminalRef = useRef<TerminalHandle>(null);
   const intentResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -104,27 +105,22 @@ export function OsShell() {
     }
   }, [showOnboarding]);
 
-  // Fetch HydraDB status and recent memories on mount
+  // Lazy HydraDB fetch — only runs after booted (on-demand, not on mount)
   useEffect(() => {
-    Promise.all([
-      fetch("/api/os/hydra"),
-      fetch("/api/os/hydra", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "recent", limit: 3 }),
-      }).catch(() => null),
-    ])
-      .then(async ([statusRes]) => {
-        const statusData = (await statusRes.json()).data;
+    if (!booted || hydraFetchedRef.current) return;
+    hydraFetchedRef.current = true;
+    fetch("/api/os/hydra")
+      .then((res) => res.json())
+      .then((json) => {
+        const statusData = json?.data;
         if (statusData) {
           setHydraStatus(statusData);
         }
-        // Memory count available via the side-panel Memory feed
       })
       .catch(() => {
         // HydraDB not configured or unreachable — leave status as null
       });
-  }, []);
+  }, [booted]);
 
   useEffect(() => {
     if (showWelcomeBack) {

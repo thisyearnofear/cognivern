@@ -15,6 +15,8 @@ import { PolicyEnforcementService } from "../../../services/PolicyEnforcementSer
 import { sharedFhenixPolicyService } from "../../../services/FhenixPolicyService.js";
 import { AuditLogService } from "../../../services/AuditLogService.js";
 import type { AgentAction } from "../../../types/Agent.js";
+import { creRunStore } from "../../../cre/storage/CreRunStore.js";
+import { startGovernanceEvaluation } from "../../../cre/workflows/governance.js";
 import crypto from "node:crypto";
 
 export class GovernanceController {
@@ -121,8 +123,36 @@ export class GovernanceController {
         return;
       }
 
-      await this.policyEnforcementService.loadPolicy(policyId);
       const normalizedAction = this.normalizeAction(agentId, action);
+
+      // Check if the active policy is confidential → route to async FHE evaluation
+      const policy = await this.policyService.getPolicy(policyId);
+      const isConfidential = policy?.metadata?.confidential === true;
+
+      if (isConfidential) {
+        const { runId } = await startGovernanceEvaluation({
+          agentId,
+          normalizedAction,
+          policyId,
+          policyEnforcementService: this.policyEnforcementService,
+          auditLogService: this.auditLogService,
+        });
+
+        res.status(202).json({
+          success: true,
+          data: {
+            runId,
+            status: "running",
+            type: "fhe_evaluation",
+            message:
+              "Confidential policy evaluation in progress via Fhenix FHE. Subscribe to GET /api/cre/runs/${runId}/events/stream for progress.",
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      await this.policyEnforcementService.loadPolicy(policyId);
       const decision =
         await this.policyEnforcementService.evaluateDecision(normalizedAction);
 
@@ -139,10 +169,6 @@ export class GovernanceController {
         ? failedChecks.map((check) => check.reason || check.policyId).join("; ")
         : `Action approved under policy ${policyId}`;
 
-      const confidentialChecks = decision.policyChecks.filter(
-        (check) => check.metadata?.confidential,
-      );
-
       const localDecision = {
         approved: decision.allowed,
         reason,
@@ -150,21 +176,6 @@ export class GovernanceController {
         actionType: normalizedAction.type,
         policyId,
         policyChecks: decision.policyChecks,
-        ...(confidentialChecks.length > 0 && {
-          confidential: {
-            fheEvaluated: true,
-            chain:
-              process.env.FHENIX_CHAIN_ID === "84532"
-                ? "fhenix-base-sepolia"
-                : "fhenix-arbitrum-sepolia",
-            decisionIds: confidentialChecks
-              .map((c) => c.metadata?.decisionId)
-              .filter(Boolean),
-            attestations: confidentialChecks
-              .map((c) => c.metadata?.attestation)
-              .filter(Boolean),
-          },
-        }),
         timestamp: new Date().toISOString(),
       };
 
@@ -411,6 +422,88 @@ export class GovernanceController {
         },
         timestamp: new Date().toISOString(),
       });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: error instanceof Error ? error.message : "Unknown error",
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * Get the result of a previously submitted async FHE evaluation.
+   * The frontend hits this after the SSE stream signals run_finished.
+   */
+  async getEvaluationResult(req: Request, res: Response): Promise<void> {
+    try {
+      const { runId } = req.params;
+      if (!runId) {
+        res.status(400).json({
+          success: false,
+          error: { code: "BAD_REQUEST", message: "Missing runId" },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const run = await creRunStore.get(runId);
+      if (!run) {
+        res.status(404).json({
+          success: false,
+          error: { code: "NOT_FOUND", message: `Evaluation run ${runId} not found` },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      if (run.status !== "completed" && run.status !== "failed") {
+        res.status(200).json({
+          success: true,
+          data: {
+            runId,
+            status: run.status || "running",
+            message: "Evaluation still in progress",
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      // Extract the result from the final event payload
+      const events = run.events || [];
+      const finalEvent = events.find(
+        (e) => e.type === "run_finished" || e.type === "run_failed",
+      );
+      const resultPayload = finalEvent?.payload?.result as Record<string, unknown> | undefined;
+
+      if (resultPayload) {
+        res.json({
+          success: run.ok,
+          data: {
+            runId,
+            status: run.ok ? "completed" : "failed",
+            result: resultPayload,
+          },
+          timestamp: new Date().toISOString(),
+        });
+      } else {
+        // Run finished but no result payload — return what we have
+        res.json({
+          success: run.ok,
+          data: {
+            runId,
+            status: run.ok ? "completed" : "failed",
+            ok: run.ok,
+            stepCount: run.steps.length,
+            artifactCount: run.artifacts.length,
+          },
+          timestamp: new Date().toISOString(),
+        });
+      }
     } catch (error) {
       res.status(500).json({
         success: false,

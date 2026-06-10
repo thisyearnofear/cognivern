@@ -7,10 +7,14 @@ import logger from "../utils/logger.js";
 import { Script } from "node:vm";
 
 /**
- * @deprecated This service is being migrated to the new clean architecture structure.
- * This will be refactored to use the new domain and application services.
+ * Core policy enforcement engine.
  *
- * This file will be removed once the migration is complete.
+ * Evaluates agent actions against active governance policies including:
+ * - Standard rule evaluation (allow/deny/require/rate_limit/contract_audit)
+ * - Confidential FHE evaluation via FhenixPolicyService
+ * - Contract audit via ChainGPTAuditService
+ *
+ * This is the canonical evaluation path used by GovernanceController.
  */
 export class PolicyEnforcementService {
   private currentPolicy: Policy | null = null;

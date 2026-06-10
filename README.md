@@ -78,14 +78,17 @@ pnpm demo:fhenix
 | [Fhenix Integration](./docs/FHENIX_INTEGRATION.md)     | Privacy-by-Design plan: encrypted budgets, sealed approvals, FHE policy evaluation |
 | [ChainGPT Integration](./docs/CHAINGPT_INTEGRATION.md) | Web3-native AI governance: ChainGPT LLM + Smart Contract Auditor integration       |
 
-## Multi-Chain Deployment
+## Network Roles
 
-| Layer                            | Chain                                              | Contracts                                                                                                                                     |
-| -------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Execution & Policy               | X Layer Testnet (chainId 1952)                     | GovernanceContract `0x755602bB...`, AIGovernanceStorage `0x1E0317bF...`                                                                       |
-| Audit Storage                    | Filecoin Calibration                               | GovernanceContract + AIGovernanceStorage                                                                                                      |
-| Confidential Policy State (LIVE) | Fhenix (Sepolia / Arbitrum Sepolia / Base Sepolia) | `ConfidentialSpendPolicy` + full-stack FHE policy evaluation & authorized decryption — see [Fhenix Integration](./docs/FHENIX_INTEGRATION.md) |
-| **Web3 AI Governance**           | **ChainGPT**                                       | **Web3 LLM for governance intent + Smart Contract Auditor for runtime defense — see [ChainGPT Integration](./docs/CHAINGPT_INTEGRATION.md)**  |
+Each partner network plays a specific role in the product. This is the canonical reference — all docs and UI descriptions use this framing.
+
+| Partner | Role in product | User-visible? | Status |
+|---|---|---|---|
+| **Fhenix** | Confidential policy evaluation via FHE. Budgets, limits, and spend counters remain encrypted throughout evaluation. | Yes — FHE shield badge on audit decisions | **Live** (Fhenix testnet: Arbitrum Sepolia / Base Sepolia) |
+| **X Layer** | Governed execution dispatch path. After policy evaluation, approved spends are dispatched here for execution and public anchoring. | Yes — in decision audit trail via Hyperlane | Testnet (chainId 1952) |
+| **Filecoin** | Durable evidence anchoring for audit logs. Long-term immutable storage of governance decisions and evidence hashes. | Yes — evidence link per decision in audit entry | Calibration testnet |
+| **0G** | Real-time governance decision anchoring alongside Filecoin for immediate availability. | Transparently layered with Filecoin | Newton testnet |
+| **ChainGPT** | Web3-specialized LLM for smart contract auditing at runtime (pre-spend vulnerability scan) and governance-copilot queries. | Yes — Contract Audit badge on policy checks with ChainGPT metadata | **Live** — via `ChainGPTAuditService` |
 
 ## AI Provider Stack
 
@@ -113,9 +116,9 @@ The spend control plane is live: policy evaluation, signed approvals, held actio
 - **Operator UX** — PromptOS terminal integrated into sidebar, voice capabilities (ElevenLabs STT/TOS), self-service onboarding, animated workspace mode toggles, full mobile responsiveness
 - **ChainGPT Integration** — Web3-native AI governance: ChainGPT Web3 LLM as primary provider with governance context injection, Smart Contract Auditor as runtime pre-spend defense
 
-### Production Readiness: ~93%
+### Production Readiness
 
-See [Developer Guide](./docs/DEVELOPER.md) for full checklist.
+See [Developer Guide](./docs/DEVELOPER.md) for the full production readiness checklist.
 
 ## License
 

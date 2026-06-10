@@ -22,23 +22,48 @@ Agent
   |
   | intended spend / sign request
   v
-OWS Wallet + API Key
-  |
-  | policy-gated signing boundary
-  v
 Cognivern Evaluation Layer
-  - budget checks, chain restrictions, vendor allowlists
-  - approval thresholds, anomaly detection
   |
-  +--> approve -> OWS signs and sends
-  +--> hold    -> human or second wallet approves
-  +--> deny    -> no signing
+  ├── GovernanceController.evaluateAction()
+  │   ├── standard rule → PolicyEnforcementService.evaluateRule()
+  │   ├── confidential rule → FhenixPolicyService → Fhenix FHE
+  │   └── contract_audit rule → ChainGPTAuditService
+  │
+  +--> approve → OWS signs and sends
+  +--> hold    → human or second wallet approves
+  +--> deny    → no signing
   |
   v
 Cognivern Audit + Run Ledger
-  - every attempt recorded, reasons preserved
-  - project and agent views
+  ├── AuditLogService.logAction() — every decision recorded, reasons preserved
+  ├── [optional] Filecoin evidence anchoring — durable audit storage
+  └── [optional] X Layer execution dispatch via Hyperlane
 ```
+
+## Canonical Decision Lifecycle
+
+Every governance decision follows this path through the codebase:
+
+```
+Agent action
+  → GovernanceController.evaluateAction()
+  → PolicyEnforcementService.evaluateRule()
+      ├─ standard rule → local evaluation (allow/deny/require/rate_limit)
+      ├─ confidential rule → FhenixPolicyService → Fhenix FHE
+      └─ contract_audit rule → ChainGPTAuditService
+  → decision: approve / hold / deny
+  → AuditLogService.logAction()
+  → [optional] Filecoin evidence anchoring via ZeroGStorageService
+  → [optional] X Layer execution dispatch via HyperlaneRelayerService
+```
+
+This is the actual code path — not an aspirational design. It is implemented across:
+
+- **`src/backend/modules/api/controllers/GovernanceController.ts`** — HTTP entry point, resolves active policy, calls enforcement
+- **`src/backend/services/PolicyEnforcementService.ts`** — Evaluates rules one-by-one, delegates confidential rules to Fhenix, delegates contract audit to ChainGPT
+- **`src/backend/services/AuditLogService.ts`** — Persists every decision as a CRE-backed evidence record
+- **`src/backend/services/FhenixPolicyService.ts`** — Encrypted policy evaluation using CoFHE SDK
+- **`src/backend/services/ChainGPTAuditService.ts`** — Runtime smart contract vulnerability scanning
 
 ## Existing Building Blocks
 
@@ -59,7 +84,7 @@ Project-scoped run submission with ingest key validation, quota metering, and no
 
 `AuditLogService` converts actions and events into CRE-backed evidence records.
 
-`CreController` exposes run lists, details, event streams, retries, approvals, and plan updates — the right primitives for spend forensics and operator review.
+`CreController` exposes run lists, details, event streams, retries, approvals, and plan updates.
 
 ### 4. OWS Wallet Layer
 
@@ -69,7 +94,33 @@ Project-scoped run submission with ingest key validation, quota metering, and no
 
 ### 5. Frontend Control Plane
 
-The frontend already contains surfaces for policy management, audit logs, run ledger, and agent monitoring.
+The frontend contains surfaces for policy management, audit logs, run ledger, agent monitoring, governance checks, and the Command Center terminal UI.
+
+## Network Roles
+
+Each partner network plays a specific role in the product. This table is the single source of truth — all other docs and UI descriptions reference it.
+
+| Partner | Role in product | User-visible? | Status |
+|---|---|---|---|
+| **Fhenix** | Confidential policy evaluation via FHE. Budgets, limits, and spend counters remain encrypted throughout evaluation. | Yes — FHE shield badge on audit decisions | **Live** (Fhenix testnet: Arbitrum Sepolia / Base Sepolia) |
+| **X Layer** | Governed execution dispatch path. After policy evaluation, approved spends are dispatched here for execution and public anchoring. | Yes — in decision audit trail via Hyperlane | Testnet (chainId 1952) |
+| **Filecoin** | Durable evidence anchoring for audit logs. Long-term immutable storage of governance decisions and evidence hashes. | Yes — evidence link per decision in audit entry | Calibration testnet |
+| **0G** | Real-time governance decision anchoring alongside Filecoin for immediate availability. | Transparently layered with Filecoin | Newton testnet |
+| **ChainGPT** | Web3-specialized LLM for smart contract auditing at runtime (pre-spend vulnerability scan) and governance-copilot queries. | Yes — Contract Audit badge on policy checks with ChainGPT metadata | **Live** — via `ChainGPTAuditService` |
+
+## Confidential Policy Layer (Fhenix)
+
+Confidential policy evaluation uses Fully Homomorphic Encryption on Fhenix (CoFHE):
+
+- **`ConfidentialSpendPolicy.sol`** on Fhenix holds encrypted budgets (`euint128`), encrypted spend counters, and encrypted approval thresholds.
+- **`FhenixPolicyService.ts`** wraps `@cofhe/sdk` to evaluate encrypted amounts, submit to Fhenix, and unseal data for auditors.
+- **Cross-chain flow (via Hyperlane):** Fhenix emits a decision attestation → Hyperlane Mailbox dispatches it → X Layer `GovernanceContract.handle()` consumes it for execution and public anchoring.
+- **Encrypted state never leaves Fhenix:** Only the verified outcome (Approved/Denied/Held) crosses chains.
+- **Selective disclosure:** Auditor permits issued via the dashboard allow scoped decryption of confidential audit logs.
+
+Policies opt in via a `confidential: true` flag in their metadata.
+
+See [Fhenix Integration](./FHENIX_INTEGRATION.md) for full details.
 
 ## Data Flow
 
@@ -89,102 +140,137 @@ External Agents / Services
         |                   | evaluate action
         |                   v
         |           PolicyEnforcementService
+        |              ├── standard → evaluateRule()
+        |              ├── confidential → FhenixPolicyService
+        |              └── contract_audit → ChainGPTAuditService
         |                   |
         |                   v
         |              PolicyService
         |
         v
   UI / Operator Views
+    ├── AuditPage — expandable rows, per-rule breakdown, FHE badge
+    ├── Dashboard — stat cards with live latency, approval rate, blocked
+    └── GovernanceCheck — NL input, voice, evaluate against active policy
 ```
-
-## Confidential Policy Layer (LIVE — Fhenix)
-
-A fourth layer has been added for **privacy-by-design** policy evaluation using Fully Homomorphic Encryption on Fhenix (CoFHE):
-
-- **`ConfidentialSpendPolicy.sol`** on Fhenix holds encrypted budgets (`euint128`), encrypted spend counters, and encrypted approval thresholds.
-- **`FhenixPolicyService.ts`** wraps `@cofhe/sdk` to evaluate encrypted amounts, submit to Fhenix, and unseal data for auditors.
-- **Cross-chain flow (via Hyperlane):** Fhenix emits a decision attestation → **Hyperlane Mailbox** dispatches it → X Layer **`GovernanceContract.handle()`** consumes it for execution and public anchoring.
-- **Hyperlane Relayer Service:** A dedicated backend service (`HyperlaneRelayerService.ts`) facilitates the delivery of these cross-chain messages, ensuring sub-second execution on X Layer after a Fhenix policy check.
-- **Encrypted state never leaves Fhenix:** Only the verified outcome (Approved/Denied/Held) crosses chains.
-- **Selective disclosure:** Auditor permits issued via the dashboard allow scoped decryption of confidential audit logs.
-
-This layer is **integrated** — existing X Layer / 0G / Filecoin layers remain unchanged. Policies opt in via a `confidential: true` flag.
-
-See [Fhenix Integration](./FHENIX_INTEGRATION.md) for the full plan.
-
-## Legacy Components
-
-These parts of the repo are considered transitional and should not be part of the product narrative:
-
-- **Env-var private keys** — some services still use signer keys from env vars as a temporary implementation detail; the intended architecture uses OWS wallet storage. This refactor is sequenced after Fhenix wave 2 since encrypted policy state strengthens the case for vault-only key custody.
-
-## Key Endpoints
-
-| Endpoint                                 | Method    | Description                                    |
-| ---------------------------------------- | --------- | ---------------------------------------------- |
-| `/ingest/runs`                           | POST      | Project-scoped run ingestion                   |
-| `/api/governance/policies`               | GET, POST | Policy management                              |
-| `/api/governance/policies/confidential`  | POST      | Create encrypted policy on Fhenix              |
-| `/api/governance/evaluate`               | POST      | Evaluate action against policy                 |
-| `/api/governance/decisions/:decisionId`  | GET       | FHE decision + cross-chain anchoring status    |
-| `/api/ows/bootstrap`                     | POST      | Bootstrap OWS wallet                           |
-| `/api/ows/api-keys`                      | GET, POST | API key management                             |
-| `/api/ows/wallets`                       | GET       | List wallets                                   |
-| `/api/spend`                             | POST      | Execute governed spend                         |
-| `/api/spend/encrypted`                   | POST      | Submit pre-encrypted spend (FHE)               |
-| `/api/spend/preview`                     | POST      | Simulate spend (dry-run)                       |
-| `/api/spend/status`                      | GET       | Execution layer status                         |
-| `/api/audit/logs`                        | GET       | Audit trail                                    |
-| `/api/audit/permits`                     | POST      | Issue auditor decryption permit (CoFHE)        |
-| `/api/audit/logs/:decisionId/decrypt`    | GET       | Auditor decrypt with valid permit              |
-| `/api/audit/insights`                    | GET       | Audit insights                                 |
-| `/api/cre/runs`                          | GET       | Run ledger                                     |
-| `/api/cre/runs/:runId`                   | GET       | Run details                                    |
-| `/api/projects`                          | GET       | Project list                                   |
-| `/api/projects/:projectId/usage`         | GET       | Project usage                                  |
-| `/api/payroll/confidential`              | POST      | Privara confidential payroll                   |
-| `/api/vendor/sealed-bid/rounds`          | POST      | Create sealed-bid vendor selection round       |
-| `/api/fhenix/encrypt`                    | POST      | Trusted encryption sidecar (non-TS agents)     |
-| `/api/intent`                            | POST      | Natural language intent processing             |
 
 ## Mode System
 
 Cognivern operates in three distinct modes:
 
-| Mode           | Auth Required     | Data Source                                  | UI Indicator                       |
-| -------------- | ----------------- | -------------------------------------------- | ---------------------------------- |
-| **Demo**       | No                | Client-side fake data (`demo-data.ts`)       | Amber "Demo Mode" badge in sidebar |
-| **Sandbox**    | Yes (SIWE wallet) | Backend `DemoDataService` (canned responses) | Sandbox/Production toggle          |
-| **Production** | Yes (SIWE wallet) | Backend `WorkspaceDataService` (live SQLite) | Sandbox/Production toggle          |
+| Mode | Auth Required | Data Source | UI Indicator |
+|---|---|---|---|
+| **Demo** | No | Client-side demo data (`demo-data.ts`) + backend `DemoDataService` | Amber "Demo Mode" badge in sidebar |
+| **Sandbox** | Yes (wallet or email) | Backend `WorkspaceDataService` (canned/test data) with `X-Workspace-Mode: sandbox` header | Sandbox/Production toggle in workspace switcher |
+| **Production** | Yes (wallet or email) | Backend `WorkspaceDataService` (live SQLite) | "Live Workspace" green banner |
 
-- The `login()` action automatically exits demo mode.
-- The backend `demoInterceptor` respects the workspace `tier` column: workspaces with `tier='demo'` always receive demo data regardless of the `X-Workspace-Mode` header.
-- The `X-Workspace-Mode` header (`sandbox` | `production`) only applies to workspaces with `tier='live'`.
+**Mode resolution (single source of truth in `demoInterceptor.ts`):**
+
+1. Workspace `tier` is stored in SQLite — `'demo'` or `'live'`
+2. If `tier === 'demo'`, the backend always serves demo data regardless of the `X-Workspace-Mode` header
+3. If `tier === 'live'`, the `X-Workspace-Mode` header (`sandbox` | `production`) selects the data source
+4. Self-service upgrade from `demo` to `live` is available in Settings → Workspace → "Go Live"
+
+**Frontend mode store (`demo-store.ts`):**
+- `useDemoStore` controls the demo flag independently of auth state
+- `login()` automatically exits demo mode
+- The `DemoBanner` component shows workspace status in the header
+
+## Key Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/ingest/runs` | POST | Project-scoped run ingestion |
+| `/api/governance/policies` | GET, POST | Policy management |
+| `/api/governance/policies/confidential` | POST | Create encrypted policy on Fhenix |
+| `/api/governance/evaluate` | POST | Evaluate action against policy (core decision lifecycle) |
+| `/api/governance/decisions/:decisionId` | GET | FHE decision + cross-chain anchoring status |
+| `/api/ows/bootstrap` | POST | Bootstrap OWS wallet |
+| `/api/ows/api-keys` | GET, POST | API key management |
+| `/api/ows/wallets` | GET | List wallets |
+| `/api/spend` | POST | Execute governed spend |
+| `/api/spend/encrypted` | POST | Submit pre-encrypted spend (FHE) |
+| `/api/spend/preview` | POST | Simulate spend (dry-run) |
+| `/api/spend/status` | GET | Execution layer status |
+| `/api/audit/logs` | GET | Audit trail |
+| `/api/audit/permits` | POST | Issue auditor decryption permit (CoFHE) |
+| `/api/audit/logs/:decisionId/decrypt` | GET | Auditor decrypt with valid permit |
+| `/api/audit/insights` | GET | Audit insights |
+| `/api/cre/runs` | GET | Run ledger |
+| `/api/cre/runs/:runId` | GET | Run details |
+| `/api/projects` | GET | Project list |
+| `/api/projects/:projectId/usage` | GET | Project usage |
+| `/api/payroll/confidential` | POST | Privara confidential payroll |
+| `/api/fhenix/encrypt` | POST | Trusted encryption sidecar (non-TS agents) |
+| `/api/intent` | POST | Natural language intent processing |
+
+## Storage Architecture
+
+File-backed stores are built on a common `BaseStore` abstract class that provides:
+
+- Lazy file loading (JSON/JSONL)
+- TTL-based expiration
+- Max-record limits
+- Atomic read/write operations
+
+| Store | File | Purpose |
+|---|---|---|
+| `RateLimitStore` | `rate-limit-store.jsonl` | Per-workspace and per-key rate limiting with sliding windows |
+| `TokenBlacklistStore` | `token-blacklist.jsonl` | JWT token revocation blacklist |
+| `UxEventStore` | `ux-events.jsonl` | UX telemetry events |
+| `CreRunStore` | `cre-runs.jsonl` | Core Run Engine evidence ledger |
+| `IdempotencyStore` | file-backed with TTL | Idempotency key tracking |
+
+The `BaseStore<T, R>` interface accepts a config for file path (via env var or default), max records, and TTL. Subclasses override `parseLine()` and `serializeRecord()`.
+
+To swap to Redis or Postgres: implement the same interface on a new adapter and replace the singleton import — no callers change.
+
+## Async FHE Evaluation (Live)
+
+Fhenix FHE evaluations can take 10-30 seconds (CoFHE encryption + on-chain confirmation). The async UX is now implemented:
+
+1. Backend checks `policy.metadata.confidential === true` on evaluate
+2. Returns `202 Accepted` with `{ runId, status: "running", type: "fhe_evaluation" }`
+3. Background workflow (`src/backend/cre/workflows/governance.ts`) tracks progress via `CreRunRecorder` with 4 steps:
+   - `load_policy` — load the active policy
+   - `encrypt_params` — encrypt spend parameters via CoFHE SDK
+   - `submit_to_fhenix` — submit to Fhenix contract and wait for on-chain confirmation
+   - `record_audit` — persist the decision to the audit log
+4. Each step is persisted to `CreRunStore` as it completes, so the existing SSE endpoint (`GET /api/cre/runs/:runId/events/stream`) streams live progress
+5. Frontend connects to SSE via `fetch` + `ReadableStream` (not native `EventSource`, which lacks auth header support) and shows an animated 4-step progress panel
+6. When `run_finished` arrives with the result payload, the UI transitions to the decision panel
+7. `GET /api/governance/evaluate/:runId/result` provides a fallback to fetch the completed result
+8. Standard (non-confidential) evaluations remain synchronous via the existing path
+
+**Implementation files:**
+- `src/backend/cre/workflows/governance.ts` — background evaluation with CreRunRecorder
+- `src/backend/modules/api/controllers/GovernanceController.ts` — 202 dispatch for confidential policies
+- `src/frontend/src/hooks/use-fhe-progress.ts` — shared React hook for step tracking and SSE connection
+- `src/frontend/src/components/governance/governance-check.tsx` — full-page governance check with FHE progress panel
+- `src/frontend/src/components/onboarding/onboarding-wizard.tsx` — compact inline governance check with same FHE support
 
 ## Current Limitations
 
-- Workspace tiers are not yet self-service upgradeable (manual DB update required).
-- No email-based auth — wallet-only via SIWE.
-- See the [Platform Onboarding Plan](./PLANS/02-PLATFORM-ONBOARDING.md) for further roadmap.
+- File-backed stores (rate limiting, idempotency, telemetry) are single-instance — need Redis/Postgres before horizontal scaling. The `BaseStore` interface exists to make this a single-adapter swap.
+- Email auth is supported alongside SIWE (wallet-primary); the SIWE path is more battle-tested in production.
+- See the [Deployment Guide](./DEPLOYMENT.md) for operations
 
-### Security Roadmap (current: 8/10 hardening, 7.5/10 surfacing)
+## Security Architecture
 
-**Hardening (8 → 10):**
-- Redis rate limiting — replace file-backed store for multi-instance deployment
-- Argon2id for API keys — stronger KDF than scrypt, requires native module
-- JWT key rotation — automated signing key rollover
-- Certificate pinning — pin API certificate in agent SDKs to prevent MITM
-- Real-time threat detection — anomaly detection on spend patterns (unusual amounts, velocity spikes, geographic anomalies)
-- SOC 2 / third-party security audit
+The product implements layered security:
 
-**Surfacing (7.5 → 9):**
-- Prominent security stack breakdown — move from collapsible `<details>` to always-visible section
-- Trust badge — persistent security indicator visible on all pages
-- Real-time security metrics — requests blocked, rate limits hit, tokens revoked on audit page
+| Layer | Protection |
+|---|---|
+| Auth | SIWE + JWT with nonce replay protection |
+| API Keys | scrypt hashed, workspace-scoped permissions |
+| Rate Limiting | 3 layers (global, workspace, per-endpoint) |
+| Encryption | Fhenix FHE on-chain evaluation (confidential policies) |
+| Audit | Immutable records on Filecoin / 0G |
+| Contract Audit | ChainGPT runtime scan on recipient contracts |
 
 ## Related Docs
 
-- [Hackathon Brief](./HACKATHON.md) — Demo story and submission
 - [Developer Guide](./DEVELOPER.md) — APIs, local setup, testing
 - [Deployment](./DEPLOYMENT.md) — Production deployment and operations
-- [Platform Onboarding Plan](./PLANS/02-PLATFORM-ONBOARDING.md) — Phase 2 roadmap
+- [Fhenix Integration](./FHENIX_INTEGRATION.md) — Encrypted policy evaluation
+- [ChainGPT Integration](./CHAINGPT_INTEGRATION.md) — Web3 AI governance & contract auditing

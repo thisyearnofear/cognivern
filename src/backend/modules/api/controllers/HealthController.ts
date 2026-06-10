@@ -56,6 +56,10 @@ export class HealthController {
     results.push(await this.checkDatabase());
     // 2. Notifications table existence
     results.push(await this.checkNotificationsTable());
+    // 3. Policy service availability
+    results.push(await this.checkPolicyService());
+    // 4. Fhenix client reachability (graceful — returns 'unhealthy' only when keys are present but unreachable)
+    results.push(await this.checkFhenixClient());
 
     return results;
   }
@@ -102,6 +106,67 @@ export class HealthController {
           error: "notifications table not found",
         };
       }
+      return {
+        name,
+        status: "healthy",
+        latencyMs: Date.now() - start,
+      };
+    } catch (err) {
+      return {
+        name,
+        status: "unhealthy",
+        latencyMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  private async checkPolicyService(): Promise<DependencyCheck> {
+    const name = "policy_service";
+    const start = Date.now();
+    try {
+      const { sharedPolicyService } = await import(
+        "../../../services/PolicyService.js"
+      );
+      const policies = await sharedPolicyService.listPolicies();
+      return {
+        name,
+        status: "healthy",
+        latencyMs: Date.now() - start,
+      };
+    } catch (err) {
+      return {
+        name,
+        status: "unhealthy",
+        latencyMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  private async checkFhenixClient(): Promise<DependencyCheck> {
+    const name = "fhenix_client";
+    const start = Date.now();
+    const rpcUrl = process.env.FHENIX_RPC_URL;
+    const fhenixKey = process.env.FHENIX_PRIVATE_KEY;
+
+    // If Fhenix is not configured, report as healthy (not required)
+    if (!rpcUrl && !fhenixKey) {
+      return {
+        name,
+        status: "healthy",
+        latencyMs: Date.now() - start,
+      };
+    }
+
+    try {
+      const { createPublicClient, http } = await import("viem");
+      const { arbitrumSepolia } = await import("viem/chains");
+      const client = createPublicClient({
+        chain: arbitrumSepolia,
+        transport: http(rpcUrl || "https://sepolia-rollup.arbitrum.io/rpc"),
+      });
+      await client.getBlockNumber();
       return {
         name,
         status: "healthy",

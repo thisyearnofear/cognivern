@@ -185,7 +185,7 @@ export class AuditLogService {
     action: AgentAction,
     policyChecks: PolicyCheck[],
     allowed: boolean,
-  ): Promise<void> {
+  ): Promise<string> {
     const runId = crypto.randomUUID();
     const now = new Date().toISOString();
 
@@ -256,6 +256,8 @@ export class AuditLogService {
       .catch(() => {
         /* already logged inside ZeroGStorageService */
       });
+
+    return runId;
   }
 
   async getFilteredLogs(filters: {

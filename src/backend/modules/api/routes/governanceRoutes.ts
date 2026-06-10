@@ -28,6 +28,9 @@ export function createGovernanceRoutes(
   router.post("/governance/evaluate", (req, res) =>
     governanceController.evaluateAction(req, res),
   );
+  router.get("/governance/evaluate/:runId/result", (req, res) =>
+    governanceController.getEvaluationResult(req, res),
+  );
 
   // Policy versioning endpoints (workspace-scoped)
   router.get("/governance/policies/:policyId/versions", (req, res) => {
