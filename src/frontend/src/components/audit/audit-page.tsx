@@ -94,6 +94,15 @@ function hasChainGptAudit(rawLog: unknown): boolean {
   return false;
 }
 
+/**
+ * Detect if a raw log carries a Ledger hardware signing provider.
+ */
+function hasLedgerSigning(rawLog: unknown): boolean {
+  if (!rawLog || typeof rawLog !== "object") return false;
+  const r = rawLog as Record<string, unknown>;
+  return (r.signingProvider as string) === "ledger";
+}
+
 function AuditLogRow({
   log,
   rawLog,
@@ -104,6 +113,7 @@ function AuditLogRow({
   const [expanded, setExpanded] = useState(false);
   const isFhe = hasConfidentialFhe(rawLog);
   const isChainGpt = hasChainGptAudit(rawLog);
+  const isLedger = hasLedgerSigning(rawLog);
   const hasChecks = log.policyChecks.length > 0;
 
   return (
@@ -153,6 +163,15 @@ function AuditLogRow({
                 >
                   <ShieldCheck className="h-2.5 w-2.5" />
                   Audit
+                </span>
+              )}
+              {isLedger && (
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700"
+                  title="Signed via Ledger hardware device"
+                >
+                  <Fingerprint className="h-2.5 w-2.5" />
+                  Hardware
                 </span>
               )}
               <span className="text-xs text-muted-foreground">

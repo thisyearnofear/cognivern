@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  speculos:
+    image: ghcr.io/ledgerhq/speculos:latest
+    container_name: cognivern-speculos
+    ports:
+      - "5000:5000"
+    environment:
+      - SPECULOS_MODEL=nanosp
+      - SPECULOS_APP=ethereum
+    networks:
+      - cognivern-network
+
+networks:
+  cognivern-network:
+    driver: bridge

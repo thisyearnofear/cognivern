@@ -24,6 +24,8 @@ export interface AuditLog {
   latency?: string;
   responseTime?: string; // alias for latency
   policyChecks?: PolicyCheck[];
+  signingProvider?: "local" | "ledger" | "speculos" | "ows_remote";
+  walletAddress?: string;
 }
 
 export interface PolicyCheck {
