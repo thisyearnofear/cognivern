@@ -251,7 +251,7 @@ export function GovernanceCheck() {
       } else {
         // Sync evaluation (non-confidential) — use data directly
         const resultData = body?.data;
-        setResult((resultData as GovernanceEvaluation) || null);
+        setResult((resultData as unknown as GovernanceEvaluation) || null);
         if (!resultData) setError("No evaluation result returned");
         setEvaluating(false);
       }
