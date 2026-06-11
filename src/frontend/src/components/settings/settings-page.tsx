@@ -254,8 +254,7 @@ function ApiKeysCard() {
     }
   }, [createdKey]);
 
-  return (
-    <div className="rounded-xl border bg-card p-5 space-y-5">
+  return (      <div className="rounded-xl border bg-card p-5 space-y-4">
       <div>
         <h2 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
             <Key className="h-4 w-4 text-amber-500" />
