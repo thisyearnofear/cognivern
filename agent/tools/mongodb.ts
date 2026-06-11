@@ -119,7 +119,7 @@ export async function executeMongodbTool(
           agentId: args.agentId,
         };
         if (args.type) filter.type = args.type;
-        return db
+        return await db
           .collection("agent_memory")
           .find(filter)
           .sort({ timestamp: -1 })
@@ -146,7 +146,7 @@ export async function executeMongodbTool(
         if (typeof args.minRiskScore === "number") {
           filter["metadata.riskScore"] = { $gte: args.minRiskScore };
         }
-        return db
+        return await db
           .collection("audit_logs")
           .find(filter)
           .sort({ timestamp: -1 })
@@ -154,7 +154,7 @@ export async function executeMongodbTool(
           .toArray();
       }
       case "mongodb_vendor_reputation": {
-        return db
+        return await db
           .collection("vendor_reputation")
           .findOne({ vendor: args.vendor });
       }
@@ -168,7 +168,7 @@ export async function executeMongodbTool(
             $lte: args.endDate,
           };
         }
-        return db
+        return await db
           .collection("cre_runs")
           .find(filter)
           .sort({ startedAt: -1 })
