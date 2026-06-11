@@ -151,6 +151,13 @@ async function callGemini(
   return data.candidates[0].content;
 }
 
+function toFunctionResponsePayload(result: unknown): Record<string, unknown> {
+  if (result && typeof result === "object" && !Array.isArray(result)) {
+    return result as Record<string, unknown>;
+  }
+  return { result };
+}
+
 function getGcloudAccessToken(): string | undefined {
   try {
     return execFileSync("gcloud", ["auth", "print-access-token"], {
@@ -237,8 +244,8 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
     );
 
     // No function call — model is done.
-    const fnCall = modelContent.parts.find((p) => p.functionCall);
-    if (!fnCall) {
+    const fnCalls = modelContent.parts.filter((p) => p.functionCall);
+    if (fnCalls.length === 0) {
       const text =
         modelContent.parts.find((p) => p.text)?.text ||
         "(no response from model)";
@@ -254,104 +261,92 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
 
     // Push the model turn into history.
     contents.push({ role: "model", parts: modelContent.parts });
-    transcript.push({
-      role: "model",
-      name: fnCall.functionCall!.name,
-      args: fnCall.functionCall!.args,
-    });
 
-    // If previewOnly is set, intercept execute_spend before HITL or execution.
-    if (
-      opts.previewOnly &&
-      fnCall.functionCall!.name === "cognivern_execute_spend"
-    ) {
-      const intercepted = {
-        intercepted: true,
-        reason: "previewOnly mode - no real spend",
-      };
-      contents.push({
-        role: "function",
-        parts: [
-          {
-            functionResponse: {
-              name: fnCall.functionCall!.name,
-              response: intercepted,
-            },
-          },
-        ],
+    const responseParts: GeminiPart[] = [];
+    for (const fnCallPart of fnCalls) {
+      const fnCall = fnCallPart.functionCall!;
+      transcript.push({
+        role: "model",
+        name: fnCall.name,
+        args: fnCall.args,
       });
-      transcript.push({ role: "tool", result: intercepted });
-      continue;
-    }
 
-    // HITL gate.
-    if (HUMAN_CONFIRMATION_REQUIRED.has(fnCall.functionCall!.name)) {
-      const confirm = await askHuman(
-        `The agent wants to call ${fnCall.functionCall!.name}. Approve?`,
-        fnCall.functionCall!.args,
-      );
-      if (!confirm.approved) {
-        const refusal = "Operator denied execution. Spend aborted.";
-        contents.push({
-          role: "function",
-          parts: [
-            {
-              functionResponse: {
-                name: fnCall.functionCall!.name,
-                response: { denied: true, reason: refusal },
-              },
-            },
-          ],
+      // If previewOnly is set, intercept execute_spend before HITL or execution.
+      if (opts.previewOnly && fnCall.name === "cognivern_execute_spend") {
+        const intercepted = {
+          intercepted: true,
+          reason: "previewOnly mode - no real spend",
+        };
+        responseParts.push({
+          functionResponse: {
+            name: fnCall.name,
+            response: toFunctionResponsePayload(intercepted),
+          },
         });
-        transcript.push({ role: "tool", result: { denied: true, reason: refusal } });
-        // Ask the model to wrap up.
+        transcript.push({ role: "tool", result: intercepted });
         continue;
       }
-      fnCall.functionCall!.args.humanConfirmationToken = confirm.token;
-    }
 
-    // Execute the tool.
-    let result: unknown;
-    try {
-      result = await executeTool(
-        ctx,
-        fnCall.functionCall!.name,
-        fnCall.functionCall!.args,
-      );
-    } catch (e) {
-      result = { error: e instanceof Error ? e.message : String(e) };
-    }
-    transcript.push({ role: "tool", result });
+      // HITL gate.
+      if (HUMAN_CONFIRMATION_REQUIRED.has(fnCall.name)) {
+        const confirm = await askHuman(
+          `The agent wants to call ${fnCall.name}. Approve?`,
+          fnCall.args,
+        );
+        if (!confirm.approved) {
+          const refusal = "Operator denied execution. Spend aborted.";
+          const denied = { denied: true, reason: refusal };
+          responseParts.push({
+            functionResponse: {
+              name: fnCall.name,
+              response: toFunctionResponsePayload(denied),
+            },
+          });
+          transcript.push({ role: "tool", result: denied });
+          continue;
+        }
+        fnCall.args.humanConfirmationToken = confirm.token;
+      }
 
-    // Capture the receipts when they appear.
-    if (
-      fnCall.functionCall!.name === "cognivern_preview_spend" &&
-      typeof result === "object" &&
-      result !== null
-    ) {
-      const r = result as Record<string, unknown>;
-      if (typeof r.decisionId === "string") decisionId = r.decisionId;
-      if (typeof r.attestationHash === "string") attestationHash = r.attestationHash;
-    }
-    if (
-      fnCall.functionCall!.name === "cognivern_execute_spend" &&
-      typeof result === "object" &&
-      result !== null
-    ) {
-      const r = result as Record<string, unknown>;
-      if (typeof r.auditLogId === "string") auditLogId = r.auditLogId;
+      // Execute the tool.
+      let result: unknown;
+      try {
+        result = await executeTool(ctx, fnCall.name, fnCall.args);
+      } catch (e) {
+        result = { error: e instanceof Error ? e.message : String(e) };
+      }
+      transcript.push({ role: "tool", result });
+
+      // Capture the receipts when they appear.
+      if (
+        fnCall.name === "cognivern_preview_spend" &&
+        typeof result === "object" &&
+        result !== null
+      ) {
+        const r = result as Record<string, unknown>;
+        if (typeof r.decisionId === "string") decisionId = r.decisionId;
+        if (typeof r.attestationHash === "string") attestationHash = r.attestationHash;
+      }
+      if (
+        fnCall.name === "cognivern_execute_spend" &&
+        typeof result === "object" &&
+        result !== null
+      ) {
+        const r = result as Record<string, unknown>;
+        if (typeof r.auditLogId === "string") auditLogId = r.auditLogId;
+      }
+
+      responseParts.push({
+        functionResponse: {
+          name: fnCall.name,
+          response: toFunctionResponsePayload(result),
+        },
+      });
     }
 
     contents.push({
       role: "function",
-      parts: [
-        {
-          functionResponse: {
-            name: fnCall.functionCall!.name,
-            response: result,
-          },
-        },
-      ],
+      parts: responseParts,
     });
   }
 
