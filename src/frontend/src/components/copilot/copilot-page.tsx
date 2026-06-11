@@ -116,6 +116,14 @@ function statusVariant(status?: CopilotRun["status"]) {
   return "secondary" as const;
 }
 
+function readableError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("API error 401")) {
+    return "Sign in with your wallet, then run the mission again.";
+  }
+  return message;
+}
+
 export function CopilotPage() {
   const [goal, setGoal] = useState(defaultGoal);
   const [run, setRun] = useState<CopilotRun | null>(null);
@@ -163,7 +171,7 @@ export function CopilotPage() {
         },
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(readableError(err));
     } finally {
       setBusy(false);
     }
@@ -181,7 +189,7 @@ export function CopilotPage() {
       setRun(response.run);
       setEvents(response.run.events || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(readableError(err));
     } finally {
       setBusy(false);
     }
