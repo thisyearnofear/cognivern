@@ -49,29 +49,6 @@ const envSchema = z.object({
   SPARK_API_URL: z.string().default("https://api.filspark.com"),
   FILECOIN_NETWORK: z.enum(["mainnet", "calibration"]).default("calibration"),
 
-  // Recall Configuration
-  RECALL_API_KEY: z.string().default(""),
-  RECALL_API_URL: z.string().default("https://api.competitions.recall.network"),
-  RECALL_SANDBOX_URL: z
-    .string()
-    .default("https://api.sandbox.competitions.recall.network"),
-  RECALL_BUCKET_ADDRESS: z.string().optional(),
-  RECALL_BUCKET_ALIAS: z.string().default("escheat-agents-bucket"),
-  RECALL_PRIVATE_KEY: z.string().optional(),
-  RECALL_RPC_URL: z
-    .string()
-    .default("https://api.calibration.node.glif.io/rpc/v1"),
-  RECALL_CHAIN_ID: z.coerce.number().default(314159),
-  RECALL_NETWORK: z
-    .enum(["mainnet", "testnet", "calibration"])
-    .default("calibration"),
-
-  // Recall Trading API Configuration
-  RECALL_TRADING_API_KEY: z.string().optional(),
-  RECALL_TRADING_BASE_URL: z
-    .string()
-    .default("https://api.sandbox.competitions.recall.network"),
-
   // Server Configuration
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z
@@ -115,10 +92,6 @@ const envSchema = z.object({
   FHENIX_POLICY_CONTRACT: z.string().default(""),
   FHENIX_PRIVATE_KEY: z.string().optional(),
   FHENIX_EVALUATE_TIMEOUT_MS: z.coerce.number().default(30000),
-
-  // Cloudflare Workers Configuration
-  CLOUDFLARE_WORKER_URL: z.string().default("http://localhost:8787"),
-  CLOUDFLARE_WORKER_ENABLED: z.coerce.boolean().default(false),
 });
 
 // Parse and validate environment variables
