@@ -120,8 +120,12 @@ The spend control plane is live: policy evaluation, signed approvals, held actio
 - **Operator UX** — PromptOS terminal integrated into sidebar, voice capabilities (ElevenLabs STT/TOS), self-service onboarding, animated workspace mode toggles, full mobile responsiveness
 - **ChainGPT Integration** — Web3-native AI governance: ChainGPT Web3 LLM as primary provider with governance context injection, Smart Contract Auditor as runtime pre-spend defense
 - **Ledger Hardware Signing** — Full DMK-based hardware signing with Speculos sandbox. All 5 phases complete: provider dispatch, LedgerSigningProvider (USB + emulated fallback), Docker sandbox, frontend badge, AGENTS.md
-- **MongoDB Persistence** — Optional MongoDB-backed run ledger and agent memory via `MongoDbCreRunPersistence` + `MongoDbMemoryService`. Drops into existing `MultiCreRunPersistence` alongside JSONL. Gated by `MONGODB_URI`
+- **MongoDB Persistence** — Optional MongoDB-backed run ledger, agent memory, and policies via `MongoDbCreRunPersistence` + `MongoDbMemoryService` + `MongoDbPolicyPersistence`. All gated by `MONGODB_URI`
 - **Recall Network Cleanup** — Removed broken `RecallService` that called nonexistent API endpoints. 550 lines of dead code deleted, 14 files modified, circuit breaker stripped
+- **UI Polish** — aria-labels on all color-only status indicators, keyboard-navigable agent cards, loading skeletons for `/audit` and `/policies` routes
+- **Circuit Breaker Consolidation** — Removed dead `withCircuitBreaker` (104 lines) from BaseService, refactored `IntentController` inline breaker to use canonical `CircuitBreaker` class. All circuit protection now flows through `src/backend/shared/utils/circuitBreaker.ts`
+- **Logging Consolidation** — `src/backend/utils/logger.ts` now re-exports from `src/backend/shared/logging/Logger.ts`. Single winston logger under the hood, zero import changes across 32 consuming files
+- **Policy Persistence** — Extracted `PolicyPersistence` interface with `InMemoryPolicyPersistence` and `MongoDbPolicyPersistence` backends. PolicyService delegates to injected backend (8 unit tests)
 
 ### Production Readiness
 
