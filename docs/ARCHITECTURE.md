@@ -296,6 +296,41 @@ Fhenix FHE evaluations can take 10-30 seconds (CoFHE encryption + on-chain confi
 - `src/frontend/src/components/governance/governance-check.tsx` — full-page governance check with FHE progress panel
 - `src/frontend/src/components/onboarding/onboarding-wizard.tsx` — compact inline governance check with same FHE support
 
+## Persistence Layer
+
+### PolicyPersistence
+
+Policies are persisted through a `PolicyPersistence` interface (analogous to `CreRunPersistence`):
+
+| Implementation | Location | Storage |
+|----------------|----------|---------|
+| `InMemoryPolicyPersistence` | `src/backend/persistence/PolicyPersistence.ts` | In-memory `Map` (default) |
+| `MongoDbPolicyPersistence` | `src/backend/persistence/MongoDbPolicyPersistence.ts` | MongoDB `policies` collection |
+
+`PolicyService` delegates all CRUD to the injected backend, selected conditionally at startup:
+- Default → `InMemoryPolicyPersistence` (same behavior as before)
+- `MONGODB_URI` set → `MongoDbPolicyPersistence`
+
+Bundled `.json` policies (from `src/backend/policies/`) are seeded on init with duplicate-ID skip. See `src/backend/persistence/PolicyPersistence.ts`.
+
+## Cross-Cutting Refactors
+
+### Logging Consolidation
+
+Two logging systems existed: `src/backend/utils/logger.ts` (default export, 32 importers) and `src/backend/shared/logging/Logger.ts` (class + facade, 18 importers). They were consolidated by making `utils/logger.ts` re-export from the shared `Logger.ts` facade. All 32 importers continue to work unchanged; the shared `Logger` class had its `LogContext` type loosened to `any` to match winston's native flexibility.
+
+### Circuit Breaker Consolidation
+
+Three circuit breaker implementations were consolidated into one:
+
+| Old Implementation | Location | Disposition |
+|-------------------|----------|-------------|
+| Standalone `CircuitBreaker` class | `src/backend/shared/utils/circuitBreaker.ts` | **Kept** — canonical implementation |
+| `BaseService.withCircuitBreaker()` | `src/backend/shared/services/BaseService.ts` | **Removed** — 104 lines, no subclass called it |
+| Inline breaker in `IntentController` | `src/backend/modules/api/controllers/IntentController.ts` | **Refactored** — now uses the standalone `CircuitBreaker` class |
+
+The single `CircuitBreaker` class was extended with public `recordFailure()`/`reset()` methods to support the explicit-failure-recording pattern used by `IntentController`.
+
 ## Current Limitations
 
 - File-backed stores (rate limiting, idempotency, telemetry) are single-instance — need Redis/Postgres before horizontal scaling. The `BaseStore` interface exists to make this a single-adapter swap.

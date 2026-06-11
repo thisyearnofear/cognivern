@@ -7,6 +7,7 @@
 
 import { Request, Response } from "express";
 import { Logger } from "../../../shared/logging/Logger.js";
+import { CircuitBreaker } from "../../../shared/utils/circuitBreaker.js";
 import { MultiModelRouter } from "../../cloudflare-agents/MultiModelRouter.js";
 import { AuditLogService } from "../../../services/AuditLogService.js";
 
@@ -104,15 +105,12 @@ export class IntentController {
   private aiRouter: MultiModelRouter;
   private auditLogService: AuditLogService;
   private metrics: IntentMetrics;
-  private circuitBreaker: {
-    failures: number;
-    lastFailure: number;
-    state: "closed" | "open" | "half-open";
-  };
+  private cb: CircuitBreaker;
 
   constructor() {
     this.aiRouter = new MultiModelRouter();
     this.auditLogService = new AuditLogService();
+    this.cb = new CircuitBreaker("IntentAI", { threshold: 5, resetAfterMs: 60000 });
     this.metrics = {
       totalRequests: 0,
       successfulRequests: 0,
@@ -123,11 +121,6 @@ export class IntentController {
       lastReset: Date.now(),
       circuitBreakerState: "closed",
     };
-    this.circuitBreaker = {
-      failures: 0,
-      lastFailure: 0,
-      state: "closed",
-    };
   }
 
   /**
@@ -135,7 +128,12 @@ export class IntentController {
    * Get performance metrics for monitoring
    */
   getMetrics(): IntentMetrics {
-    return { ...this.metrics, circuitBreakerState: this.circuitBreaker.state };
+    const state = this.cb.getState();
+    let cbState: "closed" | "open" | "half-open" = "closed";
+    if (state.isOpen) {
+      cbState = Date.now() - state.lastFailure > 60000 ? "half-open" : "open";
+    }
+    return { ...this.metrics, circuitBreakerState: cbState };
   }
 
   /**
@@ -152,7 +150,7 @@ export class IntentController {
       lastReset: Date.now(),
       circuitBreakerState: "closed",
     };
-    this.circuitBreaker = { failures: 0, lastFailure: 0, state: "closed" };
+    this.cb.forceReset();
   }
 
   /**
@@ -168,16 +166,11 @@ export class IntentController {
    * Check circuit breaker state
    */
   private shouldUseFallback(): boolean {
-    const now = Date.now();
-    const { failures, lastFailure, state } = this.circuitBreaker;
-
-    // If circuit is open and enough time has passed, try half-open
-    if (state === "open" && now - lastFailure > 60000) {
-      this.circuitBreaker.state = "half-open";
-      logger.info("Circuit breaker entering half-open state");
-    }
-
-    return state === "open" || state === "half-open";
+    const state = this.cb.getState();
+    if (!state.isOpen) return false;
+    // If circuit is open and enough time has passed, let one request through
+    const timeSinceFailure = Date.now() - state.lastFailure;
+    return timeSinceFailure < 60000;
   }
 
   /**
@@ -187,24 +180,7 @@ export class IntentController {
     this.metrics.failedRequests++;
     this.metrics.aiProviderFailures[provider] =
       (this.metrics.aiProviderFailures[provider] || 0) + 1;
-    this.circuitBreaker.failures++;
-    this.circuitBreaker.lastFailure = Date.now();
-
-    // Open circuit after 5 consecutive failures
-    if (this.circuitBreaker.failures >= 5) {
-      this.circuitBreaker.state = "open";
-      logger.warn(
-        `Circuit breaker opened after ${this.circuitBreaker.failures} failures`,
-      );
-    }
-  }
-
-  /**
-   * Record successful AI request
-   */
-  private recordSuccess(): void {
-    this.circuitBreaker.failures = 0;
-    this.circuitBreaker.state = "closed";
+    this.cb.recordFailure();
   }
 
   /**
@@ -252,7 +228,7 @@ export class IntentController {
         details: { query, intentType: classification.type },
       });
 
-      this.recordSuccess();
+      this.cb.reset();
       this.updateLatency(Date.now() - startTime);
       this.metrics.successfulRequests++;
 

@@ -93,7 +93,7 @@ export class Logger {
   /**
    * Log error message
    */
-  error(message: string, context?: LogContext | Error): void {
+  error(message: string, context?: any): void {
     if (context instanceof Error) {
       this.winston.error(message, {
         error: {
@@ -110,21 +110,21 @@ export class Logger {
   /**
    * Log warning message
    */
-  warn(message: string, context?: LogContext): void {
+  warn(message: string, context?: any): void {
     this.winston.warn(message, context);
   }
 
   /**
    * Log info message
    */
-  info(message: string, context?: LogContext): void {
+  info(message: string, context?: any): void {
     this.winston.info(message, context);
   }
 
   /**
    * Log debug message
    */
-  debug(message: string, context?: LogContext): void {
+  debug(message: string, context?: any): void {
     this.winston.debug(message, context);
   }
 
@@ -230,12 +230,12 @@ export const defaultLogger = new Logger(
 
 // Export convenience functions for backward compatibility
 export const logger = {
-  error: (message: string, context?: LogContext | Error) =>
+  error: (message: string, context?: any) =>
     defaultLogger.error(message, context),
-  warn: (message: string, context?: LogContext) =>
+  warn: (message: string, context?: any) =>
     defaultLogger.warn(message, context),
-  info: (message: string, context?: LogContext) =>
+  info: (message: string, context?: any) =>
     defaultLogger.info(message, context),
-  debug: (message: string, context?: LogContext) =>
+  debug: (message: string, context?: any) =>
     defaultLogger.debug(message, context),
 };

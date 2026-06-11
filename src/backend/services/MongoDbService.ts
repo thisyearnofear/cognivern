@@ -28,7 +28,10 @@ export class MongoDbService {
       );
     }
 
-    this.client = new MongoClient(this.config.uri);
+    this.client = new MongoClient(this.config.uri, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
+    });
     await this.client.connect();
     this.db = this.client.db(this.config.dbName);
     this.connected = true;

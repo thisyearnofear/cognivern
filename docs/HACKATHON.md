@@ -23,6 +23,21 @@ Each hackathon contributed a specific integration. See the respective docs:
 - **Agents Assemble** — FHIR/SHARP context adapter, Together AI evaluator, Kestra orchestration, MCP tool endpoint
 - **Google Cloud Rapid Agent** — MongoDB MCP integration for persistent agent memory. GCP Agent Builder hosts a governed agent powered by Gemini + Cognivern governance API + MongoDB MCP. Track: MongoDB
 
+### Phase 4 — GCP Showcase Agent (Pre-Submission Checklist)
+
+**What's done:**
+- MongoDB persistence for run ledger (`MongoDbCreRunPersistence`), agent memory (`MongoDbMemoryService`), and policies (`MongoDbPolicyPersistence`)
+- `MongoDbService` lazy-connection manager gated by `MONGODB_URI`
+- `config/mcp-servers.json` — MongoDB MCP sidecar config for Agent Builder
+- Docs: `ARCHITECTURE.md` (MongoDB table), `HACKATHON.md`, `DEPLOYMENT.md`, `DEVELOPER.md`
+
+**Needs before submission:**
+- MongoDB Atlas free tier cluster provisioned with credentials in `.env`
+- Cognivern backend deployed to a public URL (Hetzner or Railway)
+- GCP Agent Builder agent configured with Cognivern API + MongoDB MCP tools
+- Screencast of GCP agent calling Cognivern governance API + querying MongoDB memory
+- UI accessibility improvements: aria-labels on color-only indicators, keyboard nav on stat cards, loading skeletons for audit/policies (done) — likely the most judge-visible polish
+
 ## Demo Flow
 
 ### Standard Spend Flow

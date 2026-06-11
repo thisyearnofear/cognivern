@@ -77,7 +77,7 @@ export class CircuitBreaker {
   /**
    * Record a failure and potentially open the circuit
    */
-  private recordFailure(): void {
+  recordFailure(): void {
     this.failures++;
     this.lastFailure = Date.now();
 
@@ -94,7 +94,7 @@ export class CircuitBreaker {
   /**
    * Reset the circuit after successful operation
    */
-  private reset(): void {
+  reset(): void {
     if (this.isOpen || this.failures > 0) {
       if (this.enableLogging) {
         logger.info(

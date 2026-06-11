@@ -26,15 +26,6 @@ interface CacheEntry<T = unknown> {
   expiresAt: number;
 }
 
-/**
- * Circuit breaker state for external service resilience
- */
-interface CircuitState {
-  failures: number;
-  lastFailure: number;
-  isOpen: boolean;
-}
-
 export abstract class BaseService extends EventEmitter {
   protected readonly logger: Logger;
   protected readonly config: ServiceConfig;
@@ -43,9 +34,6 @@ export abstract class BaseService extends EventEmitter {
 
   // In-memory cache with TTL support
   private cache: Map<string, CacheEntry> = new Map();
-
-  // Circuit breaker states per external service
-  private circuits: Map<string, CircuitState> = new Map();
 
   constructor(config: ServiceConfig) {
     super();
@@ -270,98 +258,6 @@ export abstract class BaseService extends EventEmitter {
   // ===========================================
   // CIRCUIT BREAKER (MODULAR + PERFORMANT)
   // ===========================================
-
-  /**
-   * Execute operation with circuit breaker protection
-   * Prevents cascading failures from unhealthy external services
-   *
-   * @param serviceName - Name of the external service
-   * @param operation - Function to execute
-   * @param threshold - Number of failures before opening circuit (default: 5)
-   * @param resetAfterMs - Time before attempting to close circuit (default: 30s)
-   * @returns Result of the operation
-   * @throws ServiceError if circuit is open
-   */
-  protected async withCircuitBreaker<T>(
-    serviceName: string,
-    operation: () => Promise<T>,
-    threshold: number = 5,
-    resetAfterMs: number = 30000,
-  ): Promise<T> {
-    const circuit = this.getCircuit(serviceName);
-
-    // Check if circuit is open
-    if (circuit.isOpen && Date.now() - circuit.lastFailure < resetAfterMs) {
-      this.logger.warn(
-        `Circuit breaker OPEN for ${serviceName}, rejecting request`,
-      );
-      throw new ServiceError(
-        `${serviceName} circuit breaker is open - service temporarily unavailable`,
-      );
-    }
-
-    // If circuit was open but reset period passed, try to close it
-    if (circuit.isOpen) {
-      this.logger.info(
-        `Circuit breaker HALF-OPEN for ${serviceName}, attempting recovery`,
-      );
-    }
-
-    try {
-      const result = await operation();
-      this.resetCircuit(serviceName);
-      return result;
-    } catch (error) {
-      this.recordCircuitFailure(serviceName, threshold);
-      throw error;
-    }
-  }
-
-  /**
-   * Get or create circuit state for a service
-   */
-  private getCircuit(serviceName: string): CircuitState {
-    if (!this.circuits.has(serviceName)) {
-      this.circuits.set(serviceName, {
-        failures: 0,
-        lastFailure: 0,
-        isOpen: false,
-      });
-    }
-    return this.circuits.get(serviceName)!;
-  }
-
-  /**
-   * Record a failure and potentially open the circuit
-   */
-  private recordCircuitFailure(serviceName: string, threshold: number): void {
-    const circuit = this.getCircuit(serviceName);
-    circuit.failures++;
-    circuit.lastFailure = Date.now();
-
-    if (circuit.failures >= threshold && !circuit.isOpen) {
-      circuit.isOpen = true;
-      this.logger.error(
-        `Circuit breaker OPENED for ${serviceName} after ${circuit.failures} failures`,
-      );
-      this.emit("circuit:open", { serviceName, failures: circuit.failures });
-    }
-  }
-
-  /**
-   * Reset circuit state after successful operation
-   */
-  private resetCircuit(serviceName: string): void {
-    const circuit = this.getCircuit(serviceName);
-    if (circuit.isOpen || circuit.failures > 0) {
-      this.logger.info(
-        `Circuit breaker CLOSED for ${serviceName}, service recovered`,
-      );
-      this.emit("circuit:close", { serviceName });
-    }
-    circuit.failures = 0;
-    circuit.isOpen = false;
-  }
 
   /**
    * Check if service is healthy
