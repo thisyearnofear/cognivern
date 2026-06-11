@@ -12,6 +12,8 @@ import { CommandPalette } from "@/components/layout/command-palette";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { AnimatePresence } from "motion/react";
 import { PageTransition } from "@/components/ui/page-transition";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { WelcomeOverlay } from "@/components/ui/welcome-overlay";
 import { useDemoSimulator } from "@/hooks/use-demo-simulator";
 
 function DemoSimulator() {
@@ -42,6 +44,8 @@ export default function DashboardLayout({
         <main
           className={`flex-1 overflow-auto ${isOsPage ? "p-0" : "p-4 md:p-6"}`}
         >
+          <Breadcrumb />
+          <WelcomeOverlay />
           <ErrorBoundary>
             <AnimatePresence mode="wait">
               <PageTransition routeKey={pathname}>
