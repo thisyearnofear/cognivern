@@ -218,7 +218,7 @@ pnpm lint
 ### Completed
 
 - [x] Error boundaries for frontend resilience
-- [x] Circuit breakers for external services (Recall, Sapience, Contract, AI providers)
+- [x] Circuit breakers for external services (Sapience, Contract, AI providers)
 - [x] Code splitting and adaptive loading
 - [x] Sensitive data redaction in public proofs
 - [x] Unit tests for core services (PolicyEnforcement, TradingHistory, Sapience)

@@ -100,6 +100,7 @@
     "graphql-request": "7.4.0",
     "helmet": "^7.1.0",
     "jose": "6.2.3",
+    "mongodb": "7.3.0",
     "morgan": "^1.10.0",
     "openai": "^4.93.0",
     "rxjs": "7.8.2",

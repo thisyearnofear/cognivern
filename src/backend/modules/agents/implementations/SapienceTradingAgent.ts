@@ -23,9 +23,6 @@ type SapienceServiceType = InstanceType<
 type AutomatedForecastingServiceType = InstanceType<
   typeof import("../../../services/AutomatedForecastingService.js").AutomatedForecastingService
 >;
-type RecallServiceType = InstanceType<
-  typeof import("../../../services/RecallService.js").RecallService
->;
 
 export class SapienceTradingAgent implements TradingAgent {
   public readonly id: string;
@@ -35,7 +32,6 @@ export class SapienceTradingAgent implements TradingAgent {
   public config: TradingAgentConfig;
 
   private sapienceService?: SapienceServiceType;
-  private recallService?: RecallServiceType;
   private forecastingService?: AutomatedForecastingServiceType;
   private portfolio: Portfolio | null = null;
   private history: any[] = [];
@@ -47,23 +43,18 @@ export class SapienceTradingAgent implements TradingAgent {
   }
 
   private async ensureServices(): Promise<void> {
-    if (this.sapienceService && this.recallService && this.forecastingService) {
+    if (this.sapienceService && this.forecastingService) {
       return;
     }
 
     try {
-      const [
-        { SapienceService },
-        { RecallService },
-        { AutomatedForecastingService },
-      ] = await Promise.all([
-        import("../../../services/SapienceService.js"),
-        import("../../../services/RecallService.js"),
-        import("../../../services/AutomatedForecastingService.js"),
-      ]);
+      const [{ SapienceService }, { AutomatedForecastingService }] =
+        await Promise.all([
+          import("../../../services/SapienceService.js"),
+          import("../../../services/AutomatedForecastingService.js"),
+        ]);
 
       this.sapienceService = new SapienceService();
-      this.recallService = new RecallService();
       this.forecastingService = new AutomatedForecastingService({
         sapienceService: this.sapienceService,
       });
@@ -197,26 +188,6 @@ export class SapienceTradingAgent implements TradingAgent {
       };
 
       const txHash = await this.sapienceService!.submitForecast(forecast);
-
-      // Store reasoning in Recall Memory
-      try {
-        await this.recallService!.store({
-          agentId: this.id,
-          type: "reasoning",
-          content: `Forecast submitted for ${forecast.marketId}. Probability: ${forecast.probability}%. Reasoning: ${forecast.reasoning}`,
-          confidence: forecast.confidence,
-          metadata: {
-            txHash,
-            marketId: forecast.marketId,
-            action: "forecast_submission",
-          },
-        });
-      } catch (recallError) {
-        logger.error(
-          "Failed to store memory in Recall",
-          recallError instanceof Error ? recallError : undefined,
-        );
-      }
 
       const tradeResult: TradeResult = {
         id: `forecast_${Date.now()}`,

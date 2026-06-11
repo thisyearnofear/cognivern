@@ -46,6 +46,8 @@ Cognivern solves a common agentic scaling problem: teams can ship quickly, but s
 | Run ingestion                | `POST /ingest/runs`             |
 | Natural language intent      | `POST /api/intent`              |
 | Intent metrics               | `GET /api/intent/metrics`       |
+| Agent memory store           | `MongoDbMemoryService`          |
+| Agent memory query           | `MongoDbMemoryService.query()`  |
 
 ### Product Primitives
 
@@ -89,6 +91,8 @@ Each partner network plays a specific role in the product. This is the canonical
 | **Filecoin** | Durable evidence anchoring for audit logs. Long-term immutable storage of governance decisions and evidence hashes. | Yes — evidence link per decision in audit entry | Calibration testnet |
 | **0G** | Real-time governance decision anchoring alongside Filecoin for immediate availability. | Transparently layered with Filecoin | Newton testnet |
 | **ChainGPT** | Web3-specialized LLM for smart contract auditing at runtime (pre-spend vulnerability scan) and governance-copilot queries. | Yes — Contract Audit badge on policy checks with ChainGPT metadata | **Live** — via `ChainGPTAuditService` |
+| **Ledger DMK** | Hardware signing provider for high-value transactions. User confirms on physical Ledger before any signature is produced. | Yes — "Hardware Signed" badge on audit decisions | **Live** |
+| **MongoDB** | Persistent agent memory & run ledger. Replaces JSONL files with queryable, durable storage via MongoDB Atlas. | Yes — powers agent recall and run history APIs | **Live** (optional, gated by `MONGODB_URI`) |
 
 ## AI Provider Stack
 
@@ -115,6 +119,9 @@ The spend control plane is live: policy evaluation, signed approvals, held actio
 - **Fhenix Wave 5-7** — Full institutional demo with encrypted policies, MEV-protected execution, selective auditor disclosure; testnet migration from Helium to Arbitrum Sepolia; two-phase FHE resolution with `resolveDecision`; sealed-bid vendor selection; Privara confidential payroll
 - **Operator UX** — PromptOS terminal integrated into sidebar, voice capabilities (ElevenLabs STT/TOS), self-service onboarding, animated workspace mode toggles, full mobile responsiveness
 - **ChainGPT Integration** — Web3-native AI governance: ChainGPT Web3 LLM as primary provider with governance context injection, Smart Contract Auditor as runtime pre-spend defense
+- **Ledger Hardware Signing** — Full DMK-based hardware signing with Speculos sandbox. All 5 phases complete: provider dispatch, LedgerSigningProvider (USB + emulated fallback), Docker sandbox, frontend badge, AGENTS.md
+- **MongoDB Persistence** — Optional MongoDB-backed run ledger and agent memory via `MongoDbCreRunPersistence` + `MongoDbMemoryService`. Drops into existing `MultiCreRunPersistence` alongside JSONL. Gated by `MONGODB_URI`
+- **Recall Network Cleanup** — Removed broken `RecallService` that called nonexistent API endpoints. 550 lines of dead code deleted, 14 files modified, circuit breaker stripped
 
 ### Production Readiness
 

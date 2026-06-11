@@ -142,8 +142,9 @@ Each partner network plays a specific role in the product. This table is the sin
 | **Filecoin** | Durable evidence anchoring for audit logs. Long-term immutable storage of governance decisions and evidence hashes. | Yes — evidence link per decision in audit entry | Calibration testnet |
 | **0G** | Real-time governance decision anchoring alongside Filecoin for immediate availability. | Transparently layered with Filecoin | Newton testnet |
 | **ChainGPT** | Web3-specialized LLM for smart contract auditing at runtime (pre-spend vulnerability scan) and governance-copilot queries. | Yes — Contract Audit badge on policy checks with ChainGPT metadata | **Live** — via `ChainGPTAuditService` |
-| **Speculos** | Ledger device emulator for sandbox/CI signing. Runs as a Docker container; acts as an HTTP signing endpoint for the existing `signWithExternalWallet()` path. | No — infra only | **Planned** — Docker Compose add |
-| **Ledger DMK** | Hardware signing provider for high-value transactions. User confirms on physical Ledger device before any signature is produced. | Yes — "Hardware Signed" badge on audit decisions | **Planned** — `LedgerSigningProvider` |
+| **Speculos** | Ledger device emulator for sandbox/CI signing. Runs as a Docker container; acts as an HTTP signing endpoint for the existing `signWithExternalWallet()` path. | No — infra only | **Live** — Docker Compose sandbox profile |
+| **Ledger DMK** | Hardware signing provider for high-value transactions. User confirms on physical Ledger device before any signature is produced. | Yes — "Hardware Signed" badge on audit decisions | **Live** — `LedgerSigningProvider` (DMK) |
+| **MongoDB** | Persistent agent memory & run ledger. Replaces JSONL files with queryable, durable storage. | Yes — powers agent recall and run history | **Live** — optional, gated by `MONGODB_URI` |
 
 ## Confidential Policy Layer (Fhenix)
 
@@ -255,12 +256,21 @@ File-backed stores are built on a common `BaseStore` abstract class that provide
 | `RateLimitStore` | `rate-limit-store.jsonl` | Per-workspace and per-key rate limiting with sliding windows |
 | `TokenBlacklistStore` | `token-blacklist.jsonl` | JWT token revocation blacklist |
 | `UxEventStore` | `ux-events.jsonl` | UX telemetry events |
-| `CreRunStore` | `cre-runs.jsonl` | Core Run Engine evidence ledger |
+| `CreRunStore` | `cre-runs.jsonl` (+ MongoDB optional) | Core Run Engine evidence ledger (via `CreRunPersistence` interface). Conditionally writes to MongoDB when `MONGODB_URI` is set |
 | `IdempotencyStore` | file-backed with TTL | Idempotency key tracking |
 
 The `BaseStore<T, R>` interface accepts a config for file path (via env var or default), max records, and TTL. Subclasses override `parseLine()` and `serializeRecord()`.
 
-To swap to Redis or Postgres: implement the same interface on a new adapter and replace the singleton import — no callers change.
+To swap to Redis, Postgres, or MongoDB: implement the same interface on a new adapter and replace the singleton import — no callers change.
+
+**MongoDB-backed services:**
+
+| Service | File | Collection | Purpose |
+|---|---|---|---|
+| `MongoDbCreRunPersistence` | `src/backend/cre/storage/MongoDbCreRunPersistence.ts` | `cre_runs` | Durable run ledger alongside JSONL hot cache |
+| `MongoDbMemoryService` | `src/backend/services/MongoDbMemoryService.ts` | `agent_memory` | Cross-session agent memory (store, retrieve, query by agentId/type) |
+
+Both are lazy-connected and gracefully degrade when `MONGODB_URI` is unset — zero config required for existing JSONL-only users.
 
 ## Async FHE Evaluation (Live)
 

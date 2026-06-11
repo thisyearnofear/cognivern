@@ -138,10 +138,6 @@ export class CircuitBreaker {
  * Circuit breaker instances for common external services
  */
 export const circuitBreakers = {
-  recall: new CircuitBreaker("RecallNetwork", {
-    threshold: 5,
-    resetAfterMs: 30000,
-  }),
   sapience: new CircuitBreaker("SapienceProtocol", {
     threshold: 3,
     resetAfterMs: 60000,

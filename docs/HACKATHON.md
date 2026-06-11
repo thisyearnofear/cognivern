@@ -10,6 +10,7 @@ Cognivern has been submitted to multiple hackathons. This doc tracks them.
 | OWS Hackathon — Track 02                  | Agent Spend Governance & Identity | 2026-Q2 | Submitted             |
 | Agents Assemble Healthcare AI Endgame     | Healthcare Governance             | 2026-Q2 | Submitted             |
 | Agents Under Pressure — Build Your Own OS | PromptOS + DevFactory Grid        | 2026-Q2 | Submitted             |
+| Google Cloud Rapid Agent Hackathon        | MongoDB Track                     | 2026-Q2 | **In Progress**       |
 
 ## Integration Details
 
@@ -20,6 +21,7 @@ Each hackathon contributed a specific integration. See the respective docs:
 - **ChainGPT** — [`CHAINGPT_INTEGRATION.md`](./CHAINGPT_INTEGRATION.md) — Web3 LLM auditor, contract audit policy rules
 - **0G** — `ZeroGStorageService` anchors governance decisions to 0G Storage
 - **Agents Assemble** — FHIR/SHARP context adapter, Together AI evaluator, Kestra orchestration, MCP tool endpoint
+- **Google Cloud Rapid Agent** — MongoDB MCP integration for persistent agent memory. GCP Agent Builder hosts a governed agent powered by Gemini + Cognivern governance API + MongoDB MCP. Track: MongoDB
 
 ## Demo Flow
 
