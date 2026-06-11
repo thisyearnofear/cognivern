@@ -1,11 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Check, Terminal, Code2, Zap, ArrowRight, Shield } from "lucide-react";
+import { Copy, Check, Terminal, Code2, Zap, ArrowRight, Shield, Key, Plus, Loader2 } from "lucide-react";
 import { HelpIcon } from "@/components/ui/help-icon";
+import { apiClient } from "@/lib/api-client";
+import type { ApiKeyCreateResponse } from "@/lib/api-client";
+
+const AVAILABLE_SCOPES = [
+  { id: "agents:read", label: "Agents (read)" },
+  { id: "agents:write", label: "Agents (write)" },
+  { id: "governance:read", label: "Governance (read)" },
+  { id: "governance:write", label: "Governance (write)" },
+  { id: "audit:read", label: "Audit (read)" },
+  { id: "spend:execute", label: "Spend (execute)" },
+] as const;
 
 function CodeBlock({ code, language }: { code: string; language: string }) {
   const [copied, setCopied] = useState(false);
@@ -61,6 +74,174 @@ function StepCard({
       <div className="pb-8 flex-1">
         <h3 className="font-semibold mb-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>{title}</h3>
         {children}
+      </div>
+    </div>
+  );
+}
+
+function ApiKeyGenerator() {
+  const [newKeyName, setNewKeyName] = useState("");
+  const [selectedScopes, setSelectedScopes] = useState<string[]>([
+    "agents:read",
+    "governance:read",
+    "audit:read",
+  ]);
+  const [createdKey, setCreatedKey] = useState<ApiKeyCreateResponse | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleCreate = useCallback(async () => {
+    if (!newKeyName.trim()) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const res = await apiClient.createWorkspaceApiKey({
+        name: newKeyName.trim(),
+        scopes: selectedScopes,
+      });
+      if (res.success && res.data) {
+        setCreatedKey(res.data);
+        setNewKeyName("");
+      } else {
+        setError(res.error || "Failed to create key");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create key");
+    } finally {
+      setCreating(false);
+    }
+  }, [newKeyName, selectedScopes]);
+
+  const handleCopy = useCallback(() => {
+    if (createdKey?.key) {
+      navigator.clipboard.writeText(createdKey.key);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [createdKey]);
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Generate a key right here — no need to leave this page.
+      </p>
+
+      {!createdKey ? (
+        <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Name your key (e.g. Alpha Trader)"
+                value={newKeyName}
+                onChange={(e) => setNewKeyName(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={handleCreate}
+              disabled={creating || !newKeyName.trim()}
+              className="gap-1.5 shrink-0"
+            >
+              {creating ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Plus className="h-3.5 w-3.5" />
+              )}
+              {creating ? "Creating..." : "Generate Key"}
+            </Button>
+          </div>
+
+          <div>
+            <div className="text-xs text-muted-foreground mb-2">
+              Scopes <span className="text-muted-foreground/60">(recommended defaults pre-selected)</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {AVAILABLE_SCOPES.map((scope) => (
+                <button
+                  key={scope.id}
+                  onClick={() =>
+                    setSelectedScopes((prev) =>
+                      prev.includes(scope.id)
+                        ? prev.filter((s) => s !== scope.id)
+                        : [...prev, scope.id],
+                    )
+                  }
+                  className={`text-[11px] px-2 py-1 rounded border transition-colors ${
+                    selectedScopes.includes(scope.id)
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/50"
+                  }`}
+                >
+                  {scope.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {error && (
+            <div className="text-xs text-red-600 dark:text-red-400 p-2 rounded-lg bg-red-50 dark:bg-red-950/30">
+              {error}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm font-medium">Key created successfully</span>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Copy this key now — it will only be shown once.
+          </div>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs bg-background rounded px-3 py-2 border font-mono truncate select-all">
+              {createdKey.key}
+            </code>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCopy}
+              className="gap-1.5 shrink-0"
+            >
+              {copied ? (
+                <Check className="h-3.5 w-3.5" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+              {copied ? "Copied!" : "Copy"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Use this key in the{" "}
+            <code className="font-mono bg-background/50 px-1 rounded">x-api-key</code>{" "}
+            header. Next step: try it with a governance check below.
+          </p>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setCreatedKey(null);
+              setCopied(false);
+            }}
+            className="text-xs"
+          >
+            Generate another key
+          </Button>
+        </div>
+      )}
+
+      {/* Example key format */}
+      <div className="text-xs text-muted-foreground/60 flex items-center gap-2">
+        <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+        Keys start with <code className="font-mono text-[10px] px-1 py-0.5 rounded bg-muted">cvn_</code>
+        and are scoped to this workspace. Manage keys anytime in{" "}
+        <a href="/settings" className="text-primary hover:underline">
+          Settings
+        </a>
+        .
       </div>
     </div>
   );
@@ -124,21 +305,7 @@ export function IntegratePage() {
         {/* Quickstart */}
         <TabsContent value="quickstart" className="space-y-2">
           <StepCard step={1} title="Get an API key">
-            <p className="text-sm text-muted-foreground mb-3">
-              Go to{" "}
-              <a
-                href="/settings"
-                className="text-primary underline underline-offset-2"
-              >
-                Settings &rarr; API Keys
-              </a>{" "}
-              and create a key with the scopes your agent needs.
-            </p>
-            <CodeBlock
-              language="bash"
-              code={`# Your API key looks like this:
-cvn_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345`}
-            />
+            <ApiKeyGenerator />
           </StepCard>
 
           <StepCard step={2} title="Check governance before every spend">
