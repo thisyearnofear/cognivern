@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   ShieldCheck,
   Users,
@@ -56,6 +56,29 @@ import { QuickCheck } from "./quick-check";
 import { formatBudget } from "@/lib/budget-format";
 import { normalizeAuditLogs, computeAverageLatency } from "@/lib/normalizers";
 
+/* ─── Animated counter hook ────────────────────────────────── */
+
+function useCountUp(target: number, duration = 2000, start = false) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!start) return;
+    const startTime = performance.now();
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(eased * target));
+      if (progress < 1) ref.current = requestAnimationFrame(animate);
+    };
+    ref.current = requestAnimationFrame(animate);
+    return () => { if (ref.current) cancelAnimationFrame(ref.current); };
+  }, [target, duration, start]);
+
+  return count;
+}
+
 const ACTIVITY_PAGE_SIZE = 5;
 
 export function Dashboard() {
@@ -82,6 +105,18 @@ export function Dashboard() {
   const [activityExpanded, setActivityExpanded] = useState(false);
   // Focus mode — reduces dashboard density for new users
   const [focusMode, setFocusMode] = useState(false);
+  const statsRef = useRef<HTMLDivElement>(null);
+  const [statsVisible, setStatsVisible] = useState(false);
+
+  useEffect(() => {
+    if (!statsRef.current) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setStatsVisible(true); },
+      { threshold: 0.3 },
+    );
+    obs.observe(statsRef.current);
+    return () => obs.disconnect();
+  }, []);
 
   const agentList = agents || [];
   const normalizedLogs = useMemo(() => {
@@ -122,6 +157,12 @@ export function Dashboard() {
   const decisions = normalizedLogs.length;
   const blockedCount = normalizedLogs.filter((l) => l.decision === "denied").length;
   const avgLatency = computeAverageLatency(normalizedLogs);
+
+  // Animated counters
+  const animatedApprovalRate = useCountUp(approvalRate, 2000, statsVisible);
+  const animatedDecisions = useCountUp(decisions, 2000, statsVisible);
+  const animatedBlocked = useCountUp(blockedCount, 2000, statsVisible);
+  const animatedActive = useCountUp(activeCount, 2000, statsVisible);
 
   // Stat deltas (compare first half vs second half of logs for trend)
   const { approvalDelta, decisionsDelta } = useMemo(() => {
@@ -287,170 +328,148 @@ export function Dashboard() {
           </Card>
         )}
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        <Card>
-          <CardContent className="p-4">
-            {agentsLoading ? (
-              <Skeleton className="h-12 w-24" />
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">
-                    {activeCount}/{agentList.length}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Agents Online
-                  </div>
-                </div>
+      {/* Stat Bar — Animated */}
+      <div ref={statsRef}>
+        {agentsLoading || logsLoading || policiesLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-[72px] rounded-xl bg-card border border-border animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px bg-border rounded-xl overflow-hidden">
+            <div className="bg-card p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950 flex-shrink-0">
+                <Users className="h-5 w-5 text-primary" />
               </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            {policiesLoading ? (
-              <Skeleton className="h-12 w-24" />
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950">
-                  <ShieldCheck className="h-5 w-5 text-sky-500" />
+              <div>
+                <div
+                  className="text-2xl font-bold"
+                  style={{ fontFamily: "var(--font-space-grotesk)" }}
+                >
+                  {statsVisible ? `${animatedActive}/${agentList.length}` : "—"}
                 </div>
-                <div>
-                  <div className="text-2xl font-bold">
-                    {
-                      (policies || []).filter((p) => p.status === "active")
-                        .length
-                    }
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Active Policies
-                  </div>
-                </div>
+                <div className="text-xs text-muted-foreground">Agents Online</div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            {logsLoading ? (
-              <Skeleton className="h-12 w-24" />
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950">
-                    <Percent className="h-5 w-5 text-emerald-500" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold">
-                        {approvalRate}%
-                      </span>
-                      {approvalDelta !== 0 && (
-                        <span
-                          className={`flex items-center text-[11px] font-medium ${
-                            approvalDelta > 0
-                              ? "text-emerald-600"
-                              : "text-red-500"
-                          }`}
-                        >
-                          {approvalDelta > 0 ? (
-                            <TrendingUp className="h-3 w-3 mr-0.5" />
-                          ) : (
-                            <TrendingDown className="h-3 w-3 mr-0.5" />
-                          )}
-                          {approvalDelta > 0 ? "+" : ""}
-                          {approvalDelta}%
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Approval Rate
-                    </div>
-                  </div>
-                </div>
-                <ApprovalSparkline logs={Array.isArray(logs) ? logs : []} />
+            </div>
+
+            <div className="bg-card p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950 flex-shrink-0">
+                <ShieldCheck className="h-5 w-5 text-sky-500" />
               </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            {logsLoading ? (
-              <Skeleton className="h-12 w-24" />
-            ) : (
+              <div>
+                <div
+                  className="text-2xl font-bold"
+                  style={{ fontFamily: "var(--font-space-grotesk)" }}
+                >
+                  {(policies || []).filter((p) => p.status === "active").length}
+                </div>
+                <div className="text-xs text-muted-foreground">Active Policies</div>
+              </div>
+            </div>
+
+            <div className="bg-card p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950">
-                  <FileSearch className="h-5 w-5 text-amber-500" />
+                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950 flex-shrink-0">
+                  <Percent className="h-5 w-5 text-emerald-500" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">{decisions}</span>
-                    {decisionsDelta !== 0 && (
+                    <span
+                      className="text-2xl font-bold"
+                      style={{ fontFamily: "var(--font-space-grotesk)" }}
+                    >
+                      {statsVisible ? `${animatedApprovalRate}%` : "—"}
+                    </span>
+                    {approvalDelta !== 0 && (
                       <span
                         className={`flex items-center text-[11px] font-medium ${
-                          decisionsDelta > 0
+                          approvalDelta > 0
                             ? "text-emerald-600"
                             : "text-red-500"
                         }`}
                       >
-                        {decisionsDelta > 0 ? (
+                        {approvalDelta > 0 ? (
                           <TrendingUp className="h-3 w-3 mr-0.5" />
                         ) : (
                           <TrendingDown className="h-3 w-3 mr-0.5" />
                         )}
-                        {decisionsDelta > 0 ? "+" : ""}
-                        {decisionsDelta}
+                        {approvalDelta > 0 ? "+" : ""}
+                        {approvalDelta}%
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    Policy Decisions
-                  </div>
+                  <div className="text-xs text-muted-foreground">Approval Rate</div>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            {logsLoading ? (
-              <Skeleton className="h-12 w-24" />
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950">
-                  <ShieldX className="h-5 w-5 text-red-500" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">{blockedCount}</div>
-                  <div className="text-xs text-muted-foreground">Blocked</div>
-                </div>
+              <ApprovalSparkline logs={Array.isArray(logs) ? logs : []} />
+            </div>
+
+            <div className="bg-card p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950 flex-shrink-0">
+                <FileSearch className="h-5 w-5 text-amber-500" />
               </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            {logsLoading ? (
-              <Skeleton className="h-12 w-24" />
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950">
-                  <Clock className="h-5 w-5 text-slate-500" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-2xl font-bold"
+                    style={{ fontFamily: "var(--font-space-grotesk)" }}
+                  >
+                    {statsVisible ? animatedDecisions : "—"}
+                  </span>
+                  {decisionsDelta !== 0 && (
+                    <span
+                      className={`flex items-center text-[11px] font-medium ${
+                        decisionsDelta > 0
+                          ? "text-emerald-600"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {decisionsDelta > 0 ? (
+                        <TrendingUp className="h-3 w-3 mr-0.5" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3 mr-0.5" />
+                      )}
+                      {decisionsDelta > 0 ? "+" : ""}
+                      {decisionsDelta}
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <div className="text-2xl font-bold">{avgLatency}ms</div>
-                  <div className="text-xs text-muted-foreground">
-                    Avg Latency
-                  </div>
-                </div>
+                <div className="text-xs text-muted-foreground">Policy Decisions</div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+
+            <div className="bg-card p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950 flex-shrink-0">
+                <ShieldX className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <div
+                  className="text-2xl font-bold"
+                  style={{ fontFamily: "var(--font-space-grotesk)" }}
+                >
+                  {statsVisible ? animatedBlocked : "—"}
+                </div>
+                <div className="text-xs text-muted-foreground">Blocked</div>
+              </div>
+            </div>
+
+            <div className="bg-card p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 flex-shrink-0">
+                <Clock className="h-5 w-5 text-slate-500" />
+              </div>
+              <div>
+                <div
+                  className="text-2xl font-bold"
+                  style={{ fontFamily: "var(--font-space-grotesk)" }}
+                >
+                  {avgLatency}ms
+                </div>
+                <div className="text-xs text-muted-foreground">Avg Latency</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Charts Row — hidden in focus mode */}

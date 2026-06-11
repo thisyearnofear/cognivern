@@ -10,6 +10,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { DemoBanner } from "@/components/layout/demo-banner";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { PageTransition } from "@/components/ui/page-transition";
 import { useDemoSimulator } from "@/hooks/use-demo-simulator";
 
 function DemoSimulator() {
@@ -40,7 +41,9 @@ export default function DashboardLayout({
         <main
           className={`flex-1 overflow-auto ${isOsPage ? "p-0" : "p-4 md:p-6"}`}
         >
-          <ErrorBoundary>{children}</ErrorBoundary>
+          <ErrorBoundary>
+            <PageTransition>{children}</PageTransition>
+          </ErrorBoundary>
         </main>
       </SidebarInset>
       <CommandPalette />
