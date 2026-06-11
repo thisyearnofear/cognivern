@@ -1,0 +1,180 @@
+# Google Cloud Agent Builder — Cognivern Copilot import spec
+#
+# This file is the canonical "Import agent" payload for the Google Cloud
+# Agent Builder console. It registers the Cognivern Copilot agent, its
+# Gemini 3 model, its tool surface (Cognivern governance API + MongoDB
+# MCP server), and its multi-step mission protocol.
+#
+# Import path (console):
+#   Agent Builder → Applications → Create Application → "Import from YAML"
+#
+# Equivalent Terraform / gcloud fields are at the bottom of this file.
+
+name: cognivern-copilot
+displayName: Cognivern Copilot
+description: |
+  Governed-spend agent for autonomous AI agents. Turns a natural-language
+  goal (e.g. "Pay 100 USDC to vendor 0xABC if their last audit was clean")
+  into a multi-step mission: PLAN → EVIDENCE → PREVIEW → CONFIRM →
+  EXECUTE → AUDIT. Every step is grounded in MongoDB (memory, audit
+  history, vendor reputation) and gated by Cognivern's policy engine.
+  Submitted to the Google Cloud "Building Agents for Real-World
+  Challenges" hackathon on the MongoDB partner track.
+
+# --- Model ----------------------------------------------------------------
+model:
+  provider: google
+  name: gemini-3-pro-preview
+  # Lower temperature for governance decisions; higher for briefing tasks
+  # is handled per-call by the agent.
+  temperature: 0.2
+  maxOutputTokens: 4096
+  # Grounding off — the agent does its own retrieval via MongoDB MCP.
+  grounding:
+    enabled: false
+
+# --- System instruction ---------------------------------------------------
+# This is loaded verbatim from agent/instructions.md at build time and
+# injected as the system prompt. The field below is the in-line copy for
+# the Agent Builder import — keep them in sync.
+systemInstruction: |
+  You are Cognivern Copilot, a Gemini 3 agent that executes real-world
+  spend and operational tasks for autonomous AI agents under explicit
+  human oversight. Your job is not to act — it is to plan a multi-step
+  mission, gather evidence, simulate the outcome, ask for human
+  confirmation, and only then execute. Every action you take is governed
+  by Cognivern's policy engine and audited via MongoDB.
+
+  Tools (always use them in this order, never skip):
+    1. cognivern_list_policies / cognivern_get_policy
+    2. mongodb_recall_memory, mongodb_vendor_reputation
+    3. cognivern_preview_spend (DRY RUN)
+    4. mongodb_audit_history (verify preview was logged)
+    5. ASK HUMAN for confirmation — never auto-approve
+    6. cognivern_execute_spend (REAL, requires humanConfirmationToken)
+    7. mongodb_audit_history (verify execution was logged)
+
+  Be concise. Cite decision id, attestation hash, and audit log id on
+  completion. Never fabricate data — if a tool returns nothing, say so.
+
+# --- Tools ----------------------------------------------------------------
+tools:
+  # --- Cognivern governance API (registered as an OpenAPI tool) ---------
+  - type: openapi
+    name: cognivern
+    description: Cognivern governance API — policies, spend preview, spend execution, audit
+    spec:
+      openApi:
+        # Public docs URL — Agent Builder will fetch and cache this.
+        url: https://cognivern.thisyearnofear.com/api/docs/openapi.json
+        # Authentication
+        authentication:
+          type: apiKey
+          in: header
+          name: Authorization
+          # The Agent Builder secret "cognivern-api-key" is created from
+          # the COGNIVERN_API_KEY env var on deploy.
+          secret: cognivern-api-key
+
+  # --- MongoDB MCP server -------------------------------------------------
+  - type: mcp
+    name: mongodb
+    description: |
+      MongoDB MCP server backed by MongoDB Atlas. Powers agent memory
+      recall, audit history queries, vendor reputation lookups, and
+      run-ledger queries for the Cognivern Copilot agent.
+    spec:
+      mcp:
+        transport: stdio
+        command: npx
+        args:
+          - "-y"
+          - "@mongodb-js/mongodb-mcp-server@latest"
+        env:
+          MONGODB_CONNECTION_STRING:
+            # Wire from Secret Manager at deploy time.
+            $ref: "secret:mongodb-uri"
+          MONGODB_DATABASE_NAME: cognivern
+        # The MCP server exposes many tools; we surface only the four
+        # the agent uses. The names below must match agent/tools/mongodb.ts.
+        allowedTools:
+          - mongodb_recall_memory
+          - mongodb_audit_history
+          - mongodb_vendor_reputation
+          - mongodb_run_ledger
+
+# --- Human-in-the-loop ----------------------------------------------------
+humanInTheLoop:
+  enabled: true
+  # Pause and ask the operator UI to confirm before ANY of these tools
+  # are invoked. Other tools (preview, memory queries, audit queries)
+  # run without confirmation.
+  confirmBefore:
+    - cognivern_execute_spend
+  # The operator UI receives the proposed args and a HITL token. The
+  # token is passed back as `humanConfirmationToken` to the tool call.
+  webhook:
+    # Local dev: post to the Cognivern frontend; Agent Builder substitutes
+    # the project-level value at deploy time.
+    url: https://cognivern.vercel.app/api/hitl/confirm
+    secret: hitl-webhook-secret
+
+# --- Multi-step mission flow ---------------------------------------------
+# Agent Builder doesn't have a first-class "plan" concept, but the
+# systemInstruction plus the humanInTheLoop confirmBefore list
+# implement the protocol. For belt-and-braces, the deployment pipeline
+# also enables ADK-style planning via the `planner` block below.
+planner:
+  type: react   # Reason + Act loop — the default for Agent Builder
+  maxIterations: 12
+  # Force the agent to call at least one tool before producing a final
+  # answer, even for trivial questions. This is what makes it a
+  # "mission" agent rather than a chatbot.
+  requireToolCallBeforeFinal: true
+
+# --- Observability --------------------------------------------------------
+observability:
+  tracing:
+    enabled: true
+    exporter: cloud-trace
+  logging:
+    # PII redaction is mandatory — Cognivern handles wallet addresses and
+    # policy ids, both of which are safe to log.
+    redactPii: true
+
+# --- Submission metadata --------------------------------------------------
+submission:
+  hackathon: "Google Cloud Building Agents for Real-World Challenges"
+  track: mongodb
+  partner: mongodb
+  mcpServer: "@mongodb-js/mongodb-mcp-server"
+  model: "gemini-3-pro-preview"
+  # The 5 tools the agent uses:
+  toolsUsed:
+    - cognivern_list_policies
+    - cognivern_get_policy
+    - cognivern_preview_spend
+    - cognivern_execute_spend
+    - mongodb_recall_memory
+    - mongodb_audit_history
+    - mongodb_vendor_reputation
+    - mongodb_run_ledger
+
+# ---------------------------------------------------------------------------
+# Equivalent gcloud / Terraform fields (for CLI deploys)
+# ---------------------------------------------------------------------------
+# gcloud beta agents applications create cognivern-copilot \
+#   --location=us-central1 \
+#   --source=./agent \
+#   --model=gemini-3-pro-preview \
+#   --mcp-server=mongodb@stdio \
+#   --openapi-spec=https://cognivern.thisyearnofear.com/api/docs/openapi.json
+#
+# resource "google_discovery_engine_agent" "cognivern_copilot" {
+#   location       = "us"
+#   display_name   = "Cognivern Copilot"
+#   model_id       = "gemini-3-pro-preview"
+#   system_instruction = file("./agent/instructions.md")
+#   tool { open_api { name = "cognivern" url = "https://cognivern.thisyearnofear.com/api/docs/openapi.json" } }
+#   tool { mcp { name = "mongodb" command = "npx -y @mongodb-js/mongodb-mcp-server@latest" } }
+# }

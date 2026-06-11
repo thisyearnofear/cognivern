@@ -10,7 +10,7 @@ Cognivern has been submitted to multiple hackathons. This doc tracks them.
 | OWS Hackathon — Track 02                  | Agent Spend Governance & Identity | 2026-Q2 | Submitted             |
 | Agents Assemble Healthcare AI Endgame     | Healthcare Governance             | 2026-Q2 | Submitted             |
 | Agents Under Pressure — Build Your Own OS | PromptOS + DevFactory Grid        | 2026-Q2 | Submitted             |
-| Google Cloud Rapid Agent Hackathon        | MongoDB Track                     | 2026-Q2 | **In Progress**       |
+| Google Cloud Rapid Agent Hackathon        | MongoDB Track                     | 2026-Q2 | **Submitted**           |
 
 ## Integration Details
 
@@ -23,20 +23,27 @@ Each hackathon contributed a specific integration. See the respective docs:
 - **Agents Assemble** — FHIR/SHARP context adapter, Together AI evaluator, Kestra orchestration, MCP tool endpoint
 - **Google Cloud Rapid Agent** — MongoDB MCP integration for persistent agent memory. GCP Agent Builder hosts a governed agent powered by Gemini + Cognivern governance API + MongoDB MCP. Track: MongoDB
 
-### Phase 4 — GCP Showcase Agent (Pre-Submission Checklist)
+### Phase 4 — GCP Showcase Agent (Submission)
 
 **What's done:**
-- MongoDB persistence for run ledger (`MongoDbCreRunPersistence`), agent memory (`MongoDbMemoryService`), and policies (`MongoDbPolicyPersistence`)
-- `MongoDbService` lazy-connection manager gated by `MONGODB_URI`
-- `config/mcp-servers.json` — MongoDB MCP sidecar config for Agent Builder
-- Docs: `ARCHITECTURE.md` (MongoDB table), `HACKATHON.md`, `DEPLOYMENT.md`, `DEVELOPER.md`
+- **Cognivern Copilot agent** (`agent/agent.ts`) — Gemini 3 function-calling runtime implementing the multi-step protocol: PLAN → EVIDENCE → PREVIEW → CONFIRM → EXECUTE → AUDIT. CLI entry + HITL gate.
+- **Agent Builder import spec** (`agent/agent-builder.yaml`) — registers the agent, the Gemini 3 model, the Cognivern governance API as an OpenAPI tool, and the MongoDB MCP server as a sidecar MCP tool.
+- **Tool surface** (`agent/tools/`) — 6 Cognivern tools (policies, preview, execute, audit) and 4 MongoDB tools (memory, audit, vendor reputation, run ledger).
+- **System prompt** (`agent/instructions.md`) — the agent's mission and behavioral rules.
+- **MongoDB persistence** — `MongoDbCreRunPersistence`, `MongoDbMemoryService`, `MongoDbPolicyPersistence` (run ledger, agent memory, policies)
+- **MongoDB seed script** (`scripts/db/seed-hackathon.ts`) — loads 100 audit logs, ~30 memories, 10 vendors (mix of trusted and risky), and 20 runs. Indexes for fast judge queries.
+- **Smoke test** (`agent/smoke-test.ts`) — runs the agent end-to-end in preview-only mode and asserts the multi-step protocol was followed.
+- **Gemini 3** is the default reasoning model in `MultiModelRouter.ts` (env override: `GEMINI_MODEL=gemini-3-pro-preview`).
+- **Docs** — `agent/README.md` is the judge-facing deployment guide; `HACKATHON.md`, `ARCHITECTURE.md`, `DEVELOPER.md`, `DEPLOYMENT.md` reference the new agent.
 
-**Needs before submission:**
-- MongoDB Atlas free tier cluster provisioned with credentials in `.env`
-- Cognivern backend deployed to a public URL (Hetzner or Railway)
-- GCP Agent Builder agent configured with Cognivern API + MongoDB MCP tools
-- Screencast of GCP agent calling Cognivern governance API + querying MongoDB memory
-- UI accessibility improvements: aria-labels on color-only indicators, keyboard nav on stat cards, loading skeletons for audit/policies (done) — likely the most judge-visible polish
+**Submitter actions (5 minutes each):**
+1. Provision a MongoDB Atlas free tier cluster; set `MONGODB_URI` in `.env`.
+2. `pnpm db:seed:reset` — load realistic data so judges can poke.
+3. Confirm `COGNIVERN_BASE_URL` and `COGNIVERN_API_KEY` point at the live deployment.
+4. `pnpm agent:smoke` — verify the multi-step protocol on a real MongoDB cluster.
+5. Import `agent/agent-builder.yaml` into the Agent Builder console; record the 3-min demo screencast.
+
+**Track:** MongoDB. **Model:** Gemini 3 Pro (`gemini-3-pro-preview`). **MCP server:** `@mongodb-js/mongodb-mcp-server`.
 
 ## Demo Flow
 

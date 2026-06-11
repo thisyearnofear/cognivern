@@ -1,9 +1,12 @@
 {
-  "mongodb": {
-    "command": "npx",
-    "args": ["-y", "@mongodb-js/mongodb-mcp-server@latest"],
-    "env": {
-      "MONGODB_CONNECTION_STRING": "${MONGODB_URI}"
+  "mcpServers": {
+    "mongodb": {
+      "command": "npx",
+      "args": ["-y", "@mongodb-js/mongodb-mcp-server@latest"],
+      "env": {
+        "MONGODB_CONNECTION_STRING": "${MONGODB_URI}"
+      }
     }
-  }
+  },
+  "_comment": "Cognivern governance API is registered inside Google Cloud Agent Builder as an OpenAPI tool, not as a local MCP server. See agent/agent-builder.yaml for the import spec. The four tool surface areas are: cognivern_list_policies, cognivern_get_policy, cognivern_preview_spend, cognivern_evaluate_action, cognivern_execute_spend, cognivern_audit_recent, mongodb_recall_memory, mongodb_audit_history, mongodb_vendor_reputation, mongodb_run_ledger."
 }
