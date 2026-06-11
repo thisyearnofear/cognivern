@@ -8,7 +8,7 @@ export default function NotFound() {
         <ShieldCheck className="h-10 w-10 text-muted-foreground" />
       </div>
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>
           404 — Page not found
         </h1>
         <p className="text-muted-foreground max-w-md">

@@ -180,7 +180,7 @@ export function SpendFlowDemo() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Spend Flow Demo</h1>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>Spend Flow Demo</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Watch how Cognivern evaluates every agent spend in real-time
           </p>

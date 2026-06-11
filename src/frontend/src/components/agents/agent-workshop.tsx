@@ -166,7 +166,7 @@ export function AgentWorkshop() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Register Agent</h1>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>Register Agent</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Configure and register a new governed agent
           </p>
@@ -210,7 +210,7 @@ export function AgentWorkshop() {
               )}
             </div>
             <div>
-              <h2 className="font-semibold">
+              <h2 className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
                 {mode === "connect"
                   ? "Connect Existing Agent"
                   : "Agent Configuration"}
@@ -515,7 +515,7 @@ console.log(result.allowed ? 'Approved' : 'Blocked', result.reasoning);`;
         <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mx-auto">
           <CheckCircle2 className="h-8 w-8 text-emerald-500" />
         </div>
-        <h2 className="text-2xl font-bold">Agent Registered</h2>
+        <h2 className="text-2xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Agent Registered</h2>
         <p className="text-muted-foreground">
           <strong>{name}</strong> is ready to operate on {chain}. Copy an
           integration snippet below to start sending spend requests in seconds.
