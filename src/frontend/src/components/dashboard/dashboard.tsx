@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import type { AuditLog } from "@cognivern/shared";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
@@ -252,8 +252,7 @@ export function Dashboard() {
         !policiesLoading &&
         (agentList.length === 0 ||
           (policies || []).filter((p) => p.status === "active").length === 0) && (
-          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-sky-500/5">
-            <CardContent className="p-6">
+          <div className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-sky-500/5 p-6">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-xl bg-primary/10">
                   <Rocket className="h-6 w-6 text-primary" />
@@ -324,8 +323,7 @@ export function Dashboard() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
         )}
 
       {/* Stat Bar — Animated */}
@@ -507,11 +505,9 @@ export function Dashboard() {
         {agentsLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[1, 2, 3, 4].map((i) => (
-              <Card key={i}>
-                <CardContent className="p-4">
-                  <Skeleton className="h-24 w-full" />
-                </CardContent>
-              </Card>
+              <div key={i} className="bg-card p-4 rounded-xl border">
+                <Skeleton className="h-24 w-full" />
+              </div>
             ))}
           </div>
         ) : agentsError ? (
@@ -527,17 +523,16 @@ export function Dashboard() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
             {agentList.map((agent) => (
-              <Card
+              <div
                 key={agent.id}
-                className="hover:border-sky-200 dark:hover:border-sky-800 transition-colors cursor-pointer"
+                className="bg-card p-4 hover:bg-accent/50 transition-colors cursor-pointer"
                 onClick={() => router.push(`/agents/${agent.id}`)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === "Enter" && router.push(`/agents/${agent.id}`)}
               >
-                <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div
@@ -559,8 +554,7 @@ export function Dashboard() {
                     <span>{agent.trades} trades</span>
                     <span className="font-medium">{formatBudget(agent.budget)}</span>
                   </div>
-                </CardContent>
-              </Card>
+              </div>
             ))}
           </div>
         )}

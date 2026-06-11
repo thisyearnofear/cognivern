@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,13 +58,11 @@ export function RunsPage() {
 
       {/* Stats */}
       {isLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
           {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardContent className="p-4">
-                <Skeleton className="h-12 w-24" />
-              </CardContent>
-            </Card>
+            <div key={i} className="bg-card p-4">
+              <Skeleton className="h-12 w-24" />
+            </div>
           ))}
         </div>
       ) : error ? (
@@ -73,51 +71,43 @@ export function RunsPage() {
           <p className="text-xs mt-1">The backend may be unavailable</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <Activity className="h-5 w-5 text-primary" />
-              <div>
-                <div className="text-xl font-bold">
-                  {statuses["running"] || 0}
-                </div>
-                <div className="text-xs text-muted-foreground">Active</div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
+          <div className="bg-card p-4 flex items-center gap-3">
+            <Activity className="h-5 w-5 text-primary" />
+            <div>
+              <div className="text-xl font-bold">
+                {statuses["running"] || 0}
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-              <div>
-                <div className="text-xl font-bold">
-                  {statuses["completed"] || 0}
-                </div>
-                <div className="text-xs text-muted-foreground">Completed</div>
+              <div className="text-xs text-muted-foreground">Active</div>
+            </div>
+          </div>
+          <div className="bg-card p-4 flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+            <div>
+              <div className="text-xl font-bold">
+                {statuses["completed"] || 0}
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <Clock className="h-5 w-5 text-sky-500" />
-              <div>
-                <div className="text-xl font-bold">
-                  {statuses["paused_for_approval"] || 0}
-                </div>
-                <div className="text-xs text-muted-foreground">Awaiting</div>
+              <div className="text-xs text-muted-foreground">Completed</div>
+            </div>
+          </div>
+          <div className="bg-card p-4 flex items-center gap-3">
+            <Clock className="h-5 w-5 text-sky-500" />
+            <div>
+              <div className="text-xl font-bold">
+                {statuses["paused_for_approval"] || 0}
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <div>
-                <div className="text-xl font-bold">
-                  {statuses["failed"] || 0}
-                </div>
-                <div className="text-xs text-muted-foreground">Failed</div>
+              <div className="text-xs text-muted-foreground">Awaiting</div>
+            </div>
+          </div>
+          <div className="bg-card p-4 flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            <div>
+              <div className="text-xl font-bold">
+                {statuses["failed"] || 0}
               </div>
-            </CardContent>
-          </Card>
+              <div className="text-xs text-muted-foreground">Failed</div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -151,14 +141,13 @@ export function RunsPage() {
           </Button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-px bg-border rounded-xl overflow-hidden">
           {runs.map((run) => (
-            <Card
+            <div
               key={run.id}
-              className="hover:border-sky-200 dark:hover:border-sky-800 transition-colors cursor-pointer"
+              className="bg-card p-4 hover:bg-accent/50 transition-colors cursor-pointer"
               onClick={() => router.push(`/runs/${run.id}`)}
             >
-              <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
                   <div className="flex items-center gap-3 flex-wrap">
                     <Badge
@@ -186,8 +175,7 @@ export function RunsPage() {
                     <span>{run.time}</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+            </div>
           ))}
         </div>
       )}

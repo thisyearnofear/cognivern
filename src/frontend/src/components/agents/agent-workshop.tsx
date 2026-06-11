@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -200,8 +200,7 @@ export function AgentWorkshop() {
         </button>
       </div>
 
-      <Card>
-        <CardContent className="p-6 space-y-5">
+      <div className="rounded-xl border bg-card p-6 space-y-5">
           <div className="flex items-center gap-3 pb-2">
             <div className="p-2 rounded-lg bg-sky-100 dark:bg-sky-950">
               {mode === "connect" ? (
@@ -400,11 +399,9 @@ export function AgentWorkshop() {
               </>
             )}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card className="bg-muted/20">
-        <CardContent className="p-4">
+      <div className="rounded-xl border bg-muted/20 p-4">
           <div className="text-sm space-y-2">
             <div className="font-medium">
               {mode === "connect"
@@ -456,8 +453,7 @@ export function AgentWorkshop() {
               )}
             </ol>
           </div>
-        </CardContent>
-      </Card>
+        </div>
     </div>
   );
 }

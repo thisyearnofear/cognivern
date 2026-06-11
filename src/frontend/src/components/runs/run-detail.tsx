@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -132,44 +132,35 @@ export function RunDetail({ runId }: { runId: string }) {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${status.bg} ${status.color}`}>
-                <StatusIcon className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-lg font-bold">{status.label}</div>
-                <div className="text-xs text-muted-foreground">Status</div>
-              </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
+        <div className="bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${status.bg} ${status.color}`}>
+              <StatusIcon className="h-5 w-5" />
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-lg font-bold">{run.steps}</div>
-            <div className="text-xs text-muted-foreground">Steps</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-lg font-bold">{run.duration}</div>
-            <div className="text-xs text-muted-foreground">Duration</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-lg font-bold">{run.artifacts}</div>
-            <div className="text-xs text-muted-foreground">Artifacts</div>
-          </CardContent>
-        </Card>
+            <div>
+              <div className="text-lg font-bold">{status.label}</div>
+              <div className="text-xs text-muted-foreground">Status</div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-card p-4">
+          <div className="text-lg font-bold">{run.steps}</div>
+          <div className="text-xs text-muted-foreground">Steps</div>
+        </div>
+        <div className="bg-card p-4">
+          <div className="text-lg font-bold">{run.duration}</div>
+          <div className="text-xs text-muted-foreground">Duration</div>
+        </div>
+        <div className="bg-card p-4">
+          <div className="text-lg font-bold">{run.artifacts}</div>
+          <div className="text-xs text-muted-foreground">Artifacts</div>
+        </div>
       </div>
 
       {/* Execution Trace */}
       {events.length > 0 && (
-        <Card>
-          <CardContent className="p-5">
+        <div className="rounded-xl border bg-card p-5">
             <h2 className="font-semibold mb-4 flex items-center gap-2">
               <Activity className="h-4 w-4 text-primary" />
               Execution Trace
@@ -214,8 +205,7 @@ export function RunDetail({ runId }: { runId: string }) {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+        </div>
       )}
 
       {/* Actions */}

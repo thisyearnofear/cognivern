@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -86,8 +86,7 @@ export function QuickCheck() {
   );
 
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-4 space-y-3">
+    <div className="rounded-xl border bg-card p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold flex items-center gap-2 text-sm">
             <ShieldCheck className="h-4 w-4 text-primary" />
@@ -195,7 +194,6 @@ export function QuickCheck() {
             Select an action or enter an amount to check
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
   );
 }

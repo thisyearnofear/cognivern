@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown } from "lucide-react";
 
@@ -35,27 +35,27 @@ export function AgentStatusChart({ agents, loading }: AgentStatusChartProps) {
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Agent Status</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="rounded-xl border bg-card">
+        <div className="p-4 pb-2">
+          <div className="text-sm font-medium">Agent Status</div>
+        </div>
+        <div className="p-4 pt-2">
           <Skeleton className="h-48 w-full" />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (!agents || agents.length === 0) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Agent Status</CardTitle>
-        </CardHeader>
-        <CardContent className="h-48 flex items-center justify-center text-sm text-muted-foreground">
+      <div className="rounded-xl border bg-card">
+        <div className="p-4 pb-2">
+          <div className="text-sm font-medium">Agent Status</div>
+        </div>
+        <div className="p-4 pt-2 h-48 flex items-center justify-center text-sm text-muted-foreground">
           No agents yet
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -75,11 +75,11 @@ export function AgentStatusChart({ agents, loading }: AgentStatusChartProps) {
   const totalTrades = agents.reduce((sum, a) => sum + (a.trades || 0), 0);
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">Agent Status</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="rounded-xl border bg-card">
+      <div className="p-4 pb-2">
+        <div className="text-sm font-medium">Agent Status</div>
+      </div>
+      <div className="p-4 pt-2">
         <ResponsiveContainer width="100%" height={140}>
           <BarChart
             data={data}
@@ -156,7 +156,7 @@ export function AgentStatusChart({ agents, loading }: AgentStatusChartProps) {
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

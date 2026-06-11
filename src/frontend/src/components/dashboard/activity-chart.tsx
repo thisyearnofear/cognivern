@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Skeleton } from "@/components/ui/skeleton";
 
 type TimeRange = "7d" | "14d" | "30d";
@@ -76,34 +76,34 @@ export function ActivityChart({ logs, loading }: ActivityChartProps) {
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Activity Volume</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="rounded-xl border bg-card">
+        <div className="p-4 pb-2">
+          <div className="text-sm font-medium">Activity Volume</div>
+        </div>
+        <div className="p-4 pt-2">
           <Skeleton className="h-48 w-full" />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   if (!logs || logs.length === 0) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Activity Volume</CardTitle>
-        </CardHeader>
-        <CardContent className="h-48 flex items-center justify-center text-sm text-muted-foreground">
+      <div className="rounded-xl border bg-card">
+        <div className="p-4 pb-2">
+          <div className="text-sm font-medium">Activity Volume</div>
+        </div>
+        <div className="p-4 pt-2 h-48 flex items-center justify-center text-sm text-muted-foreground">
           No activity yet
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-sm font-medium">Activity Volume</CardTitle>
+    <div className="rounded-xl border bg-card">
+      <div className="p-4 pb-2 flex-row items-center justify-between space-y-0 flex">
+        <div className="text-sm font-medium">Activity Volume</div>
         <div className="flex gap-1">
           {(["7d", "14d", "30d"] as TimeRange[]).map((r) => (
             <button
@@ -120,8 +120,8 @@ export function ActivityChart({ logs, loading }: ActivityChartProps) {
             </button>
           ))}
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div className="p-4 pt-2">
         <ResponsiveContainer width="100%" height={180}>
           <AreaChart
             data={data}
@@ -192,7 +192,7 @@ export function ActivityChart({ logs, loading }: ActivityChartProps) {
             <span className="text-xs text-muted-foreground">Denied</span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

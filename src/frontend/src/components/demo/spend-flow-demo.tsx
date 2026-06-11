@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -348,14 +348,14 @@ export function SpendFlowDemo() {
 
       {/* Summary */}
       {completed && governed && (
-        <Card
-          className={`border-2 ${
+        <div
+          className={`rounded-xl border-2 bg-card ${
             approved
               ? "border-emerald-200 dark:border-emerald-900"
               : "border-red-200 dark:border-red-900"
           }`}
         >
-          <CardContent className="p-5">
+          <div className="p-5">
             <div className="flex items-center gap-3 mb-3">
               {approved ? (
                 <CheckCircle2 className="h-6 w-6 text-emerald-500" />
@@ -385,13 +385,13 @@ export function SpendFlowDemo() {
                 <strong>Audit:</strong> Immutable
               </span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {completed && !governed && (
-        <Card className="border-2 border-red-200 dark:border-red-900">
-          <CardContent className="p-5">
+        <div className="rounded-xl border-2 border-red-200 dark:border-red-900 bg-card">
+          <div className="p-5">
             <div className="flex items-center gap-3 mb-3">
               <AlertTriangle className="h-6 w-6 text-red-500" />
               <div>
@@ -417,13 +417,12 @@ export function SpendFlowDemo() {
                 <strong>Recovery:</strong> Impossible
               </span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* How it works */}
-      <Card className="bg-muted/20">
-        <CardContent className="p-4">
+      <div className="rounded-xl border bg-muted/20 p-4">
           <div className="flex items-start gap-2">
             {governed ? (
               <Lock className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
@@ -452,8 +451,7 @@ export function SpendFlowDemo() {
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
     </div>
   );
 }
