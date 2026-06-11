@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -334,9 +334,8 @@ export function GovernanceCheck() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input Panel */}
         <div className="space-y-4">
-          <Card>
-            <CardContent className="p-5 space-y-4">
-              <h2 className="font-semibold flex items-center gap-2">
+          <div className="rounded-xl border bg-card p-5 space-y-4">
+            <h2 className="font-semibold flex items-center gap-2">
                 <PlayCircle className="h-4 w-4 text-primary" />
                 Configure Spend Action
               </h2>
@@ -512,8 +511,7 @@ export function GovernanceCheck() {
                   </>
                 )}
               </Button>
-            </CardContent>
-          </Card>
+            </div>
         </div>
 
         {/* Result Panel */}
@@ -564,8 +562,7 @@ export function GovernanceCheck() {
 
           {/* FHE Progress Panel — shown during async confidential evaluation */}
           {evaluating && fheRunId && (
-            <Card className="border-amber-200 dark:border-amber-800">
-              <CardContent className="p-5 space-y-4">
+            <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-card p-5 space-y-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
                   <Lock className="h-4 w-4" />
                   FHE Confidential Evaluation
@@ -619,25 +616,21 @@ export function GovernanceCheck() {
                     </span>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
           )}
 
           {/* Standard loading skeleton — shown during sync evaluation */}
           {evaluating && !fheRunId && (
-            <Card>
-              <CardContent className="p-5 space-y-3">
+            <div className="rounded-xl border bg-card p-5 space-y-3">
                 <Skeleton className="h-6 w-48" />
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-20 w-full" />
-              </CardContent>
-            </Card>
+              </div>
           )}
 
           {result && !evaluating && (
-            <Card>
-              <CardContent className="p-5 space-y-4">
+            <div className="rounded-xl border bg-card p-5 space-y-4">
                 {/* Verdict */}
                 <div
                   className={`p-4 rounded-xl flex items-center gap-3 ${
@@ -841,8 +834,7 @@ export function GovernanceCheck() {
                     </span>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
           )}
 
           {!result && !evaluating && !error && (
@@ -858,8 +850,7 @@ export function GovernanceCheck() {
       </div>
 
       {/* Quick Reference */}
-      <Card className="bg-muted/20">
-        <CardContent className="p-4 space-y-2">
+      <div className="rounded-xl border bg-muted/20 p-4 space-y-2">
           <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
             <span className="font-medium text-foreground">How it works:</span>
             <span className="flex items-center gap-1">
@@ -880,8 +871,7 @@ export function GovernanceCheck() {
             Every spend is evaluated against your active policies in under 100ms.
             Encrypted policies evaluate without exposing amounts to agents.
           </p>
-        </CardContent>
-      </Card>
+        </div>
     </div>
   );
 }

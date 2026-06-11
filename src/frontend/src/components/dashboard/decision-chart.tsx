@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown } from "lucide-react";
 
@@ -35,16 +35,14 @@ export function DecisionChart({
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">
-            Decision Breakdown
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="rounded-xl border bg-card">
+        <div className="p-4 pb-2">
+          <div className="text-sm font-medium">Decision Breakdown</div>
+        </div>
+        <div className="p-4 pt-2">
           <Skeleton className="h-48 w-full" />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -74,16 +72,14 @@ export function DecisionChart({
 
   if (total === 0) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">
-            Decision Breakdown
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-48 flex items-center justify-center text-sm text-muted-foreground">
+      <div className="rounded-xl border bg-card">
+        <div className="p-4 pb-2">
+          <div className="text-sm font-medium">Decision Breakdown</div>
+        </div>
+        <div className="p-4 pt-2 h-48 flex items-center justify-center text-sm text-muted-foreground">
           No decisions yet
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -98,11 +94,9 @@ export function DecisionChart({
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-sm font-medium">
-          Decision Breakdown
-        </CardTitle>
+    <div className="rounded-xl border bg-card">
+      <div className="p-4 pb-2 flex-row items-center justify-between space-y-0 flex">
+        <div className="text-sm font-medium">Decision Breakdown</div>
         {activeFilter && (
           <button
             type="button"
@@ -112,8 +106,8 @@ export function DecisionChart({
             Clear filter
           </button>
         )}
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div className="p-4 pt-2">
         <ResponsiveContainer width="100%" height={180}>
           <PieChart>
             <Pie
@@ -213,7 +207,7 @@ export function DecisionChart({
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

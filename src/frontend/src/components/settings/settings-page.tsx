@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -119,9 +119,8 @@ function WorkspaceCard({
   }, [workspace, setWorkspace]);
 
   return (
-    <Card>
-      <CardContent className="p-5 space-y-4">
-        <h2 className="font-semibold flex items-center gap-2">
+    <div className="rounded-xl border bg-card p-5 space-y-4">
+      <h2 className="font-semibold flex items-center gap-2">
           <Rocket className="h-4 w-4 text-purple-500" />
           Workspace
         </h2>
@@ -203,8 +202,7 @@ function WorkspaceCard({
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -257,10 +255,9 @@ function ApiKeysCard() {
   }, [createdKey]);
 
   return (
-    <Card>
-      <CardContent className="p-5 space-y-5">
-        <div>
-          <h2 className="font-semibold flex items-center gap-2">
+    <div className="rounded-xl border bg-card p-5 space-y-5">
+      <div>
+        <h2 className="font-semibold flex items-center gap-2">
             <Key className="h-4 w-4 text-amber-500" />
             API Keys
           </h2>
@@ -401,8 +398,7 @@ function ApiKeysCard() {
             </div>
           )}
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -414,9 +410,8 @@ function AppearanceCard({
   setTheme: (t: string) => void;
 }) {
   return (
-    <Card>
-      <CardContent className="p-5 space-y-4">
-        <h2 className="font-semibold flex items-center gap-2">
+    <div className="rounded-xl border bg-card p-5 space-y-4">
+      <h2 className="font-semibold flex items-center gap-2">
           <Sun className="h-4 w-4 text-amber-500" />
           Appearance
         </h2>
@@ -440,8 +435,7 @@ function AppearanceCard({
             </button>
           ))}
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -456,9 +450,8 @@ function ChainsCard() {
   ];
 
   return (
-    <Card>
-      <CardContent className="p-5 space-y-4">
-        <h2 className="font-semibold flex items-center gap-2">
+    <div className="rounded-xl border bg-card p-5 space-y-4">
+      <h2 className="font-semibold flex items-center gap-2">
           <ExternalLink className="h-4 w-4 text-sky-500" />
           Supported Chains
         </h2>
@@ -487,7 +480,6 @@ function ChainsCard() {
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

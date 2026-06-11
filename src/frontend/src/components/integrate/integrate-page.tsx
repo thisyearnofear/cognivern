@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Check, Terminal, Code2, Zap, ArrowRight, Shield } from "lucide-react";
@@ -85,8 +85,7 @@ export function IntegratePage() {
       </div>
 
       {/* Quick overview */}
-      <Card className="bg-gradient-to-r from-primary/5 to-sky-500/5 border-primary/20">
-        <CardContent className="p-5">
+      <div className="rounded-xl border bg-gradient-to-r from-primary/5 to-sky-500/5 border-primary/20 p-5">
           <div className="flex items-center gap-3 mb-3">
             <Zap className="h-5 w-5 text-primary" />
             <h2 className="font-semibold">How it works</h2>
@@ -113,8 +112,7 @@ export function IntegratePage() {
             agents, DAO treasury ops, bridge agents — anything that spends,
             swaps, stakes, or transfers.
           </p>
-        </CardContent>
-      </Card>
+        </div>
 
       <Tabs defaultValue="quickstart" className="space-y-4">
         <TabsList>
@@ -221,8 +219,7 @@ cvn_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345`}
 
         {/* API Reference */}
         <TabsContent value="reference" className="space-y-4">
-          <Card>
-            <CardContent className="p-5 space-y-4">
+    <div className="rounded-xl border bg-card p-5 space-y-4">
               <h3 className="font-semibold flex items-center gap-2">
                 <Terminal className="h-4 w-4" />
                 Authentication
@@ -243,11 +240,9 @@ cvn_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345`}
                 language="http"
                 code={`x-api-key: cvn_YOUR_KEY_HERE`}
               />
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card>
-            <CardContent className="p-5 space-y-3">
+    <div className="rounded-xl border bg-card p-5 space-y-3">
               <h3 className="font-semibold flex items-center gap-2">
                 <Shield className="h-4 w-4 text-emerald-500" />
                 Security Features
@@ -279,8 +274,7 @@ cvn_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345`}
                   Body limits: 512KB (data plane), 10MB (control plane) — Helmet CSP enabled
                 </li>
               </ul>
-            </CardContent>
-          </Card>
+            </div>
 
           <EndpointCard
             method="POST"
@@ -376,8 +370,7 @@ cvn_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345`}
 
         {/* Code Examples */}
         <TabsContent value="examples" className="space-y-4">
-          <Card>
-            <CardContent className="p-5 space-y-4">
+    <div className="rounded-xl border bg-card p-5 space-y-4">
               <h3 className="font-semibold flex items-center gap-2">
                 <Code2 className="h-4 w-4" />
                 TypeScript / Node.js
@@ -428,11 +421,9 @@ async function executeSwap(amount: number) {
   // ... execute the actual swap
 }`}
               />
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card>
-            <CardContent className="p-5 space-y-4">
+          <div className="rounded-xl border bg-card p-5 space-y-4">
               <h3 className="font-semibold flex items-center gap-2">
                 <Code2 className="h-4 w-4" />
                 Python
@@ -475,8 +466,7 @@ if check_governance("swap", "Swap 2000 USDC for ETH", 2000):
     # execute the swap
     pass`}
               />
-            </CardContent>
-          </Card>
+            </div>
         </TabsContent>
       </Tabs>
     </div>
@@ -497,8 +487,7 @@ function EndpointCard({
   responseBody: string;
 }) {
   return (
-    <Card>
-      <CardContent className="p-5 space-y-3">
+    <div className="rounded-xl border bg-card p-5 space-y-3">
         <div className="flex items-center gap-3">
           <Badge
             variant={method === "GET" ? "secondary" : "default"}
@@ -523,7 +512,6 @@ function EndpointCard({
           </div>
           <CodeBlock language="json" code={responseBody} />
         </div>
-      </CardContent>
-    </Card>
+      </div>
   );
 }
