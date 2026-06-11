@@ -8,7 +8,7 @@ import {
   rmSync,
   mkdirSync,
   writeFileSync,
-  copyFileSync,
+  cpSync,
   existsSync,
 } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -94,12 +94,15 @@ writeFileSync(
   JSON.stringify(pkg, null, 2) + "\n",
 );
 
-// Copy static policy files if they exist
-const policiesDir = resolve(ROOT, "src/backend/modules/api/controllers");
-// (policies are loaded from DB now, no static files needed)
+// Copy static policy files for first boot / fallback policy loading.
+const policiesDir = resolve(ROOT, "src/backend/policies");
+if (existsSync(policiesDir)) {
+  cpSync(policiesDir, resolve(OUT_DIR, "policies"), { recursive: true });
+}
 
 console.log("[build] Bundle created at deploy-bundle/");
 console.log("[build] Contents:");
 console.log("  - server.mjs (bundled backend)");
 console.log("  - server.mjs.map (source map)");
 console.log("  - package.json (native deps only)");
+console.log("  - policies/ (bundled policy JSON)");
