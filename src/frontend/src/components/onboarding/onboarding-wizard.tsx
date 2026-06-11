@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -457,7 +457,7 @@ export function OnboardingWizard() {
     <div className="max-w-2xl mx-auto space-y-8 py-8 px-4 sm:px-6">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>
           Set Up Your Treasury
         </h1>
         <p className="text-muted-foreground mt-2 text-sm sm:text-base">
@@ -514,13 +514,21 @@ export function OnboardingWizard() {
       </div>
 
       {/* Step Content */}
-      <Card>
-        <CardContent className="p-6">
-          {step === 0 && (
-            <div className="space-y-4">
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="p-6">
+          <AnimatePresence mode="wait">
+            {step === 0 && (
+              <motion.div
+                key="wallet"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-4"
+              >
               <div className="text-center py-4">
                 <Wallet className="h-12 w-12 mx-auto mb-3 text-primary opacity-70" />
-                <h2 className="text-xl font-semibold">Connect Your Wallet</h2>
+                <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Connect Your Wallet</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   Link a wallet to create and manage governance policies
                 </p>
@@ -543,7 +551,7 @@ export function OnboardingWizard() {
                       <div className="w-full border-t border-border" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">
+                      <span className="bg-background px-2 text-muted-foreground">
                         or
                       </span>
                     </div>
@@ -572,14 +580,21 @@ export function OnboardingWizard() {
                   </p>
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
 
-          {step === 1 && (
-            <div className="space-y-4">
+            {step === 1 && (
+              <motion.div
+                key="policy"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-4"
+              >
               <div className="text-center py-2">
                 <ShieldCheck className="h-12 w-12 mx-auto mb-3 text-primary opacity-70" />
-                <h2 className="text-xl font-semibold">
+                <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
                   Choose a Policy Template
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -604,14 +619,21 @@ export function OnboardingWizard() {
                   </button>
                 ))}
               </div>
-            </div>
+            </motion.div>
           )}
 
-          {step === 2 && (
-            <div className="space-y-4">
+            {step === 2 && (
+              <motion.div
+                key="agent"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-4"
+              >
               <div className="text-center py-2">
                 <Users className="h-12 w-12 mx-auto mb-3 text-primary opacity-70" />
-                <h2 className="text-xl font-semibold">Name Your First Agent</h2>
+                <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Name Your First Agent</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   This agent will be governed by your policy
                 </p>
@@ -645,16 +667,23 @@ export function OnboardingWizard() {
                   </div>
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
 
-          {step === 3 && (
-            <div className="space-y-6">
+            {step === 3 && (
+              <motion.div
+                key="done"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-6"
+              >
               <div className="text-center py-4 space-y-3">
                 <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mx-auto">
                   <CheckCircle2 className="h-8 w-8 text-emerald-500" />
                 </div>
-                <h2 className="text-xl font-semibold">All Set!</h2>
+                <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>All Set!</h2>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
                   Your treasury is configured with a{" "}
                   {POLICY_TEMPLATES.find(
@@ -694,10 +723,11 @@ export function OnboardingWizard() {
                   Try the full spend flow demo →
                 </Button>
               </div>
-            </div>
+            </motion.div>
           )}
-        </CardContent>
-      </Card>
+          </AnimatePresence>
+        </div>
+      </div>
 
       {/* Error */}
       {error && (
