@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
@@ -51,9 +52,46 @@ const eventLabels: Record<string, string> = {
   audit_logged: "Audit Logged",
 };
 
+function useCountUp(target: number, duration = 2000, start = false) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!start) return;
+    const startTime = performance.now();
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(eased * target));
+      if (progress < 1) ref.current = requestAnimationFrame(animate);
+    };
+    ref.current = requestAnimationFrame(animate);
+    return () => { if (ref.current) cancelAnimationFrame(ref.current); };
+  }, [target, duration, start]);
+
+  return count;
+}
+
 export function RunDetail({ runId }: { runId: string }) {
   const router = useRouter();
   const { data: run, isLoading, error } = useRun(runId);
+  const statsRef = useRef<HTMLDivElement>(null);
+  const [statsVisible, setStatsVisible] = useState(false);
+
+  useEffect(() => {
+    if (!statsRef.current) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setStatsVisible(true); },
+      { threshold: 0.3 },
+    );
+    obs.observe(statsRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  // Animated counters (must be before early returns per React rules)
+  const animatedSteps = useCountUp(run?.steps || 0, 2000, statsVisible);
+  const animatedArtifacts = useCountUp(run?.artifacts || 0, 2000, statsVisible);
 
   if (isLoading) {
     return (
@@ -132,7 +170,7 @@ export function RunDetail({ runId }: { runId: string }) {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
+      <div ref={statsRef} className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
         <div className="bg-card p-4">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${status.bg} ${status.color}`}>
@@ -145,7 +183,7 @@ export function RunDetail({ runId }: { runId: string }) {
           </div>
         </div>
         <div className="bg-card p-4">
-          <div className="text-lg font-bold">{run.steps}</div>
+          <div className="text-lg font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>{statsVisible ? animatedSteps : "—"}</div>
           <div className="text-xs text-muted-foreground">Steps</div>
         </div>
         <div className="bg-card p-4">
@@ -153,7 +191,7 @@ export function RunDetail({ runId }: { runId: string }) {
           <div className="text-xs text-muted-foreground">Duration</div>
         </div>
         <div className="bg-card p-4">
-          <div className="text-lg font-bold">{run.artifacts}</div>
+          <div className="text-lg font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>{statsVisible ? animatedArtifacts : "—"}</div>
           <div className="text-xs text-muted-foreground">Artifacts</div>
         </div>
       </div>
