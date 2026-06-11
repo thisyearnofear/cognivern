@@ -1,6 +1,7 @@
 "use client";
 
 
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,9 +16,42 @@ import {
 } from "lucide-react";
 import { useRuns } from "@/hooks/use-api";
 
+function useCountUp(target: number, duration = 2000, start = false) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!start) return;
+    const startTime = performance.now();
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(eased * target));
+      if (progress < 1) ref.current = requestAnimationFrame(animate);
+    };
+    ref.current = requestAnimationFrame(animate);
+    return () => { if (ref.current) cancelAnimationFrame(ref.current); };
+  }, [target, duration, start]);
+
+  return count;
+}
+
 export function RunsPage() {
   const router = useRouter();
   const { data: rawRuns, isLoading, error } = useRuns();
+  const statsRef = useRef<HTMLDivElement>(null);
+  const [statsVisible, setStatsVisible] = useState(false);
+
+  useEffect(() => {
+    if (!statsRef.current) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setStatsVisible(true); },
+      { threshold: 0.3 },
+    );
+    obs.observe(statsRef.current);
+    return () => obs.disconnect();
+  }, []);
 
   const runs = Array.isArray(rawRuns)
     ? rawRuns.map((r) => ({
@@ -36,6 +70,12 @@ export function RunsPage() {
     (acc, r) => ({ ...acc, [r.status]: (acc[r.status] || 0) + 1 }),
     {} as Record<string, number>,
   );
+
+  // Animated counters
+  const animatedActive = useCountUp(statuses["running"] || 0, 2000, statsVisible);
+  const animatedCompleted = useCountUp(statuses["completed"] || 0, 2000, statsVisible);
+  const animatedAwaiting = useCountUp(statuses["paused_for_approval"] || 0, 2000, statsVisible);
+  const animatedFailed = useCountUp(statuses["failed"] || 0, 2000, statsVisible);
 
   return (
     <div className="space-y-6">
@@ -71,12 +111,12 @@ export function RunsPage() {
           <p className="text-xs mt-1">The backend may be unavailable</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
+        <div ref={statsRef} className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
           <div className="bg-card p-4 flex items-center gap-3">
             <Activity className="h-5 w-5 text-primary" />
             <div>
-              <div className="text-xl font-bold">
-                {statuses["running"] || 0}
+              <div className="text-xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
+                {statsVisible ? animatedActive : "—"}
               </div>
               <div className="text-xs text-muted-foreground">Active</div>
             </div>
@@ -84,8 +124,8 @@ export function RunsPage() {
           <div className="bg-card p-4 flex items-center gap-3">
             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             <div>
-              <div className="text-xl font-bold">
-                {statuses["completed"] || 0}
+              <div className="text-xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
+                {statsVisible ? animatedCompleted : "—"}
               </div>
               <div className="text-xs text-muted-foreground">Completed</div>
             </div>
@@ -93,8 +133,8 @@ export function RunsPage() {
           <div className="bg-card p-4 flex items-center gap-3">
             <Clock className="h-5 w-5 text-sky-500" />
             <div>
-              <div className="text-xl font-bold">
-                {statuses["paused_for_approval"] || 0}
+              <div className="text-xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
+                {statsVisible ? animatedAwaiting : "—"}
               </div>
               <div className="text-xs text-muted-foreground">Awaiting</div>
             </div>
@@ -102,8 +142,8 @@ export function RunsPage() {
           <div className="bg-card p-4 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-red-500" />
             <div>
-              <div className="text-xl font-bold">
-                {statuses["failed"] || 0}
+              <div className="text-xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
+                {statsVisible ? animatedFailed : "—"}
               </div>
               <div className="text-xs text-muted-foreground">Failed</div>
             </div>
