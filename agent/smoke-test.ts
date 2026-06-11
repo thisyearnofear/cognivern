@@ -31,6 +31,18 @@ const goal =
   process.env.SMOKE_GOAL ||
   "For agent-copilot, preview a 100 USDC spend to vendor 0xABCDEF1234567890abcdef1234567890abcdef12 for API credits under the active spend policy. First recall agent-copilot memory and vendor reputation, then run the spend preview. If the preview is approved, attempt execute so preview-only mode can intercept it.";
 
+const startedAt = Date.now();
+function elapsed(): string {
+  return `${((Date.now() - startedAt) / 1000).toFixed(1)}s`;
+}
+
+function logStep(label: string, detail?: string): void {
+  console.log(`[${elapsed()}] ${label}${detail ? ` — ${detail}` : ""}`);
+}
+
+logStep("Mission accepted", "Vertex AI + MongoDB MCP + Cognivern tools");
+logStep("Goal", goal);
+
 const result = await runAgent({
   goal,
   cognivernApiKey: process.env.COGNIVERN_API_KEY || "development-api-key",
@@ -43,6 +55,28 @@ const result = await runAgent({
   googleCloudProject: process.env.GOOGLE_CLOUD_PROJECT,
   vertexLocation: process.env.VERTEX_LOCATION || "global",
   previewOnly: true,
+  onEvent(event) {
+    switch (event.type) {
+      case "model_tool_call":
+        logStep("Tool requested", event.name);
+        break;
+      case "tool_result":
+        logStep("Tool completed", event.name);
+        break;
+      case "tool_error":
+        logStep("Tool error", `${event.name}: ${event.error}`);
+        break;
+      case "preview_intercepted":
+        logStep("Execution intercepted", event.reason);
+        break;
+      case "hitl_denied":
+        logStep("Execution denied", event.reason);
+        break;
+      case "final":
+        logStep("Final summary ready");
+        break;
+    }
+  },
 });
 
 console.log("\n=== SMOKE TEST RESULT ===");

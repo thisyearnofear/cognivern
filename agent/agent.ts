@@ -74,6 +74,14 @@ interface AgentRunResult {
   }>;
 }
 
+export type AgentRunEvent =
+  | { type: "model_tool_call"; name: string; args: Record<string, unknown> }
+  | { type: "tool_result"; name: string; result: unknown }
+  | { type: "tool_error"; name: string; error: string }
+  | { type: "hitl_denied"; name: string; reason: string }
+  | { type: "preview_intercepted"; name: string; reason: string }
+  | { type: "final"; summary: string };
+
 // ---------------------------------------------------------------------------
 // System prompt loader
 // ---------------------------------------------------------------------------
@@ -183,6 +191,7 @@ export interface AgentRunOptions {
   geminiModel?: string;
   googleCloudProject?: string;
   vertexLocation?: string;
+  onEvent?: (event: AgentRunEvent) => void;
   /** When true, the agent will not call cognivern_execute_spend even if
    *  the human approves. Useful for the recorded demo. */
   previewOnly?: boolean;
@@ -250,6 +259,7 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
         modelContent.parts.find((p) => p.text)?.text ||
         "(no response from model)";
       transcript.push({ role: "model", text });
+      opts.onEvent?.({ type: "final", summary: text });
       return {
         summary: text,
         decisionId,
@@ -270,6 +280,11 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
         name: fnCall.name,
         args: fnCall.args,
       });
+      opts.onEvent?.({
+        type: "model_tool_call",
+        name: fnCall.name,
+        args: fnCall.args,
+      });
 
       // If previewOnly is set, intercept execute_spend before HITL or execution.
       if (opts.previewOnly && fnCall.name === "cognivern_execute_spend") {
@@ -284,6 +299,11 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
           },
         });
         transcript.push({ role: "tool", result: intercepted });
+        opts.onEvent?.({
+          type: "preview_intercepted",
+          name: fnCall.name,
+          reason: intercepted.reason,
+        });
         continue;
       }
 
@@ -303,6 +323,11 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
             },
           });
           transcript.push({ role: "tool", result: denied });
+          opts.onEvent?.({
+            type: "hitl_denied",
+            name: fnCall.name,
+            reason: refusal,
+          });
           continue;
         }
         fnCall.args.humanConfirmationToken = confirm.token;
@@ -313,9 +338,12 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
       try {
         result = await executeTool(ctx, fnCall.name, fnCall.args);
       } catch (e) {
-        result = { error: e instanceof Error ? e.message : String(e) };
+        const message = e instanceof Error ? e.message : String(e);
+        result = { error: message };
+        opts.onEvent?.({ type: "tool_error", name: fnCall.name, error: message });
       }
       transcript.push({ role: "tool", result });
+      opts.onEvent?.({ type: "tool_result", name: fnCall.name, result });
 
       // Capture the receipts when they appear.
       if (
