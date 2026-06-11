@@ -331,7 +331,7 @@ export function GovernanceCheck() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Input Panel */}
         <div className="space-y-4">
           <div className="rounded-xl border bg-card p-5 space-y-4">

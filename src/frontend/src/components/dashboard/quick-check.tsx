@@ -86,7 +86,7 @@ export function QuickCheck() {
   );
 
   return (
-    <div className="rounded-xl border bg-card p-4 space-y-3">
+    <div className="rounded-xl border bg-card p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold flex items-center gap-2 text-sm">
             <ShieldCheck className="h-4 w-4 text-primary" />

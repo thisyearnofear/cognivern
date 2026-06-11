@@ -25,7 +25,7 @@ export default function DashboardLoading() {
         ))}
       </div>
 
-      <div className="rounded-xl border bg-card p-4">
+      <div className="rounded-xl border bg-card p-5">
         <Skeleton className="h-5 w-36 mb-3" />
         {Array.from({ length: 2 }).map((_, i) => (
           <div key={i} className="flex items-center gap-3 mb-2">

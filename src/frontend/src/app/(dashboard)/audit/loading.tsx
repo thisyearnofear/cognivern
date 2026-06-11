@@ -17,7 +17,7 @@ export default function AuditLoading() {
         ))}
       </div>
 
-      <div className="rounded-xl border bg-card p-4 space-y-3">
+      <div className="rounded-xl border bg-card p-5 space-y-4">
         <Skeleton className="h-5 w-44" />
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="flex items-center gap-3">

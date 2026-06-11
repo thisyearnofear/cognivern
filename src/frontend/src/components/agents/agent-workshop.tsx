@@ -200,7 +200,7 @@ export function AgentWorkshop() {
         </button>
       </div>
 
-      <div className="rounded-xl border bg-card p-6 space-y-5">
+      <div className="rounded-xl border bg-card p-5 space-y-4">
           <div className="flex items-center gap-3 pb-2">
             <div className="p-2 rounded-lg bg-sky-100 dark:bg-sky-950">
               {mode === "connect" ? (
