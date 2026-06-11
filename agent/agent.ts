@@ -85,7 +85,7 @@ async function askHuman(
   // In Agent Builder this is a webhook back to the operator UI.
   // Locally we read from stdin so a CLI demo still works.
   if (!process.stdin.isTTY) {
-    return { approved: true, token: "auto-approved-non-interactive" };
+    return { approved: false };
   }
   process.stdout.write(
     `\n[HUMAN-IN-THE-LOOP] ${prompt}\n${JSON.stringify(context, null, 2)}\nApprove? [y/N] `,
@@ -215,6 +215,30 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
       args: fnCall.functionCall!.args,
     });
 
+    // If previewOnly is set, intercept execute_spend before HITL or execution.
+    if (
+      opts.previewOnly &&
+      fnCall.functionCall!.name === "cognivern_execute_spend"
+    ) {
+      const intercepted = {
+        intercepted: true,
+        reason: "previewOnly mode - no real spend",
+      };
+      contents.push({
+        role: "function",
+        parts: [
+          {
+            functionResponse: {
+              name: fnCall.functionCall!.name,
+              response: intercepted,
+            },
+          },
+        ],
+      });
+      transcript.push({ role: "tool", result: intercepted });
+      continue;
+    }
+
     // HITL gate.
     if (HUMAN_CONFIRMATION_REQUIRED.has(fnCall.functionCall!.name)) {
       const confirm = await askHuman(
@@ -271,27 +295,6 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
     ) {
       const r = result as Record<string, unknown>;
       if (typeof r.auditLogId === "string") auditLogId = r.auditLogId;
-    }
-
-    // If previewOnly is set, intercept execute_spend.
-    if (
-      opts.previewOnly &&
-      fnCall.functionCall!.name === "cognivern_execute_spend"
-    ) {
-      const intercepted = {
-        intercepted: true,
-        reason: "previewOnly mode — no real spend",
-      };
-      contents.push({
-        role: "function",
-        parts: [
-          {
-            functionResponse: { name: fnCall.functionCall!.name, response: intercepted },
-          },
-        ],
-      });
-      transcript.push({ role: "tool", result: intercepted });
-      continue;
     }
 
     contents.push({

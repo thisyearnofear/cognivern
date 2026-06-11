@@ -13,6 +13,9 @@ export function createGovernanceRoutes(
   router.get("/governance/policies", (req, res) =>
     governanceController.getPolicies(req, res),
   );
+  router.get("/governance/policies/:id", (req, res) =>
+    governanceController.getPolicy(req, res),
+  );
   router.post("/governance/policies", (req, res) =>
     governanceController.createPolicy(req, res),
   );

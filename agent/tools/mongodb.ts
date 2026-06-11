@@ -128,7 +128,12 @@ export async function executeMongodbTool(
       }
       case "mongodb_audit_history": {
         const filter: Record<string, unknown> = {};
-        if (args.agentId) filter["action.agentId"] = args.agentId;
+        if (args.agentId) {
+          filter.$or = [
+            { agentId: args.agentId },
+            { "action.agentId": args.agentId },
+          ];
+        }
         if (args.complianceStatus)
           filter["metadata.complianceStatus"] = args.complianceStatus;
         if (args.startDate) filter.timestamp = { $gte: args.startDate };
