@@ -64,17 +64,17 @@ ssh "$SSH_HOST" << 'REMOTE_EOF'
   # Install only if package.json changed (native deps are stable)
   if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules/.package-lock.json" ]; then
     echo "  Installing native dependencies..."
-    $NPM_CMD install --omit=dev --no-audit --no-fund 2>&1 | tail -5
+    $NPM_CMD install --omit=dev --no-audit --no-fund --ignore-scripts=false 2>&1 | tail -5
     rm -rf package # Clean up portable npm if used
   else
     echo "  Native deps up to date, skipping install."
   fi
 
-  # The lean bundle relies on native modules. Verify the binding exists even
-  # when package.json did not change; stale installs can lose .node artifacts.
-  if ! node -e "require('better-sqlite3')" >/dev/null 2>&1; then
+  # The lean bundle relies on native modules. Instantiate the driver so the
+  # native binding is actually loaded; require() alone only checks the JS shim.
+  if ! node -e "const Database = require('better-sqlite3'); const db = new Database(':memory:'); db.close();" >/dev/null 2>&1; then
     echo "  Rebuilding better-sqlite3 native binding..."
-    $NPM_CMD rebuild better-sqlite3 2>&1 | tail -10
+    $NPM_CMD rebuild better-sqlite3 --ignore-scripts=false 2>&1 | tail -10
   fi
 
   # Ensure data directory exists (SQLite DB lives here)
