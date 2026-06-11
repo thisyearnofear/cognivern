@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sparkles, ArrowRight, Zap } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
+import { useDemoStore } from "@/stores/demo-store";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
 
@@ -10,6 +11,7 @@ export function DemoBanner() {
   const [dismissed, setDismissed] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const workspace = useAuthStore((s) => s.workspace);
+  const demoMode = useDemoStore((s) => s.demoMode);
 
   if (workspace?.tier === "live") {
     return (
@@ -23,6 +25,10 @@ export function DemoBanner() {
         </span>
       </div>
     );
+  }
+
+  if (!demoMode) {
+    return null;
   }
 
   if (dismissed) {
