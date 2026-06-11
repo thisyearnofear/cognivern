@@ -20,7 +20,7 @@ export default function GlobalError({
           <AlertTriangle className="h-10 w-10 text-red-500" />
         </div>
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>
             Something went wrong
           </h1>
           <p className="text-stone-500 max-w-md">

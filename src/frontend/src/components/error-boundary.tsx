@@ -101,7 +101,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
           {/* Heading & message */}
           <div className="space-y-2 max-w-md">
-            <h2 className="text-xl font-semibold text-zinc-100 tracking-tight">
+            <h2 className="text-xl font-semibold text-zinc-100 tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>
               Something went wrong
             </h2>
             <p className="text-sm leading-relaxed text-zinc-400 font-[family-name:var(--font-geist-mono)]">

@@ -59,7 +59,7 @@ function StepCard({
         <div className="w-px flex-1 bg-border mt-2" />
       </div>
       <div className="pb-8 flex-1">
-        <h3 className="font-semibold mb-2">{title}</h3>
+        <h3 className="font-semibold mb-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>{title}</h3>
         {children}
       </div>
     </div>
@@ -75,7 +75,7 @@ export function IntegratePage() {
   return (
     <div className="max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>
           Integrate Your Agent
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -88,7 +88,7 @@ export function IntegratePage() {
       <div className="rounded-xl border bg-gradient-to-r from-primary/5 to-sky-500/5 border-primary/20 p-5">
           <div className="flex items-center gap-3 mb-3">
             <Zap className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold">How it works</h2>
+            <h2 className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>How it works</h2>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
             <Badge variant="secondary">Agent wants to spend</Badge>
@@ -220,7 +220,7 @@ cvn_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345`}
         {/* API Reference */}
         <TabsContent value="reference" className="space-y-4">
     <div className="rounded-xl border bg-card p-5 space-y-4">
-              <h3 className="font-semibold flex items-center gap-2">
+              <h3 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
                 <Terminal className="h-4 w-4" />
                 Authentication
                 <HelpIcon helpKey="security:apikeys" />
@@ -243,7 +243,7 @@ cvn_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345`}
             </div>
 
     <div className="rounded-xl border bg-card p-5 space-y-3">
-              <h3 className="font-semibold flex items-center gap-2">
+              <h3 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
                 <Shield className="h-4 w-4 text-emerald-500" />
                 Security Features
               </h3>
@@ -371,7 +371,7 @@ cvn_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345`}
         {/* Code Examples */}
         <TabsContent value="examples" className="space-y-4">
     <div className="rounded-xl border bg-card p-5 space-y-4">
-              <h3 className="font-semibold flex items-center gap-2">
+              <h3 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
                 <Code2 className="h-4 w-4" />
                 TypeScript / Node.js
               </h3>
@@ -424,7 +424,7 @@ async function executeSwap(amount: number) {
             </div>
 
           <div className="rounded-xl border bg-card p-5 space-y-4">
-              <h3 className="font-semibold flex items-center gap-2">
+              <h3 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
                 <Code2 className="h-4 w-4" />
                 Python
               </h3>

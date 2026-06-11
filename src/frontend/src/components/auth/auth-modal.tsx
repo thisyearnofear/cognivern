@@ -33,7 +33,7 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: AuthModalPro
 
         <div className="bg-card rounded-xl border border-border p-6 shadow-xl">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-semibold">Sign in to Cognivern</h2>
+            <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Sign in to Cognivern</h2>
             <p className="text-sm text-muted-foreground mt-1">
               Choose how you want to authenticate
             </p>

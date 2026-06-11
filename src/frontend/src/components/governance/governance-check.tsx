@@ -313,7 +313,7 @@ export function GovernanceCheck() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>
             Governance Check
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -335,7 +335,7 @@ export function GovernanceCheck() {
         {/* Input Panel */}
         <div className="space-y-4">
           <div className="rounded-xl border bg-card p-5 space-y-4">
-            <h2 className="font-semibold flex items-center gap-2">
+            <h2 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
                 <PlayCircle className="h-4 w-4 text-primary" />
                 Configure Spend Action
               </h2>
@@ -665,7 +665,7 @@ export function GovernanceCheck() {
 
                 {/* Policy Checks */}
                 <div>
-                  <h3 className="font-semibold text-sm mb-3">Policy Checks</h3>
+                  <h3 className="font-semibold text-sm mb-3" style={{ fontFamily: "var(--font-space-grotesk)" }}>Policy Checks</h3>
                   <div className="space-y-2">
                     {(result.policyChecks || []).map((check) => (
                       <CheckItem
@@ -682,7 +682,7 @@ export function GovernanceCheck() {
                 {!result.allowed &&
                   (result.policyChecks || []).some((c) => !c.result) && (
                     <div className="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50/50 dark:bg-sky-950/20 p-4 space-y-2">
-                      <h3 className="font-semibold text-sm flex items-center gap-2 text-sky-700 dark:text-sky-300">
+                      <h3 className="font-semibold text-sm flex items-center gap-2 text-sky-700 dark:text-sky-300" style={{ fontFamily: "var(--font-space-grotesk)" }}>
                         <AlertTriangle className="h-4 w-4" />
                         How to fix this
                       </h3>

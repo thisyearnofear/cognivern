@@ -22,7 +22,7 @@ export function ErrorState({
         <AlertTriangle className="h-6 w-6 text-destructive" />
       </div>
       <div className="space-y-1">
-        <h3 className="font-semibold text-foreground">{title}</h3>
+        <h3 className="font-semibold text-foreground" style={{ fontFamily: "var(--font-space-grotesk)" }}>{title}</h3>
         <p className="text-sm text-muted-foreground max-w-sm">{message}</p>
       </div>
       <div className="flex items-center gap-2 flex-wrap justify-center">
@@ -87,7 +87,7 @@ export function EmptyState({
         </div>
       )}
       <div className="space-y-1">
-        <h3 className="font-medium text-foreground">{title}</h3>
+        <h3 className="font-medium text-foreground" style={{ fontFamily: "var(--font-space-grotesk)" }}>{title}</h3>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
       {action && (

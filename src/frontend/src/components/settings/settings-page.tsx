@@ -43,7 +43,7 @@ export function SettingsPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Manage your workspace, API keys, and preferences
         </p>
@@ -120,7 +120,7 @@ function WorkspaceCard({
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
-      <h2 className="font-semibold flex items-center gap-2">
+      <h2 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
           <Rocket className="h-4 w-4 text-purple-500" />
           Workspace
         </h2>
@@ -257,7 +257,7 @@ function ApiKeysCard() {
   return (
     <div className="rounded-xl border bg-card p-5 space-y-5">
       <div>
-        <h2 className="font-semibold flex items-center gap-2">
+        <h2 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
             <Key className="h-4 w-4 text-amber-500" />
             API Keys
           </h2>
@@ -411,7 +411,7 @@ function AppearanceCard({
 }) {
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
-      <h2 className="font-semibold flex items-center gap-2">
+      <h2 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
           <Sun className="h-4 w-4 text-amber-500" />
           Appearance
         </h2>
@@ -451,7 +451,7 @@ function ChainsCard() {
 
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
-      <h2 className="font-semibold flex items-center gap-2">
+      <h2 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
           <ExternalLink className="h-4 w-4 text-sky-500" />
           Supported Chains
         </h2>
