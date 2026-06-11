@@ -1,0 +1,164 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Cognivern Governance API",
+    "version": "0.1.0",
+    "description": "Governance policy, spend preview, spend execution, and audit tools for Cognivern Copilot."
+  },
+  "servers": [
+    {
+      "url": "https://cognivern.thisyearnofear.com/api"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "SpendRequest": {
+        "type": "object",
+        "required": ["agentId", "recipient", "amount", "asset", "reason"],
+        "properties": {
+          "agentId": { "type": "string" },
+          "recipient": { "type": "string" },
+          "amount": { "type": "string" },
+          "asset": { "type": "string" },
+          "reason": { "type": "string" },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "EvaluateActionRequest": {
+        "type": "object",
+        "required": ["agentId", "policyId", "action"],
+        "properties": {
+          "agentId": { "type": "string" },
+          "policyId": { "type": "string" },
+          "action": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/governance/policies": {
+      "get": {
+        "operationId": "cognivern_list_policies",
+        "summary": "List governance policies",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["active", "draft", "archived"]
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Policies returned" }
+        }
+      }
+    },
+    "/governance/policies/{policyId}": {
+      "get": {
+        "operationId": "cognivern_get_policy",
+        "summary": "Get one governance policy",
+        "parameters": [
+          {
+            "name": "policyId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Policy returned" },
+          "404": { "description": "Policy not found" }
+        }
+      }
+    },
+    "/spend/preview": {
+      "post": {
+        "operationId": "cognivern_preview_spend",
+        "summary": "Preview a spend without executing it",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SpendRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Spend preview returned" }
+        }
+      }
+    },
+    "/governance/evaluate": {
+      "post": {
+        "operationId": "cognivern_evaluate_action",
+        "summary": "Evaluate a non-spend action against policy",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EvaluateActionRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Evaluation returned" },
+          "202": { "description": "Evaluation accepted" }
+        }
+      }
+    },
+    "/spend": {
+      "post": {
+        "operationId": "cognivern_execute_spend",
+        "summary": "Execute a governed spend after preview and human confirmation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SpendRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Spend execution returned" },
+          "403": { "description": "Spend denied" }
+        }
+      }
+    },
+    "/audit/logs": {
+      "get": {
+        "operationId": "cognivern_audit_recent",
+        "summary": "Fetch recent audit logs",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20 }
+          },
+          {
+            "name": "agent",
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Audit logs returned" }
+        }
+      }
+    }
+  }
+}

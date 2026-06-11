@@ -12,9 +12,9 @@ Cognivern is a control plane for agent operations: governed wallet spend plus AI
 
 ## Submission: Google Cloud "Building Agents for Real-World Challenges"
 
-**Track:** MongoDB &nbsp;·&nbsp; **Model:** Gemini 3 Pro (`gemini-3-pro-preview`) &nbsp;·&nbsp; **MCP:** `@mongodb-js/mongodb-mcp-server`
+**Track:** MongoDB &nbsp;·&nbsp; **Model:** Gemini 3.1 Pro (`gemini-3.1-pro-preview`) &nbsp;·&nbsp; **MCP:** `@mongodb-js/mongodb-mcp-server`
 
-The submission is the **Cognivern Copilot** agent under [`agent/`](./agent). It is a Gemini 3 agent hosted in Google Cloud Agent Builder that turns a natural-language spend goal into a strictly-governed multi-step mission (PLAN → EVIDENCE → PREVIEW → CONFIRM → EXECUTE → AUDIT), with the MongoDB MCP server powering memory recall, audit history, vendor reputation, and the run ledger.
+The submission is the **Cognivern Copilot** agent under [`agent/`](./agent). It is a Gemini 3.1 agent hosted in Google Cloud Agent Builder that turns a natural-language spend goal into a strictly-governed multi-step mission (PLAN → EVIDENCE → PREVIEW → CONFIRM → EXECUTE → AUDIT), with the MongoDB MCP server powering memory recall, audit history, vendor reputation, and the run ledger.
 
 - Agent runtime &amp; multi-step protocol: [`agent/agent.ts`](./agent/agent.ts)
 - System prompt / mission: [`agent/instructions.md`](./agent/instructions.md)

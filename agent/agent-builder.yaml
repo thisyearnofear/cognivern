@@ -2,7 +2,7 @@
 #
 # This file is the canonical "Import agent" payload for the Google Cloud
 # Agent Builder console. It registers the Cognivern Copilot agent, its
-# Gemini 3 model, its tool surface (Cognivern governance API + MongoDB
+# Gemini 3.1 model, its tool surface (Cognivern governance API + MongoDB
 # MCP server), and its multi-step mission protocol.
 #
 # Import path (console):
@@ -24,7 +24,8 @@ description: |
 # --- Model ----------------------------------------------------------------
 model:
   provider: google
-  name: gemini-3-pro-preview
+  name: gemini-3.1-pro-preview
+  location: global
   # Lower temperature for governance decisions; higher for briefing tasks
   # is handled per-call by the agent.
   temperature: 0.2
@@ -38,7 +39,7 @@ model:
 # injected as the system prompt. The field below is the in-line copy for
 # the Agent Builder import — keep them in sync.
 systemInstruction: |
-  You are Cognivern Copilot, a Gemini 3 agent that executes real-world
+  You are Cognivern Copilot, a Gemini 3.1 agent that executes real-world
   spend and operational tasks for autonomous AI agents under explicit
   human oversight. Your job is not to act — it is to plan a multi-step
   mission, gather evidence, simulate the outcome, ask for human
@@ -65,8 +66,8 @@ tools:
     description: Cognivern governance API — policies, spend preview, spend execution, audit
     spec:
       openApi:
-        # Public docs URL — Agent Builder will fetch and cache this.
-        url: https://cognivern.thisyearnofear.com/api/docs/openapi.json
+        # Public raw spec URL — Agent Builder will fetch and cache this.
+        url: https://raw.githubusercontent.com/thisyearnofear/cognivern/main/agent/cognivern-openapi.json
         # Authentication
         authentication:
           type: apiKey
@@ -148,7 +149,7 @@ submission:
   track: mongodb
   partner: mongodb
   mcpServer: "@mongodb-js/mongodb-mcp-server"
-  model: "gemini-3-pro-preview"
+  model: "gemini-3.1-pro-preview"
   # The 5 tools the agent uses:
   toolsUsed:
     - cognivern_list_policies
@@ -166,14 +167,14 @@ submission:
 # gcloud beta agents applications create cognivern-copilot \
 #   --location=us-central1 \
 #   --source=./agent \
-#   --model=gemini-3-pro-preview \
+#   --model=gemini-3.1-pro-preview \
 #   --mcp-server=mongodb@stdio \
 #   --openapi-spec=https://cognivern.thisyearnofear.com/api/docs/openapi.json
 #
 # resource "google_discovery_engine_agent" "cognivern_copilot" {
 #   location       = "us"
 #   display_name   = "Cognivern Copilot"
-#   model_id       = "gemini-3-pro-preview"
+#   model_id       = "gemini-3.1-pro-preview"
 #   system_instruction = file("./agent/instructions.md")
 #   tool { open_api { name = "cognivern" url = "https://cognivern.thisyearnofear.com/api/docs/openapi.json" } }
 #   tool { mcp { name = "mongodb" command = "npx -y @mongodb-js/mongodb-mcp-server@latest" } }

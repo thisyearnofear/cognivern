@@ -2,7 +2,7 @@
  * Cognivern governance API tools for the Cognivern Copilot agent.
  *
  * These tools wrap Cognivern's HTTP governance API and are exposed to
- * the Gemini 3 model as function-calling tools. The same tool surface
+ * the Gemini 3.1 model as function-calling tools. The same tool surface
  * is published as an MCP server (see agent/mcp-server/cognivern-mcp.ts)
  * so Google Cloud Agent Builder can register them via MCP.
  *
