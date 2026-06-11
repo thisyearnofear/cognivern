@@ -9,6 +9,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-space-grotesk);
+  --font-code: var(--font-jetbrains-mono);
 
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -176,6 +178,38 @@
   .os-safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+}
+
+/* Subtle grid background for landing page */
+.landing-grid {
+  background-size: 60px 60px;
+  background-image:
+    linear-gradient(to right, oklch(0 0 0 / 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0 0 0 / 0.03) 1px, transparent 1px);
+}
+
+.dark .landing-grid {
+  background-image:
+    linear-gradient(to right, oklch(1 0 0 / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(1 0 0 / 0.04) 1px, transparent 1px);
+}
+
+/* Hero radial glow */
+.hero-glow {
+  background: radial-gradient(
+    ellipse 80% 50% at 50% -20%,
+    oklch(0.7 0.2 250 / 0.15),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.dark .hero-glow {
+  background: radial-gradient(
+    ellipse 80% 50% at 50% -20%,
+    oklch(0.7 0.2 250 / 0.12),
+    transparent
+  );
 }
 
 /* CRT scanline overlay */
