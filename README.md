@@ -10,6 +10,21 @@ Cognivern is a control plane for agent operations: governed wallet spend plus AI
 
 **Live:** [Frontend](https://cognivern.vercel.app) · [API](https://cognivern.thisyearnofear.com) · [PromptOS Terminal](https://cognivern.vercel.app/os)
 
+## Submission: Google Cloud "Building Agents for Real-World Challenges"
+
+**Track:** MongoDB &nbsp;·&nbsp; **Model:** Gemini 3 Pro (`gemini-3-pro-preview`) &nbsp;·&nbsp; **MCP:** `@mongodb-js/mongodb-mcp-server`
+
+The submission is the **Cognivern Copilot** agent under [`agent/`](./agent). It is a Gemini 3 agent hosted in Google Cloud Agent Builder that turns a natural-language spend goal into a strictly-governed multi-step mission (PLAN → EVIDENCE → PREVIEW → CONFIRM → EXECUTE → AUDIT), with the MongoDB MCP server powering memory recall, audit history, vendor reputation, and the run ledger.
+
+- Agent runtime &amp; multi-step protocol: [`agent/agent.ts`](./agent/agent.ts)
+- System prompt / mission: [`agent/instructions.md`](./agent/instructions.md)
+- Agent Builder import spec: [`agent/agent-builder.yaml`](./agent/agent-builder.yaml)
+- Judge-facing deployment guide: [`agent/README.md`](./agent/README.md)
+- MongoDB seed (judges can poke the data): `pnpm db:seed:reset`
+- Smoke test: `pnpm agent:smoke`
+
+See [`docs/HACKATHON.md`](./docs/HACKATHON.md) for the full submission checklist and [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the system design.
+
 ## Quick Start
 
 ```bash

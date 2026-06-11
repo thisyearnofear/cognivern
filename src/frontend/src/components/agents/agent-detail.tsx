@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -147,8 +146,8 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
         >
           <ArrowLeft className="h-4 w-4" /> Back to Agents
         </Button>
-        <Card>
-          <CardContent className="p-12 text-center">
+        <div className="rounded-xl border bg-card">
+          <div className="p-12 text-center">
             <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">Agent Not Found</h2>
             <p className="text-sm text-muted-foreground mb-4">
@@ -157,8 +156,8 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
             <Button onClick={() => router.push("/agents")}>
               Back to Agents
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -179,7 +178,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
             <Users className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{agent.name}</h1>
+            <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>{agent.name}</h1>
             <p className="text-sm text-muted-foreground">{agent.role}</p>
           </div>
         </div>
@@ -229,78 +228,69 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
-                <Activity className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{agent.trades}</div>
-                <div className="text-xs text-muted-foreground">
-                  Total Trades
-                </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
+        <div className="bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
+              <Activity className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{agent.trades}</div>
+              <div className="text-xs text-muted-foreground">
+                Total Trades
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950">
-                <ShieldCheck className="h-5 w-5 text-sky-500" />
-              </div>
-              <div>
-                <div className="text-lg font-bold">{agent.budget}</div>
-                <div className="text-xs text-muted-foreground">
-                  Budget Limit
-                </div>
+          </div>
+        </div>
+        <div className="bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950">
+              <ShieldCheck className="h-5 w-5 text-sky-500" />
+            </div>
+            <div>
+              <div className="text-lg font-bold">{agent.budget}</div>
+              <div className="text-xs text-muted-foreground">
+                Budget Limit
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950">
-                <Clock className="h-5 w-5 text-purple-500" />
-              </div>
-              <div>
-                <div className="text-lg font-bold">{agent.chain}</div>
-                <div className="text-xs text-muted-foreground">Chain</div>
-              </div>
+          </div>
+        </div>
+        <div className="bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950">
+              <Clock className="h-5 w-5 text-purple-500" />
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    agent.status === "active"
-                      ? "bg-emerald-500"
-                      : "bg-amber-500"
-                  }`}
-                  aria-label={agent.status === "active" ? "Active" : "Inactive"}
-                />
-              </div>
-              <div>
-                <div className="text-lg font-bold capitalize">
-                  {agent.status}
-                </div>
-                <div className="text-xs text-muted-foreground">Status</div>
-              </div>
+            <div>
+              <div className="text-lg font-bold">{agent.chain}</div>
+              <div className="text-xs text-muted-foreground">Chain</div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+        <div className="bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950">
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  agent.status === "active"
+                    ? "bg-emerald-500"
+                    : "bg-amber-500"
+                }`}
+                aria-label={agent.status === "active" ? "Active" : "Inactive"}
+              />
+            </div>
+            <div>
+              <div className="text-lg font-bold capitalize">
+                {agent.status}
+              </div>
+              <div className="text-xs text-muted-foreground">Status</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Spend Chart + Policy Link */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <Card className="lg:col-span-2">
-          <CardContent className="p-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden">
+        <div className="bg-card p-4 lg:col-span-2">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-primary" />
@@ -342,10 +332,8 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
                 No spend data yet
               </div>
             )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 space-y-3">
+        </div>
+        <div className="bg-card p-4 space-y-3">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-sky-500" />
               Linked Policy
@@ -388,13 +376,12 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
                 </Button>
               </div>
             )}
-          </CardContent>
-        </Card>
+        </div>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">Spend History</h2>
+          <h2 className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Spend History</h2>
           <Button
             variant="ghost"
             size="sm"
@@ -405,7 +392,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
         </div>
 
         {agent.spendHistory && agent.spendHistory.length > 0 ? (
-          <Card className="overflow-hidden">
+          <div className="rounded-xl border bg-card overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -442,16 +429,16 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
                 </TableBody>
               </Table>
             </div>
-          </Card>
+          </div>
         ) : (
-          <Card>
-            <CardContent className="p-12 text-center">
+          <div className="rounded-xl border bg-card">
+            <div className="p-12 text-center">
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-sm text-muted-foreground">
                 No spend history yet.
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
       </div>
     </div>
