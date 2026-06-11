@@ -18,6 +18,18 @@ import {
   FhenixClientAdapter,
   sharedFhenixPolicyService,
 } from "./FhenixPolicyService.js";
+import { blockchainConfig } from "../shared/config/index.js";
+
+const GOVERNANCE_ABI = [
+  "function evaluateAction(bytes32 actionId, bytes32 agentId, string memory actionType, bytes32 dataHash, bool approved) external",
+  "function getAgent(bytes32 agentId) view returns (bytes32 id, string name, address owner, string[] capabilities, uint256 registeredAt, uint8 status, bytes32 currentPolicyId)",
+  "function getPolicy(bytes32 policyId) view returns (bytes32 id, string name, string description, bytes32 rulesHash, address creator, uint256 createdAt, uint256 updatedAt, uint8 status)",
+  "function registerAgent(bytes32 agentId, string memory name, string[] memory capabilities, bytes32 policyId) external",
+  "function updateAgentStatus(bytes32 agentId, uint8 status) external",
+  "function createPolicy(bytes32 policyId, string memory name, string memory description, bytes32 rulesHash) external",
+  "function updatePolicyStatus(bytes32 policyId, uint8 status) external",
+  "function authorizeEvaluator(address evaluator) external",
+];
 
 export interface SpendIntent {
   id: string;
@@ -56,6 +68,9 @@ export class OwsWalletService {
   private policyService: PolicyService;
   private policyEnforcement: PolicyEnforcementService;
   private fhenixPolicyService: FhenixPolicyService;
+  private onChainProvider: ethers.JsonRpcProvider | null = null;
+  private onChainWallet: ethers.Wallet | null = null;
+  private onChainContract: ethers.Contract | null = null;
 
   constructor(
     policyService?: PolicyService,
@@ -67,6 +82,29 @@ export class OwsWalletService {
       this.policyService,
       this.fhenixPolicyService,
     );
+  }
+
+  private getOnChainSigner(): { wallet: ethers.Wallet; contract: ethers.Contract } | null {
+    const pk = blockchainConfig.privateKey;
+    if (!pk) return null;
+
+    if (this.onChainWallet && this.onChainContract) {
+      return { wallet: this.onChainWallet, contract: this.onChainContract };
+    }
+
+    try {
+      this.onChainProvider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
+      this.onChainWallet = new ethers.Wallet(pk, this.onChainProvider);
+      this.onChainContract = new ethers.Contract(
+        blockchainConfig.contracts.governance,
+        GOVERNANCE_ABI,
+        this.onChainWallet,
+      );
+      return { wallet: this.onChainWallet, contract: this.onChainContract };
+    } catch (error) {
+      logger.warn("Failed to initialize on-chain signer:", error);
+      return null;
+    }
   }
 
   public async issueAuditPermit(
@@ -338,7 +376,13 @@ export class OwsWalletService {
       }
     }
 
-    const txHash = ethers.keccak256(ethers.toUtf8Bytes(signature));
+    const onChain = await this.recordOnChainApproval({
+      intentId: intent.id,
+      agentId: intent.agentId,
+      actionType: "spend",
+      metadata: intent.metadata || {},
+    });
+    const txHash = onChain.txHash || ethers.keccak256(ethers.toUtf8Bytes(signature));
 
     await recorder.addArtifact({
       type: "attestation_result",
@@ -352,6 +396,7 @@ export class OwsWalletService {
         walletAddress: signer,
         apiKeyId: access.apiKey?.id,
         status: "approved",
+        onChainStatus: onChain.success ? "recorded" : "offline",
       },
     });
 
@@ -604,6 +649,91 @@ export class OwsWalletService {
     const run = enrichCreRunEvidence(recorder.getRun());
     await creRunStore.replace(run);
     return run;
+  }
+
+  private async recordOnChainApproval(params: {
+    intentId: string;
+    agentId: string;
+    actionType: string;
+    metadata: Record<string, any>;
+  }): Promise<{ success: boolean; txHash?: string }> {
+    const signer = this.getOnChainSigner();
+    if (!signer) return { success: false };
+
+    try {
+      const actionId = ethers.id(params.intentId);
+      const agentBytes32 = ethers.id(params.agentId);
+      const dataHash = ethers.ZeroHash;
+
+      // Ensure the agent is registered and active on-chain
+      await this.ensureOnChainAgent(signer.wallet, signer.contract, params.agentId);
+
+      const tx = await signer.contract.evaluateAction(
+        actionId,
+        agentBytes32,
+        params.actionType,
+        dataHash,
+        true,
+        { gasLimit: 200000 },
+      );
+      const receipt = await tx.wait();
+      logger.info(`On-chain approval recorded: ${receipt.hash}`);
+      return { success: true, txHash: receipt.hash };
+    } catch (error) {
+      logger.warn("On-chain record failed, using local hash:", error);
+      return { success: false };
+    }
+  }
+
+  private async ensureOnChainAgent(
+    wallet: ethers.Wallet,
+    contract: ethers.Contract,
+    agentIdStr: string,
+  ): Promise<void> {
+    const agentId = ethers.id(agentIdStr);
+    try {
+      await contract.getAgent(agentId);
+      return; // Already registered
+    } catch {
+      // Agent doesn't exist — register + activate
+    }
+
+    try {
+      const policyId = ethers.id(`${agentIdStr}-policy`);
+      // Check if policy exists first
+      try {
+        await contract.getPolicy(policyId);
+      } catch {
+        await (
+          await contract.createPolicy(
+            policyId,
+            `${agentIdStr} Policy`,
+            `Policy for ${agentIdStr} agent spends`,
+            ethers.ZeroHash,
+            { gasLimit: 100000 },
+          )
+        ).wait();
+        await (
+          await contract.updatePolicyStatus(policyId, 1, { gasLimit: 50000 })
+        ).wait();
+      }
+
+      await (
+        await contract.registerAgent(
+          agentId,
+          `${agentIdStr}`,
+          ["spend-governance"],
+          policyId,
+          { gasLimit: 150000 },
+        )
+      ).wait();
+      await (
+        await contract.updateAgentStatus(agentId, 1, { gasLimit: 50000 })
+      ).wait();
+      logger.info(`On-chain agent ${agentIdStr} registered and activated`);
+    } catch (error) {
+      logger.warn(`Failed to register on-chain agent ${agentIdStr}:`, error);
+    }
   }
 
   private async resolveAccess(
