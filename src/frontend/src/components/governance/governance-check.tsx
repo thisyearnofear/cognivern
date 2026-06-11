@@ -98,9 +98,9 @@ function CheckItem({
   return (
     <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
       {passed ? (
-        <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+        <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" aria-label="Passed" />
       ) : (
-        <XCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+        <XCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" aria-label="Failed" />
       )}
       <div>
         <div className="font-medium text-sm">{label}</div>

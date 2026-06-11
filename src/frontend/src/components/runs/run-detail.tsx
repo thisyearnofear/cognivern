@@ -186,6 +186,13 @@ export function RunDetail({ runId }: { runId: string }) {
                             ? "bg-red-500 border-red-500"
                             : "bg-background border-muted-foreground/30"
                       }`}
+                      aria-label={
+                        idx === events.length - 1 && run.status === "completed"
+                          ? "Completed"
+                          : run.status === "failed" && idx === events.length - 1
+                            ? "Failed"
+                            : "Pending"
+                      }
                     />
                     {idx < events.length - 1 && (
                       <div className="w-0.5 flex-1 bg-border/60 my-1" />
