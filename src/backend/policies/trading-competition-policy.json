@@ -137,14 +137,15 @@
       }
     },
     {
-      "id": "crypto-trading",
+      "id": "crypto-trading-competition-scope",
       "type": "DENY",
-      "condition": "action.metadata.symbol && action.metadata.symbol.includes('BTC') || action.metadata.symbol.includes('ETH')",
+      "condition": "action.metadata.symbol && (action.metadata.symbol.includes('BTC') || action.metadata.symbol.includes('ETH')) && action.metadata.competitionMode === true",
       "action": "block_trade",
-      "description": "Cryptocurrency trading not permitted in this competition",
+      "description": "Cryptocurrency trading is not permitted in stock-trading competition mode. Sapience prediction-market trades (protocol: 'sapience') are governed by a dedicated policy and are not affected by this rule.",
       "metadata": {
         "severity": "high",
-        "category": "compliance"
+        "category": "compliance",
+        "scope": "competition_mode_only"
       }
     },
     {
