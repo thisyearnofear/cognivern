@@ -17,6 +17,7 @@
 
 import { readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
+import { createSign } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -28,6 +29,9 @@ import {
 } from "./tools/index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+let cachedServiceAccountToken:
+  | { accessToken: string; expiresAtMs: number }
+  | undefined;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,6 +57,12 @@ interface GeminiAuth {
   accessToken?: string;
   projectId?: string;
   location?: string;
+}
+
+interface GoogleServiceAccount {
+  client_email: string;
+  private_key: string;
+  token_uri?: string;
 }
 
 interface AgentRunResult {
@@ -166,6 +176,87 @@ function toFunctionResponsePayload(result: unknown): Record<string, unknown> {
   return { result };
 }
 
+function base64UrlJson(value: unknown): string {
+  return Buffer.from(JSON.stringify(value)).toString("base64url");
+}
+
+async function getServiceAccountAccessToken(): Promise<string | undefined> {
+  if (
+    cachedServiceAccountToken &&
+    cachedServiceAccountToken.expiresAtMs > Date.now() + 60_000
+  ) {
+    return cachedServiceAccountToken.accessToken;
+  }
+
+  const rawJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  let serviceAccount: GoogleServiceAccount | undefined;
+
+  try {
+    if (rawJson) {
+      serviceAccount = JSON.parse(rawJson) as GoogleServiceAccount;
+    } else if (credentialsPath) {
+      serviceAccount = JSON.parse(
+        await readFile(credentialsPath, "utf8"),
+      ) as GoogleServiceAccount;
+    }
+  } catch {
+    return undefined;
+  }
+
+  if (!serviceAccount?.client_email || !serviceAccount.private_key) {
+    return undefined;
+  }
+
+  const tokenUri = serviceAccount.token_uri || "https://oauth2.googleapis.com/token";
+  const now = Math.floor(Date.now() / 1000);
+  const assertionInput = [
+    base64UrlJson({ alg: "RS256", typ: "JWT" }),
+    base64UrlJson({
+      iss: serviceAccount.client_email,
+      sub: serviceAccount.client_email,
+      aud: tokenUri,
+      scope: "https://www.googleapis.com/auth/cloud-platform",
+      iat: now,
+      exp: now + 3600,
+    }),
+  ].join(".");
+
+  const signer = createSign("RSA-SHA256");
+  signer.update(assertionInput);
+  signer.end();
+  const assertion = `${assertionInput}.${signer.sign(
+    serviceAccount.private_key,
+    "base64url",
+  )}`;
+
+  const response = await fetch(tokenUri, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion,
+    }),
+  });
+  if (!response.ok) return undefined;
+
+  const token = (await response.json()) as {
+    access_token?: string;
+    expires_in?: number;
+  };
+  if (!token.access_token) return undefined;
+
+  cachedServiceAccountToken = {
+    accessToken: token.access_token,
+    expiresAtMs: Date.now() + (token.expires_in || 3600) * 1000,
+  };
+  return cachedServiceAccountToken.accessToken;
+}
+
+async function getGoogleAccessToken(): Promise<string | undefined> {
+  return (await getServiceAccountAccessToken()) || getGcloudAccessToken();
+}
+
 function getGcloudAccessToken(): string | undefined {
   try {
     return execFileSync("gcloud", ["auth", "print-access-token"], {
@@ -205,7 +296,7 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
     process.env.GOOGLE_CLOUD_PROJECT ||
     process.env.GCLOUD_PROJECT;
   const accessToken = projectId
-    ? process.env.GOOGLE_OAUTH_ACCESS_TOKEN || getGcloudAccessToken()
+    ? process.env.GOOGLE_OAUTH_ACCESS_TOKEN || (await getGoogleAccessToken())
     : undefined;
   if (!apiKey && !accessToken) {
     throw new Error(

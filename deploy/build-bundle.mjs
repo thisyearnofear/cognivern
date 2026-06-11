@@ -100,9 +100,15 @@ if (existsSync(policiesDir)) {
   cpSync(policiesDir, resolve(OUT_DIR, "policies"), { recursive: true });
 }
 
+const agentInstructions = resolve(ROOT, "agent/instructions.md");
+if (existsSync(agentInstructions)) {
+  cpSync(agentInstructions, resolve(OUT_DIR, "instructions.md"));
+}
+
 console.log("[build] Bundle created at deploy-bundle/");
 console.log("[build] Contents:");
 console.log("  - server.mjs (bundled backend)");
 console.log("  - server.mjs.map (source map)");
 console.log("  - package.json (native deps only)");
 console.log("  - policies/ (bundled policy JSON)");
+console.log("  - instructions.md (copilot system prompt)");

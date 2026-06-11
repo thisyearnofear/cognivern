@@ -28,6 +28,7 @@ import { MetricsController } from "./controllers/MetricsController.js";
 import { AuditLogController } from "./controllers/AuditLogController.js";
 import { AuditLogService } from "../../services/AuditLogService.js";
 import { CreController } from "./controllers/CreController.js";
+import { CopilotController } from "./controllers/CopilotController.js";
 import { IngestController } from "./controllers/IngestController.js";
 import { SpendController } from "./controllers/SpendController.js";
 import { OwsController } from "./controllers/OwsController.js";
@@ -67,6 +68,7 @@ interface ControllerRegistry {
   };
   auditLog: AuditLogController;
   cre: CreController;
+  copilot: CopilotController;
   ingest: IngestController;
   spend: SpendController;
   ows: OwsController;
@@ -451,6 +453,7 @@ export class ApiModule extends BaseService {
     }
     this.controllers.auditLog = new AuditLogController();
     this.controllers.cre = new CreController();
+    this.controllers.copilot = new CopilotController();
     this.controllers.ingest = new IngestController();
     this.controllers.spend = new SpendController();
     this.controllers.ows = new OwsController();
@@ -487,6 +490,7 @@ export class ApiModule extends BaseService {
       createMetricsRoutes,
       createAuditRoutes,
       createCreRoutes,
+      createCopilotRoutes,
       createSpendRoutes,
       createMiscRoutes,
       createAuthRoutes,
@@ -533,6 +537,7 @@ export class ApiModule extends BaseService {
     apiRouter.use(createMetricsRoutes(this.ctrl("metrics")));
     apiRouter.use(createAuditRoutes(this.ctrl("auditLog")));
     apiRouter.use(createCreRoutes(this.ctrl("cre")));
+    apiRouter.use(createCopilotRoutes(this.ctrl("copilot")));
     apiRouter.use(
       createSpendRoutes(
         this.ctrl("spend"),

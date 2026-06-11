@@ -40,6 +40,43 @@ export type {
   PolicyVersion,
 };
 
+export interface CopilotEvent {
+  id: number;
+  type:
+    | "run_started"
+    | "model_tool_call"
+    | "tool_result"
+    | "tool_error"
+    | "preview_ready"
+    | "confirmation_required"
+    | "confirmation_recorded"
+    | "execution_blocked"
+    | "final"
+    | "run_failed";
+  timestamp: string;
+  name?: string;
+  payload?: Record<string, unknown>;
+}
+
+export interface CopilotRun {
+  id: string;
+  goal: string;
+  createdAt: string;
+  updatedAt: string;
+  status:
+    | "queued"
+    | "running"
+    | "awaiting_confirmation"
+    | "confirmed"
+    | "completed"
+    | "failed";
+  summary?: string;
+  error?: string;
+  preview?: Record<string, unknown>;
+  result?: Record<string, unknown>;
+  events: CopilotEvent[];
+}
+
 class ApiClient {
   private baseUrl: string;
   private apiKey: string | null;
@@ -299,6 +336,61 @@ class ApiClient {
     });
   }
 
+  // ── Copilot Agent Runs ───────────────────────────────────────────────
+
+  async startCopilotRun(params: {
+    goal: string;
+    previewOnly?: boolean;
+  }): Promise<{ success: boolean; run: CopilotRun }> {
+    return this.fetch("/api/copilot/runs", {
+      method: "POST",
+      body: JSON.stringify(params),
+    });
+  }
+
+  async getCopilotRun(
+    runId: string,
+  ): Promise<{ success: boolean; run: CopilotRun }> {
+    return this.fetch(`/api/copilot/runs/${runId}`);
+  }
+
+  async confirmCopilotRun(
+    runId: string,
+    params: { approve: boolean; reason?: string },
+  ): Promise<{ success: boolean; run: CopilotRun }> {
+    return this.fetch(`/api/copilot/runs/${runId}/confirm`, {
+      method: "POST",
+      body: JSON.stringify(params),
+    });
+  }
+
+  connectCopilotSse(
+    runId: string,
+    callbacks: {
+      onEvent: (event: CopilotEvent) => void;
+      onError: (error: string) => void;
+    },
+  ): AbortController {
+    const controller = new AbortController();
+    const token = getAuthToken();
+
+    this.connectGenericSseStream(
+      `/api/copilot/runs/${runId}/events/stream`,
+      token,
+      controller,
+      {
+        onEvent(event) {
+          callbacks.onEvent(event as unknown as CopilotEvent);
+        },
+        onError: callbacks.onError,
+      },
+    ).catch((err) =>
+      callbacks.onError(err instanceof Error ? err.message : String(err)),
+    );
+
+    return controller;
+  }
+
   // ── Async FHE Evaluation (SSE-based progress streaming) ──────────────
 
   /**
@@ -452,6 +544,70 @@ class ApiClient {
           currentData = "";
         } else if (line.startsWith(": ")) {
           // Comment / heartbeat — ignore
+        }
+      }
+    }
+  }
+
+  private async connectGenericSseStream(
+    endpoint: string,
+    token: string | null,
+    controller: AbortController,
+    callbacks: {
+      onEvent: (event: Record<string, unknown>) => void;
+      onError: (error: string) => void;
+    },
+  ): Promise<void> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(endpoint, {
+      headers,
+      signal: controller.signal,
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(
+        `SSE connection failed: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let currentEvent = "";
+    let currentData = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (line.startsWith("event: ")) {
+          currentEvent = line.slice(7).trim();
+        } else if (line.startsWith("data: ")) {
+          currentData = line.slice(6).trim();
+        } else if (line === "" && currentData) {
+          try {
+            const parsed = JSON.parse(currentData) as Record<string, unknown>;
+            if (currentEvent === "run_event") {
+              callbacks.onEvent(parsed);
+            } else if (currentEvent === "error") {
+              callbacks.onError(String(parsed.message || "SSE error"));
+            }
+          } catch {
+            // Ignore malformed SSE frames.
+          }
+          currentEvent = "";
+          currentData = "";
         }
       }
     }
