@@ -63,6 +63,9 @@ Cognivern solves a common agentic scaling problem: teams can ship quickly, but s
 | Intent metrics               | `GET /api/intent/metrics`       |
 | Agent memory store           | `MongoDbMemoryService`          |
 | Agent memory query           | `MongoDbMemoryService.query()`  |
+| Native Sapience agent        | `SapienceTradingAgent.runCycleWithGovernance()` |
+| Native user agent            | `UserTradingAgent.executeTrade()` (routed through governance) |
+| **In-process governance client** | `GovernanceClient` (`src/backend/services/GovernanceClient.ts`) |
 
 ### Product Primitives
 
@@ -108,6 +111,7 @@ Each partner network plays a specific role in the product. This is the canonical
 | **ChainGPT** | Web3-specialized LLM for smart contract auditing at runtime (pre-spend vulnerability scan) and governance-copilot queries. | Yes — Contract Audit badge on policy checks with ChainGPT metadata | **Live** — via `ChainGPTAuditService` |
 | **Ledger DMK** | Hardware signing provider for high-value transactions. User confirms on physical Ledger before any signature is produced. | Yes — "Hardware Signed" badge on audit decisions | **Live** |
 | **MongoDB** | Persistent agent memory & run ledger. Replaces JSONL files with queryable, durable storage via MongoDB Atlas. | Yes — powers agent recall and run history APIs | **Live** (optional, gated by `MONGODB_URI`) |
+| **Sapience** | Native prediction-market agent. Forecasts on Sapience GraphQL, publishes EAS attestations on Arbitrum, trades USDe on the Ethereal prediction market. **All actions routed through Cognivern's own governance pipeline** (see [`docs/NATIVE_AGENTS.md`](./NATIVE_AGENTS.md)). | Yes — agent status and decision history in the dashboard | **Live** (gated by `SAPIENCE_ENABLED=true`; trades governed by `sapience-trading-policy`) |
 
 ## AI Provider Stack
 

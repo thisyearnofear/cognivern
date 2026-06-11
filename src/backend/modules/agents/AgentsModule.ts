@@ -154,9 +154,9 @@ export class AgentsModule extends BaseService {
           "./implementations/SapienceTradingAgent.js"
         );
 
-        // Initialize Sapience Trading Agent
+        // Initialize Sapience Trading Agent — every external action
+        // (forecast, trade) now goes through Cognivern's governance pipeline.
         const sapienceAgent = new SapienceTradingAgent(
-          "sapience-agent-1",
           "Sapience Forecasting Agent",
           {
             maxTradeSize: 1000,

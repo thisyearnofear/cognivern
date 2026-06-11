@@ -1,0 +1,153 @@
+{
+  "id": "sapience-trading-policy",
+  "name": "Sapience Prediction Market Trading",
+  "description": "Governs USDe-denominated prediction-market trading on the Sapience protocol (Ethereal appchain). Allows forecast attestations up to a per-attestation gas budget and trades up to a daily/per-trade USDe cap, with a hard allowlist of Sapience market contracts and human confirmation required above a threshold.",
+  "version": "1.0.0",
+  "status": "active",
+  "createdAt": "2026-06-11T00:00:00Z",
+  "updatedAt": "2026-06-11T00:00:00Z",
+  "metadata": {
+    "category": "prediction-markets",
+    "chain": "ethereal",
+    "asset": "USDe",
+    "protocol": "sapience",
+    "riskLevel": "medium",
+    "compliance": ["Sapience ToS", "Ethena ToS"],
+    "author": "Cognivern Governance Team",
+    "appliesToAgents": ["sapience-agent-1"]
+  },
+  "rules": [
+    {
+      "id": "vendor-must-be-sapience-market",
+      "type": "deny",
+      "condition": "!(action.metadata && action.metadata.protocol === 'sapience')",
+      "action": "block_trade",
+      "description": "Only Sapience protocol markets are allowed under this policy.",
+      "metadata": {
+        "severity": "high",
+        "category": "vendor-allowlist"
+      }
+    },
+    {
+      "id": "asset-must-be-usde",
+      "type": "deny",
+      "condition": "action.metadata && action.metadata.asset !== 'USDe'",
+      "action": "block_trade",
+      "description": "Sapience trades must be denominated in USDe.",
+      "metadata": {
+        "severity": "high",
+        "category": "asset-allowlist"
+      }
+    },
+    {
+      "id": "per-trade-cap",
+      "type": "deny",
+      "condition": "action.metadata && action.metadata.tradeType === 'mint' && Number(action.metadata.amountUsde) > 50",
+      "action": "block_trade",
+      "description": "Per-trade cap of 50 USDe. Larger positions must use a different policy.",
+      "metadata": {
+        "severity": "high",
+        "category": "risk_management",
+        "limitUsde": 50
+      }
+    },
+    {
+      "id": "daily-cap",
+      "type": "deny",
+      "condition": "action.metadata && action.metadata.tradeType === 'mint' && Number(action.metadata.cumulativeDailyUsde) > 200",
+      "action": "block_trade",
+      "description": "Daily Sapience spend cap of 200 USDe per agent.",
+      "metadata": {
+        "severity": "high",
+        "category": "risk_management",
+        "limitUsde": 200,
+        "window": "daily"
+      }
+    },
+    {
+      "id": "forecast-attestation-budget",
+      "type": "deny",
+      "condition": "action.metadata && action.metadata.tradeType === 'forecast_attestation' && Number(action.metadata.gasCostUsd) > 1",
+      "action": "block_trade",
+      "description": "Forecast attestation gas cost must stay under $1.",
+      "metadata": {
+        "severity": "medium",
+        "category": "operational"
+      }
+    },
+    {
+      "id": "human-confirm-above-threshold",
+      "type": "require",
+      "condition": "action.metadata && action.metadata.tradeType === 'mint' && Number(action.metadata.amountUsde) >= 10",
+      "action": "require_human_approval",
+      "description": "Trades of 10 USDe or more require explicit human confirmation via the Cognivern UI.",
+      "metadata": {
+        "severity": "high",
+        "category": "oversight",
+        "thresholdUsde": 10
+      }
+    },
+    {
+      "id": "low-confidence-deny",
+      "type": "deny",
+      "condition": "action.metadata && action.metadata.tradeType === 'mint' && Number(action.metadata.confidence) < 0.3",
+      "action": "block_trade",
+      "description": "Block trades when the agent's own forecast confidence is below 30%.",
+      "metadata": {
+        "severity": "medium",
+        "category": "quality_control"
+      }
+    },
+    {
+      "id": "no-stale-forecasts",
+      "type": "deny",
+      "condition": "action.metadata && action.metadata.tradeType === 'mint' && Number(action.metadata.secondsSinceForecast) > 3600",
+      "action": "block_trade",
+      "description": "Trades must be backed by a forecast no older than 1 hour.",
+      "metadata": {
+        "severity": "medium",
+        "category": "freshness"
+      }
+    },
+    {
+      "id": "audit-every-sapience-action",
+      "type": "allow",
+      "condition": "action.metadata && action.metadata.protocol === 'sapience'",
+      "action": "log_and_audit",
+      "description": "Log and audit every Sapience action for compliance.",
+      "metadata": {
+        "severity": "low",
+        "category": "audit"
+      }
+    }
+  ],
+  "enforcement": {
+    "mode": "strict",
+    "escalation": {
+      "violations_threshold": 3,
+      "actions": ["warning", "pause_agent", "require_human_review"]
+    },
+    "monitoring": {
+      "real_time": true,
+      "batch_analysis": true,
+      "alert_thresholds": {
+        "denied_trades_per_hour": 5,
+        "held_trades_per_hour": 3,
+        "daily_spend_usde": 200
+      }
+    }
+  },
+  "compliance": {
+    "frameworks": ["Sapience ToS", "Ethena ToS"],
+    "reporting": {
+      "frequency": "per_trade",
+      "recipients": ["operator@cognivern.com"],
+      "format": "json"
+    },
+    "audit_trail": {
+      "retention_period": "7_years",
+      "immutable": true,
+      "encryption": true
+    }
+  }
+}

@@ -63,7 +63,24 @@ export class PolicyService {
   }
 
   private async initializeBundledPolicies() {
-    const bundledPolicyDir = path.join(process.cwd(), 'src', 'policies');
+    // Look in two places to support both dev (running from repo root) and
+    // prod (running from `dist/`). The canonical location is
+    // `src/backend/policies/` next to this service.
+    const candidateDirs = [
+      path.join(process.cwd(), 'src', 'backend', 'policies'),
+      path.join(__dirname, '..', '..', 'policies'), // dist/backend/services -> dist/backend/policies
+    ];
+    const bundledPolicyDir = candidateDirs.find((d) => {
+      try {
+        return fs.existsSync(d) && fs.statSync(d).isDirectory();
+      } catch {
+        return false;
+      }
+    });
+    if (!bundledPolicyDir) {
+      logger.warn('No bundled policy directory found', { candidates: candidateDirs });
+      return;
+    }
     try {
       const filenames = fs
         .readdirSync(bundledPolicyDir)

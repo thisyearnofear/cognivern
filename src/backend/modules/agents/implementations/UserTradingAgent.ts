@@ -18,6 +18,10 @@ import {
   AgentType,
 } from "../types/TradingAgent.js";
 import { Logger } from "../../../shared/logging/Logger.js";
+import {
+  GovernanceClient,
+  sharedGovernanceClient,
+} from "../../../services/GovernanceClient.js";
 
 const logger = new Logger("UserTradingAgent");
 
@@ -34,16 +38,20 @@ export class UserTradingAgent implements TradingAgent {
   private description?: string;
   private riskLevel: string = "medium";
   private address: string;
+  private governance: GovernanceClient;
 
-  constructor(params: {
-    id: string;
-    name: string;
-    type: string;
-    address: string;
-    description?: string;
-    riskLevel?: string;
-    config?: TradingAgentConfig;
-  }) {
+  constructor(
+    params: {
+      id: string;
+      name: string;
+      type: string;
+      address: string;
+      description?: string;
+      riskLevel?: string;
+      config?: TradingAgentConfig;
+    },
+    governance?: GovernanceClient,
+  ) {
     this.id = params.id;
     this.name = params.name;
     this.type = params.type as AgentType;
@@ -57,6 +65,7 @@ export class UserTradingAgent implements TradingAgent {
       strategies: ["manual"],
       governanceRules: [],
     };
+    this.governance = governance || sharedGovernanceClient;
   }
 
   async initialize(): Promise<void> {
@@ -110,7 +119,73 @@ export class UserTradingAgent implements TradingAgent {
       };
     }
 
-    // Simulate trade execution
+    // Governance preview — the agent must pass through cognivern_preview_spend
+    // even for simulated trades, so the audit trail reflects the intent.
+    try {
+      const amountUsdc = decision.price * decision.quantity;
+      const preview = await this.governance.previewSpend({
+        agentId: this.id,
+        recipient: decision.symbol,
+        amount: (amountUsdc * 1e6).toString(), // USDC 6 decimals
+        asset: "USDC",
+        reason: decision.reasoning || `User agent ${decision.action}`,
+        metadata: {
+          protocol: "user-agent",
+          asset: "USDC",
+          tradeType: "mint",
+          side: decision.action === "buy" ? "YES" : "NO",
+          amountUsdc,
+          confidence: decision.confidence,
+          owner: this.address,
+        },
+      });
+
+      if (preview.status === "denied") {
+        return {
+          id: `trade_${Date.now()}`,
+          decision,
+          status: "failed",
+          error: `governance denied: ${preview.reason}`,
+          timestamp: new Date(),
+        };
+      }
+
+      // For user agents the trade is still simulated (we don't have a
+      // real exchange integration here), but we record it via execute_spend
+      // so the audit trail is consistent.
+      if (preview.attestationHash) {
+        await this.governance.executeSpend({
+          agentId: this.id,
+          recipient: decision.symbol,
+          amount: (amountUsdc * 1e6).toString(),
+          asset: "USDC",
+          reason: decision.reasoning || `User agent ${decision.action}`,
+          metadata: {
+            protocol: "user-agent",
+            asset: "USDC",
+            tradeType: "mint",
+            side: decision.action === "buy" ? "YES" : "NO",
+            amountUsdc,
+            owner: this.address,
+          },
+          attestationHash: preview.attestationHash,
+          humanConfirmationToken: `user-agent-auto-${Date.now()}`,
+        });
+      }
+    } catch (error) {
+      // Fail-closed: if governance is unreachable, the trade fails.
+      return {
+        id: `trade_${Date.now()}`,
+        decision,
+        status: "failed",
+        error: `governance unreachable: ${error instanceof Error ? error.message : "unknown"}`,
+        timestamp: new Date(),
+      };
+    }
+
+    // Trade execution is still simulated — the point of the user agent
+    // is to surface governance decisions in the dashboard, not to
+    // integrate with a real exchange.
     const tradeResult: TradeResult = {
       id: `trade_${Date.now()}`,
       decision,
@@ -171,11 +246,53 @@ export class UserTradingAgent implements TradingAgent {
   }
 
   async checkCompliance(decision: TradingDecision): Promise<ComplianceResult> {
-    return {
-      isCompliant: true,
-      violations: [],
-      warnings: [],
-    };
+    try {
+      const result = await this.governance.evaluate({
+        agentId: this.id,
+        action: {
+          type: "user_agent_trade_intent",
+          description: `User agent ${decision.action} ${decision.symbol}`,
+          input: JSON.stringify(decision),
+          metadata: {
+            protocol: "user-agent",
+            asset: "USDC",
+            tradeType: "mint",
+            side: decision.action === "buy" ? "YES" : "NO",
+            amountUsdc: decision.price * decision.quantity,
+            confidence: decision.confidence,
+            owner: this.address,
+          },
+        },
+      });
+      return {
+        isCompliant: result.approved,
+        violations: result.approved
+          ? []
+          : [
+              {
+                rule: result.policyId,
+                severity: "high" as const,
+                message: result.reason,
+                suggestedAction: "review policy or override",
+              },
+            ],
+        warnings: [],
+      };
+    } catch (error) {
+      // Fail-closed: if governance is unreachable, deny the trade.
+      return {
+        isCompliant: false,
+        violations: [
+          {
+            rule: "governance-unreachable",
+            severity: "critical" as const,
+            message: `governance unreachable: ${error instanceof Error ? error.message : "unknown"}`,
+            suggestedAction: "verify Cognivern API is reachable and COGNIVERN_API_KEY is set",
+          },
+        ],
+        warnings: [],
+      };
+    }
   }
 
   async reportActivity(activity: AgentActivity): Promise<void> {
