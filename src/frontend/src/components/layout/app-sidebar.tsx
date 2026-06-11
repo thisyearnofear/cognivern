@@ -56,7 +56,7 @@ export function AppSidebar() {
             <ShieldCheck className="h-4 w-4" />
           </div>
           <div className="flex flex-col relative">
-            <span className="text-sm font-semibold">Cognivern</span>
+            <span className="text-sm font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Cognivern</span>
             <span className="text-xs text-muted-foreground">AI Governance</span>
             <span className="absolute left-0 top-full mt-1 px-2 py-1 bg-foreground text-background text-[10px] rounded-md opacity-0 group-hover/brand:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-lg">
               Cogni-vern: governance for the cognitive age
