@@ -121,6 +121,9 @@ function readableError(error: unknown): string {
   if (message.includes("API error 401")) {
     return "Sign in with your wallet, then run the mission again.";
   }
+  if (message.includes("API error 404") || message.includes("not found")) {
+    return "Run expired — please Run again.";
+  }
   return message;
 }
 
@@ -130,6 +133,7 @@ export function CopilotPage() {
   const [events, setEvents] = useState<CopilotEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [decision, setDecision] = useState<"approved" | "denied" | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const activePhase = useMemo(() => {
@@ -138,12 +142,19 @@ export function CopilotPage() {
   }, [events]);
 
   const canConfirm =
-    run?.status === "awaiting_confirmation" ||
-    events.some((event) => event.type === "confirmation_required");
+    decision === null &&
+    (run?.status === "awaiting_confirmation" ||
+      events.some((event) => event.type === "confirmation_required"));
+
+  const isStale =
+    run?.status === "confirmed" ||
+    run?.status === "completed" ||
+    run?.status === "failed";
 
   async function startRun() {
     setBusy(true);
     setError(null);
+    setDecision(null);
     setEvents([]);
     abortRef.current?.abort();
     try {
@@ -188,8 +199,21 @@ export function CopilotPage() {
       });
       setRun(response.run);
       setEvents(response.run.events || []);
+      setDecision(approve ? "approved" : "denied");
     } catch (err) {
-      setError(readableError(err));
+      const message = err instanceof Error ? err.message : String(err);
+      // Stale run: backend lost the in-memory state. Surface a clear
+      // recovery message and reset the run so the user can re-run.
+      if (message.includes("API error 404") || message.includes("not found")) {
+        setError("Run expired — please Run again.");
+        setRun(null);
+        setEvents([]);
+        setDecision(null);
+        abortRef.current?.abort();
+        abortRef.current = null;
+      } else {
+        setError(readableError(err));
+      }
     } finally {
       setBusy(false);
     }
@@ -326,7 +350,15 @@ export function CopilotPage() {
         <div className="rounded-lg border bg-card p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="text-sm font-semibold">Human gate</div>
-            {canConfirm ? (
+            {decision === "approved" ? (
+              <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300">
+                approved
+              </Badge>
+            ) : decision === "denied" ? (
+              <Badge variant="outline" className="border-rose-500/40 text-rose-700 dark:text-rose-300">
+                denied
+              </Badge>
+            ) : canConfirm ? (
               <Badge variant="outline">pending</Badge>
             ) : (
               <Badge variant="secondary">idle</Badge>
@@ -336,14 +368,14 @@ export function CopilotPage() {
             {run?.summary ||
               "The operator decision appears here after the preview step completes."}
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button
               onClick={() => confirm(true)}
               disabled={!canConfirm || busy}
               variant="default"
             >
               <CheckCircle2 className="h-4 w-4" />
-              Approve
+              {busy && decision === null ? "Approving…" : "Approve"}
             </Button>
             <Button
               onClick={() => confirm(false)}
@@ -351,8 +383,13 @@ export function CopilotPage() {
               variant="outline"
             >
               <XCircle className="h-4 w-4" />
-              Deny
+              {busy && decision === null ? "Denying…" : "Deny"}
             </Button>
+            {isStale && decision === null && (
+              <span className="text-xs text-muted-foreground">
+                Run already finalized — start a new mission to act on a fresh preview.
+              </span>
+            )}
           </div>
         </div>
       </section>

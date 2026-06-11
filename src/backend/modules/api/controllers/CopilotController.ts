@@ -5,6 +5,11 @@ import {
   AgentRunEvent,
   runAgent,
 } from "../../../../../agent/agent.js";
+import {
+  copilotRunStore,
+  type PersistedCopilotEvent,
+  type PersistedCopilotRun,
+} from "../storage/CopilotRunStore.js";
 
 type CopilotRunStatus =
   | "queued"
@@ -26,7 +31,7 @@ type CopilotEventType =
   | "final"
   | "run_failed";
 
-interface CopilotEvent {
+interface AgentEventResult {
   id: number;
   type: CopilotEventType;
   timestamp: string;
@@ -34,38 +39,7 @@ interface CopilotEvent {
   payload?: Record<string, unknown>;
 }
 
-interface CopilotRun {
-  id: string;
-  goal: string;
-  createdAt: string;
-  updatedAt: string;
-  status: CopilotRunStatus;
-  events: CopilotEvent[];
-  summary?: string;
-  error?: string;
-  preview?: Record<string, unknown>;
-  result?: {
-    summary: string;
-    decisionId?: string;
-    attestationHash?: string;
-    auditLogId?: string;
-  };
-}
-
-const startRunSchema = z.object({
-  goal: z.string().trim().min(10).max(2000),
-  previewOnly: z.boolean().optional().default(true),
-});
-
-const confirmRunSchema = z.object({
-  approve: z.boolean(),
-  reason: z.string().trim().max(500).optional(),
-});
-
-const runs = new Map<string, CopilotRun>();
-let nextEventId = 1;
-
-function publicRun(run: CopilotRun) {
+function publicRun(run: PersistedCopilotRun) {
   return {
     id: run.id,
     goal: run.goal,
@@ -78,23 +52,6 @@ function publicRun(run: CopilotRun) {
     result: run.result,
     events: run.events,
   };
-}
-
-function pushEvent(
-  run: CopilotRun,
-  type: CopilotEventType,
-  payload?: Record<string, unknown>,
-  name?: string,
-) {
-  const timestamp = new Date().toISOString();
-  run.updatedAt = timestamp;
-  run.events.push({
-    id: nextEventId++,
-    type,
-    timestamp,
-    name,
-    payload,
-  });
 }
 
 function toRecord(value: unknown): Record<string, unknown> | undefined {
@@ -126,50 +83,83 @@ function summarizeToolResult(result: unknown): Record<string, unknown> {
   return Object.keys(summary).length ? summary : record;
 }
 
-function translateAgentEvent(run: CopilotRun, event: AgentRunEvent) {
+const startRunSchema = z.object({
+  goal: z.string().trim().min(10).max(2000),
+  previewOnly: z.boolean().optional().default(true),
+});
+
+const confirmRunSchema = z.object({
+  approve: z.boolean(),
+  reason: z.string().trim().max(500).optional(),
+});
+
+// Monotonic event id counter (process-local; event ids only need to be
+// unique within a run, and we ORDER BY id ASC on read).
+let nextEventId = 1;
+
+function translateAgentEvent(run: PersistedCopilotRun, event: AgentRunEvent) {
   switch (event.type) {
     case "model_tool_call":
-      pushEvent(
-        run,
-        "model_tool_call",
-        { args: event.args },
-        event.name,
-      );
+      appendEvent(run, "model_tool_call", { args: event.args }, event.name);
       break;
     case "tool_result": {
       const payload = summarizeToolResult(event.result);
-      pushEvent(run, "tool_result", payload, event.name);
+      appendEvent(run, "tool_result", payload, event.name);
       if (event.name === "cognivern_preview_spend") {
+        copilotRunStore.updatePreview(run.id, payload, new Date().toISOString());
         run.preview = payload;
+        copilotRunStore.updateStatus(run.id, "awaiting_confirmation", new Date().toISOString());
         run.status = "awaiting_confirmation";
-        pushEvent(run, "preview_ready", payload, event.name);
-        pushEvent(run, "confirmation_required", {
+        appendEvent(run, "preview_ready", payload, event.name);
+        appendEvent(run, "confirmation_required", {
           reason: "Operator confirmation is required before execution.",
         });
       }
       break;
     }
     case "tool_error":
-      pushEvent(run, "tool_error", { error: event.error }, event.name);
+      appendEvent(run, "tool_error", { error: event.error }, event.name);
       break;
     case "hitl_denied":
+      copilotRunStore.updateStatus(run.id, "awaiting_confirmation", new Date().toISOString());
       run.status = "awaiting_confirmation";
-      pushEvent(run, "confirmation_required", { reason: event.reason }, event.name);
+      appendEvent(run, "confirmation_required", { reason: event.reason }, event.name);
       break;
     case "preview_intercepted":
+      copilotRunStore.updateStatus(run.id, "awaiting_confirmation", new Date().toISOString());
       run.status = "awaiting_confirmation";
-      pushEvent(run, "execution_blocked", { reason: event.reason }, event.name);
+      appendEvent(run, "execution_blocked", { reason: event.reason }, event.name);
       break;
     case "final":
+      copilotRunStore.updateSummary(run.id, event.summary, new Date().toISOString());
       run.summary = event.summary;
-      pushEvent(run, "final", { summary: event.summary });
+      appendEvent(run, "final", { summary: event.summary });
       break;
   }
 }
 
-async function executeRun(run: CopilotRun, previewOnly: boolean) {
+function appendEvent(
+  run: PersistedCopilotRun,
+  type: CopilotEventType,
+  payload?: Record<string, unknown>,
+  name?: string,
+) {
+  const persisted: PersistedCopilotEvent = {
+    id: nextEventId++,
+    type,
+    timestamp: new Date().toISOString(),
+    name,
+    payload,
+  };
+  copilotRunStore.appendEvent(run.id, persisted);
+  run.events.push(persisted);
+  run.updatedAt = persisted.timestamp;
+}
+
+async function executeRun(run: PersistedCopilotRun, previewOnly: boolean) {
+  copilotRunStore.updateStatus(run.id, "running", new Date().toISOString());
   run.status = "running";
-  pushEvent(run, "run_started", {
+  appendEvent(run, "run_started", {
     runtime: "vertex-ai",
     model: process.env.GEMINI_MODEL || "gemini-3.1-pro-preview",
   });
@@ -192,21 +182,37 @@ async function executeRun(run: CopilotRun, previewOnly: boolean) {
       },
     });
 
+    const now = new Date().toISOString();
+    copilotRunStore.updateResult(
+      run.id,
+      {
+        summary: result.summary,
+        decisionId: result.decisionId,
+        attestationHash: result.attestationHash,
+        auditLogId: result.auditLogId,
+      },
+      now,
+    );
     run.result = {
       summary: result.summary,
       decisionId: result.decisionId,
       attestationHash: result.attestationHash,
       auditLogId: result.auditLogId,
     };
+    copilotRunStore.updateSummary(run.id, result.summary, now);
     run.summary = result.summary;
     if (run.status === "running") {
+      copilotRunStore.updateStatus(run.id, "completed", now);
       run.status = "completed";
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const now = new Date().toISOString();
+    copilotRunStore.updateStatus(run.id, "failed", now);
     run.status = "failed";
+    copilotRunStore.updateError(run.id, message, now);
     run.error = message;
-    pushEvent(run, "run_failed", { error: message });
+    appendEvent(run, "run_failed", { error: message });
   }
 }
 
@@ -223,26 +229,32 @@ export class CopilotController {
     }
 
     const now = new Date().toISOString();
-    const run: CopilotRun = {
-      id: `copilot_${crypto.randomUUID()}`,
+    const runId = `copilot_${crypto.randomUUID()}`;
+
+    copilotRunStore.create({
+      id: runId,
       goal: parse.data.goal,
       createdAt: now,
-      updatedAt: now,
       status: "queued",
-      events: [],
-    };
-    runs.set(run.id, run);
+    });
 
-    void executeRun(run, parse.data.previewOnly);
+    const persisted = copilotRunStore.get(runId);
+    if (!persisted) {
+      res.status(500).json({ success: false, error: "Failed to persist run" });
+      return;
+    }
+
+    // Fire-and-forget; SSE + GET will surface progress to the client.
+    void executeRun(persisted, parse.data.previewOnly);
 
     res.status(202).json({
       success: true,
-      run: publicRun(run),
+      run: publicRun(persisted),
     });
   }
 
   async getRun(req: Request, res: Response): Promise<void> {
-    const run = runs.get(req.params.runId);
+    const run = copilotRunStore.get(req.params.runId);
     if (!run) {
       res.status(404).json({ success: false, error: "Copilot run not found" });
       return;
@@ -251,7 +263,7 @@ export class CopilotController {
   }
 
   async confirmRun(req: Request, res: Response): Promise<void> {
-    const run = runs.get(req.params.runId);
+    const run = copilotRunStore.get(req.params.runId);
     if (!run) {
       res.status(404).json({ success: false, error: "Copilot run not found" });
       return;
@@ -267,31 +279,35 @@ export class CopilotController {
       return;
     }
 
+    const now = new Date().toISOString();
+
     if (!parse.data.approve) {
+      copilotRunStore.updateStatus(run.id, "completed", now);
       run.status = "completed";
-      pushEvent(run, "confirmation_recorded", {
+      appendEvent(run, "confirmation_recorded", {
         approved: false,
         reason: parse.data.reason || "Operator denied execution.",
       });
-      res.json({ success: true, run: publicRun(run) });
+      res.json({ success: true, run: publicRun(copilotRunStore.get(run.id)!) });
       return;
     }
 
+    copilotRunStore.updateStatus(run.id, "confirmed", now);
     run.status = "confirmed";
-    pushEvent(run, "confirmation_recorded", {
+    appendEvent(run, "confirmation_recorded", {
       approved: true,
       reason: parse.data.reason || "Operator approved preview.",
     });
-    pushEvent(run, "execution_blocked", {
+    appendEvent(run, "execution_blocked", {
       reason:
         "Execution remains disabled until a verified preview attestation is available for this hosted run.",
     });
 
-    res.json({ success: true, run: publicRun(run) });
+    res.json({ success: true, run: publicRun(copilotRunStore.get(run.id)!) });
   }
 
   async streamRunEvents(req: Request, res: Response): Promise<void> {
-    const run = runs.get(req.params.runId);
+    const run = copilotRunStore.get(req.params.runId);
     if (!run) {
       res.status(404).json({ success: false, error: "Copilot run not found" });
       return;
@@ -327,7 +343,7 @@ export class CopilotController {
     });
 
     const sendNewEvents = () => {
-      const current = runs.get(run.id);
+      const current = copilotRunStore.get(run.id);
       if (!current) {
         send("error", { message: "Copilot run not found" });
         return;
