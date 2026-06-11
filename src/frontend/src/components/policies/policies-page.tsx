@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -181,7 +181,7 @@ export function PoliciesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Policies</h1>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>Policies</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Governance guardrails for agent spend
           </p>
@@ -206,7 +206,13 @@ export function PoliciesPage() {
             <span className="text-sm font-medium">Quick Start Templates</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {POLICY_TEMPLATES.map((t) => (
+            {POLICY_TEMPLATES.map((t, i) => (
+              <motion.div
+                key={t.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.08 }}
+              >
               <button
                 key={t.id}
                 onClick={() => handleQuickCreate(t)}
@@ -227,6 +233,7 @@ export function PoliciesPage() {
                   <span className="text-xs text-primary">Click to create</span>
                 )}
               </button>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -243,13 +250,11 @@ export function PoliciesPage() {
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border rounded-xl overflow-hidden">
           {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardContent className="p-5">
-                <Skeleton className="h-32 w-full" />
-              </CardContent>
-            </Card>
+            <div key={i} className="bg-card p-5">
+              <Skeleton className="h-32 w-full" />
+            </div>
           ))}
         </div>
       ) : error ? (
@@ -276,134 +281,135 @@ export function PoliciesPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {policies.map((policy) => (
-            <Card
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border rounded-xl overflow-hidden">
+          {policies.map((policy, i) => (
+            <motion.div
               key={policy.id}
-              className={`hover:border-sky-200 dark:hover:border-sky-800 transition-colors ${
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: i * 0.05 }}
+              className={`bg-card p-5 transition-colors ${
                 policy.confidential
-                  ? "border-amber-200/50 dark:border-amber-800/50"
+                  ? "border-l-2 border-amber-400/50"
                   : ""
               }`}
             >
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`p-2 rounded-lg ${
-                        policy.confidential
-                          ? "bg-amber-100 dark:bg-amber-950"
-                          : policy.status === "active"
-                            ? "bg-emerald-100 dark:bg-emerald-950"
-                            : "bg-stone-100 dark:bg-stone-800"
-                      }`}
-                    >
-                      {policy.confidential ? (
-                        <Lock className="h-5 w-5 text-amber-600" />
-                      ) : (
-                        <ShieldCheck
-                          className={`h-5 w-5 ${policy.status === "active" ? "text-emerald-600" : "text-stone-400"}`}
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-semibold">{policy.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {policy.type}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {policy.confidential && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] border-amber-300 text-amber-600 dark:border-amber-700 dark:text-amber-400"
-                      >
-                        FHE
-                      </Badge>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`p-2 rounded-lg ${
+                      policy.confidential
+                        ? "bg-amber-100 dark:bg-amber-950"
+                        : policy.status === "active"
+                          ? "bg-emerald-100 dark:bg-emerald-950"
+                          : "bg-stone-100 dark:bg-stone-800"
+                    }`}
+                  >
+                    {policy.confidential ? (
+                      <Lock className="h-5 w-5 text-amber-600" />
+                    ) : (
+                      <ShieldCheck
+                        className={`h-5 w-5 ${policy.status === "active" ? "text-emerald-600" : "text-stone-400"}`}
+                      />
                     )}
-                    <Badge
-                      variant={
-                        policy.status === "active" ? "secondary" : "outline"
-                      }
-                    >
-                      {policy.status}
-                    </Badge>
+                  </div>
+                  <div>
+                    <div className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>{policy.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {policy.type}
+                    </div>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {policy.desc}
-                </p>
-                {policy.confidential && (
-                  <div className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 text-xs text-amber-700 dark:text-amber-300">
-                    <EyeOff className="h-3 w-3" />
-                    <span>Budget limits encrypted on-chain via Fhenix FHE</span>
+                <div className="flex items-center gap-2">
+                  {policy.confidential && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] border-amber-300 text-amber-600 dark:border-amber-700 dark:text-amber-400"
+                    >
+                      FHE
+                    </Badge>
+                  )}
+                  <Badge
+                    variant={
+                      policy.status === "active" ? "secondary" : "outline"
+                    }
+                  >
+                    {policy.status}
+                  </Badge>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                {policy.desc}
+              </p>
+              {policy.confidential && (
+                <div className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 text-xs text-amber-700 dark:text-amber-300">
+                  <EyeOff className="h-3 w-3" />
+                  <span>Budget limits encrypted on-chain via Fhenix FHE</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-6 text-sm">
+                  <div>
+                    <span className="text-muted-foreground text-xs">
+                      Agents:
+                    </span>{" "}
+                    <span className="font-medium">{policy.agents}</span>
                   </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-6 text-sm">
+                  <div>
+                    <span className="text-muted-foreground text-xs">
+                      Violations:
+                    </span>{" "}
+                    <span
+                      className={`font-medium ${policy.violations > 0 ? "text-amber-500" : ""}`}
+                    >
+                      {policy.violations}
+                    </span>
+                  </div>
+                  {(triggerCounts[policy.id] ?? 0) > 0 && (
                     <div>
                       <span className="text-muted-foreground text-xs">
-                        Agents:
+                        Triggered:
                       </span>{" "}
-                      <span className="font-medium">{policy.agents}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-xs">
-                        Violations:
-                      </span>{" "}
-                      <span
-                        className={`font-medium ${policy.violations > 0 ? "text-amber-500" : ""}`}
-                      >
-                        {policy.violations}
+                      <span className="font-medium">
+                        {triggerCounts[policy.id]}
                       </span>
                     </div>
-                    {(triggerCounts[policy.id] ?? 0) > 0 && (
-                      <div>
-                        <span className="text-muted-foreground text-xs">
-                          Triggered:
-                        </span>{" "}
-                        <span className="font-medium">
-                          {triggerCounts[policy.id]}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleSharePolicy(policy)}
-                      className="h-7 gap-1 text-xs"
-                      title="Copy shareable link"
-                    >
-                      {copiedPolicyId === policy.id ? (
-                        <>
-                          <Check className="h-3 w-3 text-green-500" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Share2 className="h-3 w-3" />
-                          Share
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setHistoryPolicy({ id: policy.id, name: policy.name })
-                      }
-                      className="h-7 gap-1 text-xs"
-                    >
-                      <History className="h-3 w-3" />
-                      History
-                    </Button>
-                  </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSharePolicy(policy)}
+                    className="h-7 gap-1 text-xs"
+                    title="Copy shareable link"
+                  >
+                    {copiedPolicyId === policy.id ? (
+                      <>
+                        <Check className="h-3 w-3 text-green-500" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="h-3 w-3" />
+                        Share
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setHistoryPolicy({ id: policy.id, name: policy.name })
+                    }
+                    className="h-7 gap-1 text-xs"
+                  >
+                    <History className="h-3 w-3" />
+                    History
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
           ))}
         </div>
       )}
@@ -581,19 +587,22 @@ function CreatePolicyForm({
   const selectedType = POLICY_TYPES.find((t) => t.id === type);
 
   return (
-    <Card
-      className={`${encrypted ? "border-amber-200 dark:border-amber-800" : "border-sky-200 dark:border-sky-800"}`}
+    <div
+      className={`rounded-xl border p-5 space-y-4 ${
+        encrypted
+          ? "border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/10"
+          : "border-sky-200 dark:border-sky-800 bg-sky-50/30 dark:bg-sky-950/10"
+      }`}
     >
-      <CardContent className="p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold flex items-center gap-2">
-            {encrypted && <Lock className="h-4 w-4 text-amber-500" />}
-            Create Policy
-          </h3>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold flex items-center gap-2">
+          {encrypted && <Lock className="h-4 w-4 text-amber-500" />}
+          Create Policy
+        </h3>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="space-y-1.5">
@@ -900,7 +909,6 @@ function CreatePolicyForm({
                 : "Create Policy"}
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
   );
 }
