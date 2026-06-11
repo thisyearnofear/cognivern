@@ -83,9 +83,9 @@ const ACTIVITY_PAGE_SIZE = 5;
 
 export function Dashboard() {
   const router = useRouter();
-  const user = useAuthStore((s) => s);
   const demoMode = useDemoStore((s) => s.demoMode);
-  const workspace = user.workspace;
+  const workspace = useAuthStore((s) => s.workspace);
+  const walletAddress = useAuthStore((s) => s.walletAddress);
   useNetworkStatus();
   const {
     data: agents,
@@ -202,14 +202,13 @@ export function Dashboard() {
               </span>
             </div>
           )}
-          {!demoMode && workspace && (
+          {!demoMode && workspace && walletAddress && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>
                 Connected as{" "}
                 <span className="font-mono">
-                  {useAuthStore.getState().walletAddress?.slice(0, 6)}...
-                  {useAuthStore.getState().walletAddress?.slice(-4)}
+                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                 </span>
               </span>
             </div>

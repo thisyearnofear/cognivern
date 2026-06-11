@@ -75,12 +75,12 @@ export function AgentStatusChart({ agents, loading }: AgentStatusChartProps) {
   const totalTrades = agents.reduce((sum, a) => sum + (a.trades || 0), 0);
 
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="rounded-xl border bg-card h-full min-h-[280px] flex flex-col">
       <div className="p-4 pb-2">
         <div className="text-sm font-medium">Agent Status</div>
       </div>
-      <div className="p-4 pt-2">
-        <ResponsiveContainer width="100%" height={140}>
+      <div className="p-4 pt-2 flex-1 min-h-[200px]">
+        <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
             margin={{ top: 5, right: 5, bottom: 0, left: -20 }}

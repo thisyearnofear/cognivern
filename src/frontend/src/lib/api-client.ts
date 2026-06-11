@@ -16,12 +16,16 @@ import type {
   PolicyVersion,
 } from "@cognivern/shared";
 
-// Get token from localStorage for auth
+// Read auth token from the persisted auth store. The store is the single
+// source of truth - falling back to localStorage here would risk reading a
+// stale token after logout, or vice versa.
 function getAuthToken(): string | null {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("cognivern-token");
+  if (typeof window === "undefined") return null;
+  try {
+    return useAuthStore.getState().token;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 // Re-export for convenience

@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAuthStore } from "@/stores/auth-store";
-import { useDemoStore } from "@/stores/demo-store";
+import { useDemoStore, startDemoTour } from "@/stores/demo-store";
 import { useAuth } from "@/hooks/use-auth";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { AuthModal } from "@/components/auth/auth-modal";
@@ -43,7 +43,9 @@ import { NAV_GROUPS, DEMO_NAV_ITEMS } from "@/lib/nav-items";
 export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const user = useAuthStore((s) => s);
+  const isAppAuthenticated = useAuthStore((s) => s.isConnected);
+  const walletAddress = useAuthStore((s) => s.walletAddress);
+  const workspaceName = useAuthStore((s) => s.workspace?.name);
   const { demoMode, exitDemoMode } = useDemoStore();
   const { logout, signIn, loading: signingIn } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -206,10 +208,7 @@ export function AppSidebar() {
           {!demoMode && (
             <SidebarMenuItem>
               <SidebarMenuButton
-                onClick={() => {
-                  useDemoStore.getState().enableDemoMode();
-                  router.push("/demo/spend");
-                }}
+                onClick={() => startDemoTour((path) => router.push(path))}
                 className="h-9 rounded-lg px-3 text-amber-600 dark:text-amber-400"
               >
                 <PlayCircle className="h-[18px] w-[18px]" />
@@ -248,14 +247,13 @@ export function AppSidebar() {
               }) => {
                 const ready = mounted;
                 const walletConnected = ready && account && chain;
-                const appAuthenticated = user.isConnected;
 
                 if (!ready)
                   return (
                     <div className="h-10 w-full animate-pulse bg-muted rounded-lg" />
                   );
 
-                if (!walletConnected && !appAuthenticated) {
+                if (!walletConnected && !isAppAuthenticated) {
                   return (
                     <button
                       onClick={() => setShowAuthModal(true)}
@@ -268,7 +266,7 @@ export function AppSidebar() {
                   );
                 }
 
-                if (!appAuthenticated) {
+                if (!isAppAuthenticated) {
                   const shortAddress = account?.displayName ?? "Unknown";
                   return (
                     <div className="space-y-2">
@@ -304,7 +302,7 @@ export function AppSidebar() {
                     >
                       <Avatar className="h-8 w-8 border border-border/50">
                         <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold uppercase">
-                          {account?.address?.slice(2, 4) ?? "??"}
+                          {(walletAddress ?? account?.address ?? "??").slice(2, 4)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col min-w-0">
@@ -312,7 +310,7 @@ export function AppSidebar() {
                           {account?.displayName ?? "User"}
                         </span>
                         <span className="text-[10px] text-muted-foreground uppercase tracking-tight font-medium">
-                          {user.workspace?.name ?? "Workspace"}
+                          {workspaceName ?? "Workspace"}
                         </span>
                       </div>
                     </button>

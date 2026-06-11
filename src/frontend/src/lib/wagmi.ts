@@ -4,7 +4,7 @@ import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { http, fallback } from "wagmi";
 import { mainnet, sepolia, arbitrumSepolia, baseSepolia } from "wagmi/chains";
 
-const INFURA_KEY = "21dadabcaa93488e84cce263d9e0ffb0";
+const INFURA_KEY = "********************************";
 
 export const config = getDefaultConfig({
   appName: "Cognivern",
@@ -12,11 +12,17 @@ export const config = getDefaultConfig({
     process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "cognivern-dev",
   chains: [mainnet, sepolia, arbitrumSepolia, baseSepolia],
   transports: {
+    // Note: `eth.merkle.io` was removed because it does not return
+    // `Access-Control-Allow-Origin` headers for browser requests,
+    // which produced a flood of CORS errors in the console and
+    // blocked wagmi's fallback transport from advancing. The
+    // remaining endpoints provide the same coverage.
     [mainnet.id]: fallback([
       http(process.env.NEXT_PUBLIC_RPC_MAINNET),
       http(`https://mainnet.infura.io/v3/${INFURA_KEY}`),
       http("https://eth.llamarpc.com"),
       http("https://rpc.ankr.com/eth"),
+      http("https://cloudflare-eth.com"),
     ]),
     [sepolia.id]: fallback([
       http(process.env.NEXT_PUBLIC_RPC_SEPOLIA),
