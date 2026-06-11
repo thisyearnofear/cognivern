@@ -27,7 +27,6 @@ API_KEY=your_api_key_here
 FILECOIN_PRIVATE_KEY=
 GOVERNANCE_CONTRACT_ADDRESS=
 STORAGE_CONTRACT_ADDRESS=
-RECALL_API_KEY=
 
 # AI Provider Keys (optional - for intent processing)
 OPENAI_API_KEY=
@@ -71,7 +70,7 @@ FHENIX_EVALUATE_TIMEOUT_MS=30000
 
 ````
 
-Fhenix variables can be left empty for local dev — the service falls back to a deny decision when the CoFHE client is unavailable. Contract addresses (`GOVERNANCE_CONTRACT_ADDRESS`, `STORAGE_CONTRACT_ADDRESS`) and `RECALL_API_KEY` can be left empty for local dev — they default to empty strings. AI provider keys enable the natural language intent system; without them, keyword-based fallback responses are used.
+Fhenix variables can be left empty for local dev — the service falls back to a deny decision when the CoFHE client is unavailable. Contract addresses (`GOVERNANCE_CONTRACT_ADDRESS`, `STORAGE_CONTRACT_ADDRESS`) can be left empty for local dev — they default to empty strings. AI provider keys enable the natural language intent system; without them, keyword-based fallback responses are used.
 
 ### Smart Contracts
 

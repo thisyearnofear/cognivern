@@ -136,7 +136,7 @@ The spend control plane is live: policy evaluation, signed approvals, held actio
 - **Production Hardening** — Per-workspace and per-API-key rate limiters with sliding windows, deep health checks, circuit-breaker patterns, 172 tests (unit + integration + E2E via Playwright), TypeScript strict mode, unified CI pipeline
 - **Multi-Workspace & Policy Versioning** — Workspace-scoped policy management with independent API keys, rate limits, and policy history per team
 - **Fhenix Wave 5-7** — Full institutional demo with encrypted policies, MEV-protected execution, selective auditor disclosure; testnet migration from Helium to Arbitrum Sepolia; two-phase FHE resolution with `resolveDecision`; sealed-bid vendor selection; Privara confidential payroll
-- **Operator UX** — PromptOS terminal integrated into sidebar, voice capabilities (ElevenLabs STT/TOS), self-service onboarding, animated workspace mode toggles, full mobile responsiveness
+- **Operator UX** — PromptOS terminal integrated into sidebar, voice input via MediaRecorder (browser-native STT), self-service onboarding, animated workspace mode toggles, full mobile responsiveness
 - **ChainGPT Integration** — Web3-native AI governance: ChainGPT Web3 LLM as primary provider with governance context injection, Smart Contract Auditor as runtime pre-spend defense
 - **Ledger Hardware Signing** — Full DMK-based hardware signing with Speculos sandbox. All 5 phases complete: provider dispatch, LedgerSigningProvider (USB + emulated fallback), Docker sandbox, frontend badge, AGENTS.md
 - **MongoDB Persistence** — Optional MongoDB-backed run ledger, agent memory, and policies via `MongoDbCreRunPersistence` + `MongoDbMemoryService` + `MongoDbPolicyPersistence`. All gated by `MONGODB_URI`
