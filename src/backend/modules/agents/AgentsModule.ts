@@ -19,9 +19,6 @@ import {
 import { TradingAgent } from "./types/TradingAgent.js";
 import { UserTradingAgent } from "./implementations/UserTradingAgent.js";
 import { AgentOrchestrator } from "./services/AgentOrchestrator.js";
-import { TradingService } from "./services/TradingService.js";
-import { GovernanceService } from "./services/GovernanceService.js";
-import { getWorkerClient } from "../../services/CloudflareWorkerClient.js";
 import { getDb } from "../../db/index.js";
 
 /**
@@ -48,9 +45,6 @@ interface WorkspaceAgentRow {
 export class AgentsModule extends BaseService {
   private agents: Map<string, TradingAgent> = new Map();
   private orchestrator!: AgentOrchestrator;
-  private tradingService!: TradingService;
-  private governanceService!: GovernanceService;
-  private workerClient = getWorkerClient();
   private isRunning = false;
 
   constructor() {
@@ -81,25 +75,10 @@ export class AgentsModule extends BaseService {
   > {
     const dependencies: Record<string, DependencyHealth> = {};
 
-    // Check trading service
-    try {
-      await this.tradingService.healthCheck();
-      dependencies.tradingService = { status: "healthy" };
-    } catch (error) {
-      dependencies.tradingService = {
-        status: "unhealthy",
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-
-    // Check governance service
-    try {
-      await this.governanceService.healthCheck();
-      dependencies.governanceService = { status: "healthy" };
-    } catch (error) {
-      dependencies.governanceService = {
-        status: "unhealthy",
-        error: error instanceof Error ? error.message : String(error),
+    // Check orchestrator
+    if (this.orchestrator) {
+      dependencies.orchestrator = {
+        status: this.orchestrator.healthy ? "healthy" : "unhealthy",
       };
     }
 
@@ -124,9 +103,6 @@ export class AgentsModule extends BaseService {
   private async initializeServices(): Promise<void> {
     this.logger.info("Initializing agent services...");
 
-    // Initialize shared services
-    this.tradingService = new TradingService();
-    this.governanceService = new GovernanceService();
     this.orchestrator = new AgentOrchestrator({
       maxConcurrentTrades: 5,
       riskAllocationPerAgent: 0.2,
@@ -134,8 +110,6 @@ export class AgentsModule extends BaseService {
       conflictResolution: "highest_confidence",
     });
 
-    await this.tradingService.initialize();
-    await this.governanceService.initialize();
     await this.orchestrator.initialize();
   }
 
@@ -267,14 +241,6 @@ export class AgentsModule extends BaseService {
       await this.orchestrator.shutdown();
     }
 
-    if (this.tradingService) {
-      await this.tradingService.shutdown();
-    }
-
-    if (this.governanceService) {
-      await this.governanceService.shutdown();
-    }
-
     this.logger.info("Agent services shut down");
   }
 
@@ -338,27 +304,6 @@ export class AgentsModule extends BaseService {
     riskLevel?: string;
   }): Promise<Agent> {
     const id = `user-agent-${Date.now()}`;
-
-    // Register with Cloudflare Worker if enabled
-    if (this.workerClient.isEnabled()) {
-      try {
-        await this.workerClient.registerAgent({
-          name: params.name,
-          type: params.type,
-          capabilities: ["user-agent", params.type],
-          metadata: {
-            address: params.address,
-            riskLevel: params.riskLevel,
-            description: params.description,
-          },
-        });
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        this.logger.warn(
-          `Failed to register agent with Cloudflare Worker: ${err.message}`,
-        );
-      }
-    }
 
     const agent = new UserTradingAgent({
       id,
