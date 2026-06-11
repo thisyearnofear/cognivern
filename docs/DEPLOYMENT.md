@@ -13,7 +13,7 @@ Cognivern runs as a Node.js backend served from a VPS (e.g. Hetzner), with the f
 ## Architecture
 
 ```text
-Internet → VPS (Hetzner) → Express API (PM2) → optional Filecoin / Recall / LLMs
+Internet → VPS (Hetzner) → Express API (PM2) → optional Filecoin / LLMs
                           ↕
                     Vercel (Frontend)
 ```
@@ -66,7 +66,7 @@ Optional integrations:
 | `XLAYER_GOVERNANCE_CONTRACT`  | Deployed governance contract address (X Layer)                                       |
 | `XLAYER_STORAGE_CONTRACT`     | Deployed storage contract address (X Layer)                                          |
 | `XLAYER_PRIVATE_KEY`          | Wallet private key for X Layer deployment                                            |
-| `RECALL_API_KEY`              | Recall network API key                                                               |
+| `RECALL_API_KEY`              | Recall competition API key (optional — trading competitions)                         |
 | `FHENIX_PRIVATE_KEY`          | Wallet for Fhenix confidential policy ops (Arbitrum Sepolia)                         |
 | `FHENIX_POLICY_CONTRACT`      | `ConfidentialSpendPolicy` contract address on Fhenix                                 |
 | `FHENIX_CHAIN_ID`             | Fhenix chain ID (default: 421614 for Arbitrum Sepolia)                               |

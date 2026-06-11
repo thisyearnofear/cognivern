@@ -62,3 +62,28 @@ export class JsonlCreRunPersistence implements CreRunPersistence {
     await this.writeAll([]);
   }
 }
+
+/**
+ * Orchestrates multiple persistence layers in parallel.
+ * Each layer's append/writeAll/truncate runs concurrently.
+ * loadAll reads from the first layer only (fastest source).
+ */
+export class MultiCreRunPersistence implements CreRunPersistence {
+  constructor(private layers: CreRunPersistence[]) {}
+
+  async append(run: CreRun): Promise<void> {
+    await Promise.all(this.layers.map((l) => l.append(run)));
+  }
+
+  async loadAll(): Promise<CreRun[]> {
+    return await this.layers[0].loadAll();
+  }
+
+  async writeAll(runs: CreRun[]): Promise<void> {
+    await Promise.all(this.layers.map((l) => l.writeAll(runs)));
+  }
+
+  async truncate(): Promise<void> {
+    await Promise.all(this.layers.map((l) => l.truncate()));
+  }
+}

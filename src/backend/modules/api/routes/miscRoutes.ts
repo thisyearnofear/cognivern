@@ -1,6 +1,5 @@
 import { Router } from "express";
 import type { IngestController } from "../controllers/IngestController.js";
-import type { RecallController } from "../controllers/RecallController.js";
 import type { FhenixController } from "../controllers/FhenixController.js";
 import type { IntentController } from "../controllers/IntentController.js";
 import type { PayrollController } from "../controllers/PayrollController.js";
@@ -9,7 +8,6 @@ import type { SpeechController } from "../controllers/SpeechController.js";
 
 export function createMiscRoutes(
   ingestController: IngestController,
-  recallController: RecallController,
   fhenixController: FhenixController,
   intentController: IntentController,
   payrollController: PayrollController,
@@ -27,17 +25,6 @@ export function createMiscRoutes(
   );
   router.get("/projects/:projectId/tokens", (req, res) =>
     ingestController.listTokens(req, res),
-  );
-
-  // Recall routes
-  router.get("/spendos/decisions", (req, res) =>
-    recallController.getDecisions(req, res),
-  );
-  router.post("/recall/store", (req, res) =>
-    recallController.storeMemory(req, res),
-  );
-  router.get("/recall/query", (req, res) =>
-    recallController.queryMemories(req, res),
   );
 
   // Fhenix routes

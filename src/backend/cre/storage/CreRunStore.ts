@@ -2,11 +2,9 @@ import { CreRun } from "../types.js";
 import {
   CreRunPersistence,
   JsonlCreRunPersistence,
-} from "../persistence/CreRunPersistence.js";
-import {
-  RecallCreRunPersistence,
   MultiCreRunPersistence,
-} from "../persistence/RecallCreRunPersistence.js";
+} from "../persistence/CreRunPersistence.js";
+import { MongoDbCreRunPersistence } from "./MongoDbCreRunPersistence.js";
 
 export class CreRunStore {
   private runs: CreRun[] = [];
@@ -19,13 +17,12 @@ export class CreRunStore {
   ) {
     this.maxRuns = params.maxRuns ?? 100;
 
-    // Default to multi-layer persistence: [Local JSONL (hot), Recall (permanent)]
-    this.persistence =
-      params.persistence ||
-      new MultiCreRunPersistence([
-        new JsonlCreRunPersistence(),
-        new RecallCreRunPersistence(),
-      ]);
+    // Default to dual persistence: JSONL (hot cache) + MongoDB (durable)
+    const layers: CreRunPersistence[] = [new JsonlCreRunPersistence()];
+    if (process.env.MONGODB_URI) {
+      layers.push(new MongoDbCreRunPersistence());
+    }
+    this.persistence = params.persistence || new MultiCreRunPersistence(layers);
   }
 
   async ensureLoaded() {

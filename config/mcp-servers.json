@@ -1,0 +1,9 @@
+{
+  "mongodb": {
+    "command": "npx",
+    "args": ["-y", "@mongodb-js/mongodb-mcp-server@latest"],
+    "env": {
+      "MONGODB_CONNECTION_STRING": "${MONGODB_URI}"
+    }
+  }
+}

@@ -25,7 +25,6 @@ import { HealthController } from "./controllers/HealthController.js";
 import { AgentsController } from "./controllers/AgentsController.js";
 import { GovernanceController } from "./controllers/GovernanceController.js";
 import { MetricsController } from "./controllers/MetricsController.js";
-import { RecallController } from "./controllers/RecallController.js";
 import { AuditLogController } from "./controllers/AuditLogController.js";
 import { AuditLogService } from "../../services/AuditLogService.js";
 import { CreController } from "./controllers/CreController.js";
@@ -66,7 +65,6 @@ interface ControllerRegistry {
     getWallet(req: express.Request, res: express.Response): Promise<void>;
     getDecisions(req: express.Request, res: express.Response): Promise<void>;
   };
-  recall: RecallController;
   auditLog: AuditLogController;
   cre: CreController;
   ingest: IngestController;
@@ -451,7 +449,6 @@ export class ApiModule extends BaseService {
         "SapienceController disabled (set SAPIENCE_ENABLED=true to enable)",
       );
     }
-    this.controllers.recall = new RecallController();
     this.controllers.auditLog = new AuditLogController();
     this.controllers.cre = new CreController();
     this.controllers.ingest = new IngestController();
@@ -548,7 +545,6 @@ export class ApiModule extends BaseService {
     apiRouter.use(
       createMiscRoutes(
         this.ctrl("ingest"),
-        this.ctrl("recall"),
         this.ctrl("fhenix"),
         this.ctrl("intent"),
         this.ctrl("payroll"),
