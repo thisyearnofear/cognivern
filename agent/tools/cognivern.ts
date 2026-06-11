@@ -16,6 +16,44 @@ export interface CognivernToolContext {
   baseUrl: string; // e.g. https://cognivern.thisyearnofear.com
 }
 
+async function readJsonResponse(r: Response): Promise<unknown> {
+  const body = await r.json();
+  if (
+    body &&
+    typeof body === "object" &&
+    "success" in body &&
+    "data" in body
+  ) {
+    return (body as { data: unknown }).data;
+  }
+  return body;
+}
+
+function buildSpendPayload(
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  const recipient = args.recipient || args.vendor;
+  const reason = args.reason || args.purpose;
+  const metadata: Record<string, unknown> = {
+    ...(typeof args.metadata === "object" && args.metadata !== null
+      ? (args.metadata as Record<string, unknown>)
+      : {}),
+  };
+
+  for (const key of ["policyId", "attestationHash", "humanConfirmationToken"]) {
+    if (args[key]) metadata[key] = args[key];
+  }
+
+  return {
+    agentId: args.agentId,
+    recipient,
+    amount: args.amount,
+    asset: args.asset,
+    reason,
+    metadata,
+  };
+}
+
 export const COGNIVERN_TOOL_DECLARATIONS = [
   {
     name: "cognivern_list_policies",
@@ -55,10 +93,13 @@ export const COGNIVERN_TOOL_DECLARATIONS = [
         policyId: { type: "string" },
         amount: { type: "string", description: "Amount in atomic units (e.g. wei)" },
         asset: { type: "string", description: "Token symbol or contract address" },
-        vendor: { type: "string", description: "Vendor address or identifier" },
-        purpose: { type: "string", description: "Short human-readable purpose" },
+        recipient: {
+          type: "string",
+          description: "Vendor wallet address or identifier",
+        },
+        reason: { type: "string", description: "Short human-readable purpose" },
       },
-      required: ["agentId", "policyId", "amount", "asset", "vendor"],
+      required: ["agentId", "policyId", "amount", "asset", "recipient", "reason"],
     },
   },
   {
@@ -70,10 +111,9 @@ export const COGNIVERN_TOOL_DECLARATIONS = [
       properties: {
         agentId: { type: "string" },
         policyId: { type: "string" },
-        actionType: { type: "string" },
-        actionData: { type: "object" },
+        action: { type: "object" },
       },
-      required: ["agentId", "policyId", "actionType"],
+      required: ["agentId", "policyId", "action"],
     },
   },
   {
@@ -87,8 +127,8 @@ export const COGNIVERN_TOOL_DECLARATIONS = [
         policyId: { type: "string" },
         amount: { type: "string" },
         asset: { type: "string" },
-        vendor: { type: "string" },
-        purpose: { type: "string" },
+        recipient: { type: "string" },
+        reason: { type: "string" },
         attestationHash: {
           type: "string",
           description: "Attestation hash returned by the preview. Required.",
@@ -103,7 +143,8 @@ export const COGNIVERN_TOOL_DECLARATIONS = [
         "policyId",
         "amount",
         "asset",
-        "vendor",
+        "recipient",
+        "reason",
         "attestationHash",
         "humanConfirmationToken",
       ],
@@ -140,57 +181,73 @@ export async function executeCognivernTool(
     case "cognivern_list_policies": {
       const status = (args.status as string) || "active";
       const r = await fetch(
-        `${ctx.baseUrl}/api/governance/policies?status=${status}`,
+        `${ctx.baseUrl}/api/governance/policies?${new URLSearchParams({
+          status,
+        }).toString()}`,
         { headers },
       );
       if (!r.ok) throw new Error(`list_policies failed: ${r.status}`);
-      return r.json();
+      return readJsonResponse(r);
     }
     case "cognivern_get_policy": {
       const r = await fetch(
-        `${ctx.baseUrl}/api/governance/policies/${args.policyId}`,
+        `${ctx.baseUrl}/api/governance/policies/${encodeURIComponent(
+          String(args.policyId),
+        )}`,
         { headers },
       );
       if (!r.ok) throw new Error(`get_policy failed: ${r.status}`);
-      return r.json();
+      return readJsonResponse(r);
     }
     case "cognivern_preview_spend": {
       const r = await fetch(`${ctx.baseUrl}/api/spend/preview`, {
         method: "POST",
         headers,
-        body: JSON.stringify(args),
+        body: JSON.stringify(buildSpendPayload(args)),
       });
       if (!r.ok) throw new Error(`preview_spend failed: ${r.status}`);
-      return r.json();
+      return readJsonResponse(r);
     }
     case "cognivern_evaluate_action": {
+      const action =
+        typeof args.action === "object" && args.action !== null
+          ? args.action
+          : {
+              type: args.actionType,
+              input: args.actionData,
+              policyId: args.policyId,
+            };
       const r = await fetch(`${ctx.baseUrl}/api/governance/evaluate`, {
         method: "POST",
         headers,
-        body: JSON.stringify(args),
+        body: JSON.stringify({
+          agentId: args.agentId,
+          policyId: args.policyId,
+          action,
+        }),
       });
       if (!r.ok) throw new Error(`evaluate_action failed: ${r.status}`);
-      return r.json();
+      return readJsonResponse(r);
     }
     case "cognivern_execute_spend": {
       const r = await fetch(`${ctx.baseUrl}/api/spend`, {
         method: "POST",
         headers,
-        body: JSON.stringify(args),
+        body: JSON.stringify(buildSpendPayload(args)),
       });
       if (!r.ok) throw new Error(`execute_spend failed: ${r.status}`);
-      return r.json();
+      return readJsonResponse(r);
     }
     case "cognivern_audit_recent": {
       const params = new URLSearchParams();
       params.set("limit", String((args.limit as number) || 20));
-      if (args.agentId) params.set("agentId", args.agentId as string);
+      if (args.agentId) params.set("agent", args.agentId as string);
       const r = await fetch(
         `${ctx.baseUrl}/api/audit/logs?${params.toString()}`,
         { headers },
       );
       if (!r.ok) throw new Error(`audit_recent failed: ${r.status}`);
-      return r.json();
+      return readJsonResponse(r);
     }
     default:
       throw new Error(`Unknown Cognivern tool: ${name}`);
