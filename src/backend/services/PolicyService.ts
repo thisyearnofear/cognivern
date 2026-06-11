@@ -4,6 +4,9 @@ import { MongoDbPolicyPersistence } from '../persistence/MongoDbPolicyPersistenc
 import logger from '../utils/logger.js';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 
 export class PolicyService {
   private persistence: PolicyPersistence;
@@ -64,11 +67,12 @@ export class PolicyService {
 
   private async initializeBundledPolicies() {
     // Look in two places to support both dev (running from repo root) and
-    // prod (running from `dist/`). The canonical location is
+    // prod (running from `dist/` or the lean bundle). The canonical location is
     // `src/backend/policies/` next to this service.
     const candidateDirs = [
       path.join(process.cwd(), 'src', 'backend', 'policies'),
-      path.join(__dirname, '..', '..', 'policies'), // dist/backend/services -> dist/backend/policies
+      path.join(process.cwd(), 'policies'), // lean bundle cwd
+      path.join(moduleDir, '..', '..', 'policies'), // dist/backend/services -> dist/backend/policies
     ];
     const bundledPolicyDir = candidateDirs.find((d) => {
       try {
