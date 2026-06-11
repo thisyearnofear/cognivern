@@ -70,6 +70,13 @@ ssh "$SSH_HOST" << 'REMOTE_EOF'
     echo "  Native deps up to date, skipping install."
   fi
 
+  # The lean bundle relies on native modules. Verify the binding exists even
+  # when package.json did not change; stale installs can lose .node artifacts.
+  if ! node -e "require('better-sqlite3')" >/dev/null 2>&1; then
+    echo "  Rebuilding better-sqlite3 native binding..."
+    $NPM_CMD rebuild better-sqlite3 2>&1 | tail -10
+  fi
+
   # Ensure data directory exists (SQLite DB lives here)
   mkdir -p "$SHARED_PATH/data"
   ln -sfn "$SHARED_PATH/data" "$DEPLOY_PATH/bundle/data"
