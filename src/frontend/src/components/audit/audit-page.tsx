@@ -40,9 +40,9 @@ function CheckItem({
   return (
     <div className="flex items-start gap-2 py-1.5">
       {passed ? (
-        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
+        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 mt-0.5 flex-shrink-0" aria-label="Passed" />
       ) : (
-        <XCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 flex-shrink-0" />
+        <XCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 flex-shrink-0" aria-label="Failed" />
       )}
       <div className="min-w-0">
         <div className="text-xs font-medium">{label}</div>

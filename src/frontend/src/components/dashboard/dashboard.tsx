@@ -514,12 +514,16 @@ export function Dashboard() {
                 key={agent.id}
                 className="hover:border-sky-200 dark:hover:border-sky-800 transition-colors cursor-pointer"
                 onClick={() => router.push(`/agents/${agent.id}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && router.push(`/agents/${agent.id}`)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div
                         className={`w-2 h-2 rounded-full ${agent.status === "active" ? "bg-emerald-500" : "bg-amber-500"}`}
+                        aria-label={agent.status === "active" ? "Active" : "Inactive"}
                       />
                       <span className="font-medium text-sm">{agent.name}</span>
                     </div>
@@ -611,13 +615,14 @@ export function Dashboard() {
                           ? "bg-red-100 dark:bg-red-950 text-red-600"
                           : "bg-blue-100 dark:bg-blue-950 text-blue-600"
                     }`}
+                    aria-label={`Decision: ${item.status}`}
                   >
                     {item.status === "approved" ? (
-                      <ShieldCheck className="h-3.5 w-3.5" />
+                      <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
                     ) : item.status === "denied" ? (
-                      <Activity className="h-3.5 w-3.5" />
+                      <Activity className="h-3.5 w-3.5" aria-hidden="true" />
                     ) : (
-                      <FileSearch className="h-3.5 w-3.5" />
+                      <FileSearch className="h-3.5 w-3.5" aria-hidden="true" />
                     )}
                   </div>
                   <div className="min-w-0">

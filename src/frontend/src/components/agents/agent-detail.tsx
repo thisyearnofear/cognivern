@@ -283,6 +283,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
                       ? "bg-emerald-500"
                       : "bg-amber-500"
                   }`}
+                  aria-label={agent.status === "active" ? "Active" : "Inactive"}
                 />
               </div>
               <div>
