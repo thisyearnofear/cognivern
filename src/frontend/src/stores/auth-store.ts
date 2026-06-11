@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type { AuthUser, Workspace } from "@cognivern/shared";
 
 interface AuthState {
@@ -10,12 +10,14 @@ interface AuthState {
   workspaces: Workspace[];
   token: string | null;
   workspaceMode: "sandbox" | "production";
+  hasHydrated: boolean;
   login: (token: string, authUser: AuthUser, workspace: Workspace) => void;
   logout: () => void;
   setWorkspace: (workspace: Workspace) => void;
   setWorkspaces: (workspaces: Workspace[]) => void;
   switchWorkspace: (workspace: Workspace, token: string) => void;
   setWorkspaceMode: (mode: "sandbox" | "production") => void;
+  setHasHydrated: (hydrated: boolean) => void;
 }
 
 const defaultState = {
@@ -26,7 +28,10 @@ const defaultState = {
   workspaces: [],
   token: null,
   workspaceMode: "sandbox" as const,
+  hasHydrated: false,
 };
+
+const STORAGE_NAME = "civern-auth-store";
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -40,35 +45,43 @@ export const useAuthStore = create<AuthState>()(
           workspace,
           token,
         });
-        if (typeof window !== "undefined") {
-          localStorage.setItem("cognivern-token", token);
-        }
       },
       logout: () => {
-        set(defaultState);
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("cognivern-token");
-        }
+        set({ ...defaultState, hasHydrated: true });
       },
       setWorkspace: (workspace) => set({ workspace }),
       setWorkspaces: (workspaces) => set({ workspaces }),
       switchWorkspace: (workspace, token) => {
         set({ workspace, token });
-        if (typeof window !== "undefined") {
-          localStorage.setItem("cognivern-token", token);
-        }
       },
       setWorkspaceMode: (workspaceMode) => set({ workspaceMode }),
+      setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
     }),
     {
-      name: "civern-auth-store",
+      name: STORAGE_NAME,
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         isConnected: state.isConnected,
         walletAddress: state.walletAddress,
         authUser: state.authUser,
         workspace: state.workspace,
+        token: state.token,
         workspaceMode: state.workspaceMode,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Mark as hydrated after rehydration so the UI can render
+        // without flashing the unauthenticated default state.
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
+
+/**
+ * React hook helper: returns `true` once the persisted auth state has been
+ * read from localStorage. UI that depends on auth state (sign-in button,
+ * dashboard redirect, socket connection) should wait for this.
+ */
+export function useAuthHydrated(): boolean {
+  return useAuthStore((s) => s.hasHydrated);
+}

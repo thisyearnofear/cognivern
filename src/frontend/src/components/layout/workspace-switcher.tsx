@@ -24,7 +24,9 @@ import { apiClient, type Workspace } from "@/lib/api-client";
 import { mutate } from "swr";
 
 export function WorkspaceSwitcher() {
-  const user = useAuthStore((s) => s);
+  const workspaces = useAuthStore((s) => s.workspaces);
+  const currentWorkspace = useAuthStore((s) => s.workspace);
+  const isAppConnected = useAuthStore((s) => s.isConnected);
   const setWorkspaces = useAuthStore((s) => s.setWorkspaces);
   const switchWorkspace = useAuthStore((s) => s.switchWorkspace);
   const demoMode = useDemoStore((s) => s.demoMode);
@@ -38,11 +40,8 @@ export function WorkspaceSwitcher() {
   const [error, setError] = useState<string | null>(null);
   const fetchedRef = useRef(false);
 
-  const workspaces = user.workspaces || [];
-  const currentWorkspace = user.workspace;
-
   const fetchWorkspaces = useCallback(async () => {
-    if (demoMode || !user.isConnected) return;
+    if (demoMode || !isAppConnected) return;
     setLoading(true);
     try {
       const res = await apiClient.listWorkspaces();
@@ -52,7 +51,7 @@ export function WorkspaceSwitcher() {
     } finally {
       setLoading(false);
     }
-  }, [demoMode, user.isConnected, setWorkspaces]);
+  }, [demoMode, isAppConnected, setWorkspaces]);
 
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
@@ -113,7 +112,7 @@ export function WorkspaceSwitcher() {
     }
   }, [newName, fetchWorkspaces]);
 
-  if (demoMode || !user.isConnected) return null;
+  if (demoMode || !isAppConnected) return null;
 
   return (
     <>

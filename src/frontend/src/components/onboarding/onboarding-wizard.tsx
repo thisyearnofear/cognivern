@@ -367,6 +367,7 @@ export function OnboardingWizard() {
   const { isConnected: wagmiConnected, address } = useAccount();
   const { signIn } = useAuth();
   const isAppConnected = useAuthStore((s) => s.isConnected);
+  const walletAddress = useAuthStore((s) => s.walletAddress);
   const [step, setStep] = useState(0);
   const [selectedPolicy, setSelectedPolicy] = useState("moderate");
   const [agentName, setAgentName] = useState("");
@@ -537,8 +538,8 @@ export function OnboardingWizard() {
                 <div className="flex items-center justify-center gap-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
                   <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                   <span className="font-medium">
-                    Wallet connected: {useAuthStore.getState().walletAddress?.slice(0, 6)}...
-                    {useAuthStore.getState().walletAddress?.slice(-4)}
+                    Wallet connected: {walletAddress?.slice(0, 6)}...
+                    {walletAddress?.slice(-4)}
                   </span>
                 </div>
               ) : (

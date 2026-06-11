@@ -18,8 +18,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
-import { useDemoStore } from "@/stores/demo-store";
+import { useDemoStore, startDemoTour } from "@/stores/demo-store";
+import { useAuthStore, useAuthHydrated } from "@/stores/auth-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
+import { useAccount } from "wagmi";
 
 /* ─── Terminal typing hook ──────────────────────────────────── */
 
@@ -143,9 +145,12 @@ function useCountUp(target: number, duration = 2000, start = false) {
 
 export function LandingPage() {
   const router = useRouter();
-  const enableDemoMode = useDemoStore((s) => s.enableDemoMode);
   const demoMode = useDemoStore((s) => s.demoMode);
   const onboardingCompleted = usePreferencesStore((s) => s.onboardingCompleted);
+  const isAppAuthenticated = useAuthStore((s) => s.isConnected);
+  const walletAddress = useAuthStore((s) => s.walletAddress);
+  const hasHydrated = useAuthHydrated();
+  const { isConnected: walletConnected } = useAccount();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [demoAmount, setDemoAmount] = useState(50);
   const [copyFeedback, setCopyFeedback] = useState(false);
@@ -156,11 +161,16 @@ export function LandingPage() {
   const { scrollYProgress } = useScroll();
   const heroOpacity = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
 
+  // The landing page is only for visitors. As soon as a user is signed
+  // in (app session OR demo mode OR completed onboarding) we send them
+  // to the dashboard. We wait for rehydration so a returning user
+  // doesn't briefly see the landing page before the redirect fires.
   useEffect(() => {
-    if (demoMode || onboardingCompleted) {
+    if (!hasHydrated) return;
+    if (isAppAuthenticated || demoMode || onboardingCompleted) {
       router.push("/dashboard");
     }
-  }, [demoMode, onboardingCompleted, router]);
+  }, [hasHydrated, isAppAuthenticated, demoMode, onboardingCompleted, router]);
 
   useEffect(() => {
     if (!statsRef.current) return;
@@ -176,8 +186,7 @@ export function LandingPage() {
   const policiesCount = useCountUp(3, 1500, statsVisible);
 
   const handleTryDemo = () => {
-    enableDemoMode();
-    router.push("/demo/spend");
+    startDemoTour((path) => router.push(path));
   };
 
   // Terminal lines
@@ -237,9 +246,27 @@ export function LandingPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             X Layer Testnet — Live
           </span>
-          <Button variant="default" size="sm" onClick={() => setShowAuthModal(true)}>
-            Sign In
-          </Button>
+          {hasHydrated && (isAppAuthenticated || walletConnected) ? (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => router.push("/dashboard")}
+            >
+              {isAppAuthenticated
+                ? "Open Dashboard"
+                : walletAddress
+                  ? `Continue as ${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}`
+                  : "Open Dashboard"}
+            </Button>
+          ) : (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setShowAuthModal(true)}
+            >
+              Sign In
+            </Button>
+          )}
         </div>
       </header>
 
@@ -941,9 +968,16 @@ curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \\
               <Button
                 variant="secondary"
                 size="lg"
-                onClick={() => setShowAuthModal(true)}
+                onClick={() =>
+                  hasHydrated && (isAppAuthenticated || walletConnected)
+                    ? router.push("/dashboard")
+                    : setShowAuthModal(true)
+                }
               >
-                Sign In <ArrowRight className="h-4 w-4 ml-1" />
+                {hasHydrated && (isAppAuthenticated || walletConnected)
+                  ? "Open Dashboard"
+                  : "Sign In"}{" "}
+                <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </motion.div>

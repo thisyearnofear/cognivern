@@ -4,7 +4,11 @@ import { useCallback, useState } from "react";
 import { useAccount, useSignMessage, useDisconnect } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAuthStore } from "@/stores/auth-store";
-import { generateSiweMessage, fetchNonce, verifySignature } from "@/lib/auth";
+import {
+  fetchNonce,
+  verifySignature,
+  useSiweMessageFactory,
+} from "@/lib/auth";
 
 export function useAuth() {
   const { address, isConnected } = useAccount();
@@ -12,6 +16,7 @@ export function useAuth() {
   const { disconnect } = useDisconnect();
   const { openConnectModal } = useConnectModal();
   const { login, logout: storeLogout } = useAuthStore();
+  const buildSiweMessage = useSiweMessageFactory();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,12 +31,12 @@ export function useAuth() {
 
     try {
       const nonce = await fetchNonce();
-      const message = generateSiweMessage(address, nonce);
+      const message = buildSiweMessage(address, nonce);
       const signature = await signMessageAsync({ message });
       const { token, user, workspace } = await verifySignature(
         message,
         signature,
-        address,
+        address
       );
       login(token, user, workspace);
     } catch (err) {
@@ -41,11 +46,26 @@ export function useAuth() {
     } finally {
       setLoading(false);
     }
-  }, [address, signMessageAsync, openConnectModal, login]);
+  }, [address, signMessageAsync, openConnectModal, login, buildSiweMessage]);
 
   const handleLogout = useCallback(() => {
     storeLogout();
     disconnect();
+    // Clear any persisted wallet-connect / wagmi storage so a reload
+    // doesn't immediately rehydrate a stale "connected" state.
+    if (typeof window !== "undefined") {
+      try {
+        const wcKeys = Object.keys(localStorage).filter(
+          (k) =>
+            k.startsWith("wc@2:") ||
+            k.startsWith("wagmi") ||
+            k.startsWith("rk-")
+        );
+        wcKeys.forEach((k) => localStorage.removeItem(k));
+      } catch {
+        // localStorage may not be available; ignore.
+      }
+    }
   }, [storeLogout, disconnect]);
 
   return {

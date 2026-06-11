@@ -1,3 +1,4 @@
+import { useAccount } from "wagmi";
 import type { AuthUser, Workspace } from "@cognivern/shared";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
@@ -5,13 +6,26 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 export function generateSiweMessage(
   address: string,
   nonce: string,
-  domain: string = typeof window !== "undefined"
-    ? window.location.host
-    : "localhost",
-  uri: string = typeof window !== "undefined"
-    ? window.location.origin
-    : "http://localhost:3000",
+  options: {
+    domain?: string;
+    uri?: string;
+    chainId?: number;
+  } = {}
 ): string {
+  const domain =
+    options.domain ??
+    (typeof window !== "undefined" ? window.location.host : "localhost");
+  const uri =
+    options.uri ??
+    (typeof window !== "undefined"
+      ? window.location.origin
+      : "http://localhost:3000");
+  // The EIP-4361 spec requires the chain id to match the chain the
+  // signature was produced on. Reading it from the active wagmi
+  // connection avoids a hardcoded Chain ID: 1 which previously caused
+  // backend verification to reject signatures from Arbitrum/Base users.
+  const chainId = options.chainId ?? 1;
+
   return `${domain} wants you to sign in with your Ethereum account:
 ${address}
 
@@ -19,9 +33,22 @@ Sign in to Cognivern
 
 URI: ${uri}
 Version: 1
-Chain ID: 1
+Chain ID: ${chainId}
 Nonce: ${nonce}
 Issued At: ${new Date().toISOString()}`;
+}
+
+/**
+ * Hook wrapper that produces a SIWE message with the active chain id.
+ * Use this from React components; the bare `generateSiweMessage` is
+ * exported for tests and non-component code paths.
+ */
+export function useSiweMessageFactory() {
+  const { chainId } = useAccount();
+  return (address: string, nonce: string) =>
+    generateSiweMessage(address, nonce, {
+      chainId: typeof chainId === "number" ? chainId : 1,
+    });
 }
 
 export async function fetchNonce(): Promise<string> {
@@ -34,7 +61,7 @@ export async function fetchNonce(): Promise<string> {
 export async function verifySignature(
   message: string,
   signature: string,
-  address: string,
+  address: string
 ): Promise<{ token: string; user: AuthUser; workspace: Workspace }> {
   const res = await fetch(`${API_URL}/auth/verify`, {
     method: "POST",

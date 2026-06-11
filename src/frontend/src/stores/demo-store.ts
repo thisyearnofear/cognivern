@@ -41,7 +41,8 @@ export const useDemoStore = create<DemoState>((set, get) => ({
   // Note: callers are responsible for not clearing auth state on demo exit.
   // Check useAuthStore().isConnected at call site before deciding whether to
   // redirect to landing page. The demo store only controls the demo flag.
-  exitDemoMode: () => set({ demoMode: false }),  addDemoAuditLog: (log: AuditLog) =>
+  exitDemoMode: () => set({ demoMode: false }),
+  addDemoAuditLog: (log: AuditLog) =>
     set({
       demoData: {
         ...get().demoData,
@@ -49,3 +50,13 @@ export const useDemoStore = create<DemoState>((set, get) => ({
       },
     }),
 }));
+
+/**
+ * Single entry point for entering demo mode from anywhere in the app.
+ * Centralises navigation so the landing-page CTA, the sidebar "Try Demo"
+ * button, and the demo banner all land the user on the same screen.
+ */
+export function startDemoTour(navigate: (path: string) => void) {
+  useDemoStore.getState().enableDemoMode();
+  navigate("/demo/spend");
+}
