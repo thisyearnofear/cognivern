@@ -167,18 +167,44 @@ export function RunsPage() {
 
       {/* Run List */}
       {!error && runs.length === 0 && !isLoading ? (
-        <div className="p-12 text-center text-muted-foreground border rounded-xl">
-          <Activity className="h-8 w-8 mx-auto mb-3 opacity-50" />
-          <p className="font-medium">No runs yet</p>
-          <p className="text-sm mt-1">
-            Run a governance check to see execution traces here
-          </p>
-          <Button
-            className="mt-4"
-            onClick={() => router.push("/governance/check")}
-          >
-            <PlayCircle className="h-3.5 w-3.5" /> Run a Check
-          </Button>
+        <div className="rounded-xl border border-border overflow-hidden">
+          <div className="p-8 sm:p-10 text-center space-y-4">
+            <div className="max-w-sm mx-auto">
+              <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                <Activity className="h-7 w-7 text-muted-foreground/60" />
+              </div>
+              <p className="font-medium text-foreground text-base">No runs yet</p>
+              <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                Runs track every governance evaluation, policy check, and
+                on-chain transaction your agents perform. They appear here
+                automatically once activity starts.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 flex-wrap pt-2">
+              <Button
+                onClick={() => router.push("/governance/check")}
+              >
+                <PlayCircle className="h-3.5 w-3.5" /> Run a Governance Check
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => router.push("/agents/workshop")}
+              >
+                Register an Agent
+              </Button>
+            </div>
+            <div className="pt-2">
+              <p className="text-[11px] text-muted-foreground/60">
+                Already have an agent?{" "}
+                <button
+                  onClick={() => router.refresh()}
+                  className="text-primary hover:underline"
+                >
+                  Refresh this page
+                </button>
+              </p>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="space-y-px bg-border rounded-xl overflow-hidden">
