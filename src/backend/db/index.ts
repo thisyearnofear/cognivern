@@ -199,6 +199,34 @@ function migrate(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_policy_versions_policy ON policy_versions(policy_id);
   `);
+
+  // Migration: copilot_runs + copilot_events (live demo persistence)
+  // Replaces the in-memory Map that lost runs on every pm2 restart.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS copilot_runs (
+      id TEXT PRIMARY KEY,
+      goal TEXT NOT NULL,
+      status TEXT NOT NULL,
+      summary TEXT,
+      error TEXT,
+      preview TEXT,
+      result TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS copilot_events (
+      id INTEGER NOT NULL,
+      run_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      name TEXT,
+      payload TEXT,
+      timestamp TEXT NOT NULL,
+      PRIMARY KEY (run_id, id),
+      FOREIGN KEY (run_id) REFERENCES copilot_runs(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_copilot_events_run ON copilot_events(run_id);
+  `);
 }
 
 export function closeDb(): void {
