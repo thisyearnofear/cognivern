@@ -27,7 +27,7 @@ This pairing is recommended by the hackathon brief itself and is the best fit fo
 | Primitive           | Existing Endpoint / Module                              | Maps To                  |
 | ------------------- | ------------------------------------------------------- | ------------------------ |
 | NL intent routing   | `POST /api/intent`                                      | PromptOS kernel          |
-| Agent orchestration | `src/backend/modules/agents`, Cloudflare Workers agents | DevFactory cores         |
+| Agent orchestration | `src/backend/modules/agents` | DevFactory cores         |
 | Run ledger          | `GET /api/cre/runs`                                     | Agent status grid        |
 | Audit trail         | `GET /api/audit/logs`                                   | ChronosOS event log      |
 | Policy engine       | `POST /api/governance/evaluate`                         | JarvisOS identity filter |

@@ -1,64 +1,86 @@
 #!/usr/bin/env tsx
 
 /**
- * Sapience Forecasting Agent Entry Point
+ * Sapience Forecasting Agent — Standalone Entry Point
  *
- * Runs the automated forecasting service to generate and submit predictions
- * to the Sapience protocol on Arbitrum.
+ * Runs a continuous forecast loop against the Sapience protocol.
+ * Every forecast attestation is gated by Cognivern's governance pipeline
+ * via GovernanceClient. Trades ≥ 10 USDe are held for human confirmation.
+ *
+ * Prerequisites:
+ *   COGNIVERN_API_KEY          required
+ *   COGNIVERN_SELF_BASE_URL   default http://localhost:3000
+ *   SAPIENCE_PRIVATE_KEY      required
+ *   ARBITRUM_RPC_URL          default https://arb1.arbitrum.io/rpc
+ *   SAPIENCE_HUMAN_CONFIRM_TOKEN  optional (set to enable >= 10 USDe trades)
+ *
+ * Run:
+ *   pnpm tsx scripts/agents/start-forecasting.ts
  */
 
 import dotenv from "dotenv";
-import { SapienceService } from "../src/services/SapienceService.js";
-import { AutomatedForecastingService } from "../src/services/AutomatedForecastingService.js";
-import logger from "../src/utils/logger.js";
+import { SapienceTradingAgent } from "../src/backend/modules/agents/implementations/SapienceTradingAgent.js";
+import { Logger } from "../src/backend/shared/logging/Logger.js";
 
-// Load environment variables
 dotenv.config();
 
+const logger = new Logger("start-forecasting");
+
+const INTERVAL_MINUTES = parseInt(process.env.FORECAST_INTERVAL_MINUTES || "30");
+
 async function main() {
-  logger.info("🚀 Starting Sapience Forecasting Agent...");
+  logger.info(
+    `🚀 Starting Sapience Forecasting Agent (governed, every ${INTERVAL_MINUTES} min)...`,
+  );
 
-  // Initialize Sapience Service
-  const sapienceService = new SapienceService({
-    arbitrumRpcUrl: process.env.ARBITRUM_RPC_URL,
-    privateKey: process.env.SAPIENCE_PRIVATE_KEY,
-  });
+  const agent = new SapienceTradingAgent(
+    "Sapience Standalone Forecasting Agent",
+    {
+      maxTradeSize: 1000,
+      riskTolerance: 0.1,
+      tradingPairs: [],
+      strategies: ["forecasting"],
+      governanceRules: [],
+    },
+  );
 
-  // Initialize Forecasting Service
-  const forecastingService = new AutomatedForecastingService({
-    sapienceService,
-    llmApiKey: process.env.OPENROUTER_API_KEY,
-    llmModel: process.env.LLM_MODEL || "openai/gpt-4o-mini",
-    minConfidence: 0.65, // Slightly higher threshold for competition
-  });
+  await agent.initialize();
+  await agent.start();
 
-  logger.info(`Agent Address: ${sapienceService.getAddress()}`);
+  const tick = async () => {
+    try {
+      const result = await agent.runCycleWithGovernance();
+      logger.info("Cycle complete", {
+        success: result.success,
+        forecastSubmitted: result.forecastSubmitted,
+        tradeSubmitted: result.tradeSubmitted,
+        decisionId: result.decisionId,
+        attestationHash: result.attestationHash,
+        reason: result.reason,
+      });
+    } catch (error) {
+      logger.error(
+        "Cycle failed",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
+  };
 
-  // Start the forecasting loop
-  // Interval: 30 minutes (to ensure we catch new markets relatively quickly but don't spam)
-  const intervalMinutes = 30;
+  // Run once immediately, then on an interval.
+  await tick();
+  setInterval(tick, INTERVAL_MINUTES * 60_000);
 
-  // Also run one cycle immediately
-  logger.info("Executing initial forecasting cycle...");
-  const initialResult = await forecastingService.runForecastingCycle();
-
-  if (initialResult.success) {
-    logger.info(`✅ Initial forecast submitted! Tx: ${initialResult.txHash}`);
-  } else {
-    logger.warn(`⚠️ Initial forecast skipped/failed: ${initialResult.error}`);
-  }
-
-  // Start continuous loop
-  forecastingService.startContinuousForecasting(intervalMinutes);
-
-  // Keep process alive
-  process.on("SIGINT", () => {
+  process.on("SIGINT", async () => {
     logger.info("🛑 Stopping forecasting agent...");
+    await agent.stop();
     process.exit(0);
   });
 }
 
 main().catch((error) => {
-  logger.error("Fatal error:", error);
+  logger.error(
+    "Fatal error",
+    error instanceof Error ? error : new Error(String(error)),
+  );
   process.exit(1);
 });

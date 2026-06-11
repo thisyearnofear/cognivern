@@ -8,7 +8,6 @@ import {
   PolicyService,
   sharedPolicyService,
 } from "../../../services/PolicyService.js";
-import { getWorkerClient } from "../../../services/CloudflareWorkerClient.js";
 
 const logger = new Logger("GovernanceController");
 import { PolicyEnforcementService } from "../../../services/PolicyEnforcementService.js";
@@ -21,7 +20,6 @@ import crypto from "node:crypto";
 
 export class GovernanceController {
   private policyService: PolicyService;
-  private workerClient = getWorkerClient();
   private policyEnforcementService: PolicyEnforcementService;
   private auditLogService: AuditLogService;
 
@@ -41,17 +39,13 @@ export class GovernanceController {
   }
 
   /**
-   * Get governance health status (local or Worker)
+   * Get governance health status.
    */
   async getHealth(req: Request, res: Response): Promise<void> {
     try {
-      // First check Worker if enabled
-      const workerHealth = await this.workerClient.getHealth();
-
       res.json({
         success: true,
         data: {
-          worker: workerHealth,
           local: {
             status: "healthy",
             timestamp: new Date().toISOString(),
@@ -72,7 +66,7 @@ export class GovernanceController {
   }
 
   /**
-   * Evaluate governance action - routes to Worker if enabled
+   * Evaluate governance action.
    */
   async evaluateAction(req: Request, res: Response): Promise<void> {
     try {
@@ -88,23 +82,6 @@ export class GovernanceController {
           timestamp: new Date().toISOString(),
         });
         return;
-      }
-
-      // Try Worker first if enabled
-      if (this.workerClient.isEnabled()) {
-        const decision = await this.workerClient.evaluateGovernance(
-          agentId,
-          action,
-        );
-        if (decision) {
-          res.json({
-            success: true,
-            data: decision,
-            source: "worker",
-            timestamp: new Date().toISOString(),
-          });
-          return;
-        }
       }
 
       const policyId = await this.resolvePolicyId(
@@ -199,23 +176,6 @@ export class GovernanceController {
 
   async getPolicies(req: Request, res: Response): Promise<void> {
     try {
-      // Try Worker first if enabled
-      if (this.workerClient.isEnabled()) {
-        try {
-          const policies = await this.workerClient.listPolicies();
-          res.json({
-            success: true,
-            data: policies,
-            source: "worker",
-            timestamp: new Date().toISOString(),
-          });
-          return;
-        } catch (e) {
-          logger.warn("Worker listPolicies failed, using local fallback");
-        }
-      }
-
-      // Fallback to local
       const policies = await this.policyService.listPolicies();
 
       res.json({

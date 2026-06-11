@@ -3,7 +3,6 @@
  */
 
 import { Request, Response } from "express";
-import { Readable } from "node:stream";
 import { Logger } from "../../../shared/logging/Logger.js";
 import { AgentsModule } from "../../agents/AgentsModule.js";
 import { MarketDataService } from "../../../services/MarketDataService.js";
@@ -15,11 +14,6 @@ import { MetricsService } from "../../../services/MetricsService.js";
 
 import { AuditLogService } from "../../../services/AuditLogService.js";
 import { PolicyService } from "../../../services/PolicyService.js";
-import {
-  getWorkerClient,
-  type WorkerAgent,
-  type WorkerMetrics,
-} from "../../../services/CloudflareWorkerClient.js";
 import { creRunStore } from "../../../cre/storage/CreRunStore.js";
 
 export class AgentsController {
@@ -30,7 +24,6 @@ export class AgentsController {
   private metricsService: MetricsService;
   private auditLogService: AuditLogService;
   private policyService: PolicyService;
-  private workerClient = getWorkerClient();
 
   constructor(
     agentsModule?: AgentsModule,
@@ -227,11 +220,12 @@ export class AgentsController {
       const { id, agentType } = req.params;
       const agentId = id || agentType; // Support both :id and :agentType parameters
 
-      // Return mock data for demo agents (governance/portfolio/sapience)
+      // Demo agent names retained only for the landing-page flow where
+      // there is no real agent. The real Sapience / User agents are
+      // fetched from the agents module below.
       const demoAgentNames: Record<string, string> = {
         governance: "Spend Governance Agent",
         portfolio: "Portfolio Agent",
-        sapience: "Oversight Agent",
       };
       if (agentType && agentType in demoAgentNames) {
         res.json({
@@ -352,12 +346,9 @@ export class AgentsController {
       const agentId = id || agentType;
       const limit = parseInt(req.query.limit as string) || 10;
 
-      // Return mock decisions for demo agents
-      if (
-        agentType === "governance" ||
-        agentType === "portfolio" ||
-        agentType === "sapience"
-      ) {
+      // Return mock decisions for non-existent demo agents. The real
+      // Sapience / User agents are fetched from the agents module below.
+      if (agentType === "governance" || agentType === "portfolio") {
         const mockDecisions = [
           {
             id: `${agentType}-decision-1`,
@@ -559,29 +550,6 @@ export class AgentsController {
       );
 
       // Unified dashboard data
-      // Try to enrich with Worker data if enabled
-      let workerAgents: WorkerAgent[] = [];
-      let workerMetrics: WorkerMetrics | null = null;
-      let workerThoughts: string[] = [];
-
-      if (this.workerClient.isEnabled()) {
-        try {
-          workerAgents = await this.workerClient.listAgents();
-          // Get metrics for first agent if available
-          if (workerAgents.length > 0) {
-            workerMetrics = await this.workerClient.getAgentMetrics(
-              workerAgents[0].id,
-            );
-            workerThoughts = await this.workerClient.getThoughtHistory(
-              workerAgents[0].id,
-              20,
-            );
-          }
-        } catch (e) {
-          logger.warn("Failed to fetch Worker data");
-        }
-      }
-
       const unifiedData = {
         systemHealth: {
           status: "healthy",
@@ -597,22 +565,9 @@ export class AgentsController {
               (sum, a) => sum + (a.performance?.actionsToday || 0),
               0,
             ),
-          // Cloudflare Worker metrics
-          worker: workerMetrics
-            ? {
-                enabled: true,
-                totalDecisions: workerMetrics.totalDecisions,
-                approvedActions: workerMetrics.approvedActions,
-                rejectedActions: workerMetrics.rejectedActions,
-                avgDecisionTimeMs: workerMetrics.avgDecisionTimeMs,
-              }
-            : { enabled: false },
         },
         agents: enrichedAgents,
         recentActivity: allActivity.slice(0, 20),
-        // Include Worker thoughts for cognitive transparency
-        workerThoughts: workerThoughts,
-        workerAgents: workerAgents,
         timestamp: new Date().toISOString(),
       };
 
@@ -1072,42 +1027,13 @@ export class AgentsController {
   }
 
   async getAgentBriefing(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
-      const result = await this.workerClient.getVoiceBriefing(id);
-
-      if (!result) {
-        res.status(503).json({
-          success: false,
-          error: "Voice briefing unavailable (Cloudflare Worker not connected)",
-        });
-        return;
-      }
-
-      const { response: workerResponse, script } = result;
-
-      res.setHeader("Content-Type", "audio/mpeg");
-      res.setHeader("X-Briefing-Script", encodeURIComponent(script));
-      res.setHeader("Access-Control-Expose-Headers", "X-Briefing-Script");
-
-      if (!workerResponse.body) {
-        res.status(502).json({
-          success: false,
-          error: "Briefing stream unavailable",
-        });
-        return;
-      }
-
-      const nodeStream = Readable.fromWeb(workerResponse.body as any);
-      nodeStream.pipe(res);
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to generate briefing",
-      });
-    }
+    // Voice briefing required the Cloudflare Worker path, which has been
+    // removed (see PR "route native trading agents through Cognivern
+    // governance"). The unified dashboard surfaces recent agent thoughts
+    // via /api/audit/logs instead.
+    res.status(503).json({
+      success: false,
+      error: "Voice briefing unavailable in this build",
+    });
   }
 }

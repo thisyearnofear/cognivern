@@ -1,101 +1,69 @@
 #!/usr/bin/env tsx
 
 /**
- * Sapience Trading Agent Entry Point
+ * Sapience Trading Agent — Standalone Entry Point
  *
- * attempts to execute the Trading Strategy:
- * 1. Forecast a market
- * 2. Compare forecast with market price (Mocked for now as Price API is TBD)
- * 3. Execute Trade on Ethereal (Will fail gracefully if ABI is missing)
+ * Runs a single governed cycle against the live Sapience protocol.
+ * Every external action (forecast attestation, market trade) is routed
+ * through Cognivern's own governance pipeline via GovernanceClient.
+ *
+ * Prerequisites:
+ *   MONGODB_URI       optional (audit log persistence)
+ *   COGNIVERN_API_KEY required
+ *   COGNIVERN_SELF_BASE_URL  default http://localhost:3000
+ *   SAPIENCE_PRIVATE_KEY     required
+ *   ARBITRUM_RPC_URL  default https://arb1.arbitrum.io/rpc
+ *   ETHEREAL_RPC_URL  default https://rpc.ethereal.trade
+ *
+ * Run:
+ *   pnpm tsx scripts/agents/start-trading.ts
  */
 
 import dotenv from "dotenv";
-import { SapienceService } from "../src/services/SapienceService.js";
-import { AutomatedForecastingService } from "../src/services/AutomatedForecastingService.js";
-import logger from "../src/utils/logger.js";
+import { SapienceTradingAgent } from "../src/backend/modules/agents/implementations/SapienceTradingAgent.js";
+import { Logger } from "../src/backend/shared/logging/Logger.js";
 
 dotenv.config();
 
+const logger = new Logger("start-trading");
+
 async function main() {
-  logger.info("🚀 Starting Sapience Trading Agent...");
+  logger.info("🚀 Starting Sapience Trading Agent (standalone, governed)...");
 
-  const sapienceService = new SapienceService({
-    arbitrumRpcUrl: process.env.ARBITRUM_RPC_URL,
-    etherealRpcUrl: process.env.ETHEREAL_RPC_URL,
-    privateKey: process.env.SAPIENCE_PRIVATE_KEY,
-  });
-
-  const forecastingService = new AutomatedForecastingService({
-    sapienceService,
-    llmApiKey: process.env.OPENROUTER_API_KEY,
-    minConfidence: 0.7, // Higher confidence for trading with real money
-  });
-
-  logger.info(`Agent Address: ${sapienceService.getAddress()}`);
+  const agent = new SapienceTradingAgent(
+    "Sapience Standalone Agent",
+    {
+      maxTradeSize: 1000,
+      riskTolerance: 0.1,
+      tradingPairs: [],
+      strategies: ["forecasting"],
+      governanceRules: [],
+    },
+  );
 
   try {
-    // 1. Find Opportunity
-    const condition = await forecastingService.fetchOptimalCondition();
-    if (!condition) {
-      logger.info("No suitable markets found.");
-      return;
-    }
+    await agent.initialize();
+    await agent.start();
 
-    // 2. Generate Forecast
-    const forecast = await forecastingService.generateForecast(
-      condition.shortName || condition.question,
-    );
-    logger.info(
-      `Forecast: ${forecast.probability}% (Confidence: ${forecast.confidence})`,
-    );
+    const result = await agent.runCycleWithGovernance();
 
-    // 3. Trading Logic
-    const marketPriceData = await sapienceService.getMarketPrice(condition.id);
-    if (!marketPriceData) {
-      logger.warn("Could not fetch market price. Skipping trade.");
-      return;
-    }
+    logger.info("Cycle complete", {
+      success: result.success,
+      forecastSubmitted: result.forecastSubmitted,
+      tradeSubmitted: result.tradeSubmitted,
+      decisionId: result.decisionId,
+      attestationHash: result.attestationHash,
+      auditLogId: result.auditLogId,
+      reason: result.reason,
+    });
 
-    const edge = sapienceService.calculateEdge(
-      forecast.probability,
-      marketPriceData,
-    );
-    const marketPrice = marketPriceData.yesPrice;
-
-    if (edge > 0.1) {
-      // 10% edge required
-      logger.info(
-        `Edge detected (${(edge * 100).toFixed(1)}%). Attempting to Buy YES...`,
-      );
-
-      await sapienceService.executeTrade({
-        marketId: condition.id,
-        side: "YES",
-        amount: "10.0", // 10 USDe
-      });
-    } else if (edge < -0.1) {
-      logger.info(
-        `Negative edge detected (${(edge * 100).toFixed(1)}%). Attempting to Buy NO...`,
-      );
-
-      await sapienceService.executeTrade({
-        marketId: condition.id,
-        side: "NO",
-        amount: "10.0",
-      });
-    } else {
-      logger.info("No significant edge found. Skipping trade.");
-    }
+    await agent.stop();
   } catch (error) {
-    // Graceful error handling
-    if (error instanceof Error && error.message.includes("ABI missing")) {
-      logger.error("⚠️  Trading failed as expected: " + error.message);
-      logger.info(
-        "ℹ️  To fix: Update SapienceService.ts with the Ethereal PredictionMarket ABI.",
-      );
-    } else {
-      logger.error("Unexpected error:", error);
-    }
+    logger.error(
+      "Cycle failed",
+      error instanceof Error ? error : new Error(String(error)),
+    );
+    process.exit(1);
   }
 }
 
