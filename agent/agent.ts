@@ -1,7 +1,7 @@
 /**
  * Cognivern Copilot — main agent runtime.
  *
- * Implements the Gemini 3 function-calling loop with the multi-step
+ * Implements the Gemini 3.1 function-calling loop with the multi-step
  * mission protocol described in agent/instructions.md:
  *
  *   PLAN → EVIDENCE → PREVIEW → CONFIRM → EXECUTE → AUDIT
@@ -11,11 +11,12 @@
  * runtime is wrapped for Agent Builder via agent/agent-builder.yaml.
  *
  * Run locally:
- *   GEMINI_API_KEY=...  COGNIVERN_API_KEY=...  \
+ *   GOOGLE_CLOUD_PROJECT=cognivern  COGNIVERN_API_KEY=...  \
  *   MONGODB_URI=mongodb+srv://...  pnpm tsx agent/agent.ts "Pay vendor 0xabc..."
  */
 
 import { readFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -45,6 +46,13 @@ interface GeminiContent {
 
 interface GeminiTool {
   functionDeclarations: typeof ALL_TOOL_DECLARATIONS;
+}
+
+interface GeminiAuth {
+  apiKey?: string;
+  accessToken?: string;
+  projectId?: string;
+  location?: string;
 }
 
 interface AgentRunResult {
@@ -100,16 +108,19 @@ async function askHuman(
 }
 
 // ---------------------------------------------------------------------------
-// Gemini 3 REST call
+// Gemini 3.1 REST call
 // ---------------------------------------------------------------------------
 
 async function callGemini(
-  apiKey: string,
+  auth: GeminiAuth,
   model: string,
   systemInstruction: string,
   contents: GeminiContent[],
 ): Promise<GeminiContent> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url =
+    auth.accessToken && auth.projectId
+      ? `https://aiplatform.googleapis.com/v1/projects/${auth.projectId}/locations/${auth.location || "global"}/publishers/google/models/${model}:generateContent`
+      : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${auth.apiKey}`;
   const body = {
     systemInstruction: { parts: [{ text: systemInstruction }] },
     contents,
@@ -124,7 +135,12 @@ async function callGemini(
 
   const r = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(auth.accessToken
+        ? { Authorization: `Bearer ${auth.accessToken}` }
+        : {}),
+    },
     body: JSON.stringify(body),
   });
   if (!r.ok) {
@@ -133,6 +149,17 @@ async function callGemini(
   }
   const data = (await r.json()) as { candidates: Array<{ content: GeminiContent }> };
   return data.candidates[0].content;
+}
+
+function getGcloudAccessToken(): string | undefined {
+  try {
+    return execFileSync("gcloud", ["auth", "print-access-token"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return undefined;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -147,15 +174,28 @@ export interface AgentRunOptions {
   mongodbDatabase: string;
   geminiApiKey?: string;
   geminiModel?: string;
+  googleCloudProject?: string;
+  vertexLocation?: string;
   /** When true, the agent will not call cognivern_execute_spend even if
    *  the human approves. Useful for the recorded demo. */
   previewOnly?: boolean;
 }
 
 export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
-  const model = opts.geminiModel || process.env.GEMINI_MODEL || "gemini-3-pro-preview";
+  const model = opts.geminiModel || process.env.GEMINI_MODEL || "gemini-3.1-pro-preview";
   const apiKey = opts.geminiApiKey || process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY required");
+  const projectId =
+    opts.googleCloudProject ||
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    process.env.GCLOUD_PROJECT;
+  const accessToken = projectId
+    ? process.env.GOOGLE_OAUTH_ACCESS_TOKEN || getGcloudAccessToken()
+    : undefined;
+  if (!apiKey && !accessToken) {
+    throw new Error(
+      "Gemini credentials required: set GOOGLE_CLOUD_PROJECT with gcloud auth, or set GEMINI_API_KEY for local-only fallback",
+    );
+  }
 
   const ctx: AgentToolContext = {
     cognivern: {
@@ -185,7 +225,12 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     const modelContent = await callGemini(
-      apiKey,
+      {
+        apiKey,
+        accessToken,
+        projectId,
+        location: opts.vertexLocation || process.env.VERTEX_LOCATION || "global",
+      },
       model,
       systemInstruction,
       contents,

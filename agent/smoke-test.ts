@@ -15,12 +15,13 @@
  *   pnpm tsx agent/smoke-test.ts
  *
  * Env:
- *   GEMINI_API_KEY              required
+ *   GOOGLE_CLOUD_PROJECT        preferred for Vertex AI auth via gcloud
+ *   GEMINI_API_KEY              optional local-only fallback
  *   COGNIVERN_API_KEY           required (any value if running against dev server)
  *   COGNIVERN_BASE_URL          default https://cognivern.thisyearnofear.com
  *   MONGODB_URI                 required
  *   MONGODB_DB_NAME             default cognivern
- *   GEMINI_MODEL                default gemini-3-pro-preview
+ *   GEMINI_MODEL                default gemini-3.1-pro-preview
  */
 
 import { runAgent } from "./agent.js";
@@ -37,7 +38,9 @@ const result = await runAgent({
   mongodbUri: process.env.MONGODB_URI || "mongodb://localhost:27017",
   mongodbDatabase: process.env.MONGODB_DB_NAME || "cognivern",
   geminiApiKey: process.env.GEMINI_API_KEY,
-  geminiModel: process.env.GEMINI_MODEL || "gemini-3-pro-preview",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-3.1-pro-preview",
+  googleCloudProject: process.env.GOOGLE_CLOUD_PROJECT,
+  vertexLocation: process.env.VERTEX_LOCATION || "global",
   previewOnly: true,
 });
 

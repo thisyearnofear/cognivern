@@ -7,13 +7,11 @@
  * - Kilocode (fallback, free models)
  * - Workers AI (Cloudflare native)
  * - OpenAI (high quality)
- * - Gemini 3 (advanced reasoning — default for the GCP Agent Builder submission)
+ * - Gemini 3.1 (advanced reasoning — default for the GCP Agent Builder submission)
  * - Anthropic (alternative)
  *
- * Gemini 3 is the default reasoning model for the Google Cloud "Building
- * Agents for Real-World Challenges" submission. The router keeps Gemini
- * 2.0 Flash available as a low-cost fallback so dev/test environments
- * without Gemini 3 quota still work.
+ * Gemini 3.1 is the default reasoning model for the Google Cloud "Building
+ * Agents for Real-World Challenges" submission.
  *
  * ChainGPT is used for Web3-specific questions (contract analysis, sanction checks, calldata decoding)
  * with governance context injection for policy-aware responses.
@@ -59,17 +57,16 @@ export class MultiModelRouter {
         },
         gemini: {
           enabled: true,
-          // Default model: Gemini 3 Pro (preview). Override with GEMINI_MODEL env var.
-          // Fallback: gemini-2.0-flash-exp is retained for environments without Gemini 3 quota.
-          model: process.env.GEMINI_MODEL || "gemini-3-pro-preview",
+          // Default model: Gemini 3.1 Pro (preview). Override with GEMINI_MODEL env var.
+          model: process.env.GEMINI_MODEL || "gemini-3.1-pro-preview",
         },
         anthropic: {
           enabled: true,
           model: "claude-3-haiku-20240307",
         },
       },
-      // Default fallback order: Gemini 3 → Fireworks (DeepSeek) → Groq → Venice → OpenAI → Anthropic
-      // Gemini 3 is the primary reasoning model for the GCP Agent Builder submission.
+      // Default fallback order: Gemini 3.1 → Fireworks (DeepSeek) → Groq → Venice → OpenAI → Anthropic
+      // Gemini 3.1 is the primary reasoning model for the GCP Agent Builder submission.
       fallbackOrder: [
         "gemini",
         "fireworks",

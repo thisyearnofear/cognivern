@@ -1,6 +1,6 @@
 /**
  * Tool registry — exposes the full tool surface (Cognivern + MongoDB) to
- * the Gemini 3 function-calling loop. Also produces the JSON Schema list
+ * the Gemini 3.1 function-calling loop. Also produces the JSON Schema list
  * that Agent Builder imports when registering tools.
  */
 

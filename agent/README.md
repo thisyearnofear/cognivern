@@ -1,4 +1,4 @@
-# Cognivern Copilot — Agent (Gemini 3 + MongoDB MCP)
+# Cognivern Copilot — Agent (Gemini 3.1 + MongoDB MCP)
 
 This directory contains the **Cognivern Copilot** agent submitted to the
 Google Cloud **"Building Agents for Real-World Challenges"** hackathon on
@@ -9,11 +9,11 @@ money on behalf of humans, but humans have no consistent way to **see,
 simulate, approve, and audit** those spends. Cognivern Copilot makes
 autonomous spend safe by enforcing a strict multi-step protocol —
 **PLAN → EVIDENCE → PREVIEW → CONFIRM → EXECUTE → AUDIT** — on top of
-Gemini 3's reasoning and the MongoDB MCP server for persistent memory.
+Gemini 3.1's reasoning and the MongoDB MCP server for persistent memory.
 
 ## What judges will see
 
-- **Gemini 3** is the reasoning brain (`gemini-3-pro-preview`).
+- **Gemini 3.1** is the reasoning brain (`gemini-3.1-pro-preview`).
 - **Google Cloud Agent Builder** hosts the agent. The full import spec
   is in [`agent-builder.yaml`](./agent-builder.yaml).
 - **MongoDB MCP server** (`@mongodb-js/mongodb-mcp-server`) provides
@@ -28,7 +28,7 @@ Gemini 3's reasoning and the MongoDB MCP server for persistent memory.
 
 | File | Purpose |
 |---|---|
-| [`agent.ts`](./agent.ts) | Runtime — Gemini 3 function-calling loop with the multi-step protocol. CLI entry. |
+| [`agent.ts`](./agent.ts) | Runtime — Gemini 3.1 function-calling loop with the multi-step protocol. CLI entry. |
 | [`instructions.md`](./instructions.md) | System prompt (the agent's mission + behavioral rules). |
 | [`agent-builder.yaml`](./agent-builder.yaml) | Agent Builder import spec (model, tools, HITL, observability). |
 | [`tools/cognivern.ts`](./tools/cognivern.ts) | Cognivern governance API tool declarations + HTTP executor. |
@@ -42,13 +42,14 @@ Gemini 3's reasoning and the MongoDB MCP server for persistent memory.
 # Install (one-time)
 pnpm add -D tsx
 
-# Set env
-export GEMINI_API_KEY=...
+# Set env for Google Cloud Vertex AI auth
+export GOOGLE_CLOUD_PROJECT=cognivern
+export VERTEX_LOCATION=global
 export COGNIVERN_API_KEY=development-api-key        # or a real key
 export COGNIVERN_BASE_URL=https://cognivern.thisyearnofear.com
 export MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net
 export MONGODB_DB_NAME=cognivern
-export GEMINI_MODEL=gemini-3-pro-preview
+export GEMINI_MODEL=gemini-3.1-pro-preview
 
 # Smoke test (preview-only, verifies the multi-step protocol)
 pnpm tsx agent/smoke-test.ts
@@ -78,7 +79,7 @@ There are three paths, in increasing order of effort:
 gcloud beta agents applications create cognivern-copilot \
   --location=us-central1 \
   --source=./agent \
-  --model=gemini-3-pro-preview
+  --model=gemini-3.1-pro-preview
 ```
 
 ### Path C — ADK on Agent Engine (most flexible)
@@ -90,7 +91,7 @@ from google.adk.tools import MCPToolset, OpenAPIToolset
 
 agent = Agent(
     name="cognivern_copilot",
-    model="gemini-3-pro-preview",
+    model="gemini-3.1-pro-preview",
     instruction=open("./agent/instructions.md").read(),
     tools=[
         OpenAPIToolset(spec_url="https://cognivern.thisyearnofear.com/api/docs/openapi.json"),
@@ -100,7 +101,7 @@ agent = Agent(
 ```
 
 The TypeScript runtime in `agent.ts` is functionally identical to the
-ADK version above — they use the same Gemini 3 model, the same tool
+ADK version above — they use the same Gemini 3.1 model, the same tool
 declarations, and the same multi-step protocol. Pick whichever fits the
 judge's preferred language.
 
