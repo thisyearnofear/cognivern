@@ -1,4 +1,6 @@
+import crypto from "node:crypto";
 import logger from "../utils/logger.js";
+import { CircuitBreaker } from "../shared/utils/circuitBreaker.js";
 
 /**
  * ZeroGStorageService — anchors audit log records to 0G decentralized storage.
@@ -17,13 +19,50 @@ const ZEROG_INDEXER_URL =
 
 export interface ZeroGUploadResult {
   rootHash: string;
+  localHash: string;
   txHash?: string;
   network: "0g-newton-testnet";
   timestamp: string;
 }
 
-export class ZeroGStorageService {
+/**
+ * Contract for 0G decentralized storage operations.
+ * Enables mocking in tests and swapping implementations (e.g. mainnet).
+ */
+export interface IZeroGStorage {
+  anchorAuditRecord(record: Record<string, unknown>): Promise<ZeroGUploadResult | null>;
+  retrieveRecord(rootHash: string): Promise<Record<string, unknown> | null>;
+  verify(rootHash: string, expectedHash: string): Promise<boolean>;
+  getStatus(): { enabled: boolean; indexerUrl: string };
+}
+
+interface UploadResponseShape {
+  root?: string;
+  rootHash?: string;
+  txHash?: string;
+}
+
+function parseUploadResponse(data: unknown): UploadResponseShape {
+  if (typeof data !== "object" || data === null) {
+    throw new Error("Invalid response: not an object");
+  }
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.root !== "string" && typeof obj.rootHash !== "string") {
+    throw new Error("Missing root hash in response");
+  }
+  const result: UploadResponseShape = {};
+  if (typeof obj.root === "string") result.root = obj.root;
+  if (typeof obj.rootHash === "string") result.rootHash = obj.rootHash;
+  if (typeof obj.txHash === "string") result.txHash = obj.txHash;
+  return result;
+}
+
+export class ZeroGStorageService implements IZeroGStorage {
   private enabled: boolean;
+  private circuit = new CircuitBreaker("ZeroGStorage", {
+    threshold: 3,
+    resetAfterMs: 30000,
+  });
 
   constructor() {
     this.enabled = !!process.env.ZEROG_PRIVATE_KEY;
@@ -36,65 +75,108 @@ export class ZeroGStorageService {
     }
   }
 
-  /**
-   * Anchors a JSON-serialisable audit record to 0G Storage.
-   * Returns a ZeroGUploadResult on success, or null if not configured / upload fails.
-   */
+  getStatus(): { enabled: boolean; indexerUrl: string } {
+    return { enabled: this.enabled, indexerUrl: ZEROG_INDEXER_URL };
+  }
+
   async anchorAuditRecord(
     record: Record<string, unknown>,
   ): Promise<ZeroGUploadResult | null> {
     if (!this.enabled) return null;
 
     try {
-      const payload = JSON.stringify(record);
-      const bytes = Buffer.from(payload, "utf-8");
+      return await this.circuit.execute(async () => {
+        const payload = JSON.stringify(record);
+        const bytes = Buffer.from(payload, "utf-8");
+        const localHash = crypto
+          .createHash("sha256")
+          .update(payload)
+          .digest("hex");
 
-      // Use the 0G indexer upload endpoint (multipart form)
-      const formData = new FormData();
-      formData.append(
-        "file",
-        new Blob([bytes], { type: "application/json" }),
-        "audit.json",
-      );
-
-      const response = await fetch(`${ZEROG_INDEXER_URL}/upload`, {
-        method: "POST",
-        body: formData,
-        signal: AbortSignal.timeout(15_000),
-      });
-
-      if (!response.ok) {
-        logger.warn(
-          `ZeroGStorageService: upload returned ${response.status} — skipping anchor`,
+        const formData = new FormData();
+        formData.append(
+          "file",
+          new Blob([bytes], { type: "application/json" }),
+          "audit.json",
         );
-        return null;
-      }
 
-      const result = (await response.json()) as {
-        root?: string;
-        rootHash?: string;
-        txHash?: string;
-      };
+        const response = await fetch(`${ZEROG_INDEXER_URL}/upload`, {
+          method: "POST",
+          body: formData,
+          signal: AbortSignal.timeout(15_000),
+        });
 
-      const rootHash = result.root || result.rootHash || "pending";
+        if (!response.ok) {
+          logger.warn(
+            `ZeroGStorageService: upload returned ${response.status} — skipping anchor`,
+          );
+          return null;
+        }
 
-      logger.info(
-        `ZeroGStorageService: anchored audit record — root=${rootHash}`,
-      );
+        const raw = await response.json();
+        const result = parseUploadResponse(raw);
+        const rootHash = result.root || result.rootHash || "pending";
 
-      return {
-        rootHash,
-        txHash: result.txHash,
-        network: "0g-newton-testnet",
-        timestamp: new Date().toISOString(),
-      };
+        logger.info(
+          `ZeroGStorageService: anchored audit record — root=${rootHash}`,
+        );
+
+        return {
+          rootHash,
+          localHash,
+          txHash: result.txHash,
+          network: "0g-newton-testnet",
+          timestamp: new Date().toISOString(),
+        };
+      });
     } catch (err) {
-      // Non-fatal — governance pipeline must not fail due to storage issues
       logger.warn(
         `ZeroGStorageService: anchor failed (non-fatal) — ${(err as Error).message}`,
       );
       return null;
     }
+  }
+
+  async retrieveRecord(
+    rootHash: string,
+  ): Promise<Record<string, unknown> | null> {
+    if (!this.enabled) return null;
+
+    try {
+      return await this.circuit.execute(async () => {
+        const response = await fetch(
+          `${ZEROG_INDEXER_URL}/download/${rootHash}`,
+          { signal: AbortSignal.timeout(15_000) },
+        );
+
+        if (!response.ok) {
+          logger.warn(
+            `ZeroGStorageService: retrieve returned ${response.status}`,
+          );
+          return null;
+        }
+
+        return (await response.json()) as Record<string, unknown>;
+      });
+    } catch (err) {
+      logger.warn(
+        `ZeroGStorageService: retrieve failed (non-fatal) — ${(err as Error).message}`,
+      );
+      return null;
+    }
+  }
+
+  async verify(rootHash: string, expectedHash: string): Promise<boolean> {
+    const record = await this.retrieveRecord(rootHash);
+    if (!record) return false;
+
+    const serialized = JSON.stringify(record);
+    const actualHash = crypto
+      .createHash("sha256")
+      .update(serialized)
+      .digest("hex");
+
+    return actualHash === expectedHash;
   }
 }
 

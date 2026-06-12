@@ -38,7 +38,8 @@ Cognivern Evaluation Layer
   v
 Cognivern Audit + Run Ledger
   ├── AuditLogService.logAction() — every decision recorded, reasons preserved
-  ├── [optional] Filecoin evidence anchoring — durable audit storage
+  ├── [optional] Filecoin evidence signing — durable audit storage
+  ├── [optional] 0G Storage evidence anchoring — real-time dual-anchor
   └── [optional] X Layer execution dispatch via Hyperlane
 ```
 
@@ -60,7 +61,8 @@ Agent action
       ├─ "speculos"  → OwsLocalVaultService.signWithExternalWallet(Speculos HTTP API)
       └─ "ows_remote"→ OwsLocalVaultService.signWithExternalWallet(remote URL)
   → AuditLogService.logAction()
-  → [optional] Filecoin evidence anchoring via ZeroGStorageService
+  → [optional] Filecoin evidence signing via CRE evidence pipeline (FILECOIN_PRIVATE_KEY)
+  → [optional] 0G Storage evidence anchoring via ZeroGStorageService (dual-anchor with Filecoin)
   → [optional] X Layer execution dispatch via Hyperlane Mailbox (contract-side)
 ```
 

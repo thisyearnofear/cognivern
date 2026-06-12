@@ -4,6 +4,7 @@ import type { CreArtifact, CreRun, CreRunEvent } from "../../cre/types.js";
 export interface EvidenceEnvelope {
   hash: string;
   cid?: string;
+  zeroGRootHash?: string;
   artifactIds?: string[];
   policyIds?: string[];
   citations?: string[];
@@ -106,6 +107,7 @@ export function enrichArtifactEvidence(artifact: CreArtifact): CreArtifact {
         }),
       signature: artifact.evidence?.signature,
       signer: artifact.evidence?.signer,
+      zeroGRootHash: artifact.evidence?.zeroGRootHash,
       ...(cid ? { cid } : {}),
     },
   };
@@ -131,6 +133,7 @@ export function enrichRunEventEvidence(
         }),
       signature: event.evidence?.signature,
       signer: event.evidence?.signer,
+      zeroGRootHash: event.evidence?.zeroGRootHash,
       artifactIds: run.artifacts.map((artifact) => artifact.id),
       citations: extractCitationLabels(run),
       ...(cid ? { cid } : {}),
@@ -189,6 +192,7 @@ export function enrichCreRunEvidence(run: CreRun): CreRun {
         }),
       signature: run.evidence?.signature,
       signer: run.evidence?.signer,
+      zeroGRootHash: run.evidence?.zeroGRootHash,
       artifactIds: artifacts.map((artifact) => artifact.id),
       citations: extractCitationLabels(run),
       ...(runCid ? { cid: runCid } : {}),
