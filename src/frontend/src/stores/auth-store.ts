@@ -11,6 +11,12 @@ interface AuthState {
   token: string | null;
   workspaceMode: "sandbox" | "production";
   hasHydrated: boolean;
+  /**
+   * Monotonic counter the AuthWatcher toast increments to ask the auth
+   * hook to run signIn(). Lets the toast button actually trigger the
+   * SIWE flow without coupling the watcher to the wagmi context.
+   */
+  signInRequestId: number;
   login: (token: string, authUser: AuthUser, workspace: Workspace) => void;
   logout: () => void;
   setWorkspace: (workspace: Workspace) => void;
@@ -18,6 +24,7 @@ interface AuthState {
   switchWorkspace: (workspace: Workspace, token: string) => void;
   setWorkspaceMode: (mode: "sandbox" | "production") => void;
   setHasHydrated: (hydrated: boolean) => void;
+  requestSignIn: () => void;
 }
 
 const defaultState = {
@@ -29,6 +36,7 @@ const defaultState = {
   token: null,
   workspaceMode: "sandbox" as const,
   hasHydrated: false,
+  signInRequestId: 0,
 };
 
 const STORAGE_NAME = "civern-auth-store";
@@ -56,6 +64,8 @@ export const useAuthStore = create<AuthState>()(
       },
       setWorkspaceMode: (workspaceMode) => set({ workspaceMode }),
       setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
+      requestSignIn: () =>
+        set((state) => ({ signInRequestId: state.signInRequestId + 1 })),
     }),
     {
       name: STORAGE_NAME,

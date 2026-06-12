@@ -21,6 +21,7 @@ import { useDemoStore } from "@/stores/demo-store";
 export function AuthWatcher() {
   const { isConnected, address } = useAccount();
   const isAppConnected = useAuthStore((s) => s.isConnected);
+  const requestSignIn = useAuthStore((s) => s.requestSignIn);
   const demoMode = useDemoStore((s) => s.demoMode);
   const hasHydrated = useAuthHydrated();
   const lastAddressRef = useRef<string | null>(null);
@@ -78,9 +79,9 @@ export function AuthWatcher() {
         action: {
           label: "Sign In",
           onClick: () => {
-            // The sidebar will pick this up via wagmi; the watcher
-            // intentionally does not call signIn() automatically.
-            window.location.href = "/dashboard";
+            // Bump a counter the auth hook watches; it actually runs the
+            // SIWE flow so the user doesn't have to find the sidebar.
+            requestSignIn();
           },
         },
       }
@@ -92,7 +93,7 @@ export function AuthWatcher() {
         toastIdRef.current = null;
       }
     };
-  }, [isConnected, address, isAppConnected, hasHydrated, demoMode]);
+  }, [isConnected, address, isAppConnected, hasHydrated, demoMode, requestSignIn]);
 
   return null;
 }
