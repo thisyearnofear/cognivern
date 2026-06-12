@@ -1,7 +1,7 @@
-import { Request, Response } from "express";
-import { AuditLogService } from "../../../services/AuditLogService.js";
-import { z } from "zod";
-import { owsWalletService } from "../../../services/OwsWalletService.js";
+import { Request, Response } from 'express';
+import { AuditLogService } from '../../../services/AuditLogService.js';
+import { z } from 'zod';
+import { owsWalletService } from '../../../services/OwsWalletService.js';
 
 const issuePermitSchema = z.object({
   auditor: z.string().min(1).optional(),
@@ -19,14 +19,7 @@ export class AuditLogController {
 
   async getLogs(req: Request, res: Response): Promise<void> {
     try {
-      const {
-        startDate,
-        endDate,
-        agent,
-        actionType,
-        complianceStatus,
-        severity,
-      } = req.query;
+      const { startDate, endDate, agent, actionType, complianceStatus, severity } = req.query;
 
       // Get audit logs with filters (now backed by CRE storage)
       const logs = await this.auditLogService.getFilteredLogs({
@@ -40,19 +33,13 @@ export class AuditLogController {
 
       // Calculate summary statistics
       const totalActions = logs.length;
-      const compliantActions = logs.filter(
-        (log) => log.complianceStatus === "compliant",
-      ).length;
-      const complianceRate =
-        totalActions > 0 ? (compliantActions / totalActions) * 100 : 0;
+      const compliantActions = logs.filter((log) => log.complianceStatus === 'compliant').length;
+      const complianceRate = totalActions > 0 ? (compliantActions / totalActions) * 100 : 0;
       const avgResponseTime =
         logs.length > 0
-          ? logs.reduce((sum, log) => sum + (log.responseTime || 0), 0) /
-            logs.length
+          ? logs.reduce((sum, log) => sum + (log.responseTime || 0), 0) / logs.length
           : 0;
-      const criticalIssues = logs.filter(
-        (log) => log.severity === "critical",
-      ).length;
+      const criticalIssues = logs.filter((log) => log.severity === 'critical').length;
 
       res.json({
         success: true,
@@ -71,8 +58,8 @@ export class AuditLogController {
       res.status(500).json({
         success: false,
         error: {
-          code: "INTERNAL_ERROR",
-          message: error instanceof Error ? error.message : "Unknown error",
+          code: 'INTERNAL_ERROR',
+          message: error instanceof Error ? error.message : 'Unknown error',
         },
         timestamp: new Date().toISOString(),
       });
@@ -92,8 +79,8 @@ export class AuditLogController {
       res.status(500).json({
         success: false,
         error: {
-          code: "INSIGHTS_ERROR",
-          message: "Failed to generate unified insights",
+          code: 'INSIGHTS_ERROR',
+          message: 'Failed to generate unified insights',
         },
         timestamp: new Date().toISOString(),
       });
@@ -105,9 +92,7 @@ export class AuditLogController {
     const success = await this.auditLogService.resolveInsight(id);
     res.json({
       success,
-      message: success
-        ? "Insight resolved successfully"
-        : "Failed to resolve insight",
+      message: success ? 'Insight resolved successfully' : 'Failed to resolve insight',
       timestamp: new Date().toISOString(),
     });
   }
@@ -117,21 +102,18 @@ export class AuditLogController {
     if (!parse.success) {
       res.status(400).json({
         success: false,
-        error: "Invalid permit request payload",
+        error: 'Invalid permit request payload',
         details: parse.error.format(),
         timestamp: new Date().toISOString(),
       });
       return;
     }
 
-    const auditor = parse.data.auditor || parse.data.auditorAddress || "";
-    const scope = parse.data.scope || ["dailyLimit", "spentToday"];
+    const auditor = parse.data.auditor || parse.data.auditorAddress || '';
+    const scope = parse.data.scope || ['dailyLimit', 'spentToday'];
 
     try {
-      const permit = await owsWalletService.issueAuditPermit(
-        auditor,
-        parse.data.policyId,
-      );
+      const permit = await owsWalletService.issueAuditPermit(auditor, parse.data.policyId);
       res.json({
         success: true,
         data: {
@@ -139,7 +121,7 @@ export class AuditLogController {
           auditor,
           policyId: parse.data.policyId,
           scope,
-          note: "approvalThreshold and perTxLimit remain sealed",
+          note: 'approvalThreshold and perTxLimit remain sealed',
         },
         timestamp: new Date().toISOString(),
       });
@@ -148,7 +130,7 @@ export class AuditLogController {
       res.json({
         success: true,
         data: {
-          permit: `0x${crypto.randomUUID().replace(/-/g, "")}`,
+          permit: `0x${crypto.randomUUID().replace(/-/g, '')}`,
           auditor,
           policyId: parse.data.policyId,
           scope,
@@ -161,12 +143,12 @@ export class AuditLogController {
 
   async decryptLog(req: Request, res: Response): Promise<void> {
     const { decisionId } = req.params;
-    const permit = req.headers["x-audit-permit"] as string | undefined;
+    const permit = req.headers['x-audit-permit'] as string | undefined;
 
     if (!permit) {
       res.status(400).json({
         success: false,
-        error: "Missing X-Audit-Permit header",
+        error: 'Missing X-Audit-Permit header',
         timestamp: new Date().toISOString(),
       });
       return;
@@ -177,12 +159,10 @@ export class AuditLogController {
       success: true,
       data: {
         decisionId,
-        dailyLimit:
-          "0x0800000000000010000000000000000000000000000000000000000000000000",
-        spentToday:
-          "0x0800000000000000c80000000000000000000000000000000000000000000000",
-        outcome: "approve",
-        note: "approvalThreshold not in permit scope — remains encrypted",
+        dailyLimit: '0x0800000000000010000000000000000000000000000000000000000000000000',
+        spentToday: '0x0800000000000000c80000000000000000000000000000000000000000000000',
+        outcome: 'approve',
+        note: 'approvalThreshold not in permit scope — remains encrypted',
       },
       timestamp: new Date().toISOString(),
     });

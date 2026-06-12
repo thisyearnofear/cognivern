@@ -10,29 +10,22 @@
  *   router.get("/data", apiKeyRateLimit, controller.getData);
  */
 
-import type { Request, Response, NextFunction } from "express";
-import { rateLimitStore } from "../shared/storage/RateLimitStore.js";
+import type { Request, Response, NextFunction } from 'express';
+import { rateLimitStore } from '../shared/storage/RateLimitStore.js';
 
 const DEFAULT_LIMIT = 50;
 const DEFAULT_WINDOW_MS = 60_000;
 
 function getApiKeyId(req: Request): string | null {
-  const key = req.headers["x-api-key"] as string | undefined;
+  const key = req.headers['x-api-key'] as string | undefined;
   if (key) return `key:${key.slice(0, 8)}`;
   const authKey = (req as unknown as Record<string, unknown>).apiKeyId;
-  if (typeof authKey === "string") return `key:${authKey}`;
+  if (typeof authKey === 'string') return `key:${authKey}`;
   return null;
 }
 
-export function apiKeyRateLimit(
-  limit = DEFAULT_LIMIT,
-  windowMs = DEFAULT_WINDOW_MS,
-) {
-  return async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> => {
+export function apiKeyRateLimit(limit = DEFAULT_LIMIT, windowMs = DEFAULT_WINDOW_MS) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const keyId = getApiKeyId(req);
 
     if (!keyId) {
@@ -55,19 +48,17 @@ export function apiKeyRateLimit(
     const remaining = Math.max(0, limit - entry.count);
     const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
 
-    res.setHeader("X-RateLimit-Limit", limit);
-    res.setHeader("X-RateLimit-Remaining", remaining);
-    res.setHeader("X-RateLimit-Reset", Math.ceil(entry.resetAt / 1000));
+    res.setHeader('X-RateLimit-Limit', limit);
+    res.setHeader('X-RateLimit-Remaining', remaining);
+    res.setHeader('X-RateLimit-Reset', Math.ceil(entry.resetAt / 1000));
 
-    rateLimitStore
-      .setWindow(keyId, entry, windowMs * 2)
-      .catch(() => {});
+    rateLimitStore.setWindow(keyId, entry, windowMs * 2).catch(() => {});
 
-    if (entry.count >= limit) {
-      res.setHeader("Retry-After", retryAfter);
+    if (entry.count > limit) {
+      res.setHeader('Retry-After', retryAfter);
       res.status(429).json({
         success: false,
-        error: "API key rate limit exceeded",
+        error: 'API key rate limit exceeded',
         retryAfter,
         timestamp: new Date().toISOString(),
       });

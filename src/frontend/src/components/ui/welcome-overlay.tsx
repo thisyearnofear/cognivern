@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   Users,
   FileSearch,
-  PlayCircle,
   Sparkles,
   X,
 } from "lucide-react";

@@ -57,7 +57,7 @@ export class OwsWalletService {
   private policyEnforcement: PolicyEnforcementService;
   private fhenixPolicyService: FhenixPolicyService;
   private policyEvaluator: OwsWalletPolicyEvaluator;
-  private onChainManager: OwsWalletOnChainManager;
+  onChainManager: OwsWalletOnChainManager;
 
   constructor(
     policyService?: PolicyService,

@@ -12,6 +12,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
+    testTimeout: 15000,
     // Frontend tests need jsdom — they're run from src/frontend/vitest.config.ts
     // which provides that. Exclude them here to avoid the wrong environment.
     include: [

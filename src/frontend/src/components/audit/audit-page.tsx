@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "motion/react";
 import {
   CheckCircle2,
@@ -11,7 +10,6 @@ import {
   Clock,
   FileSearch,
   PlayCircle,
-  Users,
   Shield,
   Lock,
   Fingerprint,
@@ -31,7 +29,7 @@ import {
 
 /* ─── Terminal typewriter hook ───────────────────────────────── */
 
-function useTypewriter(lines: string[], speed = 40, startDelay = 600) {
+function useTypewriter(lines: string[], speed = 40) {
   const [displayed, setDisplayed] = useState<string[]>([]);
   const [currentLine, setCurrentLine] = useState(0);
   const [currentChar, setCurrentChar] = useState(0);

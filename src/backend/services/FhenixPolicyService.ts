@@ -1,6 +1,6 @@
-import { createCofheClient, createCofheConfig } from "@cofhe/sdk/node";
-import { CofheClient, Encryptable, FheTypes } from "@cofhe/sdk";
-import type { UnsealedItem } from "@cofhe/sdk";
+import { createCofheClient, createCofheConfig } from '@cofhe/sdk/node';
+import { CofheClient, Encryptable, FheTypes } from '@cofhe/sdk';
+import type { UnsealedItem } from '@cofhe/sdk';
 import {
   createPublicClient,
   createWalletClient,
@@ -9,11 +9,11 @@ import {
   Hex,
   decodeEventLog,
   Chain,
-} from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { baseSepolia, arbitrumSepolia } from "viem/chains";
-import logger from "../utils/logger.js";
-import { withTimeout } from "../shared/utils/index.js";
+} from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { baseSepolia, arbitrumSepolia } from 'viem/chains';
+import logger from '../utils/logger.js';
+import { withTimeout } from '../shared/utils/index.js';
 
 /**
  * FhenixPolicyService
@@ -27,7 +27,7 @@ import { withTimeout } from "../shared/utils/index.js";
  *   4. Emit a normalized `SpendDecision`.
  */
 
-export type ConfidentialOutcome = "approve" | "hold" | "deny";
+export type ConfidentialOutcome = 'approve' | 'hold' | 'deny';
 
 export interface EncryptedAmount {
   ctHash: bigint | string;
@@ -88,10 +88,10 @@ export interface FhenixClientAdapter {
 }
 
 const ABI = parseAbi([
-  "function evaluateSpend(bytes32 agentId, bytes32 policyId, (uint256 ctHash, uint8 securityZone, uint8 utype, bytes signature) amountCt, bytes32 vendorHash) external returns (bytes32)",
-  "function resolveDecision(bytes32 decisionId, uint8 outcome) external",
-  "function requestDeFiAction(bytes32 agentId, bytes32 policyId, (uint256 ctHash, uint8 securityZone, uint8 utype, bytes signature) amountCt, address target, bytes data) external returns (bytes32)",
-  "event SpendEvaluated(bytes32 indexed decisionId, bytes32 indexed agentId, bytes32 indexed policyId, uint8 outcome, bytes attestation)",
+  'function evaluateSpend(bytes32 agentId, bytes32 policyId, (uint256 ctHash, uint8 securityZone, uint8 utype, bytes signature) amountCt, bytes32 vendorHash) external returns (bytes32)',
+  'function resolveDecision(bytes32 decisionId, uint8 outcome) external',
+  'function requestDeFiAction(bytes32 agentId, bytes32 policyId, (uint256 ctHash, uint8 securityZone, uint8 utype, bytes signature) amountCt, address target, bytes data) external returns (bytes32)',
+  'event SpendEvaluated(bytes32 indexed decisionId, bytes32 indexed agentId, bytes32 indexed policyId, uint8 outcome, bytes attestation)',
 ]);
 
 /**
@@ -102,27 +102,21 @@ function resolveViemChain(chainId: number): Chain {
   if (chainId === 84532) return baseSepolia;
   if (chainId === 421614) return arbitrumSepolia;
 
-  logger.warn(
-    `No viem chain entry for chainId ${chainId}, using arbitrumSepolia fallback`,
-  );
+  logger.warn(`No viem chain entry for chainId ${chainId}, using arbitrumSepolia fallback`);
   return arbitrumSepolia;
 }
 
 export function createFhenixConfig() {
-  const rpcUrl =
-    process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc";
+  const rpcUrl = process.env.FHENIX_RPC_URL || 'https://sepolia-rollup.arbitrum.io/rpc';
   return {
     rpcUrl,
-    contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
-    privateKey:
-      process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
-    chainId: Number(process.env.FHENIX_CHAIN_ID || "421614"),
+    contractAddress: process.env.FHENIX_POLICY_CONTRACT || '',
+    privateKey: process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || '',
+    chainId: Number(process.env.FHENIX_CHAIN_ID || '421614'),
     cofheUrl: process.env.FHENIX_COFHE_URL || rpcUrl,
     verifierUrl: process.env.FHENIX_VERIFIER_URL || rpcUrl,
     thresholdNetworkUrl: process.env.FHENIX_TN_URL || rpcUrl,
-    evaluateTimeoutMs: Number(
-      process.env.FHENIX_EVALUATE_TIMEOUT_MS || "30000",
-    ),
+    evaluateTimeoutMs: Number(process.env.FHENIX_EVALUATE_TIMEOUT_MS || '30000'),
   };
 }
 
@@ -139,24 +133,17 @@ export class FhenixPolicyService {
     }
 
     const chainId = config.chainId ?? 421614;
-    const coFheUrl =
-      config.cofheUrl ||
-      config.rpcUrl ||
-      "https://sepolia-rollup.arbitrum.io/rpc";
+    const coFheUrl = config.cofheUrl || config.rpcUrl || 'https://sepolia-rollup.arbitrum.io/rpc';
     const verifierUrl =
-      config.verifierUrl ||
-      config.rpcUrl ||
-      "https://sepolia-rollup.arbitrum.io/rpc";
+      config.verifierUrl || config.rpcUrl || 'https://sepolia-rollup.arbitrum.io/rpc';
     const thresholdNetworkUrl =
-      config.thresholdNetworkUrl ||
-      config.rpcUrl ||
-      "https://sepolia-rollup.arbitrum.io/rpc";
+      config.thresholdNetworkUrl || config.rpcUrl || 'https://sepolia-rollup.arbitrum.io/rpc';
 
-    const chainName = chainId === 84532 ? "Base Sepolia" : "Arbitrum Sepolia";
-    const networkName = chainId === 84532 ? "base-sepolia" : "arbitrum-sepolia";
+    const chainName = chainId === 84532 ? 'Base Sepolia' : 'Arbitrum Sepolia';
+    const networkName = chainId === 84532 ? 'base-sepolia' : 'arbitrum-sepolia';
 
     const cofheConfig = createCofheConfig({
-      environment: "node",
+      environment: 'node',
       supportedChains: [
         {
           id: chainId,
@@ -165,7 +152,7 @@ export class FhenixPolicyService {
           coFheUrl,
           verifierUrl,
           thresholdNetworkUrl,
-          environment: "TESTNET",
+          environment: 'TESTNET',
         },
       ],
     });
@@ -203,21 +190,17 @@ export class FhenixPolicyService {
 
   private async ensureConnected(): Promise<void> {
     if (!this.client) {
-      throw new Error("CoFHE client not available");
+      throw new Error('CoFHE client not available');
     }
     if (!this.client.connected) {
       await this.connectClient();
     }
     if (!this.client.connected) {
-      throw new Error(
-        "CoFHE client failed to connect — check RPC and private key configuration",
-      );
+      throw new Error('CoFHE client failed to connect — check RPC and private key configuration');
     }
   }
 
-  async evaluateEncrypted(
-    input: ConfidentialSpendInput,
-  ): Promise<ConfidentialSpendDecision> {
+  async evaluateEncrypted(input: ConfidentialSpendInput): Promise<ConfidentialSpendDecision> {
     logger.info(
       `Evaluating encrypted spend on Fhenix: agent=${input.agentId}, policy=${input.policyId}`,
     );
@@ -228,11 +211,11 @@ export class FhenixPolicyService {
     }
 
     if (!this.client) {
-      logger.warn("CoFHE client not available, using fallback decision");
+      logger.warn('CoFHE client not available, using fallback decision');
       return {
-        decisionId: `0x${crypto.randomUUID().replace(/-/g, "")}`,
-        outcome: "deny",
-        attestation: "0x",
+        decisionId: `0x${crypto.randomUUID().replace(/-/g, '')}`,
+        outcome: 'deny',
+        attestation: '0x',
         agentId: input.agentId,
         policyId: input.policyId,
         timestamp: new Date().toISOString(),
@@ -256,7 +239,7 @@ export class FhenixPolicyService {
     const hash = await this.walletClient.writeContract({
       address: this.config.contractAddress as Hex,
       abi: ABI,
-      functionName: "evaluateSpend",
+      functionName: 'evaluateSpend',
       args: [
         input.agentId as Hex,
         input.policyId as Hex,
@@ -276,14 +259,12 @@ export class FhenixPolicyService {
     });
 
     // Find SpendEvaluated event
-    let decisionId = "0x";
+    let decisionId = '0x';
     let outcome: number = 0;
-    let attestation = "0x";
+    let attestation = '0x';
 
     for (const log of receipt.logs) {
-      if (
-        log.address.toLowerCase() === this.config.contractAddress.toLowerCase()
-      ) {
+      if (log.address.toLowerCase() === this.config.contractAddress.toLowerCase()) {
         try {
           const decoded = decodeEventLog({
             abi: ABI,
@@ -293,7 +274,7 @@ export class FhenixPolicyService {
             eventName: string;
             args: { decisionId: string; outcome: number; attestation: string };
           };
-          if (decoded.eventName === "SpendEvaluated") {
+          if (decoded.eventName === 'SpendEvaluated') {
             decisionId = decoded.args.decisionId;
             outcome = Number(decoded.args.outcome);
             attestation = decoded.args.attestation;
@@ -305,18 +286,16 @@ export class FhenixPolicyService {
       }
     }
 
-    if (decisionId === "0x") {
-      logger.warn(
-        "SpendEvaluated event not found, synthesizing decisionId from hash",
-      );
+    if (decisionId === '0x') {
+      logger.warn('SpendEvaluated event not found, synthesizing decisionId from hash');
       decisionId = hash;
       outcome = 0; // Default to Deny — never auto-approve
     }
 
     // Phase 2: if the contract emitted Pending, resolve it on-chain
     // so the Hyperlane dispatch fires with the real outcome.
-    if (decisionId !== "0x" && outcome === 3 /* Pending */) {
-      const resolvedOutcome: ConfidentialOutcome = "deny";
+    if (decisionId !== '0x' && outcome === 3 /* Pending */) {
+      const resolvedOutcome: ConfidentialOutcome = 'deny';
       try {
         await this.resolveDecision(decisionId, resolvedOutcome);
         return {
@@ -348,22 +327,19 @@ export class FhenixPolicyService {
     input: ConfidentialSpendInput,
   ): Promise<ConfidentialSpendDecision> {
     if (!this.adapter) {
-      throw new Error("Adapter not configured");
+      throw new Error('Adapter not configured');
     }
 
     const timeoutMs = this.config.evaluateTimeoutMs || 30000;
 
     // Encrypt via adapter
-    const ctHash = await withTimeout(
-      this.adapter.encryptUint256(input.amountWei),
-      timeoutMs,
-    );
+    const ctHash = await withTimeout(this.adapter.encryptUint256(input.amountWei), timeoutMs);
 
     const amountCt = {
       ctHash,
       securityZone: 0,
       utype: 2, // uint256 type code
-      signature: "0x",
+      signature: '0x',
     };
 
     // Evaluate via adapter
@@ -391,17 +367,13 @@ export class FhenixPolicyService {
    * Resolve a pending decision on-chain with the actual FHE outcome.
    * Commits the outcome and triggers Hyperlane dispatch to GovernanceContract.
    */
-  async resolveDecision(
-    decisionId: string,
-    outcome: ConfidentialOutcome,
-  ): Promise<string> {
+  async resolveDecision(decisionId: string, outcome: ConfidentialOutcome): Promise<string> {
     await this.ensureConnected();
-    const outcomeNum =
-      outcome === "approve" ? 2 : outcome === "hold" ? 1 : 0;
+    const outcomeNum = outcome === 'approve' ? 2 : outcome === 'hold' ? 1 : 0;
     const hash = await this.walletClient.writeContract({
       address: this.config.contractAddress as Hex,
       abi: ABI,
-      functionName: "resolveDecision",
+      functionName: 'resolveDecision',
       args: [decisionId as Hex, outcomeNum],
     });
     await this.publicClient.waitForTransactionReceipt({ hash });
@@ -419,7 +391,7 @@ export class FhenixPolicyService {
     }
 
     if (!this.client) {
-      throw new Error("CoFHE client not available");
+      throw new Error('CoFHE client not available');
     }
 
     await this.ensureConnected();
@@ -428,7 +400,7 @@ export class FhenixPolicyService {
       ? privateKeyToAccount(this.config.privateKey as Hex).address
       : undefined;
     if (!account) {
-      throw new Error("Private key not configured for permit creation");
+      throw new Error('Private key not configured for permit creation');
     }
 
     const permit = await this.client.permits.createSharing(
@@ -450,14 +422,14 @@ export class FhenixPolicyService {
   private normalizeOutcome(outcome: number): ConfidentialOutcome {
     switch (outcome) {
       case 0:
-        return "deny";
+        return 'deny';
       case 1:
-        return "hold";
+        return 'hold';
       case 2:
-        return "approve";
+        return 'approve';
       default:
         logger.warn(`Unknown outcome value ${outcome}, defaulting to 'hold'`);
-        return "hold";
+        return 'hold';
     }
   }
 
@@ -480,7 +452,7 @@ export class FhenixPolicyService {
     permit: string,
   ): Promise<string> {
     if (!this.client) {
-      throw new Error("CoFHE client not available");
+      throw new Error('CoFHE client not available');
     }
 
     await this.ensureConnected();
@@ -533,12 +505,12 @@ export class FhenixPolicyService {
         ctHash,
         securityZone: 0,
         utype: 2,
-        signature: "0x",
+        signature: '0x',
       };
     }
 
     if (!this.client) {
-      throw new Error("CoFHE client not available");
+      throw new Error('CoFHE client not available');
     }
 
     await this.ensureConnected();
@@ -564,12 +536,10 @@ export class FhenixPolicyService {
     target: string;
     data: string;
   }): Promise<{ decisionId: string; txHash: string }> {
-    logger.info(
-      `Requesting DeFi action on Fhenix: agent=${input.agentId}, target=${input.target}`,
-    );
+    logger.info(`Requesting DeFi action on Fhenix: agent=${input.agentId}, target=${input.target}`);
 
     if (!this.client) {
-      throw new Error("CoFHE client not available");
+      throw new Error('CoFHE client not available');
     }
 
     await this.ensureConnected();
@@ -588,7 +558,7 @@ export class FhenixPolicyService {
     const hash = await this.walletClient.writeContract({
       address: this.config.contractAddress as Hex,
       abi: ABI,
-      functionName: "requestDeFiAction",
+      functionName: 'requestDeFiAction',
       args: [
         input.agentId as Hex,
         input.policyId as Hex,
@@ -610,6 +580,4 @@ export class FhenixPolicyService {
   }
 }
 
-export const sharedFhenixPolicyService = new FhenixPolicyService(
-  createFhenixConfig(),
-);
+export const sharedFhenixPolicyService = new FhenixPolicyService(createFhenixConfig());

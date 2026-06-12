@@ -227,7 +227,7 @@ function CompactGovernanceCheck() {
             FHE Confidential Evaluation
           </div>
           <div className="space-y-0.5">
-            {fheSteps.map((step, i) => (
+            {fheSteps.map((step) => (
               <div key={step.label} className="flex items-center gap-2 py-0.5">
                 <div className="flex-shrink-0 w-5 flex justify-center">
                   {step.status === "done" ? (
