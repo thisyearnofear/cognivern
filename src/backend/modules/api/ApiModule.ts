@@ -41,6 +41,7 @@ import { McpGovernanceController } from "./controllers/McpGovernanceController.j
 import { PayrollController } from "./controllers/PayrollController.js";
 import { SealedBidController } from "./controllers/SealedBidController.js";
 import { SpeechController } from "./controllers/SpeechController.js";
+import { WebhookController } from "./controllers/WebhookController.js";
 import { AuthController } from "./controllers/AuthController.js";
 import { WorkspaceController } from "./controllers/WorkspaceController.js";
 import {
@@ -81,6 +82,7 @@ interface ControllerRegistry {
   payroll: PayrollController;
   sealedBid: SealedBidController;
   speech: SpeechController;
+  webhook: WebhookController;
   auth: AuthController;
   workspace: WorkspaceController;
   apiKey: ApiKeyController;
@@ -340,6 +342,8 @@ export class ApiModule extends BaseService {
       "/fhenix/status",
       "/fhenix/decrypt",
       "/intent",
+      "/webhooks/chain-gpt-news",
+      "/webhooks/holds",
     ];
     if (publicEndpoints.some((endpoint) => req.path === endpoint)) {
       return next();
@@ -476,6 +480,7 @@ export class ApiModule extends BaseService {
     this.controllers.payroll = new PayrollController();
     this.controllers.sealedBid = new SealedBidController();
     this.controllers.speech = new SpeechController();
+    this.controllers.webhook = new WebhookController();
     this.controllers.auth = new AuthController();
     this.controllers.workspace = new WorkspaceController();
     this.controllers.apiKey = new ApiKeyController();
@@ -506,6 +511,7 @@ export class ApiModule extends BaseService {
       createAuthRoutes,
       createWorkspaceRoutes,
       createApiKeyRoutes,
+      createWebhookRoutes,
     } = await import("./routes/index.js");
 
     // Health check (no API key required)
@@ -567,6 +573,7 @@ export class ApiModule extends BaseService {
         this.ctrl("speech"),
       ),
     );
+    apiRouter.use(createWebhookRoutes(this.ctrl("webhook")));
 
     // Sapience routes (conditional)
     if (this.controllers.sapience) {

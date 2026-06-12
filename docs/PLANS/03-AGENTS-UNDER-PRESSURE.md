@@ -3,7 +3,7 @@
 > Hackathon: [Agents Under Pressure](https://www.aivalley.io/hackathons/agents-under-pressure-build-your-own-os)
 > Window: 48 hours
 > Plan compiled: 2026-05-24
-> Status: **Planning**
+> Status: **Substantially Complete** (PromptOS terminal shipped to production at /os; AgentGrid live with 4-core visualization)
 
 ---
 
@@ -65,59 +65,59 @@ This plan adheres to Cognivern's core principles:
 
 ### Phase 0 — Audit & Consolidate (Hours 0–2)
 
-- [ ] Audit `src/frontend/` for unused components, dead routes, and redundant dependencies
-- [ ] Remove any dead code found (consolidation before addition)
-- [ ] Verify existing `/api/intent` request/response schema — document as the integration contract
-- [ ] Confirm Socket.IO or polling setup for real-time data from `/api/cre/runs`
+- [x] Audit `src/frontend/` for unused components, dead routes, and redundant dependencies
+- [x] Remove any dead code found (consolidation before addition)
+- [x] Verify existing `/api/intent` request/response schema — document as the integration contract
+- [x] Confirm Socket.IO or polling setup for real-time data from `/api/cre/runs`
 
 ### Phase 1 — Foundation (Hours 2–8)
 
-- [ ] Install dependencies: `xterm`, `@xterm/addon-fit`, `ai`, `@ai-sdk/openai`
-- [ ] Create `src/frontend/app/os/page.tsx` — main OS shell layout
-- [ ] Create `src/frontend/components/os/Terminal.tsx` — xterm.js terminal component
-- [ ] Wire terminal input → `POST /api/intent` → stream response back via Vercel AI SDK
-- [ ] Boot sequence animation (Motion): fake kernel messages, then prompt ready
+- [x] Install dependencies: `xterm`, `@xterm/addon-fit`, `ai`, `@ai-sdk/openai`
+- [x] Create `src/frontend/app/os/page.tsx` — main OS shell layout
+- [x] Create `src/frontend/components/os/Terminal.tsx` — xterm.js terminal component
+- [~] Wire terminal input → `POST /api/intent` → stream response back via Vercel AI SDK *(Replaced with direct fetch — simpler, no extra dep)*
+- [x] Boot sequence animation (Motion): fake kernel messages, then prompt ready
 
 ### Phase 2 — PromptOS Core (Hours 8–16)
 
-- [ ] Enhance `/api/intent` to return structured JSON action schemas (not just text)
-- [ ] Render action results in terminal with styled output (colored status, progress bars)
-- [ ] Add command history (up/down arrows) and tab completion for common intents
-- [ ] Virtual filesystem display: `ls`, `cd`, `cat` mapped to agent workspace state
-- [ ] Error handling: graceful fallbacks when intent parsing fails
+- [x] Enhance `/api/intent` to return structured JSON action schemas (not just text)
+- [x] Render action results in terminal with styled output (colored status, progress bars)
+- [x] Add command history (up/down arrows) and tab completion for common intents
+- [x] Virtual filesystem display: `ls`, `cd`, `cat` mapped to agent workspace state
+- [x] Error handling: graceful fallbacks when intent parsing fails
 
 ### Phase 3 — DevFactory Grid (Hours 16–24)
 
-- [ ] Create `src/frontend/components/os/AgentGrid.tsx` — real-time agent allocation map
-- [ ] Subscribe to `/api/cre/runs` via polling or Socket.IO for live agent status
-- [ ] Visual states per agent core: `BUSY`, `IDLE`, `CRSH`, `SYNC` with color coding
-- [ ] Motion animations: core spin-up, crash shake, re-route flow lines
-- [ ] Auto-patch log feed at bottom of grid (from audit trail)
+- [x] Create `src/frontend/components/os/AgentGrid.tsx` — real-time agent allocation map
+- [x] Subscribe to `/api/cre/runs` via polling (5s interval) for live agent status
+- [x] Visual states per agent core: `BUSY`, `IDLE`, `CRSH`, `SYNC` with color coding
+- [x] Motion animations: core spin-up, crash shake, re-route flow lines
+- [x] Auto-patch log feed at bottom of grid (from audit trail)
 
 ### Phase 4 — Integration, Testing & Polish (Hours 24–36)
 
-- [ ] Connect terminal commands to agent grid: typing intent → grid lights up
-- [ ] Split-screen layout: terminal left, agent grid right
-- [ ] Add sound design cues (optional): keystroke sounds, agent spawn chimes
-- [ ] Dark OS theme: monospace fonts, scan lines, subtle CRT glow via CSS
-- [ ] Mobile responsive (judges may view on phones)
-- [ ] Unit tests for Terminal → intent API integration (input dispatch, response rendering)
-- [ ] Unit tests for AgentGrid status rendering (BUSY/IDLE/CRSH/SYNC states)
-- [ ] Integration test: NL command → intent API → grid status update flow
+- [x] Connect terminal commands to agent grid: typing intent → grid lights up
+- [x] Split-screen layout: terminal left, agent grid right
+- [ ] Add sound design cues (optional): keystroke sounds, agent spawn chimes *(Not implemented — optional)*
+- [x] Dark OS theme: monospace fonts, scan lines, subtle CRT glow via CSS
+- [~] Mobile responsive (judges may view on phones) *(Partial: quick prompts bar on small screens)*
+- [x] Unit tests for Terminal → intent API integration (input dispatch, response rendering)
+- [x] Unit tests for AgentGrid status rendering (BUSY/IDLE/CRSH/SYNC states)
+- [x] Integration test: NL command → intent API → grid status update flow
 
 ### Phase 5 — Demo Flow (Hours 36–42)
 
-- [ ] Script the demo narrative (see Demo Script below)
-- [ ] Build auto-demo mode: pre-scripted commands that type themselves
-- [ ] Ensure the "killer moment" works reliably: NL command → grid activates → code assembles
-- [ ] Record backup video in case of live demo failure
-- [ ] Deploy to Vercel, test on production URL
+- [x] Script the demo narrative (see Demo Script below)
+- [x] Build auto-demo mode: pre-scripted commands that type themselves
+- [x] Ensure the "killer moment" works reliably: NL command → grid activates → code assembles
+- [ ] Record backup video in case of live demo failure *(Not applicable — shipped to production)*
+- [x] Deploy to Vercel, test on production URL
 
 ### Phase 6 — Buffer & Submission (Hours 42–48)
 
-- [ ] Final bug fixes and edge case handling
-- [ ] Write submission copy: README, screenshots, architecture diagram
-- [ ] Submit
+- [x] Final bug fixes and edge case handling
+- [x] Write submission copy: README, screenshots, architecture diagram
+- [x] Submit
 
 ---
 

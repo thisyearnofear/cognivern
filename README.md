@@ -135,7 +135,7 @@ The spend control plane is live: policy evaluation, signed approvals, held actio
 
 ### Recent Updates (2026-06)
 
-- **Production Hardening** — Per-workspace and per-API-key rate limiters with sliding windows, deep health checks, circuit-breaker patterns, 172 tests (unit + integration + E2E via Playwright), TypeScript strict mode, unified CI pipeline
+- **Production Hardening** — Per-workspace and per-API-key rate limiters with sliding windows, deep health checks, circuit-breaker patterns, 224 tests (unit + integration + E2E via Playwright), TypeScript strict mode, unified CI pipeline
 - **Multi-Workspace & Policy Versioning** — Workspace-scoped policy management with independent API keys, rate limits, and policy history per team
 - **Fhenix Wave 5-7** — Full institutional demo with encrypted policies, MEV-protected execution, selective auditor disclosure; testnet migration from Helium to Arbitrum Sepolia; two-phase FHE resolution with `resolveDecision`; sealed-bid vendor selection; Privara confidential payroll
 - **Operator UX** — PromptOS terminal integrated into sidebar, voice input via MediaRecorder (browser-native STT), self-service onboarding, animated workspace mode toggles, full mobile responsiveness
