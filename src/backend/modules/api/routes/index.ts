@@ -10,3 +10,4 @@ export { createMiscRoutes } from "./miscRoutes.js";
 export { createAuthRoutes } from "./authRoutes.js";
 export { createWorkspaceRoutes } from "./workspaceRoutes.js";
 export { createApiKeyRoutes } from "./apiKeyRoutes.js";
+export { createWebhookRoutes } from "./webhookRoutes.js";

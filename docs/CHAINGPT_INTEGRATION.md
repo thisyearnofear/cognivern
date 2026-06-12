@@ -238,29 +238,45 @@ private async evaluateContractAuditRule(
 Cognivern subscribes to ChainGPT's AI Crypto News webhooks for real-time governance signals:
 
 ```typescript
-// Subscribe to ChainGPT news webhooks
 POST /api/webhooks/chain-gpt-news
 {
-  "events": ["exploit", "depeg", "sanction"],
-  "policyId": "policy_123",
-  "action": "hold_mode"
+  "event": "exploit",
+  "title": "Protocol X exploit detected — $50M drained",
+  "summary": "A critical vulnerability in Protocol X's bridge contract...",
+  "affectedProtocols": ["Protocol X"],
+  "affectedTokens": ["TOKENX"],
+  "severity": "critical"
 }
 ```
 
+**Status:** ✅ **Implemented** — see `src/backend/services/NewsPolicyAdjuster.ts` and `src/backend/modules/api/controllers/WebhookController.ts`.
+
 ### 4.2 Policy Auto-Adjustment
 
-When breaking news matches an agent's vendor/token allowlist, the policy engine auto-flip to hold mode:
+When breaking news matches an agent's vendor/token allowlist, the policy engine auto-flips to hold mode:
 
 ```
 News Event: "Protocol X exploit detected — $50M drained"
   ↓
-Match against agent's vendor allowlist
+Match against agent's vendor allowlist (policy.metadata.allowedVendors)
   ↓
 If exploit target matches allowed vendor:
-  → Set policy to HOLD mode
-  → Notify operator
+  → Set policy to INACTIVE (hold) status
+  → Fire decision notification via NotificationService
   → Block pending transactions
-  → Require manual approval to resume
+  → Require manual approval to resume via POST /api/webhooks/holds/:policyId/release
+```
+
+**Status:** ✅ **Implemented** — `NewsPolicyAdjuster.handleNewsEvent()` in `src/backend/services/NewsPolicyAdjuster.ts`.
+
+### 4.3 Policy Hold Management API
+
+```typescript
+// List all active policy holds
+GET /api/webhooks/holds
+
+// Release a held policy
+POST /api/webhooks/holds/:policyId/release
 ```
 
 ---

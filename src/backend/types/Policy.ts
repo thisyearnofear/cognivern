@@ -76,7 +76,7 @@ export interface Policy {
   metadata: Record<string, any>;
   createdAt: string;
   updatedAt: string;
-  status: "active" | "draft" | "archived";
+  status: "active" | "draft" | "archived" | "held";
 }
 
 export interface PolicyRule {
