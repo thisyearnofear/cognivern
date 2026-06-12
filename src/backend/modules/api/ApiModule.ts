@@ -255,6 +255,16 @@ export class ApiModule extends BaseService {
     const decryptLimiter = rateLimit({
       windowMs: 60_000, // 1 min
       max: Number(process.env.DECRYPT_RATE_LIMIT_PER_MINUTE || 10),
+      keyGenerator: (req: any) => {
+        const permit = req.body?.permit;
+        if (permit) {
+          try {
+            const parsed = typeof permit === "string" ? JSON.parse(permit) : permit;
+            if (parsed.recipient) return parsed.recipient.toLowerCase();
+          } catch {}
+        }
+        return req.ip || "unknown";
+      },
       message: {
         error: "Too many decrypt requests, please slow down.",
       },

@@ -81,27 +81,10 @@ async function runAndPersist(
     });
     await creRunStore.replace(recorder.getRun());
 
-    // ── Step 2: Encrypt parameters (CoFHE SDK) ───────────────────────
-    const s2 = recorder.startStep("confidential_http", "encrypt_params", {
+    // ── Step 2: Encrypt & evaluate (CoFHE SDK + Fhenix contract) ─────
+    const s2 = recorder.startStep("confidential_http", "encrypt_and_evaluate", {
       agentId: params.agentId,
       actionType: params.normalizedAction.type,
-    });
-    // The FHE encryption happens inside evaluateDecision → evaluateRule →
-    // FhenixPolicyService.evaluateEncrypted(). We report the step as
-    // in-progress before calling and complete it after the result returns.
-    // (CreRunRecorder steps don't have an explicit "in-progress" state, so
-    //  we use the tool_call_started / tool_result events for granularity.)
-    s2.end({
-      ok: true,
-      summary: "Spend parameters encrypted via CoFHE SDK",
-    });
-    await creRunStore.replace(recorder.getRun());
-
-    // ── Step 3: Submit to Fhenix & evaluate ──────────────────────────
-    const s3 = recorder.startStep("confidential_http", "submit_to_fhenix", {
-      chain: process.env.FHENIX_CHAIN_ID === "84532"
-        ? "fhenix-base-sepolia"
-        : "fhenix-arbitrum-sepolia",
     });
     const decision = await params.policyEnforcementService.evaluateDecision(
       params.normalizedAction,
@@ -111,20 +94,20 @@ async function runAndPersist(
     const reason = failedChecks.length
       ? failedChecks.map((c) => c.reason || c.policyId).join("; ")
       : `Action approved under policy ${params.policyId}`;
-    s3.end({
+    s2.end({
       ok: true,
       summary: `FHE evaluation complete — outcome: ${outcomeLabel}`,
     });
     await creRunStore.replace(recorder.getRun());
 
-    // ── Step 4: Record audit log ─────────────────────────────────────
-    const s4 = recorder.startStep("compute", "record_audit");
+    // ── Step 3: Record audit log ─────────────────────────────────────
+    const s3 = recorder.startStep("compute", "record_audit");
     const auditLogId = await params.auditLogService.logAction(
       params.normalizedAction,
       decision.policyChecks,
       decision.allowed,
     );
-    s4.end({
+    s3.end({
       ok: true,
       summary: `Decision logged to audit trail (id: ${auditLogId})`,
     });
