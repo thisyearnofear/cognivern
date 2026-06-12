@@ -17,12 +17,18 @@
 
 const { ethers } = require("ethers");
 const path = require("path");
-require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env.local") });
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
 // --- Config ---
-const XLAYER_TESTNET_RPC = "https://testrpc.xlayer.tech";
-const GOVERNANCE_ADDRESS = "0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6";
-const STORAGE_ADDRESS = "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D";
+const XLAYER_TESTNET_RPC =
+  process.env.XLAYER_TESTNET_RPC_URL || "https://testrpc.xlayer.tech";
+const GOVERNANCE_ADDRESS =
+  process.env.XLAYER_GOVERNANCE_CONTRACT_ADDRESS ||
+  "0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6";
+const STORAGE_ADDRESS =
+  process.env.XLAYER_STORAGE_CONTRACT_ADDRESS ||
+  "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D";
 
 // Minimal ABIs (only the functions we call)
 const GOVERNANCE_ABI = [

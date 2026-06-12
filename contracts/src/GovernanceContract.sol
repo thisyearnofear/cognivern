@@ -81,6 +81,9 @@ contract GovernanceContract is IMessageRecipient {
     event ActionEvaluated(bytes32 indexed actionId, bytes32 agentId, bool approved);
     event EvaluatorAuthorized(address evaluator);
     event EvaluatorRevoked(address evaluator);
+    event HyperlaneConfigUpdated(address mailbox, uint32 fhenixDomain, bytes32 fhenixSender);
+    event Paused(address account);
+    event Unpaused(address account);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner can call this function");
@@ -96,6 +99,14 @@ contract GovernanceContract is IMessageRecipient {
         require(agents[agentId].owner == msg.sender, "Not agent owner");
         _;
     }
+
+    modifier whenNotPaused() {
+        require(!paused, "Contract is paused");
+        _;
+    }
+
+    // Pause state
+    bool public paused;
 
     constructor() {
         owner = msg.sender;
@@ -113,6 +124,7 @@ contract GovernanceContract is IMessageRecipient {
         mailbox = _mailbox;
         fhenixDomain = _fhenixDomain;
         fhenixSender = _fhenixSender;
+        emit HyperlaneConfigUpdated(_mailbox, _fhenixDomain, _fhenixSender);
     }
 
     /**
@@ -122,7 +134,7 @@ contract GovernanceContract is IMessageRecipient {
         uint32 _origin,
         bytes32 _sender,
         bytes calldata _message
-    ) external payable override {
+    ) external payable override whenNotPaused {
         require(msg.sender == mailbox, "Only mailbox can call handle");
         require(_origin == fhenixDomain, "Origin domain not supported");
         require(_sender == fhenixSender, "Sender not authorized");
@@ -161,7 +173,7 @@ contract GovernanceContract is IMessageRecipient {
         string memory name,
         string memory description,
         bytes32 rulesHash
-    ) external {
+    ) external onlyAuthorizedEvaluator {
         require(policies[policyId].id == 0, "Policy already exists");
         require(bytes(name).length > 0, "Policy name required");
         require(rulesHash != 0, "Rules hash required");
@@ -213,7 +225,7 @@ contract GovernanceContract is IMessageRecipient {
         string memory name,
         string[] memory capabilities,
         bytes32 policyId
-    ) external {
+    ) external whenNotPaused {
         require(agents[agentId].id == 0, "Agent already registered");
         require(bytes(name).length > 0, "Agent name required");
         require(policies[policyId].status == PolicyStatus.Active, "Policy must be active");
@@ -264,7 +276,7 @@ contract GovernanceContract is IMessageRecipient {
         string memory actionType,
         bytes32 dataHash,
         bool approved
-    ) external onlyAuthorizedEvaluator {
+    ) external onlyAuthorizedEvaluator whenNotPaused {
         require(actions[actionId].id == 0, "Action already evaluated");
         require(agents[agentId].id != 0, "Agent does not exist");
         require(agents[agentId].status == AgentStatus.Active, "Agent not active");
@@ -318,6 +330,24 @@ contract GovernanceContract is IMessageRecipient {
     function revokeEvaluator(address evaluator) external onlyOwner {
         authorizedEvaluators[evaluator] = false;
         emit EvaluatorRevoked(evaluator);
+    }
+
+    /**
+     * @dev Pause contract operations (emergency halt)
+     */
+    function pause() external onlyOwner {
+        require(!paused, "Already paused");
+        paused = true;
+        emit Paused(msg.sender);
+    }
+
+    /**
+     * @dev Resume contract operations
+     */
+    function unpause() external onlyOwner {
+        require(paused, "Not paused");
+        paused = false;
+        emit Unpaused(msg.sender);
     }
 
     /**

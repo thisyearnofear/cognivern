@@ -366,7 +366,7 @@ Audit UI (operator sees outcome; auditor with permit sees amounts)
 In production, the bridge between Fhenix and X Layer is secured by Hyperlane's **Interchain Security Modules (ISMs)**.
 - **Origin Verification:** The X Layer contract only accepts messages from the specific Fhenix chain domain.
 - **Sender Verification:** The `GovernanceContract` explicitly validates that the sender of the message is the authorized `ConfidentialSpendPolicy` contract.
-- **Relayer Flexibility:** While our buildathon demo uses a lightweight Node.js relayer (`HyperlaneRelayerService.ts`), the smart contracts are 100% compliant with the official Hyperlane Rust Relayer. In a production environment, you simply point to the official Hyperlane Mailbox addresses and run a standard Hyperlane validator set.
+- **Relayer Flexibility:** Cross-chain dispatch is handled entirely inside the Solidity contracts via `mailbox.dispatch()` in `ConfidentialSpendPolicy.resolveDecision()`. The smart contracts are 100% compliant with the official Hyperlane Rust Relayer. In a production environment, you simply point to the official Hyperlane Mailbox addresses and run a standard Hyperlane validator set.
 
 ### Agent UX (Developer Experience)
 To support non-TypeScript agents (Python/Go), Cognivern provides a **Trusted Encryption Sidecar** API (`/api/fhenix/encrypt`). This allows agents to benefit from FHE-based policy evaluation without needing to implement the `@cofhe/sdk` primitives locally, which is critical for rapid cross-language adoption.

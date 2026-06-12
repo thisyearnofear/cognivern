@@ -14,6 +14,7 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia, arbitrumSepolia } from "viem/chains";
 import logger from "../utils/logger.js";
+import { withTimeout } from "../shared/utils/index.js";
 
 /**
  * FhenixPolicyService
@@ -241,7 +242,7 @@ export class FhenixPolicyService {
     await this.ensureConnected();
 
     // 1. Encrypt amount for Fhenix (use uint128, max supported by CoFHE SDK)
-    const encryptedInputs = await this.withTimeout(
+    const encryptedInputs = await withTimeout(
       this.client
         .encryptInputs([Encryptable.uint128(input.amountWei)])
         .setChainId(this.config.chainId ?? 421614)
@@ -332,7 +333,7 @@ export class FhenixPolicyService {
     const timeoutMs = this.config.evaluateTimeoutMs || 30000;
 
     // Encrypt via adapter
-    const ctHash = await this.withTimeout(
+    const ctHash = await withTimeout(
       this.adapter.encryptUint256(input.amountWei),
       timeoutMs,
     );
@@ -345,7 +346,7 @@ export class FhenixPolicyService {
     };
 
     // Evaluate via adapter
-    const result = await this.withTimeout(
+    const result = await withTimeout(
       this.adapter.evaluateSpend({
         agentId: input.agentId,
         policyId: input.policyId,
@@ -418,18 +419,6 @@ export class FhenixPolicyService {
     }
   }
 
-  private async withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`Operation timed out after ${ms}ms`)),
-          ms,
-        ),
-      ),
-    ]);
-  }
-
   /**
    * Decrypt a value for viewing (for auditor use).
    *
@@ -481,7 +470,7 @@ export class FhenixPolicyService {
       `Unsealing ctHash=${ctHash} utype=${utype} chainId=${chainId} contract=${contractAddress}`,
     );
 
-    const unsealedItem = await this.withTimeout(
+    const unsealedItem = await withTimeout(
       this.client
         .decryptForView(ctHash, utype as FheTypes)
         .setChainId(chainId)
@@ -528,7 +517,7 @@ export class FhenixPolicyService {
 
     await this.ensureConnected();
 
-    const encryptedInputs = await this.withTimeout(
+    const encryptedInputs = await withTimeout(
       this.client
         .encryptInputs([Encryptable.uint128(amountWei)])
         .setChainId(this.config.chainId ?? 421614)
@@ -560,7 +549,7 @@ export class FhenixPolicyService {
     await this.ensureConnected();
 
     // 1. Encrypt amount
-    const encryptedInputs = await this.withTimeout(
+    const encryptedInputs = await withTimeout(
       this.client
         .encryptInputs([Encryptable.uint128(input.amountWei)])
         .setChainId(this.config.chainId ?? 421614)

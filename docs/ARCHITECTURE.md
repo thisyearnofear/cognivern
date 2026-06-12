@@ -61,7 +61,7 @@ Agent action
       └─ "ows_remote"→ OwsLocalVaultService.signWithExternalWallet(remote URL)
   → AuditLogService.logAction()
   → [optional] Filecoin evidence anchoring via ZeroGStorageService
-  → [optional] X Layer execution dispatch via HyperlaneRelayerService
+  → [optional] X Layer execution dispatch via Hyperlane Mailbox (contract-side)
 ```
 
 This is the actual code path — not an aspirational design. It is implemented across:

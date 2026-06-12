@@ -371,14 +371,41 @@ export class GovernanceController {
         return;
       }
 
-      res.json({
-        success: true,
-        data: {
-          decisionId,
-          origin: "fhenix-arbitrum-sepolia",
-          outcome: "approve",
-          xlayerTx: `0x${crypto.randomUUID().replace(/-/g, "")}`,
-          note: "GovernanceContract.handle() verified origin domain + sender via ISM",
+      const allRuns = await creRunStore.list();
+      const matchingRun = allRuns.find((run) =>
+        run.artifacts?.some(
+          (a: any) =>
+            a.data?.decisionId === decisionId ||
+            a.data?.txHash === decisionId,
+        ),
+      );
+
+      if (matchingRun) {
+        const attestation = matchingRun.artifacts?.find(
+          (a: any) =>
+            a.data?.decisionId === decisionId ||
+            a.data?.txHash === decisionId,
+        );
+        const data = (attestation as any)?.data || {};
+        res.json({
+          success: true,
+          data: {
+            decisionId,
+            runId: matchingRun.runId,
+            outcome: data.status || "unknown",
+            txHash: data.txHash || null,
+            onChainStatus: data.onChainStatus || null,
+          },
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "NOT_FOUND",
+          message: `No governance decision found for ${decisionId}`,
         },
         timestamp: new Date().toISOString(),
       });
