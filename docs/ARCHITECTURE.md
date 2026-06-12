@@ -133,6 +133,20 @@ The backend wallet descriptor (`OwsWalletDescriptor.metadata`) carries the provi
 
 The frontend contains surfaces for policy management, audit logs, run ledger, agent monitoring, governance checks, and the Command Center terminal UI.
 
+### 7. Copilot Mission Console
+
+`CopilotController` drives the live demo flow exposed at `/copilot`. A user submits a natural-language spend goal, the agent runs it through the full lifecycle, and the operator confirms or denies at the human gate.
+
+- `POST /api/copilot/runs` — start a new mission (returns 202 + the run with a SSE event stream id)
+- `GET /api/copilot/runs` — list recent runs, newest first, for the history rail (query: `?limit=N`, default 10, max 50)
+- `GET /api/copilot/runs/:runId` — full run + events (used by replay mode)
+- `POST /api/copilot/runs/:runId/confirm` — operator decision (`{ approve, reason }`); appends `confirmation_recorded` and `execution_blocked` events
+- `GET /api/copilot/runs/:runId/events/stream` — SSE event stream (cursor-based, heartbeats every 750ms)
+
+Runs are persisted to SQLite via `CopilotRunStore` so they survive pm2 restarts and lean deploys. The in-memory `Map` that previously held them is gone. SSE reads from the same store, so the stream stays consistent with what the operator sees on the page.
+
+The frontend mirrors this with three UX surfaces: the run button + phase strip + live trace while a mission is active, a recent-decisions rail that lets the user replay or re-run prior missions, and a post-decision card that nudges toward history review, re-run, or policy tuning.
+
 ## Network Roles
 
 Each partner network plays a specific role in the product. This table is the single source of truth — all other docs and UI descriptions reference it.
@@ -238,6 +252,10 @@ Cognivern operates in three distinct modes:
 | `/api/audit/insights` | GET | Audit insights |
 | `/api/cre/runs` | GET | Run ledger |
 | `/api/cre/runs/:runId` | GET | Run details |
+| `/api/copilot/runs` | GET, POST | List recent runs (history rail) or start a new mission |
+| `/api/copilot/runs/:runId` | GET | Full run + events (replay fetch) |
+| `/api/copilot/runs/:runId/confirm` | POST | Record operator approve/deny decision |
+| `/api/copilot/runs/:runId/events/stream` | GET | SSE event stream (cursor-based) |
 | `/api/projects` | GET | Project list |
 | `/api/projects/:projectId/usage` | GET | Project usage |
 | `/api/payroll/confidential` | POST | Privara confidential payroll |
@@ -260,10 +278,19 @@ File-backed stores are built on a common `BaseStore` abstract class that provide
 | `UxEventStore` | `ux-events.jsonl` | UX telemetry events |
 | `CreRunStore` | `cre-runs.jsonl` (+ MongoDB optional) | Core Run Engine evidence ledger (via `CreRunPersistence` interface). Conditionally writes to MongoDB when `MONGODB_URI` is set |
 | `IdempotencyStore` | file-backed with TTL | Idempotency key tracking |
+| `CopilotRunStore` | SQLite (`copilot_runs` + `copilot_events`) | Live demo mission runs + their event streams. Replaces the previous in-memory `Map` that lost runs on every pm2 restart. Reads and writes are synchronous via `better-sqlite3` prepared statements; the SSE poller reads from the same tables so the stream is always consistent with `getRun`. |
 
 The `BaseStore<T, R>` interface accepts a config for file path (via env var or default), max records, and TTL. Subclasses override `parseLine()` and `serializeRecord()`.
 
 To swap to Redis, Postgres, or MongoDB: implement the same interface on a new adapter and replace the singleton import — no callers change.
+
+**SQLite-backed services:**
+
+| Service | File | Tables | Purpose |
+|---|---|---|---|
+| `CopilotRunStore` | `src/backend/modules/api/storage/CopilotRunStore.ts` | `copilot_runs`, `copilot_events` | Live demo mission runs + their event streams |
+
+`copilot_runs` holds one row per mission (`id`, `goal`, `status`, `summary`, `error`, `preview`, `result`, `created_at`, `updated_at`); `copilot_events` holds the event log keyed by `(run_id, id)`. Both tables are created idempotently by the migration in `src/backend/db/index.ts` on first boot, so a cold deploy or fresh checkout works without a manual migration step. To scope runs per workspace later, add a nullable `workspace_id` column to `copilot_runs` and gate `listRecent` on `req.workspaceId`.
 
 **MongoDB-backed services:**
 

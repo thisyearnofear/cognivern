@@ -121,9 +121,19 @@ What this flow does:
     logs -> /opt/cognivern/shared/logs
   shared/
     .env                 # production secrets
-    data/                # SQLite, vault, telemetry
+    data/                # SQLite (cognivern.db + copilot_runs + copilot_events), vault, telemetry
     logs/                # PM2 log output
 ```
+
+### Auto-created SQLite tables
+
+`src/backend/db/index.ts` runs an idempotent `CREATE TABLE IF NOT EXISTS` migration on first boot. The shared SQLite database includes:
+
+- `users`, `workspaces`, `nonces`, `api_keys` — auth and workspace state
+- `workspace_agents`, `workspace_policies`, `policy_versions`, `workspace_members` — multi-tenant data
+- `copilot_runs`, `copilot_events` — live demo mission persistence (added with the CopilotRunStore)
+
+No manual `psql`/migration step is required; a fresh checkout or a cold lean deploy will create the schema on first backend start.
 
 ## PM2 Configuration
 

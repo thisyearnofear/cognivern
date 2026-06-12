@@ -25,6 +25,8 @@ The submission is the **Cognivern Copilot** agent under [`agent/`](./agent). It 
 
 See [`docs/HACKATHON.md`](./docs/HACKATHON.md) for the full submission checklist and [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the system design.
 
+The Copilot console on the live demo is a closed loop, not a single shot: every confirmed or denied mission is persisted to SQLite and surfaces in a recent-decisions rail, where the operator can replay the full event timeline (with play/pause/scrub), re-run with the same goal, or jump straight to the policy that drove the confirmation. See [`src/frontend/src/components/copilot/copilot-page.tsx`](./src/frontend/src/components/copilot/copilot-page.tsx) for the page and [`src/backend/modules/api/controllers/CopilotController.ts`](./src/backend/modules/api/controllers/CopilotController.ts) for the controller.
+
 ## Quick Start
 
 ```bash
