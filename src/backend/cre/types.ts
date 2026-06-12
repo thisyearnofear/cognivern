@@ -47,6 +47,7 @@ export interface CreRunEvent {
   evidence?: {
     hash: string;
     cid?: string;
+    zeroGRootHash?: string;
     signature?: string;
     signer?: string;
     artifactIds?: string[];
@@ -84,6 +85,7 @@ export interface CreArtifact {
   evidence?: {
     hash: string;
     cid?: string;
+    zeroGRootHash?: string;
     signature?: string;
     signer?: string;
   };
@@ -126,6 +128,7 @@ export interface CreRun {
   evidence?: {
     hash: string;
     cid?: string;
+    zeroGRootHash?: string;
     signature?: string;
     signer?: string;
     artifactIds?: string[];

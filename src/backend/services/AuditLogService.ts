@@ -181,6 +181,28 @@ export class AuditLogService {
     };
 
     await this.creStore.add(run);
+
+    // Anchor event to 0G Storage (non-fatal, fire-and-forget with post-hoc update)
+    zeroGStorageService
+      .anchorAuditRecord({
+        runId,
+        workflow: workflowType,
+        eventType: eventData.eventType,
+        agentType: eventData.agentType,
+        timestamp: startedAt,
+        evidenceHash: evidence.hash,
+      })
+      .then(async (result) => {
+        if (result) {
+          run.evidence = {
+            hash: run.evidence?.hash ?? "pending",
+            ...(run.evidence ?? {}),
+            zeroGRootHash: result.rootHash,
+          };
+          await this.creStore.replace(run);
+        }
+      })
+      .catch(() => {});
   }
 
   async logAction(
@@ -244,7 +266,7 @@ export class AuditLogService {
 
     await this.creStore.add(run);
 
-    // Anchor governance decision to 0G Storage (non-fatal, fire-and-forget)
+    // Anchor governance decision to 0G Storage (non-fatal, fire-and-forget with post-hoc update)
     zeroGStorageService
       .anchorAuditRecord({
         runId,
@@ -254,6 +276,16 @@ export class AuditLogService {
         actionType: action.type,
         timestamp: now,
         evidenceHash: evidence.hash,
+      })
+      .then(async (result) => {
+        if (result) {
+          run.evidence = {
+            hash: run.evidence?.hash ?? "pending",
+            ...(run.evidence ?? {}),
+            zeroGRootHash: result.rootHash,
+          };
+          await this.creStore.replace(run);
+        }
       })
       .catch(() => {
         /* already logged inside ZeroGStorageService */
