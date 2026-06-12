@@ -1,18 +1,25 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Bot,
   CheckCircle2,
   Circle,
   Clock3,
+  Eye,
+  History,
   Play,
+  RotateCcw,
   ShieldCheck,
+  Sliders,
   SquareActivity,
+  X,
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -116,6 +123,36 @@ function statusVariant(status?: CopilotRun["status"]) {
   return "secondary" as const;
 }
 
+type RecordedDecision = "approved" | "denied";
+
+function deriveDecision(run: CopilotRun | null): RecordedDecision | null {
+  if (!run) return null;
+  // Walk events newest-first; the most recent confirmation_recorded wins.
+  for (let i = run.events.length - 1; i >= 0; i--) {
+    const event = run.events[i];
+    if (event.type === "confirmation_recorded") {
+      if (event.payload?.approved === false) return "denied";
+      if (event.payload?.approved === true) return "approved";
+    }
+  }
+  return null;
+}
+
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1).trimEnd()}…`;
+}
+
+function formatRelative(iso: string): string {
+  const then = new Date(iso).getTime();
+  const now = Date.now();
+  const diffSec = Math.round((now - then) / 1000);
+  if (diffSec < 60) return `${diffSec}s ago`;
+  if (diffSec < 3600) return `${Math.round(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `${Math.round(diffSec / 3600)}h ago`;
+  return `${Math.round(diffSec / 86400)}d ago`;
+}
+
 function readableError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   if (message.includes("API error 401")) {
@@ -128,12 +165,15 @@ function readableError(error: unknown): string {
 }
 
 export function CopilotPage() {
+  const router = useRouter();
   const [goal, setGoal] = useState(defaultGoal);
   const [run, setRun] = useState<CopilotRun | null>(null);
   const [events, setEvents] = useState<CopilotEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [decision, setDecision] = useState<"approved" | "denied" | null>(null);
+  const [recentRuns, setRecentRuns] = useState<CopilotRun[]>([]);
+  const [replayRunId, setReplayRunId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const activePhase = useMemo(() => {
@@ -141,8 +181,28 @@ export function CopilotPage() {
     return latest ? phaseForEvent(latest) : "PLAN";
   }, [events]);
 
+  // Pull the recent-decisions rail on mount. After every decision or
+  // start, we re-pull so the rail reflects the latest state.
+  const refreshRecent = useCallback(async () => {
+    try {
+      const response = await apiClient.listCopilotRuns(8);
+      setRecentRuns(response.runs || []);
+    } catch {
+      // Non-fatal: the rail is a nice-to-have, not a blocker.
+    }
+  }, []);
+  useEffect(() => {
+    // Defer the initial fetch so the effect body doesn't trigger a
+    // synchronous setState on mount (per react-hooks/set-state-in-effect).
+    const id = window.setTimeout(() => {
+      void refreshRecent();
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [refreshRecent]);
+
   const canConfirm =
     decision === null &&
+    replayRunId === null &&
     (run?.status === "awaiting_confirmation" ||
       events.some((event) => event.type === "confirmation_required"));
 
@@ -151,15 +211,17 @@ export function CopilotPage() {
     run?.status === "completed" ||
     run?.status === "failed";
 
-  async function startRun() {
+  async function startRun(overrideGoal?: string) {
+    const goalToRun = overrideGoal ?? goal;
     setBusy(true);
     setError(null);
     setDecision(null);
+    setReplayRunId(null);
     setEvents([]);
     abortRef.current?.abort();
     try {
       const response = await apiClient.startCopilotRun({
-        goal,
+        goal: goalToRun,
         previewOnly: true,
       });
       setRun(response.run);
@@ -181,11 +243,46 @@ export function CopilotPage() {
           setError(message);
         },
       });
+      // Pull the rail so the new run appears at the top.
+      void refreshRecent();
     } catch (err) {
       setError(readableError(err));
     } finally {
       setBusy(false);
     }
+  }
+
+  async function loadHistoricalRun(runId: string) {
+    setBusy(true);
+    setError(null);
+    abortRef.current?.abort();
+    abortRef.current = null;
+    try {
+      const response = await apiClient.getCopilotRun(runId);
+      setRun(response.run);
+      setEvents(response.run.events || []);
+      setDecision(deriveDecision(response.run));
+      setReplayRunId(runId);
+    } catch (err) {
+      setError(readableError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function exitReplay() {
+    setReplayRunId(null);
+    setRun(null);
+    setEvents([]);
+    setDecision(null);
+    setError(null);
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }
+
+  function rerunWithGoal(priorGoal: string) {
+    setGoal(priorGoal);
+    void startRun(priorGoal);
   }
 
   async function confirm(approve: boolean) {
@@ -200,6 +297,7 @@ export function CopilotPage() {
       setRun(response.run);
       setEvents(response.run.events || []);
       setDecision(approve ? "approved" : "denied");
+      void refreshRecent();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       // Stale run: backend lost the in-memory state. Surface a clear
@@ -211,6 +309,7 @@ export function CopilotPage() {
         setDecision(null);
         abortRef.current?.abort();
         abortRef.current = null;
+        void refreshRecent();
       } else {
         setError(readableError(err));
       }
@@ -245,18 +344,121 @@ export function CopilotPage() {
         </div>
       </div>
 
+      {replayRunId && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm"
+        >
+          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+            <Eye className="h-4 w-4" />
+            <span>
+              Viewing historical run <span className="font-mono text-xs">{replayRunId.slice(0, 18)}…</span>
+              {run ? <> · {formatRelative(run.createdAt)}</> : null}
+            </span>
+          </div>
+          <Button size="xs" variant="ghost" onClick={exitReplay}>
+            <X className="h-3 w-3" />
+            Close replay
+          </Button>
+        </div>
+      )}
+
+      {recentRuns.length > 0 && (
+        <section
+          id="recent-decisions"
+          className="space-y-2 rounded-lg border bg-card p-3"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <History className="h-4 w-4 text-muted-foreground" />
+              Recent decisions
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {recentRuns.length} run{recentRuns.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {recentRuns.map((recent) => {
+              const recorded = deriveDecision(recent);
+              const isActive = recent.id === run?.id;
+              return (
+                <button
+                  key={recent.id}
+                  type="button"
+                  onClick={() => loadHistoricalRun(recent.id)}
+                  className={cn(
+                    "group flex flex-col items-start gap-1.5 rounded-lg border p-3 text-left text-sm transition-colors",
+                    isActive
+                      ? "border-primary/50 bg-primary/5"
+                      : "border-border bg-background hover:border-primary/30 hover:bg-muted/40",
+                  )}
+                >
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <Badge variant={statusVariant(recent.status)} className="shrink-0">
+                      {recent.status}
+                    </Badge>
+                    {recorded === "approved" ? (
+                      <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300">
+                        approved
+                      </Badge>
+                    ) : recorded === "denied" ? (
+                      <Badge variant="outline" className="border-rose-500/40 text-rose-700 dark:text-rose-300">
+                        denied
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <div className="line-clamp-2 w-full text-xs leading-5 text-foreground/90">
+                    {truncate(recent.goal, 110)}
+                  </div>
+                  <div className="flex w-full items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                    <span className="font-mono">{recent.id.slice(0, 14)}…</span>
+                    <span>{formatRelative(recent.createdAt)}</span>
+                  </div>
+                  <div className="flex w-full justify-end opacity-0 transition-opacity group-hover:opacity-100">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        rerunWithGoal(recent.goal);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          rerunWithGoal(recent.goal);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/10"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Re-run
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)]">
         <section className="space-y-3 rounded-lg border bg-card p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm font-semibold">Mission</div>
-            <Button onClick={startRun} disabled={busy || goal.trim().length < 10}>
-              <Play className="h-4 w-4" />
-              Run
+            <Button
+              onClick={() => startRun()}
+              disabled={busy || goal.trim().length < 10}
+              aria-busy={busy}
+            >
+              {busy ? <Spinner /> : <Play className="h-4 w-4" />}
+              {busy ? "Running…" : "Run"}
             </Button>
           </div>
           <Textarea
             value={goal}
             onChange={(event) => setGoal(event.target.value)}
+            disabled={busy}
             className="min-h-44 resize-none font-mono text-xs leading-5"
           />
           {error && (
@@ -391,6 +593,67 @@ export function CopilotPage() {
               </span>
             )}
           </div>
+
+          {decision !== null && run && (
+            <div
+              role="status"
+              data-testid="post-decision-card"
+              className={cn(
+                "mt-4 rounded-lg border p-3",
+                decision === "approved"
+                  ? "border-emerald-500/30 bg-emerald-500/5"
+                  : "border-rose-500/30 bg-rose-500/5",
+              )}
+            >
+              <div className="flex items-start gap-2">
+                {decision === "approved" ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
+                ) : (
+                  <XCircle className="mt-0.5 h-4 w-4 text-rose-600" />
+                )}
+                <div className="flex-1">
+                  <div className="text-sm font-semibold">
+                    {decision === "approved" ? "Spend approved" : "Spend denied"}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {decision === "approved"
+                      ? "The decision is recorded on the audit trail. The agent can re-run with the same goal, or you can tune the spend policy for a different outcome next time."
+                      : "The denial is recorded on the audit trail. The agent can re-run with the same goal, or you can tune the spend policy to allow this category of spend."}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      onClick={() => {
+                        document
+                          .getElementById("recent-decisions")
+                          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                    >
+                      <History className="h-3 w-3" />
+                      View decision history
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      onClick={() => rerunWithGoal(run.goal)}
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Re-run with same goal
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => router.push("/policies")}
+                    >
+                      <Sliders className="h-3 w-3" />
+                      Tune the policy
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </div>

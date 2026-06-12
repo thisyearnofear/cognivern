@@ -262,6 +262,16 @@ export class CopilotController {
     res.json({ success: true, run: publicRun(run) });
   }
 
+  async listRuns(req: Request, res: Response): Promise<void> {
+    const limitParsed = req.query.limit ? Number(req.query.limit) : undefined;
+    const limit =
+      typeof limitParsed === "number" && !Number.isNaN(limitParsed)
+        ? Math.min(Math.max(limitParsed, 1), 50)
+        : 10;
+    const runs = copilotRunStore.listRecent(limit);
+    res.json({ success: true, runs: runs.map(publicRun) });
+  }
+
   async confirmRun(req: Request, res: Response): Promise<void> {
     const run = copilotRunStore.get(req.params.runId);
     if (!run) {

@@ -181,6 +181,40 @@ export class CopilotRunStore {
 
     return rowToRun(row, events);
   }
+
+  /**
+   * Return the N most recent runs, newest first. Used to render the
+   * recent-decisions rail on the Copilot page so users can revisit or
+   * re-run prior missions after they've made a decision.
+   */
+  listRecent(limit: number): PersistedCopilotRun[] {
+    const db = getDb();
+    const rows = db
+      .prepare(
+        `SELECT id, goal, status, summary, error, preview, result, created_at, updated_at
+         FROM copilot_runs
+         ORDER BY created_at DESC
+         LIMIT ?`,
+      )
+      .all(limit) as RunRow[];
+
+    return rows.map((row) => {
+      const eventRows = db
+        .prepare(
+          `SELECT id, run_id, type, name, payload, timestamp
+           FROM copilot_events WHERE run_id = ? ORDER BY id ASC`,
+        )
+        .all(row.id) as EventRow[];
+      const events: PersistedCopilotEvent[] = eventRows.map((eventRow) => ({
+        id: eventRow.id,
+        type: eventRow.type,
+        timestamp: eventRow.timestamp,
+        name: eventRow.name ?? undefined,
+        payload: safeJson<Record<string, unknown>>(eventRow.payload),
+      }));
+      return rowToRun(row, events);
+    });
+  }
 }
 
 export const copilotRunStore = new CopilotRunStore();

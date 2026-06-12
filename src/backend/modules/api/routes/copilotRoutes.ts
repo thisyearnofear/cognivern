@@ -7,6 +7,9 @@ export function createCopilotRoutes(copilotController: CopilotController): Route
   router.post("/copilot/runs", (req, res) =>
     copilotController.startRun(req, res),
   );
+  router.get("/copilot/runs", (req, res) =>
+    copilotController.listRuns(req, res),
+  );
   router.get("/copilot/runs/:runId", (req, res) =>
     copilotController.getRun(req, res),
   );

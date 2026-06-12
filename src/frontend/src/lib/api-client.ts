@@ -358,6 +358,12 @@ class ApiClient {
     return this.fetch(`/api/copilot/runs/${runId}`);
   }
 
+  async listCopilotRuns(
+    limit = 10,
+  ): Promise<{ success: boolean; runs: CopilotRun[] }> {
+    return this.fetch(`/api/copilot/runs?limit=${limit}`);
+  }
+
   async confirmCopilotRun(
     runId: string,
     params: { approve: boolean; reason?: string },
