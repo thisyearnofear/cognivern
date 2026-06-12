@@ -1,13 +1,12 @@
 import logger from "../utils/logger.js";
-import { PolicyEnforcementService } from "./PolicyEnforcementService.js";
-import { Policy, PolicyRule } from "../types/Policy.js";
+import { Policy } from "../types/Policy.js";
 import { PolicyService, sharedPolicyService } from "./PolicyService.js";
+import { PolicyEnforcementService } from "./PolicyEnforcementService.js";
 import { CreRunRecorder } from "../cre/runRecorder.js";
 import { creRunStore } from "../cre/storage/CreRunStore.js";
 import { enrichCreRunEvidence } from "../shared/utils/evidence.js";
 import { AgentAction } from "../types/Agent.js";
 import { ethers } from "ethers";
-import { createHash } from "node:crypto";
 import {
   owsLocalVaultService,
   OwsResolvedAccess,
@@ -15,31 +14,18 @@ import {
 import { ledgerSigningProvider } from "../signing/LedgerSigningProvider.js";
 import {
   FhenixPolicyService,
-  FhenixClientAdapter,
   sharedFhenixPolicyService,
 } from "./FhenixPolicyService.js";
-import { blockchainConfig } from "../shared/config/index.js";
-import { circuitBreakers } from "../shared/utils/circuitBreaker.js";
-import { withTimeout, retry } from "../shared/utils/index.js";
-
-const GOVERNANCE_ABI = [
-  "function evaluateAction(bytes32 actionId, bytes32 agentId, string memory actionType, bytes32 dataHash, bool approved) external",
-  "function getAgent(bytes32 agentId) view returns (bytes32 id, string name, address owner, string[] capabilities, uint256 registeredAt, uint8 status, bytes32 currentPolicyId)",
-  "function getPolicy(bytes32 policyId) view returns (bytes32 id, string name, string description, bytes32 rulesHash, address creator, uint256 createdAt, uint256 updatedAt, uint8 status)",
-  "function registerAgent(bytes32 agentId, string memory name, string[] memory capabilities, bytes32 policyId) external",
-  "function updateAgentStatus(bytes32 agentId, uint8 status) external",
-  "function createPolicy(bytes32 policyId, string memory name, string memory description, bytes32 rulesHash) external",
-  "function updatePolicyStatus(bytes32 policyId, uint8 status) external",
-  "function authorizeEvaluator(address evaluator) external",
-];
+import { OwsWalletPolicyEvaluator } from "./OwsWalletPolicy.js";
+import { OwsWalletOnChainManager } from "./OwsWalletOnChain.js";
 
 export interface SpendIntent {
   id: string;
   agentId: string;
   recipient: string;
-  amount: string; // in native units or stablecoin
-  asset: string; // e.g., "ETH", "USDC", "NEAR"
-  reason: string; // The "Intent" - why are we spending?
+  amount: string;
+  asset: string;
+  reason: string;
   timestamp: string;
   metadata?: Record<string, any>;
 }
@@ -70,11 +56,8 @@ export class OwsWalletService {
   private policyService: PolicyService;
   private policyEnforcement: PolicyEnforcementService;
   private fhenixPolicyService: FhenixPolicyService;
-  private onChainProvider: ethers.JsonRpcProvider | null = null;
-  private onChainWallet: ethers.Wallet | null = null;
-  private onChainContract: ethers.Contract | null = null;
-  private lastProviderHealthCheck: number = 0;
-  private static readonly HEALTH_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+  private policyEvaluator: OwsWalletPolicyEvaluator;
+  private onChainManager: OwsWalletOnChainManager;
 
   constructor(
     policyService?: PolicyService,
@@ -86,43 +69,8 @@ export class OwsWalletService {
       this.policyService,
       this.fhenixPolicyService,
     );
-  }
-
-  private async getOnChainSigner(): Promise<{ wallet: ethers.Wallet; contract: ethers.Contract } | null> {
-    const pk = blockchainConfig.privateKey;
-    if (!pk) return null;
-
-    if (this.onChainWallet && this.onChainContract) {
-      const now = Date.now();
-      if (now - this.lastProviderHealthCheck > OwsWalletService.HEALTH_CHECK_INTERVAL_MS) {
-        try {
-          await withTimeout(this.onChainProvider!.getBlockNumber(), 5000);
-          this.lastProviderHealthCheck = now;
-        } catch {
-          this.onChainProvider = null;
-          this.onChainWallet = null;
-          this.onChainContract = null;
-        }
-      }
-      if (this.onChainWallet && this.onChainContract) {
-        return { wallet: this.onChainWallet, contract: this.onChainContract };
-      }
-    }
-
-    try {
-      this.onChainProvider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
-      this.onChainWallet = new ethers.Wallet(pk, this.onChainProvider);
-      this.onChainContract = new ethers.Contract(
-        blockchainConfig.contracts.governance,
-        GOVERNANCE_ABI,
-        this.onChainWallet,
-      );
-      this.lastProviderHealthCheck = Date.now();
-      return { wallet: this.onChainWallet, contract: this.onChainContract };
-    } catch (error) {
-      logger.warn("Failed to initialize on-chain signer:", error);
-      return null;
-    }
+    this.policyEvaluator = new OwsWalletPolicyEvaluator();
+    this.onChainManager = new OwsWalletOnChainManager();
   }
 
   public async issueAuditPermit(
@@ -132,16 +80,10 @@ export class OwsWalletService {
     return this.fhenixPolicyService.issueAuditPermit(auditor, policyId);
   }
 
-  /**
-   * Initialize the wallet service by ensuring a bootstrap wallet exists
-   */
   public async initialize(): Promise<void> {
     await owsLocalVaultService.ensureBootstrapWallet();
   }
 
-  /**
-   * Request scoped access for an agent
-   */
   public async getScopedAccess(
     agentId: string,
     scope: string[],
@@ -156,9 +98,6 @@ export class OwsWalletService {
     return (await owsLocalVaultService.listWallets()).length > 0;
   }
 
-  /**
-   * Execute a spend intent with pre-sign policy checks
-   */
   public async executeSpend(
     intent: SpendIntent,
     context: SpendExecutionContext = {},
@@ -183,8 +122,9 @@ export class OwsWalletService {
         intent,
       });
 
-      const action = this.toAgentAction(intent);
-      const activePolicy = await this.resolveActiveSpendPolicy(
+      const action = this.policyEvaluator.toAgentAction(intent);
+      const activePolicy = await this.policyEvaluator.resolveActiveSpendPolicy(
+        this.policyService,
         access?.apiKey?.policyIds?.[0] ||
           (typeof intent.metadata?.policyId === "string"
             ? intent.metadata.policyId
@@ -206,11 +146,13 @@ export class OwsWalletService {
         | { status: ExecutionResult["status"]; reason?: string }
         | undefined;
       try {
-        const evaluated = await this.evaluatePolicyChecks(
+        const evaluated = await this.policyEvaluator.evaluatePolicyChecks(
           intent,
           action,
           activePolicy,
           context,
+          this.policyEnforcement,
+          this.fhenixPolicyService,
         );
         policyChecks = evaluated.policyChecks;
         policyDecision = evaluated.decision;
@@ -229,7 +171,7 @@ export class OwsWalletService {
       }
 
       const decision =
-        policyDecision || this.classifyDecision(activePolicy, policyChecks);
+        policyDecision || this.policyEvaluator.classifyDecision(activePolicy, policyChecks);
       const failedChecks = policyChecks.filter((check) => !check.result);
       step.end({
         ok: decision.status === "approved",
@@ -325,8 +267,6 @@ export class OwsWalletService {
     let signature: string;
     let signer: string;
 
-    // Dispatch to the right signing provider based on wallet metadata
-    // Fallback: if externalSource is set but no signingProvider, treat as ows_remote (backward compat)
     const metadata = access.wallet.metadata || {};
     const provider = (metadata.signingProvider as string) ||
       (metadata.externalSource ? "ows_remote" : "local");
@@ -394,7 +334,7 @@ export class OwsWalletService {
       }
     }
 
-    const onChain = await this.recordOnChainApproval({
+    const onChain = await this.onChainManager.recordOnChainApproval({
       intentId: intent.id,
       agentId: intent.agentId,
       actionType: "spend",
@@ -513,7 +453,7 @@ export class OwsWalletService {
   public async getStatus() {
     await owsLocalVaultService.ensureBootstrapWallet();
     const vaultStatus = await owsLocalVaultService.getStatus();
-    const activePolicy = await this.resolveActiveSpendPolicy();
+    const activePolicy = await this.policyEvaluator.resolveActiveSpendPolicy(this.policyService);
     return {
       layer: "SpendOS",
       status: vaultStatus.walletCount > 0 ? "active" : "unconfigured",
@@ -535,347 +475,6 @@ export class OwsWalletService {
     };
   }
 
-  private toAgentAction(intent: SpendIntent): AgentAction {
-    const amountValue = Number(intent.amount);
-    const metadata = {
-      ...(intent.metadata || {}),
-      agentId: intent.agentId,
-      amount: intent.amount,
-      amountValue: Number.isFinite(amountValue) ? amountValue : 0,
-      amountUsd: this.resolveAmountUsd(intent, amountValue),
-      asset: intent.asset,
-      recipient: intent.recipient,
-    };
-
-    return {
-      id: intent.id,
-      timestamp: intent.timestamp,
-      type: "spend",
-      description: intent.reason,
-      metadata,
-      policyChecks: [],
-    };
-  }
-
-  private resolveAmountUsd(intent: SpendIntent, amountValue: number): number {
-    const metadataAmountUsd = Number(intent.metadata?.amountUsd);
-    if (Number.isFinite(metadataAmountUsd)) {
-      return metadataAmountUsd;
-    }
-
-    if (["USD", "USDC", "USDT"].includes(intent.asset.toUpperCase())) {
-      return Number.isFinite(amountValue) ? amountValue : 0;
-    }
-
-    return Number.isFinite(amountValue) ? amountValue : 0;
-  }
-
-  private async resolveActiveSpendPolicy(
-    explicitPolicyId?: string,
-  ): Promise<Policy | null> {
-    const requestedPolicyId =
-      explicitPolicyId || process.env.ACTIVE_SPEND_POLICY;
-    if (requestedPolicyId) {
-      const explicitPolicy =
-        await this.policyService.getPolicy(requestedPolicyId);
-      if (explicitPolicy?.status === "active") {
-        return explicitPolicy;
-      }
-    }
-
-    const policies = await this.policyService.listPolicies();
-    const activePolicies = policies.filter(
-      (policy) => policy.status === "active" && policy.rules.length > 0,
-    );
-    const spendPolicy =
-      activePolicies.find(
-        (policy) =>
-          String(policy.metadata?.category || "").toLowerCase() === "spend",
-      ) ||
-      activePolicies.find((policy) => policy.id === "spend-governance-policy");
-
-    if (spendPolicy) {
-      return spendPolicy;
-    }
-
-    return (
-      activePolicies.sort(
-        (left, right) =>
-          new Date(right.updatedAt).getTime() -
-          new Date(left.updatedAt).getTime(),
-      )[0] || null
-    );
-  }
-
-  private classifyDecision(
-    policy: Policy,
-    checks: AgentAction["policyChecks"],
-  ): { status: ExecutionResult["status"]; reason?: string } {
-    const failedChecks = checks.filter((check) => !check.result);
-    if (failedChecks.length === 0) {
-      return { status: "approved" };
-    }
-
-    const failedRules = failedChecks
-      .map((check) => ({
-        check,
-        rule: policy.rules.find((rule) => rule.id === check.policyId),
-      }))
-      .filter(
-        (
-          value,
-        ): value is {
-          check: AgentAction["policyChecks"][number];
-          rule: PolicyRule;
-        } => Boolean(value.rule),
-      );
-
-    const denyRules = failedRules.filter(
-      ({ rule }) => String(rule.type).toLowerCase() === "deny",
-    );
-    if (denyRules.length > 0) {
-      return {
-        status: "denied",
-        reason: denyRules
-          .map(
-            ({ check, rule }) =>
-              check.reason ||
-              String(
-                rule.action?.parameters?.reason ||
-                  `${rule.id} denied the spend`,
-              ),
-          )
-          .join("; "),
-      };
-    }
-
-    return {
-      status: "held",
-      reason: failedRules
-        .map(
-          ({ check, rule }) =>
-            check.reason ||
-            String(
-              rule.action?.parameters?.reason || `${rule.id} requires review`,
-            ),
-        )
-        .join("; "),
-    };
-  }
-
-  private async persistRun(recorder: CreRunRecorder) {
-    const run = enrichCreRunEvidence(recorder.getRun());
-    await creRunStore.replace(run);
-    return run;
-  }
-
-  private async recordOnChainApproval(params: {
-    intentId: string;
-    agentId: string;
-    actionType: string;
-    metadata: Record<string, any>;
-  }): Promise<{ success: boolean; txHash?: string }> {
-    const signer = await this.getOnChainSigner();
-    if (!signer) return { success: false };
-
-    try {
-      return await circuitBreakers.blockchain.execute(async () => {
-        const actionId = ethers.id(params.intentId);
-        const agentBytes32 = ethers.id(params.agentId);
-        const dataHash = ethers.ZeroHash;
-        const gas = blockchainConfig.gasLimits;
-
-        await this.ensureOnChainAgent(signer.wallet, signer.contract, params.agentId);
-
-        const tx = await signer.contract.evaluateAction(
-          actionId,
-          agentBytes32,
-          params.actionType,
-          dataHash,
-          true,
-          { gasLimit: gas.evaluateAction },
-        );
-        const receipt = await withTimeout<ethers.ContractTransactionReceipt | null>(
-          tx.wait(),
-          60000,
-        );
-        logger.info(`On-chain approval recorded: ${receipt?.hash}`);
-        return { success: true, txHash: receipt?.hash };
-      });
-    } catch (error) {
-      logger.error("On-chain record failed:", error);
-      return { success: false };
-    }
-  }
-
-  private static readonly DEFAULT_POLICY_ID = ethers.id("cognivern-default-spend-policy");
-  private static readonly DEFAULT_RULES_HASH = ethers.id("cognivern-default-rules-v1");
-
-  private async ensureOnChainAgent(
-    wallet: ethers.Wallet,
-    contract: ethers.Contract,
-    agentIdStr: string,
-  ): Promise<void> {
-    const agentId = ethers.id(agentIdStr);
-    const gas = blockchainConfig.gasLimits;
-    try {
-      const agent = await retry(() => contract.getAgent(agentId), 2, 2000);
-      if (agent.status === 1) return;
-      if (agent.status === 0) {
-        await (
-          await contract.updateAgentStatus(agentId, 1, { gasLimit: gas.updateStatus })
-        ).wait();
-        logger.info(`On-chain agent ${agentIdStr} activated (was Registered)`);
-      }
-      return;
-    } catch {
-      // Agent doesn't exist — register + activate
-    }
-
-    try {
-      const policyId = OwsWalletService.DEFAULT_POLICY_ID;
-      const rulesHash = OwsWalletService.DEFAULT_RULES_HASH;
-
-      try {
-        await retry(() => contract.getPolicy(policyId), 2, 2000);
-      } catch {
-        await (
-          await contract.createPolicy(
-            policyId,
-            "Cognivern Default Spend Policy",
-            "Auto-created default policy for governed agent spends",
-            rulesHash,
-            { gasLimit: gas.createPolicy },
-          )
-        ).wait();
-        await (
-          await contract.updatePolicyStatus(policyId, 1, { gasLimit: gas.updateStatus })
-        ).wait();
-      }
-
-      await (
-        await contract.registerAgent(
-          agentId,
-          `${agentIdStr}`,
-          ["spend-governance"],
-          policyId,
-          { gasLimit: gas.registerAgent },
-        )
-      ).wait();
-      await (
-        await contract.updateAgentStatus(agentId, 1, { gasLimit: gas.updateStatus })
-      ).wait();
-      logger.info(`On-chain agent ${agentIdStr} registered and activated`);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      logger.error(`Failed to register on-chain agent ${agentIdStr}: ${reason}`);
-    }
-  }
-
-  private async resolveAccess(
-    intent: SpendIntent,
-    context: SpendExecutionContext,
-  ) {
-    return owsLocalVaultService.resolveAccess({
-      walletId:
-        context.walletId ||
-        (typeof intent.metadata?.walletId === "string"
-          ? intent.metadata.walletId
-          : undefined),
-      apiKeyToken: context.apiKeyToken,
-    });
-  }
-
-  private shouldUseConfidentialPolicy(activePolicy: Policy): boolean {
-    return activePolicy.metadata?.confidential === true;
-  }
-
-  private async evaluatePolicyChecks(
-    intent: SpendIntent,
-    action: AgentAction,
-    activePolicy: Policy,
-    context: SpendExecutionContext,
-  ): Promise<{
-    policyChecks: AgentAction["policyChecks"];
-    decision?: { status: ExecutionResult["status"]; reason?: string };
-  }> {
-    if (!this.shouldUseConfidentialPolicy(activePolicy)) {
-      await this.policyEnforcement.loadPolicy(activePolicy.id);
-      const decision = await this.policyEnforcement.evaluateDecision(action);
-      return { policyChecks: decision.policyChecks };
-    }
-
-    if (
-      typeof context.encryptedAmount !== "string" &&
-      typeof intent.metadata?.encryptedAmount !== "string"
-    ) {
-      return {
-        policyChecks: [
-          {
-            policyId: activePolicy.id,
-            result: false,
-            reason:
-              "Confidential policy requires encrypted amount input. Held for manual review.",
-          },
-        ],
-        decision: {
-          status: "held",
-          reason:
-            "Confidential policy requires encrypted amount input. Held for manual review.",
-        },
-      };
-    }
-
-    const amountWei = BigInt(intent.amount);
-    const vendorHash =
-      context.vendorHash ||
-      (typeof intent.metadata?.vendorHash === "string"
-        ? intent.metadata.vendorHash
-        : `0x${createHash("sha256").update(intent.recipient).digest("hex")}`);
-
-    const confidentialDecision =
-      await this.fhenixPolicyService.evaluateEncrypted({
-        agentId: intent.agentId,
-        policyId: activePolicy.id,
-        amountWei,
-        vendorHash,
-      });
-
-    const decisionByOutcome: Record<
-      typeof confidentialDecision.outcome,
-      { status: ExecutionResult["status"]; reason?: string }
-    > = {
-      approve: { status: "approved" },
-      hold: {
-        status: "held",
-        reason: "Confidential policy requires manual review.",
-      },
-      deny: {
-        status: "denied",
-        reason: "Confidential policy denied this spend.",
-      },
-    };
-
-    return {
-      policyChecks: [
-        {
-          policyId: activePolicy.id,
-          result: confidentialDecision.outcome === "approve",
-          reason: `Confidential outcome: ${confidentialDecision.outcome}`,
-        },
-      ],
-      decision: {
-        ...decisionByOutcome[confidentialDecision.outcome],
-        reason:
-          decisionByOutcome[confidentialDecision.outcome].reason ||
-          `Confidential decision ${confidentialDecision.decisionId} approved spend`,
-      },
-    };
-  }
-
-  /**
-   * Preview a spend without executing - returns policy evaluation without signing
-   */
   public async previewSpend(intent: SpendIntent): Promise<{
     intentId: string;
     status: "approved" | "denied" | "held";
@@ -891,7 +490,8 @@ export class OwsWalletService {
       apiKeyToken: intent.metadata?.apiKeyToken as string | undefined,
     });
 
-    const activePolicy = await this.resolveActiveSpendPolicy(
+    const activePolicy = await this.policyEvaluator.resolveActiveSpendPolicy(
+      this.policyService,
       access?.apiKey?.policyIds?.[0] ||
         (typeof intent.metadata?.policyId === "string"
           ? intent.metadata.policyId
@@ -910,8 +510,8 @@ export class OwsWalletService {
       };
     }
 
-    const action = this.toAgentAction(intent);
-    const evaluated = await this.evaluatePolicyChecks(
+    const action = this.policyEvaluator.toAgentAction(intent);
+    const evaluated = await this.policyEvaluator.evaluatePolicyChecks(
       intent,
       action,
       activePolicy,
@@ -927,10 +527,12 @@ export class OwsWalletService {
             ? intent.metadata.vendorHash
             : undefined,
       },
+      this.policyEnforcement,
+      this.fhenixPolicyService,
     );
     const policyResult =
       evaluated.decision ||
-      this.classifyDecision(activePolicy, evaluated.policyChecks);
+      this.policyEvaluator.classifyDecision(activePolicy, evaluated.policyChecks);
 
     return {
       intentId: intent.id,
@@ -947,9 +549,6 @@ export class OwsWalletService {
     };
   }
 
-  /**
-   * Execute a governed DeFi action (e.g. Swap) via Fhenix policy and X Layer vault.
-   */
   public async executeDeFiAction(params: {
     agentId: string;
     policyId: string;
@@ -984,6 +583,26 @@ export class OwsWalletService {
       logger.error(`DeFi action failed: ${errMsg}`);
       return { success: false, error: errMsg };
     }
+  }
+
+  private async resolveAccess(
+    intent: SpendIntent,
+    context: SpendExecutionContext,
+  ) {
+    return owsLocalVaultService.resolveAccess({
+      walletId:
+        context.walletId ||
+        (typeof intent.metadata?.walletId === "string"
+          ? intent.metadata.walletId
+          : undefined),
+      apiKeyToken: context.apiKeyToken,
+    });
+  }
+
+  private async persistRun(recorder: CreRunRecorder) {
+    const run = enrichCreRunEvidence(recorder.getRun());
+    await creRunStore.replace(run);
+    return run;
   }
 }
 

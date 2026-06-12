@@ -18,13 +18,15 @@ export class PolicyService {
     logger.info('PolicyService initialized');
   }
 
+  private static idCounter = 0;
+
   async createPolicy(
     name: string,
     description: string,
     rules: PolicyRule[],
     metadata?: Record<string, any>,
   ): Promise<Policy> {
-    const id = `policy-${Date.now()}`;
+    const id = `policy-${Date.now()}-${PolicyService.idCounter++}`;
     const now = new Date().toISOString();
 
     const policy: Policy = {
