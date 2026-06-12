@@ -567,7 +567,7 @@ export function AuditPage() {
             { icon: Lock, label: "API Keys", value: "scrypt hashed, scoped permissions" },
             { icon: Shield, label: "Rate Limiting", value: "3 layers (global, workspace, per-key)" },
             { icon: Lock, label: "Encryption", value: "Fhenix FHE on-chain evaluation" },
-            { icon: Shield, label: "Audit", value: "Immutable on Filecoin / 0G + X Layer" },
+            { icon: Shield, label: "Audit", value: "Immutable on 0G + X Layer" },
             { icon: Shield, label: "Contract Audit", value: "ChainGPT scan on recipients" },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex items-center gap-2 text-muted-foreground">

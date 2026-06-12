@@ -38,8 +38,8 @@ Cognivern Evaluation Layer
   v
 Cognivern Audit + Run Ledger
   ├── AuditLogService.logAction() — every decision recorded, reasons preserved
-  ├── [optional] Filecoin evidence signing — durable audit storage
-  ├── [optional] 0G Storage evidence anchoring — real-time dual-anchor
+  ├── [optional] Filecoin evidence anchoring via FilecoinStorageService (FVM AIGovernanceStorage)
+  ├── [optional] 0G Storage evidence anchoring via ZeroGStorageService (dual-anchor)
   └── [optional] X Layer execution dispatch via Hyperlane
 ```
 
@@ -61,8 +61,8 @@ Agent action
       ├─ "speculos"  → OwsLocalVaultService.signWithExternalWallet(Speculos HTTP API)
       └─ "ows_remote"→ OwsLocalVaultService.signWithExternalWallet(remote URL)
   → AuditLogService.logAction()
-  → [optional] Filecoin evidence signing via CRE evidence pipeline (FILECOIN_PRIVATE_KEY)
-  → [optional] 0G Storage evidence anchoring via ZeroGStorageService (dual-anchor with Filecoin)
+  → [optional] Filecoin evidence anchoring via FilecoinStorageService → AIGovernanceStorage (FVM)
+  → [optional] 0G Storage evidence anchoring via ZeroGStorageService (dual-anchor, parallel)
   → [optional] X Layer execution dispatch via Hyperlane Mailbox (contract-side)
 ```
 
@@ -154,9 +154,9 @@ Each partner network plays a specific role in the product. This table is the sin
 | Partner | Role in product | User-visible? | Status |
 |---|---|---|---|
 | **Fhenix** | Confidential policy evaluation via FHE. Budgets, limits, and spend counters remain encrypted throughout evaluation. | Yes — FHE shield badge on audit decisions | **Live** (Fhenix testnet: Arbitrum Sepolia / Base Sepolia) |
-| **X Layer** | Governed execution dispatch path. After policy evaluation, approved spends are dispatched here for execution and public anchoring. | Yes — in decision audit trail via Hyperlane | Testnet (chainId 1952) |
-| **Filecoin** | Durable evidence anchoring for audit logs. Long-term immutable storage of governance decisions and evidence hashes. | Yes — evidence link per decision in audit entry | Calibration testnet |
-| **0G** | Real-time governance decision anchoring alongside Filecoin. Stores `zeroGRootHash` in `CreRun.evidence` for dual-anchor integrity. | Transparently layered with Filecoin | **Live** — via `ZeroGStorageService` (0G Newton testnet) |
+| **X Layer** | Governed execution dispatch path. After policy evaluation, approved spends are dispatched here for execution and public anchoring. | Yes — in decision audit trail via Hyperlane | Testnet (chainId 195) |
+| **Filecoin** | Durable evidence anchoring for audit logs via `FilecoinStorageService` → `AIGovernanceStorage` contract on FVM. Stores `filecoinCid` and `filecoinTxHash` in `CreRun.evidence`. | Yes — evidence CID per decision in audit entry | **Live** — via `FilecoinStorageService` (Calibration testnet) |
+| **0G** | Real-time governance decision anchoring. Stores `zeroGRootHash` in `CreRun.evidence`. Runs in parallel with Filecoin (dual-anchor). | Transparently layered with Filecoin | **Live** — via `ZeroGStorageService` (0G Newton testnet) |
 | **ChainGPT** | Web3-specialized LLM for smart contract auditing at runtime (pre-spend vulnerability scan) and governance-copilot queries. | Yes — Contract Audit badge on policy checks with ChainGPT metadata | **Live** — via `ChainGPTAuditService` |
 | **Speculos** | Ledger device emulator for sandbox/CI signing. Runs as a Docker container; acts as an HTTP signing endpoint for the existing `signWithExternalWallet()` path. | No — infra only | **Live** — Docker Compose sandbox profile |
 | **Ledger DMK** | Hardware signing provider for high-value transactions. User confirms on physical Ledger device before any signature is produced. | Yes — "Hardware Signed" badge on audit decisions | **Live** — `LedgerSigningProvider` (DMK) |
@@ -377,7 +377,7 @@ The product implements layered security:
 | API Keys | scrypt hashed, workspace-scoped permissions |
 | Rate Limiting | 3 layers (global, workspace, per-endpoint) |
 | Encryption | Fhenix FHE on-chain evaluation (confidential policies) |
-| Audit | Immutable records on Filecoin / 0G |
+| Audit | Immutable records on 0G + Filecoin (dual-anchor) |
 | Contract Audit | ChainGPT runtime scan on recipient contracts |
 
 ## Related Docs

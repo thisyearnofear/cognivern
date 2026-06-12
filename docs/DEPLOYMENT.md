@@ -58,11 +58,10 @@ Optional integrations:
 
 | Variable                      | Purpose                                                                              |
 | ----------------------------- | ------------------------------------------------------------------------------------ |
-| `FILECOIN_ENABLED`            | Enables Filecoin-backed signing / contract interactions when `true`                  |
-| `FILECOIN_PRIVATE_KEY`        | Filecoin wallet for contract interaction; required only when `FILECOIN_ENABLED=true` |
-| `FILECOIN_RPC_URL`            | Filecoin RPC endpoint                                                                |
-| `GOVERNANCE_CONTRACT_ADDRESS` | Deployed governance contract address (Filecoin)                                      |
-| `STORAGE_CONTRACT_ADDRESS`    | Deployed storage contract address (Filecoin)                                         |
+| `FILECOIN_PRIVATE_KEY`        | EVM signing key for Filecoin contract interaction and evidence signing; also used as Fhenix fallback |
+| `FILECOIN_RPC_URL`            | Filecoin Calibration RPC endpoint                                                    |
+| `GOVERNANCE_CONTRACT_ADDRESS` | Deployed GovernanceContract address (shared across Filecoin + X Layer)               |
+| `STORAGE_CONTRACT_ADDRESS`    | Deployed AIGovernanceStorage address (enables FilecoinStorageService dual-anchor)    |
 | `XLAYER_GOVERNANCE_CONTRACT`  | Deployed governance contract address (X Layer)                                       |
 | `XLAYER_STORAGE_CONTRACT`     | Deployed storage contract address (X Layer)                                          |
 | `XLAYER_PRIVATE_KEY`          | Wallet private key for X Layer deployment                                            |

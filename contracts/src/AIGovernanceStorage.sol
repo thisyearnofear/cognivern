@@ -81,6 +81,7 @@ contract AIGovernanceStorage {
     address public owner;
     uint256 public totalActions;
     uint256 public totalViolations;
+    uint256 public totalApproved;
 
     // Modifiers
     modifier onlyOwner() {
@@ -110,7 +111,7 @@ contract AIGovernanceStorage {
         address agentAddress,
         string memory name,
         string memory agentType
-    ) external onlyOwner {
+    ) external {
         require(agentAddress != address(0), "Invalid agent address");
         require(agents[agentAddress].registrationTime == 0, "Agent already registered");
 
@@ -170,6 +171,7 @@ contract AIGovernanceStorage {
         agents[agentAddress].totalActions++;
         if (approved) {
             agents[agentAddress].approvedActions++;
+            totalApproved++;
         }
 
         // Track actions
@@ -202,7 +204,7 @@ contract AIGovernanceStorage {
         string memory violationType,
         string memory reason,
         uint256 severity
-    ) external validAgent(agentAddress) {
+    ) external onlyOwner validAgent(agentAddress) {
         require(severity >= 1 && severity <= 5, "Severity must be between 1 and 5");
         require(policyViolations[violationId].timestamp == 0, "Violation already recorded");
 
@@ -311,13 +313,6 @@ contract AIGovernanceStorage {
         _totalActions = totalActions;
         _totalViolations = totalViolations;
         _totalAgents = registeredAgents.length;
-
-        // Calculate approval rate
-        uint256 totalApproved = 0;
-        for (uint256 i = 0; i < registeredAgents.length; i++) {
-            totalApproved += agents[registeredAgents[i]].approvedActions;
-        }
-
         _approvalRate = totalActions > 0 ? (totalApproved * 100) / totalActions : 100;
     }
 

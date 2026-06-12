@@ -1,6 +1,7 @@
 import { AgentAction, PolicyCheck } from "../types/Agent.js";
 import logger from "../utils/logger.js";
 import { zeroGStorageService } from "./ZeroGStorageService.js";
+import { filecoinStorageService } from "./FilecoinStorageService.js";
 import { creRunStore, CreRunStore } from "../cre/storage/CreRunStore.js";
 import { CreRun, CreArtifact } from "../cre/types.js";
 import { ethers } from "ethers";
@@ -203,6 +204,30 @@ export class AuditLogService {
         }
       })
       .catch(() => {});
+
+    // Anchor event to Filecoin AIGovernanceStorage (non-fatal, fire-and-forget with post-hoc update)
+    filecoinStorageService
+      .anchorAuditRecord({
+        runId,
+        workflow: workflowType,
+        eventType: eventData.eventType,
+        agentType: eventData.agentType,
+        timestamp: startedAt,
+        evidenceHash: evidence.hash,
+      })
+      .then(async (result) => {
+        if (result) {
+          run.evidence = {
+            hash: run.evidence?.hash ?? "pending",
+            ...(run.evidence ?? {}),
+            zeroGRootHash: run.evidence?.zeroGRootHash,
+            filecoinCid: result.cid,
+            filecoinTxHash: result.txHash,
+          };
+          await this.creStore.replace(run);
+        }
+      })
+      .catch(() => {});
   }
 
   async logAction(
@@ -290,6 +315,31 @@ export class AuditLogService {
       .catch(() => {
         /* already logged inside ZeroGStorageService */
       });
+
+    // Anchor governance decision to Filecoin AIGovernanceStorage (non-fatal, fire-and-forget with post-hoc update)
+    filecoinStorageService
+      .anchorAuditRecord({
+        runId,
+        workflow: "governance",
+        outcome: allowed ? "allowed" : "denied",
+        agentId: action.metadata?.agentId,
+        actionType: action.type,
+        timestamp: now,
+        evidenceHash: evidence.hash,
+      })
+      .then(async (result) => {
+        if (result) {
+          run.evidence = {
+            hash: run.evidence?.hash ?? "pending",
+            ...(run.evidence ?? {}),
+            zeroGRootHash: run.evidence?.zeroGRootHash,
+            filecoinCid: result.cid,
+            filecoinTxHash: result.txHash,
+          };
+          await this.creStore.replace(run);
+        }
+      })
+      .catch(() => {});
 
     return runId;
   }

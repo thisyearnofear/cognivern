@@ -113,9 +113,9 @@ async function deployContracts() {
       `Governance stats - Policies: ${stats[0]}, Agents: ${stats[1]}, Actions: ${stats[2]}`,
     );
 
-    const storageStats = await storageContract.getStats();
+    const storageStats = await storageContract.getGovernanceStats();
     logger.info(
-      `Storage stats - Storage Requests: ${storageStats[0]}, Retrieval Requests: ${storageStats[1]}, Providers: ${storageStats[2]}`,
+      `Storage stats - Actions: ${storageStats[0]}, Violations: ${storageStats[1]}, Agents: ${storageStats[2]}, Approval Rate: ${storageStats[3]}%`,
     );
 
     logger.info("Deployment verification complete!");
