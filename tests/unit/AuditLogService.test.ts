@@ -3,13 +3,20 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const { mockAnchor } = vi.hoisted(() => ({
+const { mockAnchor, mockFilecoinAnchor } = vi.hoisted(() => ({
   mockAnchor: vi.fn().mockResolvedValue(null),
+  mockFilecoinAnchor: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock("../../src/backend/services/ZeroGStorageService.js", () => ({
   zeroGStorageService: {
     anchorAuditRecord: mockAnchor,
+  },
+}));
+
+vi.mock("../../src/backend/services/FilecoinStorageService.js", () => ({
+  filecoinStorageService: {
+    anchorAuditRecord: mockFilecoinAnchor,
   },
 }));
 
@@ -126,6 +133,130 @@ describe("AuditLogService captures 0G rootHash in CRE evidence", () => {
     const runs = await store.list();
     expect(runs.length).toBe(1);
     expect(runs[0].evidence?.zeroGRootHash).toBe("0xeventroot");
+
+    await fs.promises.rm(tempDir, { recursive: true, force: true });
+  });
+});
+
+describe("AuditLogService dual-anchors to both 0G and Filecoin", () => {
+  it("logAction stores both zeroGRootHash and filecoinCid when both succeed", async () => {
+    const tempDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), "cognivern-audit-dual-"),
+    );
+    const filePath = path.join(tempDir, "audit-logs.jsonl");
+
+    const persistence = new JsonlCreRunPersistence({ filePath });
+    const store = new CreRunStore({ persistence });
+    const service = new AuditLogService(store);
+
+    mockAnchor.mockResolvedValueOnce({
+      rootHash: "0xzeroroot",
+      localHash: "abc123",
+      network: "0g-newton-testnet",
+      timestamp: new Date().toISOString(),
+    });
+    mockFilecoinAnchor.mockResolvedValueOnce({
+      cid: "sha256:filecoinhash",
+      localHash: "def456",
+      txHash: "0xtxhash",
+      network: "filecoin-calibration",
+      timestamp: new Date().toISOString(),
+    });
+
+    await service.logAction(
+      {
+        type: "spend",
+        description: "test spend",
+        timestamp: new Date().toISOString(),
+        metadata: { agentId: "agent-1", durationMs: 50 },
+      },
+      [],
+      true,
+    );
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    const runs = await store.list();
+    expect(runs.length).toBe(1);
+    expect(runs[0].evidence?.zeroGRootHash).toBe("0xzeroroot");
+    expect(runs[0].evidence?.filecoinCid).toBe("sha256:filecoinhash");
+
+    await fs.promises.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("logAction stores zeroGRootHash only when Filecoin fails", async () => {
+    const tempDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), "cognivern-audit-0g-only-"),
+    );
+    const filePath = path.join(tempDir, "audit-logs.jsonl");
+
+    const persistence = new JsonlCreRunPersistence({ filePath });
+    const store = new CreRunStore({ persistence });
+    const service = new AuditLogService(store);
+
+    mockAnchor.mockResolvedValueOnce({
+      rootHash: "0xzeroroot",
+      localHash: "abc123",
+      network: "0g-newton-testnet",
+      timestamp: new Date().toISOString(),
+    });
+    mockFilecoinAnchor.mockResolvedValueOnce(null);
+
+    await service.logAction(
+      {
+        type: "spend",
+        description: "test",
+        timestamp: new Date().toISOString(),
+        metadata: { agentId: "agent-1" },
+      },
+      [],
+      true,
+    );
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    const runs = await store.list();
+    expect(runs[0].evidence?.zeroGRootHash).toBe("0xzeroroot");
+    expect(runs[0].evidence?.filecoinCid).toBeUndefined();
+
+    await fs.promises.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("logAction stores filecoinCid only when 0G fails", async () => {
+    const tempDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), "cognivern-audit-fil-only-"),
+    );
+    const filePath = path.join(tempDir, "audit-logs.jsonl");
+
+    const persistence = new JsonlCreRunPersistence({ filePath });
+    const store = new CreRunStore({ persistence });
+    const service = new AuditLogService(store);
+
+    mockAnchor.mockResolvedValueOnce(null);
+    mockFilecoinAnchor.mockResolvedValueOnce({
+      cid: "sha256:filecoinonly",
+      localHash: "xyz789",
+      txHash: "0xtx",
+      network: "filecoin-calibration",
+      timestamp: new Date().toISOString(),
+    });
+
+    await service.logAction(
+      {
+        type: "spend",
+        description: "test",
+        timestamp: new Date().toISOString(),
+        metadata: { agentId: "agent-1" },
+      },
+      [],
+      true,
+    );
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    const runs = await store.list();
+    expect(runs[0].evidence?.zeroGRootHash).toBeUndefined();
+    expect(runs[0].evidence?.filecoinCid).toBe("sha256:filecoinonly");
 
     await fs.promises.rm(tempDir, { recursive: true, force: true });
   });

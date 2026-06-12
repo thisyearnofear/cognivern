@@ -5,6 +5,8 @@ export interface EvidenceEnvelope {
   hash: string;
   cid?: string;
   zeroGRootHash?: string;
+  filecoinCid?: string;
+  filecoinTxHash?: string;
   artifactIds?: string[];
   policyIds?: string[];
   citations?: string[];
@@ -108,6 +110,8 @@ export function enrichArtifactEvidence(artifact: CreArtifact): CreArtifact {
       signature: artifact.evidence?.signature,
       signer: artifact.evidence?.signer,
       zeroGRootHash: artifact.evidence?.zeroGRootHash,
+      filecoinCid: artifact.evidence?.filecoinCid,
+      filecoinTxHash: artifact.evidence?.filecoinTxHash,
       ...(cid ? { cid } : {}),
     },
   };
@@ -134,6 +138,8 @@ export function enrichRunEventEvidence(
       signature: event.evidence?.signature,
       signer: event.evidence?.signer,
       zeroGRootHash: event.evidence?.zeroGRootHash,
+      filecoinCid: event.evidence?.filecoinCid,
+      filecoinTxHash: event.evidence?.filecoinTxHash,
       artifactIds: run.artifacts.map((artifact) => artifact.id),
       citations: extractCitationLabels(run),
       ...(cid ? { cid } : {}),
@@ -193,6 +199,8 @@ export function enrichCreRunEvidence(run: CreRun): CreRun {
       signature: run.evidence?.signature,
       signer: run.evidence?.signer,
       zeroGRootHash: run.evidence?.zeroGRootHash,
+      filecoinCid: run.evidence?.filecoinCid,
+      filecoinTxHash: run.evidence?.filecoinTxHash,
       artifactIds: artifacts.map((artifact) => artifact.id),
       citations: extractCitationLabels(run),
       ...(runCid ? { cid: runCid } : {}),

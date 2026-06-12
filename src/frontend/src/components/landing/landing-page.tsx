@@ -679,7 +679,7 @@ export function LandingPage() {
                 color: "text-purple-400",
                 bg: "bg-purple-500/10",
                 border: "border-purple-500/20",
-                desc: "Immutable long-term storage for governance decision evidence. Audit hashes anchored to Filecoin for tamper-proof retention.",
+                desc: "GovernanceContract deployed on FVM Calibration testnet. Audit evidence anchoring via AIGovernanceStorage in progress.",
                 status: "Calibration testnet",
               },
               {
@@ -688,7 +688,7 @@ export function LandingPage() {
                 color: "text-emerald-400",
                 bg: "bg-emerald-500/10",
                 border: "border-emerald-500/20",
-                desc: "Real-time governance decision anchoring alongside Filecoin for immediate availability.",
+                desc: "Real-time governance decision anchoring to 0G decentralized storage for immediate availability.",
                 status: "Newton testnet",
               },
               {

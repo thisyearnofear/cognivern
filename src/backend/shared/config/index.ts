@@ -140,6 +140,23 @@ export const blockchainConfig = {
   },
 };
 
+export const filecoinConfig = {
+  rpcUrl:
+    process.env.FILECOIN_RPC_URL ||
+    "https://api.calibration.node.glif.io/rpc/v1",
+  chainId: 314159,
+  network: "calibration" as const,
+  privateKey: process.env.FILECOIN_PRIVATE_KEY || "",
+  contracts: {
+    governance: process.env.GOVERNANCE_CONTRACT_ADDRESS || "",
+    storage: process.env.STORAGE_CONTRACT_ADDRESS || "",
+  },
+  explorerUrl: "https://calibration.filfox.info/en",
+  get enabled(): boolean {
+    return !!this.privateKey && !!this.contracts.storage;
+  },
+};
+
 export const mantleConfig = {
   rpcUrl: process.env.MANTLE_RPC_URL || "https://rpc.mantle.xyz",
   sepoliaRpcUrl:
@@ -154,6 +171,8 @@ export const fhenixConfig = {
     process.env.FHENIX_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc",
   chainId: Number(process.env.FHENIX_CHAIN_ID || "421614"),
   contractAddress: process.env.FHENIX_POLICY_CONTRACT || "",
+  // Falls back to FILECOIN_PRIVATE_KEY as a shared EVM signing key for dev convenience.
+  // In production, use a dedicated Fhenix key.
   privateKey:
     process.env.FHENIX_PRIVATE_KEY || process.env.FILECOIN_PRIVATE_KEY || "",
   cofheUrl:

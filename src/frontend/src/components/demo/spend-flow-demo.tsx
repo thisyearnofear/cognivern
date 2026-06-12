@@ -61,7 +61,7 @@ const INITIAL_STEPS: StepState[] = [
     label: "Audit Logged",
     icon: Clock,
     status: "pending",
-    detail: "Immutable record stored on 0G + Filecoin",
+    detail: "Immutable record stored on 0G + X Layer",
   },
 ];
 
@@ -437,7 +437,7 @@ export function SpendFlowDemo() {
                   </span>{" "}
                   Budgets, limits, and spend amounts are evaluated while encrypted —
                   the policy engine sees compliance, not your numbers. Audit evidence
-                  is stored immutably on 0G and Filecoin.
+                  is stored immutably on 0G and X Layer.
                 </>
               ) : (
                 <>

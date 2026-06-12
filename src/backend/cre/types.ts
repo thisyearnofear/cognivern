@@ -48,6 +48,8 @@ export interface CreRunEvent {
     hash: string;
     cid?: string;
     zeroGRootHash?: string;
+    filecoinCid?: string;
+    filecoinTxHash?: string;
     signature?: string;
     signer?: string;
     artifactIds?: string[];
@@ -86,6 +88,8 @@ export interface CreArtifact {
     hash: string;
     cid?: string;
     zeroGRootHash?: string;
+    filecoinCid?: string;
+    filecoinTxHash?: string;
     signature?: string;
     signer?: string;
   };
@@ -129,6 +133,8 @@ export interface CreRun {
     hash: string;
     cid?: string;
     zeroGRootHash?: string;
+    filecoinCid?: string;
+    filecoinTxHash?: string;
     signature?: string;
     signer?: string;
     artifactIds?: string[];
