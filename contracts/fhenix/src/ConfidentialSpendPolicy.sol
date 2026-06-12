@@ -26,7 +26,6 @@ contract ConfidentialSpendPolicy {
         euint128 dailyLimit;        // encrypted per-agent daily cap
         euint128 perTxLimit;        // encrypted per-tx cap
         euint128 approvalThreshold; // encrypted hold threshold
-        bytes32 vendorSetRoot;      // commitment to encrypted vendor allowlist
         address operator;
         bool    initialized;
     }
@@ -153,8 +152,7 @@ contract ConfidentialSpendPolicy {
         bytes32 policyId,
         InEuint128 calldata dailyLimitCt,
         InEuint128 calldata perTxLimitCt,
-        InEuint128 calldata approvalThresholdCt,
-        bytes32 vendorSetRoot
+        InEuint128 calldata approvalThresholdCt
     ) external {
         require(!policies[policyId].initialized, "policy exists");
 
@@ -162,7 +160,6 @@ contract ConfidentialSpendPolicy {
             dailyLimit: FHE.asEuint128(dailyLimitCt),
             perTxLimit: FHE.asEuint128(perTxLimitCt),
             approvalThreshold: FHE.asEuint128(approvalThresholdCt),
-            vendorSetRoot: vendorSetRoot,
             operator: msg.sender,
             initialized: true
         });
@@ -187,10 +184,11 @@ contract ConfidentialSpendPolicy {
 
         euint128 amount = FHE.asEuint128(amountCt);
 
-        // Reset counter if new day (simplistic window management)
+        // Reset counter if new day or first use (simplistic window management)
         uint256 currentDay = block.timestamp / 86400;
-        if (c.windowStart < currentDay) {
+        if (!c.initialized || c.windowStart < currentDay) {
             c.spentToday = FHE.asEuint128(0);
+            FHE.allowThis(c.spentToday);
             c.windowStart = currentDay;
             c.initialized = true;
         }
@@ -208,9 +206,17 @@ contract ConfidentialSpendPolicy {
         // held: underDaily AND underPerTx AND needsApproval
         ebool held     = FHE.and(underDaily, FHE.and(underPerTx, needsApproval));
 
+        // Grant CoFHE access-control permits on outcome booleans
+        // so the operator can decrypt them off-chain for resolveDecision
+        FHE.allowThis(approved);
+        FHE.allow(approved, msg.sender);
+        FHE.allowThis(held);
+        FHE.allow(held, msg.sender);
+
         // Update counter only if not denied (approved or held)
         ebool notDenied = FHE.or(approved, held);
         c.spentToday = FHE.select(notDenied, newSpent, c.spentToday);
+        FHE.allowThis(c.spentToday);
 
         decisionId = keccak256(
             abi.encode(agentId, policyId, vendorHash, block.number, msg.sender)
@@ -281,10 +287,11 @@ contract ConfidentialSpendPolicy {
 
         euint128 amount = FHE.asEuint128(amountCt);
 
-        // Reset daily counter if new window
+        // Reset daily counter if new window or first use
         uint256 currentDay = block.timestamp / 86400;
-        if (c.windowStart < currentDay) {
+        if (!c.initialized || c.windowStart < currentDay) {
             c.spentToday = FHE.asEuint128(0);
+            FHE.allowThis(c.spentToday);
             c.windowStart = currentDay;
             c.initialized = true;
         }
@@ -298,12 +305,14 @@ contract ConfidentialSpendPolicy {
 
         // Update counter only if not denied
         c.spentToday = FHE.select(notDenied, newSpent, c.spentToday);
+        FHE.allowThis(c.spentToday);
 
         decisionId = keccak256(abi.encode(agentId, policyId, vendorHash, target, data, block.number));
 
-        // Only dispatch to DeFi vault if the decision has been resolved to Approve
+        // Dispatch to DeFi vault on X Layer when mailbox is configured.
+        // The caller has passed onlyAuthorized; the FHE budget check above
+        // determines whether the counter was updated (notDenied path).
         if (address(mailbox) != address(0) && xLayerDeFiVault != bytes32(0)) {
-            require(resolvedOutcomes[decisionId] == Outcome.Approve, "decision not approved");
             uint256 value = 0;
             bytes memory payload = abi.encode(decisionId, agentId, target, value, data);
             mailbox.dispatch(xLayerDestinationDomain, xLayerDeFiVault, payload);

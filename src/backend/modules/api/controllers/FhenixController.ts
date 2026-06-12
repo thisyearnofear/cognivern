@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import crypto from "node:crypto";
 import { sharedFhenixPolicyService } from "../../../services/FhenixPolicyService.js";
 import { Logger } from "../../../shared/logging/Logger.js";
 
@@ -130,19 +129,10 @@ export class FhenixController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      logger.warn(`Sidecar encryption failed: ${error.message}`);
-      // Graceful fallback for demo when CoFHE is unavailable
-      const fallbackHandle = "0x" + crypto.randomUUID().replace(/-/g, "");
-      res.json({
-        success: true,
-        data: {
-          ciphertextHandle: fallbackHandle,
-          ctHash: fallbackHandle,
-          securityZone: 0,
-          utype: 2,
-          signature: "0x",
-          note: "Agent passes this handle directly to /api/spend/encrypted",
-        },
+      logger.error(`Sidecar encryption failed: ${error.message}`);
+      res.status(503).json({
+        success: false,
+        error: "CoFHE encryption service unavailable",
         timestamp: new Date().toISOString(),
       });
     }

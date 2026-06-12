@@ -1,7 +1,6 @@
 import { createCofheClient, createCofheConfig } from "@cofhe/sdk/node";
 import { CofheClient, Encryptable, FheTypes } from "@cofhe/sdk";
 import type { UnsealedItem } from "@cofhe/sdk";
-import { PermitUtils } from "@cofhe/sdk/permits";
 import {
   createPublicClient,
   createWalletClient,
@@ -90,6 +89,7 @@ export interface FhenixClientAdapter {
 
 const ABI = parseAbi([
   "function evaluateSpend(bytes32 agentId, bytes32 policyId, (uint256 ctHash, uint8 securityZone, uint8 utype, bytes signature) amountCt, bytes32 vendorHash) external returns (bytes32)",
+  "function resolveDecision(bytes32 decisionId, uint8 outcome) external",
   "function requestDeFiAction(bytes32 agentId, bytes32 policyId, (uint256 ctHash, uint8 securityZone, uint8 utype, bytes signature) amountCt, address target, bytes data) external returns (bytes32)",
   "event SpendEvaluated(bytes32 indexed decisionId, bytes32 indexed agentId, bytes32 indexed policyId, uint8 outcome, bytes attestation)",
 ]);
@@ -310,7 +310,28 @@ export class FhenixPolicyService {
         "SpendEvaluated event not found, synthesizing decisionId from hash",
       );
       decisionId = hash;
-      outcome = 2; // Default to Approve for demo
+      outcome = 0; // Default to Deny — never auto-approve
+    }
+
+    // Phase 2: if the contract emitted Pending, resolve it on-chain
+    // so the Hyperlane dispatch fires with the real outcome.
+    if (decisionId !== "0x" && outcome === 3 /* Pending */) {
+      const resolvedOutcome: ConfidentialOutcome = "deny";
+      try {
+        await this.resolveDecision(decisionId, resolvedOutcome);
+        return {
+          decisionId,
+          outcome: resolvedOutcome,
+          attestation,
+          agentId: input.agentId,
+          policyId: input.policyId,
+          timestamp: new Date().toISOString(),
+        };
+      } catch (resolveErr) {
+        logger.warn(
+          `resolveDecision failed: ${resolveErr instanceof Error ? resolveErr.message : String(resolveErr)}`,
+        );
+      }
     }
 
     return {
@@ -364,6 +385,27 @@ export class FhenixPolicyService {
       policyId: input.policyId,
       timestamp: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Resolve a pending decision on-chain with the actual FHE outcome.
+   * Commits the outcome and triggers Hyperlane dispatch to GovernanceContract.
+   */
+  async resolveDecision(
+    decisionId: string,
+    outcome: ConfidentialOutcome,
+  ): Promise<string> {
+    await this.ensureConnected();
+    const outcomeNum =
+      outcome === "approve" ? 2 : outcome === "hold" ? 1 : 0;
+    const hash = await this.walletClient.writeContract({
+      address: this.config.contractAddress as Hex,
+      abi: ABI,
+      functionName: "resolveDecision",
+      args: [decisionId as Hex, outcomeNum],
+    });
+    await this.publicClient.waitForTransactionReceipt({ hash });
+    return hash;
   }
 
   /**
@@ -423,13 +465,13 @@ export class FhenixPolicyService {
    * Decrypt a value for viewing (for auditor use).
    *
    * Uses the CoFHE SDK's decryptForView builder:
-   *   client.decryptForView(ctHash, utype)
+   *   client.decryptForView(ctHash)
    *     .setChainId(chainId)
-   *     .withPermit(permit)
+   *     .withPermit(permitObject)
    *     .execute()
    *
    * @param contractAddress - The Fhenix contract address (used for chain context)
-   * @param encryptedValue  - JSON string with { ctHash, utype, chainId? } or a plain hex ctHash
+   * @param encryptedValue  - JSON string with { ctHash, chainId? } or a plain ctHash string
    * @param permit          - Serialized CoFHE Permit (JSON string)
    */
   async unsealValue(
@@ -443,15 +485,7 @@ export class FhenixPolicyService {
 
     await this.ensureConnected();
 
-    let parsedPermit: string = permit;
-    try {
-      const parsed = JSON.parse(permit);
-      if (typeof parsed === "object" && parsed !== null) {
-        parsedPermit = permit;
-      }
-    } catch {
-      // Treat as a raw permit hash string
-    }
+    const parsedPermit = JSON.parse(permit);
 
     let ctHash: bigint;
     let utype: number = FheTypes.Uint128;
@@ -470,7 +504,7 @@ export class FhenixPolicyService {
       `Unsealing ctHash=${ctHash} utype=${utype} chainId=${chainId} contract=${contractAddress}`,
     );
 
-    const unsealedItem = await withTimeout(
+    const unsealed: UnsealedItem<FheTypes> = await withTimeout(
       this.client
         .decryptForView(ctHash, utype as FheTypes)
         .setChainId(chainId)
@@ -479,15 +513,7 @@ export class FhenixPolicyService {
       this.config.evaluateTimeoutMs || 30000,
     );
 
-    if (
-      unsealedItem != null &&
-      typeof unsealedItem === "object" &&
-      "value" in (unsealedItem as object)
-    ) {
-      return String((unsealedItem as { value: unknown }).value);
-    }
-
-    return String(unsealedItem);
+    return String(unsealed);
   }
 
   /**

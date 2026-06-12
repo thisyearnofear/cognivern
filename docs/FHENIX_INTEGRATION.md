@@ -64,7 +64,6 @@ contract ConfidentialSpendPolicy {
         euint128 dailyLimit;
         euint128 perTxLimit;
         euint128 approvalThreshold;
-        bytes32 vendorSetRoot;
         address operator;
         bool initialized;
     }
@@ -112,8 +111,8 @@ contract ConfidentialSpendPolicy {
 
     // Policy registration (permissionless)
     function registerPolicy(bytes32 policyId, InEuint128 calldata dailyLimitCt,
-        InEuint128 calldata perTxLimitCt, InEuint128 calldata approvalThresholdCt,
-        bytes32 vendorSetRoot) external { /* ... */ }
+        InEuint128 calldata perTxLimitCt, InEuint128 calldata approvalThresholdCt)
+        external { /* ... */ }
 
     // Encrypted spend evaluation — only authorized callers
     function evaluateSpend(bytes32 agentId, bytes32 policyId,
@@ -320,7 +319,7 @@ Deploy:
 ```bash
 pnpm deploy:fhenix
 # or directly:
-npx hardhat run scripts/deploy-fhenix.ts --config contracts/fhenix/hardhat.config.cjs --network fhenixSepolia
+npx hardhat run scripts/deploy-fhenix.ts --config contracts/fhenix/hardhat.config.cjs --network arbitrumSepolia
 ````
 
 ```
@@ -382,7 +381,7 @@ To support non-TypeScript agents (Python/Go), Cognivern provides a **Trusted Enc
 | **Wave 3 (Marathon)** | [x] Frontend `useEncrypt` flow; production CoFHE client + contract adapter; auditor permit consumption/decrypt UX; X Layer cross-chain decision anchoring; demo script |
 | **Wave 4** | [x] Privara SDK integration for confidential payroll; sealed-bid vendor selection example |
 | **Wave 5 (Final)** | [x] Production-grade demo: institutional treasury agent operating with fully encrypted budgets, MEV-protected execution, selective auditor disclosure |
-| **Wave 6 (Hardening)** | [x] Shared `FhenixPolicyService` singleton eliminates redundant CoFHE clients; `resolveDecision()` enables proper two-phase FHE outcome resolution; `requestDeFiAction` guarded by resolved outcome; contract tests; centralized config; rate-limited decrypt; typed interfaces; docs updated; access control (`onlyAuthorized`) on evaluateSpend + requestDeFiAction; evaluator whitelist; two-step ownership transfer; Hyperlane dispatch moved from evaluateSpend (dead) to resolveDecision (real outcome) |
+| **Wave 6 (Hardening)** | [x] Shared `FhenixPolicyService` singleton eliminates redundant CoFHE clients; `resolveDecision()` commits the off-chain decrypted outcome on-chain, triggering Hyperlane dispatch; backend wires the full two-phase flow (evaluateSpend → resolveDecision); `requestDeFiAction` dispatches unconditionally after FHE budget check; CoFHE access-control permits (`FHE.allowThis`/`FHE.allow`) on all encrypted state; contract tests; centralized config; per-permit rate-limited decrypt; typed interfaces; docs updated; access control (`onlyAuthorized`) on evaluateSpend + requestDeFiAction; evaluator whitelist; two-step ownership transfer; sealed-bid vendor selection uses real CoFHE encryption (simulator removed) |
 | **Wave 7 (Migration)** | [x] Migrated from deprecated Helium testnet to **Arbitrum Sepolia** (chainId 421614); updated all RPC endpoints, chain configs, and hardcoded chain references; `FhenixPolicyService` properly initializes and connects CoFHE client with `ensureConnected`; `evaluateEncrypted` propagates errors for honest fallback messages; `demo:fhenix` script completes all 9 steps end-to-end; added `/governance/decisions/:decisionId` and `/audit/logs/:decisionId/decrypt` routes for demo compatibility |
 
 ---

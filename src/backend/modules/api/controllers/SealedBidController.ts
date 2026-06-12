@@ -110,7 +110,7 @@ export class SealedBidController {
 
       const { bidder, amountUsd, proposalDetails } = parse.data;
       const request: SubmitBidRequest = { bidder, amountUsd, proposalDetails };
-      const bid = this.sealedBidService.submitBid(roundId, request);
+      const bid = await this.sealedBidService.submitBid(roundId, request);
 
       res.status(201).json({
         success: true,
@@ -196,7 +196,7 @@ export class SealedBidController {
       const { selectionMethod, specificBidder } = parse.data;
       const request: RevealRequest = { selectionMethod, specificBidder };
 
-      const round = this.sealedBidService.revealWinner(roundId, request);
+      const round = await this.sealedBidService.revealWinner(roundId, request);
 
       res.status(200).json({
         success: true,

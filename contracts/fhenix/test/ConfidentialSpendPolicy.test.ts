@@ -55,7 +55,6 @@ describe("ConfidentialSpendPolicy", function () {
         utype: 2,
         signature: "0x",
       };
-      const vendorSetRoot = hre.ethers.zeroPadValue("0x00", 32);
 
       await expect(
         contract
@@ -65,7 +64,6 @@ describe("ConfidentialSpendPolicy", function () {
             dailyLimitCt,
             perTxLimitCt,
             approvalThresholdCt,
-            vendorSetRoot,
           ),
       )
         .to.emit(contract, "PolicyRegistered")
@@ -82,21 +80,9 @@ describe("ConfidentialSpendPolicy", function () {
 
       const ct = { ctHash: 1000n, securityZone: 0, utype: 2, signature: "0x" };
 
-      await contract.registerPolicy(
-        policyId,
-        ct,
-        ct,
-        ct,
-        hre.ethers.zeroPadValue("0x00", 32),
-      );
+      await contract.registerPolicy(policyId, ct, ct, ct);
       await expect(
-        contract.registerPolicy(
-          policyId,
-          ct,
-          ct,
-          ct,
-          hre.ethers.zeroPadValue("0x00", 32),
-        ),
+        contract.registerPolicy(policyId, ct, ct, ct),
       ).to.be.revertedWith("policy exists");
     });
   });
@@ -150,6 +136,17 @@ describe("ConfidentialSpendPolicy", function () {
       await expect(
         contract.connect(owner).resolveDecision(decisionId, 3), // 3 = Pending
       ).to.be.revertedWith("outcome must be resolved");
+    });
+
+    it("should reject resolving an unknown decisionId", async function () {
+      const { contract, owner } = await loadFixture(deployFixture);
+      const unknownId = hre.ethers.keccak256(
+        hre.ethers.toUtf8Bytes("unknown-decision"),
+      );
+
+      await expect(
+        contract.connect(owner).resolveDecision(unknownId, 2),
+      ).to.be.revertedWith("decision not found");
     });
 
     it("should return false for unresolved decisions", async function () {

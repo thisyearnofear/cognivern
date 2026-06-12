@@ -11,6 +11,7 @@
 
 import crypto from "node:crypto";
 import logger from "../utils/logger.js";
+import { sharedFhenixPolicyService } from "./FhenixPolicyService.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -78,6 +79,15 @@ export interface RevealRequest {
 
 export class SealedBidService {
   private rounds: Map<string, SealedBidRound> = new Map();
+  private encryptFn:
+    | ((value: bigint) => Promise<{ ctHash: string; utype: number }>)
+    | null;
+
+  constructor(
+    encryptFn?: (value: bigint) => Promise<{ ctHash: string; utype: number }>,
+  ) {
+    this.encryptFn = encryptFn ?? null;
+  }
 
   /**
    * Create a new sealed-bid round.
@@ -108,10 +118,9 @@ export class SealedBidService {
 
   /**
    * Submit a bid to an open round.
-   * The bid amount is "encrypted" using a deterministic noise function
-   * (simulating FHE encryption — in production this uses CoFHE SDK).
+   * The bid amount is encrypted via CoFHE SDK (through the injected encryptFn).
    */
-  submitBid(roundId: string, request: SubmitBidRequest): BidRecord {
+  async submitBid(roundId: string, request: SubmitBidRequest): Promise<BidRecord> {
     const round = this.rounds.get(roundId);
     if (!round) {
       throw new Error(`Round ${roundId} not found`);
@@ -129,8 +138,18 @@ export class SealedBidService {
       throw new Error("Bidder already submitted a bid");
     }
 
-    // "Encrypt" the bid amount — in production this uses CoFHE SDK encrypt
-    const encryptedAmount = this.simulateEncrypt(request.amountUsd);
+    if (!this.encryptFn) {
+      throw new Error(
+        "SealedBid: CoFHE encryption not configured — cannot accept bids",
+      );
+    }
+
+    const scaledAmount = BigInt(Math.round(request.amountUsd * 1e6));
+    const ct = await this.encryptFn(scaledAmount);
+    const encryptedAmount = JSON.stringify({
+      ctHash: ct.ctHash,
+      utype: ct.utype,
+    });
 
     // Hash proposal details if provided
     const proposalHash = request.proposalDetails
@@ -182,13 +201,16 @@ export class SealedBidService {
   }
 
   /**
-   * Reveal the winning bid after "decrypting" all bids off-chain.
+   * Reveal the winning bid after off-chain decryption.
    *
-   * Simulates the two-phase pattern:
-   *   Agent submits encrypted bid → operator decrypts off-chain →
-   *   revealWinner publishes the result on-chain
+   * With real CoFHE encryption, revealing requires threshold decryption
+   * of all bids. This is not yet wired — the method throws a clear error
+   * rather than simulating decryption and pretending it's real.
    */
-  revealWinner(roundId: string, request: RevealRequest): SealedBidRound {
+  async revealWinner(
+    roundId: string,
+    request: RevealRequest,
+  ): Promise<SealedBidRound> {
     const round = this.rounds.get(roundId);
     if (!round) {
       throw new Error(`Round ${roundId} not found`);
@@ -200,96 +222,20 @@ export class SealedBidService {
       throw new Error("No bids submitted in this round");
     }
 
-    // "Decrypt" all bids off-chain and pick winner
-    const decryptedBids = round.bids.map((bid) => ({
-      bidder: bid.bidder,
-      amount: this.simulateDecrypt(bid.encryptedAmount),
-      proposalHash: bid.proposalHash,
-      index: bid.index,
-    }));
-
-    let winnerIdx: number;
-
-    switch (request.selectionMethod) {
-      case "lowest-bid":
-        winnerIdx = decryptedBids.reduce(
-          (best, current, idx) =>
-            current.amount < decryptedBids[best].amount ? idx : best,
-          0,
-        );
-        break;
-      case "highest-bid":
-        winnerIdx = decryptedBids.reduce(
-          (best, current, idx) =>
-            current.amount > decryptedBids[best].amount ? idx : best,
-          0,
-        );
-        break;
-      case "specific": {
-        if (!request.specificBidder) {
-          throw new Error("specificBidder required for 'specific' selection");
-        }
-        const found = decryptedBids.findIndex(
-          (b) =>
-            b.bidder.toLowerCase() === request.specificBidder!.toLowerCase(),
-        );
-        if (found === -1) {
-          throw new Error(
-            `Bidder ${request.specificBidder} not found in round`,
-          );
-        }
-        winnerIdx = found;
-        break;
-      }
-      default:
-        throw new Error(`Unknown selection method: ${request.selectionMethod}`);
-    }
-
-    const winner = decryptedBids[winnerIdx];
-
-    // Update round state
-    round.winner = winner.bidder;
-    round.winningBid = winner.amount;
-    round.winningProposalHash = winner.proposalHash;
-    round.status = "revealed";
-
-    // Mark winning bid as selected, rest as rejected
-    for (const bid of round.bids) {
-      bid.status = bid.index === winnerIdx ? "selected" : "rejected";
-    }
-
-    logger.info(
-      `SealedBid: winner revealed for round ${roundId} — ${winner.bidder} at $${winner.amount}`,
+    throw new Error(
+      "SealedBid: threshold decryption of real CoFHE bids is not yet wired — " +
+        "reveal requires operator-side decrypt via FhenixPolicyService.unsealValue",
     );
-
-    return round;
   }
 
   /**
-   * Get a round by ID (with or without decrypted bid values).
-   * When includeDecrypted is false, bids show encrypted amounts (privacy preserved).
-   * When includeDecrypted is true (owner/manager only), bids show decrypted amounts.
+   * Get a round by ID.
+   * Encrypted amounts are always returned as-is (CoFHE ciphertext handles).
+   * Decryption requires the operator to call the /api/fhenix/decrypt endpoint
+   * with a valid permit.
    */
-  getRound(
-    roundId: string,
-    includeDecrypted: boolean = false,
-  ): SealedBidRound | null {
-    const round = this.rounds.get(roundId);
-    if (!round) return null;
-
-    if (!includeDecrypted) {
-      // Return a sanitized copy — encrypted amounts stay as handles
-      return round;
-    }
-
-    // Return with decrypted amounts for authorized viewers
-    return {
-      ...round,
-      bids: round.bids.map((bid) => ({
-        ...bid,
-        encryptedAmount: this.simulateDecrypt(bid.encryptedAmount).toString(),
-      })),
-    };
+  getRound(roundId: string, _includeDecrypted: boolean = false): SealedBidRound | null {
+    return this.rounds.get(roundId) ?? null;
   }
 
   /**
@@ -299,31 +245,12 @@ export class SealedBidService {
     return Array.from(this.rounds.values());
   }
 
-  // ── Simulation helpers ─────────────────────────────────────────────────────
-
-  /**
-   * Simulate FHE encryption of a uint128 value.
-   * Returns a hex string that looks like a CoFHE ciphertext handle.
-   * In production, this uses the CoFHE SDK's client.encryptInputs().
-   */
-  private simulateEncrypt(value: number): string {
-    const prefix = "0x08"; // ctHash prefix matching CoFHE format
-    const payload = value.toString(16).padStart(16, "0");
-    const noise = crypto.randomBytes(16).toString("hex");
-    return `${prefix}${payload}${noise}`;
-  }
-
-  /**
-   * Simulate CoFHE threshold decryption of a ciphertext handle.
-   * Extracts the original value from our simulation format.
-   * In production, this uses the CoFHE SDK's client.decryptForView().
-   */
-  private simulateDecrypt(ctHash: string): number {
-    // Our simulation format: 0x08{16 hex chars of value}{32 hex chars of noise}
-    const valueHex = ctHash.slice(4, 20); // After "0x08", 16 hex chars = 8 bytes
-    return parseInt(valueHex, 16);
-  }
 }
 
-/** Shared singleton instance */
-export const sharedSealedBidService = new SealedBidService();
+/** Shared singleton instance — wired to FhenixPolicyService for real CoFHE encryption */
+export const sharedSealedBidService = new SealedBidService(
+  async (value: bigint) => {
+    const ct = await sharedFhenixPolicyService.encryptValue(value);
+    return { ctHash: ct.ctHash.toString(), utype: ct.utype };
+  },
+);
