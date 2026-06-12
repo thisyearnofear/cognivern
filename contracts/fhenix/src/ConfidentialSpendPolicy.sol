@@ -78,6 +78,7 @@ contract ConfidentialSpendPolicy {
     event EvaluatorRevoked(address indexed evaluator);
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event HyperlaneConfigUpdated(address mailbox, uint32 destinationDomain, bytes32 recipient, bytes32 vault);
 
     modifier onlyAuthorized() {
         require(msg.sender == owner || authorizedEvaluators[msg.sender], "not authorized");
@@ -103,6 +104,7 @@ contract ConfidentialSpendPolicy {
         xLayerDestinationDomain = _domain;
         xLayerRecipient = _recipient;
         xLayerDeFiVault = _vault;
+        emit HyperlaneConfigUpdated(_mailbox, _domain, _recipient, _vault);
     }
 
     /**

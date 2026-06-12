@@ -19,6 +19,8 @@ import {
   sharedFhenixPolicyService,
 } from "./FhenixPolicyService.js";
 import { blockchainConfig } from "../shared/config/index.js";
+import { circuitBreakers } from "../shared/utils/circuitBreaker.js";
+import { withTimeout, retry } from "../shared/utils/index.js";
 
 const GOVERNANCE_ABI = [
   "function evaluateAction(bytes32 actionId, bytes32 agentId, string memory actionType, bytes32 dataHash, bool approved) external",
@@ -71,6 +73,8 @@ export class OwsWalletService {
   private onChainProvider: ethers.JsonRpcProvider | null = null;
   private onChainWallet: ethers.Wallet | null = null;
   private onChainContract: ethers.Contract | null = null;
+  private lastProviderHealthCheck: number = 0;
+  private static readonly HEALTH_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
   constructor(
     policyService?: PolicyService,
@@ -84,12 +88,25 @@ export class OwsWalletService {
     );
   }
 
-  private getOnChainSigner(): { wallet: ethers.Wallet; contract: ethers.Contract } | null {
+  private async getOnChainSigner(): Promise<{ wallet: ethers.Wallet; contract: ethers.Contract } | null> {
     const pk = blockchainConfig.privateKey;
     if (!pk) return null;
 
     if (this.onChainWallet && this.onChainContract) {
-      return { wallet: this.onChainWallet, contract: this.onChainContract };
+      const now = Date.now();
+      if (now - this.lastProviderHealthCheck > OwsWalletService.HEALTH_CHECK_INTERVAL_MS) {
+        try {
+          await withTimeout(this.onChainProvider!.getBlockNumber(), 5000);
+          this.lastProviderHealthCheck = now;
+        } catch {
+          this.onChainProvider = null;
+          this.onChainWallet = null;
+          this.onChainContract = null;
+        }
+      }
+      if (this.onChainWallet && this.onChainContract) {
+        return { wallet: this.onChainWallet, contract: this.onChainContract };
+      }
     }
 
     try {
@@ -100,6 +117,7 @@ export class OwsWalletService {
         GOVERNANCE_ABI,
         this.onChainWallet,
       );
+      this.lastProviderHealthCheck = Date.now();
       return { wallet: this.onChainWallet, contract: this.onChainContract };
     } catch (error) {
       logger.warn("Failed to initialize on-chain signer:", error);
@@ -657,33 +675,41 @@ export class OwsWalletService {
     actionType: string;
     metadata: Record<string, any>;
   }): Promise<{ success: boolean; txHash?: string }> {
-    const signer = this.getOnChainSigner();
+    const signer = await this.getOnChainSigner();
     if (!signer) return { success: false };
 
     try {
-      const actionId = ethers.id(params.intentId);
-      const agentBytes32 = ethers.id(params.agentId);
-      const dataHash = ethers.ZeroHash;
+      return await circuitBreakers.blockchain.execute(async () => {
+        const actionId = ethers.id(params.intentId);
+        const agentBytes32 = ethers.id(params.agentId);
+        const dataHash = ethers.ZeroHash;
+        const gas = blockchainConfig.gasLimits;
 
-      // Ensure the agent is registered and active on-chain
-      await this.ensureOnChainAgent(signer.wallet, signer.contract, params.agentId);
+        await this.ensureOnChainAgent(signer.wallet, signer.contract, params.agentId);
 
-      const tx = await signer.contract.evaluateAction(
-        actionId,
-        agentBytes32,
-        params.actionType,
-        dataHash,
-        true,
-        { gasLimit: 200000 },
-      );
-      const receipt = await tx.wait();
-      logger.info(`On-chain approval recorded: ${receipt.hash}`);
-      return { success: true, txHash: receipt.hash };
+        const tx = await signer.contract.evaluateAction(
+          actionId,
+          agentBytes32,
+          params.actionType,
+          dataHash,
+          true,
+          { gasLimit: gas.evaluateAction },
+        );
+        const receipt = await withTimeout<ethers.ContractTransactionReceipt | null>(
+          tx.wait(),
+          60000,
+        );
+        logger.info(`On-chain approval recorded: ${receipt?.hash}`);
+        return { success: true, txHash: receipt?.hash };
+      });
     } catch (error) {
-      logger.warn("On-chain record failed, using local hash:", error);
+      logger.error("On-chain record failed:", error);
       return { success: false };
     }
   }
+
+  private static readonly DEFAULT_POLICY_ID = ethers.id("cognivern-default-spend-policy");
+  private static readonly DEFAULT_RULES_HASH = ethers.id("cognivern-default-rules-v1");
 
   private async ensureOnChainAgent(
     wallet: ethers.Wallet,
@@ -691,30 +717,39 @@ export class OwsWalletService {
     agentIdStr: string,
   ): Promise<void> {
     const agentId = ethers.id(agentIdStr);
+    const gas = blockchainConfig.gasLimits;
     try {
-      await contract.getAgent(agentId);
-      return; // Already registered
+      const agent = await retry(() => contract.getAgent(agentId), 2, 2000);
+      if (agent.status === 1) return;
+      if (agent.status === 0) {
+        await (
+          await contract.updateAgentStatus(agentId, 1, { gasLimit: gas.updateStatus })
+        ).wait();
+        logger.info(`On-chain agent ${agentIdStr} activated (was Registered)`);
+      }
+      return;
     } catch {
       // Agent doesn't exist — register + activate
     }
 
     try {
-      const policyId = ethers.id(`${agentIdStr}-policy`);
-      // Check if policy exists first
+      const policyId = OwsWalletService.DEFAULT_POLICY_ID;
+      const rulesHash = OwsWalletService.DEFAULT_RULES_HASH;
+
       try {
-        await contract.getPolicy(policyId);
+        await retry(() => contract.getPolicy(policyId), 2, 2000);
       } catch {
         await (
           await contract.createPolicy(
             policyId,
-            `${agentIdStr} Policy`,
-            `Policy for ${agentIdStr} agent spends`,
-            ethers.ZeroHash,
-            { gasLimit: 100000 },
+            "Cognivern Default Spend Policy",
+            "Auto-created default policy for governed agent spends",
+            rulesHash,
+            { gasLimit: gas.createPolicy },
           )
         ).wait();
         await (
-          await contract.updatePolicyStatus(policyId, 1, { gasLimit: 50000 })
+          await contract.updatePolicyStatus(policyId, 1, { gasLimit: gas.updateStatus })
         ).wait();
       }
 
@@ -724,15 +759,16 @@ export class OwsWalletService {
           `${agentIdStr}`,
           ["spend-governance"],
           policyId,
-          { gasLimit: 150000 },
+          { gasLimit: gas.registerAgent },
         )
       ).wait();
       await (
-        await contract.updateAgentStatus(agentId, 1, { gasLimit: 50000 })
+        await contract.updateAgentStatus(agentId, 1, { gasLimit: gas.updateStatus })
       ).wait();
       logger.info(`On-chain agent ${agentIdStr} registered and activated`);
     } catch (error) {
-      logger.warn(`Failed to register on-chain agent ${agentIdStr}:`, error);
+      const reason = error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to register on-chain agent ${agentIdStr}: ${reason}`);
     }
   }
 

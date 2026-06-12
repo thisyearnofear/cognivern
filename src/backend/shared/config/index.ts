@@ -132,6 +132,12 @@ export const blockchainConfig = {
       process.env.XLAYER_STORAGE_CONTRACT_ADDRESS ||
       "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D",
   },
+  gasLimits: {
+    evaluateAction: Number(process.env.XLAYER_GAS_EVALUATE || "200000"),
+    createPolicy: Number(process.env.XLAYER_GAS_CREATE_POLICY || "100000"),
+    updateStatus: Number(process.env.XLAYER_GAS_UPDATE_STATUS || "50000"),
+    registerAgent: Number(process.env.XLAYER_GAS_REGISTER_AGENT || "150000"),
+  },
 };
 
 export const mantleConfig = {

@@ -30,7 +30,7 @@ module.exports = {
       accounts: process.env.XLAYER_PRIVATE_KEY
         ? [process.env.XLAYER_PRIVATE_KEY]
         : [],
-      chainId: 1952,
+      chainId: 195,
     },
     mantle: {
       url: process.env.MANTLE_RPC_URL || "https://rpc.mantle.xyz",
