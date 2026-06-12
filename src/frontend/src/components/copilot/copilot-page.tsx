@@ -9,10 +9,15 @@ import {
   Circle,
   Clock3,
   Eye,
+  FastForward,
   History,
+  Pause,
   Play,
+  Rewind,
   RotateCcw,
   ShieldCheck,
+  SkipBack,
+  SkipForward,
   Sliders,
   SquareActivity,
   X,
@@ -31,6 +36,11 @@ import { cn } from "@/lib/utils";
 
 const defaultGoal =
   "For agent-copilot, preview a 100 USDC spend to vendor 0xABCDEF1234567890abcdef1234567890abcdef12 for API credits under the active spend policy. First recall agent-copilot memory and vendor reputation, then run the spend preview.";
+
+type ReplaySpeed = 0.5 | 1 | 2;
+
+const REPLAY_BASE_INTERVAL_MS = 1500;
+const REPLAY_SPEEDS: ReplaySpeed[] = [0.5, 1, 2];
 
 const phaseOrder = [
   "PLAN",
@@ -174,12 +184,29 @@ export function CopilotPage() {
   const [decision, setDecision] = useState<"approved" | "denied" | null>(null);
   const [recentRuns, setRecentRuns] = useState<CopilotRun[]>([]);
   const [replayRunId, setReplayRunId] = useState<string | null>(null);
+  const [replayIndex, setReplayIndex] = useState(0);
+  const [replayPlaying, setReplayPlaying] = useState(false);
+  const [replaySpeed, setReplaySpeed] = useState<ReplaySpeed>(1);
   const abortRef = useRef<AbortController | null>(null);
 
-  const activePhase = useMemo(() => {
-    const latest = events[events.length - 1];
-    return latest ? phaseForEvent(latest) : "PLAN";
-  }, [events]);
+  // Refs to event cards so the player can keep the playhead in view.
+  const eventRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+
+  const isReplaying = replayRunId !== null;
+
+  // Effective "latest" event: in live mode, the newest SSE event; in
+  // replay mode, the event at the current playhead. Phase strip and
+  // active-event highlighting both read from this.
+  const effectiveLatest = useMemo(() => {
+    if (isReplaying) {
+      return events[Math.min(replayIndex, events.length - 1)] ?? null;
+    }
+    return events[events.length - 1] ?? null;
+  }, [events, isReplaying, replayIndex]);
+
+  const activePhase = effectiveLatest
+    ? phaseForEvent(effectiveLatest)
+    : "PLAN";
 
   // Pull the recent-decisions rail on mount. After every decision or
   // start, we re-pull so the rail reflects the latest state.
@@ -200,6 +227,31 @@ export function CopilotPage() {
     return () => window.clearTimeout(id);
   }, [refreshRecent]);
 
+  // Auto-advance the replay playhead. In live mode this is a no-op.
+  useEffect(() => {
+    if (!replayPlaying) return;
+    if (!isReplaying) return;
+    if (replayIndex >= events.length - 1) {
+      // Defer the pause to avoid a synchronous setState inside the
+      // effect body (react-hooks/set-state-in-effect).
+      const id = window.setTimeout(() => setReplayPlaying(false), 0);
+      return () => window.clearTimeout(id);
+    }
+    const delay = Math.round(REPLAY_BASE_INTERVAL_MS / replaySpeed);
+    const id = window.setTimeout(() => {
+      setReplayIndex((i) => Math.min(i + 1, events.length - 1));
+    }, delay);
+    return () => window.clearTimeout(id);
+  }, [replayPlaying, replayIndex, events.length, replaySpeed, isReplaying]);
+
+  // Keep the playhead card in view while auto-playing. We only auto-scroll
+  // when playback is on so manual scrubbing isn't disruptive.
+  useEffect(() => {
+    if (!replayPlaying || !isReplaying) return;
+    const node = eventRefs.current.get(replayIndex);
+    node?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [replayIndex, replayPlaying, isReplaying]);
+
   const canConfirm =
     decision === null &&
     replayRunId === null &&
@@ -217,6 +269,8 @@ export function CopilotPage() {
     setError(null);
     setDecision(null);
     setReplayRunId(null);
+    setReplayIndex(0);
+    setReplayPlaying(false);
     setEvents([]);
     abortRef.current?.abort();
     try {
@@ -260,9 +314,14 @@ export function CopilotPage() {
     try {
       const response = await apiClient.getCopilotRun(runId);
       setRun(response.run);
-      setEvents(response.run.events || []);
+      const loadedEvents = response.run.events || [];
+      setEvents(loadedEvents);
       setDecision(deriveDecision(response.run));
       setReplayRunId(runId);
+      // Seed the playhead at the final event so the user sees the full
+      // trace immediately; they can scrub back with the prev/step buttons.
+      setReplayIndex(Math.max(loadedEvents.length - 1, 0));
+      setReplayPlaying(false);
     } catch (err) {
       setError(readableError(err));
     } finally {
@@ -272,12 +331,32 @@ export function CopilotPage() {
 
   function exitReplay() {
     setReplayRunId(null);
+    setReplayIndex(0);
+    setReplayPlaying(false);
+    setReplaySpeed(1);
     setRun(null);
     setEvents([]);
     setDecision(null);
     setError(null);
     abortRef.current?.abort();
     abortRef.current = null;
+  }
+
+  function replayStep(delta: number) {
+    setReplayIndex((i) => {
+      const next = Math.max(0, Math.min(events.length - 1, i + delta));
+      return next;
+    });
+  }
+
+  function replayReset() {
+    setReplayPlaying(false);
+    setReplayIndex(0);
+  }
+
+  function replayJumpToEnd() {
+    setReplayPlaying(false);
+    setReplayIndex(Math.max(events.length - 1, 0));
   }
 
   function rerunWithGoal(priorGoal: string) {
@@ -495,15 +574,108 @@ export function CopilotPage() {
         </section>
 
         <section className="rounded-lg border bg-card">
-          <div className="flex items-center justify-between border-b px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <SquareActivity className="h-4 w-4 text-primary" />
-              Live trace
+              {isReplaying ? "Event timeline" : "Live trace"}
+              {isReplaying && (
+                <Badge variant="outline" className="ml-1 border-amber-500/40 text-amber-700 dark:text-amber-300">
+                  replay
+                </Badge>
+              )}
             </div>
-            <span className="text-xs text-muted-foreground">
-              {events.length} events
-            </span>
+            {isReplaying && events.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {replayIndex + 1} / {events.length}
+                </span>
+                <Button
+                  size="icon-xs"
+                  variant="ghost"
+                  onClick={replayReset}
+                  disabled={busy}
+                  aria-label="Jump to first event"
+                >
+                  <Rewind className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="icon-xs"
+                  variant="ghost"
+                  onClick={() => replayStep(-1)}
+                  disabled={busy || replayIndex === 0}
+                  aria-label="Previous event"
+                >
+                  <SkipBack className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="icon-xs"
+                  variant={replayPlaying ? "default" : "secondary"}
+                  onClick={() => setReplayPlaying((p) => !p)}
+                  disabled={busy || replayIndex >= events.length - 1}
+                  aria-label={replayPlaying ? "Pause replay" : "Play replay"}
+                >
+                  {replayPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                </Button>
+                <Button
+                  size="icon-xs"
+                  variant="ghost"
+                  onClick={() => replayStep(1)}
+                  disabled={busy || replayIndex >= events.length - 1}
+                  aria-label="Next event"
+                >
+                  <SkipForward className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="icon-xs"
+                  variant="ghost"
+                  onClick={replayJumpToEnd}
+                  disabled={busy || replayIndex >= events.length - 1}
+                  aria-label="Jump to last event"
+                >
+                  <FastForward className="h-3 w-3" />
+                </Button>
+                <div className="ml-1 flex items-center gap-0.5 rounded-md border bg-background p-0.5">
+                  {REPLAY_SPEEDS.map((speed) => (
+                    <button
+                      key={speed}
+                      type="button"
+                      onClick={() => setReplaySpeed(speed)}
+                      aria-pressed={replaySpeed === speed}
+                      className={cn(
+                        "rounded px-1.5 py-0.5 text-[10px] font-medium tabular-nums transition-colors",
+                        replaySpeed === speed
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted",
+                      )}
+                    >
+                      {speed}×
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {events.length} events
+              </span>
+            )}
           </div>
+          {isReplaying && events.length > 1 && (
+            <div className="border-t bg-muted/30 px-4 py-2">
+              <input
+                type="range"
+                min={0}
+                max={events.length - 1}
+                step={1}
+                value={replayIndex}
+                onChange={(event) => {
+                  setReplayPlaying(false);
+                  setReplayIndex(Number(event.target.value));
+                }}
+                aria-label="Scrub through event timeline"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+              />
+            </div>
+          )}
           <div className="max-h-[560px] space-y-2 overflow-auto p-3">
             {events.length === 0 ? (
               <div className="flex h-44 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
@@ -511,26 +683,48 @@ export function CopilotPage() {
                 Awaiting mission
               </div>
             ) : (
-              events.map((event) => (
-                <div
-                  key={event.id}
-                  className={cn("rounded-lg border p-3", eventTone(event))}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">
-                        {labelForEvent(event)}
+              events.map((event, index) => {
+                const isActive = isReplaying && index === replayIndex;
+                const isFuture = isReplaying && index > replayIndex;
+                return (
+                  <div
+                    key={event.id}
+                    ref={(node) => {
+                      eventRefs.current.set(index, node);
+                    }}
+                    data-replay-active={isActive ? "true" : undefined}
+                    className={cn(
+                      "rounded-lg border p-3 transition-all",
+                      eventTone(event),
+                      isActive &&
+                        "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md",
+                      isFuture && "opacity-30",
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] tabular-nums text-muted-foreground">
+                            #{index + 1}
+                          </span>
+                          <span className="truncate text-sm font-medium">
+                            {labelForEvent(event)}
+                          </span>
+                        </div>
+                        <div className="mt-1 truncate text-xs opacity-75">
+                          {compactPayload(event.payload)}
+                        </div>
+                        <div className="mt-1 text-[10px] tabular-nums text-muted-foreground">
+                          {new Date(event.timestamp).toLocaleTimeString()}
+                        </div>
                       </div>
-                      <div className="mt-1 truncate text-xs opacity-75">
-                        {compactPayload(event.payload)}
-                      </div>
+                      <Badge variant="outline" className="shrink-0">
+                        {phaseForEvent(event)}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="shrink-0">
-                      {phaseForEvent(event)}
-                    </Badge>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </section>
