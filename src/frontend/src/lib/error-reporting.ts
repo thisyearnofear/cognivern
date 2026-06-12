@@ -36,6 +36,11 @@ export function reportError(error: Error | string, context?: ErrorContext): void
  * Set user context for error tracking.
  * No-op until Sentry is wired in.
  */
-export function setErrorUserContext(_userId: string, _traits?: ErrorContext): void {
-  // Sentry.setUser({ id: userId, ...traits });
+export function setErrorUserContext(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _traits?: ErrorContext,
+): void {
+  // Sentry.setUser({ id: _userId, ..._traits });
 }

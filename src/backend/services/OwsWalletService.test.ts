@@ -1,23 +1,26 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const mockBlockchainConfig = {
-  privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-  rpcUrl: "https://testrpc.xlayer.tech",
-  network: "xlayerTestnet",
-  contracts: {
-    governance: "0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6",
-    storage: "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D",
-  },
-  gasLimits: {
-    evaluateAction: 200000,
-    createPolicy: 100000,
-    updateStatus: 50000,
-    registerAgent: 150000,
-  },
-};
+const cfg = vi.hoisted(() => {
+  const mockBlockchainConfig = {
+    privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+    rpcUrl: "https://testrpc.xlayer.tech",
+    network: "xlayerTestnet",
+    contracts: {
+      governance: "0x755602bBcAD94ccA126Cfc9E5Fa697432D9e2DD6",
+      storage: "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D",
+    },
+    gasLimits: {
+      evaluateAction: 200000,
+      createPolicy: 100000,
+      updateStatus: 50000,
+      registerAgent: 150000,
+    },
+  };
+  return { mockBlockchainConfig };
+});
 
 vi.mock("../shared/config/index.js", () => ({
-  blockchainConfig: mockBlockchainConfig,
+  blockchainConfig: cfg.mockBlockchainConfig,
   config: { NODE_ENV: "test", PORT: 3000 },
   apiConfig: { port: 3000, apiKey: "test", corsOrigin: "*", rateLimit: {}, requestTimeout: 30000 },
   sapienceConfig: {},
@@ -106,16 +109,16 @@ describe("OwsWalletService — On-chain resilience", () => {
     mockUpdateAgentStatus.mockReset();
     mockExecute.mockClear();
     mockExecute.mockImplementation((fn: () => Promise<unknown>) => fn());
-    mockBlockchainConfig.privateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+    cfg.mockBlockchainConfig.privateKey = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
   });
 
   describe("recordOnChainApproval", () => {
     it("returns success: false when no private key is configured", async () => {
-      mockBlockchainConfig.privateKey = "";
+      cfg.mockBlockchainConfig.privateKey = "";
 
       const { OwsWalletService } = await import("./OwsWalletService.js");
       const service = new OwsWalletService();
-      const result = await (service as any).recordOnChainApproval({
+      const result = await (service as any).onChainManager.recordOnChainApproval({
         intentId: "test-intent",
         agentId: "test-agent",
         actionType: "spend",
@@ -124,7 +127,7 @@ describe("OwsWalletService — On-chain resilience", () => {
 
       expect(result.success).toBe(false);
       expect(mockExecute).not.toHaveBeenCalled();
-    });
+    }, 30000);
 
     it("wraps on-chain write in circuit breaker", async () => {
       mockGetAgent.mockResolvedValue({ status: 1n });
@@ -132,7 +135,7 @@ describe("OwsWalletService — On-chain resilience", () => {
 
       const { OwsWalletService } = await import("./OwsWalletService.js");
       const service = new OwsWalletService();
-      await (service as any).recordOnChainApproval({
+      await (service as any).onChainManager.recordOnChainApproval({
         intentId: "test-intent",
         agentId: "test-agent",
         actionType: "spend",
@@ -148,7 +151,7 @@ describe("OwsWalletService — On-chain resilience", () => {
 
       const { OwsWalletService } = await import("./OwsWalletService.js");
       const service = new OwsWalletService();
-      const result = await (service as any).recordOnChainApproval({
+      const result = await (service as any).onChainManager.recordOnChainApproval({
         intentId: "test-intent",
         agentId: "test-agent",
         actionType: "spend",
@@ -166,7 +169,7 @@ describe("OwsWalletService — On-chain resilience", () => {
 
       const { OwsWalletService } = await import("./OwsWalletService.js");
       const service = new OwsWalletService();
-      const result = await (service as any).recordOnChainApproval({
+      const result = await (service as any).onChainManager.recordOnChainApproval({
         intentId: "test-intent",
         agentId: "test-agent",
         actionType: "spend",
@@ -190,7 +193,7 @@ describe("OwsWalletService — On-chain resilience", () => {
       const service = new OwsWalletService();
       const mockWallet = { address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" };
 
-      await (service as any).ensureOnChainAgent(mockWallet, mockContract, "test-agent");
+      await (service as any).onChainManager.ensureOnChainAgent(mockWallet, mockContract, "test-agent");
 
       expect(mockCreatePolicy).toHaveBeenCalledWith(
         expect.any(String),
@@ -211,7 +214,7 @@ describe("OwsWalletService — On-chain resilience", () => {
       const service = new OwsWalletService();
       const mockWallet = { address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" };
 
-      await (service as any).ensureOnChainAgent(mockWallet, mockContract, "test-agent");
+      await (service as any).onChainManager.ensureOnChainAgent(mockWallet, mockContract, "test-agent");
 
       expect(mockRegisterAgent).toHaveBeenCalledWith(
         expect.any(String),

@@ -6,7 +6,6 @@ import { motion, useScroll, useTransform } from "motion/react";
 import {
   ArrowRight,
   Shield,
-  Sparkles,
   Terminal,
   ChevronRight,
   Globe,
@@ -25,7 +24,7 @@ import { useAccount } from "wagmi";
 
 /* ─── Terminal typing hook ──────────────────────────────────── */
 
-function useTypewriter(lines: string[], speed = 40, startDelay = 800) {
+function useTypewriter(lines: string[], speed = 40) {
   const [displayed, setDisplayed] = useState<string[]>([]);
   const [currentLine, setCurrentLine] = useState(0);
   const [currentChar, setCurrentChar] = useState(0);

@@ -572,7 +572,7 @@ export function GovernanceCheck() {
                   Fhenix network. Your budget limits stay encrypted throughout.
                 </p>
                 <div className="space-y-0.5">
-                  {fheSteps.map((step, i) => (
+                  {fheSteps.map((step) => (
                     <div key={step.label} className="flex items-center gap-3 py-1.5">
                       {/* Step indicator */}
                       <div className="flex-shrink-0 w-6 flex justify-center">
