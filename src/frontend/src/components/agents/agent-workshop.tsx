@@ -21,6 +21,8 @@ import {
   Copy,
   Check,
   Plug,
+  XCircle,
+  Key,
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
@@ -49,42 +51,42 @@ const USE_CASE_TEMPLATES = [
     name: "TraderBot",
     chain: "Ethereum",
     budget: "$5,000",
-    desc: "Swaps, limit orders, arbitrage",
+    desc: "External trading bots that need swap/order governance",
   },
   {
     role: "Yield Optimizer",
     name: "YieldHunter",
     chain: "Arbitrum",
     budget: "$10,000",
-    desc: "Deposit/withdraw into yield protocols",
+    desc: "Yield farming scripts that need deposit/withdraw limits",
   },
   {
     role: "Portfolio Rebalancer",
     name: "Rebalancer",
     chain: "Ethereum",
     budget: "$25,000",
-    desc: "Cross-vault rebalancing",
+    desc: "Cross-vault rebalancing automation",
   },
   {
     role: "Payment Agent",
     name: "PayBot",
     chain: "Base",
     budget: "$1,000",
-    desc: "Recurring payments, vendor payouts",
+    desc: "Recurring payments and vendor payout workflows",
   },
   {
     role: "DAO Treasury Agent",
     name: "TreasuryOps",
     chain: "Ethereum",
     budget: "$10,000",
-    desc: "Proposal-linked disbursements",
+    desc: "Proposal-linked disbursement automation",
   },
   {
     role: "Bridge Agent",
     name: "Bridger",
     chain: "Ethereum",
     budget: "$5,000",
-    desc: "Cross-chain transfers",
+    desc: "Cross-chain transfer scripts and relayers",
   },
 ];
 
@@ -130,14 +132,14 @@ export function AgentWorkshop() {
       } else {
         setError(
           res.error ||
-            `Failed to ${mode === "connect" ? "connect" : "create"} agent`,
+            `Failed to ${mode === "connect" ? "connect" : "create"} identity`,
         );
       }
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : `Failed to ${mode === "connect" ? "connect" : "create"} agent`,
+          : `Failed to ${mode === "connect" ? "connect" : "create"} identity`,
       );
     } finally {
       setCreating(false);
@@ -146,7 +148,7 @@ export function AgentWorkshop() {
 
   if (createdId) {
     return (
-      <AgentCreatedSuccess
+      <IdentityCreatedSuccess
         name={name}
         chain={chain}
         createdId={createdId}
@@ -166,9 +168,9 @@ export function AgentWorkshop() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>Register Agent</h1>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>Create Governed API Identity</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Configure and register a new governed agent
+            Give an external system policy-governed access to Cognivern
           </p>
         </div>
       </div>
@@ -206,19 +208,19 @@ export function AgentWorkshop() {
               {mode === "connect" ? (
                 <Plug className="h-5 w-5 text-sky-500" />
               ) : (
-                <Sparkles className="h-5 w-5 text-sky-500" />
+                <Key className="h-5 w-5 text-sky-500" />
               )}
             </div>
             <div>
               <h2 className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
                 {mode === "connect"
-                  ? "Connect Existing Agent"
-                  : "Agent Configuration"}
+                  ? "Connect Existing System"
+                  : "API Identity Configuration"}
               </h2>
               <p className="text-xs text-muted-foreground">
                 {mode === "connect"
-                  ? "Register an agent that already exists on-chain or off-chain"
-                  : "Define your agent's identity and constraints"}
+                  ? "Link an external system that already has a wallet address"
+                  : "Define the identity and constraints for your external system"}
               </p>
             </div>
           </div>
@@ -229,8 +231,11 @@ export function AgentWorkshop() {
             <>
               <div className="space-y-2">
                 <label className="text-sm font-medium">
-                  Start from a template
+                  Use case templates
                 </label>
+                <p className="text-[11px] text-muted-foreground">
+                  Pre-fill common scenarios. You can edit everything below.
+                </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {USE_CASE_TEMPLATES.map((t) => (
                     <button
@@ -255,9 +260,6 @@ export function AgentWorkshop() {
                     </button>
                   ))}
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Or fill in manually below
-                </p>
               </div>
 
               <Separator />
@@ -266,7 +268,7 @@ export function AgentWorkshop() {
 
           <div className="space-y-2">
             <label htmlFor="name" className="text-sm font-medium">
-              Agent Name
+              Identity Name
             </label>
             <Input
               id="name"
@@ -278,7 +280,7 @@ export function AgentWorkshop() {
 
           <div className="space-y-2">
             <label htmlFor="role" className="text-sm font-medium">
-              Role / Purpose
+              What does this system do?
             </label>
             <Input
               id="role"
@@ -287,7 +289,7 @@ export function AgentWorkshop() {
               placeholder={
                 mode === "connect"
                   ? "e.g. Existing DeFi Trading Bot"
-                  : "e.g. DeFi Yield Optimizer"
+                  : "e.g. DeFi yield farming script"
               }
             />
           </div>
@@ -304,8 +306,7 @@ export function AgentWorkshop() {
                 placeholder="0x..."
               />
               <p className="text-[11px] text-muted-foreground">
-                The existing agent&apos;s wallet address used to identify it
-                on-chain
+                The wallet address your external system uses on-chain
               </p>
             </div>
           )}
@@ -360,7 +361,7 @@ export function AgentWorkshop() {
                 id="webhook"
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
-                placeholder="https://your-agent.example.com/webhook"
+                placeholder="https://your-system.example.com/webhook"
               />
               <p className="text-[11px] text-muted-foreground">
                 Optional endpoint for governance decision callbacks
@@ -387,78 +388,70 @@ export function AgentWorkshop() {
             {creating ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />{" "}
-                {mode === "connect" ? "Connecting..." : "Registering..."}
+                {mode === "connect" ? "Connecting..." : "Creating..."}
               </>
             ) : mode === "connect" ? (
               <>
-                <Plug className="h-4 w-4" /> Connect Agent
+                <Plug className="h-4 w-4" /> Connect System
               </>
             ) : (
               <>
-                <Sparkles className="h-4 w-4" /> Register Agent
+                <Key className="h-4 w-4" /> Create API Identity
               </>
             )}
           </Button>
         </div>
 
-      <div className="rounded-xl border bg-muted/20 p-4">
-          <div className="text-sm space-y-2">
-            <div className="font-medium">
-              {mode === "connect"
-                ? "What happens when you connect an existing agent:"
-                : "What happens when you register:"}
+      <div className="rounded-xl border bg-muted/20 p-4 space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <div className="text-sm font-medium flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              What you&apos;re creating
             </div>
-            <ol className="list-decimal list-inside text-muted-foreground space-y-1 text-xs">
-              {mode === "connect" ? (
-                <>
-                  <li>
-                    The agent is linked to your workspace with its wallet
-                    address and metadata
-                  </li>
-                  <li>
-                    It appears in your Agents dashboard with
-                    &ldquo;external&rdquo; label
-                  </li>
-                  <li>
-                    Create an API key in Settings and configure your existing
-                    agent to use it
-                  </li>
-                  <li>
-                    Your agent calls Cognivern&apos;s API before every
-                    transaction for governance checks
-                  </li>
-                  <li>
-                    No new infrastructure is spun up — we govern, you operate
-                  </li>
-                </>
-              ) : (
-                <>
-                  <li>
-                    The agent is registered in your workspace with the selected
-                    budget and chain
-                  </li>
-                  <li>
-                    It appears in your Agents dashboard with
-                    &ldquo;active&rdquo; status
-                  </li>
-                  <li>
-                    Create an API key in Settings and give it to your agent for
-                    authentication
-                  </li>
-                  <li>
-                    The agent calls Cognivern&apos;s API before every
-                    transaction for governance checks
-                  </li>
-                </>
-              )}
-            </ol>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              <li>A policy-bound API identity in your workspace</li>
+              <li>Governance rules enforced on every API call</li>
+              <li>Audit trail for all activity</li>
+              <li>Budget and chain constraints</li>
+            </ul>
+          </div>
+          <div className="space-y-2">
+            <div className="text-sm font-medium flex items-center gap-1.5">
+              <XCircle className="h-3.5 w-3.5 text-red-400" />
+              What you&apos;re NOT creating
+            </div>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              <li>No AI or LLM is provisioned</li>
+              <li>No autonomous bot is spun up</li>
+              <li>No infrastructure — you bring your own system</li>
+            </ul>
           </div>
         </div>
+
+        <Separator />
+
+        <div className="text-sm space-y-2">
+          <div className="font-medium">
+            After creation:
+          </div>
+          <ol className="list-decimal list-inside text-muted-foreground space-y-1 text-xs">
+            <li>Copy your API key from Settings</li>
+            <li>
+              Give it to your external system (bot, script, Zapier, etc.)
+            </li>
+            <li>
+              Your system calls Cognivern&apos;s API before every transaction
+            </li>
+            <li>Cognivern enforces your policies and logs all activity</li>
+          </ol>
+        </div>
+      </div>
     </div>
   );
 }
 
-function AgentCreatedSuccess({
+function IdentityCreatedSuccess({
   name,
   chain,
   createdId,
@@ -515,14 +508,24 @@ console.log(result.allowed ? 'Approved' : 'Blocked', result.reasoning);`;
         <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mx-auto">
           <CheckCircle2 className="h-8 w-8 text-emerald-500" />
         </div>
-        <h2 className="text-2xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Agent Registered</h2>
+        <h2 className="text-2xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>API Identity Created</h2>
         <p className="text-muted-foreground">
-          <strong>{name}</strong> is ready to operate on {chain}. Copy an
-          integration snippet below to start sending spend requests in seconds.
+          <strong>{name}</strong> is now a governed API identity in your workspace on {chain}.
         </p>
       </div>
 
+      <div className="rounded-xl border bg-muted/20 p-4">
+        <div className="text-sm font-medium mb-2">Next steps</div>
+        <ol className="list-decimal list-inside text-xs text-muted-foreground space-y-1">
+          <li>Get your API key from Settings</li>
+          <li>Give it to your external system (bot, script, Zapier, etc.)</li>
+          <li>Your system calls Cognivern before every transaction</li>
+          <li>Cognivern enforces your policies and logs all activity</li>
+        </ol>
+      </div>
+
       <div className="space-y-3">
+        <div className="text-sm font-medium">Integration snippets</div>
         <div className="rounded-lg border border-border overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 bg-muted border-b border-border">
             <span className="text-xs font-medium text-muted-foreground">
@@ -574,10 +577,10 @@ console.log(result.allowed ? 'Approved' : 'Blocked', result.reasoning);`;
 
       <div className="flex items-center justify-center gap-2 flex-wrap">
         <Button onClick={() => router.push(`/agents/${createdId}`)}>
-          View Agent
+          View Identity
         </Button>
         <Button variant="outline" onClick={() => router.push("/agents")}>
-          All Agents
+          All Identities
         </Button>
         <Button variant="secondary" onClick={() => router.push("/settings")}>
           Get API Key

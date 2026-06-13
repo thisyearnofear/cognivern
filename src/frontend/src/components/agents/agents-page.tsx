@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState, EmptyState } from "@/components/ui/error-state";
 import { useRouter } from "next/navigation";
-import { Users, PlusCircle } from "lucide-react";
+import { PlusCircle, Key, Eye } from "lucide-react";
 import { useAgents } from "@/hooks/use-api";
+import { useMemo } from "react";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -22,11 +23,89 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
+function AgentCard({ agent }: { agent: { id: string; name: string; role: string; status: string; trades: number; budget: string; chain: string; source?: string } }) {
+  const router = useRouter();
+  const isDemo = agent.source === "demo";
+
+  return (
+    <motion.div
+      variants={itemVariants}
+      className="bg-card p-5 hover:bg-accent/50 transition-colors cursor-pointer"
+      onClick={() => router.push(`/agents/${agent.id}`)}
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+              isDemo
+                ? "bg-violet-100 dark:bg-violet-950 text-violet-600"
+                : agent.status === "active"
+                  ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600"
+                  : agent.status === "paused"
+                    ? "bg-amber-100 dark:bg-amber-950 text-amber-600"
+                    : "bg-stone-100 dark:bg-stone-800 text-stone-400"
+            }`}
+          >
+            {isDemo ? <Eye className="h-5 w-5" /> : <Key className="h-5 w-5" />}
+          </div>
+          <div>
+            <div className="font-semibold">{agent.name}</div>
+            <div className="text-xs text-muted-foreground">
+              {agent.role}
+            </div>
+          </div>
+        </div>
+        {isDemo ? (
+          <Badge variant="outline" className="text-violet-600 border-violet-300 dark:border-violet-700 dark:text-violet-400">
+            demo
+          </Badge>
+        ) : (
+          <Badge
+            variant={
+              agent.status === "active"
+                ? "secondary"
+                : agent.status === "paused"
+                  ? "outline"
+                  : "outline"
+            }
+          >
+            {agent.status}
+          </Badge>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <div className="text-xs text-muted-foreground">Trades</div>
+          <div className="font-medium">{agent.trades}</div>
+        </div>
+        <div>
+          <div className="text-xs text-muted-foreground">Budget</div>
+          <div className="font-medium text-xs">{agent.budget}</div>
+        </div>
+        <div className="col-span-2">
+          <div className="text-xs text-muted-foreground">Chain</div>
+          <div className="font-medium text-xs">{agent.chain}</div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export function AgentsPage() {
   const router = useRouter();
   const { data: agents, isLoading, error } = useAgents();
 
-  const agentList = agents || [];
+  const agentList = useMemo(() => agents || [], [agents]);
+
+  const { showcase, user } = useMemo(() => {
+    const showcase: typeof agentList = [];
+    const user: typeof agentList = [];
+    for (const agent of agentList) {
+      if (agent.source === "demo") showcase.push(agent);
+      else user.push(agent);
+    }
+    return { showcase, user };
+  }, [agentList]);
 
   return (
     <div className="space-y-6">
@@ -36,10 +115,10 @@ export function AgentsPage() {
             className="text-2xl font-bold tracking-tight"
             style={{ fontFamily: "var(--font-space-grotesk)" }}
           >
-            Agents
+            Governed API Identities
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage and monitor governed agents
+          <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+            Give your external systems (bots, scripts, workflows) policy-governed access to Cognivern
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -49,7 +128,7 @@ export function AgentsPage() {
             </Badge>
           )}
           <Button onClick={() => router.push("/agents/workshop")}>
-            <PlusCircle className="h-4 w-4" /> Add Agent
+            <PlusCircle className="h-4 w-4" /> Create API Identity
           </Button>
         </div>
       </div>
@@ -70,79 +149,71 @@ export function AgentsPage() {
         />
       ) : agentList.length === 0 ? (
         <EmptyState
-          icon={<Users className="h-8 w-8 text-muted-foreground" />}
-          title="No agents yet"
-          description="Create your first agent to start governing spend."
+          icon={<Key className="h-8 w-8 text-muted-foreground" />}
+          title="No API identities yet"
+          description="Give your first external system governed access to Cognivern. You bring the system — Cognivern enforces the rules."
           action={{
-            label: "Create Agent",
+            label: "Create Your First API Identity",
             onClick: () => router.push("/agents/workshop"),
             icon: <PlusCircle className="h-4 w-4" />,
           }}
           className="border rounded-xl"
         />
       ) : (
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {agentList.map((agent) => (
-            <motion.div
-              key={agent.id}
-              variants={itemVariants}
-              className="bg-card p-5 hover:bg-accent/50 transition-colors cursor-pointer"
-              onClick={() => router.push(`/agents/${agent.id}`)}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      agent.status === "active"
-                        ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600"
-                        : agent.status === "paused"
-                          ? "bg-amber-100 dark:bg-amber-950 text-amber-600"
-                          : "bg-stone-100 dark:bg-stone-800 text-stone-400"
-                    }`}
-                  >
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">{agent.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {agent.role}
-                    </div>
-                  </div>
-                </div>
-                <Badge
-                  variant={
-                    agent.status === "active"
-                      ? "secondary"
-                      : agent.status === "paused"
-                        ? "outline"
-                        : "outline"
-                  }
-                >
-                  {agent.status}
-                </Badge>
+        <div className="space-y-8">
+          {showcase.length > 0 && (
+            <div className="space-y-3">
+              <div>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  Showcase Agents
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Demos showing what Cognivern can govern. Not configurable.
+                </p>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <div className="text-xs text-muted-foreground">Trades</div>
-                  <div className="font-medium">{agent.trades}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Budget</div>
-                  <div className="font-medium text-xs">{agent.budget}</div>
-                </div>
-                <div className="col-span-2">
-                  <div className="text-xs text-muted-foreground">Chain</div>
-                  <div className="font-medium text-xs">{agent.chain}</div>
-                </div>
+              <motion.div
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {showcase.map((agent) => (
+                  <AgentCard key={agent.id} agent={agent} />
+                ))}
+              </motion.div>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div>
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Your API Identities
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                External systems you&apos;ve given governed access to Cognivern.
+              </p>
+            </div>
+            {user.length === 0 ? (
+              <div className="rounded-xl border border-dashed bg-card p-8 text-center">
+                <Key className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  No API identities yet. Create one to get started.
+                </p>
               </div>
-            </motion.div>
-          ))}
-        </motion.div>
+            ) : (
+              <motion.div
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {user.map((agent) => (
+                  <AgentCard key={agent.id} agent={agent} />
+                ))}
+              </motion.div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

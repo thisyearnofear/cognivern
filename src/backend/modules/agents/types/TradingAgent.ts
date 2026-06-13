@@ -148,6 +148,7 @@ export interface AgentInfo {
   chain?: string;
   budget?: string;
   trades?: number;
+  source?: "managed" | "external" | "demo";
 }
 
 // AgentStatus is imported from shared types
