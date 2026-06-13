@@ -309,7 +309,15 @@ export async function executeWorkersAI(
   taskType: TaskType,
   config: MultiModelConfig,
 ): Promise<string> {
-  const ai: any = (globalThis as any).ai || null;
+  interface WorkersAiBinding {
+    run(
+      model: string,
+      input: Record<string, unknown>,
+      options?: { signal?: AbortSignal },
+    ): Promise<{ response?: string }>;
+  }
+  const binding = (globalThis as Record<string, unknown>).ai;
+  const ai = binding as WorkersAiBinding | null;
   if (!ai) {
     throw new Error("Workers AI binding not available");
   }

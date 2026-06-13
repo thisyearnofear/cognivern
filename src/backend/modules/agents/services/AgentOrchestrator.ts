@@ -16,6 +16,28 @@ import {
 import { TradingScheduler } from "./TradingScheduler.js";
 import { tradingConfig } from "../../../shared/config/index.js";
 
+/** Agents that implement governed/legacy forecast cycles. */
+interface GovernedAgent extends TradingAgent {
+  runCycleWithGovernance?(): Promise<{
+    success: boolean;
+    forecastSubmitted: boolean;
+    tradeSubmitted: boolean;
+    decisionId?: string;
+    attestationHash?: string;
+    auditLogId?: string;
+    reason?: string;
+  }>;
+  performForecastCycle?(): Promise<{
+    success: boolean;
+    forecastTxHash?: string;
+    tradeTxHash?: string;
+    decisionId?: string;
+    attestationHash?: string;
+    governanceStatus?: string;
+    error?: string;
+  }>;
+}
+
 export interface OrchestrationConfig {
   maxConcurrentTrades: number;
   riskAllocationPerAgent: number;
@@ -120,11 +142,12 @@ export class AgentOrchestrator extends BaseService {
           // legacy performForecastCycle only when runCycleWithGovernance
           // isn't available.
           if (agent.type === "sapience") {
-            if (typeof (agent as any).runCycleWithGovernance === "function") {
+            const governedAgent = agent as GovernedAgent;
+            if (typeof governedAgent.runCycleWithGovernance === "function") {
               this.logger.info(
                 `Starting governed forecast cycle for ${agent.name}`,
               );
-              const result = await (agent as any).runCycleWithGovernance();
+              const result = await governedAgent.runCycleWithGovernance();
               if (!result.success) {
                 this.logger.warn(
                   `Governed cycle for ${agent.name} did not succeed: ${result.reason}`,
@@ -136,11 +159,11 @@ export class AgentOrchestrator extends BaseService {
               }
               return;
             }
-            if (typeof (agent as any).performForecastCycle === "function") {
+            if (typeof governedAgent.performForecastCycle === "function") {
               this.logger.info(
                 `Starting forecast cycle (legacy path) for ${agent.name}`,
               );
-              await (agent as any).performForecastCycle();
+              await governedAgent.performForecastCycle();
               return;
             }
           }

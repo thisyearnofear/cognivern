@@ -7,6 +7,7 @@
 
 import { AgentStatus } from "../types/index.js";
 import { TradingDecision } from "../../types/Agent.js";
+import { MetricsPeriod } from "../../types/Metrics.js";
 import { TradingHistoryService } from "../../services/TradingHistoryService.js";
 import { MetricsService } from "../../services/MetricsService.js";
 import { Logger } from "../logging/Logger.js";
@@ -261,9 +262,7 @@ export class AgentMetricsAggregator {
         this.tradingHistory.calculatePerformance(agentHistory);
 
       // Get operational metrics
-      const metrics = await this.metricsService.getMetrics({
-        period: "daily",
-      } as any);
+      const metrics = await this.metricsService.getMetrics(MetricsPeriod.DAILY);
 
       // Combine into comparison metrics
       return {
@@ -271,7 +270,7 @@ export class AgentMetricsAggregator {
         agentName: agent.name,
         agentType: agent.type,
         status: agent.status,
-        ecosystem: (agent as any).ecosystem || "sapience",
+        ecosystem: ((agent as Record<string, unknown>).ecosystem as string) || "sapience",
 
         // Performance metrics from trading history
         totalTrades: performance.totalTrades,

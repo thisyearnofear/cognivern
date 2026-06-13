@@ -7,6 +7,12 @@ export type CognivernClientConfig = {
   ingestKey?: string;
 };
 
+interface IngestResponse {
+  runId: string;
+  projectId: string;
+  error?: string;
+}
+
 export class CognivernClient {
   private baseUrl: string;
   private apiKey: string;
@@ -23,7 +29,7 @@ export class CognivernClient {
   async ingestRun(run: CreRun): Promise<{ runId: string; projectId: string }> {
     const payload = {
       ...run,
-      projectId: (run as any).projectId || this.projectId,
+      projectId: run.projectId || this.projectId,
     };
 
     const res = await fetch(`${this.baseUrl}/ingest/runs`, {
@@ -36,7 +42,7 @@ export class CognivernClient {
       body: JSON.stringify(payload),
     });
 
-    const json = (await res.json()) as any;
+    const json = (await res.json()) as IngestResponse;
     if (!res.ok) {
       throw new Error(json?.error || `Ingest failed: ${res.status}`);
     }

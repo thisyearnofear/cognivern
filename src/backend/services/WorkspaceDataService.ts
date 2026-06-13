@@ -10,6 +10,8 @@ import type {
 } from "@cognivern/shared";
 import { NotificationService } from "./NotificationService.js";
 
+type Row = Record<string, unknown>;
+
 export const WorkspaceDataService = {
   // --- Agents ---
   getAgents(workspaceId: string): Agent[] {
@@ -18,7 +20,7 @@ export const WorkspaceDataService = {
       .prepare(
         "SELECT * FROM workspace_agents WHERE workspace_id = ? ORDER BY created_at DESC",
       )
-      .all(workspaceId) as any[];
+      .all(workspaceId) as Row[];
     return rows.map(rowToAgent);
   },
 
@@ -28,7 +30,7 @@ export const WorkspaceDataService = {
       .prepare(
         "SELECT * FROM workspace_agents WHERE id = ? AND workspace_id = ?",
       )
-      .get(agentId, workspaceId) as any | undefined;
+      .get(agentId, workspaceId) as Row | undefined;
     return row ? rowToAgent(row) : undefined;
   },
 
@@ -102,7 +104,7 @@ export const WorkspaceDataService = {
       .prepare(
         "SELECT * FROM workspace_policies WHERE workspace_id = ? ORDER BY created_at DESC",
       )
-      .all(workspaceId) as any[];
+      .all(workspaceId) as Row[];
     return rows.map(rowToPolicy);
   },
 
@@ -164,7 +166,7 @@ export const WorkspaceDataService = {
       rules: rules.map((r, i) => ({
         id: `r${i}`,
         condition: r.condition,
-        action: r.action as any,
+        action: r.action as "allow" | "deny" | "flag",
         params: r.params,
       })),
     };
@@ -189,15 +191,15 @@ export const WorkspaceDataService = {
       .prepare(
         "SELECT * FROM workspace_policies WHERE id = ? AND workspace_id = ?",
       )
-      .get(policyId, workspaceId) as any | undefined;
+      .get(policyId, workspaceId) as Row | undefined;
 
     if (!existing) return null;
 
     const now = new Date().toISOString();
-    const name = updates.name ?? existing.name;
-    const description = updates.description ?? existing.description;
-    const rules = updates.rules ?? JSON.parse(existing.rules || "[]");
-    const status = updates.status ?? existing.status;
+    const name = updates.name ?? (existing.name as string);
+    const description = updates.description ?? (existing.description as string);
+    const rules = updates.rules ?? JSON.parse((existing.rules as string) || "[]");
+    const status = updates.status ?? (existing.status as string);
 
     // Snapshot current version before updating
     const latestVersion = db
@@ -231,15 +233,15 @@ export const WorkspaceDataService = {
     return {
       id: policyId,
       name,
-      type: existing.type,
+      type: existing.type as string,
       description,
-      status: status as any,
+      status: status as "active" | "draft" | "inactive",
       agents: 0,
       violations: 0,
-      rules: rules.map((r: any, i: number) => ({
+      rules: rules.map((r: { condition: string; action: string; params?: Record<string, unknown> }, i: number) => ({
         id: `r${i}`,
         condition: r.condition,
-        action: r.action,
+        action: r.action as "allow" | "deny" | "flag",
         params: r.params,
       })),
     };
@@ -262,16 +264,16 @@ export const WorkspaceDataService = {
       .prepare(
         "SELECT * FROM policy_versions WHERE policy_id = ? AND workspace_id = ? ORDER BY version DESC",
       )
-      .all(policyId, workspaceId) as any[];
+      .all(policyId, workspaceId) as Row[];
 
     return rows.map((row) => ({
-      id: row.id,
-      version: row.version,
-      name: row.name,
-      description: row.description,
-      status: row.status,
-      rules: JSON.parse(row.rules || "[]"),
-      snapshotAt: row.snapshot_at,
+      id: row.id as string,
+      version: row.version as number,
+      name: row.name as string,
+      description: row.description as string,
+      status: row.status as string,
+      rules: JSON.parse((row.rules as string) || "[]"),
+      snapshotAt: row.snapshot_at as string,
     }));
   },
 
@@ -285,12 +287,12 @@ export const WorkspaceDataService = {
       .prepare(
         "SELECT * FROM policy_versions WHERE id = ? AND policy_id = ? AND workspace_id = ?",
       )
-      .get(versionId, policyId, workspaceId) as any | undefined;
+      .get(versionId, policyId, workspaceId) as Row | undefined;
 
     if (!version) return null;
 
     const now = new Date().toISOString();
-    const rules = JSON.parse(version.rules || "[]");
+    const rules = JSON.parse((version.rules as string) || "[]");
 
     // Snapshot the current state as a new version before rolling back
     const latestVersion = db
@@ -308,11 +310,11 @@ export const WorkspaceDataService = {
       policyId,
       workspaceId,
       nextVersion,
-      version.name,
-      version.type,
-      version.description,
-      version.status,
-      version.rules,
+      version.name as string,
+      version.type as string,
+      version.description as string,
+      version.status as string,
+      version.rules as string,
       now,
     );
 
@@ -320,10 +322,10 @@ export const WorkspaceDataService = {
     db.prepare(
       "UPDATE workspace_policies SET name = ?, description = ?, rules = ?, status = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
     ).run(
-      version.name,
-      version.description,
-      version.rules,
-      version.status,
+      version.name as string,
+      version.description as string,
+      version.rules as string,
+      version.status as string,
       now,
       policyId,
       workspaceId,
@@ -331,16 +333,16 @@ export const WorkspaceDataService = {
 
     return {
       id: policyId,
-      name: version.name,
-      type: version.type,
-      description: version.description,
-      status: version.status,
+      name: version.name as string,
+      type: version.type as string,
+      description: version.description as string,
+      status: version.status as "active" | "draft" | "inactive",
       agents: 0,
       violations: 0,
-      rules: rules.map((r: any, i: number) => ({
+      rules: rules.map((r: { condition: string; action: string; params?: Record<string, unknown> }, i: number) => ({
         id: `r${i}`,
         condition: r.condition,
-        action: r.action,
+        action: r.action as "allow" | "deny" | "flag",
         params: r.params,
       })),
     };
@@ -353,20 +355,20 @@ export const WorkspaceDataService = {
       .prepare(
         "SELECT id, name, chain, spend_history FROM workspace_agents WHERE workspace_id = ?",
       )
-      .all(workspaceId) as any[];
+      .all(workspaceId) as Row[];
 
     const logs: AuditLog[] = [];
     for (const agent of agents) {
-      const history = JSON.parse(agent.spend_history || "[]");
+      const history = JSON.parse((agent.spend_history as string) || "[]") as Array<Record<string, unknown>>;
       for (const entry of history) {
         logs.push({
-          id: `log-${agent.id}-${entry.timestamp}`,
-          agentId: agent.id,
+          id: `log-${agent.id as string}-${String(entry.timestamp)}`,
+          agentId: agent.id as string,
           action: "spend",
-          description: `${agent.name}: ${entry.amount} ${entry.currency}`,
-          decision: entry.decision || "approved",
-          chain: agent.chain,
-          timestamp: entry.timestamp,
+          description: `${agent.name as string}: ${String(entry.amount)} ${String(entry.currency)}`,
+          decision: (entry.decision as "approved" | "denied" | "held") || "approved",
+          chain: agent.chain as string,
+          timestamp: entry.timestamp as string,
           latency: "35ms",
         });
       }
@@ -410,20 +412,20 @@ export const WorkspaceDataService = {
     }
 
     // Load policies to evaluate against
-    let policies: any[];
+    let policies: Row[];
     if (params.policyId) {
       const p = db
         .prepare(
           "SELECT * FROM workspace_policies WHERE id = ? AND workspace_id = ? AND status = 'active'",
         )
-        .get(params.policyId, workspaceId);
+        .get(params.policyId, workspaceId) as Row | undefined;
       policies = p ? [p] : [];
     } else {
       policies = db
         .prepare(
           "SELECT * FROM workspace_policies WHERE workspace_id = ? AND status = 'active'",
         )
-        .all(workspaceId) as any[];
+        .all(workspaceId) as Row[];
     }
 
     if (policies.length === 0) {
@@ -450,17 +452,17 @@ export const WorkspaceDataService = {
     const denialReasons: string[] = [];
 
     for (const policy of policies) {
-      const rules = JSON.parse(policy.rules || "[]");
+      const rules = JSON.parse((policy.rules as string) || "[]") as Array<{ condition: string; action: string; params?: Record<string, unknown> }>;
       for (const rule of rules) {
         const check = evaluateRule(rule, params.action, agent);
         policyChecks.push({
-          policyId: policy.id,
+          policyId: policy.id as string,
           result: check.passed,
           reason: check.reason,
         });
         if (!check.passed && rule.action === "deny") {
           denied = true;
-          denialReasons.push(`${policy.name}: ${check.reason}`);
+          denialReasons.push(`${policy.name as string}: ${check.reason}`);
         }
       }
     }
@@ -630,36 +632,36 @@ function evaluateRule(
   };
 }
 
-function rowToAgent(row: any): Agent {
+function rowToAgent(row: Row): Agent {
   return {
-    id: row.id,
-    name: row.name,
-    role: row.role,
-    status: row.status,
-    chain: row.chain,
-    budget: row.budget || "$0",
-    trades: row.trades || 0,
-    spendHistory: JSON.parse(row.spend_history || "[]"),
-    source: row.source || "managed",
-    walletAddress: row.wallet_address || undefined,
-    webhookUrl: row.webhook_url || undefined,
+    id: row.id as string,
+    name: row.name as string,
+    role: row.role as string,
+    status: row.status as "active" | "paused" | "inactive",
+    chain: row.chain as string,
+    budget: (row.budget as string) || "$0",
+    trades: (row.trades as number) || 0,
+    spendHistory: JSON.parse((row.spend_history as string) || "[]"),
+    source: (row.source as "managed" | "external") || "managed",
+    walletAddress: (row.wallet_address as string) || undefined,
+    webhookUrl: (row.webhook_url as string) || undefined,
   };
 }
 
-function rowToPolicy(row: any): Policy {
-  const rules = JSON.parse(row.rules || "[]");
+function rowToPolicy(row: Row): Policy {
+  const rules = JSON.parse((row.rules as string) || "[]") as Array<{ id?: string; condition: string; action: string; params?: Record<string, unknown> }>;
   return {
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    description: row.description,
-    status: row.status,
+    id: row.id as string,
+    name: row.name as string,
+    type: row.type as string,
+    description: row.description as string,
+    status: row.status as "active" | "draft" | "inactive",
     agents: 0,
     violations: 0,
-    rules: rules.map((r: any, i: number) => ({
+    rules: rules.map((r, i) => ({
       id: r.id || `r${i}`,
       condition: r.condition,
-      action: r.action,
+      action: r.action as "allow" | "deny" | "flag",
       params: r.params,
     })),
   };

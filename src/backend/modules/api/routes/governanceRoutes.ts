@@ -4,6 +4,28 @@ import type { McpGovernanceController } from "../controllers/McpGovernanceContro
 import { getDb } from "../../../db/index.js";
 import { randomUUID } from "node:crypto";
 
+interface PolicyVersionRow {
+  id: string;
+  version: number;
+  name: string;
+  description: string;
+  status: string;
+  rules: string;
+  snapshot_at: string;
+}
+
+interface WorkspacePolicyRow {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  status: string;
+  rules: string;
+  workspace_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export function createGovernanceRoutes(
   governanceController: GovernanceController,
   mcpGovernanceController: McpGovernanceController,
@@ -48,7 +70,7 @@ export function createGovernanceRoutes(
       .prepare(
         "SELECT * FROM policy_versions WHERE policy_id = ? AND workspace_id = ? ORDER BY version DESC",
       )
-      .all(policyId, workspaceId) as any[];
+      .all(policyId, workspaceId) as PolicyVersionRow[];
     res.json({
       success: true,
       data: rows.map((row) => ({
@@ -81,7 +103,7 @@ export function createGovernanceRoutes(
       .prepare(
         "SELECT * FROM policy_versions WHERE id = ? AND policy_id = ? AND workspace_id = ?",
       )
-      .get(versionId, policyId, workspaceId) as any | undefined;
+      .get(versionId, policyId, workspaceId) as PolicyVersionRow | undefined;
 
     if (!version) {
       res.status(404).json({ success: false, error: "Version not found" });
@@ -101,7 +123,7 @@ export function createGovernanceRoutes(
       .prepare(
         "SELECT * FROM workspace_policies WHERE id = ? AND workspace_id = ?",
       )
-      .get(policyId, workspaceId) as any | undefined;
+      .get(policyId, workspaceId) as WorkspacePolicyRow | undefined;
 
     if (current) {
       db.prepare(

@@ -19,7 +19,7 @@ export class MongoDbPolicyPersistence implements PolicyPersistence {
     try {
       await this.ensureConnected();
       const col = mongoDbService.collection(COLLECTION);
-      await col.insertOne(policy as any);
+      await col.insertOne(policy as unknown as Parameters<typeof col.insertOne>[0]);
       logger.debug(`Persisted policy ${policy.id} to MongoDB`);
       return policy;
     } catch (error) {

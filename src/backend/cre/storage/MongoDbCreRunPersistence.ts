@@ -19,7 +19,7 @@ export class MongoDbCreRunPersistence implements CreRunPersistence {
     try {
       await this.ensureConnected();
       const col = mongoDbService.collection(CACHE_COLLECTION);
-      await col.insertOne(run as any);
+      await col.insertOne(run as unknown as Parameters<typeof col.insertOne>[0]);
       logger.debug(`Persisted CRE run ${run.runId} to MongoDB`);
     } catch (error) {
       logger.error(`Failed to persist CRE run ${run.runId} to MongoDB:`, error);
@@ -48,7 +48,7 @@ export class MongoDbCreRunPersistence implements CreRunPersistence {
       const col = mongoDbService.collection(CACHE_COLLECTION);
       await col.deleteMany({});
       if (runs.length > 0) {
-        await col.insertMany(runs as any);
+        await col.insertMany(runs as unknown as Parameters<typeof col.insertMany>[0]);
       }
       logger.debug(`Replaced all CRE runs in MongoDB (${runs.length} runs)`);
     } catch (error) {

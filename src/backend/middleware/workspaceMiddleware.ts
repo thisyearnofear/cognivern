@@ -42,7 +42,7 @@ export async function workspaceMiddleware(
   }
 
   const tier = getWorkspaceTier(workspaceId);
-  (req as any).workspaceTier = tier;
+  (req as Request & { workspaceTier: string }).workspaceTier = tier;
 
   next();
 }

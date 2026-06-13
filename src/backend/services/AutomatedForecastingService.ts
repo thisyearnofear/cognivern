@@ -1,5 +1,5 @@
 import logger from "../utils/logger.js";
-import { MarketDataService } from "./MarketDataService.js";
+import { MarketDataService, MarketData } from "./MarketDataService.js";
 
 export interface ForecastResult {
   probability: number;
@@ -193,7 +193,7 @@ export class AutomatedForecastingService {
         );
         const marketDataResults = await Promise.all(marketDataPromises);
 
-        const validMarketData = marketDataResults.filter(Boolean) as any[];
+        const validMarketData = marketDataResults.filter((r): r is MarketData => r !== null);
         if (validMarketData.length > 0) {
           marketContext = this.buildMarketContext(validMarketData);
         }

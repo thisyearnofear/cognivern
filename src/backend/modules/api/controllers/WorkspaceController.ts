@@ -259,7 +259,7 @@ export class WorkspaceController {
       .prepare(
         "SELECT id, wallet_address, email, auth_method, created_at, last_login_at FROM users WHERE id = ?",
       )
-      .get(userId) as any;
+      .get(userId) as Record<string, unknown> | undefined;
 
     // Issue a new JWT scoped to the target workspace
     const token = await new SignJWT({
