@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { useAuthStore, useAuthHydrated } from "@/stores/auth-store";
 
 type EventCallback = (data: Record<string, unknown>) => void;
