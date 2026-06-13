@@ -174,14 +174,14 @@ function WorkspaceCard({
               </div>
             </div>
             <div className="text-xs text-muted-foreground">
-              Register agents, create API keys below, and{" "}
+              Create API identities, generate keys below, and{" "}
               <a
                 href="/integrate"
                 className="text-primary underline underline-offset-2"
               >
                 integrate the governance API
               </a>{" "}
-              into your agent code.
+              into your external system.
             </div>
             {upgraded && (
               <div className="flex gap-2">
@@ -189,7 +189,7 @@ function WorkspaceCard({
                   size="sm"
                   onClick={() => router.push("/agents/workshop")}
                 >
-                  Register Agent
+                  Create API Identity
                 </Button>
                 <Button
                   size="sm"
@@ -261,7 +261,7 @@ function ApiKeysCard() {
             API Keys
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Create keys for your agents to authenticate with the Cognivern API.
+            Create keys for your external systems to authenticate with the Cognivern API.
             Keys are scoped to this workspace.
           </p>
         </div>
@@ -271,7 +271,7 @@ function ApiKeysCard() {
           <div className="text-sm font-medium">Create a new key</div>
           <div className="flex gap-2">
             <Input
-              placeholder="Key name (e.g. Alpha Trader Agent)"
+              placeholder="Key name (e.g. Trading Bot)"
               value={newKeyName}
               onChange={(e) => setNewKeyName(e.target.value)}
               className="flex-1"
@@ -455,8 +455,8 @@ function ChainsCard() {
           Supported Chains
         </h2>
         <p className="text-xs text-muted-foreground">
-          Agents can operate on any of these chains. Set the primary chain when
-          registering an agent.
+          Your systems can operate on any of these chains. Set the primary chain when
+          creating an API identity.
         </p>
         <div className="space-y-2">
           {chains.map((chain) => (

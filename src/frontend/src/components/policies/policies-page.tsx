@@ -236,7 +236,7 @@ export function PoliciesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>Policies</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Governance guardrails for agent spend
+            Governance guardrails for system spend
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -397,7 +397,7 @@ export function PoliciesPage() {
           <ShieldCheck className="h-8 w-8 mx-auto mb-3 opacity-50" />
           <p className="font-medium">No policies yet</p>
           <p className="text-sm mt-1">
-            Create a policy to govern agent spending
+            Create a policy to govern spending
           </p>
           <Button className="mt-4" onClick={() => setShowCreate(true)}>
             <PlusCircle className="h-4 w-4" /> Create Policy
@@ -474,7 +474,7 @@ export function PoliciesPage() {
                 <div className="flex items-center gap-6 text-sm">
                   <div>
                     <span className="text-muted-foreground text-xs">
-                      Agents:
+                      Identities:
                     </span>{" "}
                     <span className="font-medium">{policy.agents}</span>
                   </div>

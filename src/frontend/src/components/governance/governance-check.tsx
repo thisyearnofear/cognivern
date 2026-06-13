@@ -405,14 +405,14 @@ export function GovernanceCheck() {
                   <div className="space-y-4 mt-4 pt-4 border-t border-border">
                     <div className="space-y-2">
                       <label htmlFor="agent" className="text-sm font-medium">
-                        Agent
+                        API Identity
                       </label>
                       <Select
                         value={agentId}
                         onValueChange={(v) => v && setAgentId(v)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select an agent" />
+                          <SelectValue placeholder="Select an identity" />
                         </SelectTrigger>
                         <SelectContent>
                           {agentList.map((a) => (
@@ -857,7 +857,7 @@ export function GovernanceCheck() {
               Policy Created <ArrowRight className="h-3 w-3" />
             </span>
             <span className="flex items-center gap-1">
-              Agent Requests Spend <ArrowRight className="h-3 w-3" />
+              System Requests Spend <ArrowRight className="h-3 w-3" />
             </span>
             <span className="flex items-center gap-1">
               Policy Evaluated <ArrowRight className="h-3 w-3" />

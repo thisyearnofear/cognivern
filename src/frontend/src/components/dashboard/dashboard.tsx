@@ -356,7 +356,7 @@ export function Dashboard() {
                       <div>
                         <div className="text-sm font-medium">Create a policy</div>
                         <div className="text-xs text-muted-foreground">
-                          Set spending limits and rules for your agents
+                          Set spending limits and rules for your API identities
                         </div>
                       </div>
                     </button>
@@ -370,9 +370,9 @@ export function Dashboard() {
                         <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
                       )}
                       <div>
-                        <div className="text-sm font-medium">Register an agent</div>
+                        <div className="text-sm font-medium">Create an API identity</div>
                         <div className="text-xs text-muted-foreground">
-                          Give an agent a wallet and budget to govern
+                          Give your external system governed access to Cognivern
                         </div>
                       </div>
                     </button>
@@ -384,7 +384,7 @@ export function Dashboard() {
                       <div>
                         <div className="text-sm font-medium">Get your API key</div>
                         <div className="text-xs text-muted-foreground">
-                          Connect the governance API to your agent code
+                          Connect the governance API to your external system
                         </div>
                       </div>
                     </button>
@@ -427,7 +427,7 @@ export function Dashboard() {
                 >
                   {statsVisible ? `${animatedActive}/${agentList.length}` : "—"}
                 </div>
-                <div className="text-xs text-muted-foreground">Agents Online</div>
+                <div className="text-xs text-muted-foreground">Identities Online</div>
               </div>
             </div>
 
@@ -573,10 +573,10 @@ export function Dashboard() {
       {/* Quick Check */}
       <QuickCheck />
 
-      {/* Governed Agents — hidden in focus mode */}
+      {/* Governed Identities — hidden in focus mode */}
       {!focusMode && <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">Governed Agents</h2>
+          <h2 className="font-semibold">Governed Identities</h2>
           <Button
             variant="ghost"
             size="sm"
@@ -793,9 +793,9 @@ export function Dashboard() {
           className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
         >
           <Sparkles className="h-5 w-5 text-sky-500 mb-2" />
-          <div className="font-medium text-sm">Add Agent</div>
+          <div className="font-medium text-sm">Create API Identity</div>
           <div className="text-xs text-muted-foreground mt-1">
-            Onboard new agents
+            Create a governed API slot
           </div>
         </button>
         <button
