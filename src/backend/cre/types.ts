@@ -139,6 +139,13 @@ export interface CreRun {
     signer?: string;
     artifactIds?: string[];
     citations?: string[];
+    suspicion?: {
+      composite: number;
+      label: string;
+      dimensions: Record<string, number>;
+      escalated: boolean;
+      reasoning: string[];
+    };
     aiUsage?: {
       provider: string;
       model: string;

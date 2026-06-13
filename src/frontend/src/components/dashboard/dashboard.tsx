@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   ShieldX,
   Clock,
+  AlertTriangle,
 } from "lucide-react";
 import type { AuditLog } from "@cognivern/shared";
 import { Button } from "@/components/ui/button";
@@ -112,6 +113,47 @@ function AiSpendCard() {
         </div>
         <div className="text-xs text-muted-foreground">
           AI Spend ({aiSpend?.totalCalls || 0} calls)
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ControlScoreCard() {
+  const [data, setData] = useState<{
+    totalScored: number;
+    averageScore: number;
+    escalationRate: number;
+    distribution: Record<string, number>;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/audit/insights?dimension=suspicion")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!cancelled && json.success) setData(json.data);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!data || data.totalScored === 0) return null;
+
+  return (
+    <div className="bg-card p-4 flex items-center gap-3">
+      <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950 flex-shrink-0">
+        <AlertTriangle className="h-5 w-5 text-orange-500" />
+      </div>
+      <div>
+        <div
+          className="text-2xl font-bold"
+          style={{ fontFamily: "var(--font-space-grotesk)" }}
+        >
+          {data.averageScore.toFixed(2)}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Control Score ({data.escalationRate}% escalated)
         </div>
       </div>
     </div>
@@ -506,6 +548,7 @@ export function Dashboard() {
             </div>
 
             <AiSpendCard />
+            <ControlScoreCard />
           </div>
         )}
       </div>

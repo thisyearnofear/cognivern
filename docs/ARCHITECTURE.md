@@ -31,6 +31,9 @@ Cognivern Evaluation Layer
   │   ├── confidential rule → FhenixPolicyService → Fhenix FHE
   │   └── contract_audit rule → ChainGPTAuditService
   │
+  ├── [optional] ControlEvaluationService.score()  ← CONTROL_EVAL_MODE=true
+  │   └── 4-dimension suspicion score (0-1), never blocks the decision
+  │
   +--> approve → SigningProvider.dispatch()  ← Ledger / Speculos / Local / OWS Remote
   +--> hold    → human or second wallet approves
   +--> deny    → no signing
@@ -38,6 +41,7 @@ Cognivern Evaluation Layer
   v
 Cognivern Audit + Run Ledger
   ├── AuditLogService.logAction() — every decision recorded, reasons preserved
+  ├── [optional] Suspicion evidence persisted to CreRun.evidence.suspicion
   ├── [optional] Filecoin evidence anchoring via FilecoinStorageService (FVM AIGovernanceStorage)
   ├── [optional] 0G Storage evidence anchoring via ZeroGStorageService (dual-anchor)
   └── [optional] X Layer execution dispatch via Hyperlane
@@ -55,12 +59,18 @@ Agent action
       ├─ confidential rule → FhenixPolicyService → Fhenix FHE
       └─ contract_audit rule → ChainGPTAuditService
   → decision: approve / hold / deny
+  → [optional, CONTROL_EVAL_MODE=true] ControlEvaluationService.score()
+      └─ 4 dimensions: rule violations (2x), behavioral, temporal, scope creep
+      └─ composite score (0-1), label (normal/elevated/high/critical), escalated flag
+      └─ never modifies the decision — pure observation
   → [on approve] SigningProvider.dispatch(wallet.metadata.signingProvider)
       ├─ "local"     → OwsLocalVaultService.signMessage()
       ├─ "ledger"    → LedgerSigningProvider.sign()  ← DMK, device must confirm
       ├─ "speculos"  → OwsLocalVaultService.signWithExternalWallet(Speculos HTTP API)
       └─ "ows_remote"→ OwsLocalVaultService.signWithExternalWallet(remote URL)
   → AuditLogService.logAction()
+  → [optional] Suspicion evidence persisted to CreRun.evidence.suspicion
+  → [optional] Escalation notification via NotificationService (decision="flagged")
   → [optional] Filecoin evidence anchoring via FilecoinStorageService → AIGovernanceStorage (FVM)
   → [optional] 0G Storage evidence anchoring via ZeroGStorageService (dual-anchor, parallel)
   → [optional] X Layer execution dispatch via Hyperlane Mailbox (contract-side)
@@ -73,6 +83,7 @@ This is the actual code path — not an aspirational design. It is implemented a
 - **`src/backend/services/AuditLogService.ts`** — Persists every decision as a CRE-backed evidence record
 - **`src/backend/services/FhenixPolicyService.ts`** — Encrypted policy evaluation using CoFHE SDK
 - **`src/backend/services/ChainGPTAuditService.ts`** — Runtime smart contract vulnerability scanning
+- **`src/backend/services/ControlEvaluationService.ts`** — Parallel suspicion scoring (gated by `CONTROL_EVAL_MODE`); pure observation, never alters decisions
 
 ## Existing Building Blocks
 
@@ -147,6 +158,21 @@ Runs are persisted to SQLite via `CopilotRunStore` so they survive pm2 restarts 
 
 The frontend mirrors this with three UX surfaces: the run button + phase strip + live trace while a mission is active, a recent-decisions rail that lets the user replay or re-run prior missions, and a post-decision card that nudges toward history review, re-run, or policy tuning.
 
+### 8. Control Evaluation Mode
+
+`ControlEvaluationService` runs a parallel suspicion scoring pass on every governance evaluation when `CONTROL_EVAL_MODE=true`. It observes the same inputs as policy enforcement (action, policy checks, agent preferences, recent actions) and produces a composite score in [0, 1] across four dimensions:
+
+| Dimension | Weight | Signal |
+|---|---|---|
+| Rule violations | 2x | Weighted count of failed policy checks (deny > require > rate_limit) |
+| Behavioral deviation | 1x | Distance from learned `AgentPreferences` (style, risk, chains, models) |
+| Temporal anomaly | 1x | Off-hours activity, burst frequency (>5/min, >10/5min) |
+| Scope creep | 1x | `touchedResources` exceeding `requestedScope` |
+
+Composite labels: `normal` (0.0–0.3), `elevated` (0.3–0.6), `high` (0.6–0.8), `critical` (0.8–1.0). Scores ≥ 0.6 set `escalated: true` and fire a `suspicion_escalation` notification through the existing `NotificationService` dispatch (Socket.IO, webhooks, Slack/PagerDuty).
+
+The scorer is a pure function — it never modifies the approve/deny decision. Suspicion data is persisted to `CreRun.evidence.suspicion`, aggregated by `AuditLogController.getInsights()` at `GET /api/audit/insights?dimension=suspicion`, and surfaced in the audit trail (color-coded badges) and dashboard (Control Score card). When `CONTROL_EVAL_MODE` is unset, the service is never instantiated — zero overhead.
+
 ## Network Roles
 
 Each partner network plays a specific role in the product. This table is the single source of truth — all other docs and UI descriptions reference it.
@@ -198,13 +224,15 @@ External Agents / Services
         |              ├── confidential → FhenixPolicyService
         |              └── contract_audit → ChainGPTAuditService
         |                   |
+        |                   +-- [optional] ControlEvaluationService.score()
+        |                   |     └─ suspicion → CreRun.evidence.suspicion
         |                   v
         |              PolicyService
         |
         v
   UI / Operator Views
-    ├── AuditPage — expandable rows, per-rule breakdown, FHE badge
-    ├── Dashboard — stat cards with live latency, approval rate, blocked
+    ├── AuditPage — expandable rows, per-rule breakdown, FHE badge, suspicion badge
+    ├── Dashboard — stat cards with live latency, approval rate, blocked, control score
     └── GovernanceCheck — NL input, voice, evaluate against active policy
 ```
 

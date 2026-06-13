@@ -73,6 +73,10 @@ export class AuditLogController {
       return this.getAiSpendInsights(req, res);
     }
 
+    if (dimension === 'suspicion') {
+      return this.getSuspicionInsights(req, res);
+    }
+
     try {
       const insights = await this.auditLogService.generateInsights();
 
@@ -372,6 +376,104 @@ export class AuditLogController {
         error: {
           code: 'TIMELINE_ERROR',
           message: error instanceof Error ? error.message : 'Unknown error',
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  async getSuspicionInsights(_req: Request, res: Response): Promise<void> {
+    try {
+      const logs = await this.auditLogService.getFilteredLogs({});
+      const scored: Array<{
+        runId: string;
+        agentId: string;
+        composite: number;
+        label: string;
+        escalated: boolean;
+        reasoning: string[];
+        dimensions: Record<string, number>;
+        timestamp: string;
+      }> = [];
+
+      for (const log of logs) {
+        const raw = log as unknown as Record<string, unknown>;
+        const evidence = raw.evidence as Record<string, unknown> | undefined;
+        const suspicion = evidence?.suspicion as Record<string, unknown> | undefined;
+        if (!suspicion || typeof suspicion.composite !== 'number') continue;
+
+        scored.push({
+          runId: String(raw.id ?? ''),
+          agentId: String(raw.agent ?? raw.agentId ?? 'unknown'),
+          composite: suspicion.composite,
+          label: String(suspicion.label ?? 'unknown'),
+          escalated: suspicion.escalated === true,
+          reasoning: Array.isArray(suspicion.reasoning) ? suspicion.reasoning.map(String) : [],
+          dimensions: (suspicion.dimensions as Record<string, number>) || {},
+          timestamp: String(raw.timestamp ?? new Date().toISOString()),
+        });
+      }
+
+      const distribution = { normal: 0, elevated: 0, high: 0, critical: 0 };
+      let totalScore = 0;
+      const dimTotals: Record<string, number> = {};
+      const dimCounts: Record<string, number> = {};
+      const agentMap: Record<string, { total: number; count: number; escalated: number }> = {};
+
+      for (const s of scored) {
+        const key = s.label as keyof typeof distribution;
+        if (key in distribution) distribution[key]++;
+        totalScore += s.composite;
+
+        for (const [dim, val] of Object.entries(s.dimensions)) {
+          dimTotals[dim] = (dimTotals[dim] || 0) + val;
+          dimCounts[dim] = (dimCounts[dim] || 0) + 1;
+        }
+
+        if (!agentMap[s.agentId]) agentMap[s.agentId] = { total: 0, count: 0, escalated: 0 };
+        agentMap[s.agentId].total += s.composite;
+        agentMap[s.agentId].count++;
+        if (s.escalated) agentMap[s.agentId].escalated++;
+      }
+
+      const dimensionContribution: Record<string, number> = {};
+      for (const dim of Object.keys(dimTotals)) {
+        dimensionContribution[dim] = Math.round((dimTotals[dim] / dimCounts[dim]) * 1000) / 1000;
+      }
+
+      const topAgents = Object.entries(agentMap)
+        .map(([agentId, data]) => ({
+          agentId,
+          avgScore: Math.round((data.total / data.count) * 1000) / 1000,
+          escalatedCount: data.escalated,
+        }))
+        .sort((a, b) => b.avgScore - a.avgScore)
+        .slice(0, 10);
+
+      const escalatedCount = scored.filter((s) => s.escalated).length;
+
+      res.json({
+        success: true,
+        data: {
+          totalScored: scored.length,
+          distribution,
+          averageScore: scored.length > 0 ? Math.round((totalScore / scored.length) * 1000) / 1000 : 0,
+          escalationRate: scored.length > 0 ? Math.round((escalatedCount / scored.length) * 10000) / 100 : 0,
+          topAgents,
+          recentEscalations: scored
+            .filter((s) => s.escalated)
+            .slice(-10)
+            .reverse(),
+          dimensionContribution,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'SUSPICION_INSIGHTS_ERROR',
+          message: 'Failed to generate suspicion insights',
         },
         timestamp: new Date().toISOString(),
       });

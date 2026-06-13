@@ -13,7 +13,9 @@ import {
 const logger = new Logger("GovernanceController");
 import { PolicyEnforcementService } from "../../../services/PolicyEnforcementService.js";
 import { sharedFhenixPolicyService } from "../../../services/FhenixPolicyService.js";
+import { sharedControlEvaluationService } from "../../../services/ControlEvaluationService.js";
 import { AuditLogService } from "../../../services/AuditLogService.js";
+import { NotificationService } from "../../../services/NotificationService.js";
 import type { AgentAction } from "../../../types/Agent.js";
 import { creRunStore } from "../../../cre/storage/CreRunStore.js";
 import { startGovernanceEvaluation } from "../../../cre/workflows/governance.js";
@@ -36,6 +38,8 @@ export class GovernanceController {
       new PolicyEnforcementService(
         this.policyService,
         sharedFhenixPolicyService,
+        undefined,
+        process.env.CONTROL_EVAL_MODE === "true" ? sharedControlEvaluationService : undefined,
       );
   }
 
@@ -160,13 +164,39 @@ export class GovernanceController {
         reason: `${policyRow.name}: ${rule.condition || "no condition"}`,
       }));
 
+      let suspicionResult: Record<string, unknown> | undefined;
+      if (process.env.CONTROL_EVAL_MODE === "true") {
+        const scored = sharedControlEvaluationService.score({
+          action: normalizedAction,
+          policyChecks,
+        });
+        suspicionResult = {
+          composite: scored.composite,
+          label: scored.label,
+          dimensions: scored.dimensions,
+          escalated: scored.escalated,
+          reasoning: scored.reasoning,
+        };
+
+        if (scored.escalated) {
+          NotificationService.fireDecisionNotification({
+            event: "suspicion_escalation",
+            timestamp: new Date().toISOString(),
+            workspaceId: workspaceId!,
+            agentId,
+            decision: "flagged",
+            reason: `Suspicion score ${scored.composite.toFixed(2)}: ${scored.reasoning.join("; ")}`,
+          }).catch(() => {});
+        }
+      }
+
       await this.auditLogService.logAction(
         normalizedAction,
         policyChecks,
         true,
       );
 
-      const decision = {
+      const decision: Record<string, unknown> = {
         approved: true,
         reason: `Action approved under policy ${policyRow.name}`,
         agentId,
@@ -175,6 +205,9 @@ export class GovernanceController {
         policyChecks,
         timestamp: new Date().toISOString(),
       };
+      if (suspicionResult) {
+        decision.suspicion = suspicionResult;
+      }
 
       res.json({
         success: true,
