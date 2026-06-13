@@ -8,7 +8,7 @@ import { AgentsModule } from "../../agents/AgentsModule.js";
 import { MarketDataService } from "../../../services/MarketDataService.js";
 
 const logger = new Logger("AgentsController");
-import { AgentMetricsAggregator } from "../../../shared/services/AgentMetricsAggregator.js";
+import { AgentMetricsAggregator, AgentComparisonMetrics } from "../../../shared/services/AgentMetricsAggregator.js";
 import { TradingHistoryService } from "../../../services/TradingHistoryService.js";
 import { MetricsService } from "../../../services/MetricsService.js";
 
@@ -482,8 +482,17 @@ export class AgentsController {
     try {
       const agents = await this.agentsModule.getAgents();
 
-      const allActivity: any[] = [];
-      const enrichedAgents: any[] = [];
+      const allActivity: Array<{
+        id: string;
+        type: string;
+        agent: string;
+        action: string;
+        amount: number;
+        timestamp: string;
+        status: string;
+        data: Record<string, unknown>;
+      }> = [];
+      const enrichedAgents: Array<Record<string, unknown>> = [];
 
       // Fetch recent decisions and status from all agents
       for (const agent of agents) {
@@ -529,7 +538,7 @@ export class AgentsController {
             agent: agent.id,
             action: d.reasoning || `Action on ${d.symbol}`,
             amount: d.confidence || 0,
-            timestamp: d.timestamp || new Date().toISOString(),
+            timestamp: (d.timestamp || new Date().toISOString()) as string,
             status: "completed",
             data: {
               details: d.reasoning,
@@ -539,7 +548,7 @@ export class AgentsController {
           allActivity.push(...activityItems);
         } catch (e) {
           logger.warn(`Failed to enrich agent ${agent.id}`);
-          enrichedAgents.push(agent);
+          enrichedAgents.push(agent as unknown as Record<string, unknown>);
         }
       }
 
@@ -562,7 +571,7 @@ export class AgentsController {
           totalForecasts:
             allActivity.filter((a) => a.type === "forecast").length ||
             enrichedAgents.reduce(
-              (sum, a) => sum + (a.performance?.actionsToday || 0),
+              (sum, a) => sum + ((a as Record<string, Record<string, number>>).performance?.actionsToday || 0),
               0,
             ),
         },
@@ -713,12 +722,12 @@ export class AgentsController {
       // Fetch comparison metrics
       const metrics = await this.metricsAggregator.getComparisonMetrics(
         agentIds,
-        filters,
+        filters as Parameters<typeof this.metricsAggregator.getComparisonMetrics>[1],
       );
 
       // Sort results
       const sorted = this.metricsAggregator.sortMetrics(metrics, {
-        field: (filters.sortBy as any) || "totalReturn",
+        field: (filters.sortBy as keyof AgentComparisonMetrics) || "totalReturn",
         direction: filters.sortDirection || "desc",
       });
 
@@ -745,7 +754,7 @@ export class AgentsController {
     try {
       const { ecosystem, metric = "totalReturn", limit = 10 } = req.query;
 
-      const filters: any = {};
+      const filters: { ecosystems?: string[] } = {};
       if (ecosystem) {
         filters.ecosystems = [ecosystem as string];
       }
@@ -761,7 +770,7 @@ export class AgentsController {
       // Sort by metric and limit
       const sorted = this.metricsAggregator
         .sortMetrics(metrics, {
-          field: metric as any,
+          field: metric as keyof AgentComparisonMetrics,
           direction: "desc",
         })
         .slice(0, parseInt(limit as string));
@@ -793,7 +802,7 @@ export class AgentsController {
       const agentIds = agents.map((a) => a.id);
       const metrics = await this.metricsAggregator.getComparisonMetrics(
         agentIds,
-        filters,
+        filters as Parameters<typeof this.metricsAggregator.getComparisonMetrics>[1],
       );
 
       const stats = this.metricsAggregator.calculateAggregateMetrics(metrics);
@@ -836,7 +845,7 @@ export class AgentsController {
       const insights = await this.auditLogService.generateInsights();
 
       // Add policy count to stats (cast to allow extra property)
-      (bundle.stats as any).totalPolicies = policies.length;
+      (bundle.stats as Record<string, unknown>).totalPolicies = policies.length;
 
       res.json({
         success: true,
@@ -1002,7 +1011,7 @@ export class AgentsController {
     });
   }
 
-  private parseComparisonFilters(query: any): any {
+  private parseComparisonFilters(query: Record<string, unknown>) {
     return {
       agentIds: query.agentIds
         ? (query.agentIds as string).split(",")

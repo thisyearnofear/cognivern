@@ -382,19 +382,19 @@ export class GovernanceController {
 
       if (matchingRun) {
         const attestation = matchingRun.artifacts?.find(
-          (a: any) =>
-            a.data?.decisionId === decisionId ||
-            a.data?.txHash === decisionId,
+          (a) =>
+            (a.data as Record<string, unknown> | undefined)?.decisionId === decisionId ||
+            (a.data as Record<string, unknown> | undefined)?.txHash === decisionId,
         );
-        const data = (attestation as any)?.data || {};
+        const artifactData = (attestation?.data as Record<string, unknown>) || {};
         res.json({
           success: true,
           data: {
             decisionId,
             runId: matchingRun.runId,
-            outcome: data.status || "unknown",
-            txHash: data.txHash || null,
-            onChainStatus: data.onChainStatus || null,
+            outcome: (artifactData.status as string) || "unknown",
+            txHash: (artifactData.txHash as string) || null,
+            onChainStatus: (artifactData.onChainStatus as string) || null,
           },
           timestamp: new Date().toISOString(),
         });

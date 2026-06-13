@@ -487,8 +487,9 @@ export class ApiModule extends BaseService {
 
     // Initialize all controllers that have an initialize method
     for (const [name, controller] of Object.entries(this.controllers)) {
-      if ((controller as any).initialize && name !== "agents") {
-        await (controller as any).initialize();
+      const ctrl = controller as { initialize?(): Promise<void> };
+      if (ctrl.initialize && name !== "agents") {
+        await ctrl.initialize();
         this.logger.debug(`${name} controller initialized`);
       }
     }

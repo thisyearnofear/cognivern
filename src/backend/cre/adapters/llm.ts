@@ -16,6 +16,14 @@ function clampProbability(p: number) {
   return Math.max(0, Math.min(100, Math.round(p)));
 }
 
+interface ChatCompletionResponse {
+  choices?: Array<{
+    message?: {
+      content?: string;
+    };
+  }>;
+}
+
 export class DefaultLlmAdapter implements LlmAdapter {
   private providers: Provider[] = [
     {
@@ -61,7 +69,7 @@ export class DefaultLlmAdapter implements LlmAdapter {
           throw new Error(`${p.name} HTTP ${response.status}`);
         }
 
-        const data = (await response.json()) as any;
+        const data = (await response.json()) as ChatCompletionResponse;
         const content: string | undefined = data.choices?.[0]?.message?.content;
         if (!content) throw new Error(`${p.name} empty response`);
 

@@ -49,8 +49,9 @@ export async function demoInterceptor(
         : serveLiveData(req.method, req.path, workspaceId, req.body);
 
     if (response) {
-      const status = (response as any)._status || 200;
-      delete (response as any)._status;
+      const resp = response as Record<string, unknown>;
+      const status = (resp._status as number) || 200;
+      delete resp._status;
       res.status(status).json(response);
       return;
     }

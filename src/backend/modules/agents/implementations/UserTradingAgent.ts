@@ -16,6 +16,7 @@ import {
   AgentActivity,
   AgentInfo,
   AgentType,
+  AgentStatus,
 } from "../types/TradingAgent.js";
 import { Logger } from "../../../shared/logging/Logger.js";
 import {
@@ -316,16 +317,14 @@ export class UserTradingAgent implements TradingAgent {
       id: this.id,
       name: this.name,
       type: this.type,
-      status: this.status as any,
+      status: this.status as AgentStatus,
       config: this.config,
       createdAt: new Date(),
       lastActivity: new Date().toISOString(),
       owner: "user",
       capabilities: ["manual-trading", "user-connection"],
-      description: this.description,
-      address: this.address,
       registeredAt: new Date().toISOString(),
-    } as any;
+    };
   }
 
   async getStatus(): Promise<any> {

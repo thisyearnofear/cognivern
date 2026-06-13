@@ -70,7 +70,7 @@ export class WebhookController {
   async releaseHold(req: Request, res: Response): Promise<void> {
     try {
       const { policyId } = req.params;
-      const releasedBy = (req as any).userId || "operator";
+      const releasedBy = ((req as unknown as Record<string, unknown>).userId as string) || "operator";
 
       const released = await sharedNewsPolicyAdjuster.releasePolicyHold(
         policyId,

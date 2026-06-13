@@ -8,6 +8,12 @@ export interface HttpAdapter {
   }): Promise<SapienceCondition[]>;
 }
 
+interface GraphQLResponse<T> {
+  data?: {
+    conditions?: T[];
+  };
+}
+
 export class DefaultHttpAdapter implements HttpAdapter {
   async fetchSapienceConditions(params: {
     endpoint: string;
@@ -45,8 +51,8 @@ export class DefaultHttpAdapter implements HttpAdapter {
       throw new Error(`Sapience GraphQL HTTP ${response.status}`);
     }
 
-    const result = (await response.json()) as any;
-    const conditions = (result.data?.conditions || []) as SapienceCondition[];
+    const result = (await response.json()) as GraphQLResponse<SapienceCondition>;
+    const conditions = result.data?.conditions || [];
     return conditions;
   }
 }

@@ -48,10 +48,14 @@ export class AgentsModule extends BaseService {
   private isRunning = false;
 
   constructor() {
+    const env = process.env.NODE_ENV;
+    const environment: ServiceConfig["environment"] =
+      env === "production" || env === "test" ? env : "development";
+
     const config: ServiceConfig = {
       name: "agents",
       version: "1.0.0",
-      environment: (process.env.NODE_ENV as any) || "development",
+      environment,
       logLevel: "info",
     };
 

@@ -41,7 +41,7 @@ export class MongoDbMemoryService {
     const id = randomUUID();
     const timestamp = new Date().toISOString();
 
-    await col.insertOne({ ...memory, id, timestamp } as any);
+    await col.insertOne({ ...memory, id, timestamp } as unknown as Parameters<typeof col.insertOne>[0]);
     logger.debug(`Stored memory: ${id} for agent ${memory.agentId}`);
     return id;
   }

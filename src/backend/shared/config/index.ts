@@ -81,7 +81,7 @@ const parseConfig = () => {
       }
     }
     // Return a partial object or default if it fails, to prevent crash
-    return process.env as any;
+    return process.env as unknown as z.infer<typeof configSchema>;
   }
 };
 
@@ -116,7 +116,7 @@ export const databaseConfig = {
 };
 export const cacheConfig = { url: "", ttl: 0, maxSize: "" };
 export const tradingConfig = {
-  enabled: Boolean((config as any).AGENTS_ENABLED),
+  enabled: Boolean(config.AGENTS_ENABLED),
   recallApiKeys: { direct: "", vincent: "" },
   maxRiskPerTrade: 0.02,
 };

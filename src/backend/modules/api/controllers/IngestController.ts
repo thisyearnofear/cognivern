@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { creRunStore } from "../../../cre/storage/CreRunStore.js";
 import { creRunSchema } from "../../../cre/validation.js";
+import { CreRunStatus } from "../../../cre/types.js";
 import { projectRegistry } from "../../../cre/projects/projectRegistry.js";
 import { usageMeter } from "../../../cre/projects/usageMeter.js";
 import { tokenTelemetryStore } from "../../../cre/projects/tokenTelemetry.js";
@@ -74,23 +75,26 @@ export class IngestController {
         return;
       }
 
+      const provenance = {
+        source: "ingested" as const,
+        workflowVersion: parsed.data?.workflow || "unknown",
+        model: ((parsed.data?.provenance as Record<string, unknown>)?.model as string) || "unknown",
+        citations: ((parsed.data?.provenance as Record<string, unknown>)?.citations as Array<{ label: string; value: string }>) || [],
+      };
+      const status: CreRunStatus =
+        ((parsed.data as Record<string, unknown>)?.status as string) as CreRunStatus ||
+        (parsed.data.finishedAt
+          ? parsed.data.ok
+            ? "completed"
+            : "failed"
+          : "running");
+
       const run = enrichCreRunEvidence({
-        ...(parsed.data as any),
+        ...parsed.data,
         projectId,
-        provenance: {
-          source: "ingested" as const,
-          workflowVersion: parsed.data?.workflow || "unknown",
-          model: (parsed.data as any)?.provenance?.model || "unknown",
-          citations: (parsed.data as any)?.provenance?.citations || [],
-        },
-        status:
-          (parsed.data as any)?.status ||
-          (parsed.data.finishedAt
-            ? parsed.data.ok
-              ? "completed"
-              : "failed"
-            : "running"),
-      });
+        provenance,
+        status,
+      } as unknown as Parameters<typeof enrichCreRunEvidence>[0]);
       await creRunStore.add(run);
       const usage = await usageMeter.recordIngest(projectId);
       const tokenTelemetry = await tokenTelemetryStore.record(
@@ -121,10 +125,11 @@ export class IngestController {
         usage,
         token: tokenTelemetry,
       });
-    } catch (err: any) {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to ingest run";
       res.status(500).json({
         success: false,
-        error: err?.message || "Failed to ingest run",
+        error: message,
       });
     }
   }

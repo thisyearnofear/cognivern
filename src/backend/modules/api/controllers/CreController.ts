@@ -215,7 +215,7 @@ export class CreController {
       success: true,
       projectId,
       runs: runs
-        .filter((r) => (r as any).projectId === projectId)
+        .filter((r) => (r as unknown as Record<string, unknown>).projectId === projectId)
         .map((r) => normalizeRun(r)),
     });
   }
