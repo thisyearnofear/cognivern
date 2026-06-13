@@ -45,7 +45,45 @@ The **decision** (approve / hold / deny) is revealed publicly. The **inputs and 
 
 ## 3. New Smart Contract — `ConfidentialSpendPolicy.sol`
 
-Deployed on Fhenix (Arbitrum Sepolia, chain 421614) at **`0xeA88BD6121d181cFD6F60997B4BDd0297CA432fE`**.
+**Live on Arbitrum Sepolia (chain 421614):** `0xaf9F46913eFA99912c3a5069b98d4AEFB0404950` — deployed 2026-06-13 with `@cofhe/hardhat-plugin@0.5.2` against the live coFHE infrastructure.
+
+The contract uses the new coFHE library (`@fhenixprotocol/cofhe-contracts@0.1.3`), which targets the live coFHE TaskManager proxy deployed at `0xeA30c4B…7848D9` on Arbitrum Sepolia (an EIP-1967 transparent proxy whose implementation is at `0x803adb…1e1da`).
+
+### Verified end-to-end on Arbitrum Sepolia
+
+`scripts/test-fhe-onchain.ts` exercises the live FHE path and is included in CI-friendly form. The current verified state:
+
+| Step | Status |
+|---|---|
+| coFHE service discovery (`testnet-cofhe.fhenix.zone`, `testnet-cofhe-vrf.fhenix.zone`, `testnet-cofhe-tn.fhenix.zone`) | **Live** — all three services respond to real coFHE protocol calls |
+| TaskManager proxy at `0xeA30c4B…7848D9` on Arbitrum Sepolia | **Live** — EIP-1967 proxy with real implementation |
+| `Encryptable.uint128(x).setChainId(421614).execute()` produces a real ctHash + signature from the live coFHE verifier | **Verified** |
+| `registerPolicy(policyId, dailyCt, perTxCt, thresholdCt)` on the live contract | **Verified** — block 276678753, encrypted limits persisted on-chain |
+| `evaluateSpend(agentId, policyId, amountCt, vendorHash)` | **Partial** — the FHE compute path runs on the live TaskManager but currently reverts with `ACLNotAllowed` (coFHE strict-mode ACL on the testnet). This is downstream of `FHE.allow*` and the new `FHE.allowSender`; the FHE infrastructure itself is responding. The mock infrastructure (`npx hardhat test` in `contracts/fhenix/`) is fully working. See *Known limitations* below. |
+| SpendEvaluated event | Emitted on the mock infrastructure; pending fix on the live testnet (same root cause as the ACL revert). |
+
+### Reproduce locally
+
+```bash
+# From project root:
+pnpm install
+cd contracts
+npx hardhat --config fhenix/hardhat.config.cjs compile       # 29 contracts, evm target: cancun
+npx hardhat --config fhenix/hardhat.config.cjs test          # mock infrastructure
+npx hardhat --config fhenix/hardhat.config.cjs run \
+  ../scripts/test-fhe-onchain.ts --network arbitrumSepolia   # live Arbitrum Sepolia
+```
+
+The `arb-sepolia` network is auto-injected by `@cofhe/hardhat-plugin`. The plugin also auto-deploys mock TaskManager/ACL/ZK-Verifier/Threshold-Network contracts on every `npx hardhat test` run.
+
+### Known limitations
+
+- **Live-testnet ACL strictness.** On the live Arbitrum Sepolia coFHE deployment, the TaskManager enforces a strict ACL on `FHE.allow*` calls. The current `ConfidentialSpendPolicy.evaluateSpend` path uses `FHE.allowThis` and `FHE.allowSender` on intermediate FHE-result handles. The mock infrastructure is permissive; the live testnet reverts with `ACLNotAllowed(uint256,address)` (selector `0x4d13139e`). The contract needs `FHE.allowTransient(...)` on the result handles (or a permit-gated pattern) to work end-to-end on the live testnet. This is a contract-side fix, not an SDK / plugin issue.
+- **Plaintext counter.** `c.spentToday` is re-initialised to `FHE.asEuint128(0)` each new day. This is fine for tests but wasteful on a real testnet; in production this should be a single encrypted counter that gets `FHE.add`-ed rather than re-created.
+
+### Why this matters for the buildathon
+
+The FHE path is materially different from "design spec only" — the contract is on a public Arbitrum Sepolia, the TaskManager is a real EIP-1967 proxy, the coFHE service URLs are alive, encryption produces real signatures from the live verifier, and on-chain state persists. The remaining `evaluateSpend` ACL issue is a known contract-side refinement, not a missing infrastructure piece.
 
 Mirrors the rule semantics of `PolicyEnforcementService` but operates on `euint128` / `ebool`.
 

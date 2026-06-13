@@ -47,6 +47,19 @@ module.exports = {
         : [],
       chainId: 5003,
     },
+    arbitrumSepolia: {
+      url:
+        process.env.ARBITRUM_SEPOLIA_RPC_URL ||
+        "https://sepolia-rollup.arbitrum.io/rpc",
+      // Reuse the FHENIX_PRIVATE_KEY for Arbitrum Sepolia — the same deployer
+      // wallet owns contracts on Filecoin, X Layer, Mantle, and Arbitrum Sepolia.
+      accounts: process.env.ARBITRUM_PRIVATE_KEY
+        ? [process.env.ARBITRUM_PRIVATE_KEY]
+        : process.env.FHENIX_PRIVATE_KEY
+          ? [process.env.FHENIX_PRIVATE_KEY]
+          : [],
+      chainId: 421614,
+    },
   },
   paths: {
     sources: path.join(root, "contracts", "src"),
