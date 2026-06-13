@@ -324,6 +324,7 @@ export class UserTradingAgent implements TradingAgent {
       owner: "user",
       capabilities: ["manual-trading", "user-connection"],
       registeredAt: new Date().toISOString(),
+      source: "managed",
     };
   }
 

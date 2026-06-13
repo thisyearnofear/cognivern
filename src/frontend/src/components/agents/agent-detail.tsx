@@ -33,6 +33,7 @@ import {
   Loader2,
   Brain,
   RotateCcw,
+  Eye,
 } from "lucide-react";
 import { useAgent, usePolicies } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
@@ -429,6 +430,33 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
           </Button>
         </div>
       </div>
+
+      {/* Agent type info box */}
+      {(agent as { source?: string }).source === "demo" ? (
+        <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50/80 dark:bg-violet-950/30 p-4 flex items-start gap-3">
+          <div className="p-1.5 rounded-lg bg-violet-100 dark:bg-violet-900 flex-shrink-0">
+            <Eye className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+          </div>
+          <div className="text-sm">
+            <div className="font-medium text-violet-800 dark:text-violet-200">Showcase Agent (Demo)</div>
+            <p className="text-xs text-violet-600 dark:text-violet-400 mt-1">
+              This is a demo agent showing what Cognivern can govern. It&apos;s not configurable and doesn&apos;t represent a real external system. Create your own API identity to govern your systems.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-sky-200 dark:border-sky-800 bg-sky-50/80 dark:bg-sky-950/30 p-4 flex items-start gap-3">
+          <div className="p-1.5 rounded-lg bg-sky-100 dark:bg-sky-900 flex-shrink-0">
+            <ShieldCheck className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+          </div>
+          <div className="text-sm">
+            <div className="font-medium text-sky-800 dark:text-sky-200">Governed API Identity</div>
+            <p className="text-xs text-sky-600 dark:text-sky-400 mt-1">
+              External systems authenticated with this identity&apos;s API key are governed by your Cognivern policies. Give your API key (from Settings) to your external system — it calls Cognivern before every transaction.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
         <div className="bg-card p-4">

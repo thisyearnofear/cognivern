@@ -30,6 +30,7 @@ export const DEMO_AGENTS = [
     trades: 142,
     budget: "$25,000",
     chain: "Ethereum",
+    source: "demo" as const,
     spendHistory: [
       {
         amount: 1200,
@@ -59,6 +60,7 @@ export const DEMO_AGENTS = [
     trades: 89,
     budget: "$15,000",
     chain: "Arbitrum",
+    source: "demo" as const,
     spendHistory: [
       {
         amount: 3000,
@@ -82,6 +84,7 @@ export const DEMO_AGENTS = [
     trades: 34,
     budget: "$5,000",
     chain: "Base",
+    source: "demo" as const,
     spendHistory: [
       {
         amount: 400,
@@ -99,6 +102,7 @@ export const DEMO_AGENTS = [
     trades: 67,
     budget: "$10,000",
     chain: "Ethereum",
+    source: "demo" as const,
     spendHistory: [
       {
         amount: 2500,

@@ -631,6 +631,7 @@ export class SapienceTradingAgent implements TradingAgent {
       owner: "system",
       capabilities: ["forecasting", "sapience-integration", "governed-spend"],
       registeredAt: new Date().toISOString(),
+      source: "demo",
     };
   }
 
