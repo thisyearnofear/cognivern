@@ -204,6 +204,48 @@ Related: `GET/POST /api/governance/policies`, `GET /api/governance/health`
 
 Returns intent classification, component routing, and agent actions. Falls back to keyword-based classification when AI providers are unavailable.
 
+### MCP Governance Tool
+
+Cognivern exposes an MCP-compliant governance tool for integration with the Prompt Opinion Marketplace and Agents Assemble healthcare AI workflows.
+
+| Endpoint                       | Method | Description                  |
+| ------------------------------ | ------ | ---------------------------- |
+| `/api/mcp/governance-check`    | GET    | Tool manifest (discovery)    |
+| `/api/mcp/governance-check`    | POST   | Evaluate governed action     |
+
+**Tool Discovery (GET)**
+
+Returns the MCP tool manifest with `input_schema` and `output_schema` for client-side validation.
+
+**Evaluation (POST)**
+
+```json
+{
+  "agentId": "string",
+  "action": {
+    "type": "string",
+    "description": "string",
+    "amount": 0,
+    "currency": "USDC"
+  },
+  "fhirContext": {
+    "subject": { "resourceType": "Patient", "id": "string" },
+    "requester": { "resourceType": "Practitioner", "id": "string" },
+    "sensitivityLabels": ["MH", "SUD"]
+  },
+  "a2aTraceId": "string"
+}
+```
+
+Returns `allowed`, `reasoning`, `policyChecks`, `provider`, `model`, and `auditLogId`. The `fhirContext` block is optional — when present, the governance evaluation is HIPAA-aware and applies clinical sensitivity rules.
+
+**Smoke test:**
+
+```bash
+COGNIVERN_URL=http://localhost:8787 COGNIVERN_API_KEY=development-api-key \
+  npx tsx scripts/tests/mcp-governance-smoke.ts
+```
+
 ## Testing
 
 ```bash

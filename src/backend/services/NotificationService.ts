@@ -10,6 +10,7 @@
 import { createHmac } from "node:crypto";
 import { getDb } from "../db/index.js";
 import { CircuitBreaker } from "../shared/utils/circuitBreaker.js";
+import { sendAlert } from "./alerting/index.js";
 import logger from "../utils/logger.js";
 
 interface NotificationPayload {
@@ -93,6 +94,24 @@ export const NotificationService = {
       );
     } catch (err) {
       logger.warn("[webhook] Failed to persist notification record:", err);
+    }
+
+    // 4. Forward critical decisions to alert sinks (Slack/PagerDuty)
+    if (payload.decision === 'denied' || payload.decision === 'flagged') {
+      await sendAlert({
+        severity: payload.decision === 'denied' ? 'critical' : 'warning',
+        source: 'governance',
+        title: `Policy ${payload.decision}: ${payload.event}`,
+        message: payload.reason || `Decision ${payload.decision} for ${payload.action || 'unknown action'}`,
+        metadata: {
+          agentId: payload.agentId,
+          agentName: payload.agentName,
+          workspaceId: payload.workspaceId,
+          amount: payload.amount,
+          currency: payload.currency,
+        },
+        timestamp: payload.timestamp,
+      });
     }
   },
 

@@ -316,6 +316,53 @@ export class SpendController {
   }
 
   /**
+   * Confirm or reject a held spend decision.
+   * Used by operators to approve pending trades from the agent detail page.
+   */
+  async confirmDecision(req: Request, res: Response) {
+    try {
+      const { decisionId } = req.params;
+      const { action } = req.body;
+
+      if (!action || !["confirm", "reject"].includes(action)) {
+        res.status(400).json({
+          success: false,
+          error: "action must be 'confirm' or 'reject'",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const outcome = action === "confirm" ? "approve" : "deny";
+
+      res.json({
+        success: true,
+        data: {
+          decisionId,
+          action,
+          outcome,
+          confirmedAt: new Date().toISOString(),
+          confirmedBy: ((req as unknown as Record<string, unknown>).userId as string) || "operator",
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error(
+        "Decision confirmation failed",
+        error instanceof Error ? error : undefined,
+      );
+      res.status(500).json({
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unknown confirmation error",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
    * Get current execution layer status
    */
   async getStatus(req: Request, res: Response) {

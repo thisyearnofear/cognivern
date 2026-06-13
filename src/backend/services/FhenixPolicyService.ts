@@ -65,6 +65,18 @@ export interface FhenixPolicyServiceConfig {
 }
 
 /**
+ * A pending FHE decision entry stored for the watcher to resolve.
+ * Contains the ciphertext handle needed for threshold decryption.
+ */
+export interface PendingDecisionEntry {
+  decisionId: string;
+  agentId: string;
+  policyId: string;
+  ctHash: bigint | string;
+  submittedAt: string;
+}
+
+/**
  * Adapter interface for test doubles / alternative implementations
  */
 export interface FhenixClientAdapter {
@@ -125,6 +137,7 @@ export class FhenixPolicyService {
   private publicClient: any = null;
   private walletClient: any = null;
   private adapter: FhenixClientAdapter | null = null;
+  private pendingDecisions: Map<string, PendingDecisionEntry> = new Map();
 
   constructor(private readonly config: FhenixPolicyServiceConfig) {
     if (config.client) {
@@ -292,9 +305,33 @@ export class FhenixPolicyService {
       outcome = 0; // Default to Deny — never auto-approve
     }
 
-    // Phase 2: if the contract emitted Pending, resolve it on-chain
-    // so the Hyperlane dispatch fires with the real outcome.
+    // Phase 2: if the contract emitted Pending, handle based on watcher config.
+    // When the watcher is enabled, store the pending decision for async resolution.
+    // When disabled, resolve immediately with deny (safe fallback).
     if (decisionId !== '0x' && outcome === 3 /* Pending */) {
+      const watcherEnabled = process.env.FHE_WATCHER_ENABLED === 'true';
+
+      if (watcherEnabled) {
+        this.pendingDecisions.set(decisionId, {
+          decisionId,
+          agentId: input.agentId,
+          policyId: input.policyId,
+          ctHash: amountCt.ctHash,
+          submittedAt: new Date().toISOString(),
+        });
+        logger.info(
+          `Pending decision ${decisionId} queued for watcher resolution`,
+        );
+        return {
+          decisionId,
+          outcome: 'hold',
+          attestation,
+          agentId: input.agentId,
+          policyId: input.policyId,
+          timestamp: new Date().toISOString(),
+        };
+      }
+
       const resolvedOutcome: ConfidentialOutcome = 'deny';
       try {
         await this.resolveDecision(decisionId, resolvedOutcome);
@@ -417,6 +454,20 @@ export class FhenixPolicyService {
   }
 
   /**
+   * Get all pending decisions for the watcher to process.
+   */
+  getPendingDecisions(): Map<string, PendingDecisionEntry> {
+    return this.pendingDecisions;
+  }
+
+  /**
+   * Remove a pending decision after the watcher has resolved it.
+   */
+  clearPendingDecision(decisionId: string): void {
+    this.pendingDecisions.delete(decisionId);
+  }
+
+  /**
    * Convert numeric outcome (0=deny, 1=hold, 2=approve) to ConfidentialOutcome
    */
   private normalizeOutcome(outcome: number): ConfidentialOutcome {
@@ -493,6 +544,27 @@ export class FhenixPolicyService {
    */
   getProvider() {
     return this.publicClient;
+  }
+
+  /**
+   * Get the viem public client for event subscription (reused by FheDecisionWatcher).
+   */
+  getPublicClient() {
+    return this.publicClient;
+  }
+
+  /**
+   * Get the contract address for event filtering.
+   */
+  getContractAddress(): string {
+    return this.config.contractAddress;
+  }
+
+  /**
+   * Get the parsed ABI for event decoding.
+   */
+  getContractAbi() {
+    return ABI;
   }
 
   /**

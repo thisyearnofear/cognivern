@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,9 @@ import {
   Trash2,
   Share2,
   Check,
+  AlertTriangle,
+  Pause,
+  Play,
 } from "lucide-react";
 import { PolicyVersionHistory } from "./policy-version-history";
 import {
@@ -98,6 +101,56 @@ export function PoliciesPage() {
     description: string;
     rules: { condition: string; action: string }[];
   }>(null);
+  const [holds, setHolds] = useState<Array<{
+    policyId: string;
+    policyName: string;
+    reason: string;
+    heldAt: string;
+    triggeredBy: {
+      id: string;
+      type: string;
+      title: string;
+      severity: string;
+      affectedProtocols: string[];
+      affectedTokens: string[];
+      timestamp: string;
+    };
+  }>>([]);
+  const [releasingHold, setReleasingHold] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchHolds = async () => {
+      try {
+        const res = await fetch("/api/webhooks/holds");
+        const json = await res.json();
+        if (!cancelled && json.success) {
+          setHolds(json.data.holds || []);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchHolds();
+    const interval = setInterval(fetchHolds, 15000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
+  const handleReleaseHold = useCallback(async (policyId: string) => {
+    setReleasingHold(policyId);
+    try {
+      const res = await fetch(`/api/webhooks/holds/${policyId}/release`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (json.success) {
+        setHolds((prev) => prev.filter((h) => h.policyId !== policyId));
+        mutate("/api/governance/policies");
+      }
+    } finally {
+      setReleasingHold(null);
+    }
+  }, []);
 
   // Import shared policy from URL query param
   const templateParam = searchParams.get("template");
@@ -197,6 +250,76 @@ export function PoliciesPage() {
           </Button>
         </div>
       </div>
+
+      {/* Held Policies Banner */}
+      {holds.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-950/30 overflow-hidden"
+        >
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-amber-200 dark:border-amber-800">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <span className="font-semibold text-sm text-amber-800 dark:text-amber-200">
+              {holds.length} {holds.length === 1 ? "Policy" : "Policies"} Auto-Held
+            </span>
+            <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-600 dark:border-amber-700 dark:text-amber-400 ml-auto">
+              News-triggered
+            </Badge>
+          </div>
+          <div className="divide-y divide-amber-200 dark:divide-amber-800/50">
+            {holds.map((hold) => (
+              <div key={hold.policyId} className="px-4 py-3 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Pause className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                    <span className="font-medium text-sm text-foreground">{hold.policyName}</span>
+                    <Badge
+                      variant={
+                        hold.triggeredBy.severity === "critical"
+                          ? "destructive"
+                          : hold.triggeredBy.severity === "high"
+                            ? "secondary"
+                            : "outline"
+                      }
+                      className="text-[10px] capitalize"
+                    >
+                      {hold.triggeredBy.severity}
+                    </Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    <span className="font-medium text-amber-700 dark:text-amber-300 capitalize">{hold.triggeredBy.type}:</span>{" "}
+                    {hold.triggeredBy.title}
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground/70">
+                    {hold.triggeredBy.affectedProtocols.length > 0 && (
+                      <span>Protocols: {hold.triggeredBy.affectedProtocols.join(", ")}</span>
+                    )}
+                    {hold.triggeredBy.affectedTokens.length > 0 && (
+                      <span>Tokens: {hold.triggeredBy.affectedTokens.join(", ")}</span>
+                    )}
+                    <span>Held: {new Date(hold.heldAt).toLocaleString()}</span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleReleaseHold(hold.policyId)}
+                  disabled={releasingHold === hold.policyId}
+                  className="shrink-0 h-8 text-xs gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+                >
+                  {releasingHold === hold.policyId ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Play className="h-3 w-3" />
+                  )}
+                  Release
+                </Button>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Quick-create templates */}
       {policies.length === 0 && !isLoading && !error && (

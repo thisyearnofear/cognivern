@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import { useSocketEvent } from "@/hooks/use-socket";
 import { useDemoStore } from "@/stores/demo-store";
-import { ShieldCheck, AlertTriangle, Activity } from "lucide-react";
+import { ShieldCheck, AlertTriangle, Activity, Pause, Play } from "lucide-react";
 
 interface AuditEvent {
   id: string;
@@ -19,6 +19,15 @@ interface AgentStatusEvent {
   agentId: string;
   name?: string;
   status: string;
+}
+
+interface PolicyHoldEvent {
+  event: string;
+  action?: string;
+  reason?: string;
+  decision?: string;
+  workspaceId?: string;
+  timestamp?: string;
 }
 
 export function NotificationsProvider() {
@@ -62,6 +71,24 @@ export function NotificationsProvider() {
       toast.info(`Agent resumed: ${name}`, {
         icon: <Activity className="h-4 w-4" />,
         duration: 3000,
+      });
+    }
+  });
+
+  // Policy hold events (news-triggered auto-holds)
+  useSocketEvent<PolicyHoldEvent>("decision:notify", (event) => {
+    if (demoMode) return;
+    if (event.event === "policy_hold") {
+      toast.warning("Policy auto-held", {
+        description: event.action || event.reason || "News event triggered policy hold",
+        icon: <Pause className="h-4 w-4" />,
+        duration: 8000,
+      });
+    } else if (event.event === "policy_hold_released") {
+      toast.success("Policy hold released", {
+        description: event.action || "Operator released the hold",
+        icon: <Play className="h-4 w-4" />,
+        duration: 4000,
       });
     }
   });

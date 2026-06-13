@@ -3,6 +3,7 @@ import { AgentAction, PolicyCheck } from "../types/Agent.js";
 import { PolicyService } from "./PolicyService.js";
 import { FhenixPolicyService } from "./FhenixPolicyService.js";
 import { ChainGPTAuditService } from "./ChainGPTAuditService.js";
+import { AgentPreferences } from "./AgentPreferenceService.js";
 import logger from "../utils/logger.js";
 import { Script } from "node:vm";
 
@@ -125,6 +126,7 @@ export class PolicyEnforcementService {
 
   async evaluateDecision(
     action: AgentAction,
+    agentPreferences?: AgentPreferences | null,
   ): Promise<{ allowed: boolean; policyChecks: PolicyCheck[] }> {
     if (!this.currentPolicy) {
       throw new Error("No policy loaded");
@@ -143,6 +145,19 @@ export class PolicyEnforcementService {
 
     if (hasDenyViolation) {
       return { allowed: false, policyChecks: checks };
+    }
+
+    // Apply agent preferences as soft constraints (never override hard denies)
+    if (agentPreferences && agentPreferences.riskTolerance < 0.3) {
+      const amount = action.metadata?.amount || action.metadata?.amountUsd;
+      if (typeof amount === "number" && amount > 500) {
+        checks.push({
+          policyId: "preference:risk_tolerance",
+          result: false,
+          reason: `Agent preference: conservative style flags high-amount actions ($${amount})`,
+          metadata: { preferenceBased: true, riskTolerance: agentPreferences.riskTolerance },
+        });
+      }
     }
 
     // Check if all REQUIRE rules passed
@@ -192,6 +207,8 @@ export class PolicyEnforcementService {
         return { allowed: this.evaluateRateLimitRule(rule, action) };
       case "contract_audit":
         return await this.evaluateContractAuditRule(rule, action);
+      case "ai_efficiency":
+        return this.evaluateAiEfficiencyRule(rule, action);
       default:
         throw new Error(`Unknown rule type: ${rule.type}`);
     }
@@ -334,6 +351,62 @@ export class PolicyEnforcementService {
     // Increment counter
     counter.count++;
     return true;
+  }
+
+  private evaluateAiEfficiencyRule(
+    rule: PolicyRule,
+    action: AgentAction,
+  ): { allowed: boolean; reason?: string; metadata?: any } {
+    const aiUsage = action.metadata?.aiUsage as
+      | {
+          provider?: string;
+          model?: string;
+          inputTokens?: number;
+          outputTokens?: number;
+          costUsd?: number;
+          taskClass?: string;
+        }
+      | undefined;
+
+    if (!aiUsage) {
+      return { allowed: true, reason: "No AI usage in this action" };
+    }
+
+    const condition = rule.condition.trim();
+    const maxDailyCost = rule.metadata?.maxDailyCostUsd as number | undefined;
+    const allowedModels = rule.metadata?.allowedModels as string[] | undefined;
+    const maxTokens = rule.metadata?.maxTokensPerRequest as number | undefined;
+
+    if (maxDailyCost && aiUsage.costUsd && aiUsage.costUsd > maxDailyCost) {
+      return {
+        allowed: false,
+        reason: `AI cost $${aiUsage.costUsd.toFixed(4)} exceeds daily limit $${maxDailyCost}`,
+        metadata: { aiUsage, ruleCondition: condition },
+      };
+    }
+
+    if (allowedModels && aiUsage.model && !allowedModels.includes(aiUsage.model)) {
+      return {
+        allowed: false,
+        reason: `Model "${aiUsage.model}" not in allowlist: [${allowedModels.join(", ")}]`,
+        metadata: { aiUsage, ruleCondition: condition },
+      };
+    }
+
+    const totalTokens = (aiUsage.inputTokens || 0) + (aiUsage.outputTokens || 0);
+    if (maxTokens && totalTokens > maxTokens) {
+      return {
+        allowed: false,
+        reason: `Token count ${totalTokens} exceeds limit ${maxTokens}`,
+        metadata: { aiUsage, ruleCondition: condition },
+      };
+    }
+
+    return {
+      allowed: true,
+      reason: `AI usage within limits: ${aiUsage.provider}/${aiUsage.model}, ${totalTokens} tokens, $${(aiUsage.costUsd || 0).toFixed(4)}`,
+      metadata: { aiUsage },
+    };
   }
 
   private evaluateCondition(condition: string, action: AgentAction): boolean {

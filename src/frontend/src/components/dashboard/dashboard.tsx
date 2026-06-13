@@ -79,6 +79,45 @@ function useCountUp(target: number, duration = 2000, start = false) {
   return count;
 }
 
+function AiSpendCard() {
+  const [aiSpend, setAiSpend] = useState<{
+    totalCostUsd: number;
+    totalTokens: number;
+    totalCalls: number;
+    byProvider: Record<string, { costUsd: number; tokens: number; calls: number }>;
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/audit/insights?dimension=ai_spend")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!cancelled && json.success) setAiSpend(json.data);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  return (
+    <div className="bg-card p-4 flex items-center gap-3">
+      <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950 flex-shrink-0">
+        <Sparkles className="h-5 w-5 text-violet-500" />
+      </div>
+      <div>
+        <div
+          className="text-2xl font-bold"
+          style={{ fontFamily: "var(--font-space-grotesk)" }}
+        >
+          {aiSpend ? `$${aiSpend.totalCostUsd.toFixed(4)}` : "—"}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          AI Spend ({aiSpend?.totalCalls || 0} calls)
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const ACTIVITY_PAGE_SIZE = 5;
 
 export function Dashboard() {
@@ -465,6 +504,8 @@ export function Dashboard() {
                 <div className="text-xs text-muted-foreground">Avg Latency</div>
               </div>
             </div>
+
+            <AiSpendCard />
           </div>
         )}
       </div>

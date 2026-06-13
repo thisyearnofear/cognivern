@@ -4,6 +4,7 @@ import type { OwsController } from "../controllers/OwsController.js";
 import type { OwsWalletController } from "../controllers/OwsWalletController.js";
 import type { OwsApiKeyController } from "../controllers/OwsApiKeyController.js";
 import type { OwsPermissionsController } from "../controllers/OwsPermissionsController.js";
+import { sharedAgentPreferenceService } from "../../../services/AgentPreferenceService.js";
 
 export function createSpendRoutes(
   spendController: SpendController,
@@ -27,6 +28,9 @@ export function createSpendRoutes(
   );
   router.get("/spend/scan", (req, res) =>
     spendController.scanContract(req, res),
+  );
+  router.post("/spend/:decisionId/confirm", (req, res) =>
+    spendController.confirmDecision(req, res),
   );
 
   // OWS status
@@ -84,6 +88,16 @@ export function createSpendRoutes(
   router.get("/ows/permissions/:walletId", (req, res) =>
     owsPermissionsController.getPermissions(req, res),
   );
+
+  // Agent preferences
+  router.get("/agents/:agentId/preferences", async (req, res) => {
+    const prefs = await sharedAgentPreferenceService.getPreferences(req.params.agentId);
+    res.json({ success: true, data: prefs });
+  });
+  router.delete("/agents/:agentId/preferences", async (req, res) => {
+    await sharedAgentPreferenceService.resetPreferences(req.params.agentId);
+    res.json({ success: true });
+  });
 
   return router;
 }

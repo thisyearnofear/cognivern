@@ -19,6 +19,9 @@ export function createAuditRoutes(
   router.get("/audit/logs/:decisionId/decrypt", (req, res) =>
     auditLogController.decryptLog(req, res),
   );
+  router.get("/audit/logs/:id/timeline", (req, res) =>
+    auditLogController.getTimeline(req, res),
+  );
 
   return router;
 }
