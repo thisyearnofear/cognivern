@@ -418,4 +418,11 @@ export class HealthController {
         : { error: "disabled (CONTROL_EVAL_MODE != true)" }),
     };
   }
+
+  async getSlo(req: Request, res: Response): Promise<void> {
+    const { sharedSloMetrics } = await import(
+      "../../../services/SloMetricsService.js"
+    );
+    res.json(sharedSloMetrics.snapshot());
+  }
 }

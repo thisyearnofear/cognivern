@@ -11,6 +11,9 @@ export function createHealthRoutes(healthController: HealthController): Router {
   router.get("/health/live", (req, res) =>
     healthController.getLiveness(req, res),
   );
+  router.get("/health/slo", (req, res) =>
+    healthController.getSlo(req, res),
+  );
   router.get("/system/health", (req, res) =>
     healthController.getSystemHealth(req, res),
   );
