@@ -11,6 +11,7 @@ import { createHmac } from "node:crypto";
 import { getDb } from "../db/index.js";
 import { CircuitBreaker } from "../shared/utils/circuitBreaker.js";
 import { sendAlert } from "./alerting/index.js";
+import { eventBus } from "./EventBus.js";
 import logger from "../utils/logger.js";
 
 interface NotificationPayload {
@@ -96,7 +97,28 @@ export const NotificationService = {
       logger.warn("[webhook] Failed to persist notification record:", err);
     }
 
-    // 4. Forward critical decisions to alert sinks (Slack/PagerDuty)
+    // 4. Emit to SSE-connected frontend clients
+    eventBus.emit(payload.workspaceId, "audit:log", {
+      agentId: payload.agentId,
+      agent: payload.agentName,
+      action: payload.action,
+      decision: payload.decision,
+      outcome: payload.decision,
+      timestamp: payload.timestamp,
+    });
+
+    if (payload.decision === "denied" || payload.decision === "flagged") {
+      eventBus.emit(payload.workspaceId, "decision:notify", {
+        event: payload.event,
+        action: payload.action,
+        reason: payload.reason,
+        decision: payload.decision,
+        workspaceId: payload.workspaceId,
+        timestamp: payload.timestamp,
+      });
+    }
+
+    // 5. Forward critical decisions to alert sinks (Slack/PagerDuty)
     if (payload.decision === 'denied' || payload.decision === 'flagged') {
       await sendAlert({
         severity: payload.decision === 'denied' ? 'critical' : 'warning',

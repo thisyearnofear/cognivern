@@ -63,7 +63,15 @@ export async function authMiddleware(
 
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  // SSE endpoints: EventSource cannot set custom headers, so accept
+  // the JWT token as a query parameter for streaming endpoints.
+  const queryToken =
+    req.path.endsWith("/events/stream") &&
+    typeof req.query.token === "string"
+      ? req.query.token
+      : undefined;
+
+  if (!authHeader?.startsWith("Bearer ") && !queryToken) {
     res.status(401).json({
       success: false,
       error: "Authentication required. Provide a Bearer token.",
@@ -71,7 +79,7 @@ export async function authMiddleware(
     return;
   }
 
-  const token = authHeader.slice(7);
+  const token = queryToken || authHeader!.slice(7);
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);

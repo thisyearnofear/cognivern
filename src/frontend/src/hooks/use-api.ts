@@ -7,6 +7,7 @@ import {
   AUDIT_SWR_CONFIG,
   POLICY_SWR_CONFIG,
   RUNS_SWR_CONFIG,
+  SWR_DEFAULTS,
 } from "@/lib/swr-config";
 import type {
   AuditLog,
@@ -43,7 +44,7 @@ function useApiWithDemo<T>(
   const demoMode = useDemoStore((s) => s.demoMode);
   const effectiveKey = demoMode ? null : key;
 
-  const swr = useSWR(effectiveKey, fetcher, config);
+  const swr = useSWR(effectiveKey, fetcher, { ...SWR_DEFAULTS, ...config });
 
   if (demoMode) {
     return {

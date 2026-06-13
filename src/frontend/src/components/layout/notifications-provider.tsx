@@ -1,12 +1,12 @@
 "use client";
 
 import { toast } from "sonner";
-import { useSocketEvent } from "@/hooks/use-socket";
+import { useEventStream, useSseEvent } from "@/hooks/use-event-stream";
 import { useDemoStore } from "@/stores/demo-store";
 import { ShieldCheck, AlertTriangle, Activity, Pause, Play } from "lucide-react";
 
 interface AuditEvent {
-  id: string;
+  id?: string;
   agentId?: string;
   agent?: string;
   action?: string;
@@ -33,8 +33,9 @@ interface PolicyHoldEvent {
 export function NotificationsProvider() {
   const demoMode = useDemoStore((s) => s.demoMode);
 
-  // Audit log events
-  useSocketEvent<AuditEvent>("audit:log", (event) => {
+  useEventStream();
+
+  useSseEvent<AuditEvent>("audit:log", (event) => {
     if (demoMode) return;
 
     const agentName = event.agent || event.agentId || "Agent";
@@ -56,8 +57,7 @@ export function NotificationsProvider() {
     }
   });
 
-  // Agent status changes
-  useSocketEvent<AgentStatusEvent>("agent:status", (event) => {
+  useSseEvent<AgentStatusEvent>("agent:status", (event) => {
     if (demoMode) return;
 
     const name = event.name || event.agentId;
@@ -75,8 +75,7 @@ export function NotificationsProvider() {
     }
   });
 
-  // Policy hold events (news-triggered auto-holds)
-  useSocketEvent<PolicyHoldEvent>("decision:notify", (event) => {
+  useSseEvent<PolicyHoldEvent>("decision:notify", (event) => {
     if (demoMode) return;
     if (event.event === "policy_hold") {
       toast.warning("Policy auto-held", {

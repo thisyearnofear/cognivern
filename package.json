@@ -105,7 +105,6 @@
     "openai": "^4.93.0",
     "rxjs": "7.8.2",
     "siwe": "3.0.0",
-    "socket.io": "^4.8.1",
     "solidity-cborutils": "^2.0.0",
     "viem": "^2.32.0",
     "winston": "^3.11.0",
