@@ -60,6 +60,23 @@ module.exports = {
           : [],
       chainId: 421614,
     },
+    robinhoodChainTestnet: {
+      // Robinhood Chain testnet (Arbitrum Orbit) — chainId 46630
+      // Faucet: https://faucet.testnet.chain.robinhood.com
+      // Explorer: https://explorer.testnet.chain.robinhood.com
+      // Reserve 1 of 3 prizes in the Arbitrum Open House London buildathon.
+      url:
+        process.env.ROBINHOOD_CHAIN_TESTNET_RPC_URL ||
+        "https://rpc.testnet.chain.robinhood.com",
+      accounts: process.env.ROBINHOOD_CHAIN_PRIVATE_KEY
+        ? [process.env.ROBINHOOD_CHAIN_PRIVATE_KEY]
+        : process.env.FHENIX_PRIVATE_KEY
+          ? [process.env.FHENIX_PRIVATE_KEY]
+          : process.env.FILECOIN_PRIVATE_KEY
+            ? [process.env.FILECOIN_PRIVATE_KEY]
+            : [],
+      chainId: 46630,
+    },
   },
   paths: {
     sources: path.join(root, "contracts", "src"),
