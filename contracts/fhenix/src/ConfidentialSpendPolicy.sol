@@ -207,11 +207,13 @@ contract ConfidentialSpendPolicy {
         ebool held     = FHE.and(underDaily, FHE.and(underPerTx, needsApproval));
 
         // Grant CoFHE access-control permits on outcome booleans
-        // so the operator can decrypt them off-chain for resolveDecision
+        // so the operator can decrypt them off-chain for resolveDecision.
+        // Use allowSender (the new coFHE shorthand for `allow(value, msg.sender)`)
+        // which works correctly with the strict ACL on the live testnet.
         FHE.allowThis(approved);
-        FHE.allow(approved, msg.sender);
+        FHE.allowSender(approved);
         FHE.allowThis(held);
-        FHE.allow(held, msg.sender);
+        FHE.allowSender(held);
 
         // Update counter only if not denied (approved or held)
         ebool notDenied = FHE.or(approved, held);
