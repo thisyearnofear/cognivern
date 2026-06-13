@@ -368,6 +368,7 @@ export class AgentsModule extends BaseService {
         agent.getInfo().chain = row.chain;
         agent.getInfo().budget = row.budget ?? undefined;
         agent.getInfo().trades = row.trades || 0;
+        agent.getInfo().source = row.source as "managed" | "external" | "demo";
 
         this.agents.set(id, agent);
         this.logger.info(`Loaded agent ${id} (${row.name}) from database`);
