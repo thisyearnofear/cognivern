@@ -19,6 +19,7 @@ import {
   Terminal,
   KeyRound,
   Link,
+  AlertTriangle,
 } from "lucide-react";
 import { PermitDialog } from "./permit-dialog";
 import { EventTimeline, type TimelineEvent } from "@/components/shared/event-timeline";
@@ -189,6 +190,29 @@ function getAnchoringData(rawLog: unknown): AnchoringData | null {
   return { fhenixStatus, filecoinCid, filecoinTxHash, zeroGRootHash, evidenceHash };
 }
 
+interface SuspicionData {
+  composite: number;
+  label: string;
+  dimensions: Record<string, number>;
+  escalated: boolean;
+  reasoning: string[];
+}
+
+function getSuspicionData(rawLog: unknown): SuspicionData | null {
+  if (!rawLog || typeof rawLog !== "object") return null;
+  const r = rawLog as Record<string, unknown>;
+  const evidence = r.evidence as Record<string, unknown> | undefined;
+  const suspicion = evidence?.suspicion as Record<string, unknown> | undefined;
+  if (!suspicion || typeof suspicion.composite !== "number") return null;
+  return {
+    composite: suspicion.composite,
+    label: String(suspicion.label || "unknown"),
+    dimensions: (suspicion.dimensions as Record<string, number>) || {},
+    escalated: suspicion.escalated === true,
+    reasoning: Array.isArray(suspicion.reasoning) ? suspicion.reasoning.map(String) : [],
+  };
+}
+
 /* ─── Timeline Node ──────────────────────────────────────────── */
 
 function TimelineNode({
@@ -211,6 +235,7 @@ function TimelineNode({
   const txHash = getOnChainTxHash(rawLog);
   const policyId = getPolicyId(rawLog);
   const anchoring = getAnchoringData(rawLog);
+  const suspicion = getSuspicionData(rawLog);
 
   useEffect(() => {
     if (!expanded || timelineEvents.length > 0 || timelineLoading) return;
@@ -300,6 +325,18 @@ function TimelineNode({
                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-700">
                     <ExternalLink className="h-2.5 w-2.5" />
                     On-Chain
+                  </span>
+                )}
+                {suspicion && suspicion.label !== "normal" && (
+                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${
+                    suspicion.label === "critical"
+                      ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700"
+                      : suspicion.label === "high"
+                        ? "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-700"
+                        : "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700"
+                  }`}>
+                    <AlertTriangle className="h-2.5 w-2.5" />
+                    {suspicion.label === "critical" ? "Critical" : suspicion.label === "high" ? "Suspicious" : "Score"}: {suspicion.composite.toFixed(2)}
                   </span>
                 )}
               </div>
@@ -522,6 +559,61 @@ function TimelineNode({
                 </div>
               )}
 
+              {/* Suspicion Analysis */}
+              {suspicion && (
+                <div>
+                  <div className="text-xs font-semibold text-muted-foreground mb-2">
+                    Suspicion Analysis
+                  </div>
+                  <div className={`rounded-lg border p-3 space-y-2 ${
+                    suspicion.escalated
+                      ? "border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20"
+                      : "border-border bg-muted/20"
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 text-xs">
+                        <AlertTriangle className={`h-3.5 w-3.5 flex-shrink-0 ${
+                          suspicion.label === "critical" ? "text-red-500" : suspicion.label === "high" ? "text-orange-500" : suspicion.label === "elevated" ? "text-amber-500" : "text-muted-foreground"
+                        }`} />
+                        <span className="font-medium capitalize">{suspicion.label}</span>
+                        <span className="text-muted-foreground">({suspicion.composite.toFixed(3)})</span>
+                      </div>
+                      {suspicion.escalated && (
+                        <Badge variant="destructive" className="text-[10px]">Escalated</Badge>
+                      )}
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          suspicion.label === "critical" ? "bg-red-500" : suspicion.label === "high" ? "bg-orange-500" : suspicion.label === "elevated" ? "bg-amber-500" : "bg-emerald-500"
+                        }`}
+                        style={{ width: `${Math.min(100, suspicion.composite * 100)}%` }}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                      {Object.entries(suspicion.dimensions).map(([dim, val]) => (
+                        <div key={dim} className="flex items-center justify-between">
+                          <span className="text-muted-foreground capitalize">
+                            {dim.replace(/([A-Z])/g, " $1").trim()}
+                          </span>
+                          <span className="font-mono">{(val as number).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {suspicion.reasoning.length > 0 && (
+                      <ul className="space-y-0.5">
+                        {suspicion.reasoning.map((r, i) => (
+                          <li key={i} className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                            <span className="text-amber-500 mt-0.5">•</span>
+                            {r}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Decision Replay Timeline */}
               {timelineEvents.length > 0 && (
                 <div>
@@ -536,7 +628,7 @@ function TimelineNode({
                 </div>
               )}
 
-              {!hasChecks && !isFhe && !isChainGpt && !txHash && !anchoring && timelineEvents.length === 0 && (
+              {!hasChecks && !isFhe && !isChainGpt && !txHash && !anchoring && !suspicion && timelineEvents.length === 0 && (
                 <div className="text-xs text-muted-foreground py-1">
                   No additional decision details available.
                 </div>

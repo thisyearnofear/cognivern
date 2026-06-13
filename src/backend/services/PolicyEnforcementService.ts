@@ -4,6 +4,7 @@ import { PolicyService } from "./PolicyService.js";
 import { FhenixPolicyService } from "./FhenixPolicyService.js";
 import { ChainGPTAuditService } from "./ChainGPTAuditService.js";
 import { AgentPreferences } from "./AgentPreferenceService.js";
+import { ControlEvaluationService, SuspicionResult } from "./ControlEvaluationService.js";
 import logger from "../utils/logger.js";
 import { Script } from "node:vm";
 
@@ -22,6 +23,7 @@ export class PolicyEnforcementService {
   private policyService: PolicyService | null = null;
   private fhenixPolicyService: FhenixPolicyService | null = null;
   private chainGPTAuditService: ChainGPTAuditService | null = null;
+  private controlEvaluationService: ControlEvaluationService | null = null;
   private rateLimitCounters: Map<string, { count: number; resetTime: number }> =
     new Map();
 
@@ -29,10 +31,12 @@ export class PolicyEnforcementService {
     policyService?: PolicyService,
     fhenixPolicyService?: FhenixPolicyService,
     chainGPTAuditService?: ChainGPTAuditService,
+    controlEvaluationService?: ControlEvaluationService,
   ) {
     this.policyService = policyService || null;
     this.fhenixPolicyService = fhenixPolicyService || null;
     this.chainGPTAuditService = chainGPTAuditService || null;
+    this.controlEvaluationService = controlEvaluationService || null;
     logger.info("PolicyEnforcementService initialized");
   }
 
@@ -43,6 +47,7 @@ export class PolicyEnforcementService {
     policyService: PolicyService,
     fhenixPolicyService?: FhenixPolicyService,
     chainGPTAuditService?: ChainGPTAuditService,
+    controlEvaluationService?: ControlEvaluationService,
   ): void {
     this.policyService = policyService;
     if (fhenixPolicyService) {
@@ -50,6 +55,9 @@ export class PolicyEnforcementService {
     }
     if (chainGPTAuditService) {
       this.chainGPTAuditService = chainGPTAuditService;
+    }
+    if (controlEvaluationService) {
+      this.controlEvaluationService = controlEvaluationService;
     }
     logger.info("PolicyEnforcementService initialized with PolicyService");
   }
@@ -127,7 +135,7 @@ export class PolicyEnforcementService {
   async evaluateDecision(
     action: AgentAction,
     agentPreferences?: AgentPreferences | null,
-  ): Promise<{ allowed: boolean; policyChecks: PolicyCheck[] }> {
+  ): Promise<{ allowed: boolean; policyChecks: PolicyCheck[]; suspicion?: SuspicionResult }> {
     if (!this.currentPolicy) {
       throw new Error("No policy loaded");
     }
@@ -144,7 +152,8 @@ export class PolicyEnforcementService {
     );
 
     if (hasDenyViolation) {
-      return { allowed: false, policyChecks: checks };
+      const suspicion = this.maybeScore(action, checks, agentPreferences);
+      return { allowed: false, policyChecks: checks, ...suspicion };
     }
 
     // Apply agent preferences as soft constraints (never override hard denies)
@@ -167,7 +176,24 @@ export class PolicyEnforcementService {
         (r: PolicyRule) => checks.find((c) => c.policyId === r.id)?.result,
       );
 
-    return { allowed: allRequireRulesPassed, policyChecks: checks };
+    const suspicion = this.maybeScore(action, checks, agentPreferences);
+    return { allowed: allRequireRulesPassed, policyChecks: checks, ...suspicion };
+  }
+
+  private maybeScore(
+    action: AgentAction,
+    checks: PolicyCheck[],
+    preferences?: AgentPreferences | null,
+  ): { suspicion?: SuspicionResult } {
+    if (process.env.CONTROL_EVAL_MODE !== "true" || !this.controlEvaluationService) {
+      return {};
+    }
+    const suspicion = this.controlEvaluationService.score({
+      action,
+      policyChecks: checks,
+      preferences: preferences ?? null,
+    });
+    return { suspicion };
   }
 
   private async evaluateRule(

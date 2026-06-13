@@ -42,6 +42,11 @@ RATE_LIMIT_MAX_REQUESTS=100       # 100 requests per window
 INGEST_RATE_LIMIT_PER_MINUTE=120  # 120 requests/min for ingest
 INTENT_RATE_LIMIT_PER_MINUTE=30   # 30 requests/min for AI intent (expensive)
 GOVERNANCE_RATE_LIMIT_PER_MINUTE=60  # 60 requests/min for governance
+
+# Control Evaluation Mode (optional — parallel suspicion scoring)
+# When true, every governance evaluation gets a suspicion score (0-1)
+# stored in the audit trail. Does not change approve/deny decisions.
+CONTROL_EVAL_MODE=false
 ```
 
 # Fhenix / CoFHE (optional — for confidential policy evaluation)
@@ -112,6 +117,7 @@ This is a pnpm monorepo with three packages:
 | `OwsWalletService`         | Spend execution, policy enforcement, signed authorizations                                            |
 | `IntentController`         | Natural language intent processing via AI with multi-provider routing                                 |
 | `MultiModelRouter`         | Routes AI requests across 6 providers with fallback logic and circuit breakers                        |
+| `ControlEvaluationService` | Parallel suspicion scoring (0-1) across 4 dimensions for every governance evaluation; gated by `CONTROL_EVAL_MODE` |
 
 ### Product framing for contributors
 
@@ -180,7 +186,7 @@ Related: `GET/POST /api/governance/policies`, `GET /api/governance/health`
 | Endpoint                             | Method | Description                                 |
 | ------------------------------------ | ------ | ------------------------------------------- |
 | `/api/audit/logs`                    | GET    | Audit trail                                 |
-| `/api/audit/insights`                | GET    | Audit insights                              |
+| `/api/audit/insights`                | GET    | Audit insights (`?dimension=ai_spend\|suspicion`) |
 | `/api/audit/permits`                 | POST   | Issue confidential audit decryption permits |
 | `/api/cre/runs`                      | GET    | Run ledger                                  |
 | `/api/cre/runs/:runId`               | GET    | Run details                                 |
@@ -244,6 +250,26 @@ Returns `allowed`, `reasoning`, `policyChecks`, `provider`, `model`, and `auditL
 ```bash
 COGNIVERN_URL=http://localhost:8787 COGNIVERN_API_KEY=development-api-key \
   npx tsx scripts/tests/mcp-governance-smoke.ts
+```
+
+### Control Evaluation Mode
+
+When `CONTROL_EVAL_MODE=true`, every governance evaluation gets a composite suspicion score (0-1) across four dimensions — rule violations (2x weight), behavioral deviation, temporal anomaly, and scope creep. The score is stored in `CreRun.evidence.suspicion` and surfaced in the audit trail and dashboard. It never modifies approve/deny decisions.
+
+**Insights endpoint:**
+
+```bash
+curl "$COGNIVERN_URL/api/audit/insights?dimension=suspicion" \
+  -H "Authorization: Bearer $COGNIVERN_API_KEY"
+```
+
+Returns `totalScored`, `distribution` (normal/elevated/high/critical), `averageScore`, `escalationRate`, `topAgents`, `recentEscalations`, and `dimensionContribution`.
+
+**Smoke test:**
+
+```bash
+COGNIVERN_URL=http://localhost:8787 COGNIVERN_API_KEY=development-api-key \
+  npx tsx scripts/tests/control-eval-smoke.ts
 ```
 
 ## Testing

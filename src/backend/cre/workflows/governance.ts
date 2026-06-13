@@ -36,6 +36,13 @@ export interface GovernanceWorkflowResult {
   confidential: Record<string, unknown>;
   timestamp: string;
   auditLogId?: string;
+  suspicion?: {
+    composite: number;
+    label: string;
+    dimensions: Record<string, number>;
+    escalated: boolean;
+    reasoning: string[];
+  };
 }
 
 /**
@@ -100,6 +107,21 @@ async function runAndPersist(
     });
     await creRunStore.replace(recorder.getRun());
 
+    // Attach suspicion to evidence if Control Evaluation Mode is active
+    if (decision.suspicion) {
+      const run = recorder.getRun();
+      if (run.evidence) {
+        run.evidence.suspicion = {
+          composite: decision.suspicion.composite,
+          label: decision.suspicion.label,
+          dimensions: decision.suspicion.dimensions as unknown as Record<string, number>,
+          escalated: decision.suspicion.escalated,
+          reasoning: decision.suspicion.reasoning,
+        };
+      }
+      await creRunStore.replace(run);
+    }
+
     // ── Step 3: Record audit log ─────────────────────────────────────
     const s3 = recorder.startStep("compute", "record_audit");
     const auditLogId = await params.auditLogService.logAction(
@@ -136,6 +158,13 @@ async function runAndPersist(
       },
       timestamp: new Date().toISOString(),
       auditLogId,
+      suspicion: decision.suspicion ? {
+        composite: decision.suspicion.composite,
+        label: decision.suspicion.label,
+        dimensions: decision.suspicion.dimensions as unknown as Record<string, number>,
+        escalated: decision.suspicion.escalated,
+        reasoning: decision.suspicion.reasoning,
+      } : undefined,
     };
 
     const lastEvents = run.events;

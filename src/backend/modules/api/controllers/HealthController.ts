@@ -68,6 +68,8 @@ export class HealthController {
     results.push(await this.checkFilecoinRpc());
     // 8. 0G Indexer reachability (optional)
     results.push(await this.checkZeroGIndexer());
+    // 9. Control Evaluation Mode status
+    results.push(this.checkControlEvaluation());
 
     return results;
   }
@@ -404,5 +406,16 @@ export class HealthController {
       },
       timestamp: new Date().toISOString(),
     });
+  }
+
+  private checkControlEvaluation(): DependencyCheck {
+    return {
+      name: "control_evaluation",
+      status: process.env.CONTROL_EVAL_MODE === "true" ? "healthy" : "healthy",
+      latencyMs: 0,
+      ...(process.env.CONTROL_EVAL_MODE === "true"
+        ? {}
+        : { error: "disabled (CONTROL_EVAL_MODE != true)" }),
+    };
   }
 }
