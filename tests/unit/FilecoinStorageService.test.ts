@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import crypto from "node:crypto";
 
-vi.mock("../utils/logger.js", () => ({
+vi.mock("../../src/backend/utils/logger.js", () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -38,7 +38,7 @@ vi.mock("ethers", () => ({
   },
 }));
 
-vi.mock("../shared/config/index.js", () => ({
+vi.mock("../../src/backend/shared/config/index.js", () => ({
   get filecoinConfig() {
     return {
       rpcUrl: "https://api.calibration.node.glif.io/rpc/v1",
@@ -69,7 +69,7 @@ async function makeService(enabled: boolean) {
     delete process.env.STORAGE_CONTRACT_ADDRESS;
   }
   vi.resetModules();
-  const mod = await import("./FilecoinStorageService.js");
+  const mod = await import("../../src/backend/services/FilecoinStorageService.js");
   return new mod.FilecoinStorageService();
 }
 

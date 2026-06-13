@@ -60,6 +60,14 @@ export class HealthController {
     results.push(await this.checkPolicyService());
     // 4. Fhenix client reachability (graceful — returns 'unhealthy' only when keys are present but unreachable)
     results.push(await this.checkFhenixClient());
+    // 5. FHE decision watcher (when enabled)
+    results.push(await this.checkFheWatcher());
+    // 6. MongoDB connectivity (optional)
+    results.push(await this.checkMongoDb());
+    // 7. Filecoin Calibration RPC (optional)
+    results.push(await this.checkFilecoinRpc());
+    // 8. 0G Indexer reachability (optional)
+    results.push(await this.checkZeroGIndexer());
 
     return results;
   }
@@ -172,6 +180,158 @@ export class HealthController {
         status: "healthy",
         latencyMs: Date.now() - start,
       };
+    } catch (err) {
+      return {
+        name,
+        status: "unhealthy",
+        latencyMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  private async checkFheWatcher(): Promise<DependencyCheck> {
+    const name = "fhe_watcher";
+    const start = Date.now();
+    const watcherEnabled = process.env.FHE_WATCHER_ENABLED === "true";
+
+    // If watcher is disabled, report as healthy (not required)
+    if (!watcherEnabled) {
+      return {
+        name,
+        status: "healthy",
+        latencyMs: Date.now() - start,
+      };
+    }
+
+    try {
+      const { sharedFheDecisionWatcher } = await import(
+        "../../../services/FheDecisionWatcher.js"
+      );
+      const isRunning = sharedFheDecisionWatcher.isRunning();
+      const pendingCount = sharedFheDecisionWatcher.getPendingCount();
+
+      return {
+        name,
+        status: isRunning ? "healthy" : "unhealthy",
+        latencyMs: Date.now() - start,
+        ...(pendingCount > 0 && { error: `${pendingCount} pending decisions` }),
+      };
+    } catch (err) {
+      return {
+        name,
+        status: "unhealthy",
+        latencyMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  private async checkMongoDb(): Promise<DependencyCheck> {
+    const name = "mongodb";
+    const start = Date.now();
+    const mongoUri = process.env.MONGODB_URI;
+
+    if (!mongoUri) {
+      return { name, status: "healthy", latencyMs: Date.now() - start };
+    }
+
+    try {
+      const { MongoClient } = await import("mongodb");
+      const client = new MongoClient(mongoUri, {
+        serverSelectionTimeoutMS: 5000,
+      });
+      await client.connect();
+      await client.db().command({ ping: 1 });
+      await client.close();
+      return { name, status: "healthy", latencyMs: Date.now() - start };
+    } catch (err) {
+      return {
+        name,
+        status: "unhealthy",
+        latencyMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  private async checkFilecoinRpc(): Promise<DependencyCheck> {
+    const name = "filecoin_rpc";
+    const start = Date.now();
+    const filecoinKey = process.env.FILECOIN_PRIVATE_KEY;
+    const rpcUrl =
+      process.env.FILECOIN_RPC_URL ||
+      "https://api.calibration.node.glif.io/rpc/v1";
+
+    if (!filecoinKey) {
+      return { name, status: "healthy", latencyMs: Date.now() - start };
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "eth_blockNumber",
+          params: [],
+          id: 1,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        return {
+          name,
+          status: "unhealthy",
+          latencyMs: Date.now() - start,
+          error: `HTTP ${response.status}`,
+        };
+      }
+      return { name, status: "healthy", latencyMs: Date.now() - start };
+    } catch (err) {
+      return {
+        name,
+        status: "unhealthy",
+        latencyMs: Date.now() - start,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  private async checkZeroGIndexer(): Promise<DependencyCheck> {
+    const name = "zerog_indexer";
+    const start = Date.now();
+    const zeroGKey = process.env.ZEROG_PRIVATE_KEY;
+    const indexerUrl =
+      process.env.ZEROG_INDEXER_URL ||
+      "https://indexer-storage-testnet-standard.0g.ai";
+
+    if (!zeroGKey) {
+      return { name, status: "healthy", latencyMs: Date.now() - start };
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(indexerUrl, {
+        method: "GET",
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        return {
+          name,
+          status: "unhealthy",
+          latencyMs: Date.now() - start,
+          error: `HTTP ${response.status}`,
+        };
+      }
+      return { name, status: "healthy", latencyMs: Date.now() - start };
     } catch (err) {
       return {
         name,

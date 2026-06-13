@@ -197,14 +197,12 @@ contract ConfidentialSpendPolicy {
         // ACL owner of this handle for this transaction.
 
         // Reset counter if new day or first use (simplistic window management)
+        // Known limitation: this creates a new encrypted zero handle each window.
+        // See docs/FHENIX_INTEGRATION.md line 86 for production optimization notes.
         uint256 currentDay = block.timestamp / 86400;
         if (!c.initialized || c.windowStart < currentDay) {
             c.spentToday = FHE.asEuint128(0);
-            // allowThis on the freshly-initialised counter so the contract
-            // can use it in subsequent FHE operations in this transaction and
-            // (via transient allowance) the FHE.add below.
             FHE.allowThis(c.spentToday);
-            FHE.allowTransient(c.spentToday, address(this));
             c.windowStart = currentDay;
             c.initialized = true;
         }
@@ -307,6 +305,7 @@ contract ConfidentialSpendPolicy {
         euint128 amount = FHE.asEuint128(amountCt);
 
         // Reset daily counter if new window or first use
+        // Known limitation: creates new encrypted zero handle per window reset
         uint256 currentDay = block.timestamp / 86400;
         if (!c.initialized || c.windowStart < currentDay) {
             c.spentToday = FHE.asEuint128(0);

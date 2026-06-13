@@ -139,6 +139,14 @@ export interface CreRun {
     signer?: string;
     artifactIds?: string[];
     citations?: string[];
+    aiUsage?: {
+      provider: string;
+      model: string;
+      inputTokens: number;
+      outputTokens: number;
+      costUsd: number;
+      taskClass: string;
+    };
   };
   events?: CreRunEvent[];
   steps: CreStepLog[];

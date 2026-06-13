@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { IntentController } from "./IntentController";
+import { IntentController } from "../../src/backend/modules/api/controllers/IntentController";
 
-vi.mock("../../cloudflare-agents/MultiModelRouter.js", () => {
+vi.mock("../../src/backend/modules/cloudflare-agents/MultiModelRouter.js", () => {
   return {
     MultiModelRouter: class MockMultiModelRouter {
       analyzeGovernance = vi
@@ -11,7 +11,7 @@ vi.mock("../../cloudflare-agents/MultiModelRouter.js", () => {
   };
 });
 
-vi.mock("../../../services/AuditLogService.js", () => {
+vi.mock("../../src/backend/services/AuditLogService.js", () => {
   return {
     AuditLogService: class MockAuditLogService {
       logEvent = vi.fn().mockResolvedValue(undefined);

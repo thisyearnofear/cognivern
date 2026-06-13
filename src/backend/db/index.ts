@@ -238,6 +238,9 @@ function migrate(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_token_blacklist_expires ON token_blacklist(expires_at);
   `);
+
+  // Run file-based migrations (supplements inline migrations above)
+  runFileMigrations(db);
 }
 
 export function closeDb(): void {
@@ -245,5 +248,54 @@ export function closeDb(): void {
     db.close();
     db = null;
     drizzleDb = null;
+  }
+}
+
+/**
+ * Run file-based migrations from the migrations/ directory.
+ * Tracks applied migrations in a _migrations table to avoid re-running.
+ * Forward-only — no rollback support.
+ */
+function runFileMigrations(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS _migrations (
+      name TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL
+    );
+  `);
+
+  const migrationsDir = path.join(__dirname, "migrations");
+  if (!fs.existsSync(migrationsDir)) return;
+
+  const applied = new Set(
+    (
+      db
+        .prepare("SELECT name FROM _migrations")
+        .all() as { name: string }[]
+    ).map((r) => r.name),
+  );
+
+  const files = fs
+    .readdirSync(migrationsDir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
+
+  for (const file of files) {
+    if (applied.has(file)) continue;
+
+    const sql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
+    const statements = sql
+      .split("--> statement-breakpoint")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    for (const stmt of statements) {
+      db.exec(stmt);
+    }
+
+    db.prepare("INSERT INTO _migrations (name, applied_at) VALUES (?, ?)").run(
+      file,
+      new Date().toISOString(),
+    );
   }
 }

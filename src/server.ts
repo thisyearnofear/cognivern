@@ -1,5 +1,7 @@
 import { ApiModule } from "./backend/modules/api/ApiModule.js";
 import { NotificationService } from "./backend/services/NotificationService.js";
+import { sharedFheDecisionWatcher } from "./backend/services/FheDecisionWatcher.js";
+import { initializeAlertSinks } from "./backend/services/alerting/index.js";
 import logger from "./backend/utils/logger.js";
 
 // Fix EventEmitter memory leak warnings
@@ -19,6 +21,12 @@ function installShutdownHandlers() {
 
   const gracefulShutdown = async (signal: string) => {
     logger.info(`📡 Received ${signal}, shutting down gracefully...`);
+
+    // Stop FHE decision watcher
+    if (sharedFheDecisionWatcher.isRunning()) {
+      sharedFheDecisionWatcher.stop();
+      logger.info("🛑 FHE decision watcher stopped");
+    }
 
     if (apiModule) {
       await apiModule.shutdown();
@@ -44,6 +52,9 @@ export async function startServer(): Promise<void> {
     // Ensure notification tables exist
     NotificationService.ensureTable();
 
+    // Initialize alert sinks (Slack/PagerDuty) if configured
+    initializeAlertSinks();
+
     // Initialize our modular API system
     logger.info("🔧 Creating ApiModule instance");
     apiModule = new ApiModule();
@@ -55,6 +66,13 @@ export async function startServer(): Promise<void> {
     logger.info(`✅ Server running on port ${PORT}`);
     logger.info(`🌐 Health check: http://localhost:${PORT}/health`);
     logger.info(`🤖 Showcase agents: http://localhost:${PORT}/api/agents`);
+
+    // Start FHE decision watcher if enabled
+    if (process.env.FHE_WATCHER_ENABLED === "true") {
+      sharedFheDecisionWatcher.start();
+      logger.info("🔐 FHE decision watcher started");
+    }
+
     logger.info("🎯 AI Agent Governance Platform ready for showcase!");
 
     installShutdownHandlers();

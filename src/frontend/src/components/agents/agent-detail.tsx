@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,12 @@ import {
   Volume2,
   TrendingUp,
   DollarSign,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Loader2,
+  Brain,
+  RotateCcw,
 } from "lucide-react";
 import { useAgent, usePolicies } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
@@ -55,12 +61,208 @@ function Breadcrumbs({ agentName }: { agentName: string }) {
   );
 }
 
+interface AgentPreferences {
+  agentId: string;
+  style: "conservative" | "aggressive" | "balanced";
+  preferredModels: string[];
+  preferredChains: string[];
+  riskTolerance: number;
+  customRules: Array<{ condition: string; action: string }>;
+  learnedAt: string;
+}
+
+function AgentPersonalityCard({ agentId }: { agentId: string }) {
+  const [prefs, setPrefs] = useState<AgentPreferences | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [resetting, setResetting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/agents/${agentId}/preferences`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (!cancelled) setPrefs(json.data || null);
+      })
+      .catch(() => {
+        if (!cancelled) setPrefs(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [agentId]);
+
+  const handleReset = useCallback(async () => {
+    setResetting(true);
+    try {
+      await fetch(`/api/agents/${agentId}/preferences`, { method: "DELETE" });
+      setPrefs(null);
+      mutate(`/api/agents/${agentId}`);
+    } finally {
+      setResetting(false);
+    }
+  }, [agentId]);
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border bg-card p-4">
+        <Skeleton className="h-5 w-40 mb-3" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    );
+  }
+
+  if (!prefs) return null;
+
+  const styleColors = {
+    conservative: "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300",
+    balanced: "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300",
+    aggressive: "bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300",
+  };
+
+  const tolerancePercent = Math.round(prefs.riskTolerance * 100);
+
+  return (
+    <div className="rounded-xl border bg-card overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Brain className="h-4 w-4 text-violet-500" />
+          Agent Personality
+        </h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleReset}
+          disabled={resetting}
+          className="h-7 text-xs gap-1.5"
+        >
+          <RotateCcw className={`h-3 w-3 ${resetting ? "animate-spin" : ""}`} />
+          Reset
+        </Button>
+      </div>
+      <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <div className="text-xs text-muted-foreground mb-1.5">Style</div>
+          <Badge className={`${styleColors[prefs.style]} border-0 capitalize`}>
+            {prefs.style}
+          </Badge>
+        </div>
+        <div>
+          <div className="text-xs text-muted-foreground mb-1.5">Risk Tolerance</div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  tolerancePercent < 40
+                    ? "bg-blue-500"
+                    : tolerancePercent < 70
+                      ? "bg-emerald-500"
+                      : "bg-orange-500"
+                }`}
+                style={{ width: `${tolerancePercent}%` }}
+              />
+            </div>
+            <span className="text-xs font-mono tabular-nums w-8 text-right">
+              {tolerancePercent}%
+            </span>
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-muted-foreground mb-1.5">Learned</div>
+          <div className="text-xs text-muted-foreground">
+            {new Date(prefs.learnedAt).toLocaleDateString()}
+          </div>
+        </div>
+        {prefs.preferredChains.length > 0 && (
+          <div className="sm:col-span-1">
+            <div className="text-xs text-muted-foreground mb-1.5">Preferred Chains</div>
+            <div className="flex flex-wrap gap-1">
+              {prefs.preferredChains.map((chain) => (
+                <Badge key={chain} variant="outline" className="text-[10px]">
+                  {chain}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+        {prefs.preferredModels.length > 0 && (
+          <div className="sm:col-span-2">
+            <div className="text-xs text-muted-foreground mb-1.5">Preferred Models</div>
+            <div className="flex flex-wrap gap-1">
+              {prefs.preferredModels.map((model) => (
+                <Badge key={model} variant="outline" className="text-[10px] font-mono">
+                  {model}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function AgentDetailPage({ agentId }: { agentId: string }) {
   const router = useRouter();
   const { data: agent, isLoading, error } = useAgent(agentId);
   const { data: policies } = usePolicies();
   const [toggling, setToggling] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [pendingApprovals, setPendingApprovals] = useState<Array<{
+    id: string;
+    agentId: string;
+    action: string;
+    amount?: number;
+    timestamp: string;
+    reason?: string;
+  }>>([]);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchHeld = async () => {
+      try {
+        const res = await fetch(`/api/audit/logs?outcome=held&agent=${agentId}`);
+        const json = await res.json();
+        if (!cancelled && json.success && Array.isArray(json.data?.logs)) {
+          setPendingApprovals(
+            json.data.logs.map((log: Record<string, unknown>) => ({
+              id: log.id || log.runId || String(Math.random()),
+              agentId: log.agentId || agentId,
+              action: log.action || log.actionType || "spend",
+              amount: typeof log.amount === "number" ? log.amount : undefined,
+              timestamp: log.timestamp || log.createdAt || new Date().toISOString(),
+              reason: typeof log.reason === "string" ? log.reason : undefined,
+            })),
+          );
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchHeld();
+    const interval = setInterval(fetchHeld, 10000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [agentId]);
+
+  const handleConfirmTrade = useCallback(async (decisionId: string, action: "confirm" | "reject") => {
+    setConfirmingId(decisionId);
+    try {
+      const res = await fetch(`/api/spend/${decisionId}/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setPendingApprovals((prev) => prev.filter((a) => a.id !== decisionId));
+        mutate(`/api/agents/${agentId}`);
+        mutate("/api/audit/logs");
+      }
+    } finally {
+      setConfirmingId(null);
+    }
+  }, [agentId]);
 
   const linkedPolicy = useMemo(() => {
     if (!agent || !Array.isArray(policies)) return null;
@@ -288,6 +490,74 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
         </div>
       </div>
 
+      {/* Pending Approvals */}
+      {pendingApprovals.length > 0 && (
+        <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-950/30 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-amber-200 dark:border-amber-800">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <span className="font-semibold text-sm text-amber-800 dark:text-amber-200">
+              {pendingApprovals.length} Pending {pendingApprovals.length === 1 ? "Approval" : "Approvals"}
+            </span>
+            <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-600 dark:border-amber-700 dark:text-amber-400 ml-auto">
+              Requires operator action
+            </Badge>
+          </div>
+          <div className="divide-y divide-amber-200 dark:divide-amber-800/50">
+            {pendingApprovals.map((approval) => (
+              <div key={approval.id} className="px-4 py-3 flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                    <span className="font-medium text-sm text-foreground capitalize">{approval.action}</span>
+                    {approval.amount && (
+                      <Badge variant="outline" className="text-[10px] font-mono">
+                        ${approval.amount.toLocaleString()}
+                      </Badge>
+                    )}
+                  </div>
+                  {approval.reason && (
+                    <div className="text-xs text-muted-foreground mb-1">{approval.reason}</div>
+                  )}
+                  <div className="text-[11px] text-muted-foreground/70">
+                    {new Date(approval.timestamp).toLocaleString()}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleConfirmTrade(approval.id, "confirm")}
+                    disabled={confirmingId === approval.id}
+                    className="h-8 text-xs gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+                  >
+                    {confirmingId === approval.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-3 w-3" />
+                    )}
+                    Confirm
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleConfirmTrade(approval.id, "reject")}
+                    disabled={confirmingId === approval.id}
+                    className="h-8 text-xs gap-1.5 border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-950/30"
+                  >
+                    {confirmingId === approval.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Spend Chart + Policy Link */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden">
         <div className="bg-card p-4 lg:col-span-2">
@@ -378,6 +648,9 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
             )}
         </div>
       </div>
+
+      {/* Agent Personality Card */}
+      <AgentPersonalityCard agentId={agentId} />
 
       <div>
         <div className="flex items-center justify-between mb-3">

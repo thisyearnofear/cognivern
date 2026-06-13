@@ -97,5 +97,6 @@ export type PolicyRuleType =
   | "deny"
   | "require"
   | "rate_limit"
-  | "contract_audit";
+  | "contract_audit"
+  | "ai_efficiency";
 export type PolicyActionType = "block" | "log" | "notify" | "escalate";

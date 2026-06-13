@@ -72,7 +72,6 @@ const envSchema = z.object({
 
   // Governance Configuration
   DEFAULT_POLICY: z.string().default("standard"),
-  AUDIT_FREQUENCY: z.string().default("daily"),
 
   // Mantle L2 (Agent Execution Layer)
   MANTLE_RPC_URL: z.string().default("https://rpc.mantle.xyz"),
@@ -92,6 +91,8 @@ const envSchema = z.object({
   FHENIX_POLICY_CONTRACT: z.string().default(""),
   FHENIX_PRIVATE_KEY: z.string().optional(),
   FHENIX_EVALUATE_TIMEOUT_MS: z.coerce.number().default(30000),
+  FHE_WATCHER_ENABLED: z.coerce.boolean().default(false),
+  FHE_WATCHER_POLL_INTERVAL_MS: z.coerce.number().default(5000),
 });
 
 // Parse and validate environment variables

@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   ChainGPTAuditService,
   AuditResult,
-} from "./ChainGPTAuditService.js";
+} from "../../src/backend/services/ChainGPTAuditService.js";
 
 // Mock fetch for testing — returns a streaming response matching ChainGPT's format
 function mockStreamResponse(text: string) {

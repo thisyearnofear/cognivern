@@ -17,7 +17,11 @@ import {
   ChevronDown,
   ShieldCheck,
   Terminal,
+  KeyRound,
+  Link,
 } from "lucide-react";
+import { PermitDialog } from "./permit-dialog";
+import { EventTimeline, type TimelineEvent } from "@/components/shared/event-timeline";
 import { useRouter } from "next/navigation";
 import { useAuditLogs } from "@/hooks/use-api";
 import {
@@ -143,6 +147,48 @@ function getOnChainTxHash(rawLog: unknown): string | null {
   return null;
 }
 
+function getPolicyId(rawLog: unknown): string | null {
+  if (!rawLog || typeof rawLog !== "object") return null;
+  const r = rawLog as Record<string, unknown>;
+  if (typeof r.policyId === "string" && r.policyId.length > 0) return r.policyId;
+  const checks = r.policyChecks as Array<Record<string, unknown>> | undefined;
+  if (Array.isArray(checks) && checks.length > 0 && typeof checks[0].policyId === "string") {
+    return checks[0].policyId as string;
+  }
+  return null;
+}
+
+interface AnchoringData {
+  fhenixStatus: "resolved" | "pending" | null;
+  filecoinCid: string | null;
+  filecoinTxHash: string | null;
+  zeroGRootHash: string | null;
+  evidenceHash: string | null;
+}
+
+function getAnchoringData(rawLog: unknown): AnchoringData | null {
+  if (!rawLog || typeof rawLog !== "object") return null;
+  const r = rawLog as Record<string, unknown>;
+  const evidence = r.evidence as Record<string, unknown> | undefined;
+  const conf = r.confidential as Record<string, unknown> | undefined;
+
+  const filecoinCid = (evidence?.filecoinCid as string) || null;
+  const filecoinTxHash = (evidence?.filecoinTxHash as string) || null;
+  const zeroGRootHash = (evidence?.zeroGRootHash as string) || null;
+  const evidenceHash = (evidence?.hash as string) || null;
+
+  let fhenixStatus: "resolved" | "pending" | null = null;
+  if (conf) {
+    const decisionIds = conf.decisionIds as string[] | undefined;
+    if (decisionIds && decisionIds.length > 0) {
+      fhenixStatus = conf.resolved === true ? "resolved" : "pending";
+    }
+  }
+
+  if (!filecoinCid && !zeroGRootHash && !fhenixStatus && !evidenceHash) return null;
+  return { fhenixStatus, filecoinCid, filecoinTxHash, zeroGRootHash, evidenceHash };
+}
+
 /* ─── Timeline Node ──────────────────────────────────────────── */
 
 function TimelineNode({
@@ -155,11 +201,32 @@ function TimelineNode({
   index: number;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [permitOpen, setPermitOpen] = useState(false);
+  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
   const isFhe = hasConfidentialFhe(rawLog);
   const isChainGpt = hasChainGptAudit(rawLog);
   const isLedger = hasLedgerSigning(rawLog);
   const hasChecks = log.policyChecks.length > 0;
   const txHash = getOnChainTxHash(rawLog);
+  const policyId = getPolicyId(rawLog);
+  const anchoring = getAnchoringData(rawLog);
+
+  useEffect(() => {
+    if (!expanded || timelineEvents.length > 0 || timelineLoading) return;
+    const id = window.setTimeout(() => setTimelineLoading(true), 0);
+    fetch(`/api/audit/logs/${log.id}/timeline`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data?.events) {
+          setTimelineEvents(json.data.events);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setTimelineLoading(false));
+    return () => window.clearTimeout(id);
+  }, [expanded, log.id, timelineEvents.length, timelineLoading]);
+
   const statusColor =
     log.decision === "approved"
       ? "bg-emerald-500"
@@ -346,6 +413,19 @@ function TimelineNode({
                     }
                     return null;
                   })()}
+                  {policyId && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPermitOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors border border-amber-200 dark:border-amber-700"
+                    >
+                      <KeyRound className="h-3 w-3" />
+                      Request Auditor Permit
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -382,7 +462,81 @@ function TimelineNode({
                 </div>
               )}
 
-              {!hasChecks && !isFhe && !isChainGpt && !txHash && (
+              {/* Cross-Chain Anchoring */}
+              {anchoring && (
+                <div>
+                  <div className="text-xs font-semibold text-muted-foreground mb-2">
+                    Cross-Chain Anchoring
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                    {anchoring.fhenixStatus && (
+                      <div className="flex items-center gap-2 text-[11px]">
+                        <ShieldCheck className={`h-3 w-3 flex-shrink-0 ${anchoring.fhenixStatus === "resolved" ? "text-emerald-500" : "text-amber-500"}`} />
+                        <span className="text-muted-foreground">Fhenix CoFHE:</span>
+                        <Badge
+                          variant={anchoring.fhenixStatus === "resolved" ? "secondary" : "outline"}
+                          className="text-[10px] capitalize"
+                        >
+                          {anchoring.fhenixStatus}
+                        </Badge>
+                      </div>
+                    )}
+                    {anchoring.filecoinCid && (
+                      <div className="flex items-center gap-2 text-[11px]">
+                        <Link className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                        <span className="text-muted-foreground">Filecoin:</span>
+                        <code className="font-mono text-foreground/70 truncate">
+                          {anchoring.filecoinCid.slice(0, 20)}...
+                        </code>
+                        {anchoring.filecoinTxHash && (
+                          <a
+                            href={`https://calibration.filfox.info/en/tx/${anchoring.filecoinTxHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-0.5 text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {anchoring.zeroGRootHash && (
+                      <div className="flex items-center gap-2 text-[11px]">
+                        <Shield className="h-3 w-3 text-teal-500 flex-shrink-0" />
+                        <span className="text-muted-foreground">0G Storage:</span>
+                        <code className="font-mono text-foreground/70 truncate">
+                          {anchoring.zeroGRootHash.slice(0, 20)}...
+                        </code>
+                      </div>
+                    )}
+                    {anchoring.evidenceHash && (
+                      <div className="flex items-center gap-2 text-[11px]">
+                        <Fingerprint className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                        <span className="text-muted-foreground">Evidence Hash:</span>
+                        <code className="font-mono text-foreground/70 truncate">
+                          {anchoring.evidenceHash.slice(0, 16)}...{anchoring.evidenceHash.slice(-6)}
+                        </code>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Decision Replay Timeline */}
+              {timelineEvents.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-muted-foreground mb-2">
+                    Decision Replay
+                  </div>
+                  <EventTimeline
+                    events={timelineEvents}
+                    title="Decision steps"
+                    compact
+                  />
+                </div>
+              )}
+
+              {!hasChecks && !isFhe && !isChainGpt && !txHash && !anchoring && timelineEvents.length === 0 && (
                 <div className="text-xs text-muted-foreground py-1">
                   No additional decision details available.
                 </div>
@@ -391,6 +545,15 @@ function TimelineNode({
           )}
         </div>
       </div>
+
+      {policyId && (
+        <PermitDialog
+          open={permitOpen}
+          onOpenChange={setPermitOpen}
+          decisionId={log.id}
+          policyId={policyId}
+        />
+      )}
     </motion.div>
   );
 }

@@ -1,8 +1,30 @@
 import type { MultiModelConfig } from "./types.js";
 import { executeProvider } from "./MultiModelRouter.providers.js";
 
+export interface AiUsageRecord {
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  taskClass: string;
+  timestamp: string;
+}
+
+const ESTIMATED_COST_PER_1K_TOKENS: Record<string, number> = {
+  gemini: 0.00125,
+  openai: 0.00015,
+  anthropic: 0.00025,
+  groq: 0.0002,
+  fireworks: 0.0001,
+  kilocode: 0.0001,
+  venice: 0.0001,
+  chaingpt: 0.0002,
+};
+
 export class MultiModelRouter {
   private config: MultiModelConfig;
+  private lastUsage: AiUsageRecord | null = null;
 
   constructor(config?: Partial<MultiModelConfig>) {
     this.config = {
@@ -169,7 +191,22 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
     const provider = this.config.fallbackOrder[attempt] || initialProvider;
 
     try {
-      return await this.executeWithProvider(prompt, provider, taskType);
+      const result = await this.executeWithProvider(prompt, provider, taskType);
+
+      const inputTokens = Math.ceil(prompt.length / 4);
+      const outputTokens = Math.ceil(result.length / 4);
+      const costPer1k = ESTIMATED_COST_PER_1K_TOKENS[provider] || 0.0001;
+      this.lastUsage = {
+        provider,
+        model: this.config.providers[provider as keyof typeof this.config.providers]?.model || "unknown",
+        inputTokens,
+        outputTokens,
+        costUsd: ((inputTokens + outputTokens) / 1000) * costPer1k,
+        taskClass: taskType,
+        timestamp: new Date().toISOString(),
+      };
+
+      return result;
     } catch (error) {
       console.warn(`Provider ${provider} failed:`, error);
 
@@ -181,6 +218,10 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
         `All AI providers failed (attempted: ${this.config.fallbackOrder.join(", ")})`,
       );
     }
+  }
+
+  getLastUsage(): AiUsageRecord | null {
+    return this.lastUsage;
   }
 
   private async executeWithProvider(

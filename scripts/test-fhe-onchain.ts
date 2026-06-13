@@ -33,7 +33,7 @@ import { arbitrumSepolia } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 
 const CONTRACT_ADDRESS =
-  process.env.FHENIX_POLICY_CONTRACT || "0xaf9F46913eFA99912c3a5069b98d4AEFB0404950";
+  process.env.FHENIX_POLICY_CONTRACT || "0x710005F7454B8756F7E1118B26d1361b001fc818";
 const RPC_URL =
   process.env.ARBITRUM_SEPOLIA_RPC_URL || "https://sepolia-rollup.arbitrum.io/rpc";
 const CHAIN_ID = 421614;
