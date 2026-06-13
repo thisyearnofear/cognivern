@@ -227,6 +227,17 @@ function migrate(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_copilot_events_run ON copilot_events(run_id);
   `);
+
+  // Migration: token_blacklist (survives restarts, replaces file-based store)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS token_blacklist (
+      token_hash TEXT PRIMARY KEY,
+      revoked_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_token_blacklist_expires ON token_blacklist(expires_at);
+  `);
 }
 
 export function closeDb(): void {

@@ -22,7 +22,7 @@ const baseConfigSchema = z.object({
     .enum(["development", "production", "test"])
     .default("development"),
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
-  PORT: z.coerce.number().default(3000),
+  PORT: z.coerce.number().default(3001),
   AGENTS_ENABLED: z
     .string()
     .optional()

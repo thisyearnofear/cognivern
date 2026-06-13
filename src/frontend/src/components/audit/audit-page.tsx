@@ -29,7 +29,7 @@ import {
 
 /* ─── Terminal typewriter hook ───────────────────────────────── */
 
-function useTypewriter(lines: string[], speed = 40) {
+function useTypewriter(lines: string[], speed = 40, _initialDelay?: number) {
   const [displayed, setDisplayed] = useState<string[]>([]);
   const [currentLine, setCurrentLine] = useState(0);
   const [currentChar, setCurrentChar] = useState(0);

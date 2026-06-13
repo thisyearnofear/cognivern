@@ -18,9 +18,19 @@ function getJwtSecret(): Uint8Array {
 
 const JWT_SECRET = getJwtSecret();
 
+const PUBLIC_PATHS = new Set([
+  "/webhooks/chain-gpt-news",
+  "/webhooks/holds",
+  "/webhooks/holds/release",
+  "/health",
+  "/health/",
+]);
+
 export interface AuthPayload {
   sub: string;
-  walletAddress: string;
+  walletAddress?: string;
+  email?: string;
+  authMethod?: string;
   workspaceId: string;
 }
 
@@ -39,6 +49,18 @@ export async function authMiddleware(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
+  // Skip auth for public paths (webhooks, health)
+  if (PUBLIC_PATHS.has(req.path)) {
+    next();
+    return;
+  }
+
+  // Already authenticated via API key middleware
+  if (req.workspaceId) {
+    next();
+    return;
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {

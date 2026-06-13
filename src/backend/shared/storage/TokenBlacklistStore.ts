@@ -1,48 +1,32 @@
-import { BaseStore, TtlRecord } from "./BaseStore.js";
+import { getDb } from "../../db/index.js";
 
-type BlacklistRecord = TtlRecord<{ revokedAt: number }>;
+const TTL_MS = 86_400_000; // 24 hours
 
-export class TokenBlacklistStore extends BaseStore<
-  { revokedAt: number },
-  BlacklistRecord
-> {
-  constructor() {
-    super({
-      envVar: "TOKEN_BLACKLIST_FILE",
-      defaultFilename: "token-blacklist.jsonl",
-      maxRecords: 10000,
-      enableTtl: true,
-      defaultTtlMs: 86_400_000,
-    });
-  }
-
-  protected parseLine(
-    line: string,
-  ): { key: string; record: BlacklistRecord } | null {
-    try {
-      const parsed = JSON.parse(line);
-      if (parsed.key && parsed.record) return parsed;
-      return null;
-    } catch {
-      return null;
-    }
-  }
-
-  protected serializeRecord(key: string, record: BlacklistRecord): string {
-    return JSON.stringify({ key, record });
-  }
-
+export class TokenBlacklistStore {
   async isBlacklisted(tokenHash: string): Promise<boolean> {
-    return this.has(tokenHash);
+    const db = getDb();
+    const row = db
+      .prepare(
+        "SELECT 1 FROM token_blacklist WHERE token_hash = ? AND expires_at > ?",
+      )
+      .get(tokenHash, Date.now()) as Record<string, unknown> | undefined;
+    return !!row;
   }
 
-  async blacklist(tokenHash: string, ttlMs?: number): Promise<void> {
-    const record: BlacklistRecord = {
-      data: { revokedAt: Date.now() },
-      createdAt: Date.now(),
-      ttlMs: ttlMs ?? this.defaultTtlMs,
-    };
-    await this.set(tokenHash, record);
+  async blacklist(tokenHash: string, ttlMs: number = TTL_MS): Promise<void> {
+    const db = getDb();
+    const now = Date.now();
+    db.prepare(
+      "INSERT OR REPLACE INTO token_blacklist (token_hash, revoked_at, created_at, expires_at) VALUES (?, ?, ?, ?)",
+    ).run(tokenHash, now, now, now + ttlMs);
+  }
+
+  async cleanupExpired(): Promise<number> {
+    const db = getDb();
+    const result = db
+      .prepare("DELETE FROM token_blacklist WHERE expires_at <= ?")
+      .run(Date.now());
+    return result.changes;
   }
 }
 

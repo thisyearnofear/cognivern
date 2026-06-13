@@ -6,7 +6,7 @@ import logger from "./backend/utils/logger.js";
 process.setMaxListeners(20);
 
 // Initialize our modular API system
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 let apiModule: ApiModule;
 let shutdownHandlersInstalled = false;
 
