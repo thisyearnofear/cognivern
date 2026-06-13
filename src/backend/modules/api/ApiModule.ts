@@ -48,6 +48,8 @@ import {
   ApiKeyController,
   resolveWorkspaceFromApiKey,
 } from "./controllers/ApiKeyController.js";
+import { authMiddleware } from "../../middleware/authMiddleware.js";
+import { workspaceMiddleware } from "../../middleware/workspaceMiddleware.js";
 import { demoInterceptor } from "../../middleware/demoInterceptor.js";
 import type { Server } from "node:http";
 
@@ -345,7 +347,10 @@ export class ApiModule extends BaseService {
       "/webhooks/chain-gpt-news",
       "/webhooks/holds",
     ];
-    if (publicEndpoints.some((endpoint) => req.path === endpoint)) {
+    if (
+      publicEndpoints.some((endpoint) => req.path === endpoint) ||
+      req.path.startsWith("/webhooks/")
+    ) {
       return next();
     }
 
@@ -538,6 +543,13 @@ export class ApiModule extends BaseService {
 
     // API routes (require API key)
     const apiRouter = express.Router();
+
+    // JWT authentication — validates Bearer tokens, sets req.userId/workspaceId
+    // Skips public paths (webhooks, health) and requests already authed via API key
+    apiRouter.use(authMiddleware);
+
+    // Workspace context — resolves workspace tier and validates membership
+    apiRouter.use(workspaceMiddleware);
 
     // Demo workspace interceptor — serves demo data for demo-tier workspaces
     apiRouter.use(demoInterceptor);
