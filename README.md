@@ -131,7 +131,7 @@ Cognivern uses multi-provider AI routing for governance analysis:
 
 ## Status
 
-The spend control plane is live: policy evaluation, signed approvals, held actions, denials, and persisted run evidence. Contracts deployed on Arbitrum Sepolia (`GovernanceContract`, `GovernedVault`, and `ConfidentialSpendPolicy` with the new coFHE FHE plugin), X Layer testnet, Mantle Sepolia, and Filecoin Calibration. Live FHE: coFHE services (`testnet-cofhe.fhenix.zone`) and the live TaskManager proxy on Arbitrum Sepolia are responsive; encryption and policy registration are verified end-to-end on the public testnet via `scripts/test-fhe-onchain.ts` — see `docs/FHENIX_INTEGRATION.md` for the full status.
+The spend control plane is live: policy evaluation, signed approvals, held actions, denials, and persisted run evidence. Contracts deployed on Arbitrum Sepolia (`GovernanceContract`, `GovernedVault`, and `ConfidentialSpendPolicy` with the new coFHE FHE plugin), X Layer testnet, Mantle Sepolia, and Filecoin Calibration. Live FHE: coFHE services (`testnet-cofhe.fhenix.zone`) and the live TaskManager proxy on Arbitrum Sepolia are responsive; the full encrypt → registerPolicy → evaluateSpend → SpendEvaluated event flow is verified end-to-end on the public testnet via `scripts/test-fhe-onchain.ts` — see `docs/FHENIX_INTEGRATION.md` for the full status.
 
 ### Recent Updates (2026-06)
 

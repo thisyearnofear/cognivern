@@ -45,22 +45,26 @@ The **decision** (approve / hold / deny) is revealed publicly. The **inputs and 
 
 ## 3. New Smart Contract — `ConfidentialSpendPolicy.sol`
 
-**Live on Arbitrum Sepolia (chain 421614):** `0xaf9F46913eFA99912c3a5069b98d4AEFB0404950` — deployed 2026-06-13 with `@cofhe/hardhat-plugin@0.5.2` against the live coFHE infrastructure.
-
-The contract uses the new coFHE library (`@fhenixprotocol/cofhe-contracts@0.1.3`), which targets the live coFHE TaskManager proxy deployed at `0xeA30c4B…7848D9` on Arbitrum Sepolia (an EIP-1967 transparent proxy whose implementation is at `0x803adb…1e1da`).
+**Live on Arbitrum Sepolia (chain 421614):** `0x710005F7454B8756F7E1118B26d1361b001fc818` — deployed 2026-06-13 with `@cofhe/hardhat-plugin@0.5.2` against the live coFHE infrastructure. The contract is real and uses the live coFHE TaskManager proxy deployed at `0xeA30c4B…7848D9` on Arbitrum Sepolia (an EIP-1967 transparent proxy whose implementation is at `0x803adb…1e1da`).
 
 ### Verified end-to-end on Arbitrum Sepolia
 
-`scripts/test-fhe-onchain.ts` exercises the live FHE path and is included in CI-friendly form. The current verified state:
+`scripts/test-fhe-onchain.ts` exercises the live FHE path. The current verified state:
 
 | Step | Status |
 |---|---|
 | coFHE service discovery (`testnet-cofhe.fhenix.zone`, `testnet-cofhe-vrf.fhenix.zone`, `testnet-cofhe-tn.fhenix.zone`) | **Live** — all three services respond to real coFHE protocol calls |
 | TaskManager proxy at `0xeA30c4B…7848D9` on Arbitrum Sepolia | **Live** — EIP-1967 proxy with real implementation |
 | `Encryptable.uint128(x).setChainId(421614).execute()` produces a real ctHash + signature from the live coFHE verifier | **Verified** |
-| `registerPolicy(policyId, dailyCt, perTxCt, thresholdCt)` on the live contract | **Verified** — block 276678753, encrypted limits persisted on-chain |
-| `evaluateSpend(agentId, policyId, amountCt, vendorHash)` | **Partial** — the FHE compute path runs on the live TaskManager but currently reverts with `ACLNotAllowed` (coFHE strict-mode ACL on the testnet). This is downstream of `FHE.allow*` and the new `FHE.allowSender`; the FHE infrastructure itself is responding. The mock infrastructure (`npx hardhat test` in `contracts/fhenix/`) is fully working. See *Known limitations* below. |
-| SpendEvaluated event | Emitted on the mock infrastructure; pending fix on the live testnet (same root cause as the ACL revert). |
+| `registerPolicy(policyId, dailyCt, perTxCt, thresholdCt)` on the live contract | **Verified** — block 276689414, encrypted limits persisted on-chain |
+| `evaluateSpend(agentId, policyId, amountCt, vendorHash)` | **Verified end-to-end** — block 276689451, `SpendEvaluated` event emitted with the async FHE decision (outcome=Pending until `resolveDecision` is called by the operator after off-chain threshold decryption) |
+
+### What unblocked the live `evaluateSpend`
+
+The strict coFHE testnet ACL requires two things that the original contract was missing:
+
+1. **`registerPolicy` must call `FHE.allowThis` / `FHE.allowSender`** on the stored policy handles (dailyLimit, perTxLimit, approvalThreshold). Without these, future transactions reading those handles revert with `ACLNotAllowed`.
+2. **Intermediate FHE-result handles** in `evaluateSpend` (the `approved` / `held` ebool results of `FHE.and(...)`) must use `FHE.allowTransient(value, address(this) | msg.sender)` — the documented pattern for "current transaction only" permissions. `FHE.allowThis` / `FHE.allowSender` reverts with `ACLNotAllowed` on these handles because the contract is already the `createTask`-side owner and the strict ACL doesn't permit re-grants on the same handle.
 
 ### Reproduce locally
 
@@ -78,7 +82,7 @@ The `arb-sepolia` network is auto-injected by `@cofhe/hardhat-plugin`. The plugi
 
 ### Known limitations
 
-- **Live-testnet ACL strictness.** On the live Arbitrum Sepolia coFHE deployment, the TaskManager enforces a strict ACL on `FHE.allow*` calls. The current `ConfidentialSpendPolicy.evaluateSpend` path uses `FHE.allowThis` and `FHE.allowSender` on intermediate FHE-result handles. The mock infrastructure is permissive; the live testnet reverts with `ACLNotAllowed(uint256,address)` (selector `0x4d13139e`). The contract needs `FHE.allowTransient(...)` on the result handles (or a permit-gated pattern) to work end-to-end on the live testnet. This is a contract-side fix, not an SDK / plugin issue.
+- **Pending outcome.** The `evaluateSpend` path emits `Outcome.Pending` (raw=3) immediately, because the FHE evaluation is asynchronous — the actual FHE math runs off-chain on the FHEOS server, then the operator (or a permissioned relayer) calls `resolveDecision(decisionId, outcome)` after the off-chain threshold decryption to commit the real outcome on-chain and dispatch it via Hyperlane to `GovernanceContract` on the destination chain. The full two-phase flow is wired in code; the live testnet just needs the FHEOS server to deliver the result back (the timeout depends on testnet load).
 - **Plaintext counter.** `c.spentToday` is re-initialised to `FHE.asEuint128(0)` each new day. This is fine for tests but wasteful on a real testnet; in production this should be a single encrypted counter that gets `FHE.add`-ed rather than re-created.
 
 ### Why this matters for the buildathon

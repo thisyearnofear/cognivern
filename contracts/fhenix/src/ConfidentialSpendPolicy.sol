@@ -156,13 +156,23 @@ contract ConfidentialSpendPolicy {
     ) external {
         require(!policies[policyId].initialized, "policy exists");
 
-        policies[policyId] = EncryptedPolicy({
-            dailyLimit: FHE.asEuint128(dailyLimitCt),
-            perTxLimit: FHE.asEuint128(perTxLimitCt),
-            approvalThreshold: FHE.asEuint128(approvalThresholdCt),
-            operator: msg.sender,
-            initialized: true
-        });
+        EncryptedPolicy storage p = policies[policyId];
+        p.dailyLimit = FHE.asEuint128(dailyLimitCt);
+        p.perTxLimit = FHE.asEuint128(perTxLimitCt);
+        p.approvalThreshold = FHE.asEuint128(approvalThresholdCt);
+        p.operator = msg.sender;
+        p.initialized = true;
+
+        // Grant the contract (and the operator) ACL on the stored handles so
+        // they can be read in future evaluateSpend transactions. Without these
+        // allowThis/allowSender calls, the live coFHE testnet reverts with
+        // ACLNotAllowed when the handles are later passed into FHE.lte/FHE.gt.
+        FHE.allowThis(p.dailyLimit);
+        FHE.allowThis(p.perTxLimit);
+        FHE.allowThis(p.approvalThreshold);
+        FHE.allowSender(p.dailyLimit);
+        FHE.allowSender(p.perTxLimit);
+        FHE.allowSender(p.approvalThreshold);
 
         emit PolicyRegistered(policyId, msg.sender);
     }
@@ -183,12 +193,18 @@ contract ConfidentialSpendPolicy {
         require(p.initialized, "policy missing");
 
         euint128 amount = FHE.asEuint128(amountCt);
+        // The contract just created `amount` via verifyInput — it is the
+        // ACL owner of this handle for this transaction.
 
         // Reset counter if new day or first use (simplistic window management)
         uint256 currentDay = block.timestamp / 86400;
         if (!c.initialized || c.windowStart < currentDay) {
             c.spentToday = FHE.asEuint128(0);
+            // allowThis on the freshly-initialised counter so the contract
+            // can use it in subsequent FHE operations in this transaction and
+            // (via transient allowance) the FHE.add below.
             FHE.allowThis(c.spentToday);
+            FHE.allowTransient(c.spentToday, address(this));
             c.windowStart = currentDay;
             c.initialized = true;
         }
@@ -206,19 +222,20 @@ contract ConfidentialSpendPolicy {
         // held: underDaily AND underPerTx AND needsApproval
         ebool held     = FHE.and(underDaily, FHE.and(underPerTx, needsApproval));
 
-        // Grant CoFHE access-control permits on outcome booleans
-        // so the operator can decrypt them off-chain for resolveDecision.
-        // Use allowSender (the new coFHE shorthand for `allow(value, msg.sender)`)
-        // which works correctly with the strict ACL on the live testnet.
-        FHE.allowThis(approved);
-        FHE.allowSender(approved);
-        FHE.allowThis(held);
-        FHE.allowSender(held);
+        // For the result booleans, use allowTransient (single-transaction ACL)
+        // instead of allowThis/allowSender. The contract is already the
+        // createTask-side owner of these handles; allowTransient is the
+        // documented pattern for intermediate results in the same transaction.
+        FHE.allowTransient(approved, address(this));
+        FHE.allowTransient(approved, msg.sender);
+        FHE.allowTransient(held, address(this));
+        FHE.allowTransient(held, msg.sender);
 
         // Update counter only if not denied (approved or held)
         ebool notDenied = FHE.or(approved, held);
         c.spentToday = FHE.select(notDenied, newSpent, c.spentToday);
         FHE.allowThis(c.spentToday);
+        FHE.allowTransient(c.spentToday, address(this));
 
         decisionId = keccak256(
             abi.encode(agentId, policyId, vendorHash, block.number, msg.sender)
