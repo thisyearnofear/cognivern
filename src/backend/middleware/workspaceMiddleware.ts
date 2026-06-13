@@ -44,5 +44,13 @@ export async function workspaceMiddleware(
   const tier = getWorkspaceTier(workspaceId);
   (req as Request & { workspaceTier: string }).workspaceTier = tier;
 
+  // Propagate workspaceId into the request-scoped AsyncLocalStorage store
+  // so Logger.*Ctx and other services can read it.
+  const { getRequestContext } = await import("./requestContext.js");
+  const ctx = getRequestContext();
+  if (ctx) {
+    ctx.workspaceId = workspaceId;
+  }
+
   next();
 }

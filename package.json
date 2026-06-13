@@ -63,7 +63,7 @@
     "clean:build": "rm -rf build/artifacts/* build/cache/*",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:integration": "tsx --test tests/integration/*.test.ts",
+    "test:integration": "vitest run tests/integration/",
     "demo:reset": "tsx scripts/demo/demo-reset.ts",
     "demo:seed": "tsx scripts/demo/demo-seed.ts",
     "demo:scenario": "tsx scripts/demo/demo-scenario.ts",

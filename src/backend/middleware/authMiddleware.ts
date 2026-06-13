@@ -98,6 +98,15 @@ export async function authMiddleware(
     req.walletAddress = authPayload.walletAddress;
     req.workspaceId = authPayload.workspaceId;
 
+    // Propagate auth context into the request-scoped AsyncLocalStorage store
+    // so Logger.*Ctx and other services can read workspaceId/userId.
+    const { getRequestContext } = await import("./requestContext.js");
+    const ctx = getRequestContext();
+    if (ctx) {
+      ctx.workspaceId = authPayload.workspaceId;
+      ctx.userId = authPayload.sub;
+    }
+
     next();
   } catch {
     res.status(401).json({

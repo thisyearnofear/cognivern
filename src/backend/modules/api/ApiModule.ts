@@ -51,6 +51,8 @@ import {
 import { authMiddleware } from "../../middleware/authMiddleware.js";
 import { workspaceMiddleware } from "../../middleware/workspaceMiddleware.js";
 import { demoInterceptor } from "../../middleware/demoInterceptor.js";
+import { requestContextMiddleware } from "../../middleware/requestContext.js";
+import { sharedSloMetrics } from "../../services/SloMetricsService.js";
 import type { Server } from "node:http";
 
 /** Typed controller registry */
@@ -167,6 +169,10 @@ export class ApiModule extends BaseService {
 
   private async setupMiddleware(): Promise<void> {
     this.logger.info("Setting up middleware...");
+
+    // Request-scoped context (requestId + AsyncLocalStorage store) — MUST run
+    // first so every downstream logger / middleware can read the requestId.
+    this.app.use(requestContextMiddleware);
 
     // Trust proxy for rate limiting behind reverse proxy (secure configuration)
     this.app.set("trust proxy", 1); // Trust only first proxy
@@ -292,13 +298,23 @@ export class ApiModule extends BaseService {
     this.app.use("/api/governance", governanceLimiter);
     this.app.use("/api/spend", governanceLimiter);
 
-    // Request logging
+    // Request logging + SLO recorder
     this.app.use((req, res, next) => {
       const start = Date.now();
 
       res.on("finish", () => {
         const duration = Date.now() - start;
         this.logger.logRequest(req, res, duration);
+
+        // Record SLO sample. Route key uses the matched route template
+        // (e.g. "/api/governance/evaluate") to avoid cardinality explosion
+        // from parameterized paths like "/api/copilot/runs/:runId".
+        try {
+          const routeKey = `${req.method} ${req.route?.path ?? (res.statusCode === 404 ? "unmatched" : req.path)}`;
+          sharedSloMetrics.record(routeKey, res.statusCode, duration);
+        } catch {
+          // SLO recorder is best-effort — never break a request.
+        }
       });
 
       next();

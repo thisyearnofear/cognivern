@@ -7,6 +7,7 @@
 
 import winston from "winston";
 import { config } from "../config/index.js";
+import { getRequestId } from "../../middleware/requestContext.js";
 
 export type LogLevel = "error" | "warn" | "info" | "debug";
 
@@ -220,6 +221,32 @@ export class Logger {
   logMetrics(metrics: Record<string, number>): void {
     this.info("Performance Metrics", metrics);
   }
+
+  /**
+   * Merge the active requestId (from AsyncLocalStorage) into the meta payload.
+   * Falls back gracefully when no request context is active.
+   */
+  private withContext(extra?: any): any {
+    const requestId = getRequestId();
+    if (!requestId && !extra) return undefined;
+    return { ...(extra ?? {}), ...(requestId ? { requestId } : {}) };
+  }
+
+  infoCtx(message: string, extra?: any): void {
+    this.winston.info(message, this.withContext(extra));
+  }
+
+  warnCtx(message: string, extra?: any): void {
+    this.winston.warn(message, this.withContext(extra));
+  }
+
+  errorCtx(message: string, extra?: any): void {
+    this.winston.error(message, this.withContext(extra));
+  }
+
+  debugCtx(message: string, extra?: any): void {
+    this.winston.debug(message, this.withContext(extra));
+  }
 }
 
 // Create default logger instance
@@ -238,4 +265,12 @@ export const logger = {
     defaultLogger.info(message, context),
   debug: (message: string, context?: any) =>
     defaultLogger.debug(message, context),
+  infoCtx: (message: string, context?: any) =>
+    defaultLogger.infoCtx(message, context),
+  warnCtx: (message: string, context?: any) =>
+    defaultLogger.warnCtx(message, context),
+  errorCtx: (message: string, context?: any) =>
+    defaultLogger.errorCtx(message, context),
+  debugCtx: (message: string, context?: any) =>
+    defaultLogger.debugCtx(message, context),
 };
