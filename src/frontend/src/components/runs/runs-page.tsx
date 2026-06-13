@@ -83,7 +83,7 @@ export function RunsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Runs</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Agent workflow execution traces
+            Governance evaluation and execution traces
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -176,7 +176,7 @@ export function RunsPage() {
               <p className="font-medium text-foreground text-base">No runs yet</p>
               <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
                 Runs track every governance evaluation, policy check, and
-                on-chain transaction your agents perform. They appear here
+                on-chain transaction your systems perform. They appear here
                 automatically once activity starts.
               </p>
             </div>
@@ -190,7 +190,7 @@ export function RunsPage() {
                 variant="outline"
                 onClick={() => router.push("/agents/workshop")}
               >
-                Register an Agent
+                Create API Identity
               </Button>
             </div>
             <div className="pt-2">

@@ -133,7 +133,7 @@ function ApiKeyGenerator() {
             <div className="flex-1 relative">
               <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Name your key (e.g. Alpha Trader)"
+                placeholder="Name your key (e.g. Trading Bot)"
                 value={newKeyName}
                 onChange={(e) => setNewKeyName(e.target.value)}
                 className="pl-8"
@@ -257,10 +257,10 @@ export function IntegratePage() {
     <div className="max-w-4xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-          Integrate Your Agent
+          Integrate the Governance API
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Connect your AI agent to Cognivern&apos;s governance API in under 5
+          Connect your external system (bot, script, workflow) to Cognivern&apos;s governance API in under 5
           minutes
         </p>
       </div>
@@ -272,7 +272,7 @@ export function IntegratePage() {
             <h2 className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>How it works</h2>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-            <Badge variant="secondary">Agent wants to spend</Badge>
+            <Badge variant="secondary">System sends request</Badge>
             <ArrowRight className="h-3 w-3" />
             <Badge variant="secondary">Calls /governance/evaluate</Badge>
             <ArrowRight className="h-3 w-3" />
@@ -283,12 +283,12 @@ export function IntegratePage() {
             <Badge variant="secondary">Audit logged</Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
-            Your agent calls Cognivern before every transaction. If the action
-            violates a policy, it gets denied. The agent should respect the
+            Your system calls Cognivern before every transaction. If the action
+            violates a policy, it gets denied. Your system should respect the
             decision — or the audit trail will flag it.
           </p>
           <p className="text-xs text-muted-foreground mt-2">
-            <strong>Works with any agent</strong> that performs on-chain
+            <strong>Works with any system</strong> that performs on-chain
             actions: trading bots, yield optimizers, rebalancers, payment
             agents, DAO treasury ops, bridge agents — anything that spends,
             swaps, stakes, or transfers.
@@ -310,7 +310,7 @@ export function IntegratePage() {
 
           <StepCard step={2} title="Check governance before every spend">
             <p className="text-sm text-muted-foreground mb-3">
-              Before your agent executes a transaction, call the evaluate
+              Before your system executes a transaction, call the evaluate
               endpoint:
             </p>
             <CodeBlock
@@ -358,12 +358,12 @@ export function IntegratePage() {
               <code className="text-xs bg-background px-1 rounded">
                 reasoning
               </code>{" "}
-              field explaining which policy blocked it. Your agent should abort
+              field explaining which policy blocked it. Your system should abort
               the transaction.
             </div>
           </StepCard>
 
-          <StepCard step={4} title="That's it — your agent is governed">
+          <StepCard step={4} title="That's it — your system is governed">
             <p className="text-sm text-muted-foreground">
               Every evaluation is automatically logged. View results in the{" "}
               <a
@@ -446,9 +446,9 @@ export function IntegratePage() {
           <EndpointCard
             method="POST"
             path="/api/governance/evaluate"
-            description="Evaluate an agent action against workspace policies"
+            description="Evaluate a system action against workspace policies"
             requestBody={`{
-  "agentId": "string (required) — ID of the registered agent",
+  "agentId": "string (required) — ID of the registered API identity",
   "action": {
     "type": "string (required) — e.g. swap, transfer, stake",
     "description": "string — human-readable description",
@@ -474,7 +474,7 @@ export function IntegratePage() {
           <EndpointCard
             method="POST"
             path="/api/agents/register"
-            description="Register a new agent in your workspace"
+            description="Register a new API identity in your workspace"
             requestBody={`{
   "name": "string (required)",
   "role": "string (required) — e.g. DeFi Trading",
@@ -574,7 +574,7 @@ async function checkGovernance(action: {
   return true;
 }
 
-// Usage in your agent loop:
+// Usage in your system's main loop:
 async function executeSwap(amount: number) {
   const allowed = await checkGovernance({
     type: "swap",

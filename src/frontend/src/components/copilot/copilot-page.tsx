@@ -411,7 +411,7 @@ export function CopilotPage() {
             </h1>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vertex AI mission control for governed agent spend.
+            AI mission control for governed spend.
           </p>
         </div>
         <div className="flex items-center gap-2">

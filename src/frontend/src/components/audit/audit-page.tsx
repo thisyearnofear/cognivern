@@ -660,7 +660,7 @@ function EmptyAuditState({ onRunCheck }: { onRunCheck: () => void }) {
     "",
     "→ Waiting for first agent action...",
     "→ No audit logs yet.",
-    "→ Register an agent or run a check to get started.",
+    "→ Create an API identity or run a check to get started.",
   ];
 
   const { displayed: terminalOutput, done: terminalDone } = useTypewriter(terminalLines, 30, 400);
@@ -704,7 +704,7 @@ function EmptyAuditState({ onRunCheck }: { onRunCheck: () => void }) {
           <FileSearch className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
           <p className="font-medium text-foreground">No audit logs yet</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Activity will appear here as governed agents execute spends.
+            Activity will appear here as governed systems execute spends.
           </p>
         </div>
         <div className="flex items-center justify-center gap-3 flex-wrap">
@@ -712,7 +712,7 @@ function EmptyAuditState({ onRunCheck }: { onRunCheck: () => void }) {
             <PlayCircle className="h-3.5 w-3.5 mr-1.5" /> Run a Check
           </Button>
           <Button variant="secondary" size="sm" onClick={() => window.open("/agents/workshop", "_self")}>
-            <Terminal className="h-3.5 w-3.5 mr-1.5" /> Register an Agent
+            <Terminal className="h-3.5 w-3.5 mr-1.5" /> Create API Identity
           </Button>
         </div>
       </div>
