@@ -1,5 +1,3 @@
-import { Server } from "socket.io";
-
 export interface AuditLog {
   id: string;
   timestamp: string;
@@ -37,12 +35,4 @@ export interface AuditLogExportParams {
   startDate: string;
   endDate: string;
   format: "json" | "csv";
-}
-
-export interface WebSocketEvents {
-  "subscribe:audit-logs": () => void;
-  "subscribe:policies": () => void;
-  "policy:created": (policy: any) => void;
-  "policy:updated": (policy: any) => void;
-  "audit-log:created": (log: AuditLog) => void;
 }

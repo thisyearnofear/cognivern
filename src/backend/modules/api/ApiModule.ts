@@ -44,6 +44,7 @@ import { SpeechController } from "./controllers/SpeechController.js";
 import { WebhookController } from "./controllers/WebhookController.js";
 import { AuthController } from "./controllers/AuthController.js";
 import { WorkspaceController } from "./controllers/WorkspaceController.js";
+import { EventsController } from "./controllers/EventsController.js";
 import {
   ApiKeyController,
   resolveWorkspaceFromApiKey,
@@ -90,6 +91,7 @@ interface ControllerRegistry {
   auth: AuthController;
   workspace: WorkspaceController;
   apiKey: ApiKeyController;
+  events: EventsController;
 }
 
 /** Typed error with optional HTTP status code */
@@ -204,6 +206,7 @@ export class ApiModule extends BaseService {
           "Authorization",
           "Idempotency-Key",
           "X-Idempotency-Key",
+          "X-Workspace-Mode",
         ],
       }),
     );
@@ -362,6 +365,7 @@ export class ApiModule extends BaseService {
       "/intent",
       "/webhooks/chain-gpt-news",
       "/webhooks/holds",
+      "/events/stream",
     ];
     if (
       publicEndpoints.some((endpoint) => req.path === endpoint) ||
@@ -505,6 +509,7 @@ export class ApiModule extends BaseService {
     this.controllers.auth = new AuthController();
     this.controllers.workspace = new WorkspaceController();
     this.controllers.apiKey = new ApiKeyController();
+    this.controllers.events = new EventsController();
 
     // Initialize all controllers that have an initialize method
     for (const [name, controller] of Object.entries(this.controllers)) {
@@ -534,6 +539,7 @@ export class ApiModule extends BaseService {
       createWorkspaceRoutes,
       createApiKeyRoutes,
       createWebhookRoutes,
+      createEventsRoutes,
     } = await import("./routes/index.js");
 
     // Health check (no API key required)
@@ -603,6 +609,7 @@ export class ApiModule extends BaseService {
       ),
     );
     apiRouter.use(createWebhookRoutes(this.ctrl("webhook")));
+    apiRouter.use(createEventsRoutes(this.ctrl("events")));
 
     // Sapience routes (conditional)
     if (this.controllers.sapience) {
