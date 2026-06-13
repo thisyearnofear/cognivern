@@ -18,11 +18,6 @@ echo "== building backend"
 pnpm -s install
 pnpm -s build:backend
 
-if [ ! -f deploy/package-lock.backend.json ]; then
-  echo "Missing deploy/package-lock.backend.json. Generate it before building the artifact." >&2
-  exit 1
-fi
-
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -30,7 +25,11 @@ mkdir -p "$TMP/app"
 
 cp -R dist "$TMP/app/dist"
 cp deploy/package.backend.json "$TMP/app/package.json"
-cp deploy/package-lock.backend.json "$TMP/app/package-lock.json"
+if [ -f deploy/package-lock.backend.json ]; then
+  cp deploy/package-lock.backend.json "$TMP/app/package-lock.json"
+else
+  echo "  (no lock file — server will resolve on first install)"
+fi
 cp deploy/.npmrc.backend "$TMP/app/.npmrc"
 
 if [ -d config ]; then

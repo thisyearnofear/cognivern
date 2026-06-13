@@ -1,0 +1,5 @@
+node-linker=hoisted
+install-links=false
+engine-strict=false
+audit=false
+fund=false

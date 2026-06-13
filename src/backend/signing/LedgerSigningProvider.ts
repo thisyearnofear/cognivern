@@ -1,12 +1,9 @@
-import {
-  DeviceManagementKit,
-  DeviceManagementKitBuilder,
+import type {
   DeviceSessionId,
   DiscoveredDevice,
   DeviceActionStatus,
   TransportFactory,
 } from "@ledgerhq/device-management-kit";
-import { SignerEthBuilder } from "@ledgerhq/device-signer-kit-ethereum";
 import { Observable } from "rxjs";
 
 import { SigningProvider, SigningParams, SigningResult } from "./SigningProvider.js";
@@ -14,9 +11,15 @@ import { SigningProvider, SigningParams, SigningResult } from "./SigningProvider
 const ETH_DERIVATION_PATH = "m/44'/60'/0'/0/0";
 const DISCOVERY_TIMEOUT_MS = 15_000;
 
+const STATUS_COMPLETED = "completed";
+const STATUS_ERROR = "error";
+const STATUS_STOPPED = "stopped";
+
 interface DeviceActionStateBase {
   status: DeviceActionStatus;
 }
+
+type DeviceManagementKit = import("@ledgerhq/device-management-kit").DeviceManagementKit;
 
 export class LedgerSigningProvider implements SigningProvider {
   readonly name = "ledger";
@@ -65,6 +68,10 @@ export class LedgerSigningProvider implements SigningProvider {
     }
 
     const transport = await this.loadTransport();
+
+    const { DeviceManagementKitBuilder } = await import(
+      "@ledgerhq/device-management-kit"
+    );
 
     const dmk = new DeviceManagementKitBuilder()
       .addTransport(transport)
@@ -121,16 +128,14 @@ export class LedgerSigningProvider implements SigningProvider {
       let resolved = false;
       const sub = observable.subscribe({
         next: (state: DeviceActionStateBase) => {
-          if (state.status === DeviceActionStatus.Completed) {
+          const s = state.status as string;
+          if (s === STATUS_COMPLETED) {
             if (!resolved) {
               resolved = true;
               sub.unsubscribe();
               resolve((state as unknown as T).output);
             }
-          } else if (
-            state.status === DeviceActionStatus.Error ||
-            state.status === DeviceActionStatus.Stopped
-          ) {
+          } else if (s === STATUS_ERROR || s === STATUS_STOPPED) {
             if (!resolved) {
               resolved = true;
               sub.unsubscribe();
@@ -157,6 +162,9 @@ export class LedgerSigningProvider implements SigningProvider {
   async sign(params: SigningParams): Promise<SigningResult> {
     const { dmk, sessionId } = await this.ensureConnected();
 
+    const { SignerEthBuilder } = await import(
+      "@ledgerhq/device-signer-kit-ethereum"
+    );
     const signer = new SignerEthBuilder({ dmk, sessionId }).build();
     const derivationPath = params.derivationPath || ETH_DERIVATION_PATH;
 

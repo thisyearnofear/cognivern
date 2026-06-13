@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'cognivern-backend',
-      script: 'dist/index.js',
+      script: 'dist/src/index.js',
       cwd: '/opt/cognivern/app',
       instances: 1,
       exec_mode: 'fork',
@@ -11,7 +11,7 @@ module.exports = {
       max_memory_restart: '512M',
       kill_timeout: 5000,
       listen_timeout: 10000,
-      node_args: '-r dotenv/config',
+      node_args: '-r dotenv/config --loader /opt/cognivern/app/config/esm-dir-loader.mjs',
       env: {
         NODE_ENV: 'production',
         PORT: 10000,
