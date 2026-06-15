@@ -427,6 +427,7 @@ Metrics exported:
 
 | Feature               | Description                                                            | Priority |
 | --------------------- | ---------------------------------------------------------------------- | -------- |
+| **0G Compute as primary inference** | Per the [0G Bridge Buildathon Plan](./ARCHITECTURE.md#0g-bridge-buildathon-plan), `ChainGPTAuditService` and `ControlEvaluationService` route their LLM calls to the **0G Compute Network** for verifiable inference. Closed-source providers (Fireworks, Workers AI, OpenAI, Gemini, Anthropic) become fallback for non-governance-critical queries. Activated by `ZERO_G_COMPUTE_ENABLED=true` (strict mode = `ZERO_G_COMPUTE_STRICT=true`, enforced Wave 3+ on mainnet). | **High** |
 | Multi-chain audit     | Extend auditor to support more chains (Arbitrum, Base, etc.)           | High     |
 | Audit caching         | Cross-node shared cache for audit results                              | Medium   |
 | News sentiment        | Use ChainGPT to analyze news sentiment for policy adjustment           | Low      |
