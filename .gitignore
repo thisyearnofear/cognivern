@@ -115,3 +115,8 @@ scripts/monitoring/monitor-api.sh
 # ── External repos ─────────────────────────────────────────────────
 remix-smart-bin-monitoring-das/
 .qoder/
+
+# ── Root-level tool artifacts (pnpm/tsc workspace side-effects) ────
+/tsc
+/cognivern@*
+/cognivern-frontend@*
