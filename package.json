@@ -27,7 +27,7 @@
     "start:api": "node dist/backend/modules/api/index.js",
     "start:agents": "node dist/backend/modules/agents/index.js",
     "start:server": "./scripts/start-server.sh",
-    "deploy": "./scripts/deploy.sh",
+    "deploy": "./scripts/deploy/deploy-latest-hetzner.sh",
     "dev:local": "./scripts/local-dev.sh",
     "dev": "tsx watch src/index.ts",
     "dev:api": "tsx watch src/backend/modules/api/index.ts",
