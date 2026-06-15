@@ -80,7 +80,7 @@ export function AgentStatusChart({ agents, loading }: AgentStatusChartProps) {
         <div className="text-sm font-medium">Agent Status</div>
       </div>
       <div className="p-4 pt-2 flex-1 min-h-[200px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <BarChart
             data={data}
             margin={{ top: 5, right: 5, bottom: 0, left: -20 }}

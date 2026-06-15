@@ -122,7 +122,7 @@ export function ActivityChart({ logs, loading }: ActivityChartProps) {
         </div>
       </div>
       <div className="p-4 pt-2 flex-1 min-h-[200px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <AreaChart
             data={data}
             margin={{ top: 5, right: 5, bottom: 0, left: -15 }}

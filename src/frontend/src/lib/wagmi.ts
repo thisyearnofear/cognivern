@@ -45,10 +45,10 @@ export const config = getDefaultConfig({
   ],
   transports: {
     [mainnet.id]: fallback([
-      http("https://cloudflare-eth.com"),
       http("https://rpc.ankr.com/eth"),
-      http("https://ethereum-rpc.publicnode.com"),
-      http(process.env.NEXT_PUBLIC_RPC_MAINNET || "https://eth.llamarpc.com"),
+      http("https://eth.drpc.org"),
+      http("https://1rpc.io/eth"),
+      http(process.env.NEXT_PUBLIC_RPC_MAINNET || "https://rpc.mevblocker.io"),
     ]),
     [sepolia.id]: fallback([
       http(process.env.NEXT_PUBLIC_RPC_SEPOLIA || "https://ethereum-sepolia.publicnode.com"),
