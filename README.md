@@ -25,6 +25,20 @@ The submission is the **Cognivern Copilot** agent under [`agent/`](./agent). It 
 
 See [`docs/HACKATHON.md`](./docs/HACKATHON.md) for the full submission checklist and [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the system design.
 
+## Submission: 0G Bridge by AKINDO (10-week, 5-Wave Buildathon)
+
+**Wave 1 (Jun 13-26, 2026) — Project Scoping & 0G Integration Plan.** This submission is the 0G-first repositioning of Cognivern: from a multi-chain control plane where 0G is *one of seven* networks, to a **governance & trust layer for the 0G agent economy** where 0G is the primary rail.
+
+| 0G Component | Role in the submission |
+| --- | --- |
+| **0G Chain** | Hosts `GovernanceContract` and `GovernedVault` natively (EVM-compatible; existing Solidity ports directly). On-chain policy checks, evidence hashes, and the new `AgentGovernancePolicy` registry. |
+| **0G Storage** | Audit evidence anchoring — `ZeroGStorageService` (already live on Newton testnet; mainnet-anchored in Wave 3). |
+| **0G Pay** | Agent-to-agent governed spend settlement. New `ZeroGPayService` integrates the 0G Pay SDK so approved spends from `OwsWalletService` settle natively. |
+| **Agentic ID (ERC-7857)** | Each governed agent becomes a tokenized Agentic ID carrying its intelligence, audit history, and active policy as encrypted metadata. The `signingProvider` abstraction, `PolicyService`, and audit ledger all become on-chain properties of the ID. |
+| **0G Compute** | Verifiable inference for `ChainGPTAuditService` (contract audit) and `ControlEvaluationService` (suspicion scoring). Replaces the closed-source LLM providers for governance-critical decisions. |
+
+See [`docs/HACKATHON.md`](./docs/HACKATHON.md) for the wave-by-wave submission plan and [`docs/ARCHITECTURE.md#0g-bridge-buildathon-plan`](./docs/ARCHITECTURE.md) for the target architecture. Wave 1 deliverable is a one-page scoping doc + this repo as the 0G integration proof-of-intent; the on-chain activity is gated to Wave 3 mainnet deployment per the program rules.
+
 The Copilot console on the live demo is a closed loop, not a single shot: every confirmed or denied mission is persisted to SQLite and surfaces in a recent-decisions rail, where the operator can replay the full event timeline (with play/pause/scrub), re-run with the same goal, or jump straight to the policy that drove the confirmation. See [`src/frontend/src/components/copilot/copilot-page.tsx`](./src/frontend/src/components/copilot/copilot-page.tsx) for the page and [`src/backend/modules/api/controllers/CopilotController.ts`](./src/backend/modules/api/controllers/CopilotController.ts) for the controller.
 
 ## Quick Start
@@ -109,7 +123,7 @@ Each partner network plays a specific role in the product. This is the canonical
 | **Fhenix** | Confidential policy evaluation via FHE. Budgets, limits, and spend counters remain encrypted throughout evaluation. | Yes — FHE shield badge on audit decisions | **Live** (Fhenix testnet: Arbitrum Sepolia / Base Sepolia) |
 | **X Layer** | Governed execution dispatch path. After policy evaluation, approved spends are dispatched here for execution and public anchoring. | Yes — in decision audit trail via Hyperlane | Testnet (chainId 1952) |
 | **Filecoin** | Durable evidence anchoring for audit logs. Long-term immutable storage of governance decisions and evidence hashes. | Yes — evidence link per decision in audit entry | Calibration testnet |
-| **0G** | Real-time governance decision anchoring alongside Filecoin. Stores `zeroGRootHash` in `CreRun.evidence` for dual-anchor integrity. | Transparently layered with Filecoin | **Live** — via `ZeroGStorageService` (0G Newton testnet) |
+| **0G** | **Primary agent-economy rail.** Hosts the on-chain `GovernanceContract` + `GovernedVault` (EVM-compatible L1), anchors audit evidence to 0G Storage, settles governed agent-to-agent spend via **0G Pay**, and tokenizes governed agents as **Agentic ID (ERC-7857)**. **0G Compute Network** is the target for verifiable AI inference in `ChainGPTAuditService` and `ControlEvaluationService`. | Yes — full badge set in the audit trail (chain contract link, storage root, pay receipt, agentic ID) | **Live on testnet (Newton); mainnet deployment in Wave 3 of 0G Bridge Buildathon** (Jul 11-24, 2026) |
 | **ChainGPT** | Web3-specialized LLM for smart contract auditing at runtime (pre-spend vulnerability scan) and governance-copilot queries. | Yes — Contract Audit badge on policy checks with ChainGPT metadata | **Live** — via `ChainGPTAuditService` |
 | **Ledger DMK** | Hardware signing provider for high-value transactions. User confirms on physical Ledger before any signature is produced. | Yes — "Hardware Signed" badge on audit decisions | **Live** |
 | **MongoDB** | Persistent agent memory & run ledger. Replaces JSONL files with queryable, durable storage via MongoDB Atlas. | Yes — powers agent recall and run history APIs | **Live** (optional, gated by `MONGODB_URI`) |
@@ -135,6 +149,7 @@ The spend control plane is live: policy evaluation, signed approvals, held actio
 
 ### Recent Updates (2026-06)
 
+- **0G Bridge Buildathon Entry** — Submitted to the 0G Bridge by AKINDO 10-week/5-Wave buildathon (Waves 1-5: Jun 13 → Aug 21, 2026, $50K in 0G credits; Demo Day at Token2049 Singapore Oct 7-8). Cognivern is repositioned as a **governance & trust layer for the 0G agent economy**: 0G Chain for `GovernanceContract` + `GovernedVault` redeployment, 0G Storage for evidence (already live on Newton testnet via `ZeroGStorageService`), 0G Pay for agent-to-agent settlement (new `ZeroGPayService`), Agentic ID (ERC-7857) for governed agent tokenization, and 0G Compute as the inference home for `ChainGPTAuditService` and `ControlEvaluationService`. See the 0G Bridge submission block above and [`docs/HACKATHON.md`](./docs/HACKATHON.md) for the wave-by-wave plan.
 - **Production Hardening** — Per-workspace and per-API-key rate limiters with sliding windows, deep health checks, circuit-breaker patterns, 181 backend tests + Playwright E2E (unit + integration + E2E), TypeScript strict mode, unified CI pipeline
 - **Multi-Workspace & Policy Versioning** — Workspace-scoped policy management with independent API keys, rate limits, and policy history per team
 - **Fhenix Wave 5-7** — Full institutional demo with encrypted policies, MEV-protected execution, selective auditor disclosure; testnet migration from Helium to Arbitrum Sepolia; two-phase FHE resolution with `resolveDecision`; sealed-bid vendor selection; Privara confidential payroll
