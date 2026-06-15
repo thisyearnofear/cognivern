@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { useAgent, usePolicies } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
+import { authFetch } from "@/lib/auth-fetch";
 import { mutate } from "swr";
 
 function Breadcrumbs({ agentName }: { agentName: string }) {
@@ -54,7 +55,7 @@ function Breadcrumbs({ agentName }: { agentName: string }) {
         onClick={() => router.push("/agents")}
         className="hover:text-foreground transition-colors"
       >
-        Agents
+        Identities
       </button>
       <ChevronRight className="h-3 w-3" />
       <span className="text-foreground font-medium">{agentName}</span>
@@ -79,7 +80,7 @@ function AgentPersonalityCard({ agentId }: { agentId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/agents/${agentId}/preferences`)
+    authFetch(`/api/agents/${agentId}/preferences`)
       .then((r) => r.json())
       .then((json) => {
         if (!cancelled) setPrefs(json.data || null);
@@ -96,7 +97,7 @@ function AgentPersonalityCard({ agentId }: { agentId: string }) {
   const handleReset = useCallback(async () => {
     setResetting(true);
     try {
-      await fetch(`/api/agents/${agentId}/preferences`, { method: "DELETE" });
+      await authFetch(`/api/agents/${agentId}/preferences`, { method: "DELETE" });
       setPrefs(null);
       mutate(`/api/agents/${agentId}`);
     } finally {
@@ -223,7 +224,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
     let cancelled = false;
     const fetchHeld = async () => {
       try {
-        const res = await fetch(`/api/audit/logs?outcome=held&agent=${agentId}`);
+        const res = await authFetch(`/api/audit/logs?outcome=held&agent=${agentId}`);
         const json = await res.json();
         if (!cancelled && json.success && Array.isArray(json.data?.logs)) {
           setPendingApprovals(
@@ -249,7 +250,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
   const handleConfirmTrade = useCallback(async (decisionId: string, action: "confirm" | "reject") => {
     setConfirmingId(decisionId);
     try {
-      const res = await fetch(`/api/spend/${decisionId}/confirm`, {
+      const res = await authFetch(`/api/spend/${decisionId}/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
@@ -432,7 +433,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
       </div>
 
       {/* Agent type info box */}
-      {(agent as { source?: string }).source === "demo" ? (
+      {agent.source === "demo" ? (
         <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50/80 dark:bg-violet-950/30 p-4 flex items-start gap-3">
           <div className="p-1.5 rounded-lg bg-violet-100 dark:bg-violet-900 flex-shrink-0">
             <Eye className="h-4 w-4 text-violet-600 dark:text-violet-400" />
