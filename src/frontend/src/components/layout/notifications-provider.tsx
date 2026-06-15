@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { useEventStream, useSseEvent } from "@/hooks/use-event-stream";
 import { useDemoStore } from "@/stores/demo-store";
-import { ShieldCheck, AlertTriangle, Activity, Pause, Play } from "lucide-react";
+import { ShieldCheck, AlertTriangle, Activity, Pause, Play, LogOut } from "lucide-react";
 
 interface AuditEvent {
   id?: string;
@@ -34,6 +35,18 @@ export function NotificationsProvider() {
   const demoMode = useDemoStore((s) => s.demoMode);
 
   useEventStream();
+
+  useEffect(() => {
+    function handleExpired() {
+      toast.error("Session expired", {
+        description: "Your session has expired. Please sign in again to continue.",
+        icon: <LogOut className="h-4 w-4" />,
+        duration: 8000,
+      });
+    }
+    window.addEventListener("auth:expired", handleExpired);
+    return () => window.removeEventListener("auth:expired", handleExpired);
+  }, []);
 
   useSseEvent<AuditEvent>("audit:log", (event) => {
     if (demoMode) return;
