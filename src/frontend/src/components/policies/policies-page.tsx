@@ -36,6 +36,7 @@ import { usePolicies, useAuditLogs } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
 import { HelpIcon } from "@/components/ui/help-icon";
+import { authFetch } from "@/lib/auth-fetch";
 
 const POLICY_TEMPLATES = [
   {
@@ -122,7 +123,7 @@ export function PoliciesPage() {
     let cancelled = false;
     const fetchHolds = async () => {
       try {
-        const res = await fetch("/api/webhooks/holds");
+        const res = await authFetch("/api/webhooks/holds");
         const json = await res.json();
         if (!cancelled && json.success) {
           setHolds(json.data.holds || []);
@@ -139,7 +140,7 @@ export function PoliciesPage() {
   const handleReleaseHold = useCallback(async (policyId: string) => {
     setReleasingHold(policyId);
     try {
-      const res = await fetch(`/api/webhooks/holds/${policyId}/release`, {
+      const res = await authFetch(`/api/webhooks/holds/${policyId}/release`, {
         method: "POST",
       });
       const json = await res.json();

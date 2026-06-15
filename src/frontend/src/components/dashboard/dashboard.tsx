@@ -56,6 +56,7 @@ const AgentStatusChart = dynamic(
 import { QuickCheck } from "./quick-check";
 import { formatBudget } from "@/lib/budget-format";
 import { normalizeAuditLogs, computeAverageLatency } from "@/lib/normalizers";
+import { authFetch } from "@/lib/auth-fetch";
 
 /* ─── Animated counter hook ────────────────────────────────── */
 
@@ -90,15 +91,8 @@ function AiSpendCard() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/audit/insights?dimension=ai_spend")
-      .then((r) => {
-        if (r.status === 401) {
-          useAuthStore.getState().logout();
-          window.dispatchEvent(new CustomEvent("auth:expired"));
-          return null;
-        }
-        return r.json();
-      })
+    authFetch("/api/audit/insights?dimension=ai_spend")
+      .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
         if (!cancelled && json?.success) setAiSpend(json.data);
       })
@@ -136,15 +130,8 @@ function ControlScoreCard() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/audit/insights?dimension=suspicion")
-      .then((r) => {
-        if (r.status === 401) {
-          useAuthStore.getState().logout();
-          window.dispatchEvent(new CustomEvent("auth:expired"));
-          return null;
-        }
-        return r.json();
-      })
+    authFetch("/api/audit/insights?dimension=suspicion")
+      .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
         if (!cancelled && json?.success) setData(json.data);
       })

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { KeyRound, Eye, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { authFetch } from "@/lib/auth-fetch";
 
 interface PermitDialogProps {
   open: boolean;
@@ -54,7 +55,7 @@ export function PermitDialog({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/audit/permits", {
+      const res = await authFetch("/api/audit/permits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ policyId }),
@@ -80,7 +81,7 @@ export function PermitDialog({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/audit/logs/${decisionId}/decrypt`, {
+      const res = await authFetch(`/api/audit/logs/${decisionId}/decrypt`, {
         headers: { "X-Audit-Permit": permitInput.trim() },
       });
       const json = await res.json();
