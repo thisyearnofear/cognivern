@@ -1,7 +1,7 @@
 import { useAccount } from "wagmi";
 import type { AuthUser, Workspace } from "@cognivern/shared";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = "";
 
 export function generateSiweMessage(
   address: string,

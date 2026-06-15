@@ -45,7 +45,8 @@ function connect(token: string) {
 
     const delay = Math.min(2000 * Math.pow(2, retryCount - 1), 15_000);
     retryTimer = setTimeout(() => {
-      if (token) connect(token);
+      const currentToken = useAuthStore.getState().token;
+      if (currentToken) connect(currentToken);
     }, delay);
   };
 }
