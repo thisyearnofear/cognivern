@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { apiClient } from "@/lib/api-client";
 import { useDemoStore } from "@/stores/demo-store";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   AGENT_SWR_CONFIG,
   AUDIT_SWR_CONFIG,
@@ -42,7 +43,8 @@ function useApiWithDemo<T>(
   config?: Record<string, unknown>,
 ): SWRResult<T> {
   const demoMode = useDemoStore((s) => s.demoMode);
-  const effectiveKey = demoMode ? null : key;
+  const isConnected = useAuthStore((s) => s.isConnected);
+  const effectiveKey = demoMode || !isConnected ? null : key;
 
   const swr = useSWR(effectiveKey, fetcher, { ...SWR_DEFAULTS, ...config });
 

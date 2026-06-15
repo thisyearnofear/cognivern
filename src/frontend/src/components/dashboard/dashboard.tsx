@@ -91,9 +91,16 @@ function AiSpendCard() {
   useEffect(() => {
     let cancelled = false;
     fetch("/api/audit/insights?dimension=ai_spend")
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.status === 401) {
+          useAuthStore.getState().logout();
+          window.dispatchEvent(new CustomEvent("auth:expired"));
+          return null;
+        }
+        return r.json();
+      })
       .then((json) => {
-        if (!cancelled && json.success) setAiSpend(json.data);
+        if (!cancelled && json?.success) setAiSpend(json.data);
       })
       .catch(() => {});
     return () => { cancelled = true; };
@@ -130,9 +137,16 @@ function ControlScoreCard() {
   useEffect(() => {
     let cancelled = false;
     fetch("/api/audit/insights?dimension=suspicion")
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.status === 401) {
+          useAuthStore.getState().logout();
+          window.dispatchEvent(new CustomEvent("auth:expired"));
+          return null;
+        }
+        return r.json();
+      })
       .then((json) => {
-        if (!cancelled && json.success) setData(json.data);
+        if (!cancelled && json?.success) setData(json.data);
       })
       .catch(() => {});
     return () => { cancelled = true; };

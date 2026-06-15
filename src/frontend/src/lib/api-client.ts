@@ -126,6 +126,12 @@ class ApiClient {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          useAuthStore.getState().logout();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("auth:expired"));
+          }
+        }
         const error = await response.text();
         throw new Error(`API error ${response.status}: ${error}`);
       }
