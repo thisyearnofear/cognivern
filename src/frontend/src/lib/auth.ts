@@ -58,6 +58,23 @@ export async function fetchNonce(): Promise<string> {
   return nonce;
 }
 
+export async function refreshToken(
+  currentToken: string
+): Promise<{ token: string; user: AuthUser; workspace: Workspace }> {
+  const res = await fetch(`${API_URL}/auth/refresh`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${currentToken}`,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Token refresh failed: ${err}`);
+  }
+  return res.json();
+}
+
 export async function verifySignature(
   message: string,
   signature: string,

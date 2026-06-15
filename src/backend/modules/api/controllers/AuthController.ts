@@ -231,7 +231,7 @@ export class AuthController {
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
-      .setExpirationTime("24h")
+      .setExpirationTime("7d")
       .sign(JWT_SECRET);
 
     // Ensure owner is in workspace_members
@@ -303,6 +303,82 @@ export class AuthController {
         updatedAt: workspace.updated_at,
       } as Workspace,
     });
+  }
+
+  async refresh(req: Request, res: Response): Promise<void> {
+    const userId = req.userId;
+    const workspaceId = req.workspaceId;
+
+    if (!userId || !workspaceId) {
+      res.status(401).json({ success: false, error: "Not authenticated" });
+      return;
+    }
+
+    const db = getDb();
+    const user = db
+      .prepare(
+        "SELECT id, wallet_address, email, created_at, last_login_at FROM users WHERE id = ?",
+      )
+      .get(userId) as
+      | {
+          id: string;
+          wallet_address: string | null;
+          email: string | null;
+          created_at: string;
+          last_login_at: string;
+        }
+      | undefined;
+
+    const workspace = db
+      .prepare(
+        "SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE id = ?",
+      )
+      .get(workspaceId) as
+      | {
+          id: string;
+          name: string;
+          owner_id: string;
+          tier: string;
+          created_at: string;
+          updated_at: string;
+        }
+      | undefined;
+
+    if (!user || !workspace) {
+      res
+        .status(404)
+        .json({ success: false, error: "User or workspace not found" });
+      return;
+    }
+
+    const authUser: AuthUser = {
+      id: user.id,
+      walletAddress: user.wallet_address ?? undefined,
+      email: user.email ?? undefined,
+      createdAt: user.created_at,
+      lastLoginAt: user.last_login_at,
+    };
+
+    const authWorkspace: Workspace = {
+      id: workspace.id,
+      name: workspace.name,
+      ownerId: workspace.owner_id,
+      tier: workspace.tier as "demo" | "live",
+      createdAt: workspace.created_at,
+      updatedAt: workspace.updated_at,
+    };
+
+    const token = await new SignJWT({
+      sub: authUser.id,
+      walletAddress: authUser.walletAddress,
+      workspaceId: authWorkspace.id,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("7d")
+      .sign(JWT_SECRET);
+
+    res.json({ token, user: authUser, workspace: authWorkspace });
   }
 
   async logout(req: Request, res: Response): Promise<void> {
@@ -521,7 +597,7 @@ export class AuthController {
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
-      .setExpirationTime("24h")
+      .setExpirationTime("7d")
       .sign(JWT_SECRET);
 
     res.json({ token, user: authUser, workspace: authWorkspace });
