@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { authFetch } from "@/lib/auth-fetch";
 
 interface HydraMemory {
   text: string;
@@ -85,8 +86,8 @@ export function AgentGrid({
     const poll = async () => {
       try {
         const [runsRes, auditRes] = await Promise.allSettled([
-          fetch("/api/cre/runs"),
-          fetch("/api/audit/logs"),
+          authFetch("/api/cre/runs"),
+          authFetch("/api/audit/logs"),
         ]);
 
         if (runsRes.status === "fulfilled") {
@@ -140,8 +141,8 @@ export function AgentGrid({
     const fetchMemories = async () => {
       try {
         const [statusRes, recentRes] = await Promise.all([
-          fetch("/api/os/hydra"),
-          fetch("/api/os/hydra", {
+          authFetch("/api/os/hydra"),
+          authFetch("/api/os/hydra", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "recent", limit: 5 }),

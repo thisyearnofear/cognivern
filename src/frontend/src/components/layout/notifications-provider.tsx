@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useEventStream, useSseEvent } from "@/hooks/use-event-stream";
 import { useDemoStore } from "@/stores/demo-store";
-import { ShieldCheck, AlertTriangle, Activity, Pause, Play, LogOut } from "lucide-react";
+import { useAuthStore } from "@/stores/auth-store";
+import { ShieldCheck, AlertTriangle, Activity, Pause, Play, LogOut, Clock } from "lucide-react";
 
 interface AuditEvent {
   id?: string;
@@ -42,10 +43,47 @@ export function NotificationsProvider() {
         description: "Your session has expired. Please sign in again to continue.",
         icon: <LogOut className="h-4 w-4" />,
         duration: 8000,
+        action: {
+          label: "Sign In",
+          onClick: () => useAuthStore.getState().requestSignIn(),
+        },
       });
     }
     window.addEventListener("auth:expired", handleExpired);
     return () => window.removeEventListener("auth:expired", handleExpired);
+  }, []);
+
+  const warnedRef = useRef(false);
+  useEffect(() => {
+    function checkExpiry() {
+      const { token, isConnected } = useAuthStore.getState();
+      if (!token || !isConnected) {
+        warnedRef.current = false;
+        return;
+      }
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        const secondsLeft = payload.exp - Math.floor(Date.now() / 1000);
+        if (secondsLeft <= 300 && secondsLeft > 0 && !warnedRef.current) {
+          warnedRef.current = true;
+          toast.warning("Session expiring soon", {
+            description: `Your session expires in ${Math.ceil(secondsLeft / 60)} minute${secondsLeft <= 60 ? "" : "s"}.`,
+            icon: <Clock className="h-4 w-4" />,
+            duration: 10000,
+            action: {
+              label: "Sign In",
+              onClick: () => useAuthStore.getState().requestSignIn(),
+            },
+          });
+        }
+        if (secondsLeft > 300) warnedRef.current = false;
+      } catch {
+        // Ignore malformed tokens
+      }
+    }
+    checkExpiry();
+    const interval = setInterval(checkExpiry, 60_000);
+    return () => clearInterval(interval);
   }, []);
 
   useSseEvent<AuditEvent>("audit:log", (event) => {

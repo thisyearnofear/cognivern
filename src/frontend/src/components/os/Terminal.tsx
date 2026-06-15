@@ -11,6 +11,7 @@ import { Terminal as XTerminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
+import { authFetch } from "@/lib/auth-fetch";
 
 const PROMPT = "cognivern os > ";
 
@@ -112,7 +113,7 @@ async function handleLocalCommand(
   } else if (lower === "agents") {
     term.writeln("");
     term.writeln("  \x1b[38;2;56;189;248mFetching agents...\x1b[0m");
-    fetch("/api/agents")
+    authFetch("/api/agents")
       .then((r) => r.json())
       .then((data) => {
         const agents = data.data || [];
@@ -186,7 +187,7 @@ async function handleLocalCommand(
     } else if (path.startsWith("agents/") || path.startsWith("/agents/")) {
       term.writeln("  \x1b[38;2;56;189;248mFetching agent directory...\x1b[0m");
       try {
-        const r = await fetch("/api/agents");
+        const r = await authFetch("/api/agents");
         const data = await r.json();
         const agents = data.data || [];
         if (agents.length === 0) {
@@ -267,7 +268,7 @@ async function handleLocalCommand(
     } else if (sub === "status") {
       term.writeln("");
       term.writeln("  \x1b[38;2;56;189;248mChecking HydraDB status...\x1b[0m");
-      fetch("/api/os/hydra")
+      authFetch("/api/os/hydra")
         .then((r) => r.json())
         .then((res) => {
           if (res.success && res.data) {
@@ -305,8 +306,8 @@ async function handleLocalCommand(
 
       // Fetch status + recent memories in parallel
       Promise.all([
-        fetch("/api/os/hydra"),
-        fetch("/api/os/hydra", {
+        authFetch("/api/os/hydra"),
+        authFetch("/api/os/hydra", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "recent", limit: 3 }),
@@ -376,7 +377,7 @@ async function handleLocalCommand(
       term.writeln(
         `  \x1b[38;2;56;189;248mRecent memories \x1b[0m(limit: ${limit})`,
       );
-      fetch("/api/os/hydra", {
+      authFetch("/api/os/hydra", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "recent", limit }),
@@ -427,7 +428,7 @@ async function handleLocalCommand(
         term.writeln(
           `  \x1b[38;2;56;189;248mSearching memories for:\x1b[0m ${query}`,
         );
-        fetch("/api/os/hydra", {
+        authFetch("/api/os/hydra", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "recall", query }),
@@ -475,7 +476,7 @@ async function handleLocalCommand(
       } else {
         term.writeln("");
         term.writeln("  \x1b[38;2;56;189;248mStoring memory...\x1b[0m");
-        fetch("/api/os/hydra", {
+        authFetch("/api/os/hydra", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "memory", text, title: "CLI memory" }),
@@ -510,7 +511,7 @@ async function handleLocalCommand(
       } else {
         term.writeln("");
         term.writeln(`  \x1b[38;2;56;189;248mQ&A — ${question}\x1b[0m`);
-        fetch("/api/os/hydra", {
+        authFetch("/api/os/hydra", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "qna", question }),
@@ -555,7 +556,7 @@ async function handleLocalCommand(
         term.writeln(
           `  \x1b[38;2;56;189;248mSearching preferences for:\x1b[0m ${query}`,
         );
-        fetch("/api/os/hydra", {
+        authFetch("/api/os/hydra", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "preferences", query }),
@@ -605,7 +606,7 @@ async function handleLocalCommand(
   } else if (lower === "audit") {
     term.writeln("");
     term.writeln("  \x1b[38;2;56;189;248mFetching recent audit logs...\x1b[0m");
-    fetch("/api/audit/logs")
+    authFetch("/api/audit/logs")
       .then((r) => r.json())
       .then((data) => {
         const logs = data.data || [];

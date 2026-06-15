@@ -15,6 +15,7 @@ import {
   RECENT_PROMPTS_STORAGE_KEY,
 } from "./os-content";
 import { useVoiceInput } from "@/hooks/use-voice-input";
+import { authFetch } from "@/lib/auth-fetch";
 
 interface HydraDBStatusData {
   configured: boolean;
@@ -109,7 +110,7 @@ export function OsShell() {
   useEffect(() => {
     if (!booted || hydraFetchedRef.current) return;
     hydraFetchedRef.current = true;
-    fetch("/api/os/hydra")
+    authFetch("/api/os/hydra")
       .then((res) => res.json())
       .then((json) => {
         const statusData = json?.data;
@@ -149,7 +150,7 @@ export function OsShell() {
       setCommandRunning(true);
 
       try {
-        const res = await fetch("/api/os/intent", {
+        const res = await authFetch("/api/os/intent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: command }),
@@ -179,7 +180,7 @@ export function OsShell() {
           }
 
           // Fire-and-forget: store the command as a HydraDB memory
-          fetch("/api/os/hydra", {
+          authFetch("/api/os/hydra", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
