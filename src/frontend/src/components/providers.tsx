@@ -6,6 +6,7 @@ import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthWatcher } from "@/components/auth-watcher";
+import { AuthBridge } from "@/components/auth-bridge";
 import { NotificationsProvider } from "@/components/layout/notifications-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { config } from "@/lib/wagmi";
@@ -19,6 +20,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider theme={darkTheme({ accentColor: "#7c3aed" })}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <AuthBridge />
             <AuthWatcher />
             <NotificationsProvider />
             <ErrorBoundary>{children}</ErrorBoundary>
