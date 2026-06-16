@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { AuthUser, Workspace } from "@cognivern/shared";
+import { useDemoStore } from "./demo-store";
 
 interface AuthState {
   isConnected: boolean;
@@ -62,6 +63,13 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       ...defaultState,
       login: (token, authUser, workspace) => {
+        // Exit demo mode on real login. useApiWithDemo() short-circuits to
+        // demoData while demoMode is true; without this, a user who toured
+        // the demo and then signed in would see the seeded run-001 series
+        // instead of their actual runs.
+        if (useDemoStore.getState().demoMode) {
+          useDemoStore.getState().exitDemoMode();
+        }
         set({
           isConnected: true,
           walletAddress: authUser.walletAddress ?? null,
