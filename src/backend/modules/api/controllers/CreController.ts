@@ -7,6 +7,7 @@ import { runForecastingWorkflow } from "../../../cre/workflows/forecasting.js";
 import { creRunStore } from "../../../cre/storage/CreRunStore.js";
 import { CreRun } from "../../../cre/types.js";
 import { translateCreEventToAgUi } from "../../../cre/agUiTranslation.js";
+import { owsWalletService } from "../../../services/OwsWalletService.js";
 import {
   IdempotencyRecord,
   idempotencyStore,
@@ -575,6 +576,82 @@ export class CreController {
     normalized.approvalState = approve ? "approved" : "rejected";
     normalized.approvalReason = safeReason || undefined;
     normalized.requiresApproval = false;
+
+    // A held spend run carries real money: operator approval must actually
+    // broadcast the native transfer (operator JWT substitutes for the scoped
+    // key). If the broadcast fails we surface it as a failed run rather than
+    // reporting a completed approval that moved nothing.
+    if (
+      approve &&
+      normalized.status === "paused_for_approval" &&
+      normalized.workflow === "spend"
+    ) {
+      const operatorId = req.userId || "operator";
+      const transfer = await owsWalletService.resumeHeldSpend(
+        req.params.runId,
+        operatorId,
+      );
+      if (transfer.transferStatus !== "sent") {
+        // The transfer didn't move money — the run is still "needs approval".
+        // Do NOT flip to "failed" (that would route subsequent approve clicks
+        // through the generic branch, which marks the run completed without
+        // broadcasting) and do NOT cache the failure body under the idem key
+        // (that would block a retry from re-broadcasting). We surface the
+        // error to the operator and leave the held run in place for retry.
+        await pushRunEvent(normalized, {
+          type: "run_failed",
+          payload: {
+            reason: "transfer_failed",
+            note: transfer.transferError || transfer.error || null,
+          },
+        });
+        res.json({
+          success: false,
+          error:
+            transfer.transferError ||
+            transfer.error ||
+            "Native transfer failed",
+          run: normalized,
+          transfer,
+        });
+        return;
+      }
+      normalized.status = "completed";
+      normalized.ok = true;
+      normalized.finishedAt = new Date().toISOString();
+      if (normalized.plan) {
+        normalized.plan.steps = normalized.plan.steps.map((step) => ({
+          ...step,
+          status: step.enabled ? "approved" : "rejected",
+        }));
+      }
+      await pushRunEvent(normalized, {
+        type: "run_finished",
+        payload: {
+          reason: "approval_granted",
+          note: safeReason || null,
+          transferTxHash: transfer.transferTxHash,
+        },
+      });
+
+      normalized.controls = {
+        canCancel: false,
+        canRetry: false,
+        canApprove: false,
+      };
+      const storedRun = normalizeRun(normalized);
+      await creRunStore.replace(storedRun);
+      const responseBody = { success: true, run: storedRun, transfer };
+      if (idemKey) {
+        await this.setCachedIdempotentResponse(
+          idemKey,
+          200,
+          responseBody as unknown as Record<string, unknown>,
+        );
+      }
+      res.json(responseBody);
+      return;
+    }
 
     if (approve && normalized.status === "paused_for_approval") {
       normalized.status = "completed";

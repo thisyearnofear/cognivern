@@ -11,7 +11,7 @@ Cognivern gives you **control over what your AI agents can spend**. Here's the c
 1. **Your agent wants to spend money** — It could be a trading bot, a yield optimizer, or any autonomous system.
 2. **Cognivern checks its policy** — Is this spend within budget? Is the vendor trusted? Does it match your rules?
 3. **You see the decision** — Approved ✅, Held ⏸, or Denied ❌
-4. **If approved, money moves** — Real on-chain transaction, not a simulation. Gas paid, funds moved.
+4. **If approved, money moves** — A real native-token transfer is broadcast on X Layer testnet from your scoped wallet: gas paid, funds moved to the recipient. (ERC-20/token transfers and mainnet are on the roadmap, not yet shipped.)
 5. **It's audited** — Every decision logged with evidence you can prove later.
 
 > **The key thing:** Your agent cannot see its own spending caps. Policy evaluation happens in a confidential environment (FHE), so the agent only knows whether the spend passed or failed — not why it was denied or how much budget remains.
@@ -119,8 +119,8 @@ When your agent attempts a spend, Cognivern returns one of three decisions:
 
 | Decision | Meaning | What Happens |
 | -------- | -------- | ----------- |
-| **Approved** ✅ | Spend fits your policy | Money moves on-chain |
-| **Held** ⏸ | Spend needs review | You approve/deny manually in dashboard |
+| **Approved** ✅ | Spend fits your policy | Native-token transfer broadcast on X Layer testnet |
+| **Held** ⏸ | Spend needs review | You approve/deny manually in dashboard; on approval the transfer is broadcast |
 | **Denied** ❌ | Spend violates policy | Money does not move |
 
 For each decision, you see:
@@ -128,7 +128,7 @@ For each decision, you see:
 - **Decision ID** — Unique reference
 - **Attestation hash** — Cryptographic proof of the decision
 - **Policy rules matched** — Which rules triggered this outcome
-- **On-chain tx** — Real transaction hash (if approved)
+- **On-chain tx** — Real transfer transaction hash on X Layer testnet (if approved and the broadcast succeeded)
 
 ---
 

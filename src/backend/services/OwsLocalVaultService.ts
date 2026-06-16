@@ -3,6 +3,8 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { ethers } from "ethers";
 import { Logger } from "../shared/logging/Logger.js";
+import { circuitBreakers } from "../shared/utils/circuitBreaker.js";
+import { withTimeout } from "../shared/utils/index.js";
 
 const logger = new Logger("OwsLocalVaultService");
 
@@ -383,6 +385,93 @@ export class OwsLocalVaultService {
         signError instanceof Error ? signError : undefined,
       );
       throw signError;
+    }
+  }
+
+  /**
+   * Broadcast a native (gas-token) value transfer FROM a scoped wallet.
+   *
+   * Auth model — two mutually exclusive entry conditions:
+   *   - Default (`operatorApproved` falsy): access is resolved through the
+   *     fail-closed `resolveAccess`, which requires a valid scoped API key
+   *     authorizing the wallet. This is the path reached from the public
+   *     `/api/spend` HTTP endpoint, so it MUST stay key-gated.
+   *   - `operatorApproved === true`: the key check is skipped, but this branch
+   *     is ONLY reachable from the JWT-authenticated held-spend approval handler
+   *     (CreController.submitApproval → OwsWalletService.resumeHeldSpend). A
+   *     concrete `walletId` is required. This is a deliberate, authenticated
+   *     substitution of operator authority for the scoped key — it is NOT the
+   *     anonymous fail-open branch that was removed from resolveAccess.
+   *
+   * The decrypted private key never leaves this method; only txHash/from/error
+   * are returned.
+   */
+  async sendNativeTransfer(params: {
+    walletId: string;
+    apiKeyToken?: string | null;
+    operatorApproved?: boolean;
+    to: string;
+    valueWei: bigint;
+    rpcUrl: string;
+    chainId: number;
+    gasLimit: number;
+  }): Promise<{ txHash: string; from: string } | { error: string }> {
+    if (!ethers.isAddress(params.to)) {
+      return { error: `Invalid recipient address: ${params.to}` };
+    }
+    if (params.valueWei <= 0n) {
+      return { error: `Transfer amount must be positive (got ${params.valueWei})` };
+    }
+
+    let storedWallet: OwsStoredWallet | undefined;
+    if (params.operatorApproved) {
+      const vault = this.readVault();
+      storedWallet = vault.wallets.find((w) => w.id === params.walletId);
+      if (!storedWallet) {
+        return { error: "Wallet not found in vault" };
+      }
+    } else {
+      const access = await this.resolveAccess({
+        walletId: params.walletId,
+        apiKeyToken: params.apiKeyToken,
+      });
+      if (!access) {
+        return { error: "Wallet access not authorized" };
+      }
+      const vault = this.readVault();
+      storedWallet = vault.wallets.find((w) => w.id === access.wallet.id);
+      if (!storedWallet) {
+        return { error: "Wallet not found in vault" };
+      }
+    }
+
+    const privateKey = this.decryptPrivateKey(storedWallet);
+    try {
+      return await circuitBreakers.blockchain.execute(async () => {
+        const provider = new ethers.JsonRpcProvider(
+          params.rpcUrl,
+          params.chainId,
+        );
+        const wallet = new ethers.Wallet(privateKey, provider);
+        const tx = await wallet.sendTransaction({
+          to: params.to,
+          value: params.valueWei,
+          gasLimit: params.gasLimit,
+        });
+        const receipt =
+          await withTimeout<ethers.TransactionReceipt | null>(
+            tx.wait(),
+            60000,
+          );
+        const txHash = receipt?.hash || tx.hash;
+        logger.info(`Native transfer broadcast: ${txHash}`);
+        return { txHash, from: wallet.address };
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown transfer error";
+      logger.error("Native transfer failed", error instanceof Error ? error : undefined);
+      return { error: message };
     }
   }
 

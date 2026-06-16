@@ -108,6 +108,28 @@ describe("OwsLocalVaultService.resolveAccess — fail-closed", () => {
     expect(access?.apiKey).toBeDefined();
   });
 
+  it("sendNativeTransfer is fail-closed: no key + no operatorApproved → error, no broadcast", async () => {
+    const vault = await freshVault();
+    const wallet = await vault.importWallet({
+      name: "Treasury",
+      privateKey: TEST_PRIVATE_KEY,
+    });
+
+    // No scoped key, no operatorApproved flag — the public /api/spend path.
+    // Must refuse before any signer/provider is built.
+    const result = await vault.sendNativeTransfer({
+      walletId: wallet.id,
+      to: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      valueWei: 1000n,
+      rpcUrl: "https://testrpc.xlayer.tech",
+      chainId: 195,
+      gasLimit: 21000,
+    });
+
+    expect("error" in result).toBe(true);
+    expect("txHash" in result).toBe(false);
+  });
+
   it("returns null when a valid key is scoped to a different wallet", async () => {
     const vault = await freshVault();
     const walletA = await vault.importWallet({

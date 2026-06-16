@@ -124,6 +124,7 @@ export const blockchainConfig = {
   privateKey: process.env.XLAYER_PRIVATE_KEY || "",
   rpcUrl: process.env.XLAYER_TESTNET_RPC_URL || "https://testrpc.xlayer.tech",
   network: "xlayerTestnet",
+  chainId: Number(process.env.XLAYER_CHAIN_ID || "195"),
   contracts: {
     governance:
       process.env.XLAYER_GOVERNANCE_CONTRACT_ADDRESS ||
@@ -137,6 +138,7 @@ export const blockchainConfig = {
     createPolicy: Number(process.env.XLAYER_GAS_CREATE_POLICY || "400000"),
     updateStatus: Number(process.env.XLAYER_GAS_UPDATE_STATUS || "100000"),
     registerAgent: Number(process.env.XLAYER_GAS_REGISTER_AGENT || "300000"),
+    nativeTransfer: Number(process.env.XLAYER_GAS_TRANSFER || "21000"),
   },
 };
 
