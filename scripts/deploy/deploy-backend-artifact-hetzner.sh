@@ -29,7 +29,6 @@ ssh "$HOST" "set -e; \
   fi; \
   cd '$REMOTE_APP_DIR'; \
   export CI=true; \
-  npm install --omit=dev --ignore-scripts --no-audit --no-fund --legacy-peer-deps; \
   if pm2 describe '$PM2_APP_NAME' >/dev/null 2>&1; then \
     pm2 restart '$PM2_APP_NAME' --update-env; \
   else \
