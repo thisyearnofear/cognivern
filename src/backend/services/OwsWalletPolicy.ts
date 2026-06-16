@@ -58,7 +58,10 @@ export class OwsWalletPolicyEvaluator {
 
     const policies = await policyService.listPolicies();
     const activePolicies = policies.filter(
-      (policy) => policy.status === "active" && policy.rules.length > 0,
+      (policy) =>
+        policy.status === "active" &&
+        Array.isArray(policy.rules) &&
+        policy.rules.length > 0,
     );
     const spendPolicy =
       activePolicies.find(
