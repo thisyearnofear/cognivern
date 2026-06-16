@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useAccount, useSignMessage, useDisconnect } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   fetchNonce,
@@ -42,33 +43,15 @@ export function useAuth() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Sign in failed";
       setError(msg);
+      // Surface the failure to the user. Previously the only caller that
+      // ran signIn() from a toast did so via `void signIn()`, swallowing
+      // this rejection — so a declined/failed signature gave no feedback.
+      toast.error("Sign in failed", { description: msg });
       throw err;
     } finally {
       setLoading(false);
     }
   }, [address, signMessageAsync, openConnectModal, login, buildSiweMessage]);
-
-  // React to sign-in requests fired from the AuthWatcher toast. The watcher
-  // intentionally doesn't call signIn() itself (HashPack reports
-  // isConnected:true with eth_accounts:[]), so it bumps a counter in the
-  // store; we run the actual SIWE flow here where wagmi/RainbowKit are
-  // already in scope.
-  const signInRequestId = useAuthStore((s) => s.signInRequestId);
-  const lastHandledRequestIdRef = useRef(signInRequestId);
-  useEffect(() => {
-    if (signInRequestId === lastHandledRequestIdRef.current) return;
-    lastHandledRequestIdRef.current = signInRequestId;
-    // Defer to the next tick so the effect body doesn't kick off the
-    // SIWE flow + setState(true) synchronously (react-hooks/set-state-in-effect).
-    const id = window.setTimeout(() => {
-      if (!isConnected) {
-        openConnectModal?.();
-        return;
-      }
-      void signIn();
-    }, 0);
-    return () => window.clearTimeout(id);
-  }, [signInRequestId, isConnected, openConnectModal, signIn]);
 
   const handleLogout = useCallback(() => {
     storeLogout();
