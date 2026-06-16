@@ -107,6 +107,7 @@ pnpm demo:fhenix
 
 | Doc                                                    | Covers                                                                             |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| [Getting Started](./docs/GETTING_STARTED.md)           | For operators, fund managers, DAO treasurers — no code required                   |
 | [Hackathon Brief](./docs/HACKATHON.md)                 | Demo story, submission, talk track                                                 |
 | [Architecture](./docs/ARCHITECTURE.md)                 | System design, data flows, endpoints                                               |
 | [Developer Guide](./docs/DEVELOPER.md)                 | Local setup, APIs, testing, production readiness                                   |
@@ -118,16 +119,23 @@ pnpm demo:fhenix
 
 Each partner network plays a specific role in the product. This is the canonical reference — all docs and UI descriptions use this framing.
 
-| Partner | Role in product | User-visible? | Status |
+### 🟢 Live Now (testnet)
+
+| Partner | Role in product | User-visible? |
+|---|---|---|
+| **X Layer** | Governed execution dispatch path. After policy evaluation, approved spends are dispatched here for execution and public anchoring. | Yes — real on-chain transactions with actual gas |
+| **Fhenix** | Confidential policy evaluation via FHE. Budgets, limits, and spend counters remain encrypted throughout evaluation. | Yes — FHE shield badge on audit decisions |
+| **ChainGPT** | Web3-specialized LLM for smart contract auditing at runtime (pre-spend vulnerability scan) and governance-copilot queries. | Yes — Contract Audit badge on policy checks with ChainGPT metadata |
+| **Ledger DMK** | Hardware signing provider for high-value transactions. User confirms on physical Ledger before any signature is produced. | Yes — "Hardware Signed" badge on audit decisions |
+| **MongoDB** | Persistent agent memory & run ledger. Replaces JSONL files with queryable, durable storage via MongoDB Atlas. | Yes — powers agent recall and run history APIs (optional, gated by `MONGODB_URI`) |
+
+### 🟡 Planned (Wave 2–5)
+
+| Partner | Role in product | User-visible? | Target |
 |---|---|---|---|
-| **Fhenix** | Confidential policy evaluation via FHE. Budgets, limits, and spend counters remain encrypted throughout evaluation. | Yes — FHE shield badge on audit decisions | **Live** (Fhenix testnet: Arbitrum Sepolia / Base Sepolia) |
-| **X Layer** | Governed execution dispatch path. After policy evaluation, approved spends are dispatched here for execution and public anchoring. | Yes — in decision audit trail via Hyperlane | Testnet (chainId 1952) |
-| **Filecoin** | Durable evidence anchoring for audit logs. Long-term immutable storage of governance decisions and evidence hashes. | Yes — evidence link per decision in audit entry | Calibration testnet |
-| **0G** | **Primary agent-economy rail.** Hosts the on-chain `GovernanceContract` + `GovernedVault` (EVM-compatible L1), anchors audit evidence to 0G Storage, settles governed agent-to-agent spend via **0G Pay**, and tokenizes governed agents as **Agentic ID (ERC-7857)**. **0G Compute Network** is the target for verifiable AI inference in `ChainGPTAuditService` and `ControlEvaluationService`. | Yes — full badge set in the audit trail (chain contract link, storage root, pay receipt, agentic ID) | **Live on testnet (Newton); mainnet deployment in Wave 3 of 0G Bridge Buildathon** (Jul 11-24, 2026) |
-| **ChainGPT** | Web3-specialized LLM for smart contract auditing at runtime (pre-spend vulnerability scan) and governance-copilot queries. | Yes — Contract Audit badge on policy checks with ChainGPT metadata | **Live** — via `ChainGPTAuditService` |
-| **Ledger DMK** | Hardware signing provider for high-value transactions. User confirms on physical Ledger before any signature is produced. | Yes — "Hardware Signed" badge on audit decisions | **Live** |
-| **MongoDB** | Persistent agent memory & run ledger. Replaces JSONL files with queryable, durable storage via MongoDB Atlas. | Yes — powers agent recall and run history APIs | **Live** (optional, gated by `MONGODB_URI`) |
-| **Sapience** | Native prediction-market agent. Forecasts on Sapience GraphQL, publishes EAS attestations on Arbitrum, trades USDe on the Ethereal prediction market. **All actions routed through Cognivern's own governance pipeline** (see [`docs/NATIVE_AGENTS.md`](./NATIVE_AGENTS.md)). | Yes — agent status and decision history in the dashboard | **Live** (gated by `SAPIENCE_ENABLED=true`; trades governed by `sapience-trading-policy`) |
+| **Filecoin** | Durable evidence anchoring for audit logs. Long-term immutable storage of governance decisions and evidence hashes. | Yes — evidence link per decision in audit entry | Wave 2 |
+| **0G** | **Primary agent-economy rail.** Hosts the on-chain `GovernanceContract` + `GovernedVault` (EVM-compatible L1), anchors audit evidence to 0G Storage, settles governed agent-to-agent spend via **0G Pay**, and tokenizes governed agents as **Agentic ID (ERC-7857)**. **0G Compute Network** is the target for verifiable AI inference in `ChainGPTAuditService` and `ControlEvaluationService`. | Yes — full badge set in the audit trail (chain contract link, storage root, pay receipt, agentic ID) | Wave 3 (mainnet) |
+| **Sapience** | Native prediction-market agent. Forecasts on Sapience GraphQL, publishes EAS attestations on Arbitrum, trades USDe on the Ethereal prediction market. **All actions routed through Cognivern's own governance pipeline** (see [`docs/NATIVE_AGENTS.md`](./NATIVE_AGENTS.md)). | Yes — agent status and decision history in the dashboard | Wave 4 |
 
 ## AI Provider Stack
 
