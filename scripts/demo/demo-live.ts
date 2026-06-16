@@ -129,7 +129,7 @@ async function requestSpend(spend: Record<string, unknown>, owsApiKey: string) {
   return request<ApiEnvelope<any>>("/api/spend", {
     method: "POST",
     headers: {
-      "X-OWS-API-KEY": owsApiKey,
+      "x-ows-scoped-access": owsApiKey,
     },
     json: spend,
   });

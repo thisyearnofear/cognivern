@@ -42,6 +42,20 @@ export interface ExecutionResult {
   signature?: string;
   error?: string;
   reason?: string;
+  /**
+   * Whether the on-chain approval record was actually written to X Layer.
+   * - "recorded" — txHash is a real on-chain receipt
+   * - "failed"   — recordOnChainApproval failed; txHash is null
+   * - "skipped"  — on-chain recording was not attempted (e.g. disabled)
+   *
+   * Callers MUST treat "failed" + status=approved as a partial success: the
+   * policy approved the spend, the envelope was signed, but the on-chain
+   * audit record is missing. The previous behavior fabricated a
+   * keccak256(signature) hash and returned it as txHash; that is removed
+   * because it conflated "approved" with "on-chain recorded" and was the
+   * single most dangerous line in the spend path for credibility.
+   */
+  onChainStatus?: "recorded" | "failed" | "skipped";
 }
 
 export interface SpendExecutionContext {
@@ -340,7 +354,17 @@ export class OwsWalletService {
       actionType: "spend",
       metadata: intent.metadata || {},
     });
-    const txHash = onChain.txHash || ethers.keccak256(ethers.toUtf8Bytes(signature));
+    // Never fabricate a txHash when the chain write fails. The previous
+    // behavior here was `onChain.txHash || keccak256(signature)`, which
+    // returned a synthesized hash and status=approved even when the
+    // on-chain record did not exist — masking "policy approved" with
+    // "on-chain recorded" and breaking the central "real on-chain tx"
+    // claim. We now return txHash=undefined and an explicit
+    // onChainStatus so callers and audit logs can distinguish.
+    const txHash = onChain.success ? onChain.txHash : undefined;
+    const onChainStatus: "recorded" | "failed" = onChain.success
+      ? "recorded"
+      : "failed";
 
     await recorder.addArtifact({
       type: "attestation_result",
@@ -354,7 +378,7 @@ export class OwsWalletService {
         walletAddress: signer,
         apiKeyId: access.apiKey?.id,
         status: "approved",
-        onChainStatus: onChain.success ? "recorded" : "offline",
+        onChainStatus,
       },
     });
 
@@ -372,6 +396,7 @@ export class OwsWalletService {
       apiKeyId: access.apiKey?.id,
       txHash,
       signature,
+      onChainStatus,
     };
   }
 

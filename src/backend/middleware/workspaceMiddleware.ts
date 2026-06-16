@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { getDb } from "../db/index.js";
+import { isPublicApiPath } from "./publicEndpoints.js";
 
 export interface WorkspaceContext {
   workspaceId: string;
@@ -31,6 +32,13 @@ export async function workspaceMiddleware(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
+  // Public endpoints (per-resource auth, see publicEndpoints.ts) do not
+  // require a workspace tier. Skip without requiring req.workspaceId.
+  if (isPublicApiPath(req.path)) {
+    next();
+    return;
+  }
+
   const workspaceId = req.workspaceId;
 
   if (!workspaceId) {
