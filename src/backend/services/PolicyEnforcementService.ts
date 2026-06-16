@@ -84,6 +84,14 @@ export class PolicyEnforcementService {
         );
       }
 
+      // Defensive: legacy persisted policies sometimes have rules: null.
+      // Treat that as an empty rules array — fail open on null rules means
+      // every action passes, which is wrong; coerce to [] so loadPolicy
+      // doesn't crash and the policy simply has no rules to evaluate.
+      if (!Array.isArray(policy.rules)) {
+        policy.rules = [];
+      }
+
       this.currentPolicy = policy;
       logger.info(`Policy loaded successfully: ${policyId}`, {
         policyName: policy.name,
