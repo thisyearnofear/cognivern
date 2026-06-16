@@ -133,10 +133,10 @@ export const blockchainConfig = {
       "0x1E0317beFf188e314BbC3483e06773EEfa28bB2D",
   },
   gasLimits: {
-    evaluateAction: Number(process.env.XLAYER_GAS_EVALUATE || "200000"),
-    createPolicy: Number(process.env.XLAYER_GAS_CREATE_POLICY || "100000"),
-    updateStatus: Number(process.env.XLAYER_GAS_UPDATE_STATUS || "50000"),
-    registerAgent: Number(process.env.XLAYER_GAS_REGISTER_AGENT || "150000"),
+    evaluateAction: Number(process.env.XLAYER_GAS_EVALUATE || "300000"),
+    createPolicy: Number(process.env.XLAYER_GAS_CREATE_POLICY || "400000"),
+    updateStatus: Number(process.env.XLAYER_GAS_UPDATE_STATUS || "100000"),
+    registerAgent: Number(process.env.XLAYER_GAS_REGISTER_AGENT || "300000"),
   },
 };
 

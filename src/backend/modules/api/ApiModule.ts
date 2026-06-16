@@ -53,6 +53,10 @@ import { authMiddleware } from "../../middleware/authMiddleware.js";
 import { workspaceMiddleware } from "../../middleware/workspaceMiddleware.js";
 import { demoInterceptor } from "../../middleware/demoInterceptor.js";
 import { requestContextMiddleware } from "../../middleware/requestContext.js";
+import {
+  isPublicApiPath,
+  LEGACY_DEFAULT_WORKSPACE_ID,
+} from "../../middleware/publicEndpoints.js";
 import { sharedSloMetrics } from "../../services/SloMetricsService.js";
 import type { Server } from "node:http";
 
@@ -332,45 +336,18 @@ export class ApiModule extends BaseService {
     res: express.Response,
     next: express.NextFunction,
   ): void {
-    // Skip API key check for public endpoints
-    const publicEndpoints = [
-      "/health",
-      "/dashboard/bundle",
-      "/agents",
-      "/agents/unified",
-      "/agents/connections",
-      "/agents/governance/status",
-      "/agents/governance/decisions",
-      "/agents/portfolio/status",
-      "/agents/portfolio/decisions",
-      "/agents/sapience/status",
-      "/agents/sapience/decisions",
-      "/audit/logs",
-      "/audit/insights",
-      "/governance/policies",
-      "/spendos/status",
-      "/spendos/decisions",
-      "/metrics/ux-summary",
-      "/cre/runs",
-      "/cre/projects",
-      "/cre/forecast",
-      "/cre/runs/:runId/retry",
-      "/cre/runs/:runId/approval",
-      "/spend",
-      "/spend/status",
-      "/spend/scan",
-      "/projects",
-      "/fhenix/status",
-      "/fhenix/decrypt",
-      "/intent",
-      "/webhooks/chain-gpt-news",
-      "/webhooks/holds",
-      "/events/stream",
-    ];
-    if (
-      publicEndpoints.some((endpoint) => req.path === endpoint) ||
-      req.path.startsWith("/webhooks/")
-    ) {
+    // Skip API key check for public endpoints (per-resource auth is the
+    // controller's responsibility, e.g. x-ows-scoped-access for /api/spend).
+    if (isPublicApiPath(req.path)) {
+      // But if the caller DID send an x-api-key (e.g. demo scripts and
+      // the workspace dashboard hitting /api/governance/policies), still
+      // validate it and set req.workspaceId so downstream controllers
+      // that read workspaceId keep working.
+      const headerApiKey = req.headers["x-api-key"] as string | undefined;
+      if (headerApiKey) {
+        this.trySetLegacyWorkspaceId(req, res, headerApiKey, next);
+        return;
+      }
       return next();
     }
 
@@ -413,7 +390,11 @@ export class ApiModule extends BaseService {
       return;
     }
 
-    // Legacy global API key check — timing-safe hash comparison
+    // Legacy global API key check — timing-safe hash comparison.
+    // On success, set req.workspaceId so authMiddleware (which runs after
+    // this on /api/*) can see the request is already authenticated and
+    // skip the JWT check. Legacy keys are mapped to a synthetic
+    // "default" workspace; see publicEndpoints.ts for the rationale.
     if (apiConfig.apiKey) {
       const expected = Buffer.from(
         createHash("sha256").update(apiConfig.apiKey).digest(),
@@ -430,6 +411,7 @@ export class ApiModule extends BaseService {
         });
         return;
       }
+      req.workspaceId = LEGACY_DEFAULT_WORKSPACE_ID;
     } else {
       res.status(401).json({
         success: false,
@@ -439,6 +421,46 @@ export class ApiModule extends BaseService {
       return;
     }
 
+    next();
+  }
+
+  /**
+   * Optional legacy x-api-key validation used by the public-path branch.
+   * On valid key: sets req.workspaceId and calls next(). On invalid key:
+   * writes a 401 response (caller must NOT also respond). On missing
+   * apiConfig.apiKey: also writes 401 to avoid silent acceptance of an
+   * unknown key shape.
+   */
+  private trySetLegacyWorkspaceId(
+    req: express.Request,
+    res: express.Response,
+    apiKey: string,
+    next: express.NextFunction,
+  ): void {
+    if (!apiConfig.apiKey) {
+      res.status(401).json({
+        success: false,
+        error: "Invalid API key",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+    const expected = Buffer.from(
+      createHash("sha256").update(apiConfig.apiKey).digest(),
+    );
+    const actual = Buffer.from(createHash("sha256").update(apiKey).digest());
+    if (
+      expected.length !== actual.length ||
+      !timingSafeEqual(expected, actual)
+    ) {
+      res.status(401).json({
+        success: false,
+        error: "Invalid API key",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+    req.workspaceId = LEGACY_DEFAULT_WORKSPACE_ID;
     next();
   }
 

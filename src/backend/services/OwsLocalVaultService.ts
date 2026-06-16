@@ -330,14 +330,15 @@ export class OwsLocalVaultService {
       if (!wallet) {
         return null;
       }
-    } else if (vault.apiKeys.length > 0) {
-      return null;
-    } else if (params.walletId) {
-      wallet = vault.wallets.find(
-        (candidate) => candidate.id === params.walletId,
-      );
     } else {
-      wallet = vault.wallets[0];
+      // No valid scoped API key → no access. This is fail-closed regardless
+      // of how many keys the vault holds or whether a walletId was supplied.
+      // The previous behavior fell open when the vault had zero API keys
+      // (signing with the bootstrap/treasury wallet for any unauthenticated
+      // caller), which made /api/spend signable without a key whenever the
+      // vault had not yet provisioned one. Signing is now gated strictly on
+      // a resolved scoped key.
+      return null;
     }
 
     if (!wallet) {

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { jwtVerify } from "jose";
 import { createHash } from "node:crypto";
 import { tokenBlacklistStore } from "../shared/storage/TokenBlacklistStore.js";
+import { isPublicApiPath } from "./publicEndpoints.js";
 
 function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -17,14 +18,6 @@ function getJwtSecret(): Uint8Array {
 }
 
 const JWT_SECRET = getJwtSecret();
-
-const PUBLIC_PATHS = new Set([
-  "/webhooks/chain-gpt-news",
-  "/webhooks/holds",
-  "/webhooks/holds/release",
-  "/health",
-  "/health/",
-]);
 
 export interface AuthPayload {
   sub: string;
@@ -49,8 +42,11 @@ export async function authMiddleware(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  // Skip auth for public paths (webhooks, health)
-  if (PUBLIC_PATHS.has(req.path)) {
+  // Skip auth for public paths (webhooks, health) and for paths that have
+  // per-resource auth handled by the controller (e.g. /api/spend uses the
+  // OWS scoped key in x-ows-scoped-access, not the JWT). The shared list
+  // is the single source of truth — see publicEndpoints.ts.
+  if (isPublicApiPath(req.path)) {
     next();
     return;
   }
