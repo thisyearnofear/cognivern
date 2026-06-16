@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll } from "vitest";
+import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -17,12 +17,26 @@ process.env.UX_EVENTS_FILE = path.join(
   os.tmpdir(),
   `cognivern-ux-events-${Date.now()}.jsonl`,
 );
+// Isolate the vault for the spend-workflow tests below. These vars must be set
+// BEFORE any module import so the vault singleton picks them up.
+process.env.OWS_VAULT_PATH = path.join(
+  os.tmpdir(),
+  `cognivern-vault-${Date.now()}.json`,
+);
+process.env.OWS_VAULT_SECRET = "test-vault-secret-controller-integration";
+// Keep offline: empty MONGODB_URI → JSONL-only run store; empty
+// XLAYER_PRIVATE_KEY → recordOnChainApproval short-circuits.
+process.env.MONGODB_URI = "";
+process.env.XLAYER_PRIVATE_KEY = "";
 
 const { CreController } = await import(
   "../../src/backend/modules/api/controllers/CreController.js"
 );
 const { creRunStore } = await import(
   "../../src/backend/cre/storage/CreRunStore.js"
+);
+const { owsLocalVaultService } = await import(
+  "../../src/backend/services/OwsLocalVaultService.js"
 );
 
 type MockReq = {
@@ -230,6 +244,151 @@ describe("CreController", () => {
     await controller.submitApproval(req2 as any, res2 as any);
     expect(res2.statusCode).toBe(200);
     expect(res2.payload?.run?.status).toBe(status1);
+  });
+
+  it("submitApproval (spend workflow) broadcasts native transfer on approve", async () => {
+    const { OwsWalletService } = await import(
+      "../../src/backend/services/OwsWalletService.js"
+    );
+    const { CreRunRecorder } = await import(
+      "../../src/backend/cre/runRecorder.js"
+    );
+
+    // Reset the vault file to a clean state for this test.
+    fs.writeFileSync(
+      process.env.OWS_VAULT_PATH!,
+      JSON.stringify({ version: 1, wallets: [], apiKeys: [], agents: [] }),
+    );
+    const wallet = await owsLocalVaultService.importWallet({
+      name: "Treasury",
+      privateKey:
+        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+    });
+    const access = await owsLocalVaultService.resolveAccess({
+      apiKeyToken: (
+        await owsLocalVaultService.createApiKey({
+          name: "scoped",
+          walletIds: [wallet.id],
+          policyIds: [],
+        })
+      ).token,
+    });
+
+    const sendSpy = vi
+      .spyOn(owsLocalVaultService, "sendNativeTransfer")
+      .mockResolvedValue({ txHash: "0xctrl-success", from: wallet.accounts[0].address });
+
+    // Build a held spend run via the real handleHold path so artifacts match
+    // the production shape (spend_intent + error with walletId/policyId).
+    const service = new OwsWalletService();
+    const intent = {
+      id: "intent-ctrl-1",
+      agentId: "agent-1",
+      recipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      amount: "4242",
+      asset: "OKB",
+      reason: "controller test",
+      timestamp: new Date().toISOString(),
+    };
+    const recorder = new CreRunRecorder({ workflow: "spend", mode: "cre" });
+    await recorder.addArtifact({ type: "spend_intent", data: intent });
+    const held = await (service as any).handleHold(
+      intent,
+      recorder,
+      "needs review",
+      "policy-ctrl-1",
+      access,
+    );
+
+    const controller = new CreController();
+    const req = makeReq({
+      params: { runId: held.runId },
+      body: { approve: true, reason: "operator approves" },
+    });
+    (req as any).userId = "operator-int-1";
+    const res = new MockRes();
+    await controller.submitApproval(req as any, res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.payload?.success).toBe(true);
+    expect(res.payload?.run?.status).toBe("completed");
+    expect(res.payload?.transfer?.transferStatus).toBe("sent");
+    expect(res.payload?.transfer?.transferTxHash).toBe("0xctrl-success");
+    expect(sendSpy).toHaveBeenCalledTimes(1);
+    expect(sendSpy.mock.calls[0][0].operatorApproved).toBe(true);
+    expect(sendSpy.mock.calls[0][0].valueWei).toBe(4242n);
+    sendSpy.mockRestore();
+  });
+
+  it("submitApproval (spend workflow) leaves run paused + returns error when transfer fails", async () => {
+    const { OwsWalletService } = await import(
+      "../../src/backend/services/OwsWalletService.js"
+    );
+    const { CreRunRecorder } = await import(
+      "../../src/backend/cre/runRecorder.js"
+    );
+
+    fs.writeFileSync(
+      process.env.OWS_VAULT_PATH!,
+      JSON.stringify({ version: 1, wallets: [], apiKeys: [], agents: [] }),
+    );
+    const wallet = await owsLocalVaultService.importWallet({
+      name: "Treasury",
+      privateKey:
+        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+    });
+    const access = await owsLocalVaultService.resolveAccess({
+      apiKeyToken: (
+        await owsLocalVaultService.createApiKey({
+          name: "scoped",
+          walletIds: [wallet.id],
+          policyIds: [],
+        })
+      ).token,
+    });
+
+    const sendSpy = vi
+      .spyOn(owsLocalVaultService, "sendNativeTransfer")
+      .mockResolvedValue({ error: "insufficient gas funds" });
+
+    const service = new OwsWalletService();
+    const intent = {
+      id: "intent-ctrl-2",
+      agentId: "agent-1",
+      recipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      amount: "999",
+      asset: "OKB",
+      reason: "controller failure test",
+      timestamp: new Date().toISOString(),
+    };
+    const recorder = new CreRunRecorder({ workflow: "spend", mode: "cre" });
+    await recorder.addArtifact({ type: "spend_intent", data: intent });
+    const held = await (service as any).handleHold(
+      intent,
+      recorder,
+      "needs review",
+      "policy-ctrl-2",
+      access,
+    );
+
+    const controller = new CreController();
+    const req = makeReq({
+      params: { runId: held.runId },
+      body: { approve: true, reason: "operator approves" },
+    });
+    (req as any).userId = "operator-int-2";
+    const res = new MockRes();
+    await controller.submitApproval(req as any, res as any);
+
+    expect(res.payload?.success).toBe(false);
+    expect(res.payload?.error).toMatch(/insufficient gas funds/);
+    expect(res.payload?.transfer?.transferStatus).toBe("failed");
+    expect(res.payload?.transfer?.transferTxHash).toBeUndefined();
+    // Held run must remain retryable (status not flipped to "failed").
+    const persisted = await creRunStore.get(held.runId);
+    expect(persisted?.status).toBe("paused_for_approval");
+    expect(sendSpy).toHaveBeenCalledTimes(1);
+    sendSpy.mockRestore();
   });
 
   it("streamRunEvents resumes from Last-Event-ID", async () => {

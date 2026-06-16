@@ -18,6 +18,7 @@ import {
 } from "./FhenixPolicyService.js";
 import { OwsWalletPolicyEvaluator } from "./OwsWalletPolicy.js";
 import { OwsWalletOnChainManager } from "./OwsWalletOnChain.js";
+import { blockchainConfig } from "../shared/config/index.js";
 
 export interface SpendIntent {
   id: string;
@@ -56,6 +57,20 @@ export interface ExecutionResult {
    * single most dangerous line in the spend path for credibility.
    */
   onChainStatus?: "recorded" | "failed" | "skipped";
+  /**
+   * Real on-chain value transfer result (native gas token), separate from the
+   * governance approval record above.
+   * - "sent"    — transferTxHash is a real broadcast receipt; funds moved
+   * - "failed"  — the transfer broadcast failed; transferTxHash is undefined
+   * - "skipped" — transfer was not attempted (e.g. amount invalid → held)
+   *
+   * Same fail-loud contract as onChainStatus: a "failed" transfer with
+   * status=approved is a PARTIAL success (policy approved + envelope signed),
+   * NOT moved money. Never fabricate transferTxHash on failure.
+   */
+  transferTxHash?: string;
+  transferStatus?: "sent" | "failed" | "skipped";
+  transferError?: string;
 }
 
 export interface SpendExecutionContext {
@@ -348,19 +363,106 @@ export class OwsWalletService {
       }
     }
 
+    let valueWei: bigint;
+    try {
+      valueWei = BigInt(intent.amount);
+    } catch {
+      s.end({ ok: false, summary: "Invalid spend amount" });
+      return await this.handleHold(
+        intent,
+        recorder,
+        `Spend amount "${intent.amount}" is not a valid integer (wei). Held for review.`,
+        policyId,
+        access,
+      );
+    }
+    if (valueWei <= 0n) {
+      s.end({ ok: false, summary: "Non-positive spend amount" });
+      return await this.handleHold(
+        intent,
+        recorder,
+        `Spend amount must be positive (got ${valueWei} wei). Held for review.`,
+        policyId,
+        access,
+      );
+    }
+
+    return await this.finalizeApprovedSpend({
+      intent,
+      recorder,
+      step: s,
+      policyId,
+      access,
+      signer,
+      signature,
+      signingProvider: provider,
+      valueWei,
+      apiKeyToken,
+      operatorApproved: false,
+    });
+  }
+
+  /**
+   * Shared tail for an approved spend: broadcast the native value transfer,
+   * write the governance approval record, persist evidence, and return the
+   * result. Called from both handleApprove (scoped-key path) and
+   * resumeHeldSpend (operator-approved path).
+   */
+  private async finalizeApprovedSpend(params: {
+    intent: SpendIntent;
+    recorder: CreRunRecorder;
+    step: { end: (p: { ok: boolean; summary?: string; details?: Record<string, unknown> }) => void };
+    policyId: string;
+    access: OwsResolvedAccess;
+    signer: string;
+    signature?: string;
+    signingProvider: string;
+    valueWei: bigint;
+    apiKeyToken?: string | null;
+    operatorApproved: boolean;
+  }): Promise<ExecutionResult> {
+    const {
+      intent,
+      recorder,
+      step: s,
+      policyId,
+      access,
+      signer,
+      signature,
+      signingProvider,
+      valueWei,
+      apiKeyToken,
+      operatorApproved,
+    } = params;
+
+    // Broadcast the real native value transfer FROM the scoped wallet.
+    const transfer = await owsLocalVaultService.sendNativeTransfer({
+      walletId: access.wallet.id,
+      apiKeyToken: operatorApproved ? undefined : apiKeyToken,
+      operatorApproved,
+      to: intent.recipient,
+      valueWei,
+      rpcUrl: blockchainConfig.rpcUrl,
+      chainId: blockchainConfig.chainId,
+      gasLimit: blockchainConfig.gasLimits.nativeTransfer,
+    });
+    // Never fabricate transferTxHash on failure (same fail-loud contract as
+    // onChainStatus). A failed transfer with status=approved is a PARTIAL
+    // success, not moved money — callers must surface it.
+    const transferTxHash =
+      "txHash" in transfer ? transfer.txHash : undefined;
+    const transferStatus: "sent" | "failed" =
+      "txHash" in transfer ? "sent" : "failed";
+    const transferError =
+      "error" in transfer ? transfer.error : undefined;
+
+    // Governance approval record (audit), independent of the value transfer.
     const onChain = await this.onChainManager.recordOnChainApproval({
       intentId: intent.id,
       agentId: intent.agentId,
       actionType: "spend",
       metadata: intent.metadata || {},
     });
-    // Never fabricate a txHash when the chain write fails. The previous
-    // behavior here was `onChain.txHash || keccak256(signature)`, which
-    // returned a synthesized hash and status=approved even when the
-    // on-chain record did not exist — masking "policy approved" with
-    // "on-chain recorded" and breaking the central "real on-chain tx"
-    // claim. We now return txHash=undefined and an explicit
-    // onChainStatus so callers and audit logs can distinguish.
     const txHash = onChain.success ? onChain.txHash : undefined;
     const onChainStatus: "recorded" | "failed" = onChain.success
       ? "recorded"
@@ -369,9 +471,13 @@ export class OwsWalletService {
     await recorder.addArtifact({
       type: "attestation_result",
       data: {
-        signingProvider: provider,
+        signingProvider,
         txHash,
         signature,
+        transferTxHash,
+        transferStatus,
+        transferError,
+        operatorApproved,
         intentId: intent.id,
         policyId,
         walletId: access.wallet.id,
@@ -382,8 +488,14 @@ export class OwsWalletService {
       },
     });
 
-    s.end({ ok: true, summary: `Signed spend authorization: ${txHash}` });
-    await recorder.finish(true);
+    s.end({
+      ok: transferStatus === "sent",
+      summary:
+        transferStatus === "sent"
+          ? `Transfer broadcast: ${transferTxHash}`
+          : `Transfer failed: ${transferError}`,
+    });
+    await recorder.finish(transferStatus === "sent");
     const run = await this.persistRun(recorder);
 
     return {
@@ -397,7 +509,187 @@ export class OwsWalletService {
       txHash,
       signature,
       onChainStatus,
+      transferTxHash,
+      transferStatus,
+      transferError,
     };
+  }
+
+  /**
+   * Resume a spend that was held (paused_for_approval) once an operator
+   * approves it. Authority here is the operator's JWT (verified by the
+   * controller), which substitutes for the scoped OWS API key — the original
+   * caller's token is NEVER persisted, so it cannot be replayed here.
+   *
+   * This is the ONLY path that reaches sendNativeTransfer with
+   * operatorApproved=true; the public /api/spend path always goes through the
+   * fail-closed scoped-key branch in handleApprove.
+   */
+  // In-process per-runId serializer. Two concurrent operator approvals on the
+  // same held run would otherwise both pass the paused_for_approval guard and
+  // double-broadcast — the await get() in each call resolves before either
+  // claim is written, so the read-then-write is not atomic. Holding a single
+  // promise per runId forces strict serialization within this process.
+  // Multi-process deployments still need an external lock (Redis, DB advisory).
+  private resumeLocks = new Map<string, Promise<unknown>>();
+
+  public async resumeHeldSpend(
+    runId: string,
+    operatorId: string,
+  ): Promise<ExecutionResult> {
+    const prior = this.resumeLocks.get(runId);
+    if (prior) {
+      await prior.catch(() => undefined);
+    }
+    let release: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    this.resumeLocks.set(runId, gate);
+    try {
+      return await this.resumeHeldSpendInner(runId, operatorId);
+    } finally {
+      release!();
+      if (this.resumeLocks.get(runId) === gate) {
+        this.resumeLocks.delete(runId);
+      }
+    }
+  }
+
+  private async resumeHeldSpendInner(
+    runId: string,
+    operatorId: string,
+  ): Promise<ExecutionResult> {
+    const heldRun = await creRunStore.get(runId);
+    if (!heldRun) {
+      return { intentId: runId, status: "denied", error: "Run not found" };
+    }
+    if (heldRun.workflow !== "spend") {
+      return {
+        intentId: runId,
+        status: "denied",
+        error: `Run ${runId} is not a spend workflow`,
+      };
+    }
+    if (heldRun.status !== "paused_for_approval") {
+      return {
+        intentId: runId,
+        status: "denied",
+        error: `Run ${runId} is not awaiting approval (status: ${heldRun.status})`,
+      };
+    }
+
+    const intentArtifact = heldRun.artifacts.find(
+      (a) => a.type === "spend_intent",
+    );
+    const intent = intentArtifact?.data as SpendIntent | undefined;
+    if (!intent || !intent.id) {
+      return {
+        intentId: runId,
+        status: "denied",
+        error: "Held run has no spend_intent artifact to resume",
+      };
+    }
+
+    // handleHold persisted walletId/policyId on the "error" (held) artifact.
+    const heldArtifact = heldRun.artifacts.find((a) => a.type === "error");
+    const heldData = (heldArtifact?.data as Record<string, unknown>) || {};
+    const walletId =
+      (typeof heldData.walletId === "string" ? heldData.walletId : undefined) ||
+      (typeof intent.metadata?.walletId === "string"
+        ? intent.metadata.walletId
+        : undefined);
+    const policyId =
+      typeof heldData.policyId === "string" ? heldData.policyId : "unknown";
+
+    if (!walletId) {
+      return {
+        intentId: intent.id,
+        status: "denied",
+        error: "Held run has no wallet bound; cannot resume",
+      };
+    }
+
+    const wallet = (await owsLocalVaultService.listWallets()).find(
+      (w) => w.id === walletId,
+    );
+    if (!wallet) {
+      return {
+        intentId: intent.id,
+        status: "denied",
+        error: `Wallet ${walletId} no longer exists in the vault`,
+      };
+    }
+    const access: OwsResolvedAccess = { wallet, apiKey: undefined };
+
+    let valueWei: bigint;
+    try {
+      valueWei = BigInt(intent.amount);
+    } catch {
+      return {
+        intentId: intent.id,
+        status: "denied",
+        error: `Spend amount "${intent.amount}" is not a valid integer (wei)`,
+      };
+    }
+    if (valueWei <= 0n) {
+      return {
+        intentId: intent.id,
+        status: "denied",
+        error: `Spend amount must be positive (got ${valueWei} wei)`,
+      };
+    }
+
+    // Flip the held run to "running" so the lock-skipping case (e.g. cache
+    // re-populates from disk between lock acquisitions, or a future external
+    // lock fails open) still has a status-based denial under it. The
+    // resumeLocks gate above is the primary defense; this is belt + braces.
+    const claimed = {
+      ...heldRun,
+      status: "running" as const,
+      finishedAt: undefined,
+    };
+    await creRunStore.replace(claimed);
+
+    const recorder = new CreRunRecorder({ workflow: "spend", mode: "cre" });
+    recorder.getRun().parentRunId = runId;
+    await recorder.addArtifact({ type: "spend_intent", data: intent });
+    const s = recorder.startStep("evm_write", "wallet_sign_and_broadcast", {
+      resumedFrom: runId,
+      operatorId,
+    });
+
+    logger.info(
+      `Operator ${operatorId} resuming held spend ${intent.id} (run ${runId})`,
+    );
+
+    const result = await this.finalizeApprovedSpend({
+      intent,
+      recorder,
+      step: s,
+      policyId,
+      access,
+      signer: wallet.accounts[0]?.address || walletId,
+      signature: undefined,
+      signingProvider: "operator",
+      valueWei,
+      apiKeyToken: null,
+      operatorApproved: true,
+    });
+
+    // Roll back the claim on failure so the held run is retryable. The
+    // transfer didn't move money, so the run is still "needs approval" —
+    // leaving it at "running" would cause the next attempt to deny.
+    if (result.transferStatus !== "sent") {
+      const rolledBack = {
+        ...heldRun,
+        status: "paused_for_approval" as const,
+        finishedAt: undefined,
+      };
+      await creRunStore.replace(rolledBack);
+    }
+
+    return result;
   }
 
   private async handleHold(
