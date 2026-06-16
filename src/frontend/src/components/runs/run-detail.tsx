@@ -14,8 +14,16 @@ import {
   AlertTriangle,
   PlayCircle,
   Activity,
+  Loader2,
+  ExternalLink,
+  RotateCw,
 } from "lucide-react";
 import { useRun } from "@/hooks/use-api";
+import { apiClient } from "@/lib/api-client";
+
+type ApprovalResult = Awaited<
+  ReturnType<typeof apiClient.submitRunApproval>
+>;
 
 const statusConfig = {
   completed: {
@@ -75,9 +83,31 @@ function useCountUp(target: number, duration = 2000, start = false) {
 
 export function RunDetail({ runId }: { runId: string }) {
   const router = useRouter();
-  const { data: run, isLoading, error } = useRun(runId);
+  const { data: run, isLoading, error, mutate } = useRun(runId);
   const statsRef = useRef<HTMLDivElement>(null);
   const [statsVisible, setStatsVisible] = useState(false);
+  const [submitting, setSubmitting] = useState<"approve" | "deny" | null>(null);
+  const [approval, setApproval] = useState<ApprovalResult | null>(null);
+
+  async function handleApproval(approve: boolean) {
+    setSubmitting(approve ? "approve" : "deny");
+    setApproval(null);
+    try {
+      const result = await apiClient.submitRunApproval(runId, { approve });
+      setApproval(result);
+      // Refresh the run on any state-changing outcome (approved success OR
+      // failure that left it paused). On failure the run is still paused; the
+      // refresh keeps status correct without flipping the UI to "Completed".
+      await mutate();
+    } catch (err) {
+      setApproval({
+        success: false,
+        error: err instanceof Error ? err.message : "Approval request failed",
+      });
+    } finally {
+      setSubmitting(null);
+    }
+  }
 
   useEffect(() => {
     if (!statsRef.current) return;
@@ -247,16 +277,38 @@ export function RunDetail({ runId }: { runId: string }) {
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {run.status === "failed" && (
           <Button>
             <PlayCircle className="h-4 w-4" /> Retry Run
           </Button>
         )}
         {run.status === "paused_for_approval" && (
-          <Button>
-            <CheckCircle2 className="h-4 w-4" /> Approve
-          </Button>
+          <>
+            <Button
+              onClick={() => handleApproval(true)}
+              disabled={submitting !== null}
+            >
+              {submitting === "approve" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+              {submitting === "approve" ? "Broadcasting…" : "Approve"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleApproval(false)}
+              disabled={submitting !== null}
+            >
+              {submitting === "deny" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <XCircle className="h-4 w-4" />
+              )}
+              Deny
+            </Button>
+          </>
         )}
         <Button
           variant="outline"
@@ -265,6 +317,85 @@ export function RunDetail({ runId }: { runId: string }) {
           New Evaluation
         </Button>
       </div>
+
+      {/* Approval result panel. Shown after submit until dismissed via another
+          submit. Surfaces transferTxHash on success, transferError on failure,
+          and offers Retry on failure (which mints a fresh idempotency key). */}
+      {approval && (
+        <div
+          className={`rounded-xl border p-4 ${
+            approval.success
+              ? "border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20"
+              : "border-red-500/30 bg-red-50/50 dark:bg-red-950/20"
+          }`}
+        >
+          {approval.success ? (
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium">
+                  {approval.transfer?.transferStatus === "sent"
+                    ? "Approved & broadcast"
+                    : "Approval recorded"}
+                </div>
+                {approval.transfer?.transferTxHash ? (
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Transfer hash:{" "}
+                    <a
+                      href={`https://www.oklink.com/xlayer-testnet/tx/${approval.transfer.transferTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono underline inline-flex items-center gap-1"
+                    >
+                      {approval.transfer.transferTxHash.slice(0, 10)}…
+                      {approval.transfer.transferTxHash.slice(-8)}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground mt-1">
+                    No on-chain transfer for this run.
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium">
+                  {approval.transfer?.transferStatus === "failed"
+                    ? "Transfer failed — money did not move"
+                    : "Approval failed"}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1 break-words">
+                  {approval.transfer?.transferError ||
+                    approval.error ||
+                    "Unknown error."}
+                </div>
+                {/* Retry re-fires the approve POST with a fresh
+                    Idempotency-Key (generated inside submitRunApproval), so
+                    the cached failure does not block re-broadcast. */}
+                <div className="mt-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleApproval(true)}
+                    disabled={submitting !== null}
+                  >
+                    {submitting === "approve" ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RotateCw className="h-3 w-3" />
+                    )}
+                    Retry approval
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

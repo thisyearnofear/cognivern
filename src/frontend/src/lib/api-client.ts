@@ -692,6 +692,66 @@ class ApiClient {
       body: JSON.stringify({ status }),
     });
   }
+
+  // CRE Run Approval
+  // POSTs to /api/cre/runs/:runId/approval with a FRESH Idempotency-Key per
+  // call. For held spend runs the backend will broadcast a real native
+  // transfer; the response surfaces { transferTxHash, transferStatus,
+  // transferError }. A failed transfer leaves the run at paused_for_approval
+  // so a retry click re-enters the broadcast path. We always mint a new idem
+  // key per call so retries are not blocked by a cached failure response.
+  async submitRunApproval(
+    runId: string,
+    params: { approve: boolean; reason?: string },
+  ): Promise<{
+    success: boolean;
+    run?: Record<string, unknown>;
+    transfer?: {
+      transferTxHash?: string;
+      transferStatus?: "sent" | "failed" | "skipped";
+      transferError?: string;
+    };
+    error?: string;
+  }> {
+    const { workspaceMode } = useAuthStore.getState();
+    const idemKey =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Workspace-Mode": workspaceMode,
+      "Idempotency-Key": idemKey,
+    };
+    if (this.apiKey) headers["x-api-key"] = this.apiKey;
+    const token = getAuthToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const response = await fetch(`/api/cre/runs/${runId}/approval`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(params),
+    });
+
+    if (response.status === 401) {
+      useAuthStore.getState().logout();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("auth:expired"));
+      }
+    }
+
+    // The controller returns 200 even for transfer failures (with success:false
+    // in the body), so always parse and let the caller decide based on
+    // success/transferStatus. On a true 5xx fall through to a generic error.
+    try {
+      return await response.json();
+    } catch {
+      return {
+        success: false,
+        error: `Approval failed: HTTP ${response.status}`,
+      };
+    }
+  }
 }
 
 export const apiClient = new ApiClient();

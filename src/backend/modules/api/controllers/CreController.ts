@@ -586,7 +586,22 @@ export class CreController {
       normalized.status === "paused_for_approval" &&
       normalized.workflow === "spend"
     ) {
-      const operatorId = req.userId || "operator";
+      // Per-resource auth check: spend approvals must come from an
+      // authenticated operator (JWT → req.userId). The workspace middleware
+      // also accepts x-api-key, but a workspace key alone is not sufficient
+      // to release real funds — there is no operator identity to attribute
+      // the action to in the audit trail. The endpoint is also no longer in
+      // PUBLIC_API_PATHS, so unauthenticated callers are rejected before
+      // reaching this point.
+      if (!req.userId) {
+        res.status(403).json({
+          success: false,
+          error:
+            "Operator authentication required. Sign in and retry.",
+        });
+        return;
+      }
+      const operatorId = req.userId;
       const transfer = await owsWalletService.resumeHeldSpend(
         req.params.runId,
         operatorId,
