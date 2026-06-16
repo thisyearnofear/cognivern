@@ -124,7 +124,11 @@ export const blockchainConfig = {
   privateKey: process.env.XLAYER_PRIVATE_KEY || "",
   rpcUrl: process.env.XLAYER_TESTNET_RPC_URL || "https://testrpc.xlayer.tech",
   network: "xlayerTestnet",
-  chainId: Number(process.env.XLAYER_CHAIN_ID || "195"),
+  // X Layer testnet chainId is 1952 (testrpc.xlayer.tech). Mainnet is 196.
+  // The literal "195" we used previously did not correspond to any X Layer
+  // chain — the broadcast failed with NETWORK_ERROR (network changed: 195 =>
+  // 1952) when ethers detected the RPC's actual chainId.
+  chainId: Number(process.env.XLAYER_CHAIN_ID || "1952"),
   contracts: {
     governance:
       process.env.XLAYER_GOVERNANCE_CONTRACT_ADDRESS ||

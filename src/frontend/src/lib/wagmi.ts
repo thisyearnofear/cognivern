@@ -6,7 +6,9 @@ import { http, fallback } from "wagmi";
 import { mainnet, sepolia, arbitrumSepolia } from "wagmi/chains";
 
 export const xLayerTestnet = defineChain({
-  id: 195,
+  // testrpc.xlayer.tech returns chainId 1952 (the previous value 195 was
+  // wrong and caused ethers to throw NETWORK_ERROR on every transaction).
+  id: 1952,
   name: "X Layer Testnet",
   nativeCurrency: { name: "OKB", symbol: "OKB", decimals: 18 },
   rpcUrls: {
