@@ -48,7 +48,12 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   "/cre/projects",
   "/cre/forecast",
   "/cre/runs/:runId/retry",
-  "/cre/runs/:runId/approval",
+  // NOTE: /cre/runs/:runId/approval is NOT in this list. Held spend runs are
+  // resumed through this endpoint and broadcast real money; an unauthenticated
+  // approval would let any caller move funds from a scoped wallet. The
+  // controller additionally requires req.userId (operator JWT) for the spend
+  // branch — see CreController.submitApproval. This mirrors the /api/spend
+  // hardening from commit 432e10c.
   "/spend",
   "/spend/status",
   "/spend/scan",

@@ -391,6 +391,75 @@ describe("CreController", () => {
     sendSpy.mockRestore();
   });
 
+  it("submitApproval (spend workflow) refuses approve without operator userId", async () => {
+    const { OwsWalletService } = await import(
+      "../../src/backend/services/OwsWalletService.js"
+    );
+    const { CreRunRecorder } = await import(
+      "../../src/backend/cre/runRecorder.js"
+    );
+
+    fs.writeFileSync(
+      process.env.OWS_VAULT_PATH!,
+      JSON.stringify({ version: 1, wallets: [], apiKeys: [], agents: [] }),
+    );
+    const wallet = await owsLocalVaultService.importWallet({
+      name: "Treasury",
+      privateKey:
+        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+    });
+    const access = await owsLocalVaultService.resolveAccess({
+      apiKeyToken: (
+        await owsLocalVaultService.createApiKey({
+          name: "scoped",
+          walletIds: [wallet.id],
+          policyIds: [],
+        })
+      ).token,
+    });
+
+    const sendSpy = vi.spyOn(owsLocalVaultService, "sendNativeTransfer");
+
+    const service = new OwsWalletService();
+    const intent = {
+      id: "intent-ctrl-noauth",
+      agentId: "agent-1",
+      recipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      amount: "1000",
+      asset: "OKB",
+      reason: "no-auth attempt",
+      timestamp: new Date().toISOString(),
+    };
+    const recorder = new CreRunRecorder({ workflow: "spend", mode: "cre" });
+    await recorder.addArtifact({ type: "spend_intent", data: intent });
+    const held = await (service as any).handleHold(
+      intent,
+      recorder,
+      "needs review",
+      "policy-noauth",
+      access,
+    );
+
+    const controller = new CreController();
+    // No userId on req — simulates a caller without a JWT (e.g. unauth or
+    // workspace-key-only). Must be rejected with 403 and NEVER broadcast.
+    const req = makeReq({
+      params: { runId: held.runId },
+      body: { approve: true, reason: "should-not-broadcast" },
+    });
+    const res = new MockRes();
+    await controller.submitApproval(req as any, res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.payload?.success).toBe(false);
+    expect(res.payload?.error).toMatch(/operator/i);
+    expect(sendSpy).not.toHaveBeenCalled();
+    // Run must remain held so a properly-authed operator can still approve.
+    const persisted = await creRunStore.get(held.runId);
+    expect(persisted?.status).toBe("paused_for_approval");
+    sendSpy.mockRestore();
+  });
+
   it("streamRunEvents resumes from Last-Event-ID", async () => {
     const run = makeRun("running");
     await creRunStore.add(run as any);
