@@ -130,6 +130,14 @@ For each decision, you see:
 - **Policy rules matched** — Which rules triggered this outcome
 - **On-chain tx** — Real transfer transaction hash on X Layer testnet (if approved and the broadcast succeeded)
 
+### Verified on-chain
+
+The held-spend → operator-approve → native-transfer path is verified working against X Layer testnet (chainId 1952, RPC `testrpc.xlayer.tech`):
+
+- Transfer: [`0xa18b…69c8`](https://www.oklink.com/xlayer-test/tx/0xa18b2b533d1cdacb86dc23b40b87090625402b90b199bb1013c045aa1b9769c8) — 200 wei OKB, gas 21000, status `0x1`.
+
+The governance attestation record on `XLAYER_GOVERNANCE_CONTRACT_ADDRESS` is separate from the value transfer and requires `XLAYER_PRIVATE_KEY` to be set on the backend. When it isn't, the value transfer still goes through; the run response surfaces `transferStatus="sent"` with `onChainStatus="failed"` (fail-loud — never fabricated).
+
 ---
 
 ## Common Setups

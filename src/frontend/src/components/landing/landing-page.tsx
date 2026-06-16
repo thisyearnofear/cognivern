@@ -199,7 +199,7 @@ export function LandingPage() {
     "→ Evaluating rules...",
     "✓ Approved — tx broadcast to X Layer",
     "→ txHash: 0x6942...c0",
-    "→ https://oklink.com/xlayer-testnet/tx/... ↗",
+    "→ https://oklink.com/xlayer-test/tx/... ↗",
   ];
 
   const { displayed: terminalOutput, done: terminalDone } = useTypewriter(terminalLines, 35, 600);
@@ -379,7 +379,7 @@ export function LandingPage() {
                     <span className="text-emerald-400/60 text-xs mt-2 block">
                       ✓ Live — view on{" "}
                       <a
-                        href="https://www.oklink.com/xlayer-testnet"
+                        href="https://www.oklink.com/xlayer-test"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="underline underline-offset-2 hover:text-emerald-300"
