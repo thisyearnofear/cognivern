@@ -41,6 +41,22 @@ const defaultState = {
 
 const STORAGE_NAME = "civern-auth-store";
 
+/**
+ * Returns true when a JWT's `exp` claim is in the past (or the token is
+ * malformed). Used on rehydration so a returning user with an expired
+ * session isn't shown a logged-in UI whose every API call 401s.
+ */
+function isTokenExpired(token: string | null): boolean {
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (typeof payload.exp !== "number") return false;
+    return payload.exp <= Math.floor(Date.now() / 1000);
+  } catch {
+    return true;
+  }
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -79,6 +95,15 @@ export const useAuthStore = create<AuthState>()(
         workspaceMode: state.workspaceMode,
       }),
       onRehydrateStorage: () => (state) => {
+        // If the persisted token has expired, drop the session so the UI
+        // doesn't render as authenticated while the API rejects everything.
+        if (state && isTokenExpired(state.token)) {
+          state.isConnected = false;
+          state.walletAddress = null;
+          state.authUser = null;
+          state.workspace = null;
+          state.token = null;
+        }
         // Mark as hydrated after rehydration so the UI can render
         // without flashing the unauthenticated default state.
         state?.setHasHydrated(true);
