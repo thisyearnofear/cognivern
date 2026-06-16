@@ -342,7 +342,7 @@ export function RunDetail({ runId }: { runId: string }) {
                   <div className="text-sm text-muted-foreground mt-1">
                     Transfer hash:{" "}
                     <a
-                      href={`https://www.oklink.com/xlayer-testnet/tx/${approval.transfer.transferTxHash}`}
+                      href={`https://www.oklink.com/xlayer-test/tx/${approval.transfer.transferTxHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-mono underline inline-flex items-center gap-1"

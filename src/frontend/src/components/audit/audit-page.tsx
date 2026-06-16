@@ -410,7 +410,7 @@ function TimelineNode({
                       {txHash.slice(0, 18)}...{txHash.slice(-6)}
                     </code>
                     <a
-                      href={`https://www.oklink.com/xlayer-testnet/tx/${txHash}`}
+                      href={`https://www.oklink.com/xlayer-test/tx/${txHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-[11px] text-sky-600 dark:text-sky-400 hover:underline shrink-0"

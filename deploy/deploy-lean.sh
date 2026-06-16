@@ -34,10 +34,15 @@ info "Bundle size: $BUNDLE_SIZE"
 # 2. Sync bundle to server (only changed files)
 # ──────────────────────────────────────────────────────────────
 info "Syncing to server..."
+# --exclude .cognivern: the OWS local vault lives at app/bundle/.cognivern/
+# unless OWS_VAULT_PATH overrides it (see /opt/cognivern/shared/.env on prod).
+# Without this exclude, --delete wipes wallets + scoped API keys on every
+# deploy — and held-spend runs reference a walletId that no longer exists.
 rsync -avz --delete \
   "$BUNDLE_DIR/" \
   "$SSH_HOST:$DEPLOY_PATH/bundle/" \
-  --exclude node_modules
+  --exclude node_modules \
+  --exclude .cognivern
 
 # ──────────────────────────────────────────────────────────────
 # 3. Install native deps + restart on server
