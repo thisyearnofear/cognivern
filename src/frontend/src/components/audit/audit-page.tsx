@@ -596,7 +596,9 @@ function TimelineNode({
                           <span className="text-muted-foreground capitalize">
                             {dim.replace(/([A-Z])/g, " $1").trim()}
                           </span>
-                          <span className="font-mono">{(val as number).toFixed(2)}</span>
+                          <span className="font-mono">
+                            {typeof val === "number" ? val.toFixed(2) : "—"}
+                          </span>
                         </div>
                       ))}
                     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,8 +151,13 @@ function CheckItem({
 
 export function GovernanceCheck() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: agents } = useAgents();
-  const [agentId, setAgentId] = useState("");
+  // Pre-select agent when launched from an agent detail page
+  // (?agent=<id>). Auto-opens the advanced section so the user sees the
+  // selected agent. Falls back to empty (= first agent at submit time).
+  const initialAgentId = searchParams?.get("agent") ?? "";
+  const [agentId, setAgentId] = useState(initialAgentId);
   const [actionType, setActionType] = useState("swap");
   const [actionDesc, setActionDesc] = useState(
     ACTION_TYPES.find((a) => a.type === "swap")?.description || "",
@@ -171,7 +176,9 @@ export function GovernanceCheck() {
     connectToFheSse,
   } = useFheProgress();
   const [nlInput, setNlInput] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Auto-expand advanced fields when arriving with a pre-selected agent,
+  // so the user can see which identity will be evaluated.
+  const [showAdvanced, setShowAdvanced] = useState(Boolean(initialAgentId));
   const [debouncedNlParsed, setDebouncedNlParsed] = useState<{
     type: string;
     amount: string;
