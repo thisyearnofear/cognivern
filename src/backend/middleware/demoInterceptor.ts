@@ -154,6 +154,46 @@ function serveDemoData(
         },
       };
     }
+
+    // Sandbox agent registration. Without this branch sandbox users hit the
+    // real AgentsController and were rejected because that controller's
+    // legacy contract requires { type, name, address } while the dashboard
+    // sends { name, role, chain, budget }. We mirror the (now-permissive)
+    // controller's mapping here so sandbox users see a successful create
+    // with a stable id they can navigate to, and the in-memory live-agent
+    // path doesn't get polluted with sandbox identities.
+    if (
+      path === "/agents/register" ||
+      path === "/agents/register/" ||
+      path === "/agents/connect" ||
+      path === "/agents/connect/"
+    ) {
+      const { name, role, chain, walletAddress, budget } = body || {};
+      const type = role || (body as Record<string, unknown> | undefined)?.type;
+      if (!name || !type) {
+        return {
+          success: false,
+          error: "name and role (or type) are required",
+          _status: 400,
+        };
+      }
+      const id = `demo-agent-${Date.now()}`;
+      return {
+        success: true,
+        _status: 201,
+        data: {
+          id,
+          name,
+          role: role || type,
+          type: role || type,
+          chain: chain || "Ethereum",
+          status: "inactive",
+          walletAddress: walletAddress || "platform:managed",
+          budget: budget || "$1,000",
+          createdAt: new Date().toISOString(),
+        },
+      };
+    }
     return null;
   }
 
