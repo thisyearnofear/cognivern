@@ -31,15 +31,20 @@ export function DemoBanner() {
   const [switching, setSwitching] = useState(false);
   const isConnected = useAuthStore((s) => s.isConnected);
   const workspaceMode = useAuthStore((s) => s.workspaceMode);
+  const hasExitedSandbox = useAuthStore((s) => s.hasExitedSandbox);
   const setWorkspaceMode = useAuthStore((s) => s.setWorkspaceMode);
+  const setHasExitedSandbox = useAuthStore((s) => s.setHasExitedSandbox);
   const demoMode = useDemoStore((s) => s.demoMode);
 
   // Flip mode + nuke the SWR cache so every fetch re-runs against the new
   // X-Workspace-Mode header. Without the revalidate the dashboard would keep
-  // showing the old sandbox data until you hard-refreshed.
+  // showing the old sandbox data until you hard-refreshed. Also marks the
+  // user as having graduated from new-user orientation — they won't see the
+  // full amber bar again on future sign-ins.
   const switchToProduction = useCallback(async () => {
     setSwitching(true);
     setWorkspaceMode("production");
+    setHasExitedSandbox(true);
     await mutate(() => true, undefined, { revalidate: true });
     toast.success("Switched to Production mode", {
       description:
@@ -54,14 +59,26 @@ export function DemoBanner() {
       },
     });
     setSwitching(false);
-  }, [setWorkspaceMode]);
+  }, [setWorkspaceMode, setHasExitedSandbox]);
 
   const switchToSandbox = useCallback(async () => {
     setSwitching(true);
     setWorkspaceMode("sandbox");
+    // Deliberate entry into sandbox by an already-graduated user counts as
+    // having exited orientation. Without this an existing user clicking
+    // "View sandbox demo" and then signing out + back in would get the
+    // full amber bar again.
+    setHasExitedSandbox(true);
     await mutate(() => true, undefined, { revalidate: true });
     setSwitching(false);
-  }, [setWorkspaceMode]);
+  }, [setWorkspaceMode, setHasExitedSandbox]);
+
+  /** Dismiss without switching modes — user understands they're in sandbox
+   *  but doesn't want the full orientation bar. They get the slim "Sandbox
+   *  (demo)" header from here on. */
+  const dismissOrientation = useCallback(() => {
+    setHasExitedSandbox(true);
+  }, [setHasExitedSandbox]);
 
   // 1. Unauthenticated landing-page demo tour. Keep the existing gradient.
   if (demoMode && !isConnected) {
@@ -98,9 +115,10 @@ export function DemoBanner() {
     );
   }
 
-  // 2. Signed-in sandbox mode. The case the user flagged: populated
-  //    dashboard with no signal that the data is fake.
-  if (isConnected && workspaceMode === "sandbox") {
+  // 2a. New-user sandbox orientation. Full amber bar with explanation +
+  //     one-click Switch to Production. Only shows ONCE per browser (the
+  //     hasExitedSandbox flag is sticky across logout).
+  if (isConnected && workspaceMode === "sandbox" && !hasExitedSandbox) {
     return (
       <div
         role="status"
@@ -114,16 +132,51 @@ export function DemoBanner() {
             moves real funds.
           </span>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={switching}
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={switching}
+            onClick={switchToProduction}
+            className="border-amber-300 dark:border-amber-700 bg-amber-100/50 dark:bg-amber-900/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-200 h-7"
+          >
+            {switching ? "Switching…" : "Switch to Production"}
+            <ArrowRight size={12} />
+          </Button>
+          <button
+            type="button"
+            onClick={dismissOrientation}
+            aria-label="Got it — keep exploring"
+            className="text-amber-700/70 dark:text-amber-300/70 hover:text-amber-800 dark:hover:text-amber-200 text-[11px] underline-offset-2 hover:underline"
+          >
+            Got it
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 2b. Returning sandbox visit. User has been here before — they came
+  //     back deliberately (via "View sandbox demo" or by clicking "Back
+  //     to Sandbox"). Slim header, no orientation copy, one-click exit.
+  if (isConnected && workspaceMode === "sandbox" && hasExitedSandbox) {
+    return (
+      <div className="flex items-center gap-2 px-6 py-1.5 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900 text-xs flex-shrink-0">
+        <FlaskConical className="h-3 w-3 text-amber-500" />
+        <span className="font-medium text-amber-700 dark:text-amber-300">
+          Sandbox demo
+        </span>
+        <span className="text-muted-foreground hidden sm:inline">
+          — demo data, nothing persists
+        </span>
+        <button
+          type="button"
           onClick={switchToProduction}
-          className="border-amber-300 dark:border-amber-700 bg-amber-100/50 dark:bg-amber-900/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-200 h-7"
+          disabled={switching}
+          className="ml-auto text-[10px] text-muted-foreground hover:text-foreground transition-colors"
         >
-          {switching ? "Switching…" : "Switch to Production"}
-          <ArrowRight size={12} />
-        </Button>
+          {switching ? "Exiting…" : "Exit demo"}
+        </button>
       </div>
     );
   }

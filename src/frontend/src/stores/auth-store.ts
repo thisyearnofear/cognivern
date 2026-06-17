@@ -11,6 +11,15 @@ interface AuthState {
   workspaces: Workspace[];
   token: string | null;
   workspaceMode: "sandbox" | "production";
+  /**
+   * Sticky flag: true once the user has been through the new-user sandbox
+   * orientation (clicked Switch to Production, explicitly opened the
+   * "View sandbox demo" tool, or — once wired — created their first real
+   * artifact). Persisted across logout so a returning user doesn't get the
+   * "what is all this?" amber banner a second time. The banner gates on
+   * this, and login() forces production mode when it's true.
+   */
+  hasExitedSandbox: boolean;
   hasHydrated: boolean;
   /**
    * Monotonic counter the AuthWatcher toast increments to ask the auth
@@ -24,6 +33,7 @@ interface AuthState {
   setWorkspaces: (workspaces: Workspace[]) => void;
   switchWorkspace: (workspace: Workspace, token: string) => void;
   setWorkspaceMode: (mode: "sandbox" | "production") => void;
+  setHasExitedSandbox: (value: boolean) => void;
   setHasHydrated: (hydrated: boolean) => void;
   requestSignIn: () => void;
 }
@@ -36,6 +46,7 @@ const defaultState = {
   workspaces: [],
   token: null,
   workspaceMode: "sandbox" as const,
+  hasExitedSandbox: false,
   hasHydrated: false,
   signInRequestId: 0,
 };
@@ -70,16 +81,34 @@ export const useAuthStore = create<AuthState>()(
         if (useDemoStore.getState().demoMode) {
           useDemoStore.getState().exitDemoMode();
         }
+        // Returning users who have already graduated from sandbox should
+        // land on production mode by default — they don't need the
+        // orientation banner again. New users keep the persisted (or
+        // default) sandbox mode so they get the banner once.
+        const previous = useAuthStore.getState();
+        const nextWorkspaceMode = previous.hasExitedSandbox
+          ? "production"
+          : previous.workspaceMode;
         set({
           isConnected: true,
           walletAddress: authUser.walletAddress ?? null,
           authUser,
           workspace,
           token,
+          workspaceMode: nextWorkspaceMode,
         });
       },
       logout: () => {
-        set({ ...defaultState, hasHydrated: true });
+        // Preserve hasExitedSandbox across logout: it's a per-browser fact
+        // about whether the user has already gone through orientation,
+        // independent of any particular session. Clearing it would push
+        // a returning user back into the new-user sandbox onboarding.
+        const preservedExit = useAuthStore.getState().hasExitedSandbox;
+        set({
+          ...defaultState,
+          hasExitedSandbox: preservedExit,
+          hasHydrated: true,
+        });
       },
       setWorkspace: (workspace) => set({ workspace }),
       setWorkspaces: (workspaces) => set({ workspaces }),
@@ -87,6 +116,7 @@ export const useAuthStore = create<AuthState>()(
         set({ workspace, token });
       },
       setWorkspaceMode: (workspaceMode) => set({ workspaceMode }),
+      setHasExitedSandbox: (value) => set({ hasExitedSandbox: value }),
       setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
       requestSignIn: () =>
         set((state) => ({ signInRequestId: state.signInRequestId + 1 })),
@@ -101,6 +131,7 @@ export const useAuthStore = create<AuthState>()(
         workspace: state.workspace,
         token: state.token,
         workspaceMode: state.workspaceMode,
+        hasExitedSandbox: state.hasExitedSandbox,
       }),
       onRehydrateStorage: () => (state) => {
         // If the persisted token has expired, drop the session so the UI
