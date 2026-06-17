@@ -83,29 +83,71 @@ function serveDemoData(
       const policies = DemoDataService.getPolicies();
       const amount = action.amount || 0;
 
-      // Simulate evaluation against demo policies
-      const budgetPolicy = policies.find((p) => p.type === "budget");
-      const budgetLimit = 3000;
-      const denied = amount > budgetLimit;
+      // Three-outcome demo evaluation so the Governance Check page can
+      // demonstrate Approved / Held / Denied without requiring a real
+      // backing policy. Bands match the marketing story:
+      //   < $100   → approved (under any threshold)
+      //   ≥ $100   → held (needs operator review)
+      //   > $3000  → denied (hard limit)
+      const HOLD_THRESHOLD = 100;
+      const HARD_LIMIT = 3000;
+      const decision: "approved" | "denied" | "held" =
+        amount > HARD_LIMIT
+          ? "denied"
+          : amount >= HOLD_THRESHOLD
+            ? "held"
+            : "approved";
 
-      const policyChecks = policies.map((p) => ({
-        policyId: p.id,
-        result: p.type === "budget" ? !denied : true,
-        reason:
-          p.type === "budget"
-            ? denied
-              ? `Amount ${amount} exceeds $${budgetLimit} single transaction limit`
-              : "Within daily limit"
-            : `${p.name} check passed`,
-      }));
+      const budgetPolicy = policies.find((p) => p.type === "budget");
+      const approvalPolicy = policies.find(
+        (p) => p.type === "approval" || p.type === "review",
+      );
+
+      const policyChecks = policies.map((p) => {
+        if (p.type === "budget") {
+          return {
+            policyId: p.id,
+            result: decision !== "denied",
+            reason:
+              decision === "denied"
+                ? `Amount $${amount} exceeds $${HARD_LIMIT} hard limit`
+                : `Within $${HARD_LIMIT} hard limit`,
+          };
+        }
+        if (p.type === "approval" || p.type === "review") {
+          return {
+            policyId: p.id,
+            result: decision === "approved",
+            reason:
+              decision === "held"
+                ? `Amount $${amount} ≥ $${HOLD_THRESHOLD} requires operator review`
+                : decision === "approved"
+                  ? `Under $${HOLD_THRESHOLD} auto-approval threshold`
+                  : `Skipped — denied by ${budgetPolicy?.name || "budget"}`,
+          };
+        }
+        return {
+          policyId: p.id,
+          result: decision !== "denied",
+          reason: `${p.name} check ${decision === "denied" ? "skipped" : "passed"}`,
+        };
+      });
+
+      const reasoning =
+        decision === "denied"
+          ? `Denied by ${budgetPolicy?.name || "budget policy"}: amount $${amount} exceeds $${HARD_LIMIT}`
+          : decision === "held"
+            ? `Held for review by ${approvalPolicy?.name || "approval policy"}: amount $${amount} above auto-approval threshold ($${HOLD_THRESHOLD})`
+            : `Approved — passed ${policyChecks.length} policy check(s)`;
 
       return {
         success: true,
         data: {
-          allowed: !denied,
-          reasoning: denied
-            ? `Denied by ${budgetPolicy?.name || "budget policy"}: amount ${amount} exceeds limit`
-            : `Action approved — passed ${policyChecks.length} policy check(s)`,
+          // Backwards compat: `allowed` stays true only when fully approved.
+          // Held is a "needs review" state, not a green light.
+          allowed: decision === "approved",
+          decision,
+          reasoning,
           policyChecks,
           auditLogId: `log-${agentId}-${new Date().toISOString()}`,
           timestamp: new Date().toISOString(),

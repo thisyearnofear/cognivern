@@ -28,6 +28,7 @@ import {
   Mic,
   MicOff,
   Sparkles,
+  Clock,
 } from "lucide-react";
 import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
@@ -52,6 +53,44 @@ const ACTION_TYPES = [
   { type: "transfer", description: "Transfer tokens to an external wallet" },
   { type: "mint", description: "Mint tokens" },
   { type: "approve", description: "Approve a spending cap" },
+];
+
+/**
+ * Click-to-try examples in the empty state. Each is sized to hit a
+ * specific decision band in demoInterceptor.ts:
+ *   <$100 → approved, $100–$3000 → held, >$3000 → denied.
+ * Real workspaces will see their own policy outcome — the labels still
+ * communicate the intent, but the actual decision is policy-dependent.
+ */
+type ExampleOutcome = "approved" | "held" | "denied";
+const EXAMPLES: Array<{
+  outcome: ExampleOutcome;
+  type: string;
+  amount: number;
+  desc: string;
+  blurb: string;
+}> = [
+  {
+    outcome: "approved",
+    type: "swap",
+    amount: 50,
+    desc: "Swap $50 USDC for ETH on Uniswap",
+    blurb: "Small swap — under any threshold",
+  },
+  {
+    outcome: "held",
+    type: "swap",
+    amount: 500,
+    desc: "Swap $500 USDC for ETH on Uniswap",
+    blurb: "Mid-size — needs operator review",
+  },
+  {
+    outcome: "denied",
+    type: "swap",
+    amount: 5000,
+    desc: "Swap $5,000 USDC for ETH on Uniswap",
+    blurb: "Above hard limit — blocked outright",
+  },
 ];
 
 /** Quick-select description chips per action type */
@@ -276,6 +315,73 @@ export function GovernanceCheck() {
     resetFheSteps,
     connectToFheSse,
   ]);
+
+  // Run an example from the empty state. Pre-fills the form *and* fires the
+  // evaluation immediately with explicit params (state updates haven't
+  // settled yet when we call the API, so we don't rely on them).
+  const runExample = useCallback(
+    async (ex: (typeof EXAMPLES)[number]) => {
+      setNlInput(ex.desc);
+      setActionType(ex.type);
+      setActionDesc(ex.desc);
+      setAmount(String(ex.amount));
+      setEvaluating(true);
+      setError(null);
+      setErrorCode(null);
+      setResult(null);
+      setFheRunId(null);
+      resetFheSteps();
+      try {
+        const evalParams = {
+          agentId: agentId || agentList[0]?.id || "unknown",
+          action: {
+            type: ex.type,
+            description: ex.desc,
+            amount: ex.amount,
+            currency: "USDC",
+          },
+        };
+        const { status, data } = await apiClient.evaluateGovernanceFhe(evalParams);
+        const body = data as {
+          success?: boolean;
+          data?: Record<string, unknown>;
+        } | null;
+        if (status === 202) {
+          const runId = body?.data?.runId as string | undefined;
+          if (!runId) throw new Error("No runId returned for FHE evaluation");
+          setFheRunId(runId);
+          connectToFheSse(runId, {
+            onComplete: (resultData) => {
+              if (resultData)
+                setResult(resultData as unknown as GovernanceEvaluation);
+              setFheRunId(null);
+              setEvaluating(false);
+            },
+            onError: (errMsg) => {
+              setError(`FHE evaluation error: ${errMsg}`);
+              setFheRunId(null);
+              setEvaluating(false);
+            },
+          });
+        } else {
+          const resultData = body?.data;
+          setResult(
+            (resultData as unknown as GovernanceEvaluation) || null,
+          );
+          if (!resultData) setError("No evaluation result returned");
+          setEvaluating(false);
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Evaluation failed";
+        if (message.includes("NO_ACTIVE_POLICY"))
+          setErrorCode("NO_ACTIVE_POLICY");
+        setError(message);
+        setEvaluating(false);
+      }
+    },
+    [agentId, agentList, connectToFheSse, resetFheSteps, setFheRunId],
+  );
 
   const handleRetryWithAmount = useCallback(
     (newAmount: number) => {
@@ -629,29 +735,44 @@ export function GovernanceCheck() {
               </div>
           )}
 
-          {result && !evaluating && (
+          {result && !evaluating && (() => {
+            // Three-outcome verdict: prefer the explicit `decision` field
+            // when present, fall back to legacy `allowed` boolean.
+            const decision =
+              result.decision || (result.allowed ? "approved" : "denied");
+            const verdict =
+              decision === "approved"
+                ? {
+                    label: "Approved",
+                    blurb: "This spend action is permitted",
+                    icon: (
+                      <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                    ),
+                    cls: "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900",
+                  }
+                : decision === "held"
+                  ? {
+                      label: "Held for review",
+                      blurb:
+                        "This spend requires operator approval before it can execute",
+                      icon: <Clock className="h-8 w-8 text-amber-500" />,
+                      cls: "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900",
+                    }
+                  : {
+                      label: "Denied",
+                      blurb: "This spend action is blocked",
+                      icon: <XCircle className="h-8 w-8 text-red-500" />,
+                      cls: "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900",
+                    };
+            return (
             <div className="rounded-xl border bg-card p-5 space-y-4">
                 {/* Verdict */}
-                <div
-                  className={`p-4 rounded-xl flex items-center gap-3 ${
-                    result.allowed
-                      ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900"
-                      : "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900"
-                  }`}
-                >
-                  {result.allowed ? (
-                    <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-                  ) : (
-                    <XCircle className="h-8 w-8 text-red-500" />
-                  )}
+                <div className={`p-4 rounded-xl flex items-center gap-3 ${verdict.cls}`}>
+                  {verdict.icon}
                   <div>
-                    <div className="font-bold text-lg">
-                      {result.allowed ? "Approved" : "Denied"}
-                    </div>
+                    <div className="font-bold text-lg">{verdict.label}</div>
                     <div className="text-sm text-muted-foreground">
-                      {result.allowed
-                        ? "This spend action is permitted"
-                        : "This spend action is blocked"}
+                      {verdict.blurb}
                     </div>
                   </div>
                 </div>
@@ -835,14 +956,66 @@ export function GovernanceCheck() {
                   )}
                 </div>
               </div>
-          )}
+            );
+          })()}
 
           {!result && !evaluating && !error && (
-            <div className="p-12 text-center text-muted-foreground border border-dashed rounded-xl h-full flex flex-col items-center justify-center">
-              <ShieldCheck className="h-10 w-10 mb-3 opacity-30" />
-              <p className="font-medium">No evaluation yet</p>
-              <p className="text-sm mt-1">
-                Configure a spend action and click Evaluate
+            <div className="rounded-xl border border-dashed bg-card p-5 space-y-4 h-full flex flex-col">
+              <div className="text-center">
+                <ShieldCheck className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p className="font-medium">See it work</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Click an example to evaluate it, or describe your own
+                  spend in the input on the left.
+                </p>
+              </div>
+              <div className="space-y-2 flex-1">
+                {EXAMPLES.map((ex) => {
+                  const Icon =
+                    ex.outcome === "approved"
+                      ? CheckCircle2
+                      : ex.outcome === "held"
+                        ? Clock
+                        : XCircle;
+                  const iconCls =
+                    ex.outcome === "approved"
+                      ? "text-emerald-500"
+                      : ex.outcome === "held"
+                        ? "text-amber-500"
+                        : "text-red-500";
+                  const label =
+                    ex.outcome === "approved"
+                      ? "Approved spend"
+                      : ex.outcome === "held"
+                        ? "Held for review"
+                        : "Denied spend";
+                  return (
+                    <button
+                      key={ex.outcome}
+                      type="button"
+                      onClick={() => runExample(ex)}
+                      className="w-full text-left rounded-lg border bg-background p-3 hover:border-primary hover:bg-primary/5 transition-colors flex items-center gap-3 group"
+                    >
+                      <Icon className={`h-5 w-5 shrink-0 ${iconCls}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium flex items-center gap-2">
+                          {label}
+                          <span className="text-xs font-normal text-muted-foreground">
+                            ${ex.amount.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {ex.blurb}
+                        </div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary shrink-0" />
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground/70 text-center">
+                Outcomes shown for demo policies. Your live policies may
+                evaluate differently.
               </p>
             </div>
           )}
