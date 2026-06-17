@@ -156,11 +156,34 @@ Related: `GET /api/projects`, `GET /api/projects/:projectId/usage`
 ```json
 {
   "agentId": "string",
-  "action": { "type": "string", "metadata": {} }
+  "action": { "type": "string", "amount": 200, "currency": "USDC", "description": "..." }
 }
 ```
 
-Returns `approved`, `reason`, and per-rule `policyChecks`.
+Response shape (`GovernanceEvaluation`):
+
+```json
+{
+  "allowed": true,
+  "decision": "approved",
+  "reasoning": "Approved — passed 4 policy check(s)",
+  "policyChecks": [{ "policyId": "...", "result": true, "reason": "..." }],
+  "timestamp": "..."
+}
+```
+
+- `allowed` is the legacy two-state boolean. `true` only for fully approved spends; `held` and `denied` both come back as `false`.
+- `decision` is the three-state field — `"approved" | "held" | "denied"`. Prefer this when rendering the verdict; fall back to `allowed` for backwards compat.
+
+**Sandbox demo bands.** With `X-Workspace-Mode: sandbox` (the default for new sign-ins until `setWorkspaceMode("production")` is called) the demoInterceptor bands the decision by amount:
+
+| Amount (USDC) | `decision` |
+| --- | --- |
+| `< 100` | `approved` |
+| `100 ≤ amount ≤ 3000` | `held` |
+| `> 3000` | `denied` |
+
+The reasoning string names the demo policy responsible (e.g. "Held for review by Human Approval Threshold").
 
 Related: `GET/POST /api/governance/policies`, `GET /api/governance/health`
 
@@ -186,7 +209,7 @@ Related: `GET/POST /api/governance/policies`, `GET /api/governance/health`
 | Endpoint                             | Method | Description                                 |
 | ------------------------------------ | ------ | ------------------------------------------- |
 | `/api/audit/logs`                    | GET    | Audit trail                                 |
-| `/api/audit/insights`                | GET    | Audit insights (`?dimension=ai_spend\|suspicion`) |
+| `/api/audit/insights`                | GET    | Audit insights — pass `?dimension=ai_spend` for `{totalCostUsd, totalTokens, totalCalls, byProvider, recentEntries}`, `?dimension=suspicion` for `{totalScored, averageScore, escalationRate, distribution}`. Omit dimension for the unified summary. Sandbox mode returns zero-state versions of the same shapes. |
 | `/api/audit/permits`                 | POST   | Issue confidential audit decryption permits |
 | `/api/cre/runs`                      | GET    | Run ledger                                  |
 | `/api/cre/runs/:runId`               | GET    | Run details                                 |

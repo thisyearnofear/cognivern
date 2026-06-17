@@ -230,6 +230,41 @@ ssh snel-bot "sqlite3 /opt/cognivern/shared/data/governance.db \"SELECT id FROM 
 
 ---
 
+### 8. All Public Endpoints Return 502
+
+**Symptom**: `https://cognivern.thisyearnofear.com/anything` returns 502. The frontend reports "Failed to fetch nonce" on sign-in; every API call shows 502 in the browser console. The backend may be healthy.
+
+**Likely cause**: nginx is proxying to the wrong upstream port. The backend listens on `$PORT` (currently `3087`); nginx must match. A stale config that points elsewhere (a common historical value is `10000`) returns 502 because nothing answers on that port.
+
+**Diagnose**:
+```bash
+# Confirm the backend IS responding locally
+ssh snel-bot "curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3087/health"
+# Expect 200. If 200, the backend is fine — nginx is the problem.
+
+# Read what nginx is forwarding to
+ssh snel-bot "sudo cat /etc/nginx/sites-enabled/cognivern | grep proxy_pass"
+
+# Confirm $PORT matches what pm2 actually bound
+ssh snel-bot "grep '^PORT=' /opt/cognivern/shared/.env"
+ssh snel-bot "ss -tlnp | grep \$(pgrep -f bundle/server.mjs)"
+```
+
+**Fix**:
+```bash
+# Patch the live config — adjust the port if your backend is on something else
+ssh snel-bot "sudo sed -i 's|http://127.0.0.1:[0-9]\\+|http://127.0.0.1:3087|' /etc/nginx/sites-enabled/cognivern"
+ssh snel-bot "sudo nginx -t && sudo systemctl reload nginx"
+
+# Or reapply the repo-tracked source of truth
+scp deploy/nginx/cognivern.conf snel-bot:/tmp/cognivern.nginx
+ssh snel-bot "sudo cp /tmp/cognivern.nginx /etc/nginx/sites-enabled/cognivern && sudo nginx -t && sudo systemctl reload nginx"
+```
+
+**Escalate**: Not usually — this is a config drift, not a code or data issue. But if `$PORT` changes were intentional, update `deploy/nginx/cognivern.conf` in the repo so the next operator doesn't rediscover this.
+
+---
+
 ## Rollback Procedure
 
 ### Application Rollback
