@@ -33,6 +33,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { mutate } from "swr";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDemoStore, startDemoTour } from "@/stores/demo-store";
 import { useAuth } from "@/hooks/use-auth";
@@ -46,6 +47,9 @@ export function AppSidebar() {
   const isAppAuthenticated = useAuthStore((s) => s.isConnected);
   const walletAddress = useAuthStore((s) => s.walletAddress);
   const workspaceName = useAuthStore((s) => s.workspace?.name);
+  const workspaceMode = useAuthStore((s) => s.workspaceMode);
+  const setWorkspaceMode = useAuthStore((s) => s.setWorkspaceMode);
+  const setHasExitedSandbox = useAuthStore((s) => s.setHasExitedSandbox);
   const { demoMode, exitDemoMode } = useDemoStore();
   const { logout, signIn, loading: signingIn } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -205,7 +209,13 @@ export function AppSidebar() {
               <span>Help</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {!demoMode && (
+          {/* Three branches:
+              - Unauth + no demo tour → "Try Demo" (landing-page-style preview)
+              - Signed-in + production → "View sandbox demo" (the deliberate
+                way for graduated users to reach the populated dashboard)
+              - Signed-in + sandbox → no entry (banner already exits)
+          */}
+          {!isAppAuthenticated && !demoMode && (
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={() => startDemoTour((path) => router.push(path))}
@@ -213,6 +223,25 @@ export function AppSidebar() {
               >
                 <PlayCircle className="h-[18px] w-[18px]" />
                 <span>Try Demo</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+          {isAppAuthenticated && workspaceMode === "production" && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={async () => {
+                  setWorkspaceMode("sandbox");
+                  setHasExitedSandbox(true);
+                  // Nuke the SWR cache so the dashboard re-fetches against
+                  // the new X-Workspace-Mode header instead of showing
+                  // stale production data while in sandbox mode.
+                  await mutate(() => true, undefined, { revalidate: true });
+                  router.push("/dashboard");
+                }}
+                className="h-9 rounded-lg px-3 text-muted-foreground"
+              >
+                <PlayCircle className="h-[18px] w-[18px]" />
+                <span>View sandbox demo</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
