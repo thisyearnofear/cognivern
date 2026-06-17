@@ -29,6 +29,8 @@ import {
   MicOff,
   Sparkles,
   Clock,
+  Share2,
+  Check,
 } from "lucide-react";
 import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
@@ -153,16 +155,21 @@ export function GovernanceCheck() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: agents } = useAgents();
-  // Pre-select agent when launched from an agent detail page
-  // (?agent=<id>). Auto-opens the advanced section so the user sees the
-  // selected agent. Falls back to empty (= first agent at submit time).
+  // Pre-fill from URL params for both internal handoffs (agent detail page
+  // → ?agent=<id>) and shareable result links (?type / ?amount / ?desc).
+  // A shared link sent in Slack should land the recipient on the exact
+  // same evaluation the sender just ran.
   const initialAgentId = searchParams?.get("agent") ?? "";
+  const initialType = searchParams?.get("type") ?? "swap";
+  const initialAmount = searchParams?.get("amount") ?? "200";
+  const initialDescParam = searchParams?.get("desc");
   const [agentId, setAgentId] = useState(initialAgentId);
-  const [actionType, setActionType] = useState("swap");
+  const [actionType, setActionType] = useState(initialType);
   const [actionDesc, setActionDesc] = useState(
-    ACTION_TYPES.find((a) => a.type === "swap")?.description || "",
+    initialDescParam ??
+      (ACTION_TYPES.find((a) => a.type === initialType)?.description || ""),
   );
-  const [amount, setAmount] = useState("200");
+  const [amount, setAmount] = useState(initialAmount);
   const [evaluating, setEvaluating] = useState(false);
   const [result, setResult] = useState<GovernanceEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -185,6 +192,8 @@ export function GovernanceCheck() {
   } | null>(null);
   const nlDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [shareCopied, setShareCopied] = useState(false);
+
   const {
     recording,
     transcribing,
@@ -193,6 +202,26 @@ export function GovernanceCheck() {
     onResult: (text) => setActionDesc(text),
     onError: (err) => setError(err),
   });
+
+  /** Build a shareable URL that recreates the current evaluation. Closes
+   *  the loop: a user who just ran an interesting check can paste a link
+   *  into Slack and the recipient lands on the same configuration. */
+  const copyShareLink = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams();
+    if (agentId) params.set("agent", agentId);
+    if (actionType) params.set("type", actionType);
+    if (amount) params.set("amount", amount);
+    if (actionDesc) params.set("desc", actionDesc);
+    const url = `${window.location.origin}/governance/check?${params.toString()}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      // Clipboard blocked — fail silently rather than crashing the page.
+    }
+  }, [agentId, actionType, amount, actionDesc]);
 
   const agentList = useMemo(() => agents || [], [agents]);
 
@@ -995,17 +1024,38 @@ export function GovernanceCheck() {
                   </div>
                 </details>
 
-                {/* Metadata */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                {/* Share + metadata. The share button copies a URL that
+                    recreates this evaluation — paste in Slack/email and the
+                    recipient lands on the same configuration. */}
+                <div className="flex items-center justify-between text-xs text-muted-foreground flex-wrap gap-2">
                   <span>
                     Evaluated at:{" "}
                     {new Date(result.timestamp).toLocaleTimeString()}
                   </span>
-                  {(result.provider || result.model) && (
-                    <span>
-                      {result.provider}/{result.model}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {(result.provider || result.model) && (
+                      <span>
+                        {result.provider}/{result.model}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={copyShareLink}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-border hover:border-primary/50 hover:text-foreground transition-colors text-[11px]"
+                    >
+                      {shareCopied ? (
+                        <>
+                          <Check className="h-3 w-3 text-emerald-500" />
+                          Link copied
+                        </>
+                      ) : (
+                        <>
+                          <Share2 className="h-3 w-3" />
+                          Share this check
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             );

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import {
   ShieldCheck,
   PlusCircle,
@@ -209,11 +210,26 @@ export function PoliciesPage() {
           rules: template.rules,
         });
         mutate("/api/governance/policies");
+        // Close the loop: silent success was the audit's #1 dead end. Toast
+        // the win + offer a one-click handoff into Governance Check so the
+        // user can immediately see the policy in action.
+        toast.success(`Policy created: ${template.name}`, {
+          description: template.desc,
+          action: {
+            label: "Test it",
+            onClick: () => router.push("/governance/check"),
+          },
+        });
+      } catch (err) {
+        toast.error("Failed to create policy", {
+          description:
+            err instanceof Error ? err.message : "Unknown error — try again.",
+        });
       } finally {
         setQuickCreating(null);
       }
     },
-    [],
+    [router],
   );
 
   const handleSharePolicy = useCallback((policy: (typeof policies)[number]) => {
@@ -750,6 +766,22 @@ function CreatePolicyForm({
 
       if (res.success) {
         mutate("/api/governance/policies");
+        // Confirmation + handoff into the next step. Without this the form
+        // just closes silently and the user is back at the policies list
+        // with no signal anything happened (audit's #1 dead end).
+        toast.success(`Policy created: ${name.trim()}`, {
+          description: encrypted
+            ? "Encrypted policy registered. Test it with an agent or create another."
+            : "Policy is now active. Test it against a real spend or attach it to an agent.",
+          action: {
+            label: "Test it",
+            onClick: () => {
+              if (typeof window !== "undefined") {
+                window.location.href = "/governance/check";
+              }
+            },
+          },
+        });
         onClose();
       } else {
         setError("Failed to create policy");
