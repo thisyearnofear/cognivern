@@ -102,6 +102,11 @@ export interface FhenixConfidential {
 
 export interface GovernanceEvaluation {
   allowed: boolean;
+  // The full three-outcome decision. "held" is between "approved" and
+  // "denied": policy didn't block the action outright but flagged it for
+  // operator review (the actual spend execution would pause). When omitted,
+  // callers should fall back to `allowed` (legacy two-state contract).
+  decision?: "approved" | "denied" | "held";
   reasoning: string;
   policyChecks: PolicyCheck[];
   auditLogId?: string;
