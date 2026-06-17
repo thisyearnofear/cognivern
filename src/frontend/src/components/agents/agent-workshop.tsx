@@ -23,6 +23,7 @@ import {
   Plug,
   XCircle,
   Key,
+  ShieldCheck,
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
@@ -227,44 +228,45 @@ export function AgentWorkshop() {
 
           <Separator />
 
-          {mode === "create" && (
-            <>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Use case templates
-                </label>
-                <p className="text-[11px] text-muted-foreground">
-                  Pre-fill common scenarios. You can edit everything below.
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {USE_CASE_TEMPLATES.map((t) => (
-                    <button
-                      key={t.role}
-                      type="button"
-                      onClick={() => {
-                        setName(t.name);
-                        setRole(t.role);
-                        setChain(t.chain);
-                        setBudget(t.budget);
-                      }}
-                      className={`p-3 rounded-lg border text-left transition-colors hover:border-primary/50 ${
-                        role === t.role
-                          ? "border-primary bg-primary/5"
-                          : "border-border"
-                      }`}
-                    >
-                      <div className="text-xs font-medium">{t.role}</div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">
-                        {t.desc}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
+          {/* Templates work in both modes — the role/chain/budget defaults
+              are equally useful whether you're creating a fresh identity
+              or linking an existing system. Connect mode still requires
+              the user to provide a wallet address separately. */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Use case templates
+            </label>
+            <p className="text-[11px] text-muted-foreground">
+              Pre-fill common scenarios. You can edit everything below
+              {mode === "connect" && " — wallet address stays yours to enter"}.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {USE_CASE_TEMPLATES.map((t) => (
+                <button
+                  key={t.role}
+                  type="button"
+                  onClick={() => {
+                    setName(t.name);
+                    setRole(t.role);
+                    setChain(t.chain);
+                    setBudget(t.budget);
+                  }}
+                  className={`p-3 rounded-lg border text-left transition-colors hover:border-primary/50 ${
+                    role === t.role
+                      ? "border-primary bg-primary/5"
+                      : "border-border"
+                  }`}
+                >
+                  <div className="text-xs font-medium">{t.role}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {t.desc}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
 
-              <Separator />
-            </>
-          )}
+          <Separator />
 
           <div className="space-y-2">
             <label htmlFor="name" className="text-sm font-medium">
@@ -366,6 +368,46 @@ export function AgentWorkshop() {
               <p className="text-[11px] text-muted-foreground">
                 Optional endpoint for governance decision callbacks
               </p>
+            </div>
+          )}
+
+          {/* Plain-English summary so the user can verify the configuration
+              at a glance before submitting — same pattern as the Create
+              Policy form's "What this policy does" block. */}
+          {(name.trim() || role.trim()) && (
+            <div className="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50/40 dark:bg-sky-950/20 p-3">
+              <div className="flex items-start gap-2">
+                <ShieldCheck className="h-4 w-4 text-sky-500 mt-0.5 shrink-0" />
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div className="font-medium text-foreground">
+                    {mode === "connect"
+                      ? "You're connecting"
+                      : "You're creating"}
+                  </div>
+                  <div>
+                    <span className="text-foreground font-medium">
+                      {name.trim() || "Unnamed identity"}
+                    </span>
+                    {role.trim() && (
+                      <>
+                        {" — a "}
+                        <span className="text-foreground">{role.trim()}</span>
+                      </>
+                    )}{" "}
+                    on{" "}
+                    <span className="text-foreground">{chain}</span> with a{" "}
+                    <span className="text-foreground">{budget}</span> daily
+                    budget.
+                  </div>
+                  <div className="text-[11px]">
+                    {mode === "connect"
+                      ? walletAddress.trim()
+                        ? `Linking wallet ${walletAddress.slice(0, 6)}…${walletAddress.slice(-4)}.`
+                        : "Add the wallet address above to enable Connect."
+                      : "Next: attach policies and watch decisions stream in real time."}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
