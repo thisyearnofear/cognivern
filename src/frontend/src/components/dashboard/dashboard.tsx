@@ -30,6 +30,10 @@ import { useDemoStore } from "@/stores/demo-store";
 import dynamic from "next/dynamic";
 import { DecisionChart, type DecisionFilter } from "./decision-chart";
 import { ApprovalSparkline } from "./approval-sparkline";
+import {
+  GetStartedPanel,
+  PartialGetStartedBanner,
+} from "./get-started-panel";
 
 const ActivityChart = dynamic(
   () => import("./activity-chart").then((m) => ({ default: m.ActivityChart })),
@@ -180,6 +184,8 @@ export function Dashboard() {
   const demoMode = useDemoStore((s) => s.demoMode);
   const workspace = useAuthStore((s) => s.workspace);
   const walletAddress = useAuthStore((s) => s.walletAddress);
+  const isAuthenticated = useAuthStore((s) => s.isConnected);
+  const workspaceMode = useAuthStore((s) => s.workspaceMode);
   useNetworkStatus();
   const {
     data: agents,
@@ -339,12 +345,28 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Getting Started Checklist — shown for non-demo users with incomplete setup */}
-      {!demoMode &&
+      {/* Returning user, totally empty real workspace. Replaces the populated
+          metrics below — they'd all be zeros and confusing. */}
+      {isAuthenticated &&
+        workspaceMode === "production" &&
         !agentsLoading &&
         !policiesLoading &&
-        (agentList.length === 0 ||
-          (policies || []).filter((p) => p.status === "active").length === 0) && (
+        agentList.length === 0 &&
+        (policies || []).filter((p) => p.status === "active").length === 0 && (
+          <GetStartedPanel />
+        )}
+
+      {/* Returning user, partial setup. Keeps the existing checklist UI
+          because its checkmarks meaningfully signal progress. Only renders
+          when one of (agents, active policies) exists but not both — the
+          fully-empty case is handled by GetStartedPanel above. */}
+      {isAuthenticated &&
+        workspaceMode === "production" &&
+        !agentsLoading &&
+        !policiesLoading &&
+        (agentList.length > 0
+          ? (policies || []).filter((p) => p.status === "active").length === 0
+          : (policies || []).filter((p) => p.status === "active").length > 0) && (
           <div className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-sky-500/5 p-6">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-xl bg-primary/10">
