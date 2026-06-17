@@ -72,14 +72,35 @@ export class AgentsController {
 
   async registerAgent(req: Request, res: Response): Promise<void> {
     try {
-      const { type, name, address, description, riskLevel } = req.body;
+      // Accept either the canonical shape `{ type, name, address }` (used
+      // by the legacy tooling and CLI demos) or the dashboard's shape
+      // `{ name, role, chain, budget, walletAddress, webhookUrl }`. The
+      // dashboard's "Create New" mode legitimately has no wallet address
+      // (that's the whole point — the platform manages the governed
+      // identity), so address is only required when a walletAddress is
+      // explicitly being linked via "Connect Existing".
+      const body = req.body || {};
+      const name: string | undefined = body.name;
+      const type: string | undefined = body.type || body.role;
+      const address: string =
+        body.address || body.walletAddress || "platform:managed";
+      const chain: string | undefined = body.chain;
+      const budget: string | undefined = body.budget;
+      const webhookUrl: string | undefined = body.webhookUrl;
+      const description: string | undefined =
+        body.description ||
+        (type
+          ? `${type}${chain ? ` on ${chain}` : ""}${budget ? ` with ${budget}/day budget` : ""}`
+          : undefined);
+      const riskLevel: string | undefined = body.riskLevel;
 
-      if (!type || !name || !address) {
+      if (!type || !name) {
         res.status(400).json({
           success: false,
           error: {
             code: "VALIDATION_ERROR",
-            message: "Type, name, and address are required",
+            message:
+              "name and type (or role) are required. For Connect Existing, also include walletAddress.",
           },
           timestamp: new Date().toISOString(),
         });
@@ -93,6 +114,20 @@ export class AgentsController {
         description,
         riskLevel,
       });
+      // Attach optional dashboard-flow metadata for traceability. The
+      // underlying agent doesn't gate any logic on these fields, but the
+      // audit log + UI rendering benefits from them being present.
+      if (chain || budget || webhookUrl) {
+        const meta = (agent as unknown as Record<string, unknown>).metadata;
+        const safeMeta: Record<string, unknown> =
+          typeof meta === "object" && meta !== null
+            ? (meta as Record<string, unknown>)
+            : {};
+        if (chain) safeMeta.chain = chain;
+        if (budget) safeMeta.budget = budget;
+        if (webhookUrl) safeMeta.webhookUrl = webhookUrl;
+        (agent as unknown as Record<string, unknown>).metadata = safeMeta;
+      }
 
       // Log registration to audit trail
       try {

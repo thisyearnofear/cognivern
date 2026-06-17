@@ -17,6 +17,13 @@ export function createAgentRoutes(agentsController: AgentsController): Router {
   router.post("/agents/register", (req, res) =>
     agentsController.registerAgent(req, res),
   );
+  // The dashboard's "Connect Existing" mode posts a richer shape with a
+  // walletAddress. Same controller handles it — the body parser accepts
+  // both shapes — but the route alias keeps the frontend / backend API
+  // contracts symmetric and stops "POST /agents/connect" 404s.
+  router.post("/agents/connect", (req, res) =>
+    agentsController.registerAgent(req, res),
+  );
   router.get("/agents/connections", (req, res) =>
     agentsController.getConnections(req, res),
   );
