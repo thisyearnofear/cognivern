@@ -50,9 +50,8 @@ From the demo, you can:
 An "agent" in Cognivern is any system that spends money on your behalf: a trading bot, a yield optimizer, a market maker, etc.
 
 1. From your dashboard, click **"Create Agent"**
-2. Give it a name (e.g., "Yield Bot Alpha")
-3. Select the chain where it will spend (Arbitrum Sepolia for now)
-4. Save — you'll get an **Agent ID** to give to your bot
+2. Pick a **use-case template** (DeFi trading bot, yield optimizer, payment agent…) to pre-fill role / chain / budget, or fill them in manually
+3. Save — you'll land on the agent's detail page with a **"Fire your first spend"** card: a one-click handoff into Governance Check (the agent pre-selected) and a paste-ready `curl` / JavaScript snippet wired with your new Agent ID
 
 ### Step 3: Set Your Policy
 
@@ -120,7 +119,7 @@ When your agent attempts a spend, Cognivern returns one of three decisions:
 | Decision | Meaning | What Happens |
 | -------- | -------- | ----------- |
 | **Approved** ✅ | Spend fits your policy | Native-token transfer broadcast on X Layer testnet |
-| **Held** ⏸ | Spend needs review | You approve/deny manually in dashboard; on approval the transfer is broadcast |
+| **Held** ⏸ | Spend needs review | Open the run in the dashboard and click **Approve** — the transfer is broadcast right then; **Deny** stops it. Failed broadcasts leave the run retryable. |
 | **Denied** ❌ | Spend violates policy | Money does not move |
 
 For each decision, you see:

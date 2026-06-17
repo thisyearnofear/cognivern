@@ -65,10 +65,26 @@ Optional integrations:
 | `XLAYER_GOVERNANCE_CONTRACT`  | Deployed governance contract address (X Layer)                                       |
 | `XLAYER_STORAGE_CONTRACT`     | Deployed storage contract address (X Layer)                                          |
 | `XLAYER_PRIVATE_KEY`          | Wallet private key for X Layer deployment                                            |
+| `XLAYER_CHAIN_ID`             | X Layer testnet chainId. Defaults to `1952`. **NOT `195`** (which doesn't exist and breaks native transfers with `NETWORK_ERROR`). Mainnet is `196`. |
 | `FHENIX_PRIVATE_KEY`          | Wallet for Fhenix confidential policy ops (Arbitrum Sepolia)                         |
 | `FHENIX_POLICY_CONTRACT`      | `ConfidentialSpendPolicy` contract address on Fhenix                                 |
 | `FHENIX_CHAIN_ID`             | Fhenix chain ID (default: 421614 for Arbitrum Sepolia)                               |
 | `PRIVARA_PRIVATE_KEY`         | Wallet for Privara confidential payroll (falls back to `FHENIX_PRIVATE_KEY`)          |
+
+## Reverse proxy (nginx)
+
+The backend listens on `$PORT` (default `3087`). nginx must `proxy_pass` to
+the same port. The committed config at `deploy/nginx/cognivern.conf` is the
+source of truth for the live `cognivern.thisyearnofear.com` deployment — if
+the port ever changes, update that file and re-apply:
+
+```bash
+sudo cp deploy/nginx/cognivern.conf /etc/nginx/sites-enabled/cognivern
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+A port mismatch makes every public endpoint return 502 — see
+[RUNBOOK.md playbook #8](./RUNBOOK.md#8-all-public-endpoints-return-502).
 
 ## Shared runtime paths
 
