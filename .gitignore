@@ -104,7 +104,10 @@ deploy-bundle/
 .secrets.baseline
 
 # ── Private operations docs ─────────────────────────────────────────
-OPS.md
+# docs/OPS.md is intentionally tracked — operator runbook with public
+# contract addresses + SSH alias only. Secrets live in .env, not here.
+# Add new private docs here if needed; OPS.md should remain in-tree so
+# new contributors don't rediscover prod gotchas from scratch.
 
 # ── Root-level overrides (use config/ versions) ────────────────────
 /ecosystem.config.cjs
