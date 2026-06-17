@@ -30,10 +30,7 @@ import { useDemoStore } from "@/stores/demo-store";
 import dynamic from "next/dynamic";
 import { DecisionChart, type DecisionFilter } from "./decision-chart";
 import { ApprovalSparkline } from "./approval-sparkline";
-import {
-  GetStartedPanel,
-  PartialGetStartedBanner,
-} from "./get-started-panel";
+import { GetStartedPanel } from "./get-started-panel";
 
 const ActivityChart = dynamic(
   () => import("./activity-chart").then((m) => ({ default: m.ActivityChart })),
