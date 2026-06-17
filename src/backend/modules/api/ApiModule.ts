@@ -357,6 +357,17 @@ export class ApiModule extends BaseService {
       return next();
     }
 
+    // SSE endpoints can't set Authorization headers, so the dashboard passes
+    // the JWT via ?token=<jwt>. authMiddleware (which runs after this) has
+    // the matching extraction logic. We just need to step out of its way
+    // here instead of rejecting on "no header".
+    if (
+      req.path.endsWith("/events/stream") &&
+      typeof req.query.token === "string"
+    ) {
+      return next();
+    }
+
     const headerApiKey = req.headers["x-api-key"] as string;
     const queryApiKey =
       req.path.endsWith("/events/stream") && // pragma: allowlist secret
