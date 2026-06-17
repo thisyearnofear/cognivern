@@ -617,6 +617,39 @@ function visualFromCondition(condition: string): VisualRule {
   return { field, operator, value: cleanValue, action: "deny" };
 }
 
+/** Plain-English render for a single rule. Keep in sync with RULE_FIELDS,
+ *  RULE_OPERATORS, RULE_ACTIONS — so users can verify what they built
+ *  without parsing the DSL. */
+function humanizeRule(rule: PolicyRule): string | null {
+  const cond = rule.condition.trim();
+  if (!cond) return null;
+  const m = cond.match(/^(\w+)\s*(>|<|===|NOT IN|IN)\s*(.+)$/);
+  const verb =
+    rule.action === "deny"
+      ? "block"
+      : rule.action === "flag"
+        ? "flag for review"
+        : "allow";
+  if (!m) return `${verb} when ${cond}`;
+  const [, field, op, rawValue] = m;
+  const fieldLabel =
+    RULE_FIELDS.find((f) => f.id === field)?.label.toLowerCase() ?? field;
+  const opPhrase =
+    op === ">"
+      ? "exceeds"
+      : op === "<"
+        ? "is under"
+        : op === "==="
+          ? "equals"
+          : op === "IN"
+            ? "is in"
+            : "is not in";
+  const isNumeric = /^(amount|daily_total)$/.test(field);
+  const value = rawValue.trim().replace(/^\[|\]$/g, "");
+  const formattedValue = isNumeric ? `$${value}` : value;
+  return `${verb} transactions where ${fieldLabel} ${opPhrase} ${formattedValue}`;
+}
+
 function CreatePolicyForm({
   onClose,
   initialTemplate,
@@ -638,9 +671,29 @@ function CreatePolicyForm({
       ? initialTemplate.rules
       : [{ condition: "", action: "deny" }],
   );
+  const [appliedTemplate, setAppliedTemplate] = useState<string | null>(null);
   const [visualMode, setVisualMode] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /** Apply a template chip: pre-fill name/type/description/rules and (for
+   *  the FHE confidential template) toggle encryption on. User can still
+   *  edit any field afterwards. */
+  const applyTemplate = useCallback(
+    (t: (typeof POLICY_TEMPLATES)[number]) => {
+      setName(t.name);
+      setType(t.type);
+      setDescription(t.desc);
+      setRules(
+        t.rules.length
+          ? t.rules.map((r) => ({ condition: r.condition, action: r.action }))
+          : [{ condition: "", action: "deny" }],
+      );
+      setAppliedTemplate(t.id);
+      setError(null);
+    },
+    [],
+  );
 
   const addRule = () => setRules((r) => [...r, { condition: "", action: "deny" }]);
   const removeRule = (idx: number) =>
@@ -727,6 +780,42 @@ function CreatePolicyForm({
           <X className="h-4 w-4" />
         </Button>
       </div>
+
+        {/* Start-from-template row. Same guidance pattern as the empty
+            state on the page: pick a template, the form pre-fills, then
+            edit anything you want before clicking Create. */}
+        <div className="rounded-lg border bg-background/50 p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Zap className="h-3.5 w-3.5 text-amber-500" />
+            <span className="text-xs font-medium">Start from a template</span>
+            {appliedTemplate && (
+              <span className="text-[10px] text-muted-foreground ml-auto">
+                Editing{" "}
+                <span className="text-foreground font-medium">
+                  {POLICY_TEMPLATES.find((t) => t.id === appliedTemplate)?.name}
+                </span>{" "}
+                — change anything below before saving
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {POLICY_TEMPLATES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => applyTemplate(t)}
+                className={`text-[11px] px-2 py-1 rounded-full border transition-colors flex items-center gap-1.5 ${
+                  appliedTemplate === t.id
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                }`}
+              >
+                <span>{t.icon}</span>
+                <span>{t.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="space-y-1.5">
@@ -1010,6 +1099,34 @@ function CreatePolicyForm({
             })}
           </div>
         )}
+
+        {/* Plain-English summary — confirms what the user actually built
+            before they click Create. Skipped for FHE policies since their
+            rules live on-chain (no client-side rules to summarize). */}
+        {!encrypted &&
+          (() => {
+            const phrases = rules
+              .map((r) => humanizeRule(r))
+              .filter((p): p is string => Boolean(p));
+            if (phrases.length === 0) return null;
+            return (
+              <div className="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50/40 dark:bg-sky-950/20 p-3">
+                <div className="flex items-start gap-2">
+                  <ShieldCheck className="h-4 w-4 text-sky-500 mt-0.5 shrink-0" />
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <div className="font-medium text-foreground">
+                      What this policy does
+                    </div>
+                    <ul className="space-y-0.5">
+                      {phrases.map((p, i) => (
+                        <li key={i}>· {p}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
         {error && (
           <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 text-sm text-red-600 dark:text-red-400">
