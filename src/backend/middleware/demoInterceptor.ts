@@ -45,7 +45,7 @@ export async function demoInterceptor(
 
     const response =
       effectiveMode === "sandbox"
-        ? serveDemoData(req.method, req.path, req.body)
+        ? serveDemoData(req.method, req.path, req.body, req.query)
         : serveLiveData(req.method, req.path, workspaceId, req.body);
 
     if (response) {
@@ -66,6 +66,7 @@ function serveDemoData(
   method: string,
   path: string,
   body?: any,
+  query?: Record<string, unknown>,
 ): object | null {
   // POST handlers for demo tier
   if (method === "POST") {
@@ -145,6 +146,36 @@ function serveDemoData(
   }
 
   if (path === "/audit/insights" || path === "/audit/insights/") {
+    // The frontend dashboard reads the ?dimension= variants with very
+    // different shapes — AiSpendCard.totalCostUsd.toFixed() and
+    // ControlScoreCard.averageScore.toFixed() crash if these fields are
+    // missing. Return shape-matching zero-state demo data per dimension
+    // so the dashboard renders cleanly in sandbox mode.
+    const dimension =
+      typeof query?.dimension === "string" ? query.dimension : undefined;
+    if (dimension === "ai_spend") {
+      return {
+        success: true,
+        data: {
+          totalCostUsd: 0,
+          totalTokens: 0,
+          totalCalls: 0,
+          byProvider: {},
+          recentEntries: [],
+        },
+      };
+    }
+    if (dimension === "suspicion") {
+      return {
+        success: true,
+        data: {
+          totalScored: 0,
+          averageScore: 0,
+          escalationRate: 0,
+          distribution: {},
+        },
+      };
+    }
     return { success: true, data: { compliance: 80, trends: [] } };
   }
 

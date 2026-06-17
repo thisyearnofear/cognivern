@@ -110,7 +110,9 @@ function AiSpendCard() {
           className="text-2xl font-bold"
           style={{ fontFamily: "var(--font-space-grotesk)" }}
         >
-          {aiSpend ? `$${aiSpend.totalCostUsd.toFixed(4)}` : "—"}
+          {typeof aiSpend?.totalCostUsd === "number"
+            ? `$${aiSpend.totalCostUsd.toFixed(4)}`
+            : "—"}
         </div>
         <div className="text-xs text-muted-foreground">
           AI Spend ({aiSpend?.totalCalls || 0} calls)
@@ -139,7 +141,17 @@ function ControlScoreCard() {
     return () => { cancelled = true; };
   }, []);
 
-  if (!data || data.totalScored === 0) return null;
+  // Render only when the backend actually supplied the suspicion shape.
+  // Demo-tier responses can come back as {compliance, trends} with neither
+  // totalScored nor averageScore populated; rendering then crashes the
+  // dashboard at `data.averageScore.toFixed(2)`.
+  if (
+    !data ||
+    typeof data.averageScore !== "number" ||
+    !data.totalScored
+  ) {
+    return null;
+  }
 
   return (
     <div className="bg-card p-4 flex items-center gap-3">
