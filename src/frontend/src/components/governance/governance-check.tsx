@@ -602,6 +602,51 @@ export function GovernanceCheck() {
                 )}
               </div>
 
+              {/* "You're testing" summary — mirrors the Create Policy and
+                  Agent Workshop summaries, so the user sees what's about to
+                  hit the policy engine before they click. Built from the
+                  NL-parsed values when present, otherwise from form state. */}
+              {(() => {
+                const effectiveType = debouncedNlParsed?.type || actionType;
+                const effectiveAmount =
+                  debouncedNlParsed?.amount || amount || "0";
+                const effectiveAgent =
+                  agentList.find((a) => a.id === agentId) || agentList[0];
+                const numAmount = parseFloat(effectiveAmount) || 0;
+                return (
+                  <div className="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50/40 dark:bg-sky-950/20 p-3">
+                    <div className="flex items-start gap-2">
+                      <ShieldCheck className="h-4 w-4 text-sky-500 mt-0.5 shrink-0" />
+                      <div className="text-xs text-muted-foreground space-y-0.5">
+                        <div className="font-medium text-foreground">
+                          You&apos;re testing
+                        </div>
+                        <div>
+                          A{" "}
+                          <span className="text-foreground font-medium">
+                            {effectiveType}
+                          </span>{" "}
+                          for{" "}
+                          <span className="text-foreground font-medium">
+                            ${numAmount.toLocaleString()} USDC
+                          </span>
+                          {effectiveAgent && (
+                            <>
+                              {" "}
+                              from{" "}
+                              <span className="text-foreground">
+                                {effectiveAgent.name}
+                              </span>
+                            </>
+                          )}
+                          {". "}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <Button
                 className="w-full"
                 onClick={handleEvaluate}
