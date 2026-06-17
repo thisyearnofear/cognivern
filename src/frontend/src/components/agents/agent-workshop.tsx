@@ -621,6 +621,13 @@ console.log(result.allowed ? 'Approved' : 'Blocked', result.reasoning);`;
         <Button onClick={() => router.push(`/agents/${createdId}`)}>
           View Identity
         </Button>
+        {/* Closes the cross-product loop: a fresh agent without a policy
+            attached is useless. The agent-detail page also offers this,
+            but pushing it here saves a click for users in the
+            "just created an agent" mindset. */}
+        <Button variant="outline" onClick={() => router.push("/policies")}>
+          <ShieldCheck className="h-4 w-4" /> Attach a policy
+        </Button>
         <Button variant="outline" onClick={() => router.push("/agents")}>
           All Identities
         </Button>

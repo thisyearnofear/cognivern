@@ -138,21 +138,45 @@ export function PoliciesPage() {
     return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
-  const handleReleaseHold = useCallback(async (policyId: string) => {
-    setReleasingHold(policyId);
-    try {
-      const res = await authFetch(`/api/webhooks/holds/${policyId}/release`, {
-        method: "POST",
-      });
-      const json = await res.json();
-      if (json.success) {
-        setHolds((prev) => prev.filter((h) => h.policyId !== policyId));
-        mutate("/api/governance/policies");
+  const handleReleaseHold = useCallback(
+    async (policyId: string, policyName: string) => {
+      setReleasingHold(policyId);
+      try {
+        const res = await authFetch(
+          `/api/webhooks/holds/${policyId}/release`,
+          { method: "POST" },
+        );
+        const json = await res.json();
+        if (json.success) {
+          setHolds((prev) => prev.filter((h) => h.policyId !== policyId));
+          mutate("/api/governance/policies");
+          // Same close-the-loop pattern as policy create. Confirm the
+          // release + nudge toward the next action (re-run the affected
+          // governance checks).
+          toast.success(`Released: ${policyName}`, {
+            description:
+              "Policy is active again. Re-run any held evaluations to confirm they pass.",
+            action: {
+              label: "Run a check",
+              onClick: () => router.push("/governance/check"),
+            },
+          });
+        } else {
+          toast.error(`Failed to release ${policyName}`, {
+            description: json.error || "Unknown error — try again.",
+          });
+        }
+      } catch (err) {
+        toast.error(`Failed to release ${policyName}`, {
+          description:
+            err instanceof Error ? err.message : "Network error — try again.",
+        });
+      } finally {
+        setReleasingHold(null);
       }
-    } finally {
-      setReleasingHold(null);
-    }
-  }, []);
+    },
+    [router],
+  );
 
   // Import shared policy from URL query param
   const templateParam = searchParams.get("template");
@@ -321,7 +345,7 @@ export function PoliciesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleReleaseHold(hold.policyId)}
+                  onClick={() => handleReleaseHold(hold.policyId, hold.policyName)}
                   disabled={releasingHold === hold.policyId}
                   className="shrink-0 h-8 text-xs gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
                 >
