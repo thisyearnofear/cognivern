@@ -34,6 +34,10 @@ import {
   Brain,
   RotateCcw,
   Eye,
+  Sparkles,
+  Code2,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useAgent, usePolicies } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
@@ -219,6 +223,11 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
     reason?: string;
   }>>([]);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  // First-spend onboarding state. When the agent has no spend history yet,
+  // we surface a code snippet alongside the "test in governance check"
+  // button. `snippetTab` tracks curl vs JS; `snippetCopied` flashes "Copied".
+  const [snippetTab, setSnippetTab] = useState<"curl" | "js">("curl");
+  const [snippetCopied, setSnippetCopied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -286,9 +295,14 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
 
   const totalSpend = useMemo(() => {
     if (!agent?.spendHistory?.length) return 0;
+    // tx.amount can be undefined for partial records — guard so the reduce
+    // doesn't produce NaN, which renders as "NaN USDC" in the header.
     return agent.spendHistory
       .filter((tx) => tx.decision === "approved")
-      .reduce((sum, tx) => sum + tx.amount, 0);
+      .reduce(
+        (sum, tx) => sum + (typeof tx.amount === "number" ? tx.amount : 0),
+        0,
+      );
   }, [agent]);
 
   const handleSpeak = useCallback(() => {
@@ -733,14 +747,167 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
             </div>
           </div>
         ) : (
-          <div className="rounded-xl border bg-card">
-            <div className="p-12 text-center">
-              <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-sm text-muted-foreground">
-                No spend history yet.
-              </p>
-            </div>
-          </div>
+          (() => {
+            // First-spend guidance — same pattern as Create Policy / Governance
+            // Check: never an empty state; always a click-to-try shortcut and
+            // a paste-ready snippet so the user knows what to do next.
+            const apiBase =
+              typeof window !== "undefined"
+                ? window.location.origin
+                : "https://your-cognivern-host";
+            const curl = `curl -X POST '${apiBase}/api/governance/evaluate' \\
+  -H 'Authorization: Bearer YOUR_JWT' \\
+  -H 'Content-Type: application/json' \\
+  -d '{
+    "agentId": "${agent.id}",
+    "action": {
+      "type": "swap",
+      "description": "Swap $50 USDC for ETH",
+      "amount": 50,
+      "currency": "USDC"
+    }
+  }'`;
+            const js = `// Test your first spend from JavaScript
+const res = await fetch('${apiBase}/api/governance/evaluate', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer ' + jwt,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    agentId: '${agent.id}',
+    action: {
+      type: 'swap',
+      description: 'Swap $50 USDC for ETH',
+      amount: 50,
+      currency: 'USDC',
+    },
+  }),
+});
+const { data } = await res.json();
+// data.decision === "approved" | "held" | "denied"`;
+            const snippet = snippetTab === "curl" ? curl : js;
+            const copySnippet = async () => {
+              try {
+                await navigator.clipboard.writeText(snippet);
+                setSnippetCopied(true);
+                setTimeout(() => setSnippetCopied(false), 1500);
+              } catch {
+                // clipboard not available — fail silently
+              }
+            };
+            return (
+              <div className="rounded-xl border bg-card overflow-hidden">
+                <div className="p-5 border-b">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950 shrink-0">
+                      <Sparkles className="h-5 w-5 text-sky-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold">
+                        Fire your first spend
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        This identity is ready. Test a spend in the
+                        Governance Check page, or wire the call directly
+                        from your own code.
+                      </p>
+                      <div className="flex items-center gap-2 mt-3 flex-wrap">
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            router.push(
+                              `/governance/check?agent=${encodeURIComponent(agent.id)}`,
+                            )
+                          }
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5" /> Test in
+                          Governance Check
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push("/policies")}
+                        >
+                          Attach a policy
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 space-y-3 bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Code2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs font-medium">
+                        Wire it from your own code
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setSnippetTab("curl")}
+                        className={`text-[11px] px-2 py-0.5 rounded-md transition-colors ${
+                          snippetTab === "curl"
+                            ? "bg-background border border-border text-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        curl
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSnippetTab("js")}
+                        className={`text-[11px] px-2 py-0.5 rounded-md transition-colors ${
+                          snippetTab === "js"
+                            ? "bg-background border border-border text-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        JavaScript
+                      </button>
+                      <button
+                        type="button"
+                        onClick={copySnippet}
+                        className="ml-1 text-[11px] flex items-center gap-1 px-2 py-0.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {snippetCopied ? (
+                          <>
+                            <Check className="h-3 w-3 text-emerald-500" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" />
+                            Copy
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <pre className="text-[11px] font-mono bg-background border rounded-md p-3 overflow-x-auto leading-relaxed">
+                    <code>{snippet}</code>
+                  </pre>
+                  <p className="text-[10px] text-muted-foreground">
+                    The response carries{" "}
+                    <code className="font-mono">data.decision</code> —{" "}
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      approved
+                    </span>
+                    {", "}
+                    <span className="text-amber-600 dark:text-amber-400">
+                      held
+                    </span>
+                    {", or "}
+                    <span className="text-red-600 dark:text-red-400">
+                      denied
+                    </span>
+                    . Held spends pause until an operator approves them.
+                  </p>
+                </div>
+              </div>
+            );
+          })()
         )}
       </div>
     </div>
