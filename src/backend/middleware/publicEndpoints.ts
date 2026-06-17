@@ -63,7 +63,12 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   "/intent",
   "/webhooks/chain-gpt-news",
   "/webhooks/holds",
-  "/events/stream",
+  // NOTE: /events/stream is NOT in this list. EventsController demands
+  // req.workspaceId, which is populated by authMiddleware from the JWT
+  // payload. Bypassing the middleware here would skip that population and
+  // every SSE connection would 401. The middleware already supports the
+  // ?token=<jwt> query-param flow specifically for SSE (EventSource can't
+  // set Authorization headers) — see authMiddleware.ts queryToken logic.
 ]);
 
 /**
