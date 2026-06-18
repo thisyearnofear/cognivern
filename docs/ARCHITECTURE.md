@@ -288,9 +288,9 @@ All file-backed stores use a common `BaseStore` abstract class. To swap to Redis
 - File-backed stores are single-instance — need Redis/Postgres before horizontal scaling
 - Email auth supported alongside SIWE; SIWE path is more battle-tested
 - Ledger signing requires USB/WebHID access — limits deployment to single-instance or co-located with hardware
-- See [Operations](./OPS.md) for deployment and operations
+- See [Deployment](./DEPLOYMENT.md) for deployment and operations
 
 ## Related Docs
 
 - [Developer Guide](./DEVELOPER.md) — Local setup, APIs, testing, production readiness
-- [Operations](./OPS.md) — Production deployment, PM2, incident response
+- [Deployment](./DEPLOYMENT.md) — Deploy to Hetzner, PM2, nginx, health checks
