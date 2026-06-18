@@ -36,15 +36,9 @@ For full setup, testing, and production deployment details see the [Developer Gu
 
 | Doc | What's in it |
 |-----|-------------|
-| [Getting Started](./docs/GETTING_STARTED.md) | No-code guide for operators, fund managers, DAO treasurers |
-| [Architecture](./docs/ARCHITECTURE.md) | System design, data flows, network roles, endpoint reference |
-| [Developer Guide](./docs/DEVELOPER.md) | Local setup, APIs, testing, production readiness checklist |
-| [Operations](./docs/OPS.md) | Production deployment, PM2, server access |
-| [Runbook](./docs/RUNBOOK.md) | Incident response procedures for production operators |
-| [Native Agents](./docs/NATIVE_AGENTS.md) | How Cognivern's own trading agents route through its governance pipeline |
-| [Fhenix Integration](./docs/FHENIX_INTEGRATION.md) | Confidential policy evaluation via FHE — encrypted budgets, sealed approvals |
-| [ChainGPT Integration](./docs/CHAINGPT_INTEGRATION.md) | Web3 LLM + runtime smart contract auditor |
-| [Ledger Integration](./docs/LEDGER_INTEGRATION.md) | Hardware signing via Ledger DMK and Speculos sandbox |
+| [Architecture](./docs/ARCHITECTURE.md) | System design, data flows, network roles, Fhenix/ChainGPT/Ledger integrations, native agents |
+| [Developer Guide](./docs/DEVELOPER.md) | Getting started (no-code), local setup, API reference, testing, production readiness |
+| [Operations](./docs/OPS.md) | Deployment, PM2, nginx, incident response playbooks, rollback procedures |
 | [AI Safety Report](./scripts/hackathon/HACKATHON_REPORT.md) | Multi-dimensional suspicion scorer design, failure mode analysis, and cost-performance frontier evaluation |
 
 ## License
