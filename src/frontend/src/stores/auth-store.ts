@@ -74,11 +74,17 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       ...defaultState,
       login: (token, authUser, workspace) => {
-        // Exit demo mode on real login. useApiWithDemo() short-circuits to
-        // demoData while demoMode is true; without this, a user who toured
-        // the demo and then signed in would see the seeded run-001 series
-        // instead of their actual runs.
-        if (useDemoStore.getState().demoMode) {
+        // Exit demo mode on real login — but only for live-tier workspaces.
+        // Demo-tier workspaces should continue showing demo data via the
+        // demo store so the user sees populated dashboards. The backend
+        // demoInterceptor also serves demo data for demo-tier workspaces,
+        // but keeping demoMode=true on the frontend avoids unnecessary API
+        // round-trips and provides instant data on login.
+        if (workspace.tier === "demo") {
+          if (!useDemoStore.getState().demoMode) {
+            useDemoStore.getState().enableDemoMode();
+          }
+        } else if (useDemoStore.getState().demoMode) {
           useDemoStore.getState().exitDemoMode();
         }
         // Returning users who have already graduated from sandbox should
@@ -113,6 +119,13 @@ export const useAuthStore = create<AuthState>()(
       setWorkspace: (workspace) => set({ workspace }),
       setWorkspaces: (workspaces) => set({ workspaces }),
       switchWorkspace: (workspace, token) => {
+        if (workspace.tier === "demo") {
+          if (!useDemoStore.getState().demoMode) {
+            useDemoStore.getState().enableDemoMode();
+          }
+        } else if (useDemoStore.getState().demoMode) {
+          useDemoStore.getState().exitDemoMode();
+        }
         set({ workspace, token });
       },
       setWorkspaceMode: (workspaceMode) => set({ workspaceMode }),

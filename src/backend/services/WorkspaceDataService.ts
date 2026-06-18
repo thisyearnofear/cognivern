@@ -9,6 +9,7 @@ import type {
   PolicyCheck,
 } from "@cognivern/shared";
 import { NotificationService } from "./NotificationService.js";
+import type { CreRun } from "@backend/cre/types.js";
 
 type Row = Record<string, unknown>;
 
@@ -543,13 +544,27 @@ export const WorkspaceDataService = {
     }
   },
 
-  // --- Runs (placeholder for live) ---
-  getRuns(_workspaceId: string): Run[] {
-    return [];
+  // --- Runs ---
+  async getRuns(workspaceId: string): Promise<Run[]> {
+    const { creRunStore } = await import("@backend/cre/storage/CreRunStore.js");
+    const creRuns = await creRunStore.list();
+    const runs: Run[] = creRuns
+      .filter((r) => !r.projectId || r.projectId === workspaceId)
+      .map(creRunToRun);
+    if (runs.length > 0) return runs;
+
+    // Fallback: derive runs from agent spend history
+    return deriveRunsFromAgents(workspaceId);
   },
 
-  getRun(_workspaceId: string, _runId: string): Run | undefined {
-    return undefined;
+  async getRun(workspaceId: string, runId: string): Promise<Run | undefined> {
+    const { creRunStore } = await import("@backend/cre/storage/CreRunStore.js");
+    const creRun = await creRunStore.get(runId);
+    if (creRun && (!creRun.projectId || creRun.projectId === workspaceId)) {
+      return creRunToRun(creRun);
+    }
+    const runs = deriveRunsFromAgents(workspaceId);
+    return runs.find((r) => r.id === runId);
   },
 };
 
@@ -665,4 +680,54 @@ function rowToPolicy(row: Row): Policy {
       params: r.params,
     })),
   };
+}
+
+function creRunToRun(cr: CreRun): Run {
+  const status: Run["status"] = cr.requiresApproval && cr.approvalState === "pending"
+    ? "paused_for_approval"
+    : cr.ok
+      ? "completed"
+      : "failed";
+  const durationMs = cr.finishedAt
+    ? new Date(cr.finishedAt).getTime() - new Date(cr.startedAt).getTime()
+    : 0;
+  return {
+    id: cr.runId,
+    workflow: cr.workflow,
+    status,
+    mode: cr.mode,
+    steps: cr.metrics?.stepCount || 0,
+    duration: durationMs > 0 ? `${Math.round(durationMs / 1000)}s` : "—",
+    artifacts: cr.metrics?.artifactCount || 0,
+    timestamp: cr.startedAt,
+  };
+}
+
+function deriveRunsFromAgents(workspaceId: string): Run[] {
+  const db = getDb();
+  const agents = db
+    .prepare(
+      "SELECT id, name, spend_history FROM workspace_agents WHERE workspace_id = ?",
+    )
+    .all(workspaceId) as Row[];
+
+  const runs: Run[] = [];
+  for (const agent of agents) {
+    const history = JSON.parse((agent.spend_history as string) || "[]") as Array<Record<string, unknown>>;
+    for (const entry of history) {
+      const ts = entry.timestamp as string;
+      const decision = (entry.decision as string) || "approved";
+      runs.push({
+        id: `run-${agent.id as string}-${ts}`,
+        workflow: `${agent.name as string} — ${entry.action || "action"}`,
+        status: decision === "denied" ? "failed" : "completed",
+        mode: "autonomous",
+        steps: 3,
+        duration: "—",
+        artifacts: decision === "approved" ? 1 : 0,
+        timestamp: ts,
+      });
+    }
+  }
+  return runs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 }

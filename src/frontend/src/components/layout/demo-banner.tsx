@@ -6,6 +6,7 @@ import { mutate } from "swr";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDemoStore } from "@/stores/demo-store";
+import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
 
@@ -34,6 +35,8 @@ export function DemoBanner() {
   const hasExitedSandbox = useAuthStore((s) => s.hasExitedSandbox);
   const setWorkspaceMode = useAuthStore((s) => s.setWorkspaceMode);
   const setHasExitedSandbox = useAuthStore((s) => s.setHasExitedSandbox);
+  const setWorkspace = useAuthStore((s) => s.setWorkspace);
+  const workspace = useAuthStore((s) => s.workspace);
   const demoMode = useDemoStore((s) => s.demoMode);
 
   // Flip mode + nuke the SWR cache so every fetch re-runs against the new
@@ -43,35 +46,49 @@ export function DemoBanner() {
   // full amber bar again on future sign-ins.
   const switchToProduction = useCallback(async () => {
     setSwitching(true);
-    setWorkspaceMode("production");
-    setHasExitedSandbox(true);
-    await mutate(() => true, undefined, { revalidate: true });
-    toast.success("Switched to Production mode", {
-      description:
-        "Your real workspace is empty until you create an agent and policy. Want to start now?",
-      action: {
-        label: "Create an agent",
-        onClick: () => {
-          if (typeof window !== "undefined") {
-            window.location.href = "/agents/workshop";
-          }
+    try {
+      await apiClient.updateWorkspace({ tier: "live" });
+      if (workspace) {
+        setWorkspace({ ...workspace, tier: "live" });
+      }
+      useDemoStore.getState().exitDemoMode();
+      setWorkspaceMode("production");
+      setHasExitedSandbox(true);
+      await mutate(() => true, undefined, { revalidate: true });
+      toast.success("Switched to Production mode", {
+        description:
+          "Your real workspace is empty until you create an agent and policy. Want to start now?",
+        action: {
+          label: "Create an agent",
+          onClick: () => {
+            if (typeof window !== "undefined") {
+              window.location.href = "/agents/workshop";
+            }
+          },
         },
-      },
-    });
+      });
+    } catch {
+      toast.error("Failed to switch to Production mode");
+    }
     setSwitching(false);
-  }, [setWorkspaceMode, setHasExitedSandbox]);
+  }, [setWorkspaceMode, setHasExitedSandbox, setWorkspace, workspace]);
 
   const switchToSandbox = useCallback(async () => {
     setSwitching(true);
-    setWorkspaceMode("sandbox");
-    // Deliberate entry into sandbox by an already-graduated user counts as
-    // having exited orientation. Without this an existing user clicking
-    // "View sandbox demo" and then signing out + back in would get the
-    // full amber bar again.
-    setHasExitedSandbox(true);
-    await mutate(() => true, undefined, { revalidate: true });
+    try {
+      await apiClient.updateWorkspace({ tier: "demo" });
+      if (workspace) {
+        setWorkspace({ ...workspace, tier: "demo" });
+      }
+      useDemoStore.getState().enableDemoMode();
+      setWorkspaceMode("sandbox");
+      setHasExitedSandbox(true);
+      await mutate(() => true, undefined, { revalidate: true });
+    } catch {
+      toast.error("Failed to switch to Sandbox mode");
+    }
     setSwitching(false);
-  }, [setWorkspaceMode, setHasExitedSandbox]);
+  }, [setWorkspaceMode, setHasExitedSandbox, setWorkspace, workspace]);
 
   /** Dismiss without switching modes — user understands they're in sandbox
    *  but doesn't want the full orientation bar. They get the slim "Sandbox

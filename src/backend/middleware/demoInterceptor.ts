@@ -46,7 +46,7 @@ export async function demoInterceptor(
     const response =
       effectiveMode === "sandbox"
         ? serveDemoData(req.method, req.path, req.body, req.query)
-        : serveLiveData(req.method, req.path, workspaceId, req.body);
+        : await serveLiveData(req.method, req.path, workspaceId, req.body);
 
     if (response) {
       const resp = response as Record<string, unknown>;
@@ -203,8 +203,9 @@ function serveDemoData(
     return { success: true, data: DemoDataService.getAgents() };
   }
 
-  if (path.match(/^\/agents\/agent-[a-z]+-\d+$/)) {
-    const id = path.split("/").pop()!;
+  const agentMatch = path.match(/^\/agents\/([^/]+)$/);
+  if (agentMatch) {
+    const id = agentMatch[1];
     const agent = DemoDataService.getAgent(id);
     if (agent) return { success: true, data: agent };
   }
@@ -269,21 +270,21 @@ function serveDemoData(
     return { success: true, data: DemoDataService.getRuns() };
   }
 
-  if (path.match(/^\/cre\/runs\/run-\d+$/)) {
-    const id = path.split("/").pop()!;
-    const run = DemoDataService.getRun(id);
+  const runMatch = path.match(/^\/cre\/runs\/([^/]+)$/);
+  if (runMatch) {
+    const run = DemoDataService.getRun(runMatch[1]);
     if (run) return { success: true, data: run };
   }
 
   return null;
 }
 
-function serveLiveData(
+async function serveLiveData(
   method: string,
   path: string,
   workspaceId: string,
   body: any,
-): object | null {
+): Promise<object | null> {
   // GET endpoints
   if (method === "GET") {
     if (path === "/agents" || path === "/agents/") {
@@ -293,8 +294,9 @@ function serveLiveData(
       };
     }
 
-    if (path.match(/^\/agents\/agent-[a-z0-9-]+$/)) {
-      const id = path.split("/").pop()!;
+    const agentMatch = path.match(/^\/agents\/([^/]+)$/);
+    if (agentMatch) {
+      const id = agentMatch[1];
       const agent = WorkspaceDataService.getAgent(workspaceId, id);
       if (agent) return { success: true, data: agent };
       return { success: false, error: "Agent not found", _status: 404 };
@@ -340,12 +342,12 @@ function serveLiveData(
     }
 
     if (path === "/cre/runs" || path === "/cre/runs/") {
-      return { success: true, data: WorkspaceDataService.getRuns(workspaceId) };
+      return { success: true, data: await WorkspaceDataService.getRuns(workspaceId) };
     }
 
-    if (path.match(/^\/cre\/runs\/run-[a-z0-9-]+$/)) {
-      const id = path.split("/").pop()!;
-      const run = WorkspaceDataService.getRun(workspaceId, id);
+    const runMatch = path.match(/^\/cre\/runs\/([^/]+)$/);
+    if (runMatch) {
+      const run = await WorkspaceDataService.getRun(workspaceId, runMatch[1]);
       if (run) return { success: true, data: run };
       return { success: false, error: "Run not found", _status: 404 };
     }
@@ -436,8 +438,8 @@ function serveLiveData(
 
   // PATCH/PUT for agent status
   if (method === "PATCH" || method === "PUT") {
-    const agentMatch = path.match(/^\/agents\/(agent-[a-z0-9-]+)\/status$/);
-    if (agentMatch) {
+    const agentStatusMatch = path.match(/^\/agents\/([^/]+)\/status$/);
+    if (agentStatusMatch) {
       const { status } = body || {};
       if (!status || !["active", "paused", "inactive"].includes(status)) {
         return {
@@ -448,12 +450,12 @@ function serveLiveData(
       }
       const updated = WorkspaceDataService.updateAgentStatus(
         workspaceId,
-        agentMatch[1],
+        agentStatusMatch[1],
         status,
       );
       if (!updated)
         return { success: false, error: "Agent not found", _status: 404 };
-      return { success: true, data: { id: agentMatch[1], status } };
+      return { success: true, data: { id: agentStatusMatch[1], status } };
     }
 
     return null;
