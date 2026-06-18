@@ -36,7 +36,7 @@ import { Logger } from "../../../shared/logging/Logger.js";
 import {
   GovernanceClient,
   sharedGovernanceClient,
-} from "../../../services/GovernanceClient.js";
+} from "../../../services/governance/GovernanceClient.js";
 
 const logger = new Logger("SapienceTradingAgent");
 
@@ -50,7 +50,7 @@ type SapienceServiceType = InstanceType<
   typeof import("../../../services/SapienceService.js").SapienceService
 >;
 type AutomatedForecastingServiceType = InstanceType<
-  typeof import("../../../services/AutomatedForecastingService.js").AutomatedForecastingService
+  typeof import("../../../services/ai/AutomatedForecastingService.js").AutomatedForecastingService
 >;
 
 export class SapienceTradingAgent implements TradingAgent {
@@ -82,7 +82,7 @@ export class SapienceTradingAgent implements TradingAgent {
     const [{ SapienceService }, { AutomatedForecastingService }] =
       await Promise.all([
         import("../../../services/SapienceService.js"),
-        import("../../../services/AutomatedForecastingService.js"),
+        import("../../../services/ai/AutomatedForecastingService.js"),
       ]);
 
     this.sapienceService = new SapienceService();

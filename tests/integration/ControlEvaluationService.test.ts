@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 const { ControlEvaluationService } = await import(
-  "../../src/backend/services/ControlEvaluationService.js"
+  "../../src/backend/services/governance/ControlEvaluationService.js"
 );
 
 function action(overrides: Record<string, any> = {}) {

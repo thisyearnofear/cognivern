@@ -4,12 +4,12 @@ import {
   owsWalletService,
   SpendIntent,
   SpendExecutionContext,
-} from "../../../services/OwsWalletService.js";
-import { sharedFhenixPolicyService } from "../../../services/FhenixPolicyService.js";
+} from "../../../services/blockchain/OwsWalletService.js";
+import { sharedFhenixPolicyService } from "../../../services/blockchain/FhenixPolicyService.js";
 import {
   getChainGPTAuditService,
   AuditResult,
-} from "../../../services/ChainGPTAuditService.js";
+} from "../../../services/ai/ChainGPTAuditService.js";
 import crypto from "node:crypto";
 import { Logger } from "../../../shared/logging/Logger.js";
 

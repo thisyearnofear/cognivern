@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { PolicyService } from "../../src/backend/services/PolicyService.js";
+import { PolicyService } from "../../src/backend/services/governance/PolicyService.js";
 import { InMemoryPolicyPersistence } from "../../src/backend/persistence/PolicyPersistence.js";
 import type { PolicyRule } from "../../src/backend/types/Policy.js";
 

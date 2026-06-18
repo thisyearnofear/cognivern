@@ -26,7 +26,7 @@ import { AgentsController } from "./controllers/AgentsController.js";
 import { GovernanceController } from "./controllers/GovernanceController.js";
 import { MetricsController } from "./controllers/MetricsController.js";
 import { AuditLogController } from "./controllers/AuditLogController.js";
-import { AuditLogService } from "../../services/AuditLogService.js";
+import { AuditLogService } from "../../services/governance/AuditLogService.js";
 import { CreController } from "./controllers/CreController.js";
 import { CopilotController } from "./controllers/CopilotController.js";
 import { IngestController } from "./controllers/IngestController.js";
@@ -496,7 +496,7 @@ export class ApiModule extends BaseService {
 
     // Initialize shared services for controllers (CONSOLIDATION & DRY)
     const { sharedPolicyService } = await import(
-      "../../services/PolicyService.js"
+      "../../services/governance/PolicyService.js"
     );
     const policyService = sharedPolicyService;
 

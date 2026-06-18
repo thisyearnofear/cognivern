@@ -36,7 +36,7 @@ const { creRunStore } = await import(
   "../../src/backend/cre/storage/CreRunStore.js"
 );
 const { owsLocalVaultService } = await import(
-  "../../src/backend/services/OwsLocalVaultService.js"
+  "../../src/backend/services/blockchain/OwsLocalVaultService.js"
 );
 
 type MockReq = {
@@ -248,7 +248,7 @@ describe("CreController", () => {
 
   it("submitApproval (spend workflow) broadcasts native transfer on approve", async () => {
     const { OwsWalletService } = await import(
-      "../../src/backend/services/OwsWalletService.js"
+      "../../src/backend/services/blockchain/OwsWalletService.js"
     );
     const { CreRunRecorder } = await import(
       "../../src/backend/cre/runRecorder.js"
@@ -322,7 +322,7 @@ describe("CreController", () => {
 
   it("submitApproval (spend workflow) leaves run paused + returns error when transfer fails", async () => {
     const { OwsWalletService } = await import(
-      "../../src/backend/services/OwsWalletService.js"
+      "../../src/backend/services/blockchain/OwsWalletService.js"
     );
     const { CreRunRecorder } = await import(
       "../../src/backend/cre/runRecorder.js"
@@ -393,7 +393,7 @@ describe("CreController", () => {
 
   it("submitApproval (spend workflow) refuses approve without operator userId", async () => {
     const { OwsWalletService } = await import(
-      "../../src/backend/services/OwsWalletService.js"
+      "../../src/backend/services/blockchain/OwsWalletService.js"
     );
     const { CreRunRecorder } = await import(
       "../../src/backend/cre/runRecorder.js"

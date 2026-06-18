@@ -27,7 +27,7 @@ process.env.TOKEN_BLACKLIST_FILE = path.join(
 
 // Mock FilecoinStorageService (transitive dep of AuditLogService) to avoid
 // config import side-effects in the vitest environment.
-vi.mock("../../src/backend/services/FilecoinStorageService.js", () => ({
+vi.mock("../../src/backend/services/blockchain/FilecoinStorageService.js", () => ({
   FilecoinStorageService: class {
     enabled = false;
   },
@@ -36,7 +36,7 @@ vi.mock("../../src/backend/services/FilecoinStorageService.js", () => ({
 // Stub AuditLogService so logAction is a no-op — the controller calls it
 // as a side-effect on every evaluation, and we don't want it touching files
 // or MongoDB during integration tests.
-vi.mock("../../src/backend/services/AuditLogService.js", () => ({
+vi.mock("../../src/backend/services/governance/AuditLogService.js", () => ({
   AuditLogService: class {
     async logAction() {
       return { decisionId: "test-decision-id" };

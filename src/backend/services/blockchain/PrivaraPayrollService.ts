@@ -14,7 +14,7 @@
 
 import { ReineiraSDK } from "@reineira-os/sdk";
 import { ethers } from "ethers";
-import logger from "../utils/logger.js";
+import logger from "../../utils/logger.js";
 
 export interface ConfidentialPayrollRequest {
   /** Fhenix decisionId from ConfidentialSpendPolicy (compliance proof) */

@@ -1,8 +1,8 @@
 import crypto from "node:crypto";
 import { ethers } from "ethers";
-import logger from "../utils/logger.js";
-import { CircuitBreaker } from "../shared/utils/circuitBreaker.js";
-import { filecoinConfig } from "../shared/config/index.js";
+import logger from "../../utils/logger.js";
+import { CircuitBreaker } from "../../shared/utils/circuitBreaker.js";
+import { filecoinConfig } from "../../shared/config/index.js";
 
 export interface FilecoinUploadResult {
   cid: string;

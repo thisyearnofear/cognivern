@@ -1,4 +1,4 @@
-import type { MultiModelConfig } from "./types.js";
+import type { MultiModelConfig } from "./multi-model-types.js";
 import { executeProvider } from "./MultiModelRouter.providers.js";
 
 export interface AiUsageRecord {

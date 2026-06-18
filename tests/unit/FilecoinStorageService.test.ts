@@ -69,7 +69,7 @@ async function makeService(enabled: boolean) {
     delete process.env.STORAGE_CONTRACT_ADDRESS;
   }
   vi.resetModules();
-  const mod = await import("../../src/backend/services/FilecoinStorageService.js");
+  const mod = await import("../../src/backend/services/blockchain/FilecoinStorageService.js");
   return new mod.FilecoinStorageService();
 }
 

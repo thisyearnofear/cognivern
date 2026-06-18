@@ -73,10 +73,10 @@ function resetVaultFile() {
 
 async function loadModules() {
   const { OwsWalletService } = await import(
-    "../../src/backend/services/OwsWalletService.js"
+    "../../src/backend/services/blockchain/OwsWalletService.js"
   );
   const { owsLocalVaultService } = await import(
-    "../../src/backend/services/OwsLocalVaultService.js"
+    "../../src/backend/services/blockchain/OwsLocalVaultService.js"
   );
   const { creRunStore } = await import(
     "../../src/backend/cre/storage/CreRunStore.js"

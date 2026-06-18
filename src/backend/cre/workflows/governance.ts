@@ -14,8 +14,8 @@
 import { CreRunRecorder } from "../runRecorder.js";
 import { CreRun } from "../types.js";
 import { creRunStore } from "../storage/CreRunStore.js";
-import { PolicyEnforcementService } from "../../services/PolicyEnforcementService.js";
-import { AuditLogService } from "../../services/AuditLogService.js";
+import { PolicyEnforcementService } from "../../services/governance/PolicyEnforcementService.js";
+import { AuditLogService } from "../../services/governance/AuditLogService.js";
 import type { AgentAction } from "../../types/Agent.js";
 import type { PolicyCheck } from "../../types/Agent.js";
 import logger from "../../utils/logger.js";

@@ -73,32 +73,16 @@ Or create custom rules:
 
 ### Step 4: Connect Your Agent
 
-Give your agent the **Agent ID** and **API key**. Use the REST API:
+Give your agent the **Agent ID** and **API key**:
 
 ```bash
-# Check governance before a spend
 curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \
   -H "x-api-key: cvn_YOUR_KEY_HERE" \
   -H "Content-Type: application/json" \
-  -d '{
-    "agentId": "agent-YOUR-AGENT-ID",
-    "action": {
-      "type": "swap",
-      "description": "Swap 1500 USDC for ETH on Uniswap",
-      "amount": 1500,
-      "currency": "USDC"
-    }
-  }'
-
-# Response (standard policy):
-# { "success": true, "data": { "approved": true, "reason": "...", "policyChecks": [...] } }
-#
-# Response (confidential FHE policy) — evaluation runs asynchronously:
-# 202 Accepted { "success": true, "data": { "runId": "...", "status": "running" } }
-# Poll GET /api/governance/evaluate/{runId}/result for the outcome.
+  -d '{"agentId": "agent-YOUR-AGENT-ID", "action": {"type": "swap", "description": "Swap 1500 USDC for ETH", "amount": 1500, "currency": "USDC"}}'
 ```
 
-> The `policyId` is optional — if omitted, Cognivern uses your workspace's active policy.
+Standard policies return a sync decision. Confidential (FHE) policies return `202 Accepted` with a `runId` to poll.
 
 For the full API reference, see the [Developer Guide](./DEVELOPER.md).
 
@@ -128,14 +112,6 @@ For each decision, you see:
 - **Attestation hash** — Cryptographic proof of the decision
 - **Policy rules matched** — Which rules triggered this outcome
 - **On-chain tx** — Real transfer transaction hash on X Layer testnet (if approved and the broadcast succeeded)
-
-### Verified on-chain
-
-The held-spend → operator-approve → native-transfer path is verified working against X Layer testnet (chainId 1952, RPC `testrpc.xlayer.tech`):
-
-- Transfer: [`0xa18b…69c8`](https://www.oklink.com/xlayer-test/tx/0xa18b2b533d1cdacb86dc23b40b87090625402b90b199bb1013c045aa1b9769c8) — 200 wei OKB, gas 21000, status `0x1`.
-
-The governance attestation record on `XLAYER_GOVERNANCE_CONTRACT_ADDRESS` is separate from the value transfer and requires `XLAYER_PRIVATE_KEY` to be set on the backend. When it isn't, the value transfer still goes through; the run response surfaces `transferStatus="sent"` with `onChainStatus="failed"` (fail-loud — never fabricated).
 
 ---
 

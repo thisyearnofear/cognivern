@@ -13,7 +13,7 @@ type SapienceServiceType = InstanceType<
   typeof import("../../../services/SapienceService.js").SapienceService
 >;
 type AutomatedForecastingServiceType = InstanceType<
-  typeof import("../../../services/AutomatedForecastingService.js").AutomatedForecastingService
+  typeof import("../../../services/ai/AutomatedForecastingService.js").AutomatedForecastingService
 >;
 
 export class SapienceController {
@@ -28,7 +28,7 @@ export class SapienceController {
     const [{ SapienceService }, { AutomatedForecastingService }] =
       await Promise.all([
         import("../../../services/SapienceService.js"),
-        import("../../../services/AutomatedForecastingService.js"),
+        import("../../../services/ai/AutomatedForecastingService.js"),
       ]);
 
     this.sapienceService = new SapienceService();

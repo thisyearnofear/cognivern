@@ -393,7 +393,7 @@ The single `CircuitBreaker` class was extended with public `recordFailure()`/`re
 - File-backed stores (rate limiting, idempotency, telemetry) are single-instance — need Redis/Postgres before horizontal scaling. The `BaseStore` interface exists to make this a single-adapter swap.
 - Email auth is supported alongside SIWE (wallet-primary); the SIWE path is more battle-tested in production.
 - **Ledger signing requires USB/WebHID access**, which limits deployment to single-instance or co-located with the hardware. The Speculos sandbox path avoids this in testing.
-- See the [Deployment Guide](./DEPLOYMENT.md) for operations
+- See the [Operations Guide](./OPS.md) for operations
 
 ## Security Architecture
 
@@ -410,85 +410,28 @@ The product implements layered security:
 
 ## 0G Bridge Buildathon Plan
 
-Cognivern is entering the [0G Bridge by AKINDO](https://docs.0g.ai/) 10-week, 5-Wave buildathon (Waves 1-5: Jun 13 → Aug 21, 2026; Demo Day around Token2049 Singapore Oct 7-8). The program distributes up to $50K in 0G credits weighted toward mainnet deployment (Wave 3, $15K) and sustained traction (Waves 4-5). See `docs/HACKATHON.md` for the submission checklist and wave-by-wave deliverables.
+Cognivern is entering the [0G Bridge by AKINDO](https://docs.0g.ai/) 10-week, 5-Wave buildathon (Waves 1-5: Jun 13 → Aug 21, 2026; Demo Day around Token2049 Singapore Oct 7-8). The program distributes up to $50K in 0G credits weighted toward mainnet deployment (Wave 3, $15K) and sustained traction (Waves 4-5).
 
 ### Strategic Repositioning
 
 Current state: 0G is *one of seven* partner networks, with `ZeroGStorageService` providing dual-anchor evidence alongside Filecoin.
 
-Target state: 0G is the **primary agent-economy rail**, and Cognivern is the **governance & trust layer for the 0G agent economy**. The Fhenix / X Layer / Filecoin / ChainGPT / Ledger / MongoDB / Sapience integrations become the supporting layer; 0G is the spine.
+Target state: 0G is the **primary agent-economy rail**, and Cognivern is the **governance & trust layer for the 0G agent economy**. The other integrations become the supporting layer; 0G is the spine.
 
-### Target Architecture (Wave 3 mainnet state)
+### 0G Component Plan
 
-```
-                                     0G Agent Economy
-                                     ----------------
-                                            |
-        +-----------------------------------+-----------------------------------+
-        |                                   |                                   |
-        v                                   v                                   v
-   0G Chain                          0G Storage                       0G Compute Network
-   (EVM L1)                          (evidence)                      (verifiable inference)
-   |                                 |                               |
-   GovernanceContract                ZeroGStorageService             ComputeProvider
-   GovernedVault                     (audit root hash in             (default for governance
-   AgentGovernancePolicy              CreRun.evidence)                -critical LLM calls;
-   AgenticIDRegistry                                                 fallback to ChainGPT /
-   0G Pay (settlement)                                               Fireworks / Workers AI)
-        \                                |                                /
-         \                               |                               /
-          +------------------------------+------------------------------+
-                                         |
-                                         v
-                              Cognivern Governance Core
-                              (unchanged; orchestrates all of the above)
-                                         |
-                                         v
-                            Audit trail + 0G Explorer links
-```
-
-### Component-by-Component Plan
-
-| 0G Component | Current state | Target state (Wave 3 mainnet) | New code |
-| --- | --- | --- | --- |
-| **0G Chain** | None | `GovernanceContract` + `GovernedVault` redeployed natively; new `AgentGovernancePolicy` registry; per-agent on-chain spend counters; on-chain `evidence` hash storage | `contracts/src/AgentGovernancePolicy.sol`, `deploy/0g/*` |
-| **0G Storage** | Live via `ZeroGStorageService` (Newton testnet) | Same service, retargeted to mainnet indexer; mainnet-anchored `zeroGRootHash` in every `CreRun.evidence` | Indexer URL swap, contract address tracking |
-| **0G Pay** | None | New `ZeroGPayService` that integrates the 0G Pay SDK; `OwsWalletService` routes approved spends through 0G Pay; on-chain settlement receipt appended to audit record | `src/backend/services/ZeroGPayService.ts` |
-| **Agentic ID (ERC-7857)** | None | New `AgenticIDRegistry` contract + `AgenticIDService` backend. Each governed agent becomes a tokenized ID carrying intelligence + audit history + active policy as encrypted metadata. The existing `signingProvider` abstraction, `PolicyService`, and audit ledger all become on-chain properties of the ID | `contracts/src/AgenticIDRegistry.sol`, `src/backend/services/AgenticIDService.ts` |
-| **0G Compute** | None | New `ComputeProvider` becomes the default for governance-critical LLM calls in `ChainGPTAuditService` (contract audit) and `ControlEvaluationService` (suspicion scoring); closed-source providers become fallback for non-governance tasks | `src/backend/services/ComputeProvider.ts`, wired into `MultiModelRouter` |
-
-### Wave Timeline
-
-- **Wave 1 (Jun 13-26, 2026) — Scoping & plan.** Submit this architecture doc + 0G-first README + 5-component plan + Loom walkthrough. No mainnet required.
-- **Wave 2 (Jun 27 - Jul 10, 2026) — Testnet prototype.** Deploy all five 0G components on Newton testnet; wire them into the audit pipeline; 3-min demo video.
-- **Wave 3 (Jul 11-24, 2026) — Mainnet deployment.** Redeploy `GovernanceContract` + `GovernedVault` + `AgenticIDRegistry` to **0G mainnet** with verified addresses; at least one end-to-end governed spend + Agentic ID mint on mainnet.
-- **Wave 4 (Jul 25 - Aug 7, 2026) — Traction.** Public users; per-workspace on-chain metrics (audit root counts, pay tx counts, agentic ID mints); X engagement.
-- **Wave 5 (Aug 8-21, 2026) — Demo Day.** 3-min pitch deck + video; mainnet metrics roll-up; next-stage roadmap.
-
-### "Real 0G Integration" Bar (Wave 3+ mandatory)
-
-The program rules state: *"At least one 0G component must be integrated in every valid submission from Wave 3 onwards. Submissions without real 0G integration may be disqualified."*
-
-We exceed this bar with four hard proofs of on-chain activity:
-
-1. **0G Chain contract addresses** — verified on 0G Explorer, linked from the audit trail UI
-2. **0G Storage root hashes** — real `zeroGRootHash` values in production audit records (already happening on testnet; mainnet-anchored in Wave 3)
-3. **0G Pay settlement receipts** — on-chain payment tx hash per approved spend
-4. **Agentic ID mints** — at least one ERC-7857 token visible on 0G Explorer by Wave 4
-
-### Why this works
-
-- The existing Fhenix Waves 1-7 delivery gave us a hardened, production-style pipeline: testnet → mainnet, dual-anchor evidence, audit-decision lifecycle, SSE progress streaming, deep health checks, circuit breakers, 181 backend tests. We can re-use all of it.
-- `ZeroGStorageService` is already shipping in production with 13 unit tests — that's a Wave 1-2 win we don't have to earn from scratch.
-- Agentic ID is a *killer fit*: Cognivern already governs agent wallets with policy + signing + audit, which is exactly what ERC-7857 wants as on-chain metadata.
-- 0G Pay is a *killer fit*: governed agent-to-agent settlement is the natural use case. The wiring is small (one new service) and the leverage is large.
-- The 0G Bridge buildathon *encourages* cross-area projects ("the best AI x Web3 applications often combine multiple" of the six tracks). Cognivern lands in four of the six: AI Agents, Trust & Safety, Finance, and Data & Infrastructure.
+| 0G Component | Target state (Wave 3 mainnet) | New code |
+| --- | --- | --- |
+| **0G Chain** | `GovernanceContract` + `GovernedVault` redeployed natively; new `AgentGovernancePolicy` registry; per-agent on-chain spend counters | `contracts/src/AgentGovernancePolicy.sol`, `deploy/0g/*` |
+| **0G Storage** | Live on Newton testnet via `ZeroGStorageService`; mainnet-anchored `zeroGRootHash` in every `CreRun.evidence` | Indexer URL swap |
+| **0G Pay** | Agent-to-agent governed settlement. New `ZeroGPayService` integrates the 0G Pay SDK | `src/backend/services/ZeroGPayService.ts` |
+| **Agentic ID (ERC-7857)** | Each governed agent becomes a tokenized ID carrying intelligence + audit history + active policy as encrypted metadata | `contracts/src/AgenticIDRegistry.sol`, `src/backend/services/AgenticIDService.ts` |
+| **0G Compute** | Verifiable inference for governance-critical LLM calls, replacing closed-source providers | `src/backend/services/ComputeProvider.ts` |
 
 ## Related Docs
 
 - [Developer Guide](./DEVELOPER.md) — APIs, local setup, testing
-- [Deployment](./DEPLOYMENT.md) — Production deployment and operations
+- [Operations](./OPS.md) — Production deployment and operations
 - [Fhenix Integration](./FHENIX_INTEGRATION.md) — Encrypted policy evaluation
 - [ChainGPT Integration](./CHAINGPT_INTEGRATION.md) — Web3 AI governance & contract auditing
 - [Ledger Integration](./LEDGER_INTEGRATION.md) — Hardware signing provider, Speculos sandbox, implementation plan
-- [Hackathon Brief](./HACKATHON.md) — 0G Bridge buildathon submission checklist

@@ -8,7 +8,7 @@
  * - Known safe contracts list
  */
 
-import logger from "../utils/logger.js";
+import logger from "../../utils/logger.js";
 import { getEtherscanService, EtherscanAnalysis } from "./EtherscanService.js";
 import { getDefenderService } from "./OpenZeppelinDefenderService.js";
 

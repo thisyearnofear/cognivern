@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { PolicyEnforcementService } from "../../src/backend/services/PolicyEnforcementService.js";
+import { PolicyEnforcementService } from "../../src/backend/services/governance/PolicyEnforcementService.js";
 import { Policy, PolicyRule } from "../../src/backend/types/Policy.js";
 import { AgentAction } from "../../src/backend/types/Agent.js";
 

@@ -22,7 +22,7 @@ import { Logger } from "../../../shared/logging/Logger.js";
 import {
   GovernanceClient,
   sharedGovernanceClient,
-} from "../../../services/GovernanceClient.js";
+} from "../../../services/governance/GovernanceClient.js";
 
 const logger = new Logger("UserTradingAgent");
 

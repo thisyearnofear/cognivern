@@ -91,7 +91,7 @@ npx hardhat compile
 npx hardhat run scripts/deploy-hardhat.cjs --network calibration
 ````
 
-The deployment script outputs contract addresses to add to your `.env`. See [Deployment](./DEPLOYMENT.md) for details.
+The deployment script outputs contract addresses to add to your `.env`. See [Operations](./OPS.md) for deployment details.
 
 ### Workspace Structure
 
@@ -342,6 +342,5 @@ pnpm lint
 
 ## Related Docs
 
-- [Hackathon Brief](./HACKATHON.md) — Demo story and submission
 - [Architecture](./ARCHITECTURE.md) — System design and data flows
-- [Deployment](./DEPLOYMENT.md) — Production deployment and operations
+- [Operations](./OPS.md) — Production deployment and operations

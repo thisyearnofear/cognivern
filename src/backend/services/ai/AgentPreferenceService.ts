@@ -1,5 +1,5 @@
-import { Logger } from "../shared/logging/Logger.js";
-import { getDb } from "../db/index.js";
+import { Logger } from "../../shared/logging/Logger.js";
+import { getDb } from "../../db/index.js";
 
 const logger = new Logger("AgentPreferenceService");
 

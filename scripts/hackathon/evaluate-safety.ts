@@ -28,7 +28,7 @@
  * Output: Calibration report + summary statistics.
  */
 
-import { ControlEvaluationService } from "../../src/backend/services/ControlEvaluationService.js";
+import { ControlEvaluationService } from "../../src/backend/services/governance/ControlEvaluationService.js";
 import { MonitorCalibrator, printCalibrationResult } from "./calibrate-monitor.js";
 import {
   generateHonestActions,

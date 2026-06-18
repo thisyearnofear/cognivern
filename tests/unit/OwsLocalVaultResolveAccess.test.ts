@@ -36,7 +36,7 @@ afterAll(() => {
 async function freshVault() {
   // Constructor reads OWS_VAULT_PATH at instantiation, so import then build.
   const { OwsLocalVaultService } = await import(
-    "../../src/backend/services/OwsLocalVaultService.js"
+    "../../src/backend/services/blockchain/OwsLocalVaultService.js"
   );
   // Start each case from an empty vault file.
   fs.writeFileSync(
