@@ -38,7 +38,7 @@ For full setup, testing, and production deployment details see the [Developer Gu
 |-----|-------------|
 | [Architecture](./docs/ARCHITECTURE.md) | System design, data flows, network roles, Fhenix/ChainGPT/Ledger integrations, native agents |
 | [Developer Guide](./docs/DEVELOPER.md) | Getting started (no-code), local setup, API reference, testing, production readiness |
-| [Operations](./docs/OPS.md) | Deployment, PM2, nginx, incident response playbooks, rollback procedures |
+| [Deployment](./docs/DEPLOYMENT.md) | Deploy to Hetzner, PM2, nginx, env vars, health checks |
 | [AI Safety Report](./scripts/hackathon/HACKATHON_REPORT.md) | Multi-dimensional suspicion scorer design, failure mode analysis, and cost-performance frontier evaluation |
 
 ## License
