@@ -6,23 +6,14 @@
 ## Quick Deploy
 
 ```bash
-# Primary deploy (rsync to Hetzner)
-pnpm deploy
-
-# Lean deploy (esbuild bundle, smaller footprint)
-pnpm deploy:lean
-
-# Bundle only (no server push)
-pnpm deploy:bundle
+# Primary deploy (build locally, scp tarball to Hetzner)
+pnpm deploy:hetzner
 ```
 
 ## What's Here
 
 | File/Dir             | Purpose                                   |
 | -------------------- | ----------------------------------------- |
-| `build-bundle.mjs`   | esbuild bundle builder                    |
-| `deploy-lean.sh`     | Lean Hetzner deploy (small footprint)     |
-| `production-deploy.sh` | Docker-based production deploy          |
 | `docker-compose.yml` | Local dev environment                     |
 | `nginx/`             | Nginx reverse proxy config                |
 | `kestra/`            | Governance workflow automation            |
