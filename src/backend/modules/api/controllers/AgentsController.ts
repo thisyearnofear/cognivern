@@ -15,6 +15,7 @@ import { MetricsService } from "@backend/services/MetricsService.js";
 import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
 import { PolicyService } from "@backend/services/governance/PolicyService.js";
 import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
+import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 
 export class AgentsController {
   private agentsModule: AgentsModule;
@@ -50,7 +51,14 @@ export class AgentsController {
 
   async getAgents(req: Request, res: Response): Promise<void> {
     try {
-      const agents = await this.agentsModule.getAgents();
+      const workspaceId = req.workspaceId;
+      let agents;
+
+      if (workspaceId) {
+        agents = WorkspaceDataService.getAgents(workspaceId);
+      } else {
+        agents = await this.agentsModule.getAgents();
+      }
 
       res.json({
         success: true,
@@ -212,9 +220,14 @@ export class AgentsController {
   async getAgent(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      const workspaceId = req.workspaceId;
 
-      // Get specific showcase agent by ID
-      const agent = await this.agentsModule.getAgent(id);
+      let agent;
+      if (workspaceId) {
+        agent = WorkspaceDataService.getAgent(workspaceId, id);
+      } else {
+        agent = await this.agentsModule.getAgent(id);
+      }
 
       if (!agent) {
         res.status(404).json({

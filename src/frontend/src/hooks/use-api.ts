@@ -44,11 +44,14 @@ function useApiWithDemo<T>(
 ): SWRResult<T> {
   const demoMode = useDemoStore((s) => s.demoMode);
   const isConnected = useAuthStore((s) => s.isConnected);
-  const effectiveKey = demoMode || !isConnected ? null : key;
+  // When connected, always fetch from the API — the backend demoInterceptor
+  // serves demo data for demo-tier workspaces. Only use local demo data
+  // for the unauthenticated demo tour (not connected + demoMode).
+  const effectiveKey = !isConnected && demoMode ? null : key;
 
   const swr = useSWR(effectiveKey, fetcher, { ...SWR_DEFAULTS, ...config });
 
-  if (demoMode) {
+  if (!isConnected && demoMode) {
     return {
       data: demoData,
       isLoading: false,
