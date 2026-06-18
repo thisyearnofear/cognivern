@@ -6,15 +6,13 @@ This directory contains legacy Hetzner deployment configuration. The primary dep
 
 | File/Dir             | Purpose                                   |
 | -------------------- | ----------------------------------------- |
-| `build-bundle.mjs`   | Bundle builder (`pnpm deploy:bundle`)     |
-| `deploy-lean.sh`     | Lean Hetzner deploy (`pnpm deploy:lean`)  |
 | `docker-compose.yml` | Local dev environment                     |
 | `nginx/`             | Nginx reverse proxy config                |
 | `kestra/`            | Governance workflow automation            |
 
 ## Removed (use `scripts/deploy/` instead)
 
-- `deploy.sh` → use `scripts/deploy.sh` (`pnpm deploy`)
+- `deploy.sh` → use `scripts/deploy/deploy-latest-hetzner.sh` (`pnpm deploy:hetzner`)
 - `monitor.sh` → use `scripts/monitoring/` (`pnpm monitor`)
 
 ## Active Hetzner Scripts

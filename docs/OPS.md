@@ -101,7 +101,7 @@ Optional integrations:
 | --- | --- | --- |
 | `PORT` | `3087` | Backend HTTP listener. nginx must `proxy_pass http://127.0.0.1:3087`. Drift = 502 for every public endpoint (see RUNBOOK playbook #8). |
 | `XLAYER_CHAIN_ID` | `1952` | testrpc.xlayer.tech reports chainId 1952 (mainnet is 196). Historical default `195` doesn't exist and breaks every native transfer. |
-| `OWS_VAULT_PATH` | `/opt/cognivern/shared/data/ows-vault.json` | Lives outside `app/bundle/` so `pnpm deploy:lean` (rsync `--delete` into `app/bundle/`) does not wipe wallets. |
+| `OWS_VAULT_PATH` | `/opt/cognivern/shared/data/ows-vault.json` | Lives outside `app/` so `pnpm deploy:hetzner` (which replaces `app/`) does not wipe wallets. |
 | `JWT_SECRET` | (set) | Required in production. authMiddleware throws on missing. |
 | `MONGODB_URI` | (set) | Run store falls back to JSONL-only without it. |
 | `OWS_BOOTSTRAP_PRIVATE_KEY` | (set) | Auto-imports the Treasury wallet on first vault read (only if vault is empty). |
