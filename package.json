@@ -64,6 +64,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:integration": "vitest run tests/integration/",
+    "hackathon:eval": "tsx scripts/hackathon/evaluate-safety.ts",
     "demo:reset": "tsx scripts/demo/demo-reset.ts",
     "demo:seed": "tsx scripts/demo/demo-seed.ts",
     "demo:scenario": "tsx scripts/demo/demo-scenario.ts",

@@ -107,7 +107,7 @@ describe("ControlEvaluationService.score", () => {
   });
 
   it("escalated=true when composite >= 0.6", () => {
-    // Force a high score: 2 deny-rule failures + off-hours burst + scope creep.
+    // Force a high score: 2 deny-rule failures + off-hours burst + scope creep + sabotage patterns.
     const base = new Date(2026, 5, 13, 3, 0, 0);
     const recent = Array.from({ length: 12 }).map((_, i) => ({
       type: "spend",
@@ -116,14 +116,17 @@ describe("ControlEvaluationService.score", () => {
     const result = svc.score({
       action: action({
         timestamp: base.toISOString(),
-        metadata: { touchedResources: ["a", "b", "c", "d", "e"] },
+        metadata: {
+          touchedResources: ["credentials.env", "vault/secrets.db"],
+          leakedSecrets: ["API_KEY"],
+        },
       }),
       policyChecks: [
         { policyId: "deny-over-budget", result: false, reason: "over budget" },
         { policyId: "deny-bad-recipient", result: false, reason: "bad recipient" },
       ],
       recentActions: recent,
-      requestedScope: ["a"],
+      requestedScope: ["auth/config.ts"],
     });
 
     expect(result.composite).toBeGreaterThanOrEqual(0.6);
