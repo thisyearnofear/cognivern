@@ -1,6 +1,48 @@
 # Developer Guide
 
-This guide covers Cognivern as a unified governance plane for agent teams: financial spend controls, confidential policy enforcement, and emerging AI spend efficiency operations across toolchains.
+Local setup, API reference, and production readiness for Cognivern.
+
+## Getting Started (No Code Required)
+
+Try Cognivern without connecting a wallet:
+
+1. Go to **[cognivern.vercel.app](https://cognivern.vercel.app)**
+2. Click **"Try Live Demo"** — no signup needed
+3. You'll land in a sandbox with a demo agent, sample policies, and pre-filled spend examples
+
+From the demo you can preview spends, adjust policy sliders, and view the audit trail.
+
+### Production Setup
+
+1. **Create workspace** — Sign in, enter workspace name, get an API key
+2. **Register agent** — Dashboard → "Create Agent" → pick a template or fill manually
+3. **Set policy** — Choose Strict (<$100/day), Moderate (<$1K/day), or Open, or create custom rules (daily limit, per-tx limit, vendor allowlist, contract blocklist, time window)
+4. **Connect agent** — Give your agent the Agent ID and API key:
+
+```bash
+curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \
+  -H "x-api-key: cvn_YOUR_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"agentId": "agent-YOUR-AGENT-ID", "action": {"type": "swap", "description": "Swap 1500 USDC for ETH", "amount": 1500, "currency": "USDC"}}'
+```
+
+Standard policies return sync decisions. Confidential (FHE) policies return `202 Accepted` with a `runId` to poll.
+
+### Decisions
+
+| Decision | Meaning | What Happens |
+| -------- | -------- | ----------- |
+| **Approved** ✅ | Spend fits policy | Native-token transfer broadcast on X Layer testnet |
+| **Held** ⏸ | Needs review | Approve/Deny in dashboard. Failed broadcasts leave run retryable. |
+| **Denied** ❌ | Violates policy | Money does not move |
+
+Each decision includes a Decision ID, attestation hash, matched policy rules, and on-chain tx hash (if approved).
+
+### Common Setups
+
+- **DAO Treasury** — Multiple bots as agents, Strict policy, Ledger hardware signing, monthly CSV exports
+- **Crypto Fund** — Trading bots, Moderate policy, ChainGPT contract audits, MongoDB for compliance reporting
+- **Individual Trader** — Single bot, Open policy with daily limit, demo mode for strategy testing
 
 ## Local Setup
 
@@ -23,79 +65,29 @@ Create `.env` from `.env.example`. Minimum for local dev:
 
 ```env
 API_KEY=your_api_key_here
-# Optional — used by OWS wallet bootstrap and Fhenix fallback
-FILECOIN_PRIVATE_KEY=
-GOVERNANCE_CONTRACT_ADDRESS=
-STORAGE_CONTRACT_ADDRESS=
-
-# AI Provider Keys (optional - for intent processing)
-OPENAI_API_KEY=
-FIREWORKS_API_KEY=      # Primary AI provider (DeepSeek-v4-Flash)
-GROQ_API_KEY=           # Fallback provider (Llama-3.3-70B)
-VENICE_API_KEY=         # Fallback provider (Llama-3.3-70B)
-GEMINI_API_KEY=         # Alternative provider
-KILOCODE_API_KEY=       # Free models fallback
-
-# Rate Limits (optional - defaults in code)
-RATE_LIMIT_WINDOW_MS=900000      # 15 min window for general endpoints
-RATE_LIMIT_MAX_REQUESTS=100       # 100 requests per window
-INGEST_RATE_LIMIT_PER_MINUTE=120  # 120 requests/min for ingest
-INTENT_RATE_LIMIT_PER_MINUTE=30   # 30 requests/min for AI intent (expensive)
-GOVERNANCE_RATE_LIMIT_PER_MINUTE=60  # 60 requests/min for governance
-
-# Control Evaluation Mode (optional — parallel suspicion scoring)
-# When true, every governance evaluation gets a suspicion score (0-1)
-# stored in the audit trail. Does not change approve/deny decisions.
-CONTROL_EVAL_MODE=false
+FILECOIN_PRIVATE_KEY=          # Optional — OWS wallet + Fhenix fallback
+GOVERNANCE_CONTRACT_ADDRESS=   # Optional — defaults to empty
+STORAGE_CONTRACT_ADDRESS=      # Optional — defaults to empty
+OPENAI_API_KEY=                # Optional — AI intent processing
+FIREWORKS_API_KEY=             # Optional — primary AI provider
+GROQ_API_KEY=                  # Optional — fallback AI provider
+CONTROL_EVAL_MODE=false        # Optional — parallel suspicion scoring
 ```
 
-# Fhenix / CoFHE (optional — for confidential policy evaluation)
-
-FHENIX_RPC_URL=https://api.testnet.fhenix.zone
-FHENIX_SEPOLIA_RPC=https://api.testnet.fhenix.zone
-FHENIX_POLICY_CONTRACT=0xeA88BD6121d181cFD6F60997B4BDd0297CA432fE
-
-# Falls back to FILECOIN_PRIVATE_KEY if not set
-
-FHENIX_PRIVATE_KEY=
-
-# Optional: override chain ID (default: 84532 for Fhenix Base Sepolia)
-
-FHENIX_CHAIN_ID=84532
-
-# Optional: override individual CoFHE service URLs
-
-# FHENIX_COFHE_URL=https://testnet-cofhe.fhenix.zone
-
-# FHENIX_VERIFIER_URL=https://testnet-cofhe-vrf.fhenix.zone
-
-# FHENIX_TN_URL=https://testnet-cofhe-tn.fhenix.zone
-
-FHENIX_EVALUATE_TIMEOUT_MS=30000
-
-````
-
-Fhenix variables can be left empty for local dev — the service falls back to a deny decision when the CoFHE client is unavailable. Contract addresses (`GOVERNANCE_CONTRACT_ADDRESS`, `STORAGE_CONTRACT_ADDRESS`) can be left empty for local dev — they default to empty strings. AI provider keys enable the natural language intent system; without them, keyword-based fallback responses are used.
+Fhenix variables can be left empty for local dev — the service falls back to a deny decision when CoFHE is unavailable. AI provider keys enable natural language intent; without them, keyword-based fallback is used.
 
 ### Smart Contracts
 
-The project includes Solidity contracts in `contracts/src/`:
-- **GovernanceContract** — Policy management and agent governance
-- **AIGovernanceStorage** — Specialized AI governance data storage
-
-To deploy contracts (e.g. to Filecoin Calibration testnet):
-
 ```bash
-# Set FILECOIN_PRIVATE_KEY and FILECOIN_RPC_URL in .env
 npx hardhat compile
 npx hardhat run scripts/deploy-hardhat.cjs --network calibration
-````
+```
 
-The deployment script outputs contract addresses to add to your `.env`. See [Operations](./OPS.md) for deployment details.
+Deployment outputs contract addresses to add to `.env`. See [Operations](./OPS.md) for deployment details.
 
 ### Workspace Structure
 
-This is a pnpm monorepo with three packages:
+pnpm monorepo with three packages:
 
 | Package        | Path           | Purpose                       |
 | -------------- | -------------- | ----------------------------- |
@@ -105,49 +97,19 @@ This is a pnpm monorepo with three packages:
 
 ## Core Services
 
-| Service                    | Responsibility                                                                                        |
-| -------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `PolicyService`            | Loads and stores local policies                                                                       |
-| `PolicyEnforcementService` | Evaluates actions against policy rules, returns allow/deny decisions                                  |
-| `FhenixPolicyService`      | Evaluates confidential policy paths, normalizes encrypted decisions, and issues permit-ready evidence |
-| `AuditLogService`          | Maps events into CRE-backed evidence records                                                          |
-| `IngestController`         | Validates and stores BYO-agent runs, enforces ingest keys                                             |
-| `CreController`            | Exposes run ledger, event streams, retries, approvals                                                 |
-| `OwsLocalVaultService`     | Encrypted local wallet storage, API-key issuance                                                      |
-| `OwsWalletService`         | Spend execution, policy enforcement, signed authorizations                                            |
-| `IntentController`         | Natural language intent processing via AI with multi-provider routing                                 |
-| `MultiModelRouter`         | Routes AI requests across 6 providers with fallback logic and circuit breakers                        |
-| `ControlEvaluationService` | Parallel suspicion scoring (0-1) across 4 dimensions for every governance evaluation; gated by `CONTROL_EVAL_MODE` |
-
-### Product framing for contributors
-
-- **Policy:** central enforcement path for governed execution decisions.
-- **Privacy:** confidential policy mode (`policy.metadata.confidential`) for encrypted evaluation and scoped permit workflows.
-- **Efficiency:** AI usage and model-routing optimization should integrate into the same governance/audit plane (single source of truth, no parallel enforcement stack).
-- **Auditability:** decision artifacts (`decisionId`, attestations, execution context) remain first-class outputs for downstream reporting and controls.
+| Service                    | Responsibility |
+| -------------------------- | -------------- |
+| `PolicyService`            | Loads and stores policies |
+| `PolicyEnforcementService` | Evaluates actions against rules, returns allow/deny |
+| `FhenixPolicyService`      | Confidential policy paths, encrypted decisions, permit-ready evidence |
+| `AuditLogService`          | Maps events into CRE-backed evidence records |
+| `OwsLocalVaultService`     | Encrypted local wallet storage, API-key issuance |
+| `OwsWalletService`         | Spend execution, policy enforcement, signed authorizations |
+| `IntentController`         | Natural language intent via AI with multi-provider routing |
+| `MultiModelRouter`         | Routes AI across 6 providers with fallback + circuit breakers |
+| `ControlEvaluationService` | Parallel suspicion scoring (0-1), gated by `CONTROL_EVAL_MODE` |
 
 ## API Reference
-
-### Data Plane — Run Ingestion
-
-**`POST /ingest/runs`**
-
-Headers: `Authorization: Bearer <ingestKey>`, `X-PROJECT-ID: <projectId>`
-
-```json
-{
-  "runId": "string",
-  "workflow": "string",
-  "mode": "local",
-  "startedAt": "2026-01-01T00:00:00.000Z",
-  "finishedAt": "2026-01-01T00:00:01.000Z",
-  "ok": true,
-  "steps": [],
-  "artifacts": []
-}
-```
-
-Related: `GET /api/projects`, `GET /api/projects/:projectId/usage`
 
 ### Governance Control Plane
 
@@ -160,7 +122,7 @@ Related: `GET /api/projects`, `GET /api/projects/:projectId/usage`
 }
 ```
 
-Response shape (`GovernanceEvaluation`):
+Response (`GovernanceEvaluation`):
 
 ```json
 {
@@ -172,128 +134,60 @@ Response shape (`GovernanceEvaluation`):
 }
 ```
 
-- `allowed` is the legacy two-state boolean. `true` only for fully approved spends; `held` and `denied` both come back as `false`.
-- `decision` is the three-state field — `"approved" | "held" | "denied"`. Prefer this when rendering the verdict; fall back to `allowed` for backwards compat.
-
-**Sandbox demo bands.** With `X-Workspace-Mode: sandbox` (the default for new sign-ins until `setWorkspaceMode("production")` is called) the demoInterceptor bands the decision by amount:
-
-| Amount (USDC) | `decision` |
-| --- | --- |
-| `< 100` | `approved` |
-| `100 ≤ amount ≤ 3000` | `held` |
-| `> 3000` | `denied` |
-
-The reasoning string names the demo policy responsible (e.g. "Held for review by Human Approval Threshold").
+- `allowed` is legacy boolean (`true` only for approved; `held` and `denied` both `false`)
+- `decision` is the three-state field — prefer this when rendering
 
 Related: `GET/POST /api/governance/policies`, `GET /api/governance/health`
 
+### Data Plane — Run Ingestion
+
+**`POST /ingest/runs`** — Headers: `Authorization: Bearer <ingestKey>`, `X-PROJECT-ID: <projectId>`
+
+Related: `GET /api/projects`, `GET /api/projects/:projectId/usage`
+
 ### OWS Wallet
 
-| Endpoint             | Method    | Description          |
-| -------------------- | --------- | -------------------- |
-| `/api/ows/bootstrap` | POST      | Bootstrap OWS wallet |
-| `/api/ows/wallets`   | GET       | List wallets         |
-| `/api/ows/api-keys`  | GET, POST | API key management   |
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/ows/bootstrap` | POST | Bootstrap OWS wallet |
+| `/api/ows/wallets` | GET | List wallets |
+| `/api/ows/api-keys` | GET, POST | API key management |
 
 ### Spend Execution
 
-| Endpoint               | Method | Description                                                     |
-| ---------------------- | ------ | --------------------------------------------------------------- |
-| `/api/spend`           | POST   | Execute governed spend                                          |
-| `/api/spend/encrypted` | POST   | Execute confidential-policy spend with encrypted amount payload |
-| `/api/spend/preview`   | POST   | Simulate spend (dry-run)                                        |
-| `/api/spend/status`    | GET    | Execution status                                                |
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/spend` | POST | Execute governed spend |
+| `/api/spend/encrypted` | POST | Confidential-policy spend with encrypted amount |
+| `/api/spend/preview` | POST | Simulate spend (dry-run) |
+| `/api/spend/status` | GET | Execution status |
 
 ### Audit & Run Ledger
 
-| Endpoint                             | Method | Description                                 |
-| ------------------------------------ | ------ | ------------------------------------------- |
-| `/api/audit/logs`                    | GET    | Audit trail                                 |
-| `/api/audit/insights`                | GET    | Audit insights — pass `?dimension=ai_spend` for `{totalCostUsd, totalTokens, totalCalls, byProvider, recentEntries}`, `?dimension=suspicion` for `{totalScored, averageScore, escalationRate, distribution}`. Omit dimension for the unified summary. Sandbox mode returns zero-state versions of the same shapes. |
-| `/api/audit/permits`                 | POST   | Issue confidential audit decryption permits |
-| `/api/cre/runs`                      | GET    | Run ledger                                  |
-| `/api/cre/runs/:runId`               | GET    | Run details                                 |
-| `/api/cre/runs/:runId/events/stream` | GET    | SSE event stream                            |
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/audit/logs` | GET | Audit trail |
+| `/api/audit/insights` | GET | Insights — `?dimension=ai_spend` or `?dimension=suspicion` |
+| `/api/audit/permits` | POST | Issue confidential audit decryption permits |
+| `/api/cre/runs` | GET | Run ledger |
+| `/api/cre/runs/:runId/events/stream` | GET | SSE event stream |
 
 ### AI Intent Processing
 
-| Endpoint              | Method | Description                       |
-| --------------------- | ------ | --------------------------------- |
-| `/api/intent`         | POST   | Process natural language commands |
-| `/api/intent/metrics` | GET    | Intent system metrics             |
-
-**`POST /api/intent`**
-
-```json
-{
-  "query": "Show my spending",
-  "context": { "currentPath": "/dashboard" }
-}
-```
+**`POST /api/intent`** — `{ "query": "Show my spending", "context": { "currentPath": "/dashboard" } }`
 
 Returns intent classification, component routing, and agent actions. Falls back to keyword-based classification when AI providers are unavailable.
 
 ### MCP Governance Tool
 
-Cognivern exposes an MCP-compliant governance tool for integration with the Prompt Opinion Marketplace and Agents Assemble healthcare AI workflows.
+MCP-compliant governance tool for integration with external agent frameworks.
 
-| Endpoint                       | Method | Description                  |
-| ------------------------------ | ------ | ---------------------------- |
-| `/api/mcp/governance-check`    | GET    | Tool manifest (discovery)    |
-| `/api/mcp/governance-check`    | POST   | Evaluate governed action     |
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/mcp/governance-check` | GET | Tool manifest (discovery) |
+| `/api/mcp/governance-check` | POST | Evaluate governed action |
 
-**Tool Discovery (GET)**
-
-Returns the MCP tool manifest with `input_schema` and `output_schema` for client-side validation.
-
-**Evaluation (POST)**
-
-```json
-{
-  "agentId": "string",
-  "action": {
-    "type": "string",
-    "description": "string",
-    "amount": 0,
-    "currency": "USDC"
-  },
-  "fhirContext": {
-    "subject": { "resourceType": "Patient", "id": "string" },
-    "requester": { "resourceType": "Practitioner", "id": "string" },
-    "sensitivityLabels": ["MH", "SUD"]
-  },
-  "a2aTraceId": "string"
-}
-```
-
-Returns `allowed`, `reasoning`, `policyChecks`, `provider`, `model`, and `auditLogId`. The `fhirContext` block is optional — when present, the governance evaluation is HIPAA-aware and applies clinical sensitivity rules.
-
-**Smoke test:**
-
-```bash
-COGNIVERN_URL=http://localhost:8787 COGNIVERN_API_KEY=development-api-key \
-  npx tsx scripts/tests/mcp-governance-smoke.ts
-```
-
-### Control Evaluation Mode
-
-When `CONTROL_EVAL_MODE=true`, every governance evaluation gets a composite suspicion score (0-1) across four dimensions — rule violations (2x weight), behavioral deviation, temporal anomaly, and scope creep. The score is stored in `CreRun.evidence.suspicion` and surfaced in the audit trail and dashboard. It never modifies approve/deny decisions.
-
-**Insights endpoint:**
-
-```bash
-curl "$COGNIVERN_URL/api/audit/insights?dimension=suspicion" \
-  -H "Authorization: Bearer $COGNIVERN_API_KEY"
-```
-
-Returns `totalScored`, `distribution` (normal/elevated/high/critical), `averageScore`, `escalationRate`, `topAgents`, `recentEscalations`, and `dimensionContribution`.
-
-**Smoke test:**
-
-```bash
-COGNIVERN_URL=http://localhost:8787 COGNIVERN_API_KEY=development-api-key \
-  npx tsx scripts/tests/control-eval-smoke.ts
-```
+POST body includes optional `fhirContext` for HIPAA-aware governance evaluation with clinical sensitivity rules.
 
 ## Testing
 
@@ -307,40 +201,24 @@ pnpm lint
 
 ### Completed
 
-- [x] Error boundaries for frontend resilience
-- [x] Circuit breakers for external services (Sapience, Contract, AI providers)
-- [x] Code splitting and adaptive loading
+- [x] Error boundaries, circuit breakers, code splitting
 - [x] Sensitive data redaction in public proofs
-- [x] Unit tests for core services (PolicyEnforcement, TradingHistory, Sapience)
-- [x] Integration tests for CRE controller
-- [x] CI pipeline for backend and frontend builds
-- [x] `.env.example` synced with required keys
-- [x] Multi-provider AI routing (6 providers: Fireworks, Kilocode, Workers AI, OpenAI, Gemini, Anthropic)
-- [x] Natural language intent processing with fallback classification
-- [x] Compact UI with responsive improvements
+- [x] Unit + integration tests, CI pipeline
+- [x] Multi-provider AI routing (6 providers)
 - [x] Rate limiting on public endpoints (configurable per-endpoint)
+- [x] SIWE wallet auth + JWT with nonce replay protection
+- [x] Workspace multi-tenancy with per-workspace SQLite tables
+- [x] Demo data from backend `DemoDataService` for sandbox mode
+- [x] Mode system: Demo → Sandbox → Production
 
 ### Remaining
 
 - [ ] Sentry integration for frontend error tracking
 - [ ] 80%+ test coverage for core business logic
-- [ ] Automated versioning and changelog
 - [ ] Staging environment
-
-### Progress: ~93%
-
-### Remaining (Platform)
-
-- [x] User authentication (SIWE wallet) — implemented via `AuthWatcher` + JWT
-- [x] Workspace multi-tenancy with data isolation — per-workspace SQLite tables
-- [x] Per-workspace API key management — `api_keys` table + middleware
-- [x] Demo data served from backend `DemoDataService` when `X-Workspace-Mode: sandbox`
-- [x] Real wallet connection in onboarding flow — RainbowKit + auto sign-in
-- [x] Mode system: Demo → Sandbox → Production with clear transitions
 - [ ] Self-service workspace tier upgrade (demo → live)
-- [ ] Email-based auth as alternative to wallet
 
 ## Related Docs
 
-- [Architecture](./ARCHITECTURE.md) — System design and data flows
-- [Operations](./OPS.md) — Production deployment and operations
+- [Architecture](./ARCHITECTURE.md) — System design, integrations, data flows
+- [Operations](./OPS.md) — Production deployment, PM2, incident response
