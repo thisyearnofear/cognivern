@@ -80,6 +80,7 @@ Thumbs.db
 .zeav/
 .zencoder/
 .zenflow/
+.kimchi
 
 # ── pnpm store ─────────────────────────────────────────────────────
 .pnpm/
