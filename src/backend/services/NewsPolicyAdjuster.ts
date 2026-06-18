@@ -1,4 +1,4 @@
-import { sharedPolicyService, PolicyService } from "./PolicyService.js";
+import { sharedPolicyService, PolicyService } from "./governance/PolicyService.js";
 import { NotificationService } from "./NotificationService.js";
 import { Logger } from "../shared/logging/Logger.js";
 

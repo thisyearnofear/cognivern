@@ -116,7 +116,7 @@ describe("OwsWalletService — On-chain resilience", () => {
     it("returns success: false when no private key is configured", async () => {
       cfg.mockBlockchainConfig.privateKey = "";
 
-      const { OwsWalletService } = await import("../../src/backend/services/OwsWalletService.js");
+      const { OwsWalletService } = await import("../../src/backend/services/blockchain/OwsWalletService.js");
       const service = new OwsWalletService();
       const result = await (service as any).onChainManager.recordOnChainApproval({
         intentId: "test-intent",
@@ -133,7 +133,7 @@ describe("OwsWalletService — On-chain resilience", () => {
       mockGetAgent.mockResolvedValue({ status: 1n });
       mockEvaluateAction.mockResolvedValue(createMockTx("0xdeadbeef"));
 
-      const { OwsWalletService } = await import("../../src/backend/services/OwsWalletService.js");
+      const { OwsWalletService } = await import("../../src/backend/services/blockchain/OwsWalletService.js");
       const service = new OwsWalletService();
       await (service as any).onChainManager.recordOnChainApproval({
         intentId: "test-intent",
@@ -149,7 +149,7 @@ describe("OwsWalletService — On-chain resilience", () => {
       mockGetAgent.mockResolvedValue({ status: 1n });
       mockEvaluateAction.mockResolvedValue(createMockTx("0xdeadbeef"));
 
-      const { OwsWalletService } = await import("../../src/backend/services/OwsWalletService.js");
+      const { OwsWalletService } = await import("../../src/backend/services/blockchain/OwsWalletService.js");
       const service = new OwsWalletService();
       const result = await (service as any).onChainManager.recordOnChainApproval({
         intentId: "test-intent",
@@ -167,7 +167,7 @@ describe("OwsWalletService — On-chain resilience", () => {
         new Error("BlockchainRPC circuit breaker is open"),
       );
 
-      const { OwsWalletService } = await import("../../src/backend/services/OwsWalletService.js");
+      const { OwsWalletService } = await import("../../src/backend/services/blockchain/OwsWalletService.js");
       const service = new OwsWalletService();
       const result = await (service as any).onChainManager.recordOnChainApproval({
         intentId: "test-intent",
@@ -189,7 +189,7 @@ describe("OwsWalletService — On-chain resilience", () => {
       mockRegisterAgent.mockResolvedValue(createMockTx());
       mockUpdateAgentStatus.mockResolvedValue(createMockTx());
 
-      const { OwsWalletService } = await import("../../src/backend/services/OwsWalletService.js");
+      const { OwsWalletService } = await import("../../src/backend/services/blockchain/OwsWalletService.js");
       const service = new OwsWalletService();
       const mockWallet = { address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" };
 
@@ -210,7 +210,7 @@ describe("OwsWalletService — On-chain resilience", () => {
       mockRegisterAgent.mockResolvedValue(createMockTx());
       mockUpdateAgentStatus.mockResolvedValue(createMockTx());
 
-      const { OwsWalletService } = await import("../../src/backend/services/OwsWalletService.js");
+      const { OwsWalletService } = await import("../../src/backend/services/blockchain/OwsWalletService.js");
       const service = new OwsWalletService();
       const mockWallet = { address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" };
 

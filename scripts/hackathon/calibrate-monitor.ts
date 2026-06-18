@@ -12,7 +12,7 @@
  * The hackathon scores: safety = share of sabotage caught at the 1% audit budget.
  */
 
-import { ControlEvaluationService } from "../../src/backend/services/ControlEvaluationService.js";
+import { ControlEvaluationService } from "../../src/backend/services/governance/ControlEvaluationService.js";
 import type { AgentAction, PolicyCheck } from "../../src/backend/types/Agent.js";
 import type { AgentPreferences } from "../../src/backend/services/AgentPreferenceService.js";
 

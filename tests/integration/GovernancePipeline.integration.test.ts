@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
 
 const { PolicyService } = await import(
-  "../../src/backend/services/PolicyService.js"
+  "../../src/backend/services/governance/PolicyService.js"
 );
 const { InMemoryPolicyPersistence } = await import(
   "../../src/backend/persistence/PolicyPersistence.js"
 );
 const { PolicyEnforcementService } = await import(
-  "../../src/backend/services/PolicyEnforcementService.js"
+  "../../src/backend/services/governance/PolicyEnforcementService.js"
 );
 
 describe("Governance Pipeline Integration", () => {

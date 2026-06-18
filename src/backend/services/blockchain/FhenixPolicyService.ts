@@ -12,8 +12,8 @@ import {
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia, arbitrumSepolia } from 'viem/chains';
-import logger from '../utils/logger.js';
-import { withTimeout } from '../shared/utils/index.js';
+import logger from '../../utils/logger.js';
+import { withTimeout } from '../../shared/utils/index.js';
 
 /**
  * FhenixPolicyService

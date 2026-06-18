@@ -4,7 +4,7 @@
 
 import { Request, Response } from "express";
 import { z } from "zod";
-import { OwsLocalVaultService } from "../../../services/OwsLocalVaultService.js";
+import { OwsLocalVaultService } from "../../../services/blockchain/OwsLocalVaultService.js";
 import {
   BadRequestError,
   NotFoundError,

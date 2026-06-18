@@ -23,7 +23,7 @@ The submission is the **Cognivern Copilot** agent under [`agent/`](./agent). It 
 - MongoDB seed (judges can poke the data): `pnpm db:seed:reset`
 - Smoke test: `pnpm agent:smoke`
 
-See [`docs/HACKATHON.md`](./docs/HACKATHON.md) for the full submission checklist and [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the system design.
+See [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the system design.
 
 ## Submission: 0G Bridge by AKINDO (10-week, 5-Wave Buildathon)
 
@@ -37,7 +37,7 @@ See [`docs/HACKATHON.md`](./docs/HACKATHON.md) for the full submission checklist
 | **Agentic ID (ERC-7857)** | Each governed agent becomes a tokenized Agentic ID carrying its intelligence, audit history, and active policy as encrypted metadata. The `signingProvider` abstraction, `PolicyService`, and audit ledger all become on-chain properties of the ID. |
 | **0G Compute** | Verifiable inference for `ChainGPTAuditService` (contract audit) and `ControlEvaluationService` (suspicion scoring). Replaces the closed-source LLM providers for governance-critical decisions. |
 
-See [`docs/HACKATHON.md`](./docs/HACKATHON.md) for the wave-by-wave submission plan and [`docs/ARCHITECTURE.md#0g-bridge-buildathon-plan`](./docs/ARCHITECTURE.md) for the target architecture. Wave 1 deliverable is a one-page scoping doc + this repo as the 0G integration proof-of-intent; the on-chain activity is gated to Wave 3 mainnet deployment per the program rules.
+See [`docs/ARCHITECTURE.md#0g-bridge-buildathon-plan`](./docs/ARCHITECTURE.md) for the target architecture. Wave 1 deliverable is a one-page scoping doc + this repo as the 0G integration proof-of-intent; the on-chain activity is gated to Wave 3 mainnet deployment per the program rules.
 
 The Copilot console on the live demo is a closed loop, not a single shot: every confirmed or denied mission is persisted to SQLite and surfaces in a recent-decisions rail, where the operator can replay the full event timeline (with play/pause/scrub), re-run with the same goal, or jump straight to the policy that drove the confirmation. See [`src/frontend/src/components/copilot/copilot-page.tsx`](./src/frontend/src/components/copilot/copilot-page.tsx) for the page and [`src/backend/modules/api/controllers/CopilotController.ts`](./src/backend/modules/api/controllers/CopilotController.ts) for the controller.
 
@@ -108,10 +108,9 @@ pnpm demo:fhenix
 | Doc                                                    | Covers                                                                             |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------- |
 | [Getting Started](./docs/GETTING_STARTED.md)           | For operators, fund managers, DAO treasurers — no code required                   |
-| [Hackathon Brief](./docs/HACKATHON.md)                 | Demo story, submission, talk track                                                 |
 | [Architecture](./docs/ARCHITECTURE.md)                 | System design, data flows, endpoints                                               |
 | [Developer Guide](./docs/DEVELOPER.md)                 | Local setup, APIs, testing, production readiness                                   |
-| [Deployment](./docs/DEPLOYMENT.md)                     | Production deployment, PM2, rollbacks                                              |
+| [Operations](./docs/OPS.md)                            | Production deployment, PM2, rollbacks                                              |
 | [Fhenix Integration](./docs/FHENIX_INTEGRATION.md)     | Privacy-by-Design plan: encrypted budgets, sealed approvals, FHE policy evaluation |
 | [ChainGPT Integration](./docs/CHAINGPT_INTEGRATION.md) | Web3-native AI governance: ChainGPT LLM + Smart Contract Auditor integration       |
 
@@ -157,7 +156,7 @@ The spend control plane is live: policy evaluation, signed approvals, held actio
 
 ### Recent Updates (2026-06)
 
-- **0G Bridge Buildathon Entry** — Submitted to the 0G Bridge by AKINDO 10-week/5-Wave buildathon (Waves 1-5: Jun 13 → Aug 21, 2026, $50K in 0G credits; Demo Day at Token2049 Singapore Oct 7-8). Cognivern is repositioned as a **governance & trust layer for the 0G agent economy**: 0G Chain for `GovernanceContract` + `GovernedVault` redeployment, 0G Storage for evidence (already live on Newton testnet via `ZeroGStorageService`), 0G Pay for agent-to-agent settlement (new `ZeroGPayService`), Agentic ID (ERC-7857) for governed agent tokenization, and 0G Compute as the inference home for `ChainGPTAuditService` and `ControlEvaluationService`. See the 0G Bridge submission block above and [`docs/HACKATHON.md`](./docs/HACKATHON.md) for the wave-by-wave plan.
+- **0G Bridge Buildathon Entry** — Submitted to the 0G Bridge by AKINDO 10-week/5-Wave buildathon (Waves 1-5: Jun 13 → Aug 21, 2026, $50K in 0G credits; Demo Day at Token2049 Singapore Oct 7-8). Cognivern is repositioned as a **governance & trust layer for the 0G agent economy**: 0G Chain for `GovernanceContract` + `GovernedVault` redeployment, 0G Storage for evidence (already live on Newton testnet via `ZeroGStorageService`), 0G Pay for agent-to-agent settlement (new `ZeroGPayService`), Agentic ID (ERC-7857) for governed agent tokenization, and 0G Compute as the inference home for `ChainGPTAuditService` and `ControlEvaluationService`. See the 0G Bridge submission block above and [`docs/ARCHITECTURE.md#0g-bridge-buildathon-plan`](./docs/ARCHITECTURE.md) for the plan.
 - **Production Hardening** — Per-workspace and per-API-key rate limiters with sliding windows, deep health checks, circuit-breaker patterns, 181 backend tests + Playwright E2E (unit + integration + E2E), TypeScript strict mode, unified CI pipeline
 - **Multi-Workspace & Policy Versioning** — Workspace-scoped policy management with independent API keys, rate limits, and policy history per team
 - **Fhenix Wave 5-7** — Full institutional demo with encrypted policies, MEV-protected execution, selective auditor disclosure; testnet migration from Helium to Arbitrum Sepolia; two-phase FHE resolution with `resolveDecision`; sealed-bid vendor selection; Privara confidential payroll

@@ -1,6 +1,6 @@
-import type { AgentAction, PolicyCheck } from "../types/Agent.js";
-import type { AgentPreferences } from "./AgentPreferenceService.js";
-import { Logger } from "../shared/logging/Logger.js";
+import type { AgentAction, PolicyCheck } from "../../types/Agent.js";
+import type { AgentPreferences } from "../ai/AgentPreferenceService.js";
+import { Logger } from "../../shared/logging/Logger.js";
 
 const logger = new Logger("ControlEvaluationService");
 

@@ -21,7 +21,7 @@ async function makeService(enabled: boolean) {
     delete process.env.ZEROG_PRIVATE_KEY;
   }
   vi.resetModules();
-  const mod = await import("../../src/backend/services/ZeroGStorageService.js");
+  const mod = await import("../../src/backend/services/blockchain/ZeroGStorageService.js");
   return new mod.ZeroGStorageService();
 }
 

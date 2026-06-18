@@ -22,7 +22,7 @@ describe('FheThresholdClient', () => {
 
   async function createClient(config: Record<string, unknown> = {}) {
     vi.resetModules();
-    const mod = await import('../../src/backend/services/FheThresholdClient.js');
+    const mod = await import('../../src/backend/services/blockchain/FheThresholdClient.js');
     return new mod.FheThresholdClient(config);
   }
 

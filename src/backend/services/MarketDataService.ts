@@ -1,5 +1,5 @@
 import logger from "../utils/logger.js";
-import { MarketCondition } from "./AutomatedForecastingService.js";
+import { MarketCondition } from "./ai/AutomatedForecastingService.js";
 
 export interface MarketData {
   symbol: string;

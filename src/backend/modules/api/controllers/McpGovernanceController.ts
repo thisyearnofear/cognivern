@@ -13,10 +13,10 @@ import { Logger } from "../../../shared/logging/Logger.js";
 import {
   PolicyService,
   sharedPolicyService,
-} from "../../../services/PolicyService.js";
-import { PolicyEnforcementService } from "../../../services/PolicyEnforcementService.js";
-import { AuditLogService } from "../../../services/AuditLogService.js";
-import { evaluatePolicyWithTogetherAI } from "../../../services/TogetherAIPolicyEvaluator.js";
+} from "../../../services/governance/PolicyService.js";
+import { PolicyEnforcementService } from "../../../services/governance/PolicyEnforcementService.js";
+import { AuditLogService } from "../../../services/governance/AuditLogService.js";
+import { evaluatePolicyWithTogetherAI } from "../../../services/ai/TogetherAIPolicyEvaluator.js";
 import type { AgentAction, PolicyCheck } from "../../../types/Agent.js";
 import type { SharpContext } from "../../../types/Policy.js";
 import crypto from "node:crypto";

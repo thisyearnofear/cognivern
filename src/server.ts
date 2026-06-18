@@ -1,6 +1,6 @@
 import { ApiModule } from "./backend/modules/api/ApiModule.js";
 import { NotificationService } from "./backend/services/NotificationService.js";
-import { sharedFheDecisionWatcher } from "./backend/services/FheDecisionWatcher.js";
+import { sharedFheDecisionWatcher } from "./backend/services/blockchain/FheDecisionWatcher.js";
 import { initializeAlertSinks } from "./backend/services/alerting/index.js";
 import logger from "./backend/utils/logger.js";
 

@@ -1,11 +1,11 @@
-import { Policy, PolicyRule, PolicyRuleType } from "../types/Policy.js";
-import { AgentAction, PolicyCheck } from "../types/Agent.js";
+import { Policy, PolicyRule, PolicyRuleType } from "../../types/Policy.js";
+import { AgentAction, PolicyCheck } from "../../types/Agent.js";
 import { PolicyService } from "./PolicyService.js";
-import { FhenixPolicyService } from "./FhenixPolicyService.js";
-import { ChainGPTAuditService } from "./ChainGPTAuditService.js";
-import { AgentPreferences } from "./AgentPreferenceService.js";
+import { FhenixPolicyService } from "../blockchain/FhenixPolicyService.js";
+import { ChainGPTAuditService } from "../ai/ChainGPTAuditService.js";
+import { AgentPreferences } from "../ai/AgentPreferenceService.js";
 import { ControlEvaluationService, SuspicionResult } from "./ControlEvaluationService.js";
-import logger from "../utils/logger.js";
+import logger from "../../utils/logger.js";
 import { Script } from "node:vm";
 
 /**

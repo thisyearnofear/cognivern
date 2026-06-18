@@ -4,7 +4,7 @@ import type { OwsController } from "../controllers/OwsController.js";
 import type { OwsWalletController } from "../controllers/OwsWalletController.js";
 import type { OwsApiKeyController } from "../controllers/OwsApiKeyController.js";
 import type { OwsPermissionsController } from "../controllers/OwsPermissionsController.js";
-import { sharedAgentPreferenceService } from "../../../services/AgentPreferenceService.js";
+import { sharedAgentPreferenceService } from "../../../services/ai/AgentPreferenceService.js";
 
 export function createSpendRoutes(
   spendController: SpendController,

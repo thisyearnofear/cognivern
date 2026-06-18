@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { AuditLogService } from '../../../services/AuditLogService.js';
+import { AuditLogService } from '../../../services/governance/AuditLogService.js';
 import { z } from 'zod';
-import { owsWalletService } from '../../../services/OwsWalletService.js';
+import { owsWalletService } from '../../../services/blockchain/OwsWalletService.js';
 
 const issuePermitSchema = z.object({
   auditor: z.string().min(1).optional(),

@@ -136,7 +136,7 @@ export class HealthController {
     const start = Date.now();
     try {
       const { sharedPolicyService } = await import(
-        "../../../services/PolicyService.js"
+        "../../../services/governance/PolicyService.js"
       );
       const policies = await sharedPolicyService.listPolicies();
       return {
@@ -208,7 +208,7 @@ export class HealthController {
 
     try {
       const { sharedFheDecisionWatcher } = await import(
-        "../../../services/FheDecisionWatcher.js"
+        "../../../services/blockchain/FheDecisionWatcher.js"
       );
       const isRunning = sharedFheDecisionWatcher.isRunning();
       const pendingCount = sharedFheDecisionWatcher.getPendingCount();

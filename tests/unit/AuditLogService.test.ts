@@ -8,13 +8,13 @@ const { mockAnchor, mockFilecoinAnchor } = vi.hoisted(() => ({
   mockFilecoinAnchor: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock("../../src/backend/services/ZeroGStorageService.js", () => ({
+vi.mock("../../src/backend/services/blockchain/ZeroGStorageService.js", () => ({
   zeroGStorageService: {
     anchorAuditRecord: mockAnchor,
   },
 }));
 
-vi.mock("../../src/backend/services/FilecoinStorageService.js", () => ({
+vi.mock("../../src/backend/services/blockchain/FilecoinStorageService.js", () => ({
   filecoinStorageService: {
     anchorAuditRecord: mockFilecoinAnchor,
   },
@@ -24,7 +24,7 @@ vi.mock("../../src/backend/utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-import { AuditLogService } from "../../src/backend/services/AuditLogService.js";
+import { AuditLogService } from "../../src/backend/services/governance/AuditLogService.js";
 import { CreRunStore } from "../../src/backend/cre/storage/CreRunStore.js";
 import { JsonlCreRunPersistence } from "../../src/backend/cre/persistence/CreRunPersistence.js";
 

@@ -4,7 +4,7 @@ const { SpendController } = await import(
   "../../src/backend/modules/api/controllers/SpendController.js"
 );
 const { owsWalletService } = await import(
-  "../../src/backend/services/OwsWalletService.js"
+  "../../src/backend/services/blockchain/OwsWalletService.js"
 );
 
 class MockRes {

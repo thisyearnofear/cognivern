@@ -7,7 +7,7 @@ import { z } from "zod";
 import {
   OwsLocalVaultService,
   OwsAgentRecord,
-} from "../../../services/OwsLocalVaultService.js";
+} from "../../../services/blockchain/OwsLocalVaultService.js";
 import {
   BadRequestError,
   NotFoundError,

@@ -7,7 +7,7 @@ import { runForecastingWorkflow } from "../../../cre/workflows/forecasting.js";
 import { creRunStore } from "../../../cre/storage/CreRunStore.js";
 import { CreRun } from "../../../cre/types.js";
 import { translateCreEventToAgUi } from "../../../cre/agUiTranslation.js";
-import { owsWalletService } from "../../../services/OwsWalletService.js";
+import { owsWalletService } from "../../../services/blockchain/OwsWalletService.js";
 import {
   IdempotencyRecord,
   idempotencyStore,

@@ -12,8 +12,8 @@ import { AgentMetricsAggregator, AgentComparisonMetrics } from "../../../shared/
 import { TradingHistoryService } from "../../../services/TradingHistoryService.js";
 import { MetricsService } from "../../../services/MetricsService.js";
 
-import { AuditLogService } from "../../../services/AuditLogService.js";
-import { PolicyService } from "../../../services/PolicyService.js";
+import { AuditLogService } from "../../../services/governance/AuditLogService.js";
+import { PolicyService } from "../../../services/governance/PolicyService.js";
 import { creRunStore } from "../../../cre/storage/CreRunStore.js";
 
 export class AgentsController {

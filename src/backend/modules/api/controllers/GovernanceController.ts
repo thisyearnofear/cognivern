@@ -8,13 +8,13 @@ import { getDb } from "../../../db/index.js";
 import {
   PolicyService,
   sharedPolicyService,
-} from "../../../services/PolicyService.js";
+} from "../../../services/governance/PolicyService.js";
 
 const logger = new Logger("GovernanceController");
-import { PolicyEnforcementService } from "../../../services/PolicyEnforcementService.js";
-import { sharedFhenixPolicyService } from "../../../services/FhenixPolicyService.js";
-import { sharedControlEvaluationService } from "../../../services/ControlEvaluationService.js";
-import { AuditLogService } from "../../../services/AuditLogService.js";
+import { PolicyEnforcementService } from "../../../services/governance/PolicyEnforcementService.js";
+import { sharedFhenixPolicyService } from "../../../services/blockchain/FhenixPolicyService.js";
+import { sharedControlEvaluationService } from "../../../services/governance/ControlEvaluationService.js";
+import { AuditLogService } from "../../../services/governance/AuditLogService.js";
 import { NotificationService } from "../../../services/NotificationService.js";
 import type { AgentAction } from "../../../types/Agent.js";
 import { creRunStore } from "../../../cre/storage/CreRunStore.js";

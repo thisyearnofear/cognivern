@@ -8,8 +8,8 @@
 import { Request, Response } from "express";
 import { Logger } from "../../../shared/logging/Logger.js";
 import { CircuitBreaker } from "../../../shared/utils/circuitBreaker.js";
-import { MultiModelRouter } from "../../cloudflare-agents/MultiModelRouter.js";
-import { AuditLogService } from "../../../services/AuditLogService.js";
+import { MultiModelRouter } from "../../../services/ai/MultiModelRouter.js";
+import { AuditLogService } from "../../../services/governance/AuditLogService.js";
 
 const logger = new Logger("IntentController");
 

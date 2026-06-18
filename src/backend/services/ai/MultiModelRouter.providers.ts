@@ -1,4 +1,4 @@
-import type { MultiModelConfig } from "./types.js";
+import type { MultiModelConfig } from "./multi-model-types.js";
 
 type TaskType = "governance" | "briefing";
 

@@ -1,7 +1,7 @@
-import { Policy, PolicyRule } from '../types/Policy.js';
-import { PolicyPersistence, InMemoryPolicyPersistence } from '../persistence/PolicyPersistence.js';
-import { MongoDbPolicyPersistence } from '../persistence/MongoDbPolicyPersistence.js';
-import logger from '../utils/logger.js';
+import { Policy, PolicyRule } from '../../types/Policy.js';
+import { PolicyPersistence, InMemoryPolicyPersistence } from '../../persistence/PolicyPersistence.js';
+import { MongoDbPolicyPersistence } from '../../persistence/MongoDbPolicyPersistence.js';
+import logger from '../../utils/logger.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

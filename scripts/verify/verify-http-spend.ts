@@ -17,9 +17,9 @@
 import crypto from "node:crypto";
 import { ethers } from "ethers";
 
-import { owsWalletService } from "../../src/backend/services/OwsWalletService.js";
-import { owsLocalVaultService } from "../../src/backend/services/OwsLocalVaultService.js";
-import { sharedPolicyService } from "../../src/backend/services/PolicyService.js";
+import { owsWalletService } from "../../src/backend/services/blockchain/OwsWalletService.js";
+import { owsLocalVaultService } from "../../src/backend/services/blockchain/OwsLocalVaultService.js";
+import { sharedPolicyService } from "../../src/backend/services/governance/PolicyService.js";
 import { blockchainConfig } from "../../src/backend/shared/config/index.js";
 
 const BASE = process.env.COGNIVERN_URL || "http://localhost:3001";
