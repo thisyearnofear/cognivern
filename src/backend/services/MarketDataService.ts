@@ -1,4 +1,4 @@
-import logger from "../utils/logger.js";
+import logger from "@backend/utils/logger.js";
 import { MarketCondition } from "./ai/AutomatedForecastingService.js";
 
 export interface MarketData {

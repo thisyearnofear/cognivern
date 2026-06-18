@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createHmac } from "node:crypto";
 
 const mockDb = { prepare: vi.fn().mockReturnThis(), get: vi.fn(), run: vi.fn(), exec: vi.fn() };
-vi.mock("../../src/backend/db/index.js", () => ({ getDb: vi.fn(() => mockDb) }));
+vi.mock("@backend/db/index.js", () => ({ getDb: vi.fn(() => mockDb) }));
 
-const { NotificationService } = await import("../../src/backend/services/NotificationService.js");
+const { NotificationService } = await import("@backend/services/NotificationService.js");
 
 const samplePayload = {
   event: "spend.denied", timestamp: "2025-06-01T12:00:00.000Z",

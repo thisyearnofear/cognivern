@@ -1,6 +1,6 @@
 import { sharedPolicyService, PolicyService } from "./governance/PolicyService.js";
 import { NotificationService } from "./NotificationService.js";
-import { Logger } from "../shared/logging/Logger.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
 
 const logger = new Logger("NewsPolicyAdjuster");
 

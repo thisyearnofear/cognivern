@@ -1,7 +1,7 @@
 import type { AlertEvent, AlertSink } from './AlertSink.js';
 import { SlackWebhookNotifier } from './SlackWebhookNotifier.js';
 import { PagerDutyAlerter } from './PagerDutyAlerter.js';
-import logger from '../../utils/logger.js';
+import logger from "@backend/utils/logger.js";
 
 export type { AlertEvent, AlertSink } from './AlertSink.js';
 export { SlackWebhookNotifier } from './SlackWebhookNotifier.js';

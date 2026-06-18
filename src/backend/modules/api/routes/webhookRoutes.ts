@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { WebhookController } from "../controllers/WebhookController.js";
+import type { WebhookController } from "@backend/modules/api/controllers/WebhookController.js";
 
 export function createWebhookRoutes(
   webhookController: WebhookController,

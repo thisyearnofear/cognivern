@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { FhenixPolicyService } from '../../src/backend/services/blockchain/FhenixPolicyService.js';
+import { FhenixPolicyService } from "@backend/services/blockchain/FhenixPolicyService.js";
 
-vi.mock('../../src/backend/shared/utils/index.js', async (importOriginal) => {
+vi.mock("@backend/shared/utils/index.js", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,

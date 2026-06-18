@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { eventBus } from "../../../services/EventBus.js";
+import { eventBus } from "@backend/services/EventBus.js";
 
 export class EventsController {
   async streamEvents(req: Request, res: Response): Promise<void> {

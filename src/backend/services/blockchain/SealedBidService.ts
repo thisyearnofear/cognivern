@@ -10,7 +10,7 @@
  */
 
 import crypto from "node:crypto";
-import logger from "../../utils/logger.js";
+import logger from "@backend/utils/logger.js";
 import { sharedFhenixPolicyService } from "./FhenixPolicyService.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────

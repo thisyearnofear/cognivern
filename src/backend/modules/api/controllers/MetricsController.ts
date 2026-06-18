@@ -3,7 +3,7 @@
  */
 
 import { Request, Response } from "express";
-import { uxEventStore } from "../storage/UxEventStore.js";
+import { uxEventStore } from "@backend/modules/api/storage/UxEventStore.js";
 
 export class MetricsController {
   async getMetrics(req: Request, res: Response): Promise<void> {

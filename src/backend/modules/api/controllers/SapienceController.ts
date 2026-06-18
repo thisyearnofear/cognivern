@@ -5,15 +5,15 @@
  */
 
 import { Request, Response } from "express";
-import { Logger } from "../../../shared/logging/Logger.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
 
 const logger = new Logger("SapienceController");
 
 type SapienceServiceType = InstanceType<
-  typeof import("../../../services/SapienceService.js").SapienceService
+  typeof import("@backend/services/SapienceService.js").SapienceService
 >;
 type AutomatedForecastingServiceType = InstanceType<
-  typeof import("../../../services/ai/AutomatedForecastingService.js").AutomatedForecastingService
+  typeof import("@backend/services/ai/AutomatedForecastingService.js").AutomatedForecastingService
 >;
 
 export class SapienceController {
@@ -27,8 +27,8 @@ export class SapienceController {
 
     const [{ SapienceService }, { AutomatedForecastingService }] =
       await Promise.all([
-        import("../../../services/SapienceService.js"),
-        import("../../../services/ai/AutomatedForecastingService.js"),
+        import("@backend/services/SapienceService.js"),
+        import("@backend/services/ai/AutomatedForecastingService.js"),
       ]);
 
     this.sapienceService = new SapienceService();

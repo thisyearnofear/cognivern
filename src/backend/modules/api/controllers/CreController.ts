@@ -1,17 +1,17 @@
 import { Request, Response } from "express";
 import crypto from "node:crypto";
 import { ethers } from "ethers";
-import { enrichCreRunEvidence } from "../../../shared/utils/evidence.js";
+import { enrichCreRunEvidence } from "@backend/shared/utils/evidence.js";
 import { z } from "zod";
-import { runForecastingWorkflow } from "../../../cre/workflows/forecasting.js";
-import { creRunStore } from "../../../cre/storage/CreRunStore.js";
-import { CreRun } from "../../../cre/types.js";
-import { translateCreEventToAgUi } from "../../../cre/agUiTranslation.js";
-import { owsWalletService } from "../../../services/blockchain/OwsWalletService.js";
+import { runForecastingWorkflow } from "@backend/cre/workflows/forecasting.js";
+import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
+import { CreRun } from "@backend/cre/types.js";
+import { translateCreEventToAgUi } from "@backend/cre/agUiTranslation.js";
+import { owsWalletService } from "@backend/services/blockchain/OwsWalletService.js";
 import {
   IdempotencyRecord,
   idempotencyStore,
-} from "../storage/IdempotencyStore.js";
+} from "@backend/modules/api/storage/IdempotencyStore.js";
 
 const triggerForecastSchema = z.object({
   writeAttestation: z.boolean().optional(),

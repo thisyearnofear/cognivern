@@ -11,8 +11,8 @@ import { z } from "zod";
 import {
   sharedPrivaraPayrollService,
   PrivaraPayrollService,
-} from "../../../services/blockchain/PrivaraPayrollService.js";
-import { Logger } from "../../../shared/logging/Logger.js";
+} from "@backend/services/blockchain/PrivaraPayrollService.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
 
 const logger = new Logger("PayrollController");
 

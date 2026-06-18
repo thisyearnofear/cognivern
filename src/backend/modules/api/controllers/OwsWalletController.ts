@@ -7,11 +7,11 @@ import { z } from "zod";
 import {
   OwsLocalVaultService,
   OwsAgentRecord,
-} from "../../../services/blockchain/OwsLocalVaultService.js";
+} from "@backend/services/blockchain/OwsLocalVaultService.js";
 import {
   BadRequestError,
   NotFoundError,
-} from "../../../shared/errors/ApiErrors.js";
+} from "@backend/shared/errors/ApiErrors.js";
 
 // Validation Schemas
 const importWalletSchema = z.object({

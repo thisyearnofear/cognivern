@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
-import { rateLimitStore } from '../../src/backend/shared/storage/RateLimitStore.js';
+import { rateLimitStore } from "@backend/shared/storage/RateLimitStore.js";
 
 // We test the middleware functions directly by calling them with mock req/res/next.
 
 describe('workspaceRateLimit', () => {
-  let workspaceRateLimit: typeof import('../../src/backend/middleware/workspaceRateLimit.js').workspaceRateLimit;
+  let workspaceRateLimit: typeof import("@backend/middleware/workspaceRateLimit.js").workspaceRateLimit;
 
   beforeEach(async () => {
     await rateLimitStore.clear();
-    const mod = await import('../../src/backend/middleware/workspaceRateLimit.js');
+    const mod = await import("@backend/middleware/workspaceRateLimit.js");
     workspaceRateLimit = mod.workspaceRateLimit;
   });
 
@@ -93,11 +93,11 @@ describe('workspaceRateLimit', () => {
 });
 
 describe('apiKeyRateLimit', () => {
-  let apiKeyRateLimit: typeof import('../../src/backend/middleware/apiKeyRateLimit.js').apiKeyRateLimit;
+  let apiKeyRateLimit: typeof import("@backend/middleware/apiKeyRateLimit.js").apiKeyRateLimit;
 
   beforeEach(async () => {
     await rateLimitStore.clear();
-    const mod = await import('../../src/backend/middleware/apiKeyRateLimit.js');
+    const mod = await import("@backend/middleware/apiKeyRateLimit.js");
     apiKeyRateLimit = mod.apiKeyRateLimit;
   });
 

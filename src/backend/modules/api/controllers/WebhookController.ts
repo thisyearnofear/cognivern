@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import {
   sharedNewsPolicyAdjuster,
   NewsEvent,
-} from "../../../services/NewsPolicyAdjuster.js";
-import { Logger } from "../../../shared/logging/Logger.js";
+} from "@backend/services/NewsPolicyAdjuster.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
 
 const logger = new Logger("WebhookController");
 

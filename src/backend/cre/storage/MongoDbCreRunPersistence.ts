@@ -1,7 +1,7 @@
-import { CreRun } from "../types.js";
-import { CreRunPersistence } from "../persistence/CreRunPersistence.js";
-import { mongoDbService } from "../../services/MongoDbService.js";
-import logger from "../../utils/logger.js";
+import { CreRun } from "@backend/cre/types.js";
+import { CreRunPersistence } from "@backend/cre/persistence/CreRunPersistence.js";
+import { mongoDbService } from "@backend/services/MongoDbService.js";
+import logger from "@backend/utils/logger.js";
 
 const CACHE_COLLECTION = "cre_runs";
 

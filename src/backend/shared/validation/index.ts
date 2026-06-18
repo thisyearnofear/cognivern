@@ -2,7 +2,7 @@
  * Shared Validation Functions
  */
 
-import { ValidationError } from "../errors/index.js";
+import { ValidationError } from "@backend/shared/errors/index.js";
 
 export interface ValidationRule<T> {
   validate: (value: T) => boolean;

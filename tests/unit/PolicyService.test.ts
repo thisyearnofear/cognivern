@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { PolicyService } from "../../src/backend/services/governance/PolicyService.js";
-import { InMemoryPolicyPersistence } from "../../src/backend/persistence/PolicyPersistence.js";
-import type { PolicyRule } from "../../src/backend/types/Policy.js";
+import { PolicyService } from "@backend/services/governance/PolicyService.js";
+import { InMemoryPolicyPersistence } from "@backend/persistence/PolicyPersistence.js";
+import type { PolicyRule } from "@backend/types/Policy.js";
 
 function makeRule(overrides: Partial<PolicyRule> = {}): PolicyRule {
   return {

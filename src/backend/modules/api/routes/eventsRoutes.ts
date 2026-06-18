@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { EventsController } from "../controllers/EventsController.js";
+import type { EventsController } from "@backend/modules/api/controllers/EventsController.js";
 
 export function createEventsRoutes(eventsController: EventsController): Router {
   const router = Router();

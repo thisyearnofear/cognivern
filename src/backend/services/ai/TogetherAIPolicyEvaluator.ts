@@ -8,9 +8,9 @@
  * Agents Assemble Healthcare AI Endgame — Together AI integration requirement.
  */
 
-import type { Policy, PolicyRule, SharpContext } from "../../types/Policy.js";
-import type { AgentAction, PolicyCheck } from "../../types/Agent.js";
-import logger from "../../utils/logger.js";
+import type { Policy, PolicyRule, SharpContext } from "@backend/types/Policy.js";
+import type { AgentAction, PolicyCheck } from "@backend/types/Agent.js";
+import logger from "@backend/utils/logger.js";
 
 const TOGETHER_API_URL = "https://api.together.xyz/v1/chat/completions";
 const DEFAULT_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo";

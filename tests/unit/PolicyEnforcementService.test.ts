@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { PolicyEnforcementService } from "../../src/backend/services/governance/PolicyEnforcementService.js";
-import { Policy, PolicyRule } from "../../src/backend/types/Policy.js";
-import { AgentAction } from "../../src/backend/types/Agent.js";
+import { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
+import { Policy, PolicyRule } from "@backend/types/Policy.js";
+import { AgentAction } from "@backend/types/Agent.js";
 
 function makeRule(overrides: Partial<PolicyRule> = {}): PolicyRule {
   return {

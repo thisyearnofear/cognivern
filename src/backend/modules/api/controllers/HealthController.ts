@@ -7,7 +7,7 @@
  */
 
 import { Request, Response } from "express";
-import { AgentsModule } from "../../agents/AgentsModule.js";
+import { AgentsModule } from "@backend/modules/agents/AgentsModule.js";
 
 export interface DependencyCheck {
   name: string;
@@ -78,7 +78,7 @@ export class HealthController {
     const name = "sqlite";
     const start = Date.now();
     try {
-      const { getDb } = await import("../../../db/index.js");
+      const { getDb } = await import("@backend/db/index.js");
       const db = getDb();
       // Execute a simple query to verify connectivity
       db.prepare("SELECT 1 as alive").get();
@@ -101,7 +101,7 @@ export class HealthController {
     const name = "notifications_table";
     const start = Date.now();
     try {
-      const { getDb } = await import("../../../db/index.js");
+      const { getDb } = await import("@backend/db/index.js");
       const db = getDb();
       const row = db
         .prepare(

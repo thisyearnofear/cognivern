@@ -6,11 +6,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockPrepare = vi.fn().mockReturnValue({ get: vi.fn() });
 const mockDb = { prepare: mockPrepare };
-vi.mock('../../src/backend/db/index.js', () => ({
+vi.mock("@backend/db/index.js", () => ({
   getDb: vi.fn(() => mockDb),
 }));
 
-vi.mock('../../src/backend/modules/agents/AgentsModule.js', () => {
+vi.mock("@backend/modules/agents/AgentsModule.js", () => {
   return {
     AgentsModule: class {
       getAgents = vi.fn().mockResolvedValue([]);

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { jwtVerify } from "jose";
 import { createHash } from "node:crypto";
-import { tokenBlacklistStore } from "../shared/storage/TokenBlacklistStore.js";
+import { tokenBlacklistStore } from "@backend/shared/storage/TokenBlacklistStore.js";
 import { isPublicApiPath } from "./publicEndpoints.js";
 
 function getJwtSecret(): Uint8Array {

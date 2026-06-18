@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { randomUUID, randomBytes, createHash, scryptSync, timingSafeEqual } from "node:crypto";
-import { getDb } from "../../../db/index.js";
+import { getDb } from "@backend/db/index.js";
 
 function hashKeySha256(key: string): string {
   return createHash("sha256").update(key).digest("hex");

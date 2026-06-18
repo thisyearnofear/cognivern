@@ -3,18 +3,18 @@
  */
 
 import { Request, Response } from "express";
-import { Logger } from "../../../shared/logging/Logger.js";
-import { AgentsModule } from "../../agents/AgentsModule.js";
-import { MarketDataService } from "../../../services/MarketDataService.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
+import { AgentsModule } from "@backend/modules/agents/AgentsModule.js";
+import { MarketDataService } from "@backend/services/MarketDataService.js";
 
 const logger = new Logger("AgentsController");
-import { AgentMetricsAggregator, AgentComparisonMetrics } from "../../../shared/services/AgentMetricsAggregator.js";
-import { TradingHistoryService } from "../../../services/TradingHistoryService.js";
-import { MetricsService } from "../../../services/MetricsService.js";
+import { AgentMetricsAggregator, AgentComparisonMetrics } from "@backend/shared/services/AgentMetricsAggregator.js";
+import { TradingHistoryService } from "@backend/services/TradingHistoryService.js";
+import { MetricsService } from "@backend/services/MetricsService.js";
 
-import { AuditLogService } from "../../../services/governance/AuditLogService.js";
-import { PolicyService } from "../../../services/governance/PolicyService.js";
-import { creRunStore } from "../../../cre/storage/CreRunStore.js";
+import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
+import { PolicyService } from "@backend/services/governance/PolicyService.js";
+import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
 
 export class AgentsController {
   private agentsModule: AgentsModule;

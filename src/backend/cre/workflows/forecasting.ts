@@ -1,14 +1,14 @@
 import { ethers } from "ethers";
-import { DefaultEvmAdapter } from "../adapters/evm.js";
-import { DefaultHttpAdapter } from "../adapters/http.js";
-import { DefaultLlmAdapter } from "../adapters/llm.js";
-import { CreRunRecorder } from "../runRecorder.js";
+import { DefaultEvmAdapter } from "@backend/cre/adapters/evm.js";
+import { DefaultHttpAdapter } from "@backend/cre/adapters/http.js";
+import { DefaultLlmAdapter } from "@backend/cre/adapters/llm.js";
+import { CreRunRecorder } from "@backend/cre/runRecorder.js";
 import {
   AttestationRequest,
   CreRun,
   ForecastInput,
   SapienceCondition,
-} from "../types.js";
+} from "@backend/cre/types.js";
 
 export type ForecastingWorkflowParams = {
   mode: CreRun["mode"]; // local now; cre later

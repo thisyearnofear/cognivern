@@ -1,4 +1,4 @@
-import { SapienceCondition } from "../types.js";
+import { SapienceCondition } from "@backend/cre/types.js";
 
 export interface HttpAdapter {
   fetchSapienceConditions(params: {

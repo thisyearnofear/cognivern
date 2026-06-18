@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { AutomatedForecastingService } from "../../src/backend/services/AutomatedForecastingService.js";
-import { SapienceService } from "../../src/backend/services/SapienceService.js";
+import { AutomatedForecastingService } from "@backend/services/AutomatedForecastingService.js";
+import { SapienceService } from "@backend/services/SapienceService.js";
 
 // Simple mock for SapienceService
 const mockSapienceService = {

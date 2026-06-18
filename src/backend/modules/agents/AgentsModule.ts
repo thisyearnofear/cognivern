@@ -8,18 +8,18 @@
  * - Modular agent types
  */
 
-import { BaseService } from "../../shared/services/BaseService.js";
+import { BaseService } from "@backend/shared/services/BaseService.js";
 import {
   ServiceConfig,
   DependencyHealth,
   Agent,
   TradingDecision,
   BaseAgent,
-} from "../../shared/index.js";
+} from "@backend/shared/index.js";
 import { TradingAgent } from "./types/TradingAgent.js";
 import { UserTradingAgent } from "./implementations/UserTradingAgent.js";
 import { AgentOrchestrator } from "./services/AgentOrchestrator.js";
-import { getDb } from "../../db/index.js";
+import { getDb } from "@backend/db/index.js";
 
 /**
  * Database row shape for the `workspace_agents` table.

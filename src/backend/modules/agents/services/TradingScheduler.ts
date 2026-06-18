@@ -1,10 +1,10 @@
-import { BaseService } from "../../../shared/services/BaseService.js";
+import { BaseService } from "@backend/shared/services/BaseService.js";
 import {
   ServiceConfig,
   DependencyHealth,
-} from "../../../shared/types/index.js";
-import { tradingConfig } from "../../../shared/config/index.js";
-import logger from "../../../utils/logger.js";
+} from "@backend/shared/types/index.js";
+import { tradingConfig } from "@backend/shared/config/index.js";
+import logger from "@backend/utils/logger.js";
 
 export interface TradingSchedulerConfig {
   intervalMinutes: number;

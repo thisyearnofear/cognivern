@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import type { CreArtifact, CreRun, CreRunEvent } from "../../cre/types.js";
+import type { CreArtifact, CreRun, CreRunEvent } from "@backend/cre/types.js";
 
 export interface EvidenceEnvelope {
   hash: string;

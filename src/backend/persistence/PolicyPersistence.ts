@@ -1,4 +1,4 @@
-import { Policy } from '../types/Policy.js';
+import { Policy } from "@backend/types/Policy.js";
 
 export interface PolicyPersistence {
   create(policy: Policy): Promise<Policy>;

@@ -1,4 +1,4 @@
-import { getDb } from "../db/index.js";
+import { getDb } from "@backend/db/index.js";
 import { randomUUID } from "node:crypto";
 import type {
   Agent,

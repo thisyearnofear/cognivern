@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { mongoDbService } from "./MongoDbService.js";
-import logger from "../utils/logger.js";
+import logger from "@backend/utils/logger.js";
 
 export interface MemoryEntry {
   id: string;

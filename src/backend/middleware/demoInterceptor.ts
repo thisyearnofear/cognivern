@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { jwtVerify } from "jose";
 import { getWorkspaceTier } from "./workspaceMiddleware.js";
-import { DemoDataService } from "../services/DemoDataService.js";
-import { WorkspaceDataService } from "../services/WorkspaceDataService.js";
+import { DemoDataService } from "@backend/services/DemoDataService.js";
+import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "cognivern-dev-jwt-secret-change-in-production",

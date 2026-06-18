@@ -1,4 +1,4 @@
-import { getDb } from "../../db/index.js";
+import { getDb } from "@backend/db/index.js";
 
 const TTL_MS = 86_400_000; // 24 hours
 

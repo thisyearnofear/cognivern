@@ -58,9 +58,11 @@ await build({
   minify: false, // keep readable for debugging on server
   treeShaking: true,
   external: NATIVE_EXTERNALS,
-  // Resolve workspace package
+  // Resolve workspace package and path aliases
   alias: {
     "@cognivern/shared": resolve(ROOT, "packages/shared/src/index.ts"),
+    "@backend": resolve(ROOT, "src/backend"),
+    "@": resolve(ROOT, "src"),
   },
   banner: {
     js: [

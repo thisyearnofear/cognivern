@@ -1,5 +1,5 @@
-import logger from "../utils/logger.js";
-import { TradingDecision } from "../types/Agent.js";
+import logger from "@backend/utils/logger.js";
+import { TradingDecision } from "@backend/types/Agent.js";
 
 export interface TradingPerformance {
   totalTrades: number;

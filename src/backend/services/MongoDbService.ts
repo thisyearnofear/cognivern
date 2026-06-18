@@ -1,5 +1,5 @@
 import { MongoClient, Db, Collection } from "mongodb";
-import logger from "../utils/logger.js";
+import logger from "@backend/utils/logger.js";
 
 export interface MongoDbConfig {
   uri?: string;

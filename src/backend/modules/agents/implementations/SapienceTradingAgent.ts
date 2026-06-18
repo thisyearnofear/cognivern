@@ -31,12 +31,12 @@ import {
   ComplianceResult,
   AgentActivity,
   AgentInfo,
-} from "../types/TradingAgent.js";
-import { Logger } from "../../../shared/logging/Logger.js";
+} from "@backend/modules/agents/types/TradingAgent.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
 import {
   GovernanceClient,
   sharedGovernanceClient,
-} from "../../../services/governance/GovernanceClient.js";
+} from "@backend/services/governance/GovernanceClient.js";
 
 const logger = new Logger("SapienceTradingAgent");
 
@@ -47,10 +47,10 @@ const HUMAN_CONFIRM_TOKEN_ENV = "SAPIENCE_HUMAN_CONFIRM_TOKEN";
 const AUTO_CONFIRM_MAX_USDE = 5;
 
 type SapienceServiceType = InstanceType<
-  typeof import("../../../services/SapienceService.js").SapienceService
+  typeof import("@backend/services/SapienceService.js").SapienceService
 >;
 type AutomatedForecastingServiceType = InstanceType<
-  typeof import("../../../services/ai/AutomatedForecastingService.js").AutomatedForecastingService
+  typeof import("@backend/services/ai/AutomatedForecastingService.js").AutomatedForecastingService
 >;
 
 export class SapienceTradingAgent implements TradingAgent {
@@ -81,8 +81,8 @@ export class SapienceTradingAgent implements TradingAgent {
 
     const [{ SapienceService }, { AutomatedForecastingService }] =
       await Promise.all([
-        import("../../../services/SapienceService.js"),
-        import("../../../services/ai/AutomatedForecastingService.js"),
+        import("@backend/services/SapienceService.js"),
+        import("@backend/services/ai/AutomatedForecastingService.js"),
       ]);
 
     this.sapienceService = new SapienceService();

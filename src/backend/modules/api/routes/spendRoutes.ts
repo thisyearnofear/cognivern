@@ -1,10 +1,10 @@
 import { Router } from "express";
-import type { SpendController } from "../controllers/SpendController.js";
-import type { OwsController } from "../controllers/OwsController.js";
-import type { OwsWalletController } from "../controllers/OwsWalletController.js";
-import type { OwsApiKeyController } from "../controllers/OwsApiKeyController.js";
-import type { OwsPermissionsController } from "../controllers/OwsPermissionsController.js";
-import { sharedAgentPreferenceService } from "../../../services/ai/AgentPreferenceService.js";
+import type { SpendController } from "@backend/modules/api/controllers/SpendController.js";
+import type { OwsController } from "@backend/modules/api/controllers/OwsController.js";
+import type { OwsWalletController } from "@backend/modules/api/controllers/OwsWalletController.js";
+import type { OwsApiKeyController } from "@backend/modules/api/controllers/OwsApiKeyController.js";
+import type { OwsPermissionsController } from "@backend/modules/api/controllers/OwsPermissionsController.js";
+import { sharedAgentPreferenceService } from "@backend/services/ai/AgentPreferenceService.js";
 
 export function createSpendRoutes(
   spendController: SpendController,

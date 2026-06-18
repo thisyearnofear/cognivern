@@ -6,12 +6,12 @@
  * Counters survive server restarts.
  *
  * Usage:
- *   import { workspaceRateLimit } from "../middleware/workspaceRateLimit.js";
+ *   import { workspaceRateLimit } from "@backend/middleware/workspaceRateLimit.js";
  *   router.get("/agents", workspaceRateLimit, controller.getData);
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { rateLimitStore } from '../shared/storage/RateLimitStore.js';
+import { rateLimitStore } from "@backend/shared/storage/RateLimitStore.js";
 
 const DEFAULT_LIMIT = 100;
 const DEFAULT_WINDOW_MS = 60_000;

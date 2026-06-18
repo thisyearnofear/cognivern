@@ -1,6 +1,6 @@
 import { Router } from "express";
-import type { ApiKeyController } from "../controllers/ApiKeyController.js";
-import { authMiddleware } from "../../../middleware/authMiddleware.js";
+import type { ApiKeyController } from "@backend/modules/api/controllers/ApiKeyController.js";
+import { authMiddleware } from "@backend/middleware/authMiddleware.js";
 
 export function createApiKeyRoutes(apiKeyController: ApiKeyController): Router {
   const router = Router();

@@ -1,7 +1,7 @@
-import { Policy } from '../types/Policy.js';
+import { Policy } from "@backend/types/Policy.js";
 import { PolicyPersistence } from './PolicyPersistence.js';
-import { mongoDbService } from '../services/MongoDbService.js';
-import logger from '../utils/logger.js';
+import { mongoDbService } from "@backend/services/MongoDbService.js";
+import logger from "@backend/utils/logger.js";
 
 const COLLECTION = 'policies';
 

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import logger from "../../utils/logger.js";
-import { CircuitBreaker } from "../../shared/utils/circuitBreaker.js";
+import logger from "@backend/utils/logger.js";
+import { CircuitBreaker } from "@backend/shared/utils/circuitBreaker.js";
 
 /**
  * ZeroGStorageService — anchors audit log records to 0G decentralized storage.

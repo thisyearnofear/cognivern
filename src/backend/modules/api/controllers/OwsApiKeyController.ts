@@ -4,11 +4,11 @@
 
 import { Request, Response } from "express";
 import { z } from "zod";
-import { OwsLocalVaultService } from "../../../services/blockchain/OwsLocalVaultService.js";
+import { OwsLocalVaultService } from "@backend/services/blockchain/OwsLocalVaultService.js";
 import {
   BadRequestError,
   NotFoundError,
-} from "../../../shared/errors/ApiErrors.js";
+} from "@backend/shared/errors/ApiErrors.js";
 
 // Validation Schemas
 const createApiKeySchema = z.object({

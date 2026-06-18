@@ -8,11 +8,11 @@
  */
 
 import { createHmac } from "node:crypto";
-import { getDb } from "../db/index.js";
-import { CircuitBreaker } from "../shared/utils/circuitBreaker.js";
+import { getDb } from "@backend/db/index.js";
+import { CircuitBreaker } from "@backend/shared/utils/circuitBreaker.js";
 import { sendAlert } from "./alerting/index.js";
 import { eventBus } from "./EventBus.js";
-import logger from "../utils/logger.js";
+import logger from "@backend/utils/logger.js";
 
 interface NotificationPayload {
   event: string;

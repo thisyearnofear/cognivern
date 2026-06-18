@@ -1,24 +1,24 @@
-import logger from "../../utils/logger.js";
-import { Policy } from "../../types/Policy.js";
-import { PolicyService, sharedPolicyService } from "../governance/PolicyService.js";
-import { PolicyEnforcementService } from "../governance/PolicyEnforcementService.js";
-import { CreRunRecorder } from "../../cre/runRecorder.js";
-import { creRunStore } from "../../cre/storage/CreRunStore.js";
-import { enrichCreRunEvidence } from "../../shared/utils/evidence.js";
-import { AgentAction } from "../../types/Agent.js";
+import logger from "@backend/utils/logger.js";
+import { Policy } from "@backend/types/Policy.js";
+import { PolicyService, sharedPolicyService } from "@backend/services/governance/PolicyService.js";
+import { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
+import { CreRunRecorder } from "@backend/cre/runRecorder.js";
+import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
+import { enrichCreRunEvidence } from "@backend/shared/utils/evidence.js";
+import { AgentAction } from "@backend/types/Agent.js";
 import { ethers } from "ethers";
 import {
   owsLocalVaultService,
   OwsResolvedAccess,
 } from "./OwsLocalVaultService.js";
-import { ledgerSigningProvider } from "../../signing/LedgerSigningProvider.js";
+import { ledgerSigningProvider } from "@backend/signing/LedgerSigningProvider.js";
 import {
   FhenixPolicyService,
   sharedFhenixPolicyService,
 } from "./FhenixPolicyService.js";
 import { OwsWalletPolicyEvaluator } from "./OwsWalletPolicy.js";
 import { OwsWalletOnChainManager } from "./OwsWalletOnChain.js";
-import { blockchainConfig } from "../../shared/config/index.js";
+import { blockchainConfig } from "@backend/shared/config/index.js";
 
 export interface SpendIntent {
   id: string;

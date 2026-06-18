@@ -7,14 +7,14 @@ import {
   TradingAgent,
   TradingDecision,
   AgentActivity,
-} from "../types/TradingAgent.js";
-import { BaseService } from "../../../shared/services/BaseService.js";
+} from "@backend/modules/agents/types/TradingAgent.js";
+import { BaseService } from "@backend/shared/services/BaseService.js";
 import {
   ServiceConfig,
   DependencyHealth,
-} from "../../../shared/types/index.js";
+} from "@backend/shared/types/index.js";
 import { TradingScheduler } from "./TradingScheduler.js";
-import { tradingConfig } from "../../../shared/config/index.js";
+import { tradingConfig } from "@backend/shared/config/index.js";
 
 /** Agents that implement governed/legacy forecast cycles. */
 interface GovernedAgent extends TradingAgent {

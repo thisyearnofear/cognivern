@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { AgentsController } from "../controllers/AgentsController.js";
+import type { AgentsController } from "@backend/modules/api/controllers/AgentsController.js";
 
 export function createAgentRoutes(agentsController: AgentsController): Router {
   const router = Router();

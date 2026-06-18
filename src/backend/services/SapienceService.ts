@@ -6,8 +6,8 @@ import {
   prepareForTrade,
   CHAIN_ID_ETHEREAL,
 } from "@sapience/sdk";
-import logger from "../utils/logger.js";
-import { circuitBreakers } from "../shared/utils/circuitBreaker.js";
+import logger from "@backend/utils/logger.js";
+import { circuitBreakers } from "@backend/shared/utils/circuitBreaker.js";
 
 // Minimal Prediction Market ABI for trading
 const PREDICTION_MARKET_ABI = [

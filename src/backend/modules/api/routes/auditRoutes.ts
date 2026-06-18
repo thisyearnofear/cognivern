@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { AuditLogController } from "../controllers/AuditLogController.js";
+import type { AuditLogController } from "@backend/modules/api/controllers/AuditLogController.js";
 
 export function createAuditRoutes(
   auditLogController: AuditLogController,

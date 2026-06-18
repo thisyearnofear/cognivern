@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { CreController } from "../controllers/CreController.js";
+import type { CreController } from "@backend/modules/api/controllers/CreController.js";
 
 export function createCreRoutes(creController: CreController): Router {
   const router = Router();

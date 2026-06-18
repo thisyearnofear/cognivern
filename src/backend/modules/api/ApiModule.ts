@@ -14,19 +14,19 @@ import helmet from "helmet";
 import compression from "compression";
 import rateLimit from "express-rate-limit";
 import { createHash, timingSafeEqual } from "crypto";
-import { BaseService } from "../../shared/services/BaseService.js";
-import { Logger } from "../../shared/logging/Logger.js";
+import { BaseService } from "@backend/shared/services/BaseService.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
 import {
   apiConfig,
   ServiceConfig,
   DependencyHealth,
-} from "../../shared/index.js";
+} from "@backend/shared/index.js";
 import { HealthController } from "./controllers/HealthController.js";
 import { AgentsController } from "./controllers/AgentsController.js";
 import { GovernanceController } from "./controllers/GovernanceController.js";
 import { MetricsController } from "./controllers/MetricsController.js";
 import { AuditLogController } from "./controllers/AuditLogController.js";
-import { AuditLogService } from "../../services/governance/AuditLogService.js";
+import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
 import { CreController } from "./controllers/CreController.js";
 import { CopilotController } from "./controllers/CopilotController.js";
 import { IngestController } from "./controllers/IngestController.js";
@@ -49,15 +49,15 @@ import {
   ApiKeyController,
   resolveWorkspaceFromApiKey,
 } from "./controllers/ApiKeyController.js";
-import { authMiddleware } from "../../middleware/authMiddleware.js";
-import { workspaceMiddleware } from "../../middleware/workspaceMiddleware.js";
-import { demoInterceptor } from "../../middleware/demoInterceptor.js";
-import { requestContextMiddleware } from "../../middleware/requestContext.js";
+import { authMiddleware } from "@backend/middleware/authMiddleware.js";
+import { workspaceMiddleware } from "@backend/middleware/workspaceMiddleware.js";
+import { demoInterceptor } from "@backend/middleware/demoInterceptor.js";
+import { requestContextMiddleware } from "@backend/middleware/requestContext.js";
 import {
   isPublicApiPath,
   LEGACY_DEFAULT_WORKSPACE_ID,
-} from "../../middleware/publicEndpoints.js";
-import { sharedSloMetrics } from "../../services/SloMetricsService.js";
+} from "@backend/middleware/publicEndpoints.js";
+import { sharedSloMetrics } from "@backend/services/SloMetricsService.js";
 import type { Server } from "node:http";
 
 /** Typed controller registry */
@@ -478,7 +478,7 @@ export class ApiModule extends BaseService {
   private async setupControllers(): Promise<void> {
     this.logger.info("Setting up controllers...");
 
-    const { AgentsModule } = await import("../agents/AgentsModule.js");
+    const { AgentsModule } = await import("@backend/modules/agents/AgentsModule.js");
     const agentsEnabled =
       (process.env.AGENTS_ENABLED || "false").toLowerCase() === "true";
 

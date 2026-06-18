@@ -7,7 +7,7 @@ import type {
   TradingAction,
   AgentType,
   AgentStatus,
-} from "../../../shared/types/index.js";
+} from "@backend/shared/types/index.js";
 
 // Re-export for convenience
 export type { TradingDecision, TradingAction, AgentType, AgentStatus };
