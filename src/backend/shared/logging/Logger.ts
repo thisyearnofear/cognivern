@@ -6,8 +6,8 @@
  */
 
 import winston from "winston";
-import { config } from "../config/index.js";
-import { getRequestId } from "../../middleware/requestContext.js";
+import { config } from "@backend/shared/config/index.js";
+import { getRequestId } from "@backend/middleware/requestContext.js";
 
 export type LogLevel = "error" | "warn" | "info" | "debug";
 

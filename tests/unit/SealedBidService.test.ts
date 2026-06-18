@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SealedBidService } from '../../src/backend/services/blockchain/SealedBidService.js';
+import { SealedBidService } from "@backend/services/blockchain/SealedBidService.js";
 
 function futureDate(hoursFromNow = 24): string {
   return new Date(Date.now() + hoursFromNow * 60 * 60 * 1000).toISOString();

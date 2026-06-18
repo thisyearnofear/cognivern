@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { HealthController } from "../controllers/HealthController.js";
+import type { HealthController } from "@backend/modules/api/controllers/HealthController.js";
 
 export function createHealthRoutes(healthController: HealthController): Router {
   const router = Router();

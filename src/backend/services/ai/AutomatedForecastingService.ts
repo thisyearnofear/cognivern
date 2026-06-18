@@ -1,5 +1,5 @@
-import logger from "../../utils/logger.js";
-import { MarketDataService, MarketData } from "../MarketDataService.js";
+import logger from "@backend/utils/logger.js";
+import { MarketDataService, MarketData } from "@backend/services/MarketDataService.js";
 
 export interface ForecastResult {
   probability: number;

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { CreRun } from "../types.js";
+import { CreRun } from "@backend/cre/types.js";
 
 export interface CreRunPersistence {
   append(run: CreRun): Promise<void>;

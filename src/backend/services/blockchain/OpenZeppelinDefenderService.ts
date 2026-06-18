@@ -7,7 +7,7 @@
  * API Docs: https://docs.openzeppelin.com/defender/
  */
 
-import logger from "../../utils/logger.js";
+import logger from "@backend/utils/logger.js";
 
 export interface DefenderConfig {
   apiKey: string;

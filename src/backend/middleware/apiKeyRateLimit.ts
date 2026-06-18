@@ -6,12 +6,12 @@
  * Counters survive server restarts.
  *
  * Usage:
- *   import { apiKeyRateLimit } from "../middleware/apiKeyRateLimit.js";
+ *   import { apiKeyRateLimit } from "@backend/middleware/apiKeyRateLimit.js";
  *   router.get("/data", apiKeyRateLimit, controller.getData);
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { rateLimitStore } from '../shared/storage/RateLimitStore.js';
+import { rateLimitStore } from "@backend/shared/storage/RateLimitStore.js";
 
 const DEFAULT_LIMIT = 50;
 const DEFAULT_WINDOW_MS = 60_000;

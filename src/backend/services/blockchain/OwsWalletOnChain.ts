@@ -1,8 +1,8 @@
 import { ethers } from "ethers";
-import logger from "../../utils/logger.js";
-import { blockchainConfig } from "../../shared/config/index.js";
-import { circuitBreakers } from "../../shared/utils/circuitBreaker.js";
-import { withTimeout, retry } from "../../shared/utils/index.js";
+import logger from "@backend/utils/logger.js";
+import { blockchainConfig } from "@backend/shared/config/index.js";
+import { circuitBreakers } from "@backend/shared/utils/circuitBreaker.js";
+import { withTimeout, retry } from "@backend/shared/utils/index.js";
 
 const GOVERNANCE_ABI = [
   "function evaluateAction(bytes32 actionId, bytes32 agentId, string memory actionType, bytes32 dataHash, bool approved) external",

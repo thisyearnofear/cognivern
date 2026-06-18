@@ -9,7 +9,7 @@
  *   await circuit.execute(() => fetch('...'));
  */
 
-import logger from "../../utils/logger.js";
+import logger from "@backend/utils/logger.js";
 
 export interface CircuitBreakerConfig {
   /** Number of failures before opening circuit */

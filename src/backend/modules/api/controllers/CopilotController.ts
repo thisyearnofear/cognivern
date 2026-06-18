@@ -9,7 +9,7 @@ import {
   copilotRunStore,
   type PersistedCopilotEvent,
   type PersistedCopilotRun,
-} from "../storage/CopilotRunStore.js";
+} from "@backend/modules/api/storage/CopilotRunStore.js";
 
 type CopilotRunStatus =
   | "queued"

@@ -1,6 +1,6 @@
 // @ts-expect-error - no type declarations available for event-source-polyfill
 import { EventSourcePolyfill } from "event-source-polyfill";
-import logger from "../utils/logger.js";
+import logger from "@backend/utils/logger.js";
 
 export interface MCPMessage {
   id: string;

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import type { WorkspaceController } from "../controllers/WorkspaceController.js";
-import { authMiddleware } from "../../../middleware/authMiddleware.js";
+import type { WorkspaceController } from "@backend/modules/api/controllers/WorkspaceController.js";
+import { authMiddleware } from "@backend/middleware/authMiddleware.js";
 
 export function createWorkspaceRoutes(
   workspaceController: WorkspaceController,

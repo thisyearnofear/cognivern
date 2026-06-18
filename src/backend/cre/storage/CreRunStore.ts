@@ -1,9 +1,9 @@
-import { CreRun } from "../types.js";
+import { CreRun } from "@backend/cre/types.js";
 import {
   CreRunPersistence,
   JsonlCreRunPersistence,
   MultiCreRunPersistence,
-} from "../persistence/CreRunPersistence.js";
+} from "@backend/cre/persistence/CreRunPersistence.js";
 import { MongoDbCreRunPersistence } from "./MongoDbCreRunPersistence.js";
 
 export class CreRunStore {

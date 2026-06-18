@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { getDb } from "../db/index.js";
+import { getDb } from "@backend/db/index.js";
 import { isPublicApiPath } from "./publicEndpoints.js";
 
 export interface WorkspaceContext {

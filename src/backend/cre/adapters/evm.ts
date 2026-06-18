@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { PriceFeedReading } from "../types.js";
+import { PriceFeedReading } from "@backend/cre/types.js";
 
 const AGGREGATOR_V3_ABI = [
   {

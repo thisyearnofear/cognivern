@@ -1,6 +1,6 @@
-import { Metrics, MetricsPeriod } from "../types/Metrics.js";
-import { AgentAction, PolicyCheck } from "../types/Agent.js";
-import logger from "../utils/logger.js";
+import { Metrics, MetricsPeriod } from "@backend/types/Metrics.js";
+import { AgentAction, PolicyCheck } from "@backend/types/Agent.js";
+import logger from "@backend/utils/logger.js";
 
 export class MetricsService {
   constructor() {

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { randomUUID } from "node:crypto";
 import { SignJWT } from "jose";
-import { getDb } from "../../../db/index.js";
+import { getDb } from "@backend/db/index.js";
 import type { Workspace } from "@cognivern/shared";
 
 function getJwtSecret(): Uint8Array {

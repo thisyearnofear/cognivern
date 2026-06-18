@@ -4,14 +4,14 @@ import {
   owsWalletService,
   SpendIntent,
   SpendExecutionContext,
-} from "../../../services/blockchain/OwsWalletService.js";
-import { sharedFhenixPolicyService } from "../../../services/blockchain/FhenixPolicyService.js";
+} from "@backend/services/blockchain/OwsWalletService.js";
+import { sharedFhenixPolicyService } from "@backend/services/blockchain/FhenixPolicyService.js";
 import {
   getChainGPTAuditService,
   AuditResult,
-} from "../../../services/ai/ChainGPTAuditService.js";
+} from "@backend/services/ai/ChainGPTAuditService.js";
 import crypto from "node:crypto";
-import { Logger } from "../../../shared/logging/Logger.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
 
 const logger = new Logger("SpendController");
 

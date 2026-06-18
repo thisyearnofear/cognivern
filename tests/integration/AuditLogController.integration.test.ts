@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // Mock FilecoinStorageService to avoid config import issues in vitest
-vi.mock('../../src/backend/services/blockchain/FilecoinStorageService.js', () => ({
+vi.mock("@backend/services/blockchain/FilecoinStorageService.js", () => ({
   FilecoinStorageService: class {
     enabled = false;
   },
@@ -10,7 +10,7 @@ vi.mock('../../src/backend/services/blockchain/FilecoinStorageService.js', () =>
 const { AuditLogController } = await import(
   '../../src/backend/modules/api/controllers/AuditLogController.js'
 );
-const { owsWalletService } = await import('../../src/backend/services/blockchain/OwsWalletService.js');
+const { owsWalletService } = await import("@backend/services/blockchain/OwsWalletService.js");
 
 class MockRes {
   statusCode = 200;

@@ -7,7 +7,7 @@
  * restart for any reason, and the next /confirm click returns 404.
  */
 
-import { getDb } from "../../../db/index.js";
+import { getDb } from "@backend/db/index.js";
 
 export interface PersistedCopilotEvent {
   id: number;

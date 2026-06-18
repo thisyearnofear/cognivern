@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { sharedFhenixPolicyService } from "../../../services/blockchain/FhenixPolicyService.js";
-import { Logger } from "../../../shared/logging/Logger.js";
+import { sharedFhenixPolicyService } from "@backend/services/blockchain/FhenixPolicyService.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
 
 const logger = new Logger("FhenixController");
 

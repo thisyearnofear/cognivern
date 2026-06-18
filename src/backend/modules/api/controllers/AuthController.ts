@@ -4,7 +4,7 @@ import { SignJWT } from "jose";
 import { randomUUID } from "node:crypto";
 import { createHash, randomBytes } from "node:crypto";
 import type { AuthUser, Workspace } from "@cognivern/shared";
-import { getDb } from "../../../db/index.js";
+import { getDb } from "@backend/db/index.js";
 
 // Simple bcrypt-like hashing using scrypt (built into Node.js crypto)
 async function hashPassword(password: string): Promise<string> {

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { owsLocalVaultService } from "../../../services/blockchain/OwsLocalVaultService.js";
+import { owsLocalVaultService } from "@backend/services/blockchain/OwsLocalVaultService.js";
 
 const importWalletSchema = z.object({
   name: z.string().min(1),

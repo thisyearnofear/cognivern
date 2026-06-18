@@ -129,7 +129,7 @@ describe("OwsWalletService — native transfer on approve", () => {
 
     const result = await (service as any).handleApprove(
       intent,
-      new (await import("../../src/backend/cre/runRecorder.js")).CreRunRecorder({
+      new (await import("@backend/cre/runRecorder.js")).CreRunRecorder({
         workflow: "spend",
         mode: "cre",
       }),

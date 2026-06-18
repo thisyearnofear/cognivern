@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { CopilotController } from "../controllers/CopilotController.js";
+import type { CopilotController } from "@backend/modules/api/controllers/CopilotController.js";
 
 export function createCopilotRoutes(copilotController: CopilotController): Router {
   const router = Router();

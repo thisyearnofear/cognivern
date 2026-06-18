@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import { creRunStore } from "../../../cre/storage/CreRunStore.js";
-import { creRunSchema } from "../../../cre/validation.js";
-import { CreRunStatus } from "../../../cre/types.js";
-import { projectRegistry } from "../../../cre/projects/projectRegistry.js";
-import { usageMeter } from "../../../cre/projects/usageMeter.js";
-import { tokenTelemetryStore } from "../../../cre/projects/tokenTelemetry.js";
-import { enrichCreRunEvidence } from "../../../shared/utils/evidence.js";
+import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
+import { creRunSchema } from "@backend/cre/validation.js";
+import { CreRunStatus } from "@backend/cre/types.js";
+import { projectRegistry } from "@backend/cre/projects/projectRegistry.js";
+import { usageMeter } from "@backend/cre/projects/usageMeter.js";
+import { tokenTelemetryStore } from "@backend/cre/projects/tokenTelemetry.js";
+import { enrichCreRunEvidence } from "@backend/shared/utils/evidence.js";
 
 /**
  * Ingestion endpoint for BYO agents.

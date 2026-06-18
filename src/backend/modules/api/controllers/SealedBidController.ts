@@ -15,8 +15,8 @@ import {
   CreateRoundRequest,
   SubmitBidRequest,
   RevealRequest,
-} from "../../../services/blockchain/SealedBidService.js";
-import { Logger } from "../../../shared/logging/Logger.js";
+} from "@backend/services/blockchain/SealedBidService.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
 
 const logger = new Logger("SealedBidController");
 

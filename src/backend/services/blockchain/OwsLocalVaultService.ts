@@ -2,9 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { ethers } from "ethers";
-import { Logger } from "../../shared/logging/Logger.js";
-import { circuitBreakers } from "../../shared/utils/circuitBreaker.js";
-import { withTimeout } from "../../shared/utils/index.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
+import { circuitBreakers } from "@backend/shared/utils/circuitBreaker.js";
+import { withTimeout } from "@backend/shared/utils/index.js";
 
 const logger = new Logger("OwsLocalVaultService");
 

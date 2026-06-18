@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import crypto from "node:crypto";
 
-vi.mock("../../src/backend/utils/logger.js", () => ({
+vi.mock("@backend/utils/logger.js", () => ({
   default: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -21,7 +21,7 @@ async function makeService(enabled: boolean) {
     delete process.env.ZEROG_PRIVATE_KEY;
   }
   vi.resetModules();
-  const mod = await import("../../src/backend/services/blockchain/ZeroGStorageService.js");
+  const mod = await import("@backend/services/blockchain/ZeroGStorageService.js");
   return new mod.ZeroGStorageService();
 }
 

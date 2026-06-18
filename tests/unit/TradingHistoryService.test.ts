@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { TradingHistoryService } from "../../src/backend/services/TradingHistoryService.js";
-import { TradingDecision } from "../../src/backend/types/Agent.js";
+import { TradingHistoryService } from "@backend/services/TradingHistoryService.js";
+import { TradingDecision } from "@backend/types/Agent.js";
 
 function makeDecision(
   overrides: Partial<TradingDecision> = {},

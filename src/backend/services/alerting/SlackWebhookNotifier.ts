@@ -1,4 +1,4 @@
-import logger from '../../utils/logger.js';
+import logger from "@backend/utils/logger.js";
 import type { AlertEvent, AlertSink } from './AlertSink.js';
 
 export class SlackWebhookNotifier implements AlertSink {

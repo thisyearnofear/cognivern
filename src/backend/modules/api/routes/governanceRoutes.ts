@@ -1,7 +1,7 @@
 import { Router } from "express";
-import type { GovernanceController } from "../controllers/GovernanceController.js";
-import type { McpGovernanceController } from "../controllers/McpGovernanceController.js";
-import { getDb } from "../../../db/index.js";
+import type { GovernanceController } from "@backend/modules/api/controllers/GovernanceController.js";
+import type { McpGovernanceController } from "@backend/modules/api/controllers/McpGovernanceController.js";
+import { getDb } from "@backend/db/index.js";
 import { randomUUID } from "node:crypto";
 
 interface PolicyVersionRow {

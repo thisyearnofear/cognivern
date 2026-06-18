@@ -17,12 +17,12 @@ import {
   AgentInfo,
   AgentType,
   AgentStatus,
-} from "../types/TradingAgent.js";
-import { Logger } from "../../../shared/logging/Logger.js";
+} from "@backend/modules/agents/types/TradingAgent.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
 import {
   GovernanceClient,
   sharedGovernanceClient,
-} from "../../../services/governance/GovernanceClient.js";
+} from "@backend/services/governance/GovernanceClient.js";
 
 const logger = new Logger("UserTradingAgent");
 

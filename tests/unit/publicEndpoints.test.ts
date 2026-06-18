@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   isPublicApiPath,
   PUBLIC_API_PATHS,
-} from "../../src/backend/middleware/publicEndpoints.js";
+} from "@backend/middleware/publicEndpoints.js";
 
 describe("publicEndpoints — auth bypass list", () => {
   it("does NOT bypass /events/stream", () => {

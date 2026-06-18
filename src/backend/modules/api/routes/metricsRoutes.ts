@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { MetricsController } from "../controllers/MetricsController.js";
+import type { MetricsController } from "@backend/modules/api/controllers/MetricsController.js";
 
 export function createMetricsRoutes(
   metricsController: MetricsController,

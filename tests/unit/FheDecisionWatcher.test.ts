@@ -9,7 +9,7 @@ vi.mock('../utils/logger.js', () => ({
 }));
 
 const mockPollOutcome = vi.fn();
-vi.mock('../../src/backend/services/blockchain/FheThresholdClient.js', () => ({
+vi.mock("@backend/services/blockchain/FheThresholdClient.js", () => ({
   FheThresholdClient: vi.fn().mockImplementation(() => ({
     pollOutcome: mockPollOutcome,
   })),
@@ -22,7 +22,7 @@ const mockResolveDecision = vi.fn();
 const mockGetPendingDecisions = vi.fn();
 const mockClearPendingDecision = vi.fn();
 
-vi.mock('../../src/backend/services/blockchain/FhenixPolicyService.js', () => ({
+vi.mock("@backend/services/blockchain/FhenixPolicyService.js", () => ({
   FhenixPolicyService: vi.fn().mockImplementation(() => ({
     resolveDecision: mockResolveDecision,
     getPendingDecisions: mockGetPendingDecisions,
@@ -37,7 +37,7 @@ vi.mock('../../src/backend/services/blockchain/FhenixPolicyService.js', () => ({
 
 async function createWatcher(config: Record<string, unknown> = {}) {
   vi.resetModules();
-  const mod = await import('../../src/backend/services/blockchain/FheDecisionWatcher.js');
+  const mod = await import("@backend/services/blockchain/FheDecisionWatcher.js");
   return new mod.FheDecisionWatcher(undefined, undefined, config);
 }
 

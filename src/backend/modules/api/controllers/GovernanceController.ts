@@ -3,22 +3,22 @@
  */
 
 import { Request, Response } from "express";
-import { Logger } from "../../../shared/logging/Logger.js";
-import { getDb } from "../../../db/index.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
+import { getDb } from "@backend/db/index.js";
 import {
   PolicyService,
   sharedPolicyService,
-} from "../../../services/governance/PolicyService.js";
+} from "@backend/services/governance/PolicyService.js";
 
 const logger = new Logger("GovernanceController");
-import { PolicyEnforcementService } from "../../../services/governance/PolicyEnforcementService.js";
-import { sharedFhenixPolicyService } from "../../../services/blockchain/FhenixPolicyService.js";
-import { sharedControlEvaluationService } from "../../../services/governance/ControlEvaluationService.js";
-import { AuditLogService } from "../../../services/governance/AuditLogService.js";
-import { NotificationService } from "../../../services/NotificationService.js";
-import type { AgentAction } from "../../../types/Agent.js";
-import { creRunStore } from "../../../cre/storage/CreRunStore.js";
-import { startGovernanceEvaluation } from "../../../cre/workflows/governance.js";
+import { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
+import { sharedFhenixPolicyService } from "@backend/services/blockchain/FhenixPolicyService.js";
+import { sharedControlEvaluationService } from "@backend/services/governance/ControlEvaluationService.js";
+import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
+import { NotificationService } from "@backend/services/NotificationService.js";
+import type { AgentAction } from "@backend/types/Agent.js";
+import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
+import { startGovernanceEvaluation } from "@backend/cre/workflows/governance.js";
 import crypto from "node:crypto";
 
 export class GovernanceController {

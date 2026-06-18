@@ -5,7 +5,7 @@
  * via the shared BaseStore abstraction (DRY principle).
  */
 
-import { BaseStore, TtlRecord } from "../../../shared/storage/BaseStore.js";
+import { BaseStore, TtlRecord } from "@backend/shared/storage/BaseStore.js";
 
 export interface IdempotencyRecord {
   statusCode: number;

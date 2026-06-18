@@ -10,13 +10,13 @@
  */
 
 import { EventEmitter } from "events";
-import { Logger } from "../logging/Logger.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
 import {
   ServiceConfig,
   HealthStatus,
   DependencyHealth,
-} from "../types/index.js";
-import { ServiceError, ValidationError } from "../errors/index.js";
+} from "@backend/shared/types/index.js";
+import { ServiceError, ValidationError } from "@backend/shared/errors/index.js";
 
 /**
  * Cache entry with TTL support

@@ -11,14 +11,14 @@
  *   4. record_audit        — Persist the decision to the audit log
  */
 
-import { CreRunRecorder } from "../runRecorder.js";
-import { CreRun } from "../types.js";
-import { creRunStore } from "../storage/CreRunStore.js";
-import { PolicyEnforcementService } from "../../services/governance/PolicyEnforcementService.js";
-import { AuditLogService } from "../../services/governance/AuditLogService.js";
-import type { AgentAction } from "../../types/Agent.js";
-import type { PolicyCheck } from "../../types/Agent.js";
-import logger from "../../utils/logger.js";
+import { CreRunRecorder } from "@backend/cre/runRecorder.js";
+import { CreRun } from "@backend/cre/types.js";
+import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
+import { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
+import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
+import type { AgentAction } from "@backend/types/Agent.js";
+import type { PolicyCheck } from "@backend/types/Agent.js";
+import logger from "@backend/utils/logger.js";
 
 export interface GovernanceWorkflowParams {
   agentId: string;

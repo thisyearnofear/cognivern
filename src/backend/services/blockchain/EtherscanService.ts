@@ -5,7 +5,7 @@
  * Provides verification status, source code, ABI, transactions, and more.
  */
 
-import logger from "../../utils/logger.js";
+import logger from "@backend/utils/logger.js";
 
 export interface EtherscanContractInfo {
   address: string;

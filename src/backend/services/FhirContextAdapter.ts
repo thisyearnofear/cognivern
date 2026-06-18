@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import type { AgentAction } from "../types/Agent.js";
-import type { SharpContext, FhirResourceRef, FhirResourceType } from "../types/Policy.js";
+import type { AgentAction } from "@backend/types/Agent.js";
+import type { SharpContext, FhirResourceRef, FhirResourceType } from "@backend/types/Policy.js";
 
 interface FhirResource {
   resourceType: string;

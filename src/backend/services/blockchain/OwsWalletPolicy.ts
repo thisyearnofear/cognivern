@@ -1,8 +1,8 @@
-import { Policy, PolicyRule } from "../../types/Policy.js";
-import type { PolicyService } from "../governance/PolicyService.js";
-import type { PolicyEnforcementService } from "../governance/PolicyEnforcementService.js";
+import { Policy, PolicyRule } from "@backend/types/Policy.js";
+import type { PolicyService } from "@backend/services/governance/PolicyService.js";
+import type { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
 import type { FhenixPolicyService } from "./FhenixPolicyService.js";
-import type { AgentAction } from "../../types/Agent.js";
+import type { AgentAction } from "@backend/types/Agent.js";
 import type { SpendIntent, SpendExecutionContext, ExecutionResult } from "./OwsWalletService.js";
 import { createHash } from "node:crypto";
 

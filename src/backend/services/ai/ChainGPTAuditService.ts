@@ -8,11 +8,11 @@
  * Includes fallback to heuristic analysis when ChainGPT is unavailable.
  */
 
-import logger from "../../utils/logger.js";
+import logger from "@backend/utils/logger.js";
 import {
   ContractSecurityFallback,
   getContractSecurityFallback,
-} from "../blockchain/ContractSecurityFallback.js";
+} from "@backend/services/blockchain/ContractSecurityFallback.js";
 
 export interface AuditResult {
   safe: boolean;

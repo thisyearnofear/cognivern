@@ -1,4 +1,4 @@
-import { ForecastInput, ForecastOutput } from "../types.js";
+import { ForecastInput, ForecastOutput } from "@backend/cre/types.js";
 
 export interface LlmAdapter {
   generateForecast(input: ForecastInput): Promise<ForecastOutput>;

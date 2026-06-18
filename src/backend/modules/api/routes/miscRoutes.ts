@@ -1,10 +1,10 @@
 import { Router } from "express";
-import type { IngestController } from "../controllers/IngestController.js";
-import type { FhenixController } from "../controllers/FhenixController.js";
-import type { IntentController } from "../controllers/IntentController.js";
-import type { PayrollController } from "../controllers/PayrollController.js";
-import type { SealedBidController } from "../controllers/SealedBidController.js";
-import type { SpeechController } from "../controllers/SpeechController.js";
+import type { IngestController } from "@backend/modules/api/controllers/IngestController.js";
+import type { FhenixController } from "@backend/modules/api/controllers/FhenixController.js";
+import type { IntentController } from "@backend/modules/api/controllers/IntentController.js";
+import type { PayrollController } from "@backend/modules/api/controllers/PayrollController.js";
+import type { SealedBidController } from "@backend/modules/api/controllers/SealedBidController.js";
+import type { SpeechController } from "@backend/modules/api/controllers/SpeechController.js";
 
 export function createMiscRoutes(
   ingestController: IngestController,

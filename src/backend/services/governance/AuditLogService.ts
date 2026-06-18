@@ -1,9 +1,9 @@
-import { AgentAction, PolicyCheck } from "../../types/Agent.js";
-import logger from "../../utils/logger.js";
-import { zeroGStorageService } from "../blockchain/ZeroGStorageService.js";
-import { filecoinStorageService } from "../blockchain/FilecoinStorageService.js";
-import { creRunStore, CreRunStore } from "../../cre/storage/CreRunStore.js";
-import { CreRun, CreArtifact } from "../../cre/types.js";
+import { AgentAction, PolicyCheck } from "@backend/types/Agent.js";
+import logger from "@backend/utils/logger.js";
+import { zeroGStorageService } from "@backend/services/blockchain/ZeroGStorageService.js";
+import { filecoinStorageService } from "@backend/services/blockchain/FilecoinStorageService.js";
+import { creRunStore, CreRunStore } from "@backend/cre/storage/CreRunStore.js";
+import { CreRun, CreArtifact } from "@backend/cre/types.js";
 import { ethers } from "ethers";
 import crypto from "node:crypto";
 

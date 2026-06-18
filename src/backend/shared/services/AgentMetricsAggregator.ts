@@ -5,12 +5,12 @@
  * Provides unified comparison and filtering logic
  */
 
-import { AgentStatus } from "../types/index.js";
-import { TradingDecision } from "../../types/Agent.js";
-import { MetricsPeriod } from "../../types/Metrics.js";
-import { TradingHistoryService } from "../../services/TradingHistoryService.js";
-import { MetricsService } from "../../services/MetricsService.js";
-import { Logger } from "../logging/Logger.js";
+import { AgentStatus } from "@backend/shared/types/index.js";
+import { TradingDecision } from "@backend/types/Agent.js";
+import { MetricsPeriod } from "@backend/types/Metrics.js";
+import { TradingHistoryService } from "@backend/services/TradingHistoryService.js";
+import { MetricsService } from "@backend/services/MetricsService.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
 
 const logger = new Logger("AgentMetricsAggregator");
 

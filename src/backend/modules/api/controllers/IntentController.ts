@@ -6,10 +6,10 @@
  */
 
 import { Request, Response } from "express";
-import { Logger } from "../../../shared/logging/Logger.js";
-import { CircuitBreaker } from "../../../shared/utils/circuitBreaker.js";
-import { MultiModelRouter } from "../../../services/ai/MultiModelRouter.js";
-import { AuditLogService } from "../../../services/governance/AuditLogService.js";
+import { Logger } from "@backend/shared/logging/Logger.js";
+import { CircuitBreaker } from "@backend/shared/utils/circuitBreaker.js";
+import { MultiModelRouter } from "@backend/services/ai/MultiModelRouter.js";
+import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
 
 const logger = new Logger("IntentController");
 

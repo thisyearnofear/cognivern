@@ -8,25 +8,25 @@ const { mockAnchor, mockFilecoinAnchor } = vi.hoisted(() => ({
   mockFilecoinAnchor: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock("../../src/backend/services/blockchain/ZeroGStorageService.js", () => ({
+vi.mock("@backend/services/blockchain/ZeroGStorageService.js", () => ({
   zeroGStorageService: {
     anchorAuditRecord: mockAnchor,
   },
 }));
 
-vi.mock("../../src/backend/services/blockchain/FilecoinStorageService.js", () => ({
+vi.mock("@backend/services/blockchain/FilecoinStorageService.js", () => ({
   filecoinStorageService: {
     anchorAuditRecord: mockFilecoinAnchor,
   },
 }));
 
-vi.mock("../../src/backend/utils/logger.js", () => ({
+vi.mock("@backend/utils/logger.js", () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-import { AuditLogService } from "../../src/backend/services/governance/AuditLogService.js";
-import { CreRunStore } from "../../src/backend/cre/storage/CreRunStore.js";
-import { JsonlCreRunPersistence } from "../../src/backend/cre/persistence/CreRunPersistence.js";
+import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
+import { CreRunStore } from "@backend/cre/storage/CreRunStore.js";
+import { JsonlCreRunPersistence } from "@backend/cre/persistence/CreRunPersistence.js";
 
 describe("AuditLogService persists logs deterministically via CRE store", () => {
   it("persisted logs survive a new service instance", async () => {
