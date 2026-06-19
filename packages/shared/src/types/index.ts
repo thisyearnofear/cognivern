@@ -199,12 +199,18 @@ export interface AuthUser {
   lastLoginAt: string;
 }
 
+export interface WorkspaceSettings {
+  suspicionHoldThreshold?: number;
+  webhookUrl?: string;
+}
+
 export interface Workspace {
   id: string;
   name: string;
   ownerId: string;
   tier: "demo" | "live";
   role?: string;
+  settings?: WorkspaceSettings;
   createdAt: string;
   updatedAt: string;
 }

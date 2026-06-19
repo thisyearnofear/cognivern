@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
@@ -20,9 +20,11 @@ import {
   Plus,
   Rocket,
   Check,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { apiClient } from "@/lib/api-client";
+import { authFetch } from "@/lib/auth-fetch";
 import type { ApiKey, ApiKeyCreateResponse } from "@/lib/api-client";
 import useSWR, { mutate } from "swr";
 
@@ -58,6 +60,7 @@ export function SettingsPage() {
 
         <TabsContent value="workspace" className="space-y-4">
           <WorkspaceCard workspace={workspace} setWorkspace={setWorkspace} />
+          <SuspicionThresholdCard workspaceId={workspace?.id} />
           <ChainsCard />
         </TabsContent>
 
@@ -202,6 +205,107 @@ function WorkspaceCard({
             )}
           </div>
         )}
+    </div>
+  );
+}
+
+function SuspicionThresholdCard({ workspaceId }: { workspaceId?: string }) {
+  const [threshold, setThreshold] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    let cancelled = false;
+    authFetch("/api/workspace")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!cancelled && json?.success) {
+          const wsSettings = json.data?.settings;
+          setThreshold(typeof wsSettings?.suspicionHoldThreshold === "number" ? wsSettings.suspicionHoldThreshold : 0);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId]);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setSaved(false);
+    try {
+      await apiClient.updateWorkspace({ suspicionHoldThreshold: threshold });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false);
+    }
+  }, [threshold]);
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border bg-card p-5 animate-pulse">
+        <div className="h-4 w-40 bg-muted rounded mb-3" />
+        <div className="h-8 w-full bg-muted rounded" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border bg-card p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <AlertTriangle className="h-4 w-4 text-orange-500" />
+        <h2 className="font-semibold text-sm" style={{ fontFamily: "var(--font-space-grotesk)" }}>
+          Suspicion Auto-Hold Threshold
+        </h2>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        When suspicion scoring is enabled, agent actions with a composite score at or above
+        this threshold are automatically held for human review instead of being approved.
+        Set to 0 to disable auto-hold (scores are still recorded in the audit trail).
+      </p>
+      <div className="flex items-center gap-4">
+        <div className="flex-1">
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={threshold}
+            onChange={(e) => setThreshold(parseFloat(e.target.value))}
+            className="w-full accent-orange-500"
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+            <span>0 (off)</span>
+            <span>0.3 (cautious)</span>
+            <span>0.6 (moderate)</span>
+            <span>0.8 (strict)</span>
+            <span>1.0</span>
+          </div>
+        </div>
+        <div className="text-center min-w-[60px]">
+          <div className="text-lg font-bold font-mono" style={{ fontFamily: "var(--font-space-grotesk)" }}>
+            {threshold.toFixed(2)}
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            {threshold === 0 ? "disabled" : threshold < 0.3 ? "cautious" : threshold < 0.6 ? "moderate" : threshold < 0.8 ? "strict" : "very strict"}
+          </div>
+        </div>
+        <Button size="sm" onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : saved ? (
+            <>
+              <Check className="h-3.5 w-3.5 mr-1" /> Saved
+            </>
+          ) : "Save"}
+        </Button>
+      </div>
     </div>
   );
 }

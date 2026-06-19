@@ -141,6 +141,7 @@ export class GovernanceController {
           policyId,
           policyEnforcementService: this.policyEnforcementService,
           auditLogService: this.auditLogService,
+          workspaceId,
         });
 
         res.status(202).json({
@@ -166,9 +167,11 @@ export class GovernanceController {
 
       let suspicionResult: Record<string, unknown> | undefined;
       if (process.env.CONTROL_EVAL_MODE === "true") {
+        const agentHistory = await this.auditLogService.getAgentHistory(agentId).catch(() => []);
         const scored = sharedControlEvaluationService.score({
           action: normalizedAction,
           policyChecks,
+          agentHistory,
         });
         suspicionResult = {
           composite: scored.composite,
@@ -190,15 +193,45 @@ export class GovernanceController {
         }
       }
 
+      // Auto-hold: if suspicion exceeds threshold, override approval
+      let approved = true;
+      if (suspicionResult && typeof suspicionResult.composite === "number") {
+        let holdThreshold = parseFloat(process.env.SUSPICION_HOLD_THRESHOLD || "0");
+        if (workspaceId) {
+          try {
+            const wsRow = getDb()
+              .prepare("SELECT settings FROM workspaces WHERE id = ?")
+              .get(workspaceId) as { settings: string | null } | undefined;
+            if (wsRow?.settings) {
+              const wsSettings = JSON.parse(wsRow.settings);
+              if (typeof wsSettings.suspicionHoldThreshold === "number") {
+                holdThreshold = wsSettings.suspicionHoldThreshold;
+              }
+            }
+          } catch {}
+        }
+        if (holdThreshold > 0 && suspicionResult.composite >= holdThreshold) {
+          approved = false;
+          policyChecks.push({
+            policyId: "suspicion:auto_hold",
+            result: false,
+            reason: `Auto-held: suspicion score ${suspicionResult.composite.toFixed(2)} exceeded threshold ${holdThreshold}`,
+            metadata: { suspicionHold: true, composite: suspicionResult.composite },
+          });
+        }
+      }
+
       await this.auditLogService.logAction(
         normalizedAction,
         policyChecks,
-        true,
+        approved,
       );
 
       const decision: Record<string, unknown> = {
-        approved: true,
-        reason: `Action approved under policy ${policyRow.name}`,
+        approved,
+        reason: approved
+          ? `Action approved under policy ${policyRow.name}`
+          : `Action held for review under policy ${policyRow.name}`,
         agentId,
         actionType: normalizedAction.type,
         policyId,

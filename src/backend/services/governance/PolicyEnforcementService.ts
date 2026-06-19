@@ -4,7 +4,7 @@ import { PolicyService } from "./PolicyService.js";
 import { FhenixPolicyService } from "@backend/services/blockchain/FhenixPolicyService.js";
 import { ChainGPTAuditService } from "@backend/services/ai/ChainGPTAuditService.js";
 import { AgentPreferences } from "@backend/services/ai/AgentPreferenceService.js";
-import { ControlEvaluationService, SuspicionResult } from "./ControlEvaluationService.js";
+import { ControlEvaluationService, SuspicionResult, AgentActionHistory } from "./ControlEvaluationService.js";
 import logger from "@backend/utils/logger.js";
 import { Script } from "node:vm";
 
@@ -143,6 +143,8 @@ export class PolicyEnforcementService {
   async evaluateDecision(
     action: AgentAction,
     agentPreferences?: AgentPreferences | null,
+    agentHistory?: AgentActionHistory[],
+    workspaceHoldThreshold?: number,
   ): Promise<{ allowed: boolean; policyChecks: PolicyCheck[]; suspicion?: SuspicionResult }> {
     if (!this.currentPolicy) {
       throw new Error("No policy loaded");
@@ -160,7 +162,7 @@ export class PolicyEnforcementService {
     );
 
     if (hasDenyViolation) {
-      const suspicion = this.maybeScore(action, checks, agentPreferences);
+      const suspicion = this.maybeScore(action, checks, agentPreferences, agentHistory);
       return { allowed: false, policyChecks: checks, ...suspicion };
     }
 
@@ -184,14 +186,33 @@ export class PolicyEnforcementService {
         (r: PolicyRule) => checks.find((c) => c.policyId === r.id)?.result,
       );
 
-    const suspicion = this.maybeScore(action, checks, agentPreferences);
-    return { allowed: allRequireRulesPassed, policyChecks: checks, ...suspicion };
+    const suspicion = this.maybeScore(action, checks, agentPreferences, agentHistory);
+
+    let allowed = allRequireRulesPassed;
+
+    // Auto-hold: if suspicion is high enough, override approval to held for human review
+    if (allowed && suspicion?.suspicion) {
+      const envThreshold = parseFloat(process.env.SUSPICION_HOLD_THRESHOLD || "0");
+      const holdThreshold = workspaceHoldThreshold !== undefined ? workspaceHoldThreshold : envThreshold;
+      if (holdThreshold > 0 && suspicion.suspicion.composite >= holdThreshold) {
+        allowed = false;
+        checks.push({
+          policyId: "suspicion:auto_hold",
+          result: false,
+          reason: `Auto-held: suspicion score ${suspicion.suspicion.composite.toFixed(2)} exceeded threshold ${holdThreshold}`,
+          metadata: { suspicionHold: true, composite: suspicion.suspicion.composite },
+        });
+      }
+    }
+
+    return { allowed, policyChecks: checks, ...suspicion };
   }
 
   private maybeScore(
     action: AgentAction,
     checks: PolicyCheck[],
     preferences?: AgentPreferences | null,
+    agentHistory?: AgentActionHistory[],
   ): { suspicion?: SuspicionResult } {
     if (process.env.CONTROL_EVAL_MODE !== "true" || !this.controlEvaluationService) {
       return {};
@@ -200,6 +221,7 @@ export class PolicyEnforcementService {
       action,
       policyChecks: checks,
       preferences: preferences ?? null,
+      agentHistory,
     });
     return { suspicion };
   }

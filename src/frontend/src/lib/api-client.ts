@@ -300,6 +300,7 @@ class ApiClient {
   async updateWorkspace(params: {
     name?: string;
     tier?: "demo" | "live";
+    suspicionHoldThreshold?: number;
   }): Promise<ApiResponse<Workspace>> {
     return this.fetch("/workspace", {
       method: "PUT",

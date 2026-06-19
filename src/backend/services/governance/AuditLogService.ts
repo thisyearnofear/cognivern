@@ -390,6 +390,24 @@ export class AuditLogService {
     return true;
   }
 
+  /**
+   * Fetch recent action history for a specific agent, mapped to the format
+   * needed by ControlEvaluationService.scoreStatisticalAnomaly.
+   * Returns up to 100 most recent actions from the last 30 days.
+   */
+  async getAgentHistory(agentId: string): Promise<Array<{ amount: number; vendor?: string; timestamp: string }>> {
+    const logs = await this.getFilteredLogs({ agent: agentId });
+    const thirtyDaysAgo = Date.now() - 30 * 86_400_000;
+    return logs
+      .filter((log) => new Date(log.timestamp).getTime() >= thirtyDaysAgo)
+      .slice(-100)
+      .map((log) => ({
+        amount: Number(log.metadata?.amount ?? log.metadata?.amountUsd ?? 0),
+        vendor: log.metadata?.vendor as string | undefined,
+        timestamp: log.timestamp,
+      }));
+  }
+
   async getActionLogs(startTime: string, endTime: string): Promise<AuditLog[]> {
     return this.getFilteredLogs({ startDate: startTime, endDate: endTime });
   }
