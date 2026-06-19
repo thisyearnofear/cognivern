@@ -29,7 +29,7 @@ export class WorkspaceController {
     const db = getDb();
     const row = db
       .prepare(
-        "SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE id = ?",
+        "SELECT id, name, owner_id, tier, settings, created_at, updated_at FROM workspaces WHERE id = ?",
       )
       .get(workspaceId) as
       | {
@@ -37,6 +37,7 @@ export class WorkspaceController {
           name: string;
           owner_id: string;
           tier: string;
+          settings: string | null;
           created_at: string;
           updated_at: string;
         }
@@ -47,11 +48,21 @@ export class WorkspaceController {
       return;
     }
 
+    let settings: Workspace["settings"] = undefined;
+    if (row.settings) {
+      try {
+        settings = JSON.parse(row.settings);
+      } catch {
+        settings = undefined;
+      }
+    }
+
     const workspace: Workspace = {
       id: row.id,
       name: row.name,
       ownerId: row.owner_id,
       tier: row.tier as "demo" | "live",
+      settings,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -61,9 +72,10 @@ export class WorkspaceController {
 
   async updateWorkspace(req: Request, res: Response): Promise<void> {
     const workspaceId = req.workspaceId;
-    const { name, tier } = req.body as {
+    const { name, tier, suspicionHoldThreshold } = req.body as {
       name?: string;
       tier?: "demo" | "live";
+      suspicionHoldThreshold?: number;
     };
 
     if (!workspaceId) {
@@ -86,9 +98,27 @@ export class WorkspaceController {
       ).run(tier, now, workspaceId);
     }
 
+    if (suspicionHoldThreshold !== undefined) {
+      const existing = db
+        .prepare("SELECT settings FROM workspaces WHERE id = ?")
+        .get(workspaceId) as { settings: string | null } | undefined;
+      let settings: Record<string, unknown> = {};
+      if (existing?.settings) {
+        try {
+          settings = JSON.parse(existing.settings);
+        } catch {
+          settings = {};
+        }
+      }
+      settings.suspicionHoldThreshold = suspicionHoldThreshold;
+      db.prepare(
+        "UPDATE workspaces SET settings = ?, updated_at = ? WHERE id = ?",
+      ).run(JSON.stringify(settings), now, workspaceId);
+    }
+
     const row = db
       .prepare(
-        "SELECT id, name, owner_id, tier, created_at, updated_at FROM workspaces WHERE id = ?",
+        "SELECT id, name, owner_id, tier, settings, created_at, updated_at FROM workspaces WHERE id = ?",
       )
       .get(workspaceId) as
       | {
@@ -96,6 +126,7 @@ export class WorkspaceController {
           name: string;
           owner_id: string;
           tier: string;
+          settings: string | null;
           created_at: string;
           updated_at: string;
         }
@@ -106,11 +137,21 @@ export class WorkspaceController {
       return;
     }
 
+    let settings: Workspace["settings"] = undefined;
+    if (row.settings) {
+      try {
+        settings = JSON.parse(row.settings);
+      } catch {
+        settings = undefined;
+      }
+    }
+
     const workspace: Workspace = {
       id: row.id,
       name: row.name,
       ownerId: row.owner_id,
       tier: row.tier as "demo" | "live",
+      settings,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

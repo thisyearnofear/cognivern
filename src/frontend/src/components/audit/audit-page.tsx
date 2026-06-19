@@ -22,6 +22,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { PermitDialog } from "./permit-dialog";
+import { SuspicionOverview } from "./suspicion-overview";
 import { EventTimeline, type TimelineEvent } from "@/components/shared/event-timeline";
 import { useRouter } from "next/navigation";
 import { useAuditLogs } from "@/hooks/use-api";
@@ -840,6 +841,9 @@ export function AuditPage() {
           </div>
         )}
       </div>
+
+      {/* Suspicion Overview */}
+      <SuspicionOverview />
 
       {/* Decision Timeline */}
       {!error && logs.length === 0 && !isLoading ? (

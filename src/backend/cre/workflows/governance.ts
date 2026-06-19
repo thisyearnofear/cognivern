@@ -16,6 +16,7 @@ import { CreRun } from "@backend/cre/types.js";
 import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
 import { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
 import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
+import { getDb } from "@backend/db/index.js";
 import type { AgentAction } from "@backend/types/Agent.js";
 import type { PolicyCheck } from "@backend/types/Agent.js";
 import logger from "@backend/utils/logger.js";
@@ -26,6 +27,7 @@ export interface GovernanceWorkflowParams {
   policyId: string;
   policyEnforcementService: PolicyEnforcementService;
   auditLogService: AuditLogService;
+  workspaceId?: string;
 }
 
 export interface GovernanceWorkflowResult {
@@ -93,8 +95,29 @@ async function runAndPersist(
       agentId: params.agentId,
       actionType: params.normalizedAction.type,
     });
+    const agentHistory = await params.auditLogService.getAgentHistory(params.agentId).catch(() => []);
+
+    // Read workspace-specific suspicion hold threshold if available
+    let workspaceHoldThreshold: number | undefined;
+    if (params.workspaceId) {
+      try {
+        const wsRow = getDb()
+          .prepare("SELECT settings FROM workspaces WHERE id = ?")
+          .get(params.workspaceId) as { settings: string | null } | undefined;
+        if (wsRow?.settings) {
+          const wsSettings = JSON.parse(wsRow.settings);
+          if (typeof wsSettings.suspicionHoldThreshold === "number") {
+            workspaceHoldThreshold = wsSettings.suspicionHoldThreshold;
+          }
+        }
+      } catch {}
+    }
+
     const decision = await params.policyEnforcementService.evaluateDecision(
       params.normalizedAction,
+      undefined,
+      agentHistory,
+      workspaceHoldThreshold,
     );
     const outcomeLabel = decision.allowed ? "approved" : "denied";
     const failedChecks = decision.policyChecks.filter((c) => !c.result);
