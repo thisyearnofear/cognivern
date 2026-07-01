@@ -80,38 +80,60 @@ export class OwsApiKeyController {
    * GET /ows/api-keys/:id - Get specific API key (without token)
    */
   async getApiKey(req: Request, res: Response) {
-    const { id } = req.params;
-    const apiKeys = await this.vaultService.listApiKeys();
-    const apiKey = apiKeys.find((k) => k.id === id);
+    try {
+      const { id } = req.params;
+      const apiKeys = await this.vaultService.listApiKeys();
+      const apiKey = apiKeys.find((k) => k.id === id);
 
-    if (!apiKey) {
-      throw new NotFoundError("API Key");
+      if (!apiKey) {
+        res.status(404).json({
+          success: false,
+          error: "API Key not found",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: apiKey,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to get API key",
+        timestamp: new Date().toISOString(),
+      });
     }
-
-    res.json({
-      success: true,
-      data: apiKey,
-      timestamp: new Date().toISOString(),
-    });
   }
 
   /**
    * DELETE /ows/api-keys/:id - Revoke/delete API key
    */
   async deleteApiKey(req: Request, res: Response) {
-    const { id } = req.params;
-    if (!id) {
-      throw new BadRequestError("API key ID required");
-    }
-
     try {
+      const { id } = req.params;
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          error: "API key ID required",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
       await this.vaultService.deleteApiKey(id);
       res.json({
         success: true,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      throw new NotFoundError("API Key");
+      res.status(404).json({
+        success: false,
+        error: "API Key not found",
+        timestamp: new Date().toISOString(),
+      });
     }
   }
 

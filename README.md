@@ -10,7 +10,7 @@ Cognivern is a control plane for agent operations: governed wallet spend plus AI
 
 This project uses [TestSprite CLI](https://github.com/TestSprite/testsprite-cli) as the checker in a write → verify → fix loop. The agent ships code, the CLI runs real tests against the live API, and failures drive fixes.
 
-- **Test suite:** 14 backend tests, 291 assertions, all passing — covering auth, health, metrics, FHE, intent, projects, sealed-bid auctions, MCP governance, agents, OWS, copilot, speech, spend, and audit trail
+- **Test suite:** 19 backend tests, 481 assertions, all passing — covering auth, health, metrics, FHE, intent, projects, sealed-bid auctions, MCP governance, agents, OWS, copilot, speech, spend (deep SpendOS), governance CRUD, market data, dashboard, and audit trail
 - **Loop log:** [LOOP.md](./LOOP.md) — agent-written, one line per iteration
 - **CI/CD:** Wired into GitHub Actions (`.github/workflows/testsprite.yml`) — every PR runs the full suite, fails the build on regressions
 - **Dashboard:** [TestSprite project](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee)
@@ -65,7 +65,7 @@ For full setup, testing, and production deployment details see the [Developer Gu
 | [Developer Guide](./docs/DEVELOPER.md) | Getting started (no-code), local setup, API reference, testing, production readiness |
 | [Deployment](./docs/DEPLOYMENT.md) | Deploy to Hetzner, PM2, nginx, env vars, health checks |
 | [AI Safety Report](./scripts/hackathon/HACKATHON_REPORT.md) | Multi-dimensional suspicion scorer design, failure mode analysis, and cost-performance frontier evaluation |
-| [Hackathon Submission](./HACKATHON_SUBMISSION.md) | Comprehensive submission: test suite, 12 bugs found/fixed, architecture, integrations |
+| [Hackathon Submission](./HACKATHON_SUBMISSION.md) | Comprehensive submission: test suite, 15 bugs found/fixed, architecture, integrations |
 
 ## License
 
