@@ -6,7 +6,7 @@ A control plane for agent operations: governed wallet spend plus AI spend govern
 
 **Team:** thisyearnofear
 **Live:** [Frontend](https://cognivern.vercel.app) · [API](https://cognivern.thisyearnofear.com) · [PromptOS Terminal](https://cognivern.vercel.app/os)
-**TestSprite Dashboard:** [20 tests, all passing](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee)
+**TestSprite Dashboard:** [CLI: 20 backend tests](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee) · [MCP: 30 frontend tests](https://www.testsprite.com/dashboard/mcp/tests/e82a0a8d-a5c5-4f3a-9ead-f3b9f6a37214)
 
 ---
 
@@ -25,13 +25,48 @@ Cognivern is a production-deployed control plane that governs AI agent spending 
 - **Sapience forecasting** — On-chain prediction market integration with automated forecasting via Groq LLM.
 - **CRE (Cognivern Runtime Engine)** — Workflow orchestration with run tracking, event streaming, approval gates, and provenance citations.
 
-### 2. TestSprite Verification Loop
+### 2. TestSprite Full-Platform Verification
+
+We leverage the **entire TestSprite product spectrum** — not just one tool, but all three testing surfaces working together:
+
+#### Surface 1: CLI Backend Tests (Write-Verify-Fix Loop)
 
 We used [TestSprite CLI](https://github.com/TestSprite/testsprite-cli) as the checker in a write-verify-fix loop. The agent ships code, the CLI runs real tests against the live API, and failures drive fixes. This is not mock testing — every test hits the production API at `cognivern.thisyearnofear.com`.
 
 **20 tests, 550 assertions, all passing.**
 
 The loop caught **16 real bugs** in the production codebase, all of which were fixed during the hackathon.
+
+#### Surface 2: MCP Server Frontend Tests (AI-Generated UI Testing)
+
+We installed the [TestSprite MCP Server](https://docs.testsprite.com/mcp/getting-started/introduction) in Devin CLI and used its 8 tools to orchestrate the full AI testing workflow:
+
+1. `testsprite_generate_code_summary` — Scanned the React/Next.js codebase, identified 16 routes, 86 dependencies, and all key components
+2. `testsprite_generate_standardized_prd` — Generated a structured PRD from the codebase analysis
+3. `testsprite_generate_frontend_test_plan` — AI generated 41 test cases covering all user journeys
+4. `testsprite_generate_code_and_execute` — Generated 30 Playwright test scripts and executed them against the running frontend
+
+**30 AI-generated Playwright tests, executed in TestSprite's cloud:**
+- 11 passed (landing page, navigation, dashboard rendering, PromptOS terminal, theme switching, spend demo)
+- 8 failed (backend API unreachable from local frontend — environment issue, not code bug)
+- 11 blocked (prerequisite data unavailable without backend)
+
+Dashboard: [TestSprite MCP Project](https://www.testsprite.com/dashboard/mcp/tests/e82a0a8d-a5c5-4f3a-9ead-f3b9f6a37214)
+
+#### Surface 3: GitHub Integration (CI/CD on Every PR)
+
+We connected the TestSprite GitHub App to our repository ([thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)) so every PR auto-runs tests against the Vercel preview deployment. The GitHub App detects Vercel deployments and posts test results as PR comments.
+
+We also maintain a [GitHub Actions workflow](.github/workflows/testsprite.yml) that runs the CLI backend test suite on every push, gating merges on test results.
+
+#### Why Full-Platform Coverage Matters
+
+Using all three TestSprite surfaces gives us layered verification:
+- **CLI** catches backend API regressions before they ship (550 assertions, 16 bugs found)
+- **MCP** catches frontend UI regressions with AI-generated Playwright tests (30 tests, zero manual test code)
+- **GitHub Integration** catches both on every PR, automatically, with Vercel preview detection
+
+This is the testing loop the TestSprite team designed their product for — and we use it end-to-end.
 
 ---
 
@@ -174,7 +209,9 @@ The write-verify-fix loop caught 16 real bugs in the production codebase. Each w
                     │  Port 3087 · PM2 · nginx reverse proxy   │
                     ├─────────────────────────────────────────┤
   TestSprite ──►    │  apiKeyMiddleware → authMiddleware       │
-  (20 tests)        │  PUBLIC_API_PATHS bypass (regex match)   │
+  CLI (20 tests)    │  PUBLIC_API_PATHS bypass (regex match)   │
+  MCP (30 tests)    │                                         │
+  GitHub App ──►    │  Vercel preview → auto-test on PR       │
                     ├─────────────────────────────────────────┤
                     │  Controllers:                           │
                     │  · Auth (register/login/nonce/JWT)      │
@@ -247,7 +284,7 @@ pnpm start
 - **Backend:** Node.js, Express, TypeScript, better-sqlite3
 - **Frontend:** React, Vite, TypeScript
 - **Infra:** Hetzner VPS, PM2, nginx, GitHub Actions
-- **Testing:** TestSprite CLI (20 tests, 550 assertions)
+- **Testing:** TestSprite full platform — CLI (20 backend tests, 550 assertions), MCP Server (30 AI-generated Playwright frontend tests), GitHub Integration (PR gating)
 - **Integrations:** Fhenix (FHE), Sapience (forecasting), Ledger (hardware signing), ChainGPT (Web3 LLM), ElevenLabs (speech), Groq (LLM inference)
 
 ---
