@@ -8,6 +8,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH =
   process.env.DB_PATH || path.join(__dirname, "../../../data/cognivern.db");
 
+/**
+ * Check if a column exists in a table (used for idempotent ALTER TABLE).
+ * Must be called outside db.exec() — uses a prepared statement.
+ */
+function columnExists(
+  db: Database.Database,
+  table: string,
+  column: string,
+): boolean {
+  const rows = db
+    .prepare(`PRAGMA table_info(${table})`)
+    .all() as { name: string }[];
+  return rows.some((r) => r.name === column);
+}
+
 let db: Database.Database | null = null;
 let drizzleDb: ReturnType<typeof drizzle> | null = null;
 
@@ -35,14 +50,44 @@ export function getDrizzleDb() {
 }
 
 function migrate(db: Database.Database): void {
+  // Create users table with full schema (idempotent — IF NOT EXISTS)
+  // wallet_address is nullable — email-based users (auth_method='email')
+  // don't have a wallet address at registration time.
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
-      wallet_address TEXT NOT NULL UNIQUE,
+      wallet_address TEXT UNIQUE,
+      email TEXT,
+      password_hash TEXT,
+      email_verified INTEGER DEFAULT 0,
+      verification_token TEXT,
+      reset_token TEXT,
+      reset_token_expires_at TEXT,
+      auth_method TEXT DEFAULT 'wallet' NOT NULL,
       created_at TEXT NOT NULL,
       last_login_at TEXT NOT NULL
     );
+  `);
 
+  // Add missing columns to existing users tables (from older inline migrations
+  // that only had wallet_address). Each ALTER is guarded by a column existence
+  // check to avoid "duplicate column name" errors.
+  const userCols = [
+    { name: "email", sql: "ALTER TABLE users ADD COLUMN email TEXT" },
+    { name: "password_hash", sql: "ALTER TABLE users ADD COLUMN password_hash TEXT" },
+    { name: "email_verified", sql: "ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0" },
+    { name: "verification_token", sql: "ALTER TABLE users ADD COLUMN verification_token TEXT" },
+    { name: "reset_token", sql: "ALTER TABLE users ADD COLUMN reset_token TEXT" },
+    { name: "reset_token_expires_at", sql: "ALTER TABLE users ADD COLUMN reset_token_expires_at TEXT" },
+    { name: "auth_method", sql: "ALTER TABLE users ADD COLUMN auth_method TEXT DEFAULT 'wallet' NOT NULL" },
+  ];
+  for (const col of userCols) {
+    if (!columnExists(db, "users", col.name)) {
+      db.exec(col.sql);
+    }
+  }
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS workspaces (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
