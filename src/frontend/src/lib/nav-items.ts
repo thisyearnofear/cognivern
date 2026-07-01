@@ -53,10 +53,10 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         id: "governance",
-        label: "Governance Check",
+        label: "Test a Spend",
         icon: PlayCircle,
         href: "/governance/check",
-        description: "Test policies",
+        description: "Test a spend against your policy",
       },
       {
         id: "copilot",
@@ -95,7 +95,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         id: "os",
-        label: "Command Center",
+        label: "Terminal",
         icon: Sparkles,
         href: "/os",
         description: "Terminal UI",

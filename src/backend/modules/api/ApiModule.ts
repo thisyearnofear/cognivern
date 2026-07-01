@@ -218,6 +218,30 @@ export class ApiModule extends BaseService {
     // Compression
     this.app.use(compression());
 
+    // Request timeout — protects against hung connections. SSE/streaming
+    // endpoints (text/event-stream) and long-running governance/FHE
+    // evaluations are exempted by checking the Accept header and path.
+    this.app.use((req, res, next) => {
+      const isStream =
+        req.headers.accept?.includes("text/event-stream") ||
+        req.path.includes("/stream") ||
+        req.path.includes("/events");
+      const timeoutMs = isStream
+        ? Number(process.env.STREAM_TIMEOUT_MS || 120000)
+        : Number(process.env.REQUEST_TIMEOUT_MS || 30000);
+      const timer = setTimeout(() => {
+        if (!res.headersSent) {
+          res.status(504).json({
+            success: false,
+            error: "Request timed out",
+          });
+        }
+        req.destroy();
+      }, timeoutMs);
+      res.on("finish", () => clearTimeout(timer));
+      next();
+    });
+
     // Body parsing
     // Control plane can accept larger payloads for dashboards, etc.
     this.app.use(express.json({ limit: "10mb" }));

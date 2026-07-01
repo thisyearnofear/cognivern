@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   Pause,
   Play,
+  PlayCircle,
 } from "lucide-react";
 import { PolicyVersionHistory } from "./policy-version-history";
 import {
@@ -541,6 +542,16 @@ export function PoliciesPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push("/governance/check")}
+                    className="h-7 gap-1 text-xs"
+                    title="Test a spend against this policy"
+                  >
+                    <PlayCircle className="h-3 w-3" />
+                    Test
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"

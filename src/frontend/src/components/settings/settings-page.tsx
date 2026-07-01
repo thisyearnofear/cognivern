@@ -346,6 +346,10 @@ function ApiKeysCard() {
   }, [newKeyName, selectedScopes]);
 
   const handleRevoke = useCallback(async (keyId: string) => {
+    const confirmed = window.confirm(
+      "Revoke this API key? Any system using this key will immediately lose access.",
+    );
+    if (!confirmed) return;
     await apiClient.revokeApiKey(keyId);
     mutate("api-keys");
   }, []);

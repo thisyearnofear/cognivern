@@ -115,7 +115,7 @@ export function AgentsPage() {
             className="text-2xl font-bold tracking-tight"
             style={{ fontFamily: "var(--font-space-grotesk)" }}
           >
-            Governed API Identities
+            Agents
           </h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-xl">
             Give your external systems (bots, scripts, workflows) policy-governed access to Cognivern
@@ -165,7 +165,7 @@ export function AgentsPage() {
             <div className="space-y-3">
               <div>
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  Showcase Agents
+                  Example Agents
                 </h2>
                 <p className="text-xs text-muted-foreground mt-1">
                   Demos showing what Cognivern can govern. Not configurable.
@@ -187,7 +187,7 @@ export function AgentsPage() {
           <div className="space-y-3">
             <div>
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Your API Identities
+                Your Agents
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
                 External systems you&apos;ve given governed access to Cognivern.

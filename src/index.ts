@@ -1,21 +1,23 @@
 import { startServer } from "./server.js";
 import logger from "./backend/utils/logger.js";
 
-// Error handling for uncaught exceptions and unhandled rejections
+// Error handling for uncaught exceptions and unhandled rejections.
+// In both cases the process is in an unknown state — exit so PM2 restarts
+// us cleanly rather than continuing with corrupted memory/connections.
 process.on("uncaughtException", (error) => {
-  logger.error("Uncaught exception", {
+  logger.error("Uncaught exception — exiting for clean restart", {
     error: error.message,
     stack: error.stack,
   });
-  // Don't exit the process - just log the error and continue
+  process.exit(1);
 });
 
 process.on("unhandledRejection", (reason, promise) => {
-  logger.error("Unhandled rejection", {
+  logger.error("Unhandled rejection — exiting for clean restart", {
     reason: reason instanceof Error ? reason.message : String(reason),
     promise,
   });
-  // Don't exit the process - just log the error and continue
+  process.exit(1);
 });
 
 // Add process exit debugging
