@@ -255,32 +255,45 @@ export class OwsWalletController {
    * POST /ows/agents - Register a new agent
    */
   async createAgent(req: Request, res: Response) {
-    const { name, description, type, walletId, apiKeyId, policyIds, metadata } =
-      req.body;
+    try {
+      const { name, description, type, walletId, apiKeyId, policyIds, metadata } =
+        req.body;
 
-    if (!name || !type) {
-      throw new BadRequestError("Agent name and type are required");
+      if (!name || !type) {
+        res.status(400).json({
+          success: false,
+          error: "Agent name and type are required",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const agent: OwsAgentRecord = {
+        id: `agent-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+        name,
+        description: description || "",
+        type,
+        status: "active",
+        walletId,
+        apiKeyId,
+        policyIds: policyIds || [],
+        createdAt: new Date().toISOString(),
+        metadata,
+      };
+
+      const created = await this.vaultService.registerAgent(agent);
+      res.status(201).json({
+        success: true,
+        data: created,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to create agent",
+        timestamp: new Date().toISOString(),
+      });
     }
-
-    const agent: OwsAgentRecord = {
-      id: `agent-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-      name,
-      description: description || "",
-      type,
-      status: "active",
-      walletId,
-      apiKeyId,
-      policyIds: policyIds || [],
-      createdAt: new Date().toISOString(),
-      metadata,
-    };
-
-    const created = await this.vaultService.registerAgent(agent);
-    res.status(201).json({
-      success: true,
-      data: created,
-      timestamp: new Date().toISOString(),
-    });
   }
 }
 

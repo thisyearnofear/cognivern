@@ -42,27 +42,38 @@ export class OwsApiKeyController {
    * POST /ows/api-keys - Create new API key
    */
   async createApiKey(req: Request, res: Response) {
-    const parse = createApiKeySchema.safeParse(req.body);
-    if (!parse.success) {
-      throw new BadRequestError(
-        "Invalid API key payload",
-        parse.error.format(),
-      );
+    try {
+      const parse = createApiKeySchema.safeParse(req.body);
+      if (!parse.success) {
+        res.status(400).json({
+          success: false,
+          error: "Invalid API key payload",
+          details: parse.error.format(),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const result = await this.vaultService.createApiKey({
+        name: parse.data.name,
+        walletIds: parse.data.walletIds,
+        policyIds: parse.data.policyIds,
+        expiresAt: parse.data.expiresAt,
+        metadata: parse.data.metadata,
+      });
+
+      res.status(201).json({
+        success: true,
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to create API key",
+        timestamp: new Date().toISOString(),
+      });
     }
-
-    const result = await this.vaultService.createApiKey({
-      name: parse.data.name,
-      walletIds: parse.data.walletIds,
-      policyIds: parse.data.policyIds,
-      expiresAt: parse.data.expiresAt,
-      metadata: parse.data.metadata,
-    });
-
-    res.status(201).json({
-      success: true,
-      data: result,
-      timestamp: new Date().toISOString(),
-    });
   }
 
   /**

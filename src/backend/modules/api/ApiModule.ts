@@ -620,7 +620,7 @@ export class ApiModule extends BaseService {
     );
     apiRouter.use(createMetricsRoutes(this.ctrl("metrics")));
     apiRouter.use(createAuditRoutes(this.ctrl("auditLog")));
-    apiRouter.use(createCreRoutes(this.ctrl("cre")));
+    apiRouter.use(createCreRoutes(this.ctrl("cre"), this.ctrl("ingest")));
     apiRouter.use(createCopilotRoutes(this.ctrl("copilot")));
     apiRouter.use(
       createSpendRoutes(

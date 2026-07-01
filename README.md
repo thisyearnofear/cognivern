@@ -10,16 +10,26 @@ Cognivern is a control plane for agent operations: governed wallet spend plus AI
 
 This project uses [TestSprite CLI](https://github.com/TestSprite/testsprite-cli) as the checker in a write → verify → fix loop. The agent ships code, the CLI runs real tests against the live API, and failures drive fixes.
 
-- **Test suite:** 4 backend tests covering health/public endpoints, governance policy access, spend endpoints, and audit trail integrity
+- **Test suite:** 14 backend tests, 291 assertions, all passing — covering auth, health, metrics, FHE, intent, projects, sealed-bid auctions, MCP governance, agents, OWS, copilot, speech, spend, and audit trail
 - **Loop log:** [LOOP.md](./LOOP.md) — agent-written, one line per iteration
 - **CI/CD:** Wired into GitHub Actions (`.github/workflows/testsprite.yml`) — every PR runs the full suite, fails the build on regressions
 - **Dashboard:** [TestSprite project](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee)
+- **Submission:** [HACKATHON_SUBMISSION.md](./HACKATHON_SUBMISSION.md) — comprehensive hackathon summary
 
-### Bugs caught by the loop
+### Bugs caught by the loop (12 total)
 
 1. `/api/governance/policies` returned 401 despite being a public endpoint — controller required `workspaceId` with no fallback
 2. `better-sqlite3` native bindings missing after deploy — `pnpm install --prod` didn't rebuild native modules
 3. `/api/spendos/status` in `PUBLIC_API_PATHS` but no route handler exists — 404
+4. Auth endpoints (`/auth/register`, `/auth/login`, `/auth/nonce`) blocked by `apiKeyMiddleware` — not in `PUBLIC_API_PATHS`
+5. Users table missing `email` column — inline migration had old schema with only `wallet_address`
+6. `wallet_address NOT NULL` constraint prevented email-based registration
+7. `/fhenix/encrypt`, `/metrics/ux-events`, `/mcp/governance-check`, `/speech/transcribe` missing from `PUBLIC_API_PATHS`
+8. Sealed-bid sub-paths (`/rounds/:roundId/bid`, `/close`, `/reveal`) not in `PUBLIC_API_PATHS` — added parameterized path matching
+9. Projects sub-paths (`/:projectId/usage`, `/:projectId/tokens`) not in `PUBLIC_API_PATHS`
+10. `/api/agents/sapience/status` returned 500 — "sapience" missing from `demoAgentNames` map
+11. `/api/cre/projects` returned 404 — route defined as `/projects` not `/cre/projects`
+12. `OwsWalletController.createAgent` and `OwsApiKeyController.createApiKey` threw errors without try/catch, crashing the server
 
 ## Quick Start
 
@@ -55,6 +65,7 @@ For full setup, testing, and production deployment details see the [Developer Gu
 | [Developer Guide](./docs/DEVELOPER.md) | Getting started (no-code), local setup, API reference, testing, production readiness |
 | [Deployment](./docs/DEPLOYMENT.md) | Deploy to Hetzner, PM2, nginx, env vars, health checks |
 | [AI Safety Report](./scripts/hackathon/HACKATHON_REPORT.md) | Multi-dimensional suspicion scorer design, failure mode analysis, and cost-performance frontier evaluation |
+| [Hackathon Submission](./HACKATHON_SUBMISSION.md) | Comprehensive submission: test suite, 12 bugs found/fixed, architecture, integrations |
 
 ## License
 

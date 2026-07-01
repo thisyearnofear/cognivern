@@ -274,6 +274,7 @@ export class AgentsController {
       const demoAgentNames: Record<string, string> = {
         governance: "Spend Governance Agent",
         portfolio: "Portfolio Agent",
+        sapience: "Sapience Forecasting Agent",
       };
       if (agentType && agentType in demoAgentNames) {
         res.json({
