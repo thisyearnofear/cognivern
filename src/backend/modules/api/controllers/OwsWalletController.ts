@@ -109,70 +109,112 @@ export class OwsWalletController {
    * GET /ows/wallets/:id - Get specific wallet
    */
   async getWallet(req: Request, res: Response) {
-    const { id } = req.params;
-    const wallets = await this.vaultService.listWallets();
-    const wallet = wallets.find((w) => w.id === id);
+    try {
+      const { id } = req.params;
+      const wallets = await this.vaultService.listWallets();
+      const wallet = wallets.find((w) => w.id === id);
 
-    if (!wallet) {
-      throw new NotFoundError("Wallet");
+      if (!wallet) {
+        res.status(404).json({
+          success: false,
+          error: "Wallet not found",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: wallet,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to get wallet",
+        timestamp: new Date().toISOString(),
+      });
     }
-
-    res.json({
-      success: true,
-      data: wallet,
-      timestamp: new Date().toISOString(),
-    });
   }
 
   /**
    * POST /ows/wallets/import - Import wallet with private key
    */
   async importWallet(req: Request, res: Response) {
-    const parse = importWalletSchema.safeParse(req.body);
-    if (!parse.success) {
-      throw new BadRequestError(
-        "Invalid wallet import payload",
-        parse.error.format(),
-      );
+    try {
+      const parse = importWalletSchema.safeParse(req.body);
+      if (!parse.success) {
+        res.status(400).json({
+          success: false,
+          error: "Invalid wallet import payload",
+          details: parse.error.format(),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const wallet = await this.vaultService.importWallet({
+        name: parse.data.name,
+        privateKey: parse.data.privateKey,
+        chainId: parse.data.chainId,
+        chainType: parse.data.chainType,
+        derivationPath: parse.data.derivationPath,
+        metadata: parse.data.metadata,
+      });
+
+      res.status(201).json({
+        success: true,
+        data: wallet,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to import wallet",
+        timestamp: new Date().toISOString(),
+      });
     }
-
-    const wallet = await this.vaultService.importWallet({
-      name: parse.data.name,
-      privateKey: parse.data.privateKey,
-      chainId: parse.data.chainId,
-      chainType: parse.data.chainType,
-      derivationPath: parse.data.derivationPath,
-      metadata: parse.data.metadata,
-    });
-
-    res.status(201).json({
-      success: true,
-      data: wallet,
-      timestamp: new Date().toISOString(),
-    });
   }
 
   /**
    * POST /ows/wallets/connect - Connect to external OWS wallet
    */
   async connectExternal(req: Request, res: Response) {
-    const parse = connectExternalSchema.safeParse(req.body);
-    const externalUrl = parse.data?.url || process.env.OWS_EXTERNAL_WALLET_URL;
+    try {
+      const parse = connectExternalSchema.safeParse(req.body);
+      const externalUrl = parse.data?.url || process.env.OWS_EXTERNAL_WALLET_URL;
 
-    if (!externalUrl) {
-      throw new BadRequestError("External wallet URL required");
+      if (!externalUrl) {
+        res.status(400).json({
+          success: false,
+          error: "External wallet URL required",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const wallet = await this.vaultService.connectToExternalWallet(externalUrl);
+      if (!wallet) {
+        res.status(400).json({
+          success: false,
+          error: "Failed to connect to external wallet",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      res.status(201).json({
+        success: true,
+        data: wallet,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to connect wallet",
+        timestamp: new Date().toISOString(),
+      });
     }
-
-    const wallet = await this.vaultService.connectToExternalWallet(externalUrl);
-    if (!wallet) {
-      throw new BadRequestError("Failed to connect to external wallet");
-    }
-
-    res.status(201).json({
-      success: true,
-      data: wallet,
-      timestamp: new Date().toISOString(),
-    });
   }
 
   /**

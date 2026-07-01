@@ -6,7 +6,7 @@ A control plane for agent operations: governed wallet spend plus AI spend govern
 
 **Team:** thisyearnofear
 **Live:** [Frontend](https://cognivern.vercel.app) · [API](https://cognivern.thisyearnofear.com) · [PromptOS Terminal](https://cognivern.vercel.app/os)
-**TestSprite Dashboard:** [14 tests, all passing](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee)
+**TestSprite Dashboard:** [19 tests, all passing](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee)
 
 ---
 
@@ -29,9 +29,9 @@ Cognivern is a production-deployed control plane that governs AI agent spending 
 
 We used [TestSprite CLI](https://github.com/TestSprite/testsprite-cli) as the checker in a write-verify-fix loop. The agent ships code, the CLI runs real tests against the live API, and failures drive fixes. This is not mock testing — every test hits the production API at `cognivern.thisyearnofear.com`.
 
-**14 tests, 291 assertions, all passing.**
+**19 tests, 481 assertions, all passing.**
 
-The loop caught **12 real bugs** in the production codebase, all of which were fixed during the hackathon.
+The loop caught **15 real bugs** in the production codebase, all of which were fixed during the hackathon.
 
 ---
 
@@ -53,14 +53,19 @@ The loop caught **12 real bugs** in the production codebase, all of which were f
 | 12 | OWS + copilot auth boundaries | 11 | 11 protected endpoints verified to return 401 without auth |
 | 13 | Speech transcription | 4 | `/api/speech/transcribe` input validation, service availability check |
 | 14 | Authenticated endpoints | 11 | OWS wallets/dashboard/health/agents/api-keys, copilot runs, metrics/daily, governance evaluate — all with API key auth |
+| 15 | Deep SpendOS | 79 | `/api/spend/status` (SpendOS layer, features), `/api/spend/preview` (valid/missing fields, contract audit), `/api/spend` (execute, held spend), `/api/spend/encrypted` (demo mode small/large, OWS mode validation), `/api/spend/:id/confirm` (confirm/reject/invalid/missing), `/api/spend/scan` (missing/invalid/valid address) |
+| 16 | Auth extended | 12 | `/auth/verify` (invalid SIWE), `/auth/verify-email` (invalid token), `/auth/refresh` (no/invalid Bearer), `/auth/logout` (no Bearer), `/auth/register` (duplicate email), `/auth/login` (wrong password, missing fields), `/auth/forgot-password`, `/auth/nonce` |
+| 17 | Governance extended | 19 | `/api/governance/health`, policy list, create (valid/missing fields), confidential policy, get non-existent policy, get non-existent decision, evaluate with missing fields |
+| 18 | Agents extended | 55 | `/api/agents/stats`, `/leaderboard`, `/compare`, `/monitoring`, get by id, register (missing fields), start/stop, `/api/market/stats`, `/market/top`, `/market/data/:symbol`, `/market/historical/:symbol`, `/api/dashboard/bundle`, agent preferences |
+| 19 | OWS/Copilot/CRE extended | 25 | OWS wallet get/connect/import, API key get/delete, permissions (POST/GET), copilot run get/confirm, CRE runs list/get/cancel/retry |
 
-**Total: 14 tests, 291 assertions, 0 failures**
+**Total: 19 tests, 481 assertions, 0 failures**
 
 ---
 
 ## Bugs Found and Fixed
 
-The write-verify-fix loop caught 12 real bugs in the production codebase. Each was found by a failing test, traced to root cause, and fixed.
+The write-verify-fix loop caught 15 real bugs in the production codebase. Each was found by a failing test, traced to root cause, and fixed.
 
 ### Critical Bugs (would block users)
 
@@ -134,6 +139,24 @@ The write-verify-fix loop caught 12 real bugs in the production codebase. Each w
 - **Fix:** Wrapped both methods in try/catch with proper `res.status(400).json()` responses.
 - **Files:** `src/backend/modules/api/controllers/OwsWalletController.ts`, `OwsApiKeyController.ts`
 
+**13. OwsWalletController getWallet/importWallet/connectExternal crash**
+- **Symptom:** `GET /api/ows/wallets/:id`, `POST /api/ows/wallets/connect`, `POST /api/ows/wallets/import` all returned 502 Bad Gateway
+- **Root cause:** Same pattern as bug #12 — `throw new NotFoundError(...)` and `throw new BadRequestError(...)` without try/catch caused unhandled promise rejections that crashed the server.
+- **Fix:** Wrapped all three methods in try/catch with proper `res.status(404/400).json()` responses.
+- **File:** `src/backend/modules/api/controllers/OwsWalletController.ts`
+
+**14. OwsApiKeyController getApiKey/deleteApiKey crash**
+- **Symptom:** `GET /api/ows/api-keys/:id` and `DELETE /api/ows/api-keys/:id` returned 502 Bad Gateway
+- **Root cause:** Same unhandled throw pattern — `NotFoundError` and `BadRequestError` thrown without try/catch.
+- **Fix:** Wrapped both methods in try/catch with proper `res.status(404/400).json()` responses.
+- **File:** `src/backend/modules/api/controllers/OwsApiKeyController.ts`
+
+**15. OwsPermissionsController all methods crash**
+- **Symptom:** `POST /api/ows/permissions`, `GET /api/ows/permissions/:walletId` returned 502 Bad Gateway
+- **Root cause:** Same unhandled throw pattern across `requestPermissions`, `getPermissions`, `revokePermissions`, and `checkPermissions`.
+- **Fix:** Wrapped all four methods in try/catch with proper `res.status(400/500).json()` responses.
+- **File:** `src/backend/modules/api/controllers/OwsPermissionsController.ts`
+
 ---
 
 ## Architecture
@@ -144,7 +167,7 @@ The write-verify-fix loop caught 12 real bugs in the production codebase. Each w
                     │  Port 3087 · PM2 · nginx reverse proxy   │
                     ├─────────────────────────────────────────┤
   TestSprite ──►    │  apiKeyMiddleware → authMiddleware       │
-  (14 tests)        │  PUBLIC_API_PATHS bypass (regex match)   │
+  (19 tests)        │  PUBLIC_API_PATHS bypass (regex match)   │
                     ├─────────────────────────────────────────┤
                     │  Controllers:                           │
                     │  · Auth (register/login/nonce/JWT)      │
@@ -217,7 +240,7 @@ pnpm start
 - **Backend:** Node.js, Express, TypeScript, better-sqlite3
 - **Frontend:** React, Vite, TypeScript
 - **Infra:** Hetzner VPS, PM2, nginx, GitHub Actions
-- **Testing:** TestSprite CLI (14 tests, 291 assertions)
+- **Testing:** TestSprite CLI (19 tests, 481 assertions)
 - **Integrations:** Fhenix (FHE), Sapience (forecasting), Ledger (hardware signing), ChainGPT (Web3 LLM), ElevenLabs (speech), Groq (LLM inference)
 
 ---
