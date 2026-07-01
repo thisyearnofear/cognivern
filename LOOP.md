@@ -27,6 +27,7 @@ Agent-written log of the write → verify → fix loop. One line per iteration.
 - iter 18 | maker: Devin | test: Governance extended (357abde6) | verdict: passed | notes: 19 assertions covering governance/health, policy list, create (valid/missing fields), confidential policy, get non-existent policy=404, get non-existent decision=404, evaluate with missing fields. Found FOREIGN KEY constraint bug when creating policy with default workspace — documented.
 - iter 19 | maker: Devin | test: Agents extended (5293a002) | verdict: passed | notes: 55 assertions covering agents stats/leaderboard/compare/monitoring, get by id, register (missing fields), start/stop, market stats/top/data/historical, dashboard bundle, agent preferences
 - iter 20 | maker: Devin | test: OWS/Copilot/CRE extended (0a07854d) | verdict: passed | notes: 25 assertions. Found 3 more crash bugs: OwsWalletController.getWallet/importWallet/connectExternal, OwsApiKeyController.getApiKey/deleteApiKey, OwsPermissionsController.requestPermissions/getPermissions/revokePermissions/checkPermissions — all threw errors without try/catch causing 502. Fixed all with proper try/catch. After fix, all endpoints return proper 404/400/200.
+- iter 21 | maker: Devin | test: Workspace/API-key/audit/webhooks/payroll/ingest (73942de8) | verdict: passed | notes: 69 assertions covering workspace GET/list/create (JWT auth), API key list/create, audit resolve/permit/timeline/decrypt, webhook holds/release, confidential payroll, ingest runs. Found bug #16: workspaces table missing `settings` column — WorkspaceController.getWorkspace queries SELECT ... settings but column didn't exist, causing SqliteError crash (502). Fixed with ALTER TABLE migration + added column to CREATE TABLE.
 
 ## Bugs Found and Fixed
 
@@ -62,8 +63,10 @@ Agent-written log of the write → verify → fix loop. One line per iteration.
 
 16. **OwsPermissionsController all methods crash** — `requestPermissions`, `getPermissions`, `revokePermissions`, `checkPermissions` all threw errors without try/catch. Fixed all four methods.
 
+17. **Workspaces table missing settings column** — `WorkspaceController.getWorkspace` queries `SELECT ... settings ... FROM workspaces` but the table was created without a `settings` column. SQLite threw `SqliteError: no such column: settings` which crashed the server (502). Fixed by adding `settings TEXT` to CREATE TABLE and an idempotent ALTER TABLE migration.
+
 ## Summary
 
-- **Tests written:** 19 (covering 481 assertions across auth, health, metrics, FHE, intent, projects, sealed-bid, MCP, agents, OWS, copilot, speech, spend (deep SpendOS), governance CRUD, market data, dashboard, audit trail)
-- **Bugs found:** 15 real bugs found and fixed, 1 known limitation documented
-- **All 19 tests pass** in the full TestSprite suite
+- **Tests written:** 20 (covering 550 assertions across auth, health, metrics, FHE, intent, projects, sealed-bid, MCP, agents, OWS, copilot, speech, spend (deep SpendOS), governance CRUD, market data, dashboard, workspace management, API keys, audit, webhooks, payroll, ingest)
+- **Bugs found:** 16 real bugs found and fixed, 1 known limitation documented
+- **All 20 tests pass** in the full TestSprite suite
