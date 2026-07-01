@@ -44,6 +44,7 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   "/spendos/status",
   "/spendos/decisions",
   "/metrics/ux-summary",
+  "/metrics/ux-events",
   "/cre/runs",
   "/cre/projects",
   "/cre/forecast",
@@ -58,9 +59,32 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   "/spend/status",
   "/spend/scan",
   "/projects",
+  "/projects/:projectId/usage",
+  "/projects/:projectId/tokens",
   "/fhenix/status",
+  "/fhenix/encrypt",
   "/fhenix/decrypt",
   "/intent",
+  "/intent/metrics",
+  // Auth endpoints must be public — you can't require auth to create an account.
+  "/auth/nonce",
+  "/auth/verify",
+  "/auth/register",
+  "/auth/login",
+  "/auth/verify-email",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  // MCP tool manifest and governance check are public for agent discovery.
+  "/mcp/governance-check",
+  // Sealed-bid vendor selection — vendors submit bids without workspace auth.
+  // The controller manages round state and bid encryption internally.
+  "/vendor/sealed-bid/rounds",
+  "/vendor/sealed-bid/rounds/:roundId",
+  "/vendor/sealed-bid/rounds/:roundId/bid",
+  "/vendor/sealed-bid/rounds/:roundId/close",
+  "/vendor/sealed-bid/rounds/:roundId/reveal",
+  // Speech transcription is used by the frontend without workspace auth.
+  "/speech/transcribe",
   "/webhooks/chain-gpt-news",
   "/webhooks/holds",
   // NOTE: /events/stream is NOT in this list. EventsController demands
@@ -84,10 +108,20 @@ export const LEGACY_DEFAULT_WORKSPACE_ID = "default";
 
 /**
  * Returns true if the given request path is in the public list, or is under
- * a public prefix (e.g. /api/webhooks/*).
+ * a public prefix (e.g. /api/webhooks/*), or matches a parameterized public
+ * path pattern (e.g. /vendor/sealed-bid/rounds/:roundId/bid).
  */
 export function isPublicApiPath(path: string): boolean {
   if (PUBLIC_API_PATHS.has(path)) return true;
   if (path.startsWith("/webhooks/")) return true;
+  // Check parameterized patterns — replace :param segments with wildcards
+  for (const pattern of PUBLIC_API_PATHS) {
+    if (pattern.includes(":")) {
+      const regex = new RegExp(
+        "^" + pattern.replace(/:[^/]+/g, "[^/]+") + "$",
+      );
+      if (regex.test(path)) return true;
+    }
+  }
   return false;
 }

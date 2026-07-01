@@ -1,5 +1,0 @@
-{
-  "rootCauseHypothesis": "expected 200, got 404: {\"success\":false,\"error\":\"Resource not found\",\"timestamp\":\"2026-07-01T10:08:56.033Z\"}",
-  "recommendedFixTarget": null,
-  "evidence": []
-}
