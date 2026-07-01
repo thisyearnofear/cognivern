@@ -288,7 +288,13 @@ All file-backed stores use a common `BaseStore` abstract class. To swap to Redis
 - File-backed stores are single-instance — need Redis/Postgres before horizontal scaling
 - Email auth supported alongside SIWE; SIWE path is more battle-tested
 - Ledger signing requires USB/WebHID access — limits deployment to single-instance or co-located with hardware
+- Fhenix CoFHE SDK not initialized in production — confidential spend uses safe fallback (deny by default, demo mode for small amounts)
+- Sealed-bid reveal endpoint returns 400 — threshold decryption of real CoFHE bids not yet wired (known limitation, documented in tests)
 - See [Deployment](./DEPLOYMENT.md) for deployment and operations
+
+## Test Coverage
+
+20 TestSprite integration tests (550 assertions) run against the live API, covering all major surfaces: auth, health, metrics, Fhenix FHE, intent, projects, sealed-bid auctions, MCP governance, agents, OWS wallets/keys/permissions, copilot, CRE runs, speech, deep SpendOS (preview/execute/encrypted/confirm/scan), governance CRUD, market data, dashboard, workspace management, API keys, audit, webhooks, payroll, and ingest. 16 production bugs found and fixed via the write-verify-fix loop. See [LOOP.md](./LOOP.md) for details.
 
 ## Related Docs
 

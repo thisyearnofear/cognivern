@@ -197,6 +197,25 @@ pnpm typecheck
 pnpm lint
 ```
 
+### TestSprite Integration Tests
+
+The project includes 20 TestSprite backend tests (550 assertions) that run against the live production API at `https://cognivern.thisyearnofear.com`. These are not mock tests — every assertion hits real HTTP endpoints.
+
+```bash
+# List all tests
+testsprite test list --project ad5aa683-dbc5-4484-8236-e4a3aef914ee
+
+# Run a specific test
+testsprite test rerun <test-id> --wait
+
+# Run locally (tests hit production)
+python3 .testsprite/tests/spendos_deep.py
+```
+
+Test files live in `.testsprite/tests/` and cover: auth (register, login, nonce, verify, refresh, logout), health (6 variants), metrics, Fhenix FHE, intent classification, projects, sealed-bid auctions, MCP governance, agents (stats, leaderboard, market data), OWS (wallets, API keys, permissions), copilot, CRE runs, speech, spend (deep SpendOS: preview, execute, encrypted, confirm, scan), governance CRUD, and audit trail integrity.
+
+The write-verify-fix loop caught 15 real production bugs during the hackathon, all fixed. See [LOOP.md](./LOOP.md) for the iteration log and [HACKATHON_SUBMISSION.md](./HACKATHON_SUBMISSION.md) for the full bug list.
+
 ## Production Readiness
 
 ### Completed
@@ -204,6 +223,7 @@ pnpm lint
 - [x] Error boundaries, circuit breakers, code splitting
 - [x] Sensitive data redaction in public proofs
 - [x] Unit + integration tests, CI pipeline
+- [x] TestSprite integration suite (20 tests, 550 assertions, 16 bugs found/fixed)
 - [x] Multi-provider AI routing (6 providers)
 - [x] Rate limiting on public endpoints (configurable per-endpoint)
 - [x] SIWE wallet auth + JWT with nonce replay protection

@@ -6,7 +6,7 @@ A control plane for agent operations: governed wallet spend plus AI spend govern
 
 **Team:** thisyearnofear
 **Live:** [Frontend](https://cognivern.vercel.app) · [API](https://cognivern.thisyearnofear.com) · [PromptOS Terminal](https://cognivern.vercel.app/os)
-**TestSprite Dashboard:** [19 tests, all passing](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee)
+**TestSprite Dashboard:** [20 tests, all passing](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee)
 
 ---
 
@@ -29,9 +29,9 @@ Cognivern is a production-deployed control plane that governs AI agent spending 
 
 We used [TestSprite CLI](https://github.com/TestSprite/testsprite-cli) as the checker in a write-verify-fix loop. The agent ships code, the CLI runs real tests against the live API, and failures drive fixes. This is not mock testing — every test hits the production API at `cognivern.thisyearnofear.com`.
 
-**19 tests, 481 assertions, all passing.**
+**20 tests, 550 assertions, all passing.**
 
-The loop caught **15 real bugs** in the production codebase, all of which were fixed during the hackathon.
+The loop caught **16 real bugs** in the production codebase, all of which were fixed during the hackathon.
 
 ---
 
@@ -58,14 +58,15 @@ The loop caught **15 real bugs** in the production codebase, all of which were f
 | 17 | Governance extended | 19 | `/api/governance/health`, policy list, create (valid/missing fields), confidential policy, get non-existent policy, get non-existent decision, evaluate with missing fields |
 | 18 | Agents extended | 55 | `/api/agents/stats`, `/leaderboard`, `/compare`, `/monitoring`, get by id, register (missing fields), start/stop, `/api/market/stats`, `/market/top`, `/market/data/:symbol`, `/market/historical/:symbol`, `/api/dashboard/bundle`, agent preferences |
 | 19 | OWS/Copilot/CRE extended | 25 | OWS wallet get/connect/import, API key get/delete, permissions (POST/GET), copilot run get/confirm, CRE runs list/get/cancel/retry |
+| 20 | Workspace/API-key/audit/webhooks/payroll/ingest | 69 | Workspace GET/list/create (JWT auth), API key list/create (JWT), audit resolve/permit/timeline/decrypt, webhook holds/release, confidential payroll, ingest runs |
 
-**Total: 19 tests, 481 assertions, 0 failures**
+**Total: 20 tests, 550 assertions, 0 failures**
 
 ---
 
 ## Bugs Found and Fixed
 
-The write-verify-fix loop caught 15 real bugs in the production codebase. Each was found by a failing test, traced to root cause, and fixed.
+The write-verify-fix loop caught 16 real bugs in the production codebase. Each was found by a failing test, traced to root cause, and fixed.
 
 ### Critical Bugs (would block users)
 
@@ -157,6 +158,12 @@ The write-verify-fix loop caught 15 real bugs in the production codebase. Each w
 - **Fix:** Wrapped all four methods in try/catch with proper `res.status(400/500).json()` responses.
 - **File:** `src/backend/modules/api/controllers/OwsPermissionsController.ts`
 
+**16. Workspaces table missing settings column**
+- **Symptom:** `GET /workspace` and `GET /workspaces` returned 502 Bad Gateway (server crash)
+- **Root cause:** `WorkspaceController.getWorkspace` queries `SELECT ... settings ... FROM workspaces` but the `workspaces` table was created without a `settings` column. SQLite threw `SqliteError: no such column: settings` which crashed the server.
+- **Fix:** Added `settings TEXT` column to the CREATE TABLE statement and an idempotent `ALTER TABLE workspaces ADD COLUMN settings TEXT` migration for existing databases.
+- **File:** `src/backend/db/index.ts`
+
 ---
 
 ## Architecture
@@ -167,7 +174,7 @@ The write-verify-fix loop caught 15 real bugs in the production codebase. Each w
                     │  Port 3087 · PM2 · nginx reverse proxy   │
                     ├─────────────────────────────────────────┤
   TestSprite ──►    │  apiKeyMiddleware → authMiddleware       │
-  (19 tests)        │  PUBLIC_API_PATHS bypass (regex match)   │
+  (20 tests)        │  PUBLIC_API_PATHS bypass (regex match)   │
                     ├─────────────────────────────────────────┤
                     │  Controllers:                           │
                     │  · Auth (register/login/nonce/JWT)      │
@@ -240,7 +247,7 @@ pnpm start
 - **Backend:** Node.js, Express, TypeScript, better-sqlite3
 - **Frontend:** React, Vite, TypeScript
 - **Infra:** Hetzner VPS, PM2, nginx, GitHub Actions
-- **Testing:** TestSprite CLI (19 tests, 481 assertions)
+- **Testing:** TestSprite CLI (20 tests, 550 assertions)
 - **Integrations:** Fhenix (FHE), Sapience (forecasting), Ledger (hardware signing), ChainGPT (Web3 LLM), ElevenLabs (speech), Groq (LLM inference)
 
 ---

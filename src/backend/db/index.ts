@@ -94,6 +94,7 @@ function migrate(db: Database.Database): void {
       owner_id TEXT NOT NULL,
       tier TEXT NOT NULL DEFAULT 'demo',
       activated_at TEXT,
+      settings TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY (owner_id) REFERENCES users(id)
@@ -283,6 +284,13 @@ function migrate(db: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_token_blacklist_expires ON token_blacklist(expires_at);
   `);
+
+  // Migration: add settings column to workspaces (idempotent)
+  try {
+    db.exec(`ALTER TABLE workspaces ADD COLUMN settings TEXT;`);
+  } catch {
+    // Column already exists
+  }
 
   // Run file-based migrations (supplements inline migrations above)
   runFileMigrations(db);
