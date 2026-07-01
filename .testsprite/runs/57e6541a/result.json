@@ -1,0 +1,18 @@
+{
+  "testId": "6bb0dc53-b795-469f-ae68-ad0d77769fc6",
+  "status": "failed",
+  "startedAt": null,
+  "finishedAt": "2026-07-01T10:08:56.306Z",
+  "videoUrl": null,
+  "failureAnalysisUrl": null,
+  "snapshotId": "snap_997e99b53cc697b0",
+  "runIdIfAvailable": "57e6541a-4318-425d-8fde-2c2c622155a8",
+  "codeVersion": "v1",
+  "targetUrl": null,
+  "targetUrlSource": "project-default",
+  "failedStepIndex": 1,
+  "failureKind": "routing_404",
+  "verdict": "failed",
+  "executionStatus": "completed",
+  "summary": "Failed (routing_404): expected 200, got 404: {\"success\":false,\"error\":\"Resource not found\",\"timestamp\":\"2026-07-01T10:08:56.033Z\"}"
+}

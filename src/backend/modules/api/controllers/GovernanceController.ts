@@ -9,6 +9,7 @@ import {
   PolicyService,
   sharedPolicyService,
 } from "@backend/services/governance/PolicyService.js";
+import { LEGACY_DEFAULT_WORKSPACE_ID } from "@backend/middleware/publicEndpoints.js";
 
 const logger = new Logger("GovernanceController");
 import { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
@@ -292,11 +293,10 @@ export class GovernanceController {
 
   async getPolicies(req: Request, res: Response): Promise<void> {
     try {
-      const workspaceId = req.workspaceId;
-      if (!workspaceId) {
-        res.status(401).json({ success: false, error: "Not authenticated" });
-        return;
-      }
+      // /governance/policies is in PUBLIC_API_PATHS — public callers have no
+      // workspaceId. Fall back to the legacy default workspace so the endpoint
+      // returns data instead of 401.
+      const workspaceId = req.workspaceId || LEGACY_DEFAULT_WORKSPACE_ID;
 
       const db = getDb();
       const rows = db
