@@ -14,7 +14,9 @@ module.exports = {
       node_args: '-r dotenv/config --loader /opt/cognivern/app/config/esm-dir-loader.mjs',
       env: {
         NODE_ENV: 'production',
-        PORT: 10000,
+        // PORT comes from /opt/cognivern/shared/.env (3087) via dotenv.
+        // Do NOT set PORT here — PM2 env vars override dotenv, which caused
+        // a recurring 502 (app on 10000, nginx proxying to 3087).
         LOG_LEVEL: 'info',
         DOTENV_CONFIG_PATH: '/opt/cognivern/shared/.env',
         CRE_RUNS_FILE: '/opt/cognivern/shared/data/cre-runs.jsonl',

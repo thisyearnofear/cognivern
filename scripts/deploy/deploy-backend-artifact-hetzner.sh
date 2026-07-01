@@ -38,7 +38,7 @@ ssh "$HOST" "set -e; \
   fi; \
   pm2 save; \
   sleep 2; \
-  curl -sf http://127.0.0.1:10000/health | head -c 200; echo; \
+  curl -sf http://127.0.0.1:3087/health | head -c 200; echo; \
   echo '== app deployed in place'"
 
 echo "== done"
