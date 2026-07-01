@@ -1,18 +1,18 @@
 import { fileURLToPath } from "node:url";
-import { resolve } from "node:path";
+import { resolve as pathResolve } from "node:path";
 
-const APP_DIR = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
+const APP_DIR = pathResolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 
 const ALIASES = {
-  "@backend": "src/backend",
-  "@": "src",
+  "@backend": "dist/src/backend",
+  "@": "dist/src",
 };
 
 export async function resolve(specifier, context, nextResolve) {
   for (const [alias, target] of Object.entries(ALIASES)) {
     if (specifier.startsWith(alias + "/") || specifier === alias) {
       const rest = specifier.slice(alias.length);
-      const filePath = resolve(APP_DIR, target + rest);
+      const filePath = pathResolve(APP_DIR, target + rest);
       return nextResolve(new URL("file://" + filePath).href, context);
     }
   }
