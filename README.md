@@ -6,6 +6,21 @@ Cognivern is a control plane for agent operations: governed wallet spend plus AI
 
 **Live:** [Frontend](https://cognivern.vercel.app) · [API](https://cognivern.thisyearnofear.com) · [PromptOS Terminal](https://cognivern.vercel.app/os)
 
+## TestSprite Verification Loop
+
+This project uses [TestSprite CLI](https://github.com/TestSprite/testsprite-cli) as the checker in a write → verify → fix loop. The agent ships code, the CLI runs real tests against the live API, and failures drive fixes.
+
+- **Test suite:** 4 backend tests covering health/public endpoints, governance policy access, spend endpoints, and audit trail integrity
+- **Loop log:** [LOOP.md](./LOOP.md) — agent-written, one line per iteration
+- **CI/CD:** Wired into GitHub Actions (`.github/workflows/testsprite.yml`) — every PR runs the full suite, fails the build on regressions
+- **Dashboard:** [TestSprite project](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee)
+
+### Bugs caught by the loop
+
+1. `/api/governance/policies` returned 401 despite being a public endpoint — controller required `workspaceId` with no fallback
+2. `better-sqlite3` native bindings missing after deploy — `pnpm install --prod` didn't rebuild native modules
+3. `/api/spendos/status` in `PUBLIC_API_PATHS` but no route handler exists — 404
+
 ## Quick Start
 
 ```bash
