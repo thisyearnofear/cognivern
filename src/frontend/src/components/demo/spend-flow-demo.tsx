@@ -23,81 +23,132 @@ interface StepState {
   id: string;
   label: string;
   icon: typeof ShieldCheck;
-  status: "pending" | "active" | "passed" | "failed";
+  status: "pending" | "active" | "passed" | "failed" | "held";
   detail: string;
 }
 
-const INITIAL_STEPS: StepState[] = [
+interface Scenario {
+  id: string;
+  label: string;
+  amount: number;
+  asset: string;
+  purpose: string;
+  outcome: "approved" | "held" | "denied";
+  decisionDetail: string;
+  summaryDetail: string;
+}
+
+const SCENARIOS: Scenario[] = [
   {
-    id: "policy",
-    label: "Policy Created",
-    icon: ShieldCheck,
-    status: "pending",
-    detail: "Daily limit: 500 MNT (encrypted), compliance check enabled",
+    id: "approve",
+    label: "Approve $50",
+    amount: 50,
+    asset: "USDC",
+    purpose: "Gas top-up for relayer wallet",
+    outcome: "approved",
+    decisionDetail: "Approved — within daily limit, compliance passed",
+    summaryDetail: "YieldHunter-01 can proceed with the transaction. Audit trail stored on-chain.",
   },
   {
-    id: "request",
-    label: "Agent Requests Spend",
-    icon: Activity,
-    status: "pending",
-    detail: "YieldHunter-01 requests 200 MNT for LP staking (encrypted client-side)",
+    id: "hold",
+    label: "Hold $500",
+    amount: 500,
+    asset: "USDC",
+    purpose: "LP staking deposit on Curve",
+    outcome: "held",
+    decisionDetail: "Held for review — exceeds soft limit of $200, requires operator approval",
+    summaryDetail: "Spend held for operator review. Once approved, the transaction will broadcast to X Layer.",
   },
   {
-    id: "evaluate",
-    label: "Policy Evaluated",
-    icon: FileSearch,
-    status: "pending",
-    detail: "FHE comparisons on encrypted values — budget and amount never in plaintext",
-  },
-  {
-    id: "decision",
-    label: "Decision",
-    icon: CheckCircle2,
-    status: "pending",
-    detail: "",
-  },
-  {
-    id: "audit",
-    label: "Audit Logged",
-    icon: Clock,
-    status: "pending",
-    detail: "Immutable record stored on 0G + X Layer",
+    id: "deny",
+    label: "Deny $5,000",
+    amount: 5000,
+    asset: "USDC",
+    purpose: "Transfer to unverified recipient",
+    outcome: "denied",
+    decisionDetail: "Denied — exceeds hard limit of $1,000 and recipient not in allowlist",
+    summaryDetail: "Arbitrage-07's request blocked. Policy violation logged to audit trail.",
   },
 ];
 
-const UNGOVERNED_STEPS: StepState[] = [
-  {
-    id: "request",
-    label: "Agent Requests Spend",
-    icon: Activity,
-    status: "pending",
-    detail: "YieldHunter-01 requests 200 MNT for LP staking — no policy check",
-  },
-  {
-    id: "execute",
-    label: "Executes Immediately",
-    icon: AlertTriangle,
-    status: "pending",
-    detail: "Transaction sent directly to the blockchain with no guardrails",
-  },
-  {
-    id: "no-audit",
-    label: "No Audit Trail",
-    icon: XCircle,
-    status: "pending",
-    detail: "No record of policy compliance — no evidence of approval",
-  },
-];
+function buildSteps(scenario: Scenario): StepState[] {
+  return [
+    {
+      id: "policy",
+      label: "Policy Created",
+      icon: ShieldCheck,
+      status: "pending",
+      detail: "Daily limit: $1,000 (encrypted), soft limit: $200, compliance check enabled",
+    },
+    {
+      id: "request",
+      label: "Agent Requests Spend",
+      icon: Activity,
+      status: "pending",
+      detail: `YieldHunter-01 requests ${scenario.amount} ${scenario.asset} — ${scenario.purpose} (encrypted client-side)`,
+    },
+    {
+      id: "evaluate",
+      label: "Policy Evaluated",
+      icon: FileSearch,
+      status: "pending",
+      detail: "FHE comparisons on encrypted values — budget and amount never in plaintext",
+    },
+    {
+      id: "decision",
+      label: "Decision",
+      icon: scenario.outcome === "approved" ? CheckCircle2 : scenario.outcome === "held" ? Clock : XCircle,
+      status: "pending",
+      detail: "",
+    },
+    {
+      id: "audit",
+      label: scenario.outcome === "held" ? "Held — Awaiting Approval" : "Audit Logged",
+      icon: Clock,
+      status: "pending",
+      detail: scenario.outcome === "held"
+        ? "Run paused. Operator must approve before broadcast."
+        : "Immutable record stored on 0G + X Layer",
+    },
+  ];
+}
+
+function buildUngovernedSteps(scenario: Scenario): StepState[] {
+  return [
+    {
+      id: "request",
+      label: "Agent Requests Spend",
+      icon: Activity,
+      status: "pending",
+      detail: `YieldHunter-01 requests ${scenario.amount} ${scenario.asset} — ${scenario.purpose} — no policy check`,
+    },
+    {
+      id: "execute",
+      label: "Executes Immediately",
+      icon: AlertTriangle,
+      status: "pending",
+      detail: "Transaction sent directly to the blockchain with no guardrails",
+    },
+    {
+      id: "no-audit",
+      label: "No Audit Trail",
+      icon: XCircle,
+      status: "pending",
+      detail: "No record of policy compliance — no evidence of approval",
+    },
+  ];
+}
 
 export function SpendFlowDemo() {
+  const [scenarioId, setScenarioId] = useState(SCENARIOS[0].id);
+  const scenario = SCENARIOS.find((s) => s.id === scenarioId) ?? SCENARIOS[0];
   const [governed, setGoverned] = useState(true);
-  const [steps, setSteps] = useState<StepState[]>(INITIAL_STEPS);
+  const [steps, setSteps] = useState<StepState[]>(() => buildSteps(scenario));
   const [currentStep, setCurrentStep] = useState(0);
   const [running, setRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
-  const [approved, setApproved] = useState(true);
 
-  const activeSteps = governed ? INITIAL_STEPS : UNGOVERNED_STEPS;
+  const activeSteps = governed ? buildSteps(scenario) : buildUngovernedSteps(scenario);
 
   const advanceStep = useCallback(() => {
     const isUngoverned = !governed;
@@ -106,18 +157,12 @@ export function SpendFlowDemo() {
     setSteps((prev) =>
       prev.map((s, i) => {
         if (i === currentStep) {
-          if (i === decisionIdx) {
-            if (isUngoverned) {
-              return { ...s, status: "passed" as const };
-            }
-            const isApproved = Math.random() > 0.3;
-            setApproved(isApproved);
+          if (i === decisionIdx && !isUngoverned) {
+            const outcome = scenario.outcome;
             return {
               ...s,
-              status: isApproved ? ("passed" as const) : ("failed" as const),
-              detail: isApproved
-                ? "Approved — all checks passed"
-                : "Denied — exceeds daily limit",
+              status: outcome === "approved" ? ("passed" as const) : outcome === "held" ? ("held" as const) : ("failed" as const),
+              detail: scenario.decisionDetail,
             };
           }
           return { ...s, status: "passed" as const };
@@ -139,7 +184,7 @@ export function SpendFlowDemo() {
       setCompleted(true);
       setRunning(false);
     }
-  }, [currentStep, steps.length, governed]);
+  }, [currentStep, steps.length, governed, scenario]);
 
   useEffect(() => {
     if (!running || completed) return;
@@ -155,7 +200,6 @@ export function SpendFlowDemo() {
     );
     setCurrentStep(0);
     setCompleted(false);
-    setApproved(true);
     setRunning(true);
   }
 
@@ -164,15 +208,22 @@ export function SpendFlowDemo() {
     setCurrentStep(0);
     setCompleted(false);
     setRunning(false);
-    setApproved(true);
+  }
+
+  function selectScenario(id: string) {
+    if (running) return;
+    const sc = SCENARIOS.find((s) => s.id === id) ?? SCENARIOS[0];
+    setScenarioId(id);
+    setCompleted(false);
+    setSteps(governed ? buildSteps(sc) : buildUngovernedSteps(sc));
+    setCurrentStep(0);
   }
 
   function toggleGoverned() {
     if (running) return;
     setGoverned(!governed);
     setCompleted(false);
-    setApproved(true);
-    setSteps(!governed ? INITIAL_STEPS : UNGOVERNED_STEPS);
+    setSteps(!governed ? buildSteps(scenario) : buildUngovernedSteps(scenario));
     setCurrentStep(0);
   }
 
@@ -203,6 +254,39 @@ export function SpendFlowDemo() {
               <RotateCcw className="h-4 w-4" /> Reset
             </Button>
           )}
+        </div>
+      </div>
+
+      {/* Scenario selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border border-border bg-muted/20">
+        <span className="text-sm font-medium text-muted-foreground shrink-0">
+          Scenario:
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {SCENARIOS.map((sc) => {
+            const isActive = sc.id === scenarioId;
+            const colorClass =
+              sc.outcome === "approved"
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : sc.outcome === "held"
+                  ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                  : "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400";
+            return (
+              <button
+                key={sc.id}
+                type="button"
+                onClick={() => selectScenario(sc.id)}
+                disabled={running}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                  isActive
+                    ? colorClass
+                    : "border-border bg-background text-muted-foreground hover:border-primary/30"
+                } ${running ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+              >
+                {sc.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -253,14 +337,18 @@ export function SpendFlowDemo() {
                           : "bg-emerald-100 dark:bg-emerald-950 text-emerald-500"
                         : step.status === "failed"
                           ? "bg-red-100 dark:bg-red-950 text-red-500"
-                          : "bg-muted text-muted-foreground"
+                          : step.status === "held"
+                            ? "bg-amber-100 dark:bg-amber-950 text-amber-500"
+                            : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  {step.status === "passed" || step.status === "failed" ? (
+                  {step.status === "passed" || step.status === "failed" || step.status === "held" ? (
                     isUngoverned && step.status === "passed" ? (
                       <AlertTriangle className="h-5 w-5" />
                     ) : step.status === "failed" ? (
                       <XCircle className="h-5 w-5" />
+                    ) : step.status === "held" ? (
+                      <Clock className="h-5 w-5" />
                     ) : (
                       <CheckCircle2 className="h-5 w-5" />
                     )
@@ -275,9 +363,11 @@ export function SpendFlowDemo() {
                         ? isUngoverned
                           ? "bg-red-300"
                           : "bg-emerald-300"
-                        : step.status === "active"
-                          ? "bg-primary/30"
-                          : "bg-border"
+                        : step.status === "held"
+                          ? "bg-amber-300"
+                          : step.status === "active"
+                            ? "bg-primary/30"
+                            : "bg-border"
                     }`}
                   />
                 )}
@@ -321,6 +411,11 @@ export function SpendFlowDemo() {
                       Approved
                     </Badge>
                   )}
+                  {step.status === "held" && idx === 3 && governed && (
+                    <Badge className="text-xs bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30">
+                      Held
+                    </Badge>
+                  )}
                   {step.status === "failed" && idx === 3 && governed && (
                     <Badge variant="destructive" className="text-xs">
                       Denied
@@ -328,15 +423,23 @@ export function SpendFlowDemo() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">{step.detail}</p>
-                {step.status === "passed" && idx === 3 && approved && governed && (
+                {step.status === "passed" && idx === 3 && governed && scenario.outcome === "approved" && (
                   <div className="mt-2 flex items-center gap-2 text-xs">
                     <Lock className="h-3 w-3 text-blue-500" />
                     <span className="text-blue-600 dark:text-blue-400">
-                      200 MNT within encrypted daily budget
+                      ${scenario.amount} {scenario.asset} within encrypted daily budget
                     </span>
                     <CheckCircle2 className="h-3 w-3 text-emerald-500 ml-2" />
                     <span className="text-emerald-600 dark:text-emerald-400">
                       Compliance passed
+                    </span>
+                  </div>
+                )}
+                {step.status === "held" && idx === 3 && governed && (
+                  <div className="mt-2 flex items-center gap-2 text-xs">
+                    <Clock className="h-3 w-3 text-amber-500" />
+                    <span className="text-amber-600 dark:text-amber-400">
+                      ${scenario.amount} {scenario.asset} exceeds soft limit — operator approval required
                     </span>
                   </div>
                 )}
@@ -350,31 +453,36 @@ export function SpendFlowDemo() {
       {completed && governed && (
         <div
           className={`rounded-xl border-2 bg-card ${
-            approved
+            scenario.outcome === "approved"
               ? "border-emerald-200 dark:border-emerald-900"
-              : "border-red-200 dark:border-red-900"
+              : scenario.outcome === "held"
+                ? "border-amber-200 dark:border-amber-900"
+                : "border-red-200 dark:border-red-900"
           }`}
         >
           <div className="p-5">
             <div className="flex items-center gap-3 mb-3">
-              {approved ? (
+              {scenario.outcome === "approved" ? (
                 <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+              ) : scenario.outcome === "held" ? (
+                <Clock className="h-6 w-6 text-amber-500" />
               ) : (
                 <XCircle className="h-6 w-6 text-red-500" />
               )}
               <div>
                 <div className="font-bold text-lg">
-                  Spend {approved ? "Approved" : "Denied"}
+                  Spend {scenario.outcome === "approved" ? "Approved" : scenario.outcome === "held" ? "Held for Review" : "Denied"}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {approved
-                    ? "YieldHunter-01 can proceed with the transaction. Audit trail stored on-chain."
-                    : "Arbitrage-07's request blocked. Policy violation logged to audit."}
+                  {scenario.summaryDetail}
                 </div>
               </div>
             </div>
             <Separator className="my-3" />
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              <span>
+                <strong>Amount:</strong> ${scenario.amount} {scenario.asset}
+              </span>
               <span>
                 <strong>Duration:</strong> {(steps.length * 1.2).toFixed(1)}s
               </span>
@@ -382,7 +490,7 @@ export function SpendFlowDemo() {
                 <strong>Policies checked:</strong> 3
               </span>
               <span>
-                <strong>Audit:</strong> Immutable
+                <strong>Audit:</strong> {scenario.outcome === "held" ? "Pending" : "Immutable"}
               </span>
             </div>
           </div>
@@ -399,9 +507,9 @@ export function SpendFlowDemo() {
                   No Governance
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  $200 spent with no guardrails. No policy evaluated. No audit
-                  evidence. If this were a malicious or erroneous transaction, it
-                  would be irreversible.
+                  ${scenario.amount} {scenario.asset} spent with no guardrails. No policy
+                  evaluated. No audit evidence. If this were a malicious or erroneous
+                  transaction, it would be irreversible.
                 </div>
               </div>
             </div>

@@ -558,13 +558,16 @@ export function OnboardingWizard() {
                     </div>
                   </div>
                   <Button
-                    variant="outline"
+                    variant="default"
                     onClick={() => setShowAuthModal(true)}
-                    className="w-full gap-2"
+                    className="w-full gap-2 h-11 text-sm"
                   >
                     <Mail className="h-4 w-4" />
                     Continue with Email
                   </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    No wallet needed — sign up with email and password
+                  </p>
                   <Button
                     variant="outline"
                     onClick={() => {

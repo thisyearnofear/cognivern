@@ -139,34 +139,37 @@ export function DemoBanner() {
     return (
       <div
         role="status"
-        className="flex items-center justify-between gap-3 px-6 py-2.5 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-300 text-xs flex-shrink-0 max-sm:flex-col max-sm:items-start"
+        className="flex items-center justify-between gap-3 px-6 py-3.5 bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/40 dark:to-amber-900/20 border-b-2 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-sm flex-shrink-0 max-sm:flex-col max-sm:items-start"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <FlaskConical className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span className="font-semibold">Sandbox mode</span>
-          <span className="opacity-90 truncate">
-            — Everything below is demo data. Nothing you do here persists or
-            moves real funds.
-          </span>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-200 dark:bg-amber-900 text-amber-700 dark:text-amber-300 shrink-0">
+            <FlaskConical className="h-4 w-4" aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <div className="font-bold text-sm">You&apos;re in Sandbox Mode</div>
+            <div className="text-xs opacity-90 truncate">
+              Everything below is demo data. Nothing persists or moves real funds.
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
             disabled={switching}
             onClick={switchToProduction}
-            className="border-amber-300 dark:border-amber-700 bg-amber-100/50 dark:bg-amber-900/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-200 h-7"
+            className="bg-amber-600 hover:bg-amber-700 text-white border-0 h-8"
           >
             {switching ? "Switching…" : "Switch to Production"}
-            <ArrowRight size={12} />
+            <ArrowRight size={14} />
           </Button>
           <button
             type="button"
             onClick={dismissOrientation}
             aria-label="Got it — keep exploring"
-            className="text-amber-700/70 dark:text-amber-300/70 hover:text-amber-800 dark:hover:text-amber-200 text-[11px] underline-offset-2 hover:underline"
+            className="text-amber-700/70 dark:text-amber-300/70 hover:text-amber-800 dark:hover:text-amber-200 text-xs underline-offset-2 hover:underline px-2"
           >
-            Got it
+            Keep exploring demo
           </button>
         </div>
       </div>

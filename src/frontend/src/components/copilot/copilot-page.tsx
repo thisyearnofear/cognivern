@@ -35,7 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const defaultGoal =
-  "For agent-copilot, preview a 100 USDC spend to vendor 0xABCDEF1234567890abcdef1234567890abcdef12 for API credits under the active spend policy. First recall agent-copilot memory and vendor reputation, then run the spend preview.";
+  "Analyze my agent's recent spending and flag any policy violations";
 
 type ReplaySpeed = 0.5 | 1 | 2;
 
