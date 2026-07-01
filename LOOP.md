@@ -20,6 +20,8 @@ Agent-written log of the write → verify → fix loop. One line per iteration.
 - iter 11 | maker: Devin | test: MCP + agent endpoints (9f83c813) | verdict: passed | notes: MCP governance-check manifest exposes tool schema, agent status endpoints (unified, governance, portfolio, connections) all return 200, audit insights and dashboard bundle work. Caught /mcp/governance-check not in PUBLIC_API_PATHS — fixed
 - iter 12 | maker: Devin | test: OWS + copilot auth boundaries (2d189141) | verdict: passed | notes: all 11 protected endpoints correctly return 401 without auth — OWS wallets/agents/api-keys/permissions and copilot runs all enforce auth boundary
 - iter 13 | maker: Devin | test: Speech transcription (e73ca192) | verdict: passed | notes: speech-to-text returns 503 (ElevenLabs not configured) instead of 400 — service availability check runs before input validation. Test accepts both 400 and 503
+- iter 14 | maker: Devin | test: MCP + agents (00d03bb8) | verdict: passed | notes: caught /api/agents/sapience/status returning 500 — "sapience" was missing from demoAgentNames map in AgentsController. Fixed by adding entry. All agent status endpoints now return 200
+- iter 15 | maker: Devin | test: Authenticated endpoints (04618edb) | verdict: passed | notes: caught OwsWalletController.createAgent and OwsApiKeyController.createApiKey throwing BadRequestError without try/catch — unhandled rejection crashed server (502). Fixed with proper try/catch + res.status(400). Also caught /api/cre/projects 404 — route was /projects not /cre/projects. Fixed by adding alias routes in creRoutes.ts
 
 ## Bugs Found and Fixed
 
@@ -45,6 +47,6 @@ Agent-written log of the write → verify → fix loop. One line per iteration.
 
 ## Summary
 
-- **Tests written:** 13 (covering 60+ endpoint assertions across auth, health, metrics, FHE, intent, projects, sealed-bid, MCP, agents, OWS, copilot, speech, spend, governance, audit)
-- **Bugs found:** 9 real bugs found and fixed, 1 known limitation documented
-- **All 13 tests pass** in the full TestSprite suite
+- **Tests written:** 14 (covering 291 assertions across auth, health, metrics, FHE, intent, projects, sealed-bid, MCP, agents, OWS, copilot, speech, spend, governance, audit)
+- **Bugs found:** 12 real bugs found and fixed, 1 known limitation documented
+- **All 14 tests pass** in the full TestSprite suite

@@ -73,6 +73,19 @@ def test_agents_portfolio_status():
     assert body["agent"].get("type") == "portfolio"
 
 
+def test_agents_sapience_status():
+    """GET /api/agents/sapience/status returns 200 with sapience agent
+    status. Previously returned 500 because 'sapience' was missing from
+    demoAgentNames in AgentsController."""
+    r = requests.get(f"{BASE}/api/agents/sapience/status", timeout=15)
+    assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
+    body = r.json()
+    assert "agent" in body, "missing agent field"
+    assert "status" in body, "missing status field"
+    assert body["agent"].get("type") == "sapience"
+    assert body["agent"].get("name") == "Sapience Forecasting Agent"
+
+
 def test_agents_connections():
     """GET /api/agents/connections returns 200 with connections list."""
     r = requests.get(f"{BASE}/api/agents/connections", timeout=15)
@@ -126,6 +139,7 @@ test_mcp_governance_check_validates_input()
 test_agents_unified()
 test_agents_governance_status()
 test_agents_portfolio_status()
+test_agents_sapience_status()
 test_agents_connections()
 test_agents_governance_decisions()
 test_audit_insights()
