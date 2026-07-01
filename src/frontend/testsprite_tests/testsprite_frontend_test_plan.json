@@ -1,0 +1,1095 @@
+[
+  {
+    "id": "TC001",
+    "title": "Open the landing page and enter the dashboard",
+    "description": "A new user can understand the product from the landing page and navigate into the dashboard overview.",
+    "category": "Landing page to dashboard navigation",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Click the primary entry point to the dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the dashboard is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an overview section is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Open the dashboard from the landing page",
+    "description": "Verifies that a user can move from the public landing page into the authenticated dashboard entry point.",
+    "category": "Dashboard overview",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to enter the dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the dashboard overview is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Submit an action for governance review",
+    "description": "A user can open the governance check workflow, submit an action for review, and see an approval or rejection result with reasoning.",
+    "category": "Governance policies",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /governance/check"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a valid action to review"
+      },
+      {
+        "type": "action",
+        "description": "Submit the governance check"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a governance decision result is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify reasoning or policy references are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Enter the product from the landing page",
+    "description": "Verifies that a visitor can understand the product from the landing page and continue into the main dashboard experience.",
+    "category": "Landing page",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Scroll to the spend demo section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the landing page presents the product introduction and spend demo"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to enter the dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the dashboard is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Enter the dashboard from the landing page",
+    "description": "This verifies that a user can understand the product from the landing page and continue into the main dashboard experience.",
+    "category": "Theme and navigation UX",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to enter the dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the dashboard overview is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify core dashboard content is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Browse the agents list and open an agent detail page",
+    "description": "Verifies that a user can inspect registered agents by moving from the list to an individual agent detail view.",
+    "category": "Agent management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /agents"
+      },
+      {
+        "type": "action",
+        "description": "Select an agent from the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the agent detail page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify agent status and decision history are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "View dashboard overview data and navigate to other sections",
+    "description": "Verifies that the dashboard shows summary information and supports navigation to the main governance sections.",
+    "category": "Dashboard overview",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Scroll through the dashboard overview"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify agent statistics and spend overview are displayed"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation link to open agents"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the agents list is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Browse policies and open a policy detail",
+    "description": "A compliance user can open the policies area, review the policy list, and inspect a specific policy with its rule history.",
+    "category": "Governance policies",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /policies"
+      },
+      {
+        "type": "action",
+        "description": "Click the first available policy in the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify policy details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify policy versions or change history are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Browse the agents list and inspect an agent",
+    "description": "This verifies that a user can open the agents list and drill into an agent detail view for inspection.",
+    "category": "Theme and navigation UX",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /agents"
+      },
+      {
+        "type": "action",
+        "description": "Open an agent from the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the agent detail view is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify agent configuration or activity details are visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Evaluate a governance action and review the decision",
+    "description": "This verifies that a user can submit an action to governance check and see the resulting approve or reject reasoning.",
+    "category": "Theme and navigation UX",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /governance/check"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a valid governance action payload"
+      },
+      {
+        "type": "action",
+        "description": "Submit the governance check"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a governance decision is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify approval or rejection reasoning is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Review dashboard overview data",
+    "description": "This verifies that the dashboard presents a useful overview with fallback or demo data for users who land there first.",
+    "category": "Theme and navigation UX",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify dashboard summary content is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify recent activity or overview widgets are visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Open audit trail and inspect evidence for a record",
+    "description": "A compliance user can open the audit trail, inspect a record, and drill into its evidence and transaction details.",
+    "category": "Audit trail",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /audit"
+      },
+      {
+        "type": "action",
+        "description": "Open the first available audit record"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify transaction details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify evidence hash or linked evidence details are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Manage workspace settings and save changes",
+    "description": "This verifies that a user can update workspace settings and receive confirmation that the changes were saved.",
+    "category": "Settings and integrations",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /settings"
+      },
+      {
+        "type": "action",
+        "description": "Update a workspace setting"
+      },
+      {
+        "type": "action",
+        "description": "Save the changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a saved confirmation state is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated settings remain visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC014",
+    "title": "Inspect the audit trail and open related evidence",
+    "description": "This verifies that a user can review the audit trail and drill into evidence and linked transaction details.",
+    "category": "Theme and navigation UX",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /audit"
+      },
+      {
+        "type": "action",
+        "description": "Open an audit entry"
+      },
+      {
+        "type": "action",
+        "description": "Expand linked evidence or transaction details"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify audit evidence details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify linked transaction information is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC015",
+    "title": "Review policy list and browse policy history",
+    "description": "This verifies that a compliance user can open policies and inspect version history for a policy.",
+    "category": "Theme and navigation UX",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /policies"
+      },
+      {
+        "type": "action",
+        "description": "Open a policy from the list"
+      },
+      {
+        "type": "action",
+        "description": "View the policy history"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify policy details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify policy version history is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC016",
+    "title": "Add or edit integration credentials and webhook settings",
+    "description": "This verifies that a user can manage API keys or webhooks in the integrations area and save the configuration successfully.",
+    "category": "Settings and integrations",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /integrate"
+      },
+      {
+        "type": "action",
+        "description": "Create or edit an integration credential"
+      },
+      {
+        "type": "action",
+        "description": "Update the webhook configuration"
+      },
+      {
+        "type": "action",
+        "description": "Save the integration changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the refreshed integration configuration is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC017",
+    "title": "Review the landing page architecture and integration guidance",
+    "description": "Verifies that a visitor can explore the landing page's explanatory sections and see guidance about how the system connects to other services.",
+    "category": "Landing page",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Scroll through the landing page informational sections"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify product architecture information is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify integration guidance is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC018",
+    "title": "Open a copilot run detail",
+    "description": "A user can select a copilot run from the list and see its execution timeline on the detail page.",
+    "category": "Copilot runs",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /copilot"
+      },
+      {
+        "type": "action",
+        "description": "Click a copilot run from the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the run detail view is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an event timeline is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC019",
+    "title": "Create a new agent in the workshop",
+    "description": "This verifies that a user can start from the workshop and complete the agent creation or configuration flow.",
+    "category": "Theme and navigation UX",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /agents/workshop"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the required agent details"
+      },
+      {
+        "type": "action",
+        "description": "Submit the agent configuration"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a new agent preview or confirmation is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the workshop shows the created or updated agent state"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC020",
+    "title": "Review a spend demo decision path",
+    "description": "A user can adjust the spend demo scenario, trigger evaluation, and see the resulting policy decision explanation.",
+    "category": "Spend demo",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /demo/spend"
+      },
+      {
+        "type": "action",
+        "description": "Adjust the scenario parameters"
+      },
+      {
+        "type": "action",
+        "description": "Trigger the evaluation"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a policy decision outcome is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an explanation of the decision path is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC021",
+    "title": "Open a CRE run detail",
+    "description": "A user can select a CRE run from history and see its execution details and timeline.",
+    "category": "CRE run history",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /runs"
+      },
+      {
+        "type": "action",
+        "description": "Click a CRE run from the history list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the run detail view is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an execution timeline is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC022",
+    "title": "Review a run timeline from the runs area",
+    "description": "This verifies that a user can open a run and inspect its timeline for operational context.",
+    "category": "Theme and navigation UX",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /runs"
+      },
+      {
+        "type": "action",
+        "description": "Open a run from the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the run detail view is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the run timeline is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC023",
+    "title": "View the copilot runs list",
+    "description": "A user can open the copilot runs page and see a list of past workflow runs to inspect.",
+    "category": "Copilot runs",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /copilot"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify copilot runs are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify past workflow runs are listed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC024",
+    "title": "View the CRE run history list",
+    "description": "A user can open the CRE runs page and see historical workflow executions to review.",
+    "category": "CRE run history",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /runs"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify CRE run history is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify execution records are listed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC025",
+    "title": "Connect a web3 wallet successfully",
+    "description": "This verifies that a user can open a page with wallet context and complete a wallet connection for later web3 actions.",
+    "category": "Web3 wallet connection",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Open the wallet connection flow"
+      },
+      {
+        "type": "action",
+        "description": "Approve the wallet connection"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the wallet is shown as connected"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify connected wallet state is available for web3 actions"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC026",
+    "title": "Enter a command in PromptOS",
+    "description": "A user can type a command in the PromptOS terminal and see terminal output appear in response.",
+    "category": "PromptOS terminal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /os"
+      },
+      {
+        "type": "action",
+        "description": "Enter a terminal command"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify terminal output is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the prompt remains interactive"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC027",
+    "title": "Open the PromptOS terminal",
+    "description": "A user can open the PromptOS terminal page and see an interactive terminal interface ready for commands.",
+    "category": "PromptOS terminal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /os"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a terminal interface is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an interactive prompt is available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC028",
+    "title": "Switch the interface theme",
+    "description": "This verifies that a user can toggle between visual themes and see the change reflected across the interface.",
+    "category": "Theme and navigation UX",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Toggle the theme control"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the interface theme changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated theme is applied across the page"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC029",
+    "title": "Move between core governance sections from the dashboard shell",
+    "description": "A user can navigate between dashboard-related governance areas and land on the expected section pages.",
+    "category": "Route transitions between all dashboard sections",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation entry for agents"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation entry for policies"
+      },
+      {
+        "type": "action",
+        "description": "Click the navigation entry for audit"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the audit section is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the dashboard shell navigation remains available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC030",
+    "title": "Use the responsive sidebar on a smaller screen",
+    "description": "This verifies that the dashboard navigation adapts on a smaller viewport and still allows navigation to another section.",
+    "category": "Theme and navigation UX",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Resize the browser to a smaller viewport"
+      },
+      {
+        "type": "action",
+        "description": "Open the navigation menu"
+      },
+      {
+        "type": "action",
+        "description": "Select a dashboard section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the target section is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the responsive layout remains intact"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC031",
+    "title": "Validate and correct an invalid integration value",
+    "description": "This verifies that a user sees validation feedback for malformed integration input and can correct it to save successfully.",
+    "category": "Settings and integrations",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /integrate"
+      },
+      {
+        "type": "action",
+        "description": "Enter an invalid integration value"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a validation error is visible"
+      },
+      {
+        "type": "action",
+        "description": "Correct the invalid value"
+      },
+      {
+        "type": "action",
+        "description": "Save the integration changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success confirmation is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC032",
+    "title": "Correct an invalid governance action and resubmit",
+    "description": "A user sees validation feedback for an incomplete governance action, then fixes the form and successfully receives a review result.",
+    "category": "Governance policies",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /governance/check"
+      },
+      {
+        "type": "action",
+        "description": "Submit the governance check without filling required fields"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a validation error is displayed"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a valid action to review"
+      },
+      {
+        "type": "action",
+        "description": "Submit the governance check"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a governance decision result is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC033",
+    "title": "Use the dashboard with fallback data when metrics are missing",
+    "description": "Verifies that the dashboard remains usable with fallback content and non-blocking missing-data messaging.",
+    "category": "Dashboard overview",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Scroll through the dashboard overview"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify fallback metrics or mock data are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a non-blocking missing-data message is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC034",
+    "title": "Use the spend demo when fallback data is shown",
+    "description": "A user can still interact with the spend demo controls and see graceful fallback messaging when live evaluation data is unavailable.",
+    "category": "Spend demo",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /demo/spend"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify fallback or mock data is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a graceful status or availability message is displayed"
+      },
+      {
+        "type": "action",
+        "description": "Adjust the scenario parameters"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the demo controls remain interactive"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC035",
+    "title": "Continue browsing the landing page when demo content is unavailable",
+    "description": "Verifies that the landing page still shows usable fallback content and remains browsable when demo data is missing.",
+    "category": "Landing page",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Scroll to the spend demo section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a fallback or empty state message is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the landing page hero content remains visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC036",
+    "title": "Handle a rejected wallet connection attempt",
+    "description": "This verifies that a user who rejects the wallet prompt receives a connection error and can remain in the app shell.",
+    "category": "Web3 wallet connection",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Open the wallet connection flow"
+      },
+      {
+        "type": "action",
+        "description": "Reject the wallet connection"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a wallet connection error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the app remains usable after the rejected connection"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC037",
+    "title": "Return to copilot after an invalid run lookup",
+    "description": "A user who reaches an unavailable copilot run detail can recover by returning to the run list.",
+    "category": "Copilot runs",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /copilot"
+      },
+      {
+        "type": "action",
+        "description": "Open an unavailable run detail from the list or enter an invalid run route through the app's navigation"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a not-found or error state is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a way to return to the copilot runs list is available"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC038",
+    "title": "Return to run history after an invalid run lookup",
+    "description": "A user who opens an unavailable CRE run detail can recover by returning to the history list.",
+    "category": "CRE run history",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /runs"
+      },
+      {
+        "type": "action",
+        "description": "Open an unavailable run detail from the list or enter an invalid run route through the app's navigation"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a not-found or error state is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a way to return to the CRE run history is available"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC039",
+    "title": "Return to the agents list after an invalid agent lookup",
+    "description": "Verifies that an invalid or missing agent detail state shows an error or not-found view and allows the user to get back to the agents list.",
+    "category": "Agent management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /agents"
+      },
+      {
+        "type": "action",
+        "description": "Select an agent that is unavailable in the current view"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a not-found or error state is displayed"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to return to the agents list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the agents list is displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC040",
+    "title": "Review an empty or fallback audit state",
+    "description": "A user can open the audit trail and see a safe empty or fallback state without losing the ability to navigate the app.",
+    "category": "Audit trail",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /audit"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an empty state or fallback message is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify audit navigation remains available"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC041",
+    "title": "Recover from a PromptOS initialization problem",
+    "description": "A user can see a usable fallback or error state when the PromptOS terminal does not initialize normally.",
+    "category": "PromptOS terminal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /os"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a terminal fallback or error state is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page layout still presents recovery guidance"
+      }
+    ],
+    "priority": "Low"
+  }
+]

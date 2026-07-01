@@ -1,0 +1,18 @@
+{
+  "status": "init",
+  "executionArgs": {
+    "projectName": "frontend",
+    "projectPath": "/Users/udingethe/Dev/cognivern/src/frontend",
+    "testIds": [],
+    "additionalInstruction": "Focus on landing page navigation, dashboard rendering, agent list, governance check, spend demo, audit trail, policies, copilot runs, and settings pages. The app runs on port 3000 in production mode.",
+    "serverMode": "production",
+    "envs": {
+      "API_KEY": "sk-user-1_5-2D0CscP1iU4EkkTS_X39WmVPdtzFokd1EM0vF7fdj-g5nYoVDtHw73Xu9GXyu9Fu3gJt4RaZRyQNNuhZ2ySao0CrjZr7DkZek--awwEp95fcDR-jbi4OxbKshZcOaj8"
+    }
+  },
+  "localUrl": "http://localhost:3000",
+  "localPort": 3000,
+  "localEndpoint": "http://localhost:3000",
+  "serverPort": 61078,
+  "type": "frontend"
+}

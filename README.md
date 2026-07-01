@@ -10,10 +10,10 @@ Cognivern is a control plane for agent operations: governed wallet spend plus AI
 
 This project uses [TestSprite CLI](https://github.com/TestSprite/testsprite-cli) as the checker in a write → verify → fix loop. The agent ships code, the CLI runs real tests against the live API, and failures drive fixes.
 
-- **Test suite:** 20 backend tests, 550 assertions, all passing — covering auth, health, metrics, FHE, intent, projects, sealed-bid auctions, MCP governance, agents, OWS, copilot, speech, spend (deep SpendOS), governance CRUD, market data, dashboard, workspace management, API keys, audit, webhooks, payroll, and ingest
+- **Test suite:** 20 CLI backend tests (550 assertions, all passing) + 30 MCP AI-generated Playwright frontend tests — covering auth, health, metrics, FHE, intent, projects, sealed-bid auctions, MCP governance, agents, OWS, copilot, speech, spend (deep SpendOS), governance CRUD, market data, dashboard, workspace management, API keys, audit, webhooks, payroll, ingest, and all 16 frontend routes
 - **Loop log:** [LOOP.md](./LOOP.md) — agent-written, one line per iteration
 - **CI/CD:** Wired into GitHub Actions (`.github/workflows/testsprite.yml`) — every PR runs the full suite, fails the build on regressions
-- **Dashboard:** [TestSprite project](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee)
+- **Dashboard:** [CLI backend tests](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee) · [MCP frontend tests](https://www.testsprite.com/dashboard/mcp/tests/e82a0a8d-a5c5-4f3a-9ead-f3b9f6a37214)
 - **Submission:** [HACKATHON_SUBMISSION.md](./HACKATHON_SUBMISSION.md) — comprehensive hackathon summary
 
 ### Bugs caught by the loop (12 total)

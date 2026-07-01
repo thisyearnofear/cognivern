@@ -1,0 +1,124 @@
+project_name: cognivern-frontend
+project_type: frontend
+framework: next.js
+framework_version: "16.2.6"
+language: typescript
+ui_library: react
+ui_version: "19.2.4"
+styling: tailwindcss
+styling_version: "^4"
+state_management:
+  - zustand
+  - "@tanstack/react-query"
+  - swr
+animation: framer-motion
+web3:
+  - wagmi
+  - viem
+  - "@rainbow-me/rainbowkit"
+  - "@cofhe/react"
+charts: recharts
+terminal: "@xterm/xterm"
+icons: lucide-react
+notifications: sonner
+theme: next-themes
+
+entry_points:
+  - path: src/app/page.tsx
+    description: Landing page with hero, spend demo, network architecture, and API examples
+  - path: src/app/onboarding/page.tsx
+    description: Onboarding flow for new users
+  - path: src/app/(dashboard)/dashboard/page.tsx
+    description: Main dashboard with agent stats, spend overview, and recent activity
+  - path: src/app/(dashboard)/agents/page.tsx
+    description: Agent list page showing all registered agents
+  - path: src/app/(dashboard)/agents/[agentId]/page.tsx
+    description: Individual agent detail page with status and decisions
+  - path: src/app/(dashboard)/agents/workshop/page.tsx
+    description: Agent workshop for creating and configuring agents
+  - path: src/app/(dashboard)/audit/page.tsx
+    description: Audit trail page with evidence hashes and compliance status
+  - path: src/app/(dashboard)/copilot/page.tsx
+    description: Copilot runs page showing AI workflow executions
+  - path: src/app/(dashboard)/demo/spend/page.tsx
+    description: Interactive spend demo with policy evaluation visualization
+  - path: src/app/(dashboard)/governance/check/page.tsx
+    description: Governance check page for evaluating actions against policies
+  - path: src/app/(dashboard)/integrate/page.tsx
+    description: Integration page with API keys and webhook configuration
+  - path: src/app/(dashboard)/os/page.tsx
+    description: PromptOS terminal interface (xterm.js based)
+  - path: src/app/(dashboard)/policies/page.tsx
+    description: Policy management page for creating and viewing governance policies
+  - path: src/app/(dashboard)/runs/page.tsx
+    description: CRE runs list page showing workflow execution history
+  - path: src/app/(dashboard)/runs/[runId]/page.tsx
+    description: Individual run detail page with event timeline
+  - path: src/app/(dashboard)/settings/page.tsx
+    description: Settings page for workspace configuration
+
+key_components:
+  - src/components/demo/spend-flow-demo.tsx
+  - src/components/ui/button.tsx
+  - src/components/ui/sidebar.tsx
+  - src/components/ui/dialog.tsx
+  - src/components/ui/welcome-overlay.tsx
+
+key_libraries:
+  - src/lib/api-client.ts
+  - src/lib/auth.ts
+  - src/lib/demo-data.ts
+  - src/lib/wagmi.ts
+
+features:
+  - Landing page with animated hero section and live spend demo
+  - Dashboard with agent statistics and spend governance overview
+  - Agent management (list, detail, workshop)
+  - Governance policy creation and evaluation
+  - Audit trail with evidence hashes
+  - Copilot workflow runs with event timelines
+  - Interactive spend flow demo with policy visualization
+  - PromptOS terminal interface
+  - Settings and integration management
+  - Web3 wallet connection via RainbowKit
+  - Dark/light theme support
+  - Responsive sidebar navigation
+
+authentication:
+  type: email_password
+  login_required: false
+  notes: Landing page and onboarding are public. Dashboard pages use demo data without requiring login.
+
+api_endpoints:
+  base_url: "https://cognivern.thisyearnofear.com"
+  notes: Frontend calls backend API at this base URL. Demo mode uses mock data when API is unavailable.
+
+routes:
+  - path: /
+    name: Landing
+  - path: /onboarding
+    name: Onboarding
+  - path: /dashboard
+    name: Dashboard
+  - path: /agents
+    name: Agents List
+  - path: /agents/workshop
+    name: Agent Workshop
+  - path: /audit
+    name: Audit Trail
+  - path: /copilot
+    name: Copilot Runs
+  - path: /demo/spend
+    name: Spend Demo
+  - path: /governance/check
+    name: Governance Check
+  - path: /integrate
+    name: Integrations
+  - path: /os
+    name: PromptOS Terminal
+  - path: /policies
+    name: Policies
+  - path: /runs
+    name: CRE Runs
+  - path: /settings
+    name: Settings
