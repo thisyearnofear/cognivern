@@ -152,6 +152,48 @@ describe("ConfidentialSpendPolicy", function () {
     });
   });
 
+  describe("publishDeFiAction (Option B user-decrypt-and-publish)", function () {
+    // Mirrors the publishSpendResult identity-gate coverage for the
+    // requestDeFiAction flow. Happy-path commit requires requestDeFiAction
+    // to have run with the CoFHE runtime (out of scope for plain hardhat
+    // tests); what's exercised here is the trust-gate surface on a
+    // never-evaluated decisionId.
+
+    it("should reject publishDeFiAction from a non-submitter", async function () {
+      const { contract, operator } = await loadFixture(deployFixture);
+      const decisionId = hre.ethers.keccak256(
+        hre.ethers.toUtf8Bytes("defi-never-evaluated"),
+      );
+
+      // pendingDecisions[decisionId] is the zero-value struct, so
+      // pending.submitter == address(0). Any real caller fails the
+      // identity check with "not original submitter" before outcome is
+      // examined, exercising the trust gate end-to-end.
+      await expect(
+        contract
+          .connect(operator)
+          .publishDeFiAction(decisionId, 2, hre.ethers.ZeroAddress, "0x"),
+      ).to.be.revertedWith("not original submitter");
+    });
+
+    it("should reject publishDeFiAction with invalid outcome from non-submitter", async function () {
+      const { contract, operator } = await loadFixture(deployFixture);
+      const decisionId = hre.ethers.keccak256(
+        hre.ethers.toUtf8Bytes("defi-bad-outcome"),
+      );
+
+      // Identity gate fires before outcome gate, so the same
+      // "not original submitter" revert is returned — confirms require
+      // ordering matches the contract (identity first, outcome second,
+      // then the already-resolved guard).
+      await expect(
+        contract
+          .connect(operator)
+          .publishDeFiAction(decisionId, 99, hre.ethers.ZeroAddress, "0x"),
+      ).to.be.revertedWith("not original submitter");
+    });
+  });
+
   describe("publishSpendResult (Option B user-decrypt-and-publish)", function () {
     // The publishSpendResult path replaces the operator-decrypt-then-call
     // pattern. None of these tests exercise the happy-path commit (that

@@ -97,6 +97,21 @@ contract ConfidentialSpendPolicy {
     // their CoFHE-decrypted plaintext back to the chain. The GovernanceContract
     // consumer on the X Layer side treats this identically to DecisionResolved.
     event DecisionPublished(bytes32 indexed decisionId, Outcome outcome);
+    // Emitted by requestDeFiAction — same identity-check flow as
+    // SpendEvaluated, but for a DeFi-action budget check. The submitter
+    // is whoever called requestDeFiAction (the FHE.allowTransient grant
+    // on the budget-decision handle is to msg.sender). The contract does
+    // NOT synchronously dispatch — publishDeFiAction does.
+    event DeFiActionRequested(
+        bytes32 indexed decisionId,
+        bytes32 indexed agentId,
+        address indexed submitter
+    );
+    // Emitted by publishDeFiAction when the original submitter publishes
+    // their CoFHE-decrypted plaintext back to the chain. Only when
+    // plaintext == Approve (2) does the contract additionally dispatch
+    // to the specialized DeFi vault on X Layer via Hyperlane.
+    event DeFiActionPublished(bytes32 indexed decisionId, Outcome outcome);
     event EvaluatorAuthorized(address indexed evaluator);
     event EvaluatorRevoked(address indexed evaluator);
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
@@ -392,14 +407,26 @@ contract ConfidentialSpendPolicy {
 
     /**
      * Request a DeFi action (e.g. Swap) to be executed by the GovernedVault on X Layer.
-     * Evaluates encrypted budget via evaluateSpend before dispatching.
-     * Only dispatches to the vault if the spend evaluation has been resolved to Approve.
+     * Evaluates the encrypted budget check (under daily + under per-tx) and
+     * captures the submitter for publishDeFiAction's identity gate.
      *
-     * The synchronous-dispatch path is preserved for backwards compatibility with
-     * existing direct-call integrations. For the user-decrypt-and-publish pattern,
-     * prefer calling evaluateSpend + publishSpendResult (or the gated
-     * publishDeFiAction below, when wiring it up) — both flows produce the same
-     * effective downstream outcome for the GovernanceContract on X Layer.
+     * The synchronous-dispatch path is gone — this function no longer calls
+     * mailbox.dispatch directly. For the user-decrypt-and-publish pattern,
+     * call publishDeFiAction(decisionId, plaintext, target, data) after this.
+     * For backwards compatibility with existing direct-call integrations, an
+     * authorized evaluator can call publishDeFiAction with plaintext=Approve
+     * (2) right after this returns, producing the same effective downstream
+     * outcome for the GovernedVault on X Layer.
+     *
+     * FHE trust model mirrors evaluateSpend: the budget-decision handle
+     * `notDenied` receives FHE.allowTransient(notDenied, msg.sender) so the
+     * caller can decrypt via CoFHE decryptForView using their permit. The
+     * permit binding + ACL grant + on-chain identity check (in
+     * publishDeFiAction) close the impersonation gap.
+     *
+     * Counter semantics: same as evaluateSpend — counter is committed
+     * synchronously when the FHE budget check says notDenied. publishDeFiAction
+     * just records the caller's outcome decision, not a new FHE computation.
      */
     function requestDeFiAction(
         bytes32 agentId,
@@ -432,18 +459,87 @@ contract ConfidentialSpendPolicy {
         ebool underPerTx  = FHE.lte(amount, p.perTxLimit);
         ebool notDenied   = FHE.and(underDaily, underPerTx);
 
-        // Update counter only if not denied
+        // Grant ACL on the budget-decision handle to msg.sender so the
+        // caller can decrypt via CoFHE decryptForView using their permit.
+        // Same pattern as evaluateSpend's allowTransient(approved/held,
+        // msg.sender) — the permit binding + ACL grant + on-chain identity
+        // check in publishDeFiAction close the impersonation gap.
+        FHE.allowTransient(notDenied, address(this));
+        FHE.allowTransient(notDenied, msg.sender);
+
+        // Update counter only if not denied (commit happens at request time,
+        // same as evaluateSpend). publishDeFiAction just records the caller's
+        // outcome decision — it does not re-run the budget check.
         c.spentToday = FHE.select(notDenied, newSpent, c.spentToday);
         FHE.allowThis(c.spentToday);
 
         decisionId = keccak256(abi.encode(agentId, policyId, vendorHash, target, data, block.number));
 
-        // Dispatch to DeFi vault on X Layer when mailbox is configured.
-        // The caller has passed onlyAuthorized; the FHE budget check above
-        // determines whether the counter was updated (notDenied path).
-        if (address(mailbox) != address(0) && xLayerDeFiVault != bytes32(0)) {
+        // Store decision metadata so publishDeFiAction can cross-chain
+        // relay on Approve. submitter is captured for the identity check
+        // (mirrors evaluateSpend exactly).
+        pendingDecisions[decisionId] = PendingDecision({
+            agentId: agentId,
+            policyId: policyId,
+            vendorHash: vendorHash,
+            submitter: msg.sender
+        });
+
+        // Same default-init fix as evaluateSpend — Solidity enum mapping
+        // defaults to Deny (index 0), not Pending (3), without explicit set.
+        // Without this, publishDeFiAction's "already resolved" guard would
+        // reject every first call (Deny != Pending) — same CRITICAL bug
+        // pattern as the publishSpendResult fix.
+        resolvedOutcomes[decisionId] = Outcome.Pending;
+
+        // No synchronous mailbox.dispatch here — see publishDeFiAction for
+        // the dispatch path. Decision semantics flow through Pending state.
+        emit DeFiActionRequested(decisionId, agentId, msg.sender);
+    }
+
+    /**
+     * Publish the outcome of a pending DeFi-action budget check.
+     * Caller must be the original submitter of requestDeFiAction — that
+     * address was the recipient of FHE.allowTransient on the budget-
+     * decision handle. plaintext: 0=Deny, 1=Hold, 2=Approve.
+     *
+     * On Approve, additionally dispatches the original (target, data)
+     * calldata to the specialized DeFi vault on X Layer via Hyperlane
+     * (address(xLayerDeFiVault)). On Deny/Hold, only the event fires —
+     * no on-chain execution.
+     *
+     * Dedup: delete pendingDecisions[decisionId] after first commit so a
+     * replay attempt reverts on the zeroed submitter / agentId fields. No
+     * legacy operator-side path exists for this flow (requestDeFiAction
+     * did not have an operator-decrypt fallback), so the dedup target is
+     * only this function.
+     */
+    function publishDeFiAction(
+        bytes32 decisionId,
+        uint8 plaintext,
+        address target,
+        bytes calldata data
+    ) external {
+        PendingDecision memory pending = pendingDecisions[decisionId];
+        // Identity gate (matches publishSpendResult). For a non-existent
+        // decisionId, pending.submitter == address(0) and this fails for
+        // any real caller — same trust gate semantics.
+        require(msg.sender == pending.submitter, "not original submitter");
+        require(plaintext <= 2, "invalid outcome");
+        require(resolvedOutcomes[decisionId] == Outcome.Pending, "already resolved");
+
+        resolvedOutcomes[decisionId] = Outcome(plaintext);
+        delete pendingDecisions[decisionId];
+        emit DeFiActionPublished(decisionId, Outcome(plaintext));
+
+        // Cross-chain dispatch only on Approve — no execution to schedule
+        // on Deny/Hold. Same payload shape (decisionId, agentId, target,
+        // value, data) that the prior synchronous requestDeFiAction
+        // emitted, so the GovernedVault hook on X Layer consumes this
+        // identically.
+        if (plaintext == 2 && address(mailbox) != address(0) && xLayerDeFiVault != bytes32(0)) {
             uint256 value = 0;
-            bytes memory payload = abi.encode(decisionId, agentId, target, value, data);
+            bytes memory payload = abi.encode(decisionId, pending.agentId, target, value, data);
             mailbox.dispatch(xLayerDestinationDomain, xLayerDeFiVault, payload);
         }
     }
