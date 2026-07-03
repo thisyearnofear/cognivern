@@ -578,6 +578,21 @@ contract ConfidentialSpendPolicy {
      * calls on a spend-path decision (where pendingNewSpent is the
      * default uninitialised ciphertext — would silently corrupt
      * c.spentToday on Approve).
+     *
+     * @dev Why publishDeFiAction dispatches ONLY on Approve (iter 26 → 27
+     *      migration note, addressing the iter 26 reviewer MAJOR):
+     *      Deny/Hold resolutions emit `DeFiActionPublished` on Fhenix (so
+     *      they remain off-chain observable, indexed by topic), but they
+     *      do NOT cross the Hyperlane bridge. The contract's
+     *      `if (plaintext == 2)` gate below is the single source of
+     *      truth. Spend-path dispatches (publishSpendResult +
+     *      resolveDecision) remain unconditional — `GovernanceContract
+     *      .handle()` on X Layer still receives every spend-path outcome.
+     *      See docs/ARCHITECTURE.md § "FHE Option B trust model" §
+     *      "Migration note (iter 27)" for the full audit (zero TS event
+     *      listeners, zero dispatches-per-agent telemetry counters as
+     *      of iter 27 (cross-check ARCHITECTURE.md before assuming — a later iter may ship a different semantic); audit guidance for any future telemetry
+     *      consumer).
      */
     function publishDeFiAction(
         bytes32 decisionId,
