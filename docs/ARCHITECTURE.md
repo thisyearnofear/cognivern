@@ -157,7 +157,7 @@ The Canton path is locked against future Daml refactors by a literal-value canar
 
 | Backend | File | Notes |
 |---|---|---|
-| `FheSealedBidBackend` | `sealed-bid/FheSealedBidBackend.ts` | Existing behavior: CoFHE ciphertext handles via `FhenixPolicyService.encryptValue`. Reveal throws "not wired". |
+| `FheSealedBidBackend` | `sealed-bid/FheSealedBidBackend.ts` | CoFHE ciphertext handles via `FhenixPolicyService.encryptValue`. Reveal uses the **Option B manager-decrypt-and-publish flow**: callers supply `decryptionProof: Array<{bidder, plaintext}>` (every bid covered); backend rejects without it, selects per `selectionMethod`, marks losers rejected + winner selected. |
 | `CantonSealedBidBackend` | `sealed-bid/CantonSealedBidBackend.ts` | Maps `createRound → SealedBidAuction` create, `submitBid → SubmitBid` choice, `revealWinner → CloseAndReveal` choice. |
 
 ### Daml model
@@ -340,8 +340,16 @@ All file-backed stores use a common `BaseStore` abstract class. To swap to Redis
 - Email auth supported alongside SIWE; SIWE path is more battle-tested
 - Ledger signing requires USB/WebHID access — limits deployment to single-instance or co-located with hardware
 - Fhenix CoFHE SDK not initialized in production — confidential spend uses safe fallback (deny by default, demo mode for small amounts)
-- Sealed-bid reveal endpoint returns 400 — threshold decryption of real CoFHE bids not yet wired (known limitation, documented in tests)
 - See [Deployment](./DEPLOYMENT.md) for deployment and operations
+
+### FHE Option B trust model
+
+The Fhenix confidential-compute pipeline (`ConfidentialSpendPolicy` + `SealedBidVendorSelection`) removed the trusted-operator middleman via the **Option B manager-decrypt-and-publish flow**:
+
+- `evaluateSpend` / `submitBid` already grant `FHE.allowTransient(encryptedHandle, msg.sender)`, so the contract owner of the result handle is whoever called the entry-point — the address that will publish.
+- `publishSpendResult(decisionId, uint8 plaintext)` and `publishWinner(roundId, winner, winningBid, ...)` require `msg.sender == the original submitter (manager)`. The off-chain CoFHE `decryptForView` permit must be signed by that same address (it was the `FHE.allowTransient` recipient), so the FHE ACL chain + permit binding + on-chain identity check together close the impersonation gap — no cryptographic-library helper required.
+- The legacy `resolveDecision` / `revealWinner` paths stay wide-open (with `onlyOwner` lifted) so existing operator-side tooling (FheDecisionWatcher, scheduled notifiers) keeps working as a fallback. `delete pendingDecisions[decisionId]` after the first resolution dedups cross-chain Hyperlane dispatch so the X Layer GovernanceContract does not double-count.
+- When the **cofhe-contracts library** ships `FHE.verifyDecryptResult` (the user's plan 1a cryptographic-verification path), the `publishSpendResult` and `publishWinner` ABI signatures already carry the right shape — the verification can be layered on top of the identity check additively without breaking callers.
 
 ## Test Coverage
 
