@@ -172,7 +172,7 @@ describe("ConfidentialSpendPolicy", function () {
       await expect(
         contract
           .connect(operator)
-          .publishDeFiAction(decisionId, 2, hre.ethers.ZeroAddress, "0x"),
+          .publishDeFiAction(decisionId, 2),
       ).to.be.revertedWith("not original submitter");
     });
 
@@ -189,7 +189,7 @@ describe("ConfidentialSpendPolicy", function () {
       await expect(
         contract
           .connect(operator)
-          .publishDeFiAction(decisionId, 99, hre.ethers.ZeroAddress, "0x"),
+          .publishDeFiAction(decisionId, 99),
       ).to.be.revertedWith("not original submitter");
     });
   });

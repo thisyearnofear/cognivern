@@ -54,12 +54,36 @@ contract ConfidentialSpendPolicy {
         bytes32 agentId;
         bytes32 policyId;
         bytes32 vendorHash;
-        // Original msg.sender at evaluateSpend time. Required for
-        // publishSpendResult's identity check — the CoFHE permit used to
-        // decryptForView must be signed by this address, so it joins
-        // the off-chain (permit) trust model and on-chain (msg.sender)
-        // trust model into a single bound identity.
+        // Original msg.sender at evaluateSpend / requestDeFiAction time.
+        // Required for both publishSpendResult and publishDeFiAction's
+        // identity check — the CoFHE permit used to decryptForView must
+        // be signed by this address, so it joins the off-chain (permit)
+        // trust model and on-chain (msg.sender) trust model into a
+        // single bound identity.
         address submitter;
+        // Discriminator: false for spend-policy decisions (consumed by
+        // publishSpendResult), true for DeFi-action decisions (consumed
+        // by publishDeFiAction). publishDeFiAction's "not defi decision"
+        // require reverts on a spend decision to prevent silent
+        // corruption of c.spentToday with default-zero pendingNewSpent.
+        bool isDeFi;
+        // DeFi-action only (default zero / empty for spend decisions).
+        // Captured at requestDeFiAction time and replayed at
+        // publishDeFiAction time so the dispatched call args match the
+        // original orchestrator intent — caller does not need to
+        // re-supply (target, data) at publish time.
+        address target;
+        bytes   data;
+        // DeFi-action only. Encrypted newSpent computed at request
+        // time against the then-current c.spentToday. Persisted with
+        // FHE.allowThis so publishDeFiAction can read it back across
+        // transactions (via FHE.allowTransient in that tx). On Approve,
+        // it becomes the new c.spentToday — counter commit moves from
+        // request to publish time to close the phantom-balance divergence
+        // flagged by the iter 25 reviewer. Spend decisions leave this
+        // as the default-zero (uninitialised) ciphertext; publishSpendResult
+        // never reads it, so the uninit handle is harmless.
+        euint128 pendingNewSpent;
     }
 
     enum Outcome { Deny, Hold, Approve, Pending }
@@ -289,12 +313,25 @@ contract ConfidentialSpendPolicy {
 
         // Store decision metadata so publishSpendResult / resolveDecision
         // can cross-chain relay. submitter is captured for the identity
-        // check on publishSpendResult.
+        // check on publishSpendResult. The four DeFi-only fields are
+        // explicit defaults — evaluateSpend never produces a DeFi
+        // decision, and publishSpendResult never reads them.
         pendingDecisions[decisionId] = PendingDecision({
             agentId: agentId,
             policyId: policyId,
             vendorHash: vendorHash,
-            submitter: msg.sender
+            submitter: msg.sender,
+            isDeFi: false,
+            target: address(0),
+            data: "",
+            // FHE.asEuint128(0) — same canonical pattern the counter-init
+            // block above uses. euint128(0) is a Solidity type conversion
+            // from int_const 0 to the FHE type, which the coFHE-contracts
+            // library rejects (explicit type conversion not allowed from
+            // int_const 0 to euint128). publishSpendResult never reads
+            // this field — evaluateSpend produces spend decisions where
+            // the DeFi-only fields are zero defaults, harmless.
+            pendingNewSpent: FHE.asEuint128(0)
         });
 
         // Explicitly mark the decision as Pending so the
@@ -412,11 +449,9 @@ contract ConfidentialSpendPolicy {
      *
      * The synchronous-dispatch path is gone — this function no longer calls
      * mailbox.dispatch directly. For the user-decrypt-and-publish pattern,
-     * call publishDeFiAction(decisionId, plaintext, target, data) after this.
-     * For backwards compatibility with existing direct-call integrations, an
-     * authorized evaluator can call publishDeFiAction with plaintext=Approve
-     * (2) right after this returns, producing the same effective downstream
-     * outcome for the GovernedVault on X Layer.
+     * call publishDeFiAction(decisionId, plaintext) after this. The (target,
+     * data) calldata is captured here and replayed at publish time, so the
+     * caller never has to re-supply at publish.
      *
      * FHE trust model mirrors evaluateSpend: the budget-decision handle
      * `notDenied` receives FHE.allowTransient(notDenied, msg.sender) so the
@@ -424,9 +459,14 @@ contract ConfidentialSpendPolicy {
      * permit binding + ACL grant + on-chain identity check (in
      * publishDeFiAction) close the impersonation gap.
      *
-     * Counter semantics: same as evaluateSpend — counter is committed
-     * synchronously when the FHE budget check says notDenied. publishDeFiAction
-     * just records the caller's outcome decision, not a new FHE computation.
+     * Counter semantics: counter commit moved to publishDeFiAction on Approve
+     * — closed the phantom-balance divergence where an authorized evaluator
+     * could exhaust `dailyLimit` by request-spamming without publishing.
+     * newSpent (encrypted) is stored in pendingDecisions[decisionId]
+     * .pendingNewSpent and FHE.allowThis'd for cross-tx read; the value is
+     * moved to c.spentToday only when publishDeFiAction executes with
+     * plaintext == Approve. Deny/Hold paths emit the event but leave
+     * c.spentToday untouched.
      */
     function requestDeFiAction(
         bytes32 agentId,
@@ -442,7 +482,10 @@ contract ConfidentialSpendPolicy {
 
         euint128 amount = FHE.asEuint128(amountCt);
 
-        // Reset daily counter if new window or first use
+        // Reset daily counter if new window or first use. Even though we
+        // no longer write c.spentToday here on a notDenied path, the
+        // counter must still be initialised for subsequent evaluates and
+        // for the publishDeFiAction Approve assignment.
         // Known limitation: creates new encrypted zero handle per window reset
         uint256 currentDay = block.timestamp / 86400;
         if (!c.initialized || c.windowStart < currentDay) {
@@ -452,7 +495,20 @@ contract ConfidentialSpendPolicy {
             c.initialized = true;
         }
 
-        euint128 newSpent = FHE.add(c.spentToday, amount);
+        euint128 newSpent;
+
+        // FHE.allowTransient grants the contract this-tx ACL to USE
+        // c.spentToday, which carries FHE.allowThis from a prior tx (the
+        // counter-initialisation block, or a previous requestDeFiAction,
+        // or a prior evaluateSpend, or a prior publishDeFiAction Approve).
+        // Without this grant, the FHE.add reverts with ACLNotAllowed on
+        // any call after the counter was set in a different transaction.
+        // Symmetrical with evaluateSpend, which grants the same grant on
+        // the same line.
+        if (c.initialized) {
+            FHE.allowTransient(c.spentToday, address(this));
+        }
+        newSpent = FHE.add(c.spentToday, amount);
 
         // FHE budget checks
         ebool underDaily  = FHE.lte(newSpent, p.dailyLimit);
@@ -467,23 +523,24 @@ contract ConfidentialSpendPolicy {
         FHE.allowTransient(notDenied, address(this));
         FHE.allowTransient(notDenied, msg.sender);
 
-        // Update counter only if not denied (commit happens at request time,
-        // same as evaluateSpend). publishDeFiAction just records the caller's
-        // outcome decision — it does not re-run the budget check.
-        c.spentToday = FHE.select(notDenied, newSpent, c.spentToday);
-        FHE.allowThis(c.spentToday);
-
         decisionId = keccak256(abi.encode(agentId, policyId, vendorHash, target, data, block.number));
 
-        // Store decision metadata so publishDeFiAction can cross-chain
-        // relay on Approve. submitter is captured for the identity check
-        // (mirrors evaluateSpend exactly).
+        // Store all 8 PendingDecision fields at request time. The four
+        // DeFi-only ones (isDeFi, target, data, pendingNewSpent) match
+        // what publishDeFiAction reads back for replay / counter commit.
+        // FHE.allowThis on pendingNewSpent grants the contract cross-tx
+        // ACL to use the stored ciphertext in publishDeFiAction's tx.
         pendingDecisions[decisionId] = PendingDecision({
             agentId: agentId,
             policyId: policyId,
             vendorHash: vendorHash,
-            submitter: msg.sender
+            submitter: msg.sender,
+            isDeFi: true,
+            target: target,
+            data: data,
+            pendingNewSpent: newSpent
         });
+        FHE.allowThis(pendingDecisions[decisionId].pendingNewSpent);
 
         // Same default-init fix as evaluateSpend — Solidity enum mapping
         // defaults to Deny (index 0), not Pending (3), without explicit set.
@@ -493,7 +550,8 @@ contract ConfidentialSpendPolicy {
         resolvedOutcomes[decisionId] = Outcome.Pending;
 
         // No synchronous mailbox.dispatch here — see publishDeFiAction for
-        // the dispatch path. Decision semantics flow through Pending state.
+        // the dispatch path. Counter NOT updated here — moved to
+        // publishDeFiAction on Approve.
         emit DeFiActionRequested(decisionId, agentId, msg.sender);
     }
 
@@ -503,22 +561,27 @@ contract ConfidentialSpendPolicy {
      * address was the recipient of FHE.allowTransient on the budget-
      * decision handle. plaintext: 0=Deny, 1=Hold, 2=Approve.
      *
-     * On Approve, additionally dispatches the original (target, data)
-     * calldata to the specialized DeFi vault on X Layer via Hyperlane
-     * (address(xLayerDeFiVault)). On Deny/Hold, only the event fires —
-     * no on-chain execution.
+     * On Approve: (a) commits the previously-stored encrypted newSpent
+     * to c.spentToday via FHE.allowTransient + assignment + FHE.allowThis
+     * (closes the phantom-balance divergence), and (b) dispatches the
+     * original (target, data) calldata to the specialized DeFi vault
+     * on X Layer via Hyperlane. (target, data) come from pendingDecisions
+     * — caller already declared intent at requestDeFiAction time, no
+     * re-supply needed at publish (closes the ABI carry-through drift).
+     *
+     * On Deny/Hold: emits the event but does NOT update the counter and
+     * does NOT dispatch — nothing to run on-chain.
      *
      * Dedup: delete pendingDecisions[decisionId] after first commit so a
-     * replay attempt reverts on the zeroed submitter / agentId fields. No
-     * legacy operator-side path exists for this flow (requestDeFiAction
-     * did not have an operator-decrypt fallback), so the dedup target is
-     * only this function.
+     * replay attempt reverts on the zeroed submitter / agentId. The new
+     * `pending.isDeFi` discriminator also reverts publishDeFiAction
+     * calls on a spend-path decision (where pendingNewSpent is the
+     * default uninitialised ciphertext — would silently corrupt
+     * c.spentToday on Approve).
      */
     function publishDeFiAction(
         bytes32 decisionId,
-        uint8 plaintext,
-        address target,
-        bytes calldata data
+        uint8 plaintext
     ) external {
         PendingDecision memory pending = pendingDecisions[decisionId];
         // Identity gate (matches publishSpendResult). For a non-existent
@@ -527,20 +590,40 @@ contract ConfidentialSpendPolicy {
         require(msg.sender == pending.submitter, "not original submitter");
         require(plaintext <= 2, "invalid outcome");
         require(resolvedOutcomes[decisionId] == Outcome.Pending, "already resolved");
+        // Discriminator: only requestDeFiAction-produced decisions are
+        // eligible. Spend decisions (publishSpendResult path) carry
+        // pendingNewSpent as default uninitialised ciphertext; assigning
+        // that to c.spentToday on Approve would silently corrupt the
+        // counter. The require prevents that.
+        require(pending.isDeFi, "not defi decision");
 
+        // On Approve (plaintext == 2): commit stored encrypted newSpent
+        // to c.spentToday AND dispatch the original (target, data) call
+        // to the specialised DeFi vault. FHE ops run on the LIVE storage
+        // handle (pendingDecisions[decisionId].pendingNewSpent, NOT the
+        // memory copy `pending`) and BEFORE the delete below — so the
+        // underlying ciphertext handle's ACL context is preserved for
+        // the FHE.allowTransient grant + storage write of c.spentToday.
+        // Once deleted, the storage slot is zero and FHE.allowTransient
+        // on (default-zero) pendingNewSpent would be a no-op against an
+        // uninitialised handle.
+        if (plaintext == 2) {
+            FHE.allowTransient(pendingDecisions[decisionId].pendingNewSpent, address(this));
+            EncryptedCounter storage c = counters[pending.agentId];
+            c.spentToday = pendingDecisions[decisionId].pendingNewSpent;
+            FHE.allowThis(c.spentToday);
+
+            if (address(mailbox) != address(0) && xLayerDeFiVault != bytes32(0)) {
+                uint256 value = 0;
+                bytes memory payload = abi.encode(decisionId, pending.agentId, pending.target, value, pending.data);
+                mailbox.dispatch(xLayerDestinationDomain, xLayerDeFiVault, payload);
+            }
+        }
+
+        // Commit outcome + delete + emit last (so the FHE ops above have
+        // access to the live storage handle).
         resolvedOutcomes[decisionId] = Outcome(plaintext);
         delete pendingDecisions[decisionId];
         emit DeFiActionPublished(decisionId, Outcome(plaintext));
-
-        // Cross-chain dispatch only on Approve — no execution to schedule
-        // on Deny/Hold. Same payload shape (decisionId, agentId, target,
-        // value, data) that the prior synchronous requestDeFiAction
-        // emitted, so the GovernedVault hook on X Layer consumes this
-        // identically.
-        if (plaintext == 2 && address(mailbox) != address(0) && xLayerDeFiVault != bytes32(0)) {
-            uint256 value = 0;
-            bytes memory payload = abi.encode(decisionId, pending.agentId, target, value, data);
-            mailbox.dispatch(xLayerDestinationDomain, xLayerDeFiVault, payload);
-        }
     }
 }
