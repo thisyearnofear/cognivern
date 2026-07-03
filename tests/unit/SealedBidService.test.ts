@@ -192,7 +192,7 @@ describe('SealedBidService', () => {
     );
   });
 
-  it("revealWinner throws with 'not wired' (CoFHE not implemented)", async () => {
+  it("revealWinner throws 'decryption proof required' when no decryptionProof supplied", async () => {
     const service = createService();
     const round = await service.createRound(defaultRound, 'manager-1');
     await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorA', amountUsd: 30000 }));
@@ -201,7 +201,72 @@ describe('SealedBidService', () => {
 
     await expect(
       service.revealWinner(round.roundId, { selectionMethod: 'lowest-bid' }),
-    ).rejects.toThrow(/not wired/);
+    ).rejects.toThrow(/decryption proof required/);
+  });
+
+  it("revealWinner accepts manager-decrypt-and-publish flow with decryptionProof (lowest-bid)", async () => {
+    const service = createService();
+    const round = await service.createRound(defaultRound, 'manager-1');
+    await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorA', amountUsd: 30000 }));
+    await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorB', amountUsd: 12000 }));
+    await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorC', amountUsd: 22000 }));
+    await service.closeRound(round.roundId, 'manager-1');
+
+    const decrypted = await service.revealWinner(round.roundId, {
+      selectionMethod: 'lowest-bid',
+      decryptionProof: [
+        { bidder: '0xVendorA', plaintext: 30000n * 1_000_000n },
+        { bidder: '0xVendorB', plaintext: 12000n * 1_000_000n },
+        { bidder: '0xVendorC', plaintext: 22000n * 1_000_000n },
+      ],
+    });
+
+    expect(decrypted.status).toBe('revealed');
+    expect(decrypted.winner).toBe('0xVendorB');
+    expect(decrypted.winningBid).toBe(12000);
+    // selected / rejected marking: only the winner is selected; rest rejected.
+    const rejectedCount = decrypted.bids.filter((b) => b.status === 'rejected').length;
+    expect(rejectedCount).toBe(2);
+    const winnerBidRecord = decrypted.bids.find((b) => b.bidder === '0xVendorB');
+    expect(winnerBidRecord?.status).toBe('selected');
+  });
+
+  it("revealWinner with missing plaintext for a bidder throws structurally", async () => {
+    const service = createService();
+    const round = await service.createRound(defaultRound, 'manager-1');
+    await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorA', amountUsd: 30000 }));
+    await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorB', amountUsd: 12000 }));
+    await service.closeRound(round.roundId, 'manager-1');
+
+    await expect(
+      service.revealWinner(round.roundId, {
+        selectionMethod: 'lowest-bid',
+        decryptionProof: [
+          { bidder: '0xVendorA', plaintext: 30000n * 1_000_000n },
+          // 0xVendorB missing
+        ],
+      }),
+    ).rejects.toThrow(/missing plaintext for bidder/);
+  });
+
+  it("revealWinner with specific selectionMethod picks the named bidder", async () => {
+    const service = createService();
+    const round = await service.createRound(defaultRound, 'manager-1');
+    await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorA', amountUsd: 30000 }));
+    await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorB', amountUsd: 12000 }));
+    await service.closeRound(round.roundId, 'manager-1');
+
+    const decrypted = await service.revealWinner(round.roundId, {
+      selectionMethod: 'specific',
+      specificBidder: '0xVendorA',
+      decryptionProof: [
+        { bidder: '0xVendorA', plaintext: 30000n * 1_000_000n },
+        { bidder: '0xVendorB', plaintext: 12000n * 1_000_000n },
+      ],
+    });
+
+    expect(decrypted.winner).toBe('0xVendorA');
+    expect(decrypted.winningBid).toBe(30000);
   });
 
   it('revealWinner throws for non-existent round', async () => {

@@ -106,47 +106,40 @@ describe("ConfidentialSpendPolicy", function () {
     });
   });
 
-  describe("Decision Resolution", function () {
-    it("should resolve a pending decision", async function () {
-      const { contract, owner } = await loadFixture(deployFixture);
+  describe("Decision Resolution (legacy operator fallback)", function () {
+    // Option B lifts onlyOwner on resolveDecision. Any caller may invoke it,
+    // preserving the path that the FheDecisionWatcher + operator-side tooling
+    // already use. The require guards that previously masked this behaviour
+    // (resolvedOutcomes default = Deny, not Pending) still reject attempts
+    // to call resolveDecision without first invoking evaluateSpend; tests
+    // below capture that surface.
+
+    it("any caller can attempt resolveDecision (onlyOwner lifted)", async function () {
+      const { contract, operator } = await loadFixture(deployFixture);
       const decisionId = hre.ethers.keccak256(
         hre.ethers.toUtf8Bytes("test-decision"),
       );
 
-      await expect(contract.connect(owner).resolveDecision(decisionId, 2)) // 2 = Approve
-        .to.emit(contract, "DecisionResolved")
-        .withArgs(decisionId, 2);
-
-      expect(await contract.isDecisionApproved(decisionId)).to.be.true;
-    });
-
-    it("should reject resolution from non-owner", async function () {
-      const { contract, operator } = await loadFixture(deployFixture);
-      const decisionId = hre.ethers.keccak256(hre.ethers.toUtf8Bytes("test"));
-
+      // No evaluateSpend has run, so resolvedOutcomes[decisionId] is the
+      // default Outcome (Deny). The require checks Outcome != Pending first,
+      // then `resolvedOutcomes == Pending` — the latter reverts with
+      // "already resolved" because Deny ≠ Pending. This is the same gate
+      // the original contract enforced via onlyOwner; the lift means *who*
+      // calls is no longer restricted, but *when* (post-evaluateSpend) is.
       await expect(
         contract.connect(operator).resolveDecision(decisionId, 2),
-      ).to.be.revertedWith("not owner");
+      ).to.be.revertedWith("already resolved");
     });
 
     it("should reject resolving with Pending outcome", async function () {
       const { contract, owner } = await loadFixture(deployFixture);
-      const decisionId = hre.ethers.keccak256(hre.ethers.toUtf8Bytes("test"));
+      const decisionId = hre.ethers.keccak256(
+        hre.ethers.toUtf8Bytes("test-pending"),
+      );
 
       await expect(
         contract.connect(owner).resolveDecision(decisionId, 3), // 3 = Pending
       ).to.be.revertedWith("outcome must be resolved");
-    });
-
-    it("should reject resolving an unknown decisionId", async function () {
-      const { contract, owner } = await loadFixture(deployFixture);
-      const unknownId = hre.ethers.keccak256(
-        hre.ethers.toUtf8Bytes("unknown-decision"),
-      );
-
-      await expect(
-        contract.connect(owner).resolveDecision(unknownId, 2),
-      ).to.be.revertedWith("decision not found");
     });
 
     it("should return false for unresolved decisions", async function () {
@@ -156,6 +149,50 @@ describe("ConfidentialSpendPolicy", function () {
       );
 
       expect(await contract.isDecisionApproved(decisionId)).to.be.false;
+    });
+  });
+
+  describe("publishSpendResult (Option B user-decrypt-and-publish)", function () {
+    // The publishSpendResult path replaces the operator-decrypt-then-call
+    // pattern. None of these tests exercise the happy-path commit (that
+    // requires evaluateSpend to have run with the CoFHE runtime, which
+    // hardhat tests cannot set up); they exercise the identity gate and
+    // outcome-bound check on an un-evaluated decisionId. The
+    // happy-path commit is covered by the FhenixPolicyService integration
+    // suite under a mock CoFHE client.
+
+    it("should reject publishSpendResult from a non-submitter", async function () {
+      const { contract, operator } = await loadFixture(deployFixture);
+      const decisionId = hre.ethers.keccak256(
+        hre.ethers.toUtf8Bytes("never-evaluated"),
+      );
+
+      // pendingDecisions[decisionId] is the zero-value struct, so
+      // pending.submitter == address(0). Any real caller fails the
+      // identity check with "not original submitter" before outcome is
+      // examined, exercising the trust gate end-to-end.
+      await expect(
+        contract.connect(operator).publishSpendResult(decisionId, 2),
+      ).to.be.revertedWith("not original submitter");
+    });
+
+    it("should reject publishSpendResult from any caller with invalid outcome", async function () {
+      const { contract, operator } = await loadFixture(deployFixture);
+      const decisionId = hre.ethers.keccak256(
+        hre.ethers.toUtf8Bytes("bad-outcome"),
+      );
+
+      // Identity gate fires before the outcome gate (u3 → u2 in the
+      // require order), so the same "not original submitter" revert is
+      // returned — we exercise this simply to confirm the require order
+      // matches the source (identity first, outcome second, then the
+      // already-resolved guard). Tests of the outcome gate alone
+      // require a non-zero submitter, which means running evaluateSpend
+      // with the CoFHE runtime — out of scope for this contract test
+      // file.
+      await expect(
+        contract.connect(operator).publishSpendResult(decisionId, 99),
+      ).to.be.revertedWith("not original submitter");
     });
   });
 

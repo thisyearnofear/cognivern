@@ -48,7 +48,24 @@ export interface SubmitBidRequest {
   proposalHash?: string;
 }
 
+// A single decrypted bid — the manager decrypts each bid amount off-chain
+// via CoFHE decryptForView (permit-gated), then submits the plaintexts back
+// to the backend as a decryption-proof bundle. Each entry maps a bidder to
+// its post-decrypt plaintext, scaled to 1e6 to match how submitBid encoded
+// the encrypted amount. The FHE backend uses this to pick a winner; the
+// Canton backend ignores it (Daml CloseAndReveal handles atomic settlement
+// via its disclosure model instead).
+export interface BidPlaintext {
+  bidder: string;
+  plaintext: bigint;
+}
+
 export interface RevealRequest {
   selectionMethod: "lowest-bid" | "highest-bid" | "specific";
   specificBidder?: string;
+  // Required for the FHE backend's reveal path (manager-decrypt-and-publish
+  // flow). Ignored by the Canton backend. If the caller never collected
+  // plaintexts, the FHE backend raises "decryption proof required" — the
+  // coarser "not wired" error no longer exists.
+  decryptionProof?: BidPlaintext[];
 }

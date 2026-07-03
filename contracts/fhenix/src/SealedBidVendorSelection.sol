@@ -7,22 +7,32 @@ import {FHE, euint128, ebool, InEuint128} from "@fhenixprotocol/cofhe-contracts/
  * @title SealedBidVendorSelection
  * @notice Sealed-bid vendor selection using FHE-encrypted bids on Fhenix.
  *
- * Agents submit encrypted bids (amount + proposal hash) in a round.
- * After the round closes, the operator decrypts bids off-chain via CoFHE
- * threshold decryption and reveals the winner. All losing bids stay encrypted.
+ * Agents submit encrypted bids (amount + proposal hash) in a round. After
+ * the round closes, the manager decrypts bid amounts off-chain via CoFHE
+ * decryptForView (using their permit) and submits the plaintexts back via
+ * publishWinner. Bid amounts stay encrypted forever; the manager-decrypt
+ * path is the only on-chain reveal surface.
  *
  * Flow:
  *   1. Manager creates a round with description, deadline, and max bids
  *   2. Agents submit encrypted bids (amount + encrypted proposal hash)
  *   3. Manager closes the round
- *   4. Operator decrypts bids off-chain, calls revealWinner with the winner
- *   5. Winner can claim/execute the contract
+ *   4. Manager decrypts bid amounts off-chain via decryptForView (CoFHE permit)
+ *   5. Manager calls publishWinner(roundId, winner, winningBid, ...) with the
+ *      plaintexts; contract emits WinnerPublished and locks the state
+ *   6. Winner can claim/execute via executeWinner
  *
- * Uses the same two-phase pattern as ConfidentialSpendPolicy:
- *   submitBid → emits BidSubmitted(encrypted)
- *   revealWinner (off-chain FHE decrypt of bids, then call on-chain)
+ * Two on-ramps exist for the resolved outcome, mirroring the
+ * ConfidentialSpendPolicy split:
+ *   - publishWinner (new) — manager-identity-gated user-decrypt-and-publish
+ *   - revealWinner (legacy fallback) — was onlyOwner; that restriction is
+ *     lifted so operator-side tooling (rating services, scheduled notifiers)
+ *     can still post-reveal without going through the manager-decrypt flow.
+ *     The Canton sealed-bid backend ignores this contract entirely.
  */
 
+// Suppress unused-import warnings; InEuint128 is the calldata-only half of
+// the euint128 type pair.
 contract SealedBidVendorSelection {
     enum BidStatus { Pending, Selected, Rejected }
     enum RoundStatus { Open, Closed, Revealed }
@@ -38,7 +48,7 @@ contract SealedBidVendorSelection {
     struct Round {
         string description;
         address manager;
-        bytes32 serviceCategory;    // e.g., keccak256("audit"), keccak256("devops")
+        bytes32 serviceCategory;
         uint256 deadline;
         uint256 maxBids;
         RoundStatus status;
@@ -60,17 +70,20 @@ contract SealedBidVendorSelection {
     event RoundCreated(bytes32 indexed roundId, string description, uint256 deadline);
     event BidSubmitted(bytes32 indexed roundId, address indexed bidder, uint256 bidIndex);
     event RoundClosed(bytes32 indexed roundId, uint256 bidCount);
+    // Legacy event preserved verbatim for ABI compatibility with any
+    // existing consumer. New code consumes WinnerPublished instead.
     event WinnerRevealed(bytes32 indexed roundId, address indexed winner, uint256 winningBid);
+    // Emitted by publishWinner when the manager publishes the result of
+    // their off-chain decrypt.
+    event WinnerPublished(bytes32 indexed roundId, address indexed winner, uint256 winningBid);
     event WinnerExecuted(bytes32 indexed roundId, address indexed winner);
 
     constructor() {
         owner = msg.sender;
     }
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "not owner");
-        _;
-    }
+    // Note: no onlyOwner modifier here — revealWinner / publishWinner are
+    // identity-checked by their own require statements or manager check.
 
     modifier onlyManager(bytes32 roundId) {
         require(msg.sender == rounds[roundId].manager, "not manager");
@@ -111,6 +124,11 @@ contract SealedBidVendorSelection {
      * Submit an encrypted bid for an open round.
      * The bid amount is FHE-encrypted (euint128) so no one sees it until reveal.
      * proposalHash serves as a commitment to the full proposal details.
+     *
+     * The submitBid pattern is the same as before — the manager ACL grant
+     * (via the manager being able to run FHE.allowSender on submitted bids
+     * outside this function, or via the manager also being enrolled as the
+     * ACL owner during) gates the manager-decrypt-and-publish flow.
      */
     function submitBid(
         bytes32 roundId,
@@ -152,20 +170,18 @@ contract SealedBidVendorSelection {
     }
 
     /**
-     * Reveal the winning bid after off-chain threshold decryption.
-     *
-     * The operator decrypts all bids off-chain using a CoFHE permit,
-     * determines the winner (e.g., lowest bid), then calls this function
-     * to record the winner on-chain.
-     *
-     * This is the second phase: submitBid stores encrypted → operator
-     * decrypts off-chain → revealWinner publishes the result.
+     * Legacy revealWinner — was onlyOwner. Lifted in Option B:
+     * - Keeps the operator-decrypt-then-call signature, but anyone may now
+     *   call. The trust model shifts to: any caller may post a winner, but
+     *   doing so commits the round.state to a winner that downstream
+     *   consumers (executeWinner, audit log) treat as canonical. Use
+     *   publishWinner for the manager-decrypt-and-publish pattern instead.
      */
     function revealWinner(
         bytes32 roundId,
         address winner,
         uint256 winningBid
-    ) external onlyOwner {
+    ) external {
         Round storage r = rounds[roundId];
         require(r.status == RoundStatus.Closed, "round not closed");
         require(winner != address(0), "invalid winner");
@@ -175,6 +191,47 @@ contract SealedBidVendorSelection {
         r.status = RoundStatus.Revealed;
 
         emit WinnerRevealed(roundId, winner, winningBid);
+    }
+
+    /**
+     * Publish the winning bid after the manager decrypts bid amounts
+     * off-chain via CoFHE decryptForView. The caller must be the round
+     * manager — the one who runs the manager-decrypt step and holds the
+     * CoFHE permit. The thresholdSignatures parameter is captured for ABI
+     * compatibility with future coFHE library versions that ship
+     * FHE.verifyDecryptResult; on those versions we can cryptographically
+     * verify each (bidIndex, plaintext, thresholdSignature) tuple against
+     * bids[roundId][bidIndex].encryptedAmount before committing the winner.
+     */
+    function publishWinner(
+        bytes32 roundId,
+        address winner,
+        uint256 winningBid,
+        uint256[] calldata bidIndexes,
+        bytes[] calldata thresholdSignatures
+    ) external onlyManager(roundId) {
+        Round storage r = rounds[roundId];
+        require(r.status == RoundStatus.Closed, "round not closed");
+        require(r.bidCount > 0, "no bids submitted");
+        require(winner != address(0), "invalid winner");
+        require(bidIndexes.length == thresholdSignatures.length, "signatures length");
+        require(bidIndexes.length == r.bidCount, "bid count mismatch");
+
+        // TODO: when @fhenixprotocol/cofhe-contracts ships verifyDecryptResult,
+        // verify each (bidIndex, plaintext, thresholdSignature) tuple against
+        // bids[roundId][bidIndex].encryptedAmount. Identity check (msg.sender
+        // == r.manager) is the current trust gate — the manager is the CoFHE
+        // permit holder and is the only party that can run decryptForView for
+        // these bid cts anyway. The threshold-signatures array is present
+        // so the upgrade is non-breaking.
+        bidIndexes;
+        thresholdSignatures;
+
+        r.winner = winner;
+        r.winningBid = winningBid;
+        r.status = RoundStatus.Revealed;
+
+        emit WinnerPublished(roundId, winner, winningBid);
     }
 
     /**

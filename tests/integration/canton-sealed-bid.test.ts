@@ -187,21 +187,13 @@ describe.skipIf(!sandboxUp)("Canton sealed-bid backend (live sandbox)", () => {
     expect(resultQuery.contracts[0].payload.winningProposal).toBe("0x2b");
   });
 
-  it("FHE backend still throws 'not wired' on reveal", async () => {
-    const round = await svc.createRound(
-      {
-        description: "FHE control",
-        serviceCategory: "control",
-        deadline: new Date(Date.now() + 24 * 3600e3).toISOString(),
-        maxBids: 3,
-      },
-      "fhe-manager",
-    );
-    expect(round.backend).toBe("fhe");
-    await expect(
-      svc.revealWinner(round.roundId, { selectionMethod: "lowest-bid" }),
-    ).rejects.toThrow(/not wired|Round must be closed|No bids submitted/);
-  });
+  // FHE backend assertions live in tests/unit/SealedBidService.test.ts
+  // (decryptionProof required, lowest-bid happy path, specific selection,
+  // missing-plaintext guard), since SealedBidService's constructor always
+  // registers an in-memory FHE backend regardless of which integration
+  // backends are present. A "Canton-only denies fhe" assertion would be
+  // structurally wrong here — the integration test exercises Canton
+  // alone, not the cross-backend gating layer.
 
   // ── Privacy invariants ───────────────────────────────────────────────────
   // The next two tests verify the sub-transaction privacy property encoded

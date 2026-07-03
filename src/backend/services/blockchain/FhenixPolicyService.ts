@@ -101,9 +101,12 @@ export interface FhenixClientAdapter {
 
 const ABI = parseAbi([
   'function evaluateSpend(bytes32 agentId, bytes32 policyId, (uint256 ctHash, uint8 securityZone, uint8 utype, bytes signature) amountCt, bytes32 vendorHash) external returns (bytes32)',
+  'function publishSpendResult(bytes32 decisionId, uint8 plaintext) external',
   'function resolveDecision(bytes32 decisionId, uint8 outcome) external',
   'function requestDeFiAction(bytes32 agentId, bytes32 policyId, (uint256 ctHash, uint8 securityZone, uint8 utype, bytes signature) amountCt, address target, bytes data) external returns (bytes32)',
   'event SpendEvaluated(bytes32 indexed decisionId, bytes32 indexed agentId, bytes32 indexed policyId, uint8 outcome, bytes attestation)',
+  'event DecisionPublished(bytes32 indexed decisionId, uint8 outcome)',
+  'event DecisionResolved(bytes32 indexed decisionId, uint8 outcome)',
 ]);
 
 /**
@@ -401,8 +404,42 @@ export class FhenixPolicyService {
   }
 
   /**
-   * Resolve a pending decision on-chain with the actual FHE outcome.
-   * Commits the outcome and triggers Hyperlane dispatch to GovernanceContract.
+   * Publish a pending spend evaluation's plaintext result on-chain.
+   *
+   * Replaces the operator-decrypt-then-call pattern. The caller (the
+   * submitter from evaluateSpend) decrypted the encrypted result handle
+   * off-chain using CoFHE decryptForView with their permit; here they
+   * publish the plaintext back, the contract verifies msg.sender matches
+   * the original submitter, and the same Hyperlane dispatch fires as
+   * resolveDecision would have. When @fhenixprotocol/cofhe-contracts
+   * ships verifyDecryptResult, this method can layer real cryptographic
+   * verification on top without breaking the call shape.
+   *
+   * Both publishSpendResult and resolveDecision coexist for backward
+   * compatibility with operator-side tooling (FheDecisionWatcher)
+   * that hasn't migrated to the new flow.
+   */
+  async publishSpendResult(
+    decisionId: string,
+    plaintextOutcome: ConfidentialOutcome,
+  ): Promise<string> {
+    await this.ensureConnected();
+    const outcomeNum =
+      plaintextOutcome === 'approve' ? 2 : plaintextOutcome === 'hold' ? 1 : 0;
+    const hash = await this.walletClient.writeContract({
+      address: this.config.contractAddress as Hex,
+      abi: ABI,
+      functionName: 'publishSpendResult',
+      args: [decisionId as Hex, outcomeNum],
+    });
+    await this.publicClient.waitForTransactionReceipt({ hash });
+    return hash;
+  }
+
+  /**
+   * Legacy operator-decrypt-then-call path. Kept for the FheDecisionWatcher
+   * fallback. The contract's onlyOwner restriction has been lifted; the
+   * identity gate is now in publishSpendResult (Option B trust model).
    */
   async resolveDecision(decisionId: string, outcome: ConfidentialOutcome): Promise<string> {
     await this.ensureConnected();
