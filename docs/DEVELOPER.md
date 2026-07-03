@@ -199,7 +199,7 @@ pnpm lint
 
 ### TestSprite Integration Tests
 
-The project includes 20 TestSprite backend tests (550 assertions) that run against the live production API at `https://cognivern.thisyearnofear.com`. These are not mock tests — every assertion hits real HTTP endpoints.
+The project includes 24 TestSprite CLI backend tests + 30 MCP-generated Playwright frontend tests (~600 assertions) that run against the live production API at `https://cognivern.thisyearnofear.com`. These are not mock tests — every assertion hits real HTTP endpoints.
 
 ```bash
 # List all tests
@@ -223,7 +223,7 @@ The write-verify-fix loop caught 15 real production bugs during the hackathon, a
 - [x] Error boundaries, circuit breakers, code splitting
 - [x] Sensitive data redaction in public proofs
 - [x] Unit + integration tests, CI pipeline
-- [x] TestSprite integration suite (20 tests, 550 assertions, 16 bugs found/fixed)
+- [x] TestSprite integration suite (24 CLI + 30 MCP frontend tests, 16 bugs found/fixed)
 - [x] Multi-provider AI routing (6 providers)
 - [x] Rate limiting on public endpoints (configurable per-endpoint)
 - [x] SIWE wallet auth + JWT with nonce replay protection

@@ -149,6 +149,8 @@ Code: `contracts/fhenix/src/ConfidentialSpendPolicy.sol`, `src/backend/services/
 
 Canton (Daml) is a swappable settlement backend for cognivern's sealed-bid vendor selection. The Fhenix-backed sealed-bid path holds bids as CoFHE ciphertext handles but can't complete the reveal; the Canton backend rewrites the settlement layer so the reveal actually works — atomically, in one transaction — while giving structural sub-transaction privacy that FHE alone can't.
 
+The Canton path is locked against future Daml refactors by a literal-value canary in the post-reveal `AuctionResult` assertion (`winningProposal === "0x2b"` for the bid whose `proposalHash` was pinned in `submitBid`). Four live-sandbox invariants in `tests/integration/canton-sealed-bid.test.ts` cover the settlement + privacy surface — see [`docs/CANTON.md`](./CANTON.md).
+
 ### Backend adapter pattern
 
 `SealedBidService` (`src/backend/services/blockchain/SealedBidService.ts`) is a thin async dispatcher over the `SealedBidBackend` interface. Rounds pick their backend at create time via a `backend: "fhe" | "canton"` field; the dispatcher records `roundId → backendName` and routes subsequent calls (`submitBid`, `closeRound`, `revealWinner`) to the owning backend.

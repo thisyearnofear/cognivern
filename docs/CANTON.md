@@ -113,7 +113,12 @@ For a longer-lived deployment, swap `daml start` for a Canton participant config
 
 Two suites cover the sealed-bid backends:
 
-- **Vitest integration** — `tests/integration/canton-sealed-bid.test.ts` boots against a live sandbox on `localhost:7575` and asserts all five privacy invariants (manager sees all bids, each bidder sees only their own, atomic reveal archives losers without disclosure, `AuctionResult` reaches all bidders, FHE reveal still throws "not wired"). Auto-skips when the sandbox isn't reachable so it's safe in the default suite.
+- **Vitest integration** — `tests/integration/canton-sealed-bid.test.ts` boots against a live sandbox on `localhost:7575` and asserts four invariants end-to-end against the Daml JSON Ledger API:
+  - **(1) Atomic settlement + winner→winningProposal pass-through** — `create → SubmitBid × 3 → close → CloseAndReveal` picks the right winner, archives every losing `Bid` on-ledger, and the post-reveal ledger read returns zero active `Bid` contracts and exactly one `AuctionResult` whose `winningProposal` field equals the winning bid's `proposalHash` (a literal-value canary that locks the `CloseAndReveal` winner→winningProposal mapping against future Daml refactors).
+  - **(2) FHE non-regression** — `revealWinner` on the FHE path still throws `"threshold decryption … not wired"` so any future ceremony wire-up is a visible event, not a silent divergence.
+  - **(3) Per-round visibility** — each individual bidder sees exactly their own bid for a round (matched by `payload.bidder === partyId`, not just count); manager sees all three.
+  - **(4) Cross-leakage guard** — querying the `Bid` template as any individual bidder, at ledger-wide scope, returns only contracts where that bidder is the signatory.
+  Round-table queries flow through a single describe-scoped `findRoundOn<T extends { roundId: string }>` helper so a Daml model change that drops `roundId` from a payload fails the file at typecheck. `expect.soft()` propagates per-bidder failures to teardown instead of truncating at the first failing assertion. Auto-skips when the sandbox isn't reachable so it's safe in the default suite.
 - **TestSprite CLI** — `.testsprite/tests/sealed_bid_canton_backend.py` runs against the prod URL: full lifecycle with atomic reveal, `backend` field discoverability, reveal-before-close rejection, unknown-bidder rejection. Sits alongside `sealed_bid_endpoints.py` which covers the FHE path.
 
 ## Runbook — DevNet migration

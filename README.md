@@ -2,34 +2,18 @@
 
 **SpendOS for agent teams.**
 
-Cognivern is a control plane for agent operations: governed wallet spend plus AI spend governance across IDE, CLI, and agent workflows. Every spend can be policy-checked, privacy-preserving, efficiency-aware, and audit-ready.
+Control plane for agent operations: governed wallet spend + AI spend governance across IDE, CLI, and agent workflows. Every spend is policy-checked, privacy-preserving, efficiency-aware, and audit-ready.
 
 **Live:** [Frontend](https://cognivern.vercel.app) · [API](https://cognivern.thisyearnofear.com) · [PromptOS Terminal](https://cognivern.vercel.app/os)
 
-## TestSprite Verification Loop
+## Key Features
 
-This project uses [TestSprite CLI](https://github.com/TestSprite/testsprite-cli) as the checker in a write → verify → fix loop. The agent ships code, the CLI runs real tests against the live API, and failures drive fixes.
-
-- **Test suite:** 24 CLI backend tests (Canton sealed-bid coverage added: atomic reveal, per-round bid isolation, backend badge discoverability, eligibility enforcement) + 30 MCP AI-generated Playwright frontend tests — covering auth, health, metrics, FHE, intent, projects, sealed-bid auctions (FHE + Canton), MCP governance, agents, OWS, copilot, speech, spend (deep SpendOS), governance CRUD, market data, dashboard, workspace management, API keys, audit, webhooks, payroll, ingest, and all 16 frontend routes
-- **Loop log:** [LOOP.md](./LOOP.md) — agent-written, one line per iteration
-- **CI/CD:** Wired into GitHub Actions (`.github/workflows/testsprite.yml`) — every PR runs the full suite, fails the build on regressions
-- **Dashboard:** [CLI backend tests](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee) · [MCP frontend tests](https://www.testsprite.com/dashboard/mcp/tests/e82a0a8d-a5c5-4f3a-9ead-f3b9f6a37214)
-- **Submission:** [HACKATHON_SUBMISSION.md](./HACKATHON_SUBMISSION.md) — comprehensive hackathon summary
-
-### Bugs caught by the loop (12 total)
-
-1. `/api/governance/policies` returned 401 despite being a public endpoint — controller required `workspaceId` with no fallback
-2. `better-sqlite3` native bindings missing after deploy — `pnpm install --prod` didn't rebuild native modules
-3. `/api/spendos/status` in `PUBLIC_API_PATHS` but no route handler exists — 404
-4. Auth endpoints (`/auth/register`, `/auth/login`, `/auth/nonce`) blocked by `apiKeyMiddleware` — not in `PUBLIC_API_PATHS`
-5. Users table missing `email` column — inline migration had old schema with only `wallet_address`
-6. `wallet_address NOT NULL` constraint prevented email-based registration
-7. `/fhenix/encrypt`, `/metrics/ux-events`, `/mcp/governance-check`, `/speech/transcribe` missing from `PUBLIC_API_PATHS`
-8. Sealed-bid sub-paths (`/rounds/:roundId/bid`, `/close`, `/reveal`) not in `PUBLIC_API_PATHS` — added parameterized path matching
-9. Projects sub-paths (`/:projectId/usage`, `/:projectId/tokens`) not in `PUBLIC_API_PATHS`
-10. `/api/agents/sapience/status` returned 500 — "sapience" missing from `demoAgentNames` map
-11. `/api/cre/projects` returned 404 — route defined as `/projects` not `/cre/projects`
-12. `OwsWalletController.createAgent` and `OwsApiKeyController.createApiKey` threw errors without try/catch, crashing the server
+- **Policy enforcement** — Deny / hold / approve before spend based on budget, vendor, chain, risk.
+- **Confidential policy evaluation** — FHE on Fhenix so budgets and limits stay encrypted end-to-end.
+- **Confidential vendor selection** — Sealed-bid RFP auctions on Canton / Daml with structural sub-transaction privacy and atomic multi-party reveal — see [Canton docs](./docs/CANTON.md).
+- **Hardware signing** — Ledger DMK for high-value transactions with physical confirmation.
+- **Audit trail** — Every decision persisted with evidence, Filecoin + 0G dual-anchor.
+- **AI safety monitoring** — Multi-dimensional suspicion scoring — see [report](./scripts/hackathon/HACKATHON_REPORT.md).
 
 ## Quick Start
 
@@ -42,32 +26,27 @@ pnpm start
 Minimum `.env`:
 
 ```env
-API_KEY=development-api-key
-OWS_VAULT_SECRET=development-ows-vault-secret
-CHAINGPT_API_KEY=your-chaingpt-api-key  # Optional: Web3 LLM + Smart Contract Auditor
+API_KEY=your-api-key-here
+OWS_VAULT_SECRET=your-vault-secret
+CHAINGPT_API_KEY=your-chain-gpt-key   # Optional: Web3 LLM + audit
 ```
 
-For full setup, testing, and production deployment details see the [Developer Guide](./docs/DEVELOPER.md).
+For local setup, API reference, and production deployment, see the [Developer Guide](./docs/DEVELOPER.md).
 
-## Key Features
+## Verification
 
-- **Policy enforcement** — Define who/what/when rules before spend executes. Deny, hold, or approve based on budget, vendor, chain, and risk.
-- **Confidential policy evaluation** — Budgets and limits evaluated via FHE so agents can't see their own caps. Powered by Fhenix.
-- **Confidential vendor selection** — Sealed-bid B2B RFPs with atomic multi-party reveal on Canton (Daml). Bidders never see each other's amounts; the auctioneer picks a winner in one atomic transaction that archives losing bids without disclosing them. See [`docs/CANTON.md`](./docs/CANTON.md).
-- **Hardware signing** — Ledger DMK support for high-value transactions with physical confirmation.
-- **Audit trail** — Every decision persisted with evidence hashes, on-chain anchoring, and replayable event timelines. Canton lifecycle events (round created / bid submitted / winner revealed) flow into the CRE run ledger with signed evidence.
-- **AI safety monitoring** — Multi-dimensional suspicion scoring across rule violations, behavioral deviation, temporal anomaly, scope creep, and sabotage patterns. See the [AI Safety Report](./scripts/hackathon/HACKATHON_REPORT.md).
+24 CLI backend + 30 MCP frontend tests run against the live API. The [LOOP](./LOOP.md) is the write-verify-fix iteration log — sixteen production bugs caught and fixed during the build window. CI runs the suite on every PR via `.github/workflows/testsprite.yml`.
 
 ## Documentation
 
 | Doc | What's in it |
-|-----|-------------|
-| [Architecture](./docs/ARCHITECTURE.md) | System design, data flows, network roles, Fhenix/ChainGPT/Ledger integrations, native agents |
-| [Canton Backend](./docs/CANTON.md) | Daml sealed-bid model, runtime layout, env vars, model-change + DevNet migration runbooks |
-| [Developer Guide](./docs/DEVELOPER.md) | Getting started (no-code), local setup, API reference, testing, production readiness |
-| [Deployment](./docs/DEPLOYMENT.md) | Deploy to Hetzner, PM2, nginx, env vars, health checks |
-| [AI Safety Report](./scripts/hackathon/HACKATHON_REPORT.md) | Multi-dimensional suspicion scorer design, failure mode analysis, and cost-performance frontier evaluation |
-| [Hackathon Submission](./HACKATHON_SUBMISSION.md) | Comprehensive submission: test suite, 16 bugs found/fixed, architecture, integrations |
+|-----|--------------|
+| [Architecture](./docs/ARCHITECTURE.md) | System design, data flows, Fhenix / Canton / ChainGPT / Ledger integrations |
+| [Canton](./docs/CANTON.md) | Daml sealed-bid model, hydration, sandbox + DevNet runbooks |
+| [Developer Guide](./docs/DEVELOPER.md) | Local setup, API reference, testing, production readiness |
+| [Deployment](./docs/DEPLOYMENT.md) | Hetzner / PM2 / nginx, env vars, health checks |
+| [AI Safety](./scripts/hackathon/HACKATHON_REPORT.md) | Suspicion-scoring design, frontier evaluation |
+| [Hackathon Submission](./HACKATHON_SUBMISSION.md) | Track 1: Canton private RFP — full bug list |
 
 ## License
 
