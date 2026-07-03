@@ -3,3 +3,4 @@ install-links=false
 engine-strict=false
 audit=false
 fund=false
+auto-install-peers=false
