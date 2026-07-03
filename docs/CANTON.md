@@ -52,6 +52,26 @@ Every lifecycle step (create, submit, close, reveal) also fires `AuditLogService
 
 **Hetzner** — Daml SDK at `/home/deploy/.daml/`, `daml/` project synced to `/opt/cognivern/daml/`, launched via `pm2 start /opt/cognivern/daml/start-sandbox.sh --name cognivern-canton --interpreter bash`. Localhost-bound.
 
+## Demo state on boot
+
+`Main:setup` seeds three auctions in distinct lifecycle stages on every sandbox start, so visitors and the demo video land on a state that shows the full flow at a glance:
+
+| roundId | Description | Status | Notes |
+|---|---|---|---|
+| `demo-round-open` | Q1 penetration testing engagement | open, 2 of 3 bids in | invites the visitor to submit the third bid + toggle the party view |
+| `demo-round-closed` | Q3 cloud-hosting RFP — 3-year commit | open on ledger, 3 bids in | visitor drives Close → Reveal to watch the atomic reveal |
+| `demo-round-revealed` | Legal counsel retainer 2026 | revealed (Bob won @ $185k) | shows the completed lifecycle; losing bids archived and never disclosed |
+
+Because the ledger is in-memory, restart guarantees a clean known state rather than accumulating cruft — a feature, not a bug, for hackathon-window demos.
+
+## Hydration on cognivern-backend startup
+
+`CantonSealedBidBackend` runs `hydrateFromLedger()` once on construction. It queries all `SealedBidAuction` and `AuctionResult` contracts as the demo manager party (`Auctioneer`) and registers them in the off-ledger `rounds` Map, so any pre-seeded auctions become addressable through cognivern's public API without a manual re-index. Every public method awaits `this.ready` before touching the Map.
+
+The `SealedBidService` dispatcher's `resolveBackend(roundId)` falls back to probing every backend on cache miss, memoizing the result. This makes hydrated rounds addressable through `submitBid` / `closeRound` / `revealWinner` too — not just `getRound`.
+
+Startup log to confirm: `SealedBid[canton]: hydrated N open + M revealed round(s) from ledger`.
+
 ## Environment variables
 
 All optional — omit `CANTON_JSON_API_URL` and the backend simply isn't registered, and cognivern behaves as it did pre-Canton:
@@ -85,9 +105,16 @@ The `<pkgId>` is the deterministic hash of the compiled `.dar`. Rebuild changes 
 
 ## Runbook — sandbox restart
 
-The sandbox uses an in-memory ledger, so restarting `cognivern-canton` wipes on-chain state. The `Main:setup` script re-populates Auctioneer/Alice/Bob/Charlie + a demo auction on each start, but any prod-created rounds' contract IDs become stale.
+The sandbox uses an in-memory ledger, so restarting `cognivern-canton` wipes on-chain state. `Main:setup` re-populates the four demo parties plus the three seeded auctions on each boot, so the demo state is always fresh — but any prod-created rounds' contract IDs become stale.
 
 For a longer-lived deployment, swap `daml start` for a Canton participant configured with PostgreSQL persistence. See the Daml Canton docs on production configuration.
+
+## Test coverage
+
+Two suites cover the sealed-bid backends:
+
+- **Vitest integration** — `tests/integration/canton-sealed-bid.test.ts` boots against a live sandbox on `localhost:7575` and asserts all five privacy invariants (manager sees all bids, each bidder sees only their own, atomic reveal archives losers without disclosure, `AuctionResult` reaches all bidders, FHE reveal still throws "not wired"). Auto-skips when the sandbox isn't reachable so it's safe in the default suite.
+- **TestSprite CLI** — `.testsprite/tests/sealed_bid_canton_backend.py` runs against the prod URL: full lifecycle with atomic reveal, `backend` field discoverability, reveal-before-close rejection, unknown-bidder rejection. Sits alongside `sealed_bid_endpoints.py` which covers the FHE path.
 
 ## Runbook — DevNet migration
 

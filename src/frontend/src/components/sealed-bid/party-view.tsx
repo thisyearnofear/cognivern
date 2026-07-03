@@ -22,6 +22,16 @@ interface PartyViewProps {
   round: SealedBidRound;
 }
 
+// Copy the empty state should show based on where in the auction lifecycle
+// we are. A revealed round returning zero bids is not "no one has bid yet" —
+// the bid contracts were archived by the atomic CloseAndReveal transaction,
+// which is exactly the privacy guarantee we're demonstrating.
+function emptyStateMessage(status: SealedBidRound["status"]): string {
+  if (status === "revealed")
+    return "All bid contracts were archived by the atomic reveal. Losing amounts are never disclosed — the auctioneer's audit trail is the only record they existed.";
+  return "No bids submitted yet. Add one from the form above and it will appear here.";
+}
+
 // Interactive privacy demonstrator. The user picks a party and the bid
 // list dims out the entries that party cannot see on-ledger. This makes the
 // Canton sub-transaction privacy story visible to demo viewers without
@@ -114,7 +124,7 @@ export function PartyView({ round }: PartyViewProps) {
         })}
         {view.length === 0 && (
           <li className="text-xs text-muted-foreground italic">
-            No bids submitted yet.
+            {emptyStateMessage(round.status)}
           </li>
         )}
       </ul>

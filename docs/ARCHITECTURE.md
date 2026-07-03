@@ -175,7 +175,7 @@ Canton runs as a Daml sandbox managed by pm2:
 | Local dev | `~/.daml/`, project at `daml/` | run manually with `daml start --start-navigator=no` |
 | Hetzner | `/home/deploy/.daml/`, project at `/opt/cognivern/daml/` | `cognivern-canton` |
 
-Sandbox uses an in-memory ledger — restarting `cognivern-canton` wipes on-chain state, and the `Main:setup` script re-populates Auctioneer/Alice/Bob/Charlie parties + a demo auction on each start.
+Sandbox uses an in-memory ledger — restarting `cognivern-canton` wipes on-chain state, and the `Main:setup` script re-populates Auctioneer/Alice/Bob/Charlie parties plus three seeded auctions (open / awaiting reveal / already revealed) on each start. `CantonSealedBidBackend.hydrateFromLedger` runs once on cognivern-backend startup and registers those seeded auctions in the off-ledger `rounds` Map so they're immediately addressable through the public API.
 
 ```env
 CANTON_JSON_API_URL=http://127.0.0.1:7575     # required to register the Canton backend
