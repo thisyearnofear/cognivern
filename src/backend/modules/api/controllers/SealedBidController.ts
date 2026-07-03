@@ -16,15 +16,35 @@ import {
   SubmitBidRequest,
   RevealRequest,
 } from "@backend/services/blockchain/SealedBidService.js";
+import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
 import { Logger } from "@backend/shared/logging/Logger.js";
 
 const logger = new Logger("SealedBidController");
+
+// Fire-and-forget so audit anchoring never blocks the HTTP response. If the
+// CRE store or its downstream anchoring layers throw, we log and move on —
+// the auction lifecycle itself is authoritative on Canton, not in cognivern.
+function fireAndForgetAudit(
+  audit: AuditLogService,
+  eventType: string,
+  details: Record<string, unknown>,
+): void {
+  audit
+    .logEvent({
+      eventType,
+      agentType: "sealed_bid",
+      timestamp: new Date(),
+      details,
+    })
+    .catch((err) => logger.warn(`Audit anchor failed for ${eventType}`, err));
+}
 
 const createRoundSchema = z.object({
   description: z.string().min(1),
   serviceCategory: z.string().min(1),
   deadline: z.string().min(1),
   maxBids: z.number().int().positive(),
+  backend: z.enum(["fhe", "canton"]).optional(),
 });
 
 const submitBidSchema = z.object({
@@ -40,9 +60,14 @@ const revealSchema = z.object({
 
 export class SealedBidController {
   private sealedBidService: SealedBidService;
+  private auditLog: AuditLogService;
 
-  constructor(sealedBidService?: SealedBidService) {
+  constructor(
+    sealedBidService?: SealedBidService,
+    auditLog?: AuditLogService,
+  ) {
     this.sealedBidService = sealedBidService || sharedSealedBidService;
+    this.auditLog = auditLog || new AuditLogService();
   }
 
   /**
@@ -61,7 +86,8 @@ export class SealedBidController {
         return;
       }
 
-      const { description, serviceCategory, deadline, maxBids } = parse.data;
+      const { description, serviceCategory, deadline, maxBids, backend } =
+        parse.data;
       const manager =
         req.body.manager ||
         (req.headers["x-api-key"] as string) ||
@@ -72,8 +98,19 @@ export class SealedBidController {
         serviceCategory,
         deadline,
         maxBids,
+        backend,
       };
-      const round = this.sealedBidService.createRound(request, manager);
+      const round = await this.sealedBidService.createRound(request, manager);
+
+      fireAndForgetAudit(this.auditLog, "sealed_bid.round_created", {
+        roundId: round.roundId,
+        backend: round.backend,
+        manager: round.manager,
+        description: round.description,
+        serviceCategory: round.serviceCategory,
+        deadline: round.deadline,
+        maxBids: round.maxBids,
+      });
 
       res.status(201).json({
         success: true,
@@ -111,6 +148,18 @@ export class SealedBidController {
       const { bidder, amountUsd, proposalDetails } = parse.data;
       const request: SubmitBidRequest = { bidder, amountUsd, proposalDetails };
       const bid = await this.sealedBidService.submitBid(roundId, request);
+
+      // Note: amountUsd is intentionally excluded from the audit record — for
+      // Canton rounds only the auctioneer should ever see it, and the audit
+      // trail is fetched by anyone with an API key. proposalHash is a safe
+      // commitment; ratcheting up transparency happens at reveal time.
+      fireAndForgetAudit(this.auditLog, "sealed_bid.bid_submitted", {
+        roundId,
+        bidder: bid.bidder,
+        proposalHash: bid.proposalHash,
+        index: bid.index,
+        submittedAt: bid.submittedAt,
+      });
 
       res.status(201).json({
         success: true,
@@ -150,7 +199,14 @@ export class SealedBidController {
         (req.headers["x-api-key"] as string) ||
         "demo-manager";
 
-      const round = this.sealedBidService.closeRound(roundId, caller);
+      const round = await this.sealedBidService.closeRound(roundId, caller);
+
+      fireAndForgetAudit(this.auditLog, "sealed_bid.round_closed", {
+        roundId: round.roundId,
+        backend: round.backend,
+        bidCount: round.bids.length,
+        closedBy: caller,
+      });
 
       res.status(200).json({
         success: true,
@@ -198,6 +254,20 @@ export class SealedBidController {
 
       const round = await this.sealedBidService.revealWinner(roundId, request);
 
+      // The reveal is the point where transparency is legitimate: the winning
+      // amount and identity are meant to be public. Losing bids are already
+      // archived on-ledger without disclosure — we don't fabricate their
+      // amounts into the audit trail.
+      fireAndForgetAudit(this.auditLog, "sealed_bid.winner_revealed", {
+        roundId: round.roundId,
+        backend: round.backend,
+        selectionMethod: request.selectionMethod,
+        winner: round.winner,
+        winningBid: round.winningBid,
+        winningProposalHash: round.winningProposalHash,
+        totalBids: round.bids.length,
+      });
+
       res.status(200).json({
         success: true,
         data: {
@@ -233,7 +303,10 @@ export class SealedBidController {
       const { roundId } = req.params;
       const includeDecrypted = req.query.decrypted === "true";
 
-      const round = this.sealedBidService.getRound(roundId, includeDecrypted);
+      // includeDecrypted is a legacy toggle from the FHE flow; ciphertext
+      // handles are always returned as-is regardless of the flag.
+      void includeDecrypted;
+      const round = await this.sealedBidService.getRound(roundId);
       if (!round) {
         res.status(404).json({
           success: false,
@@ -266,7 +339,7 @@ export class SealedBidController {
    */
   async listRounds(req: Request, res: Response) {
     try {
-      const rounds = this.sealedBidService.listRounds();
+      const rounds = await this.sealedBidService.listRounds();
 
       const summary = rounds.map((r) => ({
         roundId: r.roundId,
@@ -279,6 +352,7 @@ export class SealedBidController {
         winner: r.winner,
         winningBid: r.winningBid,
         createdAt: r.createdAt,
+        backend: r.backend,
       }));
 
       res.status(200).json({

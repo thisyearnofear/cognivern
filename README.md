@@ -53,8 +53,9 @@ For full setup, testing, and production deployment details see the [Developer Gu
 
 - **Policy enforcement** — Define who/what/when rules before spend executes. Deny, hold, or approve based on budget, vendor, chain, and risk.
 - **Confidential policy evaluation** — Budgets and limits evaluated via FHE so agents can't see their own caps. Powered by Fhenix.
+- **Confidential vendor selection** — Sealed-bid B2B RFPs with atomic multi-party reveal on Canton (Daml). Bidders never see each other's amounts; the auctioneer picks a winner in one atomic transaction that archives losing bids without disclosing them. See [`docs/CANTON.md`](./docs/CANTON.md).
 - **Hardware signing** — Ledger DMK support for high-value transactions with physical confirmation.
-- **Audit trail** — Every decision persisted with evidence hashes, on-chain anchoring, and replayable event timelines.
+- **Audit trail** — Every decision persisted with evidence hashes, on-chain anchoring, and replayable event timelines. Canton lifecycle events (round created / bid submitted / winner revealed) flow into the CRE run ledger with signed evidence.
 - **AI safety monitoring** — Multi-dimensional suspicion scoring across rule violations, behavioral deviation, temporal anomaly, scope creep, and sabotage patterns. See the [AI Safety Report](./scripts/hackathon/HACKATHON_REPORT.md).
 
 ## Documentation
@@ -62,6 +63,7 @@ For full setup, testing, and production deployment details see the [Developer Gu
 | Doc | What's in it |
 |-----|-------------|
 | [Architecture](./docs/ARCHITECTURE.md) | System design, data flows, network roles, Fhenix/ChainGPT/Ledger integrations, native agents |
+| [Canton Backend](./docs/CANTON.md) | Daml sealed-bid model, runtime layout, env vars, model-change + DevNet migration runbooks |
 | [Developer Guide](./docs/DEVELOPER.md) | Getting started (no-code), local setup, API reference, testing, production readiness |
 | [Deployment](./docs/DEPLOYMENT.md) | Deploy to Hetzner, PM2, nginx, env vars, health checks |
 | [AI Safety Report](./scripts/hackathon/HACKATHON_REPORT.md) | Multi-dimensional suspicion scorer design, failure mode analysis, and cost-performance frontier evaluation |

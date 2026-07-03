@@ -1,6 +1,10 @@
 import { useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
-import { apiClient } from "@/lib/api-client";
+import {
+  apiClient,
+  type SealedBidRound,
+  type SealedBidRoundSummary,
+} from "@/lib/api-client";
 import { useDemoStore } from "@/stores/demo-store";
 import { useAuthStore } from "@/stores/auth-store";
 import {
@@ -162,6 +166,30 @@ export function useIntentMetrics() {
       averageLatency: 120,
       topActions: [],
     },
+  );
+}
+
+/* ── Sealed-bid vendor selection ── */
+
+export function useSealedBidRounds() {
+  return useApiWithDemo<SealedBidRoundSummary[]>(
+    "/api/vendor/sealed-bid/rounds",
+    async () =>
+      ((await apiClient.getSealedBidRounds()).data ||
+        []) as SealedBidRoundSummary[],
+    [],
+  );
+}
+
+export function useSealedBidRound(roundId: string | null) {
+  return useApiWithDemo<SealedBidRound | null>(
+    roundId ? `/api/vendor/sealed-bid/rounds/${roundId}` : null,
+    async () => {
+      if (!roundId) return null;
+      const res = await apiClient.getSealedBidRound(roundId);
+      return (res.data ?? null) as SealedBidRound | null;
+    },
+    null,
   );
 }
 

@@ -9,6 +9,7 @@ import {
   PlayCircle,
   Code2,
   Sparkles,
+  Gavel,
 } from "lucide-react";
 
 export interface NavItem {
@@ -64,6 +65,13 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Bot,
         href: "/copilot",
         description: "Agent mission console",
+      },
+      {
+        id: "sealed-bid",
+        label: "Sealed Bids",
+        icon: Gavel,
+        href: "/sealed-bid",
+        description: "Confidential vendor RFPs — Canton privacy",
       },
     ],
   },

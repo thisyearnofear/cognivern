@@ -55,11 +55,25 @@ const aiConfigSchema = z.object({
   GEMINI_API_KEY: z.string().optional(),
 });
 
+// Canton (Daml Ledger) configuration. All optional — if CANTON_JSON_API_URL
+// is unset the canton sealed-bid backend is simply not registered and the
+// server behaves exactly as it did before.
+const cantonConfigSchema = z.object({
+  CANTON_JSON_API_URL: z.string().optional(),
+  CANTON_APPLICATION_ID: z.string().default("cognivern"),
+  CANTON_LEDGER_ID: z.string().default("sandbox"),
+  CANTON_JWT_SECRET: z.string().default(""),
+  CANTON_TEMPLATE_AUCTION: z.string().optional(),
+  CANTON_TEMPLATE_BID: z.string().optional(),
+  CANTON_TEMPLATE_RESULT: z.string().optional(),
+});
+
 // Combined configuration schema
 const configSchema = baseConfigSchema
   .merge(sapienceConfigSchema)
   .merge(apiConfigSchema)
-  .merge(aiConfigSchema);
+  .merge(aiConfigSchema)
+  .merge(cantonConfigSchema);
 
 // Parse and validate configuration
 const parseConfig = () => {

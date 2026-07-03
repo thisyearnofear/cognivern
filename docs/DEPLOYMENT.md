@@ -51,6 +51,36 @@ See `.env.example` for the full list. Minimum for production:
 
 Optional integrations: `FILECOIN_PRIVATE_KEY`, `FHENIX_PRIVATE_KEY`, `MONGODB_URI`, `CHAINGPT_API_KEY`, `OPENAI_API_KEY`. See `.env.example` for the complete list.
 
+Canton (Daml) backend for confidential sealed-bid rounds — all optional, backend simply isn't registered if `CANTON_JSON_API_URL` is absent:
+
+| Variable | Purpose |
+| -------- | ------- |
+| `CANTON_JSON_API_URL` | Daml JSON API URL (typically `http://127.0.0.1:7575` for a local sandbox) |
+| `CANTON_APPLICATION_ID` | Any string; embedded in JWT `applicationId` claim |
+| `CANTON_LEDGER_ID` | `sandbox` for the bundled sandbox; matches participant config for real deployments |
+| `CANTON_JWT_SECRET` | HS256 signing secret (empty for sandbox, set for auth-enabled participants) |
+| `CANTON_TEMPLATE_AUCTION` | `<pkgId>:Main:SealedBidAuction` |
+| `CANTON_TEMPLATE_BID` | `<pkgId>:Main:Bid` |
+| `CANTON_TEMPLATE_RESULT` | `<pkgId>:Main:AuctionResult` |
+
+See [`docs/CANTON.md`](./CANTON.md) for the model-change and DevNet-migration runbooks.
+
+## Canton Sandbox Process (Hetzner)
+
+The Daml sandbox that backs the Canton sealed-bid path runs as its own pm2 process alongside `cognivern-backend`:
+
+```bash
+# Launcher (in repo): daml/start-sandbox.sh — deployed to /opt/cognivern/daml/
+pm2 start /opt/cognivern/daml/start-sandbox.sh --name cognivern-canton --interpreter bash
+pm2 save
+```
+
+The launcher runs `daml start --start-navigator=no` from `/opt/cognivern/daml/`. It binds `127.0.0.1:7575` (JSON API) and `:6865` (gRPC ledger API) — localhost-only, not exposed publicly. Consumes roughly 500 MB RSS.
+
+**In-memory ledger** — a `pm2 restart cognivern-canton` wipes on-chain state, and the Daml `Main:setup` script re-populates Auctioneer/Alice/Bob/Charlie parties + a demo auction on each start. For persistent deployments, swap `daml start` for a Canton participant configured with PostgreSQL storage.
+
+To deploy a Daml model change: sync `daml/` to the server, `daml build` on the server to produce a new `.dar`, extract the new pkgId, update the three `CANTON_TEMPLATE_*` env vars, and `pm2 restart cognivern-canton && pm2 restart cognivern-backend --update-env`.
+
 ## PM2 Management
 
 ```bash

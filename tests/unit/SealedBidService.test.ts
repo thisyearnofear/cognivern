@@ -38,9 +38,9 @@ function createService() {
 }
 
 describe('SealedBidService', () => {
-  it('createRound creates a round and assigns a roundId', () => {
+  it('createRound creates a round and assigns a roundId', async () => {
     const service = new SealedBidService();
-    const round = service.createRound(defaultRound, 'manager-1');
+    const round = await service.createRound(defaultRound, 'manager-1');
     expect(round.roundId).toBeTruthy();
     expect(round.roundId.startsWith('0x')).toBeTruthy();
     expect(round.description).toBe('IT Services Q3');
@@ -50,18 +50,19 @@ describe('SealedBidService', () => {
     expect(round.maxBids).toBe(5);
     expect(round.bids.length).toBe(0);
     expect(round.createdAt).toBeTruthy();
+    expect(round.backend).toBe('fhe');
   });
 
-  it('createRound generates unique roundIds', () => {
+  it('createRound generates unique roundIds', async () => {
     const service = new SealedBidService();
-    const round1 = service.createRound(defaultRound, 'manager-1');
-    const round2 = service.createRound(defaultRound, 'manager-1');
+    const round1 = await service.createRound(defaultRound, 'manager-1');
+    const round2 = await service.createRound(defaultRound, 'manager-1');
     expect(round1.roundId).not.toBe(round2.roundId);
   });
 
   it('submitBid adds a bid to an open round', async () => {
     const service = createService();
-    const round = service.createRound(defaultRound, 'manager-1');
+    const round = await service.createRound(defaultRound, 'manager-1');
     const bid = await service.submitBid(round.roundId, defaultBid());
 
     expect(bid.encryptedAmount).toContain('ctHash');
@@ -81,8 +82,8 @@ describe('SealedBidService', () => {
 
   it('submitBid throws if round is not open', async () => {
     const service = createService();
-    const round = service.createRound(defaultRound, 'manager-1');
-    service.closeRound(round.roundId, 'manager-1');
+    const round = await service.createRound(defaultRound, 'manager-1');
+    await service.closeRound(round.roundId, 'manager-1');
 
     await expect(service.submitBid(round.roundId, defaultBid())).rejects.toThrow(
       /Round is not open for bids/,
@@ -91,7 +92,7 @@ describe('SealedBidService', () => {
 
   it('submitBid throws if past deadline', async () => {
     const service = createService();
-    const round = service.createRound({ ...defaultRound, deadline: pastDate() }, 'manager-1');
+    const round = await service.createRound({ ...defaultRound, deadline: pastDate() }, 'manager-1');
 
     await expect(service.submitBid(round.roundId, defaultBid())).rejects.toThrow(
       /Past round deadline/,
@@ -100,7 +101,7 @@ describe('SealedBidService', () => {
 
   it('submitBid throws if max bids reached', async () => {
     const service = createService();
-    const round = service.createRound({ ...defaultRound, maxBids: 2 }, 'manager-1');
+    const round = await service.createRound({ ...defaultRound, maxBids: 2 }, 'manager-1');
 
     await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorA' }));
     await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorB' }));
@@ -112,7 +113,7 @@ describe('SealedBidService', () => {
 
   it('submitBid throws if bidder already submitted', async () => {
     const service = createService();
-    const round = service.createRound(defaultRound, 'manager-1');
+    const round = await service.createRound(defaultRound, 'manager-1');
 
     await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorA' }));
 
@@ -123,7 +124,7 @@ describe('SealedBidService', () => {
 
   it('submitBid without proposalDetails still generates a proposalHash', async () => {
     const service = createService();
-    const round = service.createRound(defaultRound, 'manager-1');
+    const round = await service.createRound(defaultRound, 'manager-1');
 
     const bid = await service.submitBid(round.roundId, defaultBid({ proposalDetails: undefined }));
 
@@ -132,8 +133,8 @@ describe('SealedBidService', () => {
 
   it('submitBid with proposalDetails has deterministic proposalHash', async () => {
     const service = createService();
-    const round1 = service.createRound(defaultRound, 'manager-1');
-    const round2 = service.createRound(defaultRound, 'manager-1');
+    const round1 = await service.createRound(defaultRound, 'manager-1');
+    const round2 = await service.createRound(defaultRound, 'manager-1');
 
     const bid1 = await service.submitBid(
       round1.roundId,
@@ -149,7 +150,7 @@ describe('SealedBidService', () => {
 
   it('submitBid increments bid index correctly', async () => {
     const service = createService();
-    const round = service.createRound(defaultRound, 'manager-1');
+    const round = await service.createRound(defaultRound, 'manager-1');
 
     const bid1 = await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorA' }));
     const bid2 = await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorB' }));
@@ -160,43 +161,47 @@ describe('SealedBidService', () => {
     expect(bid3.index).toBe(2);
   });
 
-  it('closeRound closes an open round', () => {
+  it('closeRound closes an open round', async () => {
     const service = new SealedBidService();
-    const round = service.createRound(defaultRound, 'manager-1');
-    const closed = service.closeRound(round.roundId, 'manager-1');
+    const round = await service.createRound(defaultRound, 'manager-1');
+    const closed = await service.closeRound(round.roundId, 'manager-1');
     expect(closed.status).toBe('closed');
   });
 
-  it('closeRound throws for non-existent round', () => {
+  it('closeRound throws for non-existent round', async () => {
     const service = new SealedBidService();
-    expect(() => service.closeRound('0xdead', 'manager-1')).toThrow(/Round 0xdead not found/);
+    await expect(service.closeRound('0xdead', 'manager-1')).rejects.toThrow(
+      /Round 0xdead not found/,
+    );
   });
 
-  it('closeRound throws if caller is not manager', () => {
+  it('closeRound throws if caller is not manager', async () => {
     const service = new SealedBidService();
-    const round = service.createRound(defaultRound, 'manager-1');
-    expect(() => service.closeRound(round.roundId, 'impostor')).toThrow(
+    const round = await service.createRound(defaultRound, 'manager-1');
+    await expect(service.closeRound(round.roundId, 'impostor')).rejects.toThrow(
       /Only the round manager can close the round/,
     );
   });
 
-  it('closeRound throws if round is already closed', () => {
+  it('closeRound throws if round is already closed', async () => {
     const service = new SealedBidService();
-    const round = service.createRound(defaultRound, 'manager-1');
-    service.closeRound(round.roundId, 'manager-1');
-    expect(() => service.closeRound(round.roundId, 'manager-1')).toThrow(/Round is already closed/);
+    const round = await service.createRound(defaultRound, 'manager-1');
+    await service.closeRound(round.roundId, 'manager-1');
+    await expect(service.closeRound(round.roundId, 'manager-1')).rejects.toThrow(
+      /Round is already closed/,
+    );
   });
 
-  it("revealWinner throws with 'not yet wired' (CoFHE not implemented)", async () => {
+  it("revealWinner throws with 'not wired' (CoFHE not implemented)", async () => {
     const service = createService();
-    const round = service.createRound(defaultRound, 'manager-1');
+    const round = await service.createRound(defaultRound, 'manager-1');
     await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorA', amountUsd: 30000 }));
     await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorB', amountUsd: 12000 }));
-    service.closeRound(round.roundId, 'manager-1');
+    await service.closeRound(round.roundId, 'manager-1');
 
     await expect(
       service.revealWinner(round.roundId, { selectionMethod: 'lowest-bid' }),
-    ).rejects.toThrow(/not yet wired/);
+    ).rejects.toThrow(/not wired/);
   });
 
   it('revealWinner throws for non-existent round', async () => {
@@ -208,7 +213,7 @@ describe('SealedBidService', () => {
 
   it('revealWinner throws if round is not closed', async () => {
     const service = createService();
-    const round = service.createRound(defaultRound, 'manager-1');
+    const round = await service.createRound(defaultRound, 'manager-1');
     await service.submitBid(round.roundId, defaultBid());
 
     await expect(service.revealWinner(round.roundId, defaultReveal())).rejects.toThrow(
@@ -218,49 +223,49 @@ describe('SealedBidService', () => {
 
   it('revealWinner throws if no bids in round', async () => {
     const service = new SealedBidService();
-    const round = service.createRound(defaultRound, 'manager-1');
-    service.closeRound(round.roundId, 'manager-1');
+    const round = await service.createRound(defaultRound, 'manager-1');
+    await service.closeRound(round.roundId, 'manager-1');
 
     await expect(service.revealWinner(round.roundId, defaultReveal())).rejects.toThrow(
       /No bids submitted in this round/,
     );
   });
 
-  it('getRound returns null for non-existent round', () => {
+  it('getRound returns null for non-existent round', async () => {
     const service = new SealedBidService();
-    const round = service.getRound('0xnonexistent');
+    const round = await service.getRound('0xnonexistent');
     expect(round).toBeNull();
   });
 
   it('getRound returns round with encrypted amounts', async () => {
     const service = createService();
-    const created = service.createRound(defaultRound, 'manager-1');
+    const created = await service.createRound(defaultRound, 'manager-1');
     await service.submitBid(created.roundId, defaultBid({ bidder: '0xVendorA', amountUsd: 15000 }));
 
-    const fetched = service.getRound(created.roundId);
+    const fetched = await service.getRound(created.roundId);
     expect(fetched).toBeTruthy();
     expect(fetched!.bids[0].encryptedAmount).toContain('ctHash');
   });
 
-  it('listRounds returns empty array initially', () => {
+  it('listRounds returns empty array initially', async () => {
     const service = new SealedBidService();
-    const rounds = service.listRounds();
+    const rounds = await service.listRounds();
     expect(Array.isArray(rounds)).toBeTruthy();
     expect(rounds.length).toBe(0);
   });
 
-  it('listRounds returns all created rounds', () => {
+  it('listRounds returns all created rounds', async () => {
     const service = new SealedBidService();
-    service.createRound(defaultRound, 'manager-1');
-    service.createRound({ ...defaultRound, description: 'Marketing Q3' }, 'manager-1');
-    service.createRound({ ...defaultRound, description: 'Infra Q3' }, 'manager-1');
-    const rounds = service.listRounds();
+    await service.createRound(defaultRound, 'manager-1');
+    await service.createRound({ ...defaultRound, description: 'Marketing Q3' }, 'manager-1');
+    await service.createRound({ ...defaultRound, description: 'Infra Q3' }, 'manager-1');
+    const rounds = await service.listRounds();
     expect(rounds.length).toBe(3);
   });
 
   it('full flow: create → bid → close → list', async () => {
     const service = createService();
-    const round = service.createRound(
+    const round = await service.createRound(
       {
         description: 'Security Audit Q3',
         serviceCategory: 'security',
@@ -279,12 +284,19 @@ describe('SealedBidService', () => {
       defaultBid({ bidder: '0xAuditFirmB', amountUsd: 28000 }),
     );
 
-    expect(service.getRound(round.roundId)!.bids.length).toBe(2);
+    expect((await service.getRound(round.roundId))!.bids.length).toBe(2);
 
-    service.closeRound(round.roundId, 'treasury-manager');
-    expect(service.getRound(round.roundId)!.status).toBe('closed');
+    await service.closeRound(round.roundId, 'treasury-manager');
+    expect((await service.getRound(round.roundId))!.status).toBe('closed');
 
-    const rounds = service.listRounds();
+    const rounds = await service.listRounds();
     expect(rounds.length).toBe(1);
+  });
+
+  it('createRound throws for a backend that is not configured', async () => {
+    const service = new SealedBidService();
+    await expect(
+      service.createRound({ ...defaultRound, backend: 'canton' }, 'manager-1'),
+    ).rejects.toThrow(/backend "canton" is not configured/);
   });
 });

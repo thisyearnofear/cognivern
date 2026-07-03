@@ -145,6 +145,55 @@ FHE evaluations take 10-30 seconds. The system handles this asynchronously:
 
 Code: `contracts/fhenix/src/ConfidentialSpendPolicy.sol`, `src/backend/services/FhenixPolicyService.ts`, `src/backend/cre/workflows/governance.ts`, `src/frontend/src/hooks/use-fhe-progress.ts`
 
+## Canton Integration — Confidential Vendor Selection
+
+Canton (Daml) is a swappable settlement backend for cognivern's sealed-bid vendor selection. The Fhenix-backed sealed-bid path holds bids as CoFHE ciphertext handles but can't complete the reveal; the Canton backend rewrites the settlement layer so the reveal actually works — atomically, in one transaction — while giving structural sub-transaction privacy that FHE alone can't.
+
+### Backend adapter pattern
+
+`SealedBidService` (`src/backend/services/blockchain/SealedBidService.ts`) is a thin async dispatcher over the `SealedBidBackend` interface. Rounds pick their backend at create time via a `backend: "fhe" | "canton"` field; the dispatcher records `roundId → backendName` and routes subsequent calls (`submitBid`, `closeRound`, `revealWinner`) to the owning backend.
+
+| Backend | File | Notes |
+|---|---|---|
+| `FheSealedBidBackend` | `sealed-bid/FheSealedBidBackend.ts` | Existing behavior: CoFHE ciphertext handles via `FhenixPolicyService.encryptValue`. Reveal throws "not wired". |
+| `CantonSealedBidBackend` | `sealed-bid/CantonSealedBidBackend.ts` | Maps `createRound → SealedBidAuction` create, `submitBid → SubmitBid` choice, `revealWinner → CloseAndReveal` choice. |
+
+### Daml model
+
+`daml/daml/Main.daml` defines three templates:
+
+- **`SealedBidAuction`** — signatory `manager`, observers `eligibleBidders`. Carries `roundId` for per-round bid isolation. Choice `SubmitBid` (nonconsuming) creates a Bid; choice `CloseAndReveal` (consuming) archives all bids and emits the AuctionResult atomically.
+- **`Bid`** — signatory `bidder`, observer `manager` only. Other bidders are **not** observers, so sub-transaction privacy is enforced by the ledger — no cryptography needed. Choice `Consume` (manager-controlled) allows the atomic reveal to archive it.
+- **`AuctionResult`** — signatory `manager`, observers all eligible bidders. Carries winner, winning amount, winning proposal hash.
+
+### Runtime
+
+Canton runs as a Daml sandbox managed by pm2:
+
+| Env | Location | pm2 name |
+|---|---|---|
+| Local dev | `~/.daml/`, project at `daml/` | run manually with `daml start --start-navigator=no` |
+| Hetzner | `/home/deploy/.daml/`, project at `/opt/cognivern/daml/` | `cognivern-canton` |
+
+Sandbox uses an in-memory ledger — restarting `cognivern-canton` wipes on-chain state, and the `Main:setup` script re-populates Auctioneer/Alice/Bob/Charlie parties + a demo auction on each start.
+
+```env
+CANTON_JSON_API_URL=http://127.0.0.1:7575     # required to register the Canton backend
+CANTON_APPLICATION_ID=cognivern
+CANTON_LEDGER_ID=sandbox
+CANTON_TEMPLATE_AUCTION=<pkgId>:Main:SealedBidAuction
+CANTON_TEMPLATE_BID=<pkgId>:Main:Bid
+CANTON_TEMPLATE_RESULT=<pkgId>:Main:AuctionResult
+```
+
+`<pkgId>` is the deterministic hash of the compiled `.dar` — same source produces the same hash on any machine. See [`docs/CANTON.md`](./CANTON.md) for the model-change and DevNet-migration runbooks.
+
+### Evidence anchoring
+
+`SealedBidController` fires `AuditLogService.logEvent` after every successful lifecycle step, so `sealed_bid.round_created`, `.bid_submitted`, `.round_closed`, and `.winner_revealed` events land in the CRE run ledger with signed evidence hashes. The `bid_submitted` event deliberately excludes `amountUsd` — Canton keeps that visible only to the auctioneer, so anchoring it into a broadly-readable audit log would break the privacy story. `winner_revealed` includes `winner` + `winningBid` because those are legitimately public at reveal time.
+
+Flow: agent or operator creates a round with `backend: "canton"` → `CantonSealedBidBackend.createRound()` creates the `SealedBidAuction` contract on-ledger → bidders submit via HTTP, cognivern maps them to Daml parties via `CantonPartyRegistry` and exercises `SubmitBid` → manager exercises `CloseAndReveal` atomically → cognivern reads the resulting `AuctionResult` and returns the winner. Every step leaves a signed CRE evidence record.
+
 ## ChainGPT Integration — Web3 AI Governance
 
 ChainGPT provides Web3-specialized LLM capabilities for governance analysis and runtime smart contract auditing.

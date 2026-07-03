@@ -753,6 +753,133 @@ class ApiClient {
       };
     }
   }
+
+  // ── Sealed-bid vendor selection ─────────────────────────────────────────
+  async getSealedBidRounds(): Promise<ApiResponse<SealedBidRoundSummary[]>> {
+    return this.fetch("/api/vendor/sealed-bid/rounds");
+  }
+
+  async getSealedBidRound(
+    roundId: string,
+  ): Promise<ApiResponse<SealedBidRound>> {
+    return this.fetch(`/api/vendor/sealed-bid/rounds/${encodeURIComponent(roundId)}`);
+  }
+
+  async createSealedBidRound(params: {
+    description: string;
+    serviceCategory: string;
+    deadline: string;
+    maxBids: number;
+    backend?: "fhe" | "canton";
+    manager?: string;
+  }): Promise<ApiResponse<SealedBidRound>> {
+    return this.fetch("/api/vendor/sealed-bid/rounds", {
+      method: "POST",
+      body: JSON.stringify(params),
+    });
+  }
+
+  async submitSealedBid(params: {
+    roundId: string;
+    bidder: string;
+    amountUsd: number;
+    proposalDetails?: string;
+  }): Promise<ApiResponse<SealedBid>> {
+    return this.fetch(
+      `/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/bid`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          bidder: params.bidder,
+          amountUsd: params.amountUsd,
+          proposalDetails: params.proposalDetails,
+        }),
+      },
+    );
+  }
+
+  async closeSealedBidRound(params: {
+    roundId: string;
+    manager?: string;
+  }): Promise<
+    ApiResponse<{ roundId: string; status: string; bidCount: number }>
+  > {
+    return this.fetch(
+      `/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/close`,
+      {
+        method: "POST",
+        body: JSON.stringify({ manager: params.manager }),
+      },
+    );
+  }
+
+  async revealSealedBidWinner(params: {
+    roundId: string;
+    selectionMethod: "lowest-bid" | "highest-bid" | "specific";
+    specificBidder?: string;
+  }): Promise<
+    ApiResponse<{
+      roundId: string;
+      winner: string;
+      winningBid: number;
+      winningProposalHash: string;
+      status: string;
+      totalBids: number;
+    }>
+  > {
+    return this.fetch(
+      `/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/reveal`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          selectionMethod: params.selectionMethod,
+          specificBidder: params.specificBidder,
+        }),
+      },
+    );
+  }
+}
+
+// Types for the sealed-bid endpoints. Kept in this file so both apiClient
+// and the frontend components share a single canonical shape without a
+// separate `types.ts` module for one feature.
+export type SealedBidBackendName = "fhe" | "canton";
+export type SealedBidRoundStatus = "open" | "closed" | "revealed";
+export interface SealedBid {
+  bidder: string;
+  encryptedAmount: string;
+  proposalHash: string;
+  status: "pending" | "selected" | "rejected";
+  submittedAt: string;
+  index: number;
+}
+export interface SealedBidRound {
+  roundId: string;
+  description: string;
+  serviceCategory: string;
+  manager: string;
+  deadline: string;
+  maxBids: number;
+  status: SealedBidRoundStatus;
+  bids: SealedBid[];
+  winner: string | null;
+  winningBid: number | null;
+  winningProposalHash: string | null;
+  createdAt: string;
+  backend?: SealedBidBackendName;
+}
+export interface SealedBidRoundSummary {
+  roundId: string;
+  description: string;
+  serviceCategory: string;
+  status: SealedBidRoundStatus;
+  bidCount: number;
+  maxBids: number;
+  deadline: string;
+  winner: string | null;
+  winningBid: number | null;
+  createdAt: string;
+  backend?: SealedBidBackendName;
 }
 
 export const apiClient = new ApiClient();

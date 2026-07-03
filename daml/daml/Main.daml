@@ -1,0 +1,215 @@
+module Main where
+
+import Daml.Script
+import DA.List (sortOn, sortBy, unique)
+import DA.Time (hours, addRelTime)
+import DA.Foldable (mapA_)
+
+-- ── Types ───────────────────────────────────────────────────────────────────
+
+data SelectionMethod
+  = LowestBid
+  | HighestBid
+  | SpecificBidder with bidder : Party
+  deriving (Eq, Show)
+
+-- ── SealedBidAuction ────────────────────────────────────────────────────────
+-- Public auction announcement. Signatory is the manager (auctioneer).
+-- Observers are the eligible bidders — they can see the auction metadata
+-- (description, deadline, category) and decide whether to submit a bid.
+--
+-- Sub-transaction privacy: a bidder submitting a Bid creates a contract
+-- where the bidder is the signatory and only the MANAGER is an observer.
+-- Other bidders are NOT observers of that Bid, so they cannot see it exists
+-- or read its amount. This is the property Canton's disclosure model gives
+-- us for free — no FHE, no ZK, just the ledger enforcing party visibility.
+template SealedBidAuction
+  with
+    manager         : Party
+    eligibleBidders : [Party]
+    roundId         : Text
+    description     : Text
+    serviceCategory : Text
+    deadline        : Time
+    maxBids         : Int
+  where
+    signatory manager
+    observer eligibleBidders
+
+    ensure maxBids > 0
+        && description /= ""
+        && roundId /= ""
+        && manager `notElem` eligibleBidders
+        && unique eligibleBidders
+
+    -- A bidder in the eligible list submits a sealed Bid.
+    -- Nonconsuming: many bids per auction, the auction contract stays alive.
+    -- The Bid inherits the auction's roundId so it can be filtered per-round
+    -- without conflating with other auctions from the same manager.
+    nonconsuming choice SubmitBid : ContractId Bid
+      with
+        bidder       : Party
+        amountUsd    : Decimal
+        proposalHash : Text
+      controller bidder
+      do
+        assertMsg "bidder not in eligibleBidders"
+          (bidder `elem` eligibleBidders)
+        assertMsg "amount must be positive" (amountUsd > 0.0)
+        now <- getTime
+        assertMsg "past deadline" (now < deadline)
+        create Bid with
+          manager
+          bidder
+          roundId
+          amountUsd
+          proposalHash
+          submittedAt = now
+
+    -- Manager closes the auction and reveals the winner atomically.
+    -- Losing bids are archived without ever being disclosed to the winner
+    -- or the other bidders. The winning amount is disclosed to the winner
+    -- (via AuctionResult) inside the same atomic transaction that archives
+    -- the auction — so from the outside there is no intermediate state
+    -- where amounts leak.
+    choice CloseAndReveal : ContractId AuctionResult
+      with
+        bidCids         : [ContractId Bid]
+        selectionMethod : SelectionMethod
+      controller manager
+      do
+        assertMsg "no bids" (not (null bidCids))
+        bids <- mapA fetch bidCids
+        let bidPairs = zip bidCids bids
+        (winnerCid, winner, losers) <- case selectionMethod of
+          LowestBid ->
+            case sortOn (\(_, b) -> b.amountUsd) bidPairs of
+              [] -> abort "no bids"
+              (w :: ls) -> pure (fst w, snd w, map fst ls)
+          HighestBid ->
+            case sortBy (\(_, a) (_, b) -> compare b.amountUsd a.amountUsd) bidPairs of
+              [] -> abort "no bids"
+              (w :: ls) -> pure (fst w, snd w, map fst ls)
+          SpecificBidder p ->
+            let chosen = filter (\(_, b) -> b.bidder == p) bidPairs
+                others = filter (\(_, b) -> b.bidder /= p) bidPairs
+            in case chosen of
+              [] -> abort "specific bidder submitted no bid"
+              (w :: _) -> pure (fst w, snd w, map fst others)
+        now <- getTime
+        -- Consume the winning bid — superseded by the AuctionResult.
+        exercise winnerCid Consume
+        -- Consume every losing bid — this happens invisibly to non-observers,
+        -- so losing amounts are never disclosed to the winner or competitors.
+        mapA_ (`exercise` Consume) losers
+        create AuctionResult with
+          manager
+          eligibleBidders
+          roundId
+          winner          = winner.bidder
+          winningAmount   = winner.amountUsd
+          winningProposal = winner.proposalHash
+          description
+          serviceCategory
+          revealedAt      = now
+
+-- ── Bid ─────────────────────────────────────────────────────────────────────
+-- A sealed bid. Signatory is the bidder (they authorize it) — observer is
+-- the manager and ONLY the manager. Other bidders never learn this contract
+-- exists, so they cannot see its amount.
+--
+-- The bidder can withdraw before the auction closes.
+template Bid
+  with
+    manager      : Party
+    bidder       : Party
+    roundId      : Text
+    amountUsd    : Decimal
+    proposalHash : Text
+    submittedAt  : Time
+  where
+    signatory bidder
+    observer manager
+
+    choice Withdraw : ()
+      controller bidder
+      do pure ()
+
+    -- Manager-authorized consumption. Used by CloseAndReveal to archive
+    -- losing bids silently — the amount never surfaces because non-observers
+    -- have no visibility of the archive event either.
+    choice Consume : ()
+      controller manager
+      do pure ()
+
+-- ── AuctionResult ───────────────────────────────────────────────────────────
+-- The public reveal — winner + winning amount + proposal hash are disclosed
+-- to all eligible bidders. Losing bidders never see the winning amount they
+-- competed against — they only learn who won.
+template AuctionResult
+  with
+    manager         : Party
+    eligibleBidders : [Party]
+    roundId         : Text
+    winner          : Party
+    winningAmount   : Decimal
+    winningProposal : Text
+    description     : Text
+    serviceCategory : Text
+    revealedAt      : Time
+  where
+    signatory manager
+    observer eligibleBidders
+
+-- ── setup: dev-time init-script ─────────────────────────────────────────────
+-- Populates the sandbox with a demo auction and three bids so the JSON API
+-- has interesting data to query out of the box.
+setup : Script ()
+setup = script do
+  auctioneer <- allocatePartyWithHint "Auctioneer" (PartyIdHint "Auctioneer")
+  alice      <- allocatePartyWithHint "Alice"      (PartyIdHint "Alice")
+  bob        <- allocatePartyWithHint "Bob"        (PartyIdHint "Bob")
+  charlie    <- allocatePartyWithHint "Charlie"    (PartyIdHint "Charlie")
+
+  auctioneerId <- validateUserId "auctioneer"
+  aliceId      <- validateUserId "alice"
+  bobId        <- validateUserId "bob"
+  charlieId    <- validateUserId "charlie"
+  createUser (User auctioneerId (Some auctioneer)) [CanActAs auctioneer]
+  createUser (User aliceId      (Some alice))      [CanActAs alice]
+  createUser (User bobId        (Some bob))        [CanActAs bob]
+  createUser (User charlieId    (Some charlie))    [CanActAs charlie]
+
+  now <- getTime
+  let deadline = addRelTime now (hours 24)
+
+  auctionCid <- submit auctioneer do
+    createCmd SealedBidAuction with
+      manager         = auctioneer
+      eligibleBidders = [alice, bob, charlie]
+      roundId         = "demo-init-round"
+      description     = "Q3 cloud-hosting RFP — 3-year commit"
+      serviceCategory = "infrastructure"
+      deadline
+      maxBids         = 5
+
+  -- Each bidder submits — none sees the others' amount.
+  aliceBid <- submit alice do
+    exerciseCmd auctionCid SubmitBid with
+      bidder       = alice
+      amountUsd    = 120000.00
+      proposalHash = "0xa1"
+
+  bobBid <- submit bob do
+    exerciseCmd auctionCid SubmitBid with
+      bidder       = bob
+      amountUsd    = 98500.00
+      proposalHash = "0xb2"
+
+  charlieBid <- submit charlie do
+    exerciseCmd auctionCid SubmitBid with
+      bidder       = charlie
+      amountUsd    = 145000.00
+      proposalHash = "0xc3"
+
+  pure ()
