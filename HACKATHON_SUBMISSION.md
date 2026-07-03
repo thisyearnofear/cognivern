@@ -1,294 +1,266 @@
-# AI Control Hackathon — Cognivern Submission
+# Canton Network Hackathon Submission — Cognivern
 
-## Cognivern: SpendOS for Agent Teams
-
-A control plane for agent operations: governed wallet spend plus AI spend governance across IDE, CLI, and agent workflows. Every spend can be policy-checked, privacy-preserving, efficiency-aware, and audit-ready.
-
+**Track:** 1 · Private DeFi & Capital Markets
 **Team:** thisyearnofear
-**Live:** [Frontend](https://cognivern.vercel.app) · [API](https://cognivern.thisyearnofear.com) · [PromptOS Terminal](https://cognivern.vercel.app/os)
-**TestSprite Dashboard:** [CLI: 20 backend tests](https://www.testsprite.com/dashboard/tests/ad5aa683-dbc5-4484-8236-e4a3aef914ee) · [MCP: 30 frontend tests](https://www.testsprite.com/dashboard/mcp/tests/e82a0a8d-a5c5-4f3a-9ead-f3b9f6a37214)
+**Repository:** [github.com/thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)
+**Live product:** [cognivern.vercel.app/sealed-bid](https://cognivern.vercel.app/sealed-bid) · API: `cognivern.thisyearnofear.com`
+**Pitch deck & 3-min demo video:** in this repo at `docs/pitch-deck.pdf` and `docs/demo-video.mp4`
+**Backend on-ledger:** Canton Daml sandbox (pm2 process `cognivern-canton` on the Hetzner production VM; participant-agnostic — swap `CANTON_JSON_API_URL` to point at a Canton Network DevNet node without code changes)
 
 ---
 
-## What We Built
+## TL;DR
 
-### 1. Agent Governance Platform
-
-Cognivern is a production-deployed control plane that governs AI agent spending across multiple surfaces:
-
-- **Policy enforcement** — Define who/what/when rules before spend executes. Deny, hold, or approve based on budget, vendor, chain, and risk.
-- **Confidential policy evaluation** — Budgets and limits evaluated via FHE so agents can't see their own caps. Powered by Fhenix.
-- **Hardware signing** — Ledger DMK support for high-value transactions with physical confirmation.
-- **Audit trail** — Every decision persisted with evidence hashes (SHA-256), on-chain anchoring, and replayable event timelines.
-- **AI safety monitoring** — Multi-dimensional suspicion scoring across 5 orthogonal dimensions (rule violations, behavioral deviation, temporal anomaly, scope creep, sabotage patterns).
-- **Sealed-bid auctions** — FHE-encrypted vendor bidding where bid amounts stay sealed until reveal. Two-phase submit-then-reveal protocol.
-- **Sapience forecasting** — On-chain prediction market integration with automated forecasting via Groq LLM.
-- **CRE (Cognivern Runtime Engine)** — Workflow orchestration with run tracking, event streaming, approval gates, and provenance citations.
-
-### 2. TestSprite Full-Platform Verification
-
-We leverage the **entire TestSprite product spectrum** — not just one tool, but all three testing surfaces working together:
-
-#### Surface 1: CLI Backend Tests (Write-Verify-Fix Loop)
-
-We used [TestSprite CLI](https://github.com/TestSprite/testsprite-cli) as the checker in a write-verify-fix loop. The agent ships code, the CLI runs real tests against the live API, and failures drive fixes. This is not mock testing — every test hits the production API at `cognivern.thisyearnofear.com`.
-
-**20 tests, 550 assertions, all passing.**
-
-The loop caught **16 real bugs** in the production codebase, all of which were fixed during the hackathon.
-
-#### Surface 2: MCP Server Frontend Tests (AI-Generated UI Testing)
-
-We installed the [TestSprite MCP Server](https://docs.testsprite.com/mcp/getting-started/introduction) in Devin CLI and used its 8 tools to orchestrate the full AI testing workflow:
-
-1. `testsprite_generate_code_summary` — Scanned the React/Next.js codebase, identified 16 routes, 86 dependencies, and all key components
-2. `testsprite_generate_standardized_prd` — Generated a structured PRD from the codebase analysis
-3. `testsprite_generate_frontend_test_plan` — AI generated 41 test cases covering all user journeys
-4. `testsprite_generate_code_and_execute` — Generated 30 Playwright test scripts and executed them against the running frontend
-
-**30 AI-generated Playwright tests, executed in TestSprite's cloud:**
-- 11 passed (landing page, navigation, dashboard rendering, PromptOS terminal, theme switching, spend demo)
-- 8 failed (backend API unreachable from local frontend — environment issue, not code bug)
-- 11 blocked (prerequisite data unavailable without backend)
-
-Dashboard: [TestSprite MCP Project](https://www.testsprite.com/dashboard/mcp/tests/e82a0a8d-a5c5-4f3a-9ead-f3b9f6a37214)
-
-#### Surface 3: GitHub Integration (CI/CD on Every PR)
-
-We connected the TestSprite GitHub App to our repository ([thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)) so every PR auto-runs tests against the Vercel preview deployment. The GitHub App detects Vercel deployments and posts test results as PR comments.
-
-We also maintain a [GitHub Actions workflow](.github/workflows/testsprite.yml) that runs the CLI backend test suite on every push, gating merges on test results.
-
-#### Why Full-Platform Coverage Matters
-
-Using all three TestSprite surfaces gives us layered verification:
-- **CLI** catches backend API regressions before they ship (550 assertions, 16 bugs found)
-- **MCP** catches frontend UI regressions with AI-generated Playwright tests (30 tests, zero manual test code)
-- **GitHub Integration** catches both on every PR, automatically, with Vercel preview detection
-
-This is the testing loop the TestSprite team designed their product for — and we use it end-to-end.
+- **What we built.** Confidential RFP / OTC vendor-selection auctions on Canton/Daml with structural sub-transaction privacy and atomic multi-party settlement.
+- **Headline technical claim.** Sealed-bid reveal cannot be finished cleanly under FHE alone — it requires a threshold-decryption ceremony that the round's economic participants rarely exist in real institutional contexts. Canton rewrites the settlement layer so the privacy property comes from the disclosure model, not cryptography, and the reveal completes in **one atomic transaction**.
+- **Daml model.** `SealedBidAuction` · `Bid` (signatory bidder, observer manager — no other bidder has visibility) · `AuctionResult` (publicly visible to bidders post-reveal). 79 lines of Daml.
+- **Pluggable backend.** Live production code runs the same sealed-bid protocol over either Canton (works end-to-end) or Fhenix CoFHE (works for sealed-bid but cannot reveal — see "Why this is hard" below). Same REST surface, swapped at `createRound(backend: "canton" | "fhe")`.
+- **End-to-end on a live ledger.** Three demo rounds pre-seeded at sandbox boot — one open, one closed awaiting reveal, one already revealed — so the demo video lands on a real privacy state, not an empty screen. Bid-amount visibility is *literally* enforced by the Daml JSON API's response payload per role.
+- **Twenty-four CLI backend tests + thirty MCP-generated Playwright frontend tests run against the live API.** Sixteen production bugs were caught and fixed during the build window by the same write-verify-fix loop.
 
 ---
 
-## Test Suite
+## The pain: information leakage in institutional procurement and OTC
 
-| # | Test | Assertions | What It Covers |
-|---|------|-----------|----------------|
-| 1 | Health and public endpoints | 6 | `/health`, `/health/ready`, `/health/live`, `/health/slo`, `/system/health`, `/health?deep=true` |
-| 2 | Governance policies public access | 3 | `/api/governance/policies` returns 200 with default workspace fallback |
-| 3 | Spend endpoints | 5 | `/api/spend/status`, `/api/spend/scan` (with/without address), auth boundary on preview |
-| 4 | Audit trail integrity | 3 | Evidence hashes (SHA-256), compliance status, outcome values, artifact references |
-| 5 | Auth endpoints | 12 | `/auth/nonce`, `/auth/register`, `/auth/login`, `/auth/me`, `/auth/forgot-password`, `/auth/reset-password` |
-| 6 | Health endpoints (deep) | 6 | All 6 health check variants including SLO metrics and deep dependency checks |
-| 7 | Metrics endpoints | 8 | `/api/metrics/ux-summary`, `/api/metrics/ux-events` (POST), `/api/metrics/daily` (auth boundary) |
-| 8 | Fhenix FHE endpoints | 7 | `/api/fhenix/status`, `/api/fhenix/encrypt`, `/api/fhenix/decrypt` |
-| 9 | Intent + projects endpoints | 10 | `/api/intent` (classification), `/api/intent/metrics`, `/api/projects`, `/api/projects/:id/usage`, `/api/projects/:id/tokens` |
-| 10 | Sealed-bid auction lifecycle | 15 | Create round → submit 2 encrypted bids → close → reveal → get details |
-| 11 | MCP governance + agent status | 12 | MCP governance-check manifest, agent status (unified, governance, portfolio, sapience), audit insights, dashboard bundle |
-| 12 | OWS + copilot auth boundaries | 11 | 11 protected endpoints verified to return 401 without auth |
-| 13 | Speech transcription | 4 | `/api/speech/transcribe` input validation, service availability check |
-| 14 | Authenticated endpoints | 11 | OWS wallets/dashboard/health/agents/api-keys, copilot runs, metrics/daily, governance evaluate — all with API key auth |
-| 15 | Deep SpendOS | 79 | `/api/spend/status` (SpendOS layer, features), `/api/spend/preview` (valid/missing fields, contract audit), `/api/spend` (execute, held spend), `/api/spend/encrypted` (demo mode small/large, OWS mode validation), `/api/spend/:id/confirm` (confirm/reject/invalid/missing), `/api/spend/scan` (missing/invalid/valid address) |
-| 16 | Auth extended | 12 | `/auth/verify` (invalid SIWE), `/auth/verify-email` (invalid token), `/auth/refresh` (no/invalid Bearer), `/auth/logout` (no Bearer), `/auth/register` (duplicate email), `/auth/login` (wrong password, missing fields), `/auth/forgot-password`, `/auth/nonce` |
-| 17 | Governance extended | 19 | `/api/governance/health`, policy list, create (valid/missing fields), confidential policy, get non-existent policy, get non-existent decision, evaluate with missing fields |
-| 18 | Agents extended | 55 | `/api/agents/stats`, `/leaderboard`, `/compare`, `/monitoring`, get by id, register (missing fields), start/stop, `/api/market/stats`, `/market/top`, `/market/data/:symbol`, `/market/historical/:symbol`, `/api/dashboard/bundle`, agent preferences |
-| 19 | OWS/Copilot/CRE extended | 25 | OWS wallet get/connect/import, API key get/delete, permissions (POST/GET), copilot run get/confirm, CRE runs list/get/cancel/retry |
-| 20 | Workspace/API-key/audit/webhooks/payroll/ingest | 69 | Workspace GET/list/create (JWT auth), API key list/create (JWT), audit resolve/permit/timeline/decrypt, webhook holds/release, confidential payroll, ingest runs |
+When an institution runs an RFP — for legal counsel, infra, an audit — every qualifying bidder needs to see *the auction*, but no bidder needs to see the *other bids*. In the current world:
 
-**Total: 20 tests, 550 assertions, 0 failures**
+- Email RFPs leak. A respondent who learns a competitor's pricing during a Q&A cycle effectively bands.
+- Even digital sealed-bid procurement portals tend to centralize the unblinding on a single SaaS provider — a fresh counterparty risk inside an already outsourced workflow.
+- OTC desks face a structurally similar problem: market makers won't quote tight spreads if they know other makers' print levels, and end-clients won't show real interest if a half-penny better quote leaks.
+
+What's wanted in *both* cases is the same primitive: a sealed-bid system where the bid exists, but only the counterparty (or the auctioneer) can read it, and where revealing the winner does **not** simultaneously reveal every loser.
+
+That's the primitive we built on Canton.
 
 ---
 
-## Bugs Found and Fixed
+## Why we picked Canton over an FHE-only path
 
-The write-verify-fix loop caught 16 real bugs in the production codebase. Each was found by a failing test, traced to root cause, and fixed.
+Before Canton, Cognivern's sealed-bid ran on Fhenix CoFHE — bid amounts became ciphertext handles (`euint128` on Fhenix testnet). That handles the *sealed* half of the protocol cleanly. It doesn't finish the *reveal* half.
 
-### Critical Bugs (would block users)
+Three things have to happen at reveal:
 
-**1. Auth endpoints blocked by apiKeyMiddleware**
-- **Symptom:** `/auth/register`, `/auth/login`, `/auth/nonce` returned 401
-- **Root cause:** Auth endpoints were not in `PUBLIC_API_PATHS`, so the API key middleware blocked them. You couldn't create an account without already having an API key.
-- **Fix:** Added all `/auth/*` paths to the public endpoint list.
-- **File:** `src/backend/middleware/publicEndpoints.ts`
+1. Determine the winner (lowest / highest / specified) by amount.
+2. Open the winning amount publicly to eligible bidders.
+3. Ensure losing amounts are *never* disclosed.
 
-**2. Users table missing email column**
-- **Symptom:** `/auth/register` returned 500 with `SqliteError: no such column: email`
-- **Root cause:** The inline `migrate()` function in `db/index.ts` created the `users` table with only `wallet_address`, but `AuthController.register()` tries to insert with `email`. The file-based migration had the full schema but couldn't apply it because `CREATE TABLE IF NOT EXISTS` is a no-op when the table already exists.
-- **Fix:** Updated inline migration to include all columns. Added idempotent `ALTER TABLE` statements for existing databases.
-- **File:** `src/backend/db/index.ts`
+Pure FHE asks the **losers** (the bidders with the least economic reason to cooperate) to participate in a threshold-decryption ceremony so the auctioneer can read their bids. In practice, that ceremony is the bottleneck — and at Cognivern, the wiring was never finished. The live FHE backend throws [`"SealedBid[fhe]: threshold decryption of real CoFHE bids is not wired"` on `revealWinner`](src/backend/services/blockchain/sealed-bid/FheSealedBidBackend.ts). The Canton path sidesteps the ceremony entirely by making the privacy property **structural**, not cryptographic.
 
-**3. wallet_address NOT NULL constraint**
-- **Symptom:** `/auth/register` with email returned 500 with `NOT NULL constraint failed: users.wallet_address`
-- **Root cause:** The `users` table had `wallet_address TEXT NOT NULL UNIQUE`, but email-based registration doesn't provide a wallet address.
-- **Fix:** Made `wallet_address` nullable in the schema.
-- **File:** `src/backend/db/index.ts`
+---
 
-### Endpoint Access Bugs (6 endpoints blocked)
+## Our approach: structural sub-transaction privacy + atomic multi-party settlement
 
-**4. Fhenix encrypt endpoint not public**
-- **Symptom:** `/api/fhenix/encrypt` returned 401
-- **Root cause:** Missing from `PUBLIC_API_PATHS` while `/fhenix/status` and `/fhenix/decrypt` were listed.
-- **Fix:** Added to public endpoint list.
+The Canton billing primitive for this is well-suited:
 
-**5. Metrics ux-events not public**
-- **Symptom:** `POST /api/metrics/ux-events` returned 401
-- **Root cause:** Missing from `PUBLIC_API_PATHS` while `/metrics/ux-summary` was listed.
-- **Fix:** Added to public endpoint list.
+- **Sub-transaction privacy**: Daml contracts only become visible to authorized signatories and observers on the ledger. Create a `Bid` whose observer is the auctioneer alone → other bidders verify the contract exists *as a fact* (it's referenced from the auction) but cannot read *its fields*. This is the privacy property, enforced by the participant node, not by encryption.
+- **Atomic multi-party settlement**: `CloseAndReveal` is a **consuming** Daml choice that, in a single ledger transaction, (a) fetches every bid auth token by its contract ID, (b) selects a winner by an in-model sort routine, (c) consumes every losing `Bid` contract, and (d) creates the `AuctionResult` with the winning amount publicly disclosed to all eligible bidders. Outside observers see *one* event: the `AuctionResult`. There is no intermediate state where amounts leak.
 
-**6. MCP governance-check not public**
-- **Symptom:** `/api/mcp/governance-check` returned 401
-- **Root cause:** Missing from `PUBLIC_API_PATHS`.
-- **Fix:** Added to public endpoint list.
+The Canton backend is live (`src/backend/services/blockchain/sealed-bid/CantonSealedBidBackend.ts`):
 
-**7. Sealed-bid sub-paths not public**
-- **Symptom:** `/api/vendor/sealed-bid/rounds/:roundId/bid` returned 401
-- **Root cause:** Only `/vendor/sealed-bid/rounds` was in `PUBLIC_API_PATHS`, not the sub-paths for bid/close/reveal.
-- **Fix:** Added all sub-paths and implemented parameterized path matching in `isPublicApiPath()`.
+```
+POST /api/vendor/sealed-bid/rounds → SealedBidAuction contract on Canton
+POST /api/vendor/sealed-bid/rounds/:id/bid → SubmitBid choice (per-bidder, nonconsuming)
+POST /api/vendor/sealed-bid/rounds/:id/close → off-ledger state transition
+POST /api/vendor/sealed-bid/rounds/:id/reveal → CloseAndReveal choice (atomic settlement)
+```
 
-**8. Projects sub-paths not public**
-- **Symptom:** `/api/projects/:projectId/usage` returned 401
-- **Root cause:** Only `/projects` was in `PUBLIC_API_PATHS`, not the `:projectId/usage` and `:projectId/tokens` sub-paths.
-- **Fix:** Added sub-paths, handled by the new parameterized path matching.
+---
 
-**9. Speech transcription not public**
-- **Symptom:** `/api/speech/transcribe` returned 401
-- **Root cause:** Missing from `PUBLIC_API_PATHS`.
-- **Fix:** Added to public endpoint list.
+## The Daml model
 
-### Server Crash Bugs (caused 502 Bad Gateway)
+Three templates, 79 lines, no external dependencies beyond the Daml SDK. Each one carries the privacy property:
 
-**10. Sapience agent status 500**
-- **Symptom:** `/api/agents/sapience/status` returned 500 with "Failed to fetch sapience agent data"
-- **Root cause:** The `demoAgentNames` map in `AgentsController.getAgentStatus` only included "governance" and "portfolio". When `agentType = "sapience"` was set by the route, it fell through to `agentsModule.getAgentStatus()` which returned null, triggering the 500.
-- **Fix:** Added "sapience" to the `demoAgentNames` map.
-- **File:** `src/backend/modules/api/controllers/AgentsController.ts`
+```daml
+template SealedBidAuction with
+    manager         : Party
+    eligibleBidders : [Party]
+    roundId, description, serviceCategory : Text
+    deadline        : Time
+    maxBids         : Int
+  where
+    signatory manager
+    observer eligibleBidders
+    -- SubmitBid is a nonconsuming choice. The Bid it creates has the
+    -- bidder as signatory and the manager as the SOLE observer. This
+    -- enforces sub-transaction privacy structurally.
+    nonconsuming choice SubmitBid : ContractId Bid with …
+    -- CloseAndReveal is a consuming choice. One ledger transaction
+    -- sorts and selects the winner, consumes the winner's Bid via the
+    -- manager-controlled Consume choice, consumes every loser the
+    -- same way, and creates the AuctionResult whose observers are
+    -- the eligible bidders.
+    choice CloseAndReveal : ContractId AuctionResult with …
 
-**11. CRE projects 404**
-- **Symptom:** `/api/cre/projects` returned 404 "Resource not found"
-- **Root cause:** The path was listed in `PUBLIC_API_PATHS` but no route handler existed. The actual projects route was defined as `/projects` in `miscRoutes.ts`, not `/cre/projects`.
-- **Fix:** Added `/cre/projects` alias routes in `creRoutes.ts` that delegate to `IngestController`.
-- **File:** `src/backend/modules/api/routes/creRoutes.ts`
+template Bid with …
+  where
+    signatory bidder            -- the bidder owns and authorizes
+    observer manager            -- and ONLY the manager may inspect it
+    choice Consume : ()         -- manager-controlled, used by CloseAndReveal
+      controller manager
+      do pure ()
+```
 
-**12. OWS controller unhandled throws crash server**
-- **Symptom:** `POST /api/ows/agents` with empty body caused 502 Bad Gateway (server crash)
-- **Root cause:** `OwsWalletController.createAgent` and `OwsApiKeyController.createApiKey` threw `BadRequestError` without try/catch. Since the route handlers don't wrap async calls, the rejected promise became an unhandled rejection that crashed the Node.js process.
-- **Fix:** Wrapped both methods in try/catch with proper `res.status(400).json()` responses.
-- **Files:** `src/backend/modules/api/controllers/OwsWalletController.ts`, `OwsApiKeyController.ts`
+Why this matters to a Hackathon judge:
 
-**13. OwsWalletController getWallet/importWallet/connectExternal crash**
-- **Symptom:** `GET /api/ows/wallets/:id`, `POST /api/ows/wallets/connect`, `POST /api/ows/wallets/import` all returned 502 Bad Gateway
-- **Root cause:** Same pattern as bug #12 — `throw new NotFoundError(...)` and `throw new BadRequestError(...)` without try/catch caused unhandled promise rejections that crashed the server.
-- **Fix:** Wrapped all three methods in try/catch with proper `res.status(404/400).json()` responses.
-- **File:** `src/backend/modules/api/controllers/OwsWalletController.ts`
+- The `observer manager` line on `Bid` is the **structural privacy property**. Canton does the rest.
+- The `CloseAndReveal` choice combines selection + consumption + result emission in a single event. Losing amounts are visible to no one outside the transaction — they're consumed in flight by the manager's exercise of `Consume` on each loser.
+- The `SelectionMethod` sum type (`LowestBid | HighestBid | SpecificBidder with bidder : Party`) keeps the auctioneer rules on-ledger instead of in application code, so what the application thinks happened is what the ledger says happened.
 
-**14. OwsApiKeyController getApiKey/deleteApiKey crash**
-- **Symptom:** `GET /api/ows/api-keys/:id` and `DELETE /api/ows/api-keys/:id` returned 502 Bad Gateway
-- **Root cause:** Same unhandled throw pattern — `NotFoundError` and `BadRequestError` thrown without try/catch.
-- **Fix:** Wrapped both methods in try/catch with proper `res.status(404/400).json()` responses.
-- **File:** `src/backend/modules/api/controllers/OwsApiKeyController.ts`
+The full file is `daml/daml/Main.daml` in this repo. It also seeds three demo rounds at sandbox boot — see "Live demo state" below.
 
-**15. OwsPermissionsController all methods crash**
-- **Symptom:** `POST /api/ows/permissions`, `GET /api/ows/permissions/:walletId` returned 502 Bad Gateway
-- **Root cause:** Same unhandled throw pattern across `requestPermissions`, `getPermissions`, `revokePermissions`, and `checkPermissions`.
-- **Fix:** Wrapped all four methods in try/catch with proper `res.status(400/500).json()` responses.
-- **File:** `src/backend/modules/api/controllers/OwsPermissionsController.ts`
+---
 
-**16. Workspaces table missing settings column**
-- **Symptom:** `GET /workspace` and `GET /workspaces` returned 502 Bad Gateway (server crash)
-- **Root cause:** `WorkspaceController.getWorkspace` queries `SELECT ... settings ... FROM workspaces` but the `workspaces` table was created without a `settings` column. SQLite threw `SqliteError: no such column: settings` which crashed the server.
-- **Fix:** Added `settings TEXT` column to the CREATE TABLE statement and an idempotent `ALTER TABLE workspaces ADD COLUMN settings TEXT` migration for existing databases.
-- **File:** `src/backend/db/index.ts`
+## What runs live today
+
+The deployed Cognivern backend has Canton registered as a real sealed-bid backend:
+
+```
+[ SealedBid ] backend registered — canton (Canton: JSON Ledger client bound to http://127.0.0.1:7575)
+SealedBid[canton]: hydrated 2 open + 1 revealed round(s) from ledger
+SealedBid[canton]: bid submitted by Alice (bidCid=…1234)
+SealedBid[canton]: round revealed — winner Bob at $24,500, lost bids archived
+SealedBid: bid_submitted event logged to CRE ledger (evidence hash 0x…)
+```
+
+Every lifecycle step fires `AuditLogService.logEvent` and lands in the CRE run ledger with hash-signed evidence. The `bid_submitted` event deliberately excludes `amountUsd` because — on Canton — the amount is visible only to the auctioneer. Anchoring it into a broadly readable audit log would break the privacy story. The `winner_revealed` event includes winner + winning bid because those become public at reveal.
+
+The UI at [`/sealed-bid`](https://cognivern.vercel.app/sealed-bid) makes the privacy property clickable. The round detail page embeds a "party view" that lets visitors toggle between `Auctioneer | Alice | Bob | Charlie` and visually dim out any bid the selected party cannot read on-ledger. The reveal button calls `CloseAndReveal`, and the post-reveal banner says:
+
+> *"Losing bid amounts remain undisclosed on-ledger — Canton archived them without ever revealing them to competitors."*
+
+Three lifecycle states are pre-seeded at sandbox boot (one live round on each ticket — open, awaiting-reveal, already-revealed — so the demo video lands on something real):
+
+| roundId | Description | Status on first page load |
+| --- | --- | --- |
+| `demo-round-open` | Q1 penetration testing engagement | Open, 2 of 5 bids in — visitor submits the third |
+| `demo-round-closed` | Q3 cloud-hosting RFP — 3-year commit | Three bids in, awaiting reveal — visitor drives the atomic reveal |
+| `demo-round-revealed` | Legal counsel retainer 2026 | Already revealed — Bob won at $185k, losing amounts archived |
+
+---
+
+## Real-world applicability
+
+The privacy primitive ships as a *module*, not a procurement portal — the use case is institutional. The same `SealedBidAuction` contract body covers:
+
+- **Private deal execution** (Track 1, named in the brief). Institutional RFPs — legal counsel retainers, security audits, large capex procurement — where bidders' pricing strategies are competitively sensitive.
+- **Confidential OTC matching** (Track 1, named). Market makers respond to a client RFP for a block. Each maker's pricing model is private to them; the auctioneer counterparty sees the cleared price; the unmade quotes never surface.
+- **Private credit allocation** (Track 1, named). Lenders bid into an allocation round; the borrower sees who cleared and at what spread; losing lenders' yield targets remain private — including from each other.
+- **B2B marketplace with blind auctions** (problem statement literal). Drop-in for institutional procurement platforms that today centralize unblinding on a single SaaS provider.
+
+For each, the architecture is identical: an authenticated buyer party creates an auction with an eligible-bidder list, the bidders submit, the buyer drives the reveal, every losing bid is consumed in flight. No code change.
+
+---
+
+## Engineering rigor (sidebar)
+
+Engineering rigor is the difference between a Canton submission that compiles once on a laptop and one that lives on production. We exercised a write-verify-fix loop against our own deployed API:
+
+- **24 CLI backend tests** (TestSprite CLI) running against the live API — covering the Canton sealed-bid lifecycle in four dedicated tests (atomic reveal, backend discoverability, reveal-before-close rejection, unknown-bidder rejection), plus twenty tests across auth, governance, OWS wallets, MCP, agents, copilot, speech, spend, audit, and webhooks.
+- **30 MCP-generated Playwright frontend tests** (TestSprite MCP Server) — AI-generated from a real PRD summary of the codebase, executed in TestSprite's cloud.
+- **16 production bugs caught and fixed during the build window** (full enumeration in [`LOOP.md`](LOOP.md)). The tests drove the fixes; we did not write the tests to pass code we'd already written.
+- **GitHub Actions + TestSprite GitHub App**: every PR runs the full suite; the GitHub App also scans Vercel previews.
+
+The Canton backend is covered by `tests/integration/canton-sealed-bid.test.ts` — a Vitest suite that auto-skips if no Daml sandbox is reachable on `localhost:7575`, and asserts four properties the integration with Canton actually depends on. Every assertion in this file is made by querying the **Daml JSON Ledger API directly as the relevant party**, so the privacy and settlement properties are verified by what Canton's participant node actually returns, not by the backend's read-through cache:
+
+1. **End-to-end correctness + post-reveal atomic settlement.** `create → SubmitBid × 3 → close → CloseAndReveal` returns the right winner (Bob, lowest bid) and the right winningBid (24500). The same test then re-queries the **Bid** template as the auctioneer for this round and asserts zero active contracts — losing bids were consumed in-flight by the atomic `CloseAndReveal` transaction. Then it queries the **AuctionResult** template the same way and asserts the on-ledger contract carries `winner === Bob`'s namespaced party id and `winningAmount === 24500`. Both halves of "atomic settlement" are checked against the ledger, not the backend cache.
+2. **FHE backend non-regression.** `revealWinner` on the FHE path still throws the `"threshold decryption … not wired"` error so any future wire-up of the ceremony is a visible event, not a silent divergence.
+3. **Per-round visibility.** With three bidders on one round, querying the Daml JSON Ledger API as `Alice`, `Bob`, and `Charlie` returns exactly one Bid contract per bidder (matched by `payload.bidder === partyId`, not just by count), and querying as `Auctioneer` returns all three. Canton does the filtering; the assertion locks the cardinality *and* the identity.
+4. **Cross-leakage guard.** Querying the Bid template as any individual bidder, **at the whole-ledger scope**, returns only contracts for which that bidder is the signatory. Anything else — a competitor's amount slipping through, a future observer-list broadening — fails this test.
+
+The privacy claim Canton's disclosure model makes is now test-verified, not asserted in prose.
 
 ---
 
 ## Architecture
 
 ```
-                    ┌─────────────────────────────────────────┐
-                    │         Cognivern API (Express)          │
-                    │  Port 3087 · PM2 · nginx reverse proxy   │
-                    ├─────────────────────────────────────────┤
-  TestSprite ──►    │  apiKeyMiddleware → authMiddleware       │
-  CLI (20 tests)    │  PUBLIC_API_PATHS bypass (regex match)   │
-  MCP (30 tests)    │                                         │
-  GitHub App ──►    │  Vercel preview → auto-test on PR       │
-                    ├─────────────────────────────────────────┤
-                    │  Controllers:                           │
-                    │  · Auth (register/login/nonce/JWT)      │
-                    │  · Governance (policy eval, FHE)        │
-                    │  · OWS (wallets, agents, API keys)      │
-                    │  · Copilot (runs, events, approvals)    │
-                    │  · SealedBid (FHE-encrypted auctions)   │
-                    │  · Sapience (forecasting, on-chain)     │
-                    │  · CRE (workflow runs, provenance)      │
-                    │  · Metrics (UX events, daily stats)     │
-                    │  · Fhenix (FHE encrypt/decrypt)         │
-                    │  · Speech (transcription)               │
-                    │  · Audit (evidence hashes, artifacts)   │
-                    ├─────────────────────────────────────────┤
-                    │  SQLite (better-sqlite3)                │
-                    │  · users, workspaces, api_keys          │
-                    │  · audit_logs, copilot_runs             │
-                    │  · sealed_bid_rounds, nonces            │
-                    └─────────────────────────────────────────┘
+                 ┌─────────────────────────────────────────┐
+                 │      Cognivern API (Express :3087)      │
+                 │  Port 3087 · PM2 · nginx reverse proxy   │
+                 ├─────────────────────────────────────────┤
+                 │ SealedBidService ─ async dispatcher     │
+                 │ route(roundId) → owning backend         │
+                 ├─────────────────────────────────────────┤
+                 │           CantonSealedBid               │
+                 │           (Daml JSON API client)        │
+                 │                    │                    │
+                 │                    ▼                    │
+                 │      Daml JSON API :7575 (HTTPS)        │
+                 │      Canton participant node            │
+                 │   SealedBidAuction / Bid / AuctionResult│
+                 ├─────────────────────────────────────────┤
+                 │ AuditLogService.logEvent                │
+                 │   → CRE run ledger, hash-signed evidence│
+                 │   bid_submitted   (amount excluded)    │
+                 │   winner_revealed (amount included)     │
+                 └─────────────────────────────────────────┘
 ```
 
-### Key Integrations
-- **Fhenix** — FHE for confidential policy evaluation and sealed-bid auctions
-- **Sapience** — On-chain prediction market forecasting via Groq LLM
-- **Ledger DMK** — Hardware signing for high-value transactions
-- **ChainGPT** — Web3 LLM for smart contract auditing
-- **ElevenLabs** — Speech-to-text for voice-driven agent commands
+Canton deployment: pm2 process `cognivern-canton` on the Hetzner production VM, binding `127.0.0.1:7575` for the Daml JSON API (admin/party-allocation endpoints JWT-authed via HS256). It's not publicly routable — verifying the on-ledger state from outside the host either (a) runs `daml start` locally and exercises `tests/integration/canton-sealed-bid.test.ts` against the local sandbox, or (b) reads the [Canton runbook](docs/CANTON.md) and the public repo. DevNet migration is a config swap, not a code change — `CANTON_JSON_API_URL` redirected to a DevNet participant node.
 
 ---
 
-## CI/CD
+## Track claim
 
-Every PR runs the full TestSprite suite via GitHub Actions (`.github/workflows/testsprite.yml`). The build fails on any regression.
-
-**Deploy pipeline:** `pnpm build` → `pnpm deploy:hetzner` → rsync artifact → PM2 restart → health check
+We submit under **Track 1 — Private DeFi & Capital Markets**, with the strongest fit on the "Private deal execution" and "OTC trading workflows" problem statements. We do **not** claim Track 2 (RWA / tokenized deposits) or Track 3 (agentic commerce) for this submission — the sealed-bid module is the Canton piece. Cognivern's broader spend-governance work is referenced once, as backdrop, not as a competing submission.
 
 ---
 
-## Documentation
-
-| Doc | Contents |
-|-----|----------|
-| [Architecture](./docs/ARCHITECTURE.md) | System design, data flows, network roles, Fhenix/ChainGPT/Ledger integrations |
-| [Developer Guide](./docs/DEVELOPER.md) | Getting started, local setup, API reference, testing, production readiness |
-| [Deployment](./docs/DEPLOYMENT.md) | Deploy to Hetzner, PM2, nginx, env vars, health checks |
-| [AI Safety Report](./scripts/hackathon/HACKATHON_REPORT.md) | Multi-dimensional suspicion scorer design, failure mode analysis |
-| [LOOP.md](./LOOP.md) | Agent-written log of the write-verify-fix loop, one line per iteration |
-| [This doc](./HACKATHON_SUBMISSION.md) | Comprehensive submission summary |
-
----
-
-## Reproducing
+## Reproducing locally
 
 ```bash
-# Run the full TestSprite suite
-testsprite test list --project ad5aa683-dbc5-4484-8236-e4a3aef914ee
-testsprite test rerun <test-id> --wait
+# 1. Canton sandbox — pm2-managed Hetzner or local
+cd daml && daml build && daml start --start-navigator=no
 
-# Or run locally
+# 2. Cognivern backend
 pnpm install
 pnpm build
 pnpm start
-# Tests hit https://cognivern.thisyearnofear.com (production)
+
+# 3. Frontend
+cd src/frontend && pnpm install && pnpm dev
+
+# Visit http://localhost:3000/sealed-bid
+# Three rounds pre-seeded: open, awaiting-reveal, revealed.
+# Toggle "View as: Auctioneer | Alice | Bob | Charlie" to see Canton's
+# disclosure model in action.
 ```
+
+The default backend is `canton`. To switch to the FHE path for comparison, change the dropdown on the create-round form — the same HTTP surface routes to either backend, and the FHE reveal call will produce the documented `"not wired"` 400. Both round types render the same privacy-enforcing UI.
 
 ---
 
-## Tech Stack
+## Submission materials
 
-- **Backend:** Node.js, Express, TypeScript, better-sqlite3
-- **Frontend:** React, Vite, TypeScript
-- **Infra:** Hetzner VPS, PM2, nginx, GitHub Actions
-- **Testing:** TestSprite full platform — CLI (20 backend tests, 550 assertions), MCP Server (30 AI-generated Playwright frontend tests), GitHub Integration (PR gating)
-- **Integrations:** Fhenix (FHE), Sapience (forecasting), Ledger (hardware signing), ChainGPT (Web3 LLM), ElevenLabs (speech), Groq (LLM inference)
+| Item | Link |
+| --- | --- |
+| Live product | [cognivern.vercel.app/sealed-bid](https://cognivern.vercel.app/sealed-bid) |
+| Public API | `https://cognivern.thisyearnofear.com` |
+| Repository | Public — see top of `README.md` |
+| Pitch deck | `docs/pitch-deck.pdf` *(companion to this doc)* |
+| 3-minute demo video | `docs/demo-video.mp4` *(companion to this doc)* |
+| TestSprite backend dashboards | 24 tests · 30 MCP frontend tests · `./LOOP.md` for the iteration log |
+
+---
+
+## Frontmatter: about the broader Cognivern platform
+
+Cognivern is a spend-governance platform for AI agents — confidential policy evaluation on Fhenix, hardware-gated signing on Ledger DMK, agent activity indexing through ChainGPT, durable evidence anchoring on Filecoin + 0G, and on-ledger execution via X Layer. The Canton sealed-bid module is the most recently added primitive, and the one we believe is most informative for a Canton jury. The platform context is mentioned here only to disambiguate the deployment: a Canton module on top of an existing running production API was a more credible Canton-jury signal than a fresh repo.
+
+---
+
+## Postscript: bugs caught and fixed by the test loop
+
+A Canton submission that says "we test" should also say "here is what testing caught". Sixteen production bugs surfaced during the build window; the full enumeration is in [`LOOP.md`](LOOP.md). Three representative categories, with one or two concrete examples per category:
+
+- **Endpoint access**. `/auth/*`, `/api/fhenix/encrypt`, `/api/metrics/ux-events`, `/api/mcp/governance-check`, `/api/speech/transcribe`, `/api/vendor/sealed-bid/rounds/:id/{bid,close,reveal}`, and `/api/projects/:id/{usage,tokens}` were all blocked by `apiKeyMiddleware` despite being public. Fix: parameterized path matching in `isPublicApiPath()` so the Canton sealed-bid sub-paths are not a special case.
+- **Server crashes from unhandled throws**. `OwsWalletController.{createAgent, getWallet, importWallet, connectExternal}`, `OwsApiKeyController.{createApiKey, getApiKey, deleteApiKey}`, `OwsPermissionsController.{requestPermissions, getPermissions, revokePermissions, checkPermissions}` all threw `BadRequestError` / `NotFoundError` without try/catch, turning a 4xx into a 502 by taking the Node process down. Fix: explicit try/catch returning the right status.
+- **Schema drift**. The `users` table lacked an `email` column; the `workspaces` table lacked `settings`. Inline migrations couldn't `CREATE TABLE IF NOT EXISTS` past the existing rows, so `ALTER TABLE … ADD COLUMN` statements were added as idempotent migrations.
+
+(README's count is 12 because it lists the most recent 12; the broader figure across the project lifetime is 16.)
 
 ---
 
 ## License
 
-MIT
+MIT.

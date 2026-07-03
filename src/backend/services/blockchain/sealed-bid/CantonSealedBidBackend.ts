@@ -251,13 +251,20 @@ export class CantonSealedBidBackend implements SealedBidBackend {
         `Bidder ${request.bidder} is not on the eligible list for this round`,
       );
 
-    const proposalHash = request.proposalDetails
-      ? "0x" +
-        crypto
-          .createHash("sha256")
-          .update(request.proposalDetails)
-          .digest("hex")
-      : "0x" + crypto.randomBytes(32).toString("hex");
+    // Honour an explicit proposalHash from the caller (used by integration
+    // tests to pin a known literal so the post-reveal ledger assertion can
+    // lock the CloseAndReveal winner→winningProposal mapping). Production
+    // flows leave request.proposalHash unset and we fall back to a SHA-256
+    // of `proposalDetails` (or random bytes if no details were supplied).
+    const proposalHash =
+      request.proposalHash ??
+      (request.proposalDetails
+        ? "0x" +
+          crypto
+            .createHash("sha256")
+            .update(request.proposalDetails)
+            .digest("hex")
+        : "0x" + crypto.randomBytes(32).toString("hex"));
 
     const exResult = await this.client.exercise<string>(
       bidderParty,

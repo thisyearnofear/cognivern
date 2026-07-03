@@ -39,6 +39,13 @@ export interface SubmitBidRequest {
   bidder: string;
   amountUsd: number;
   proposalDetails?: string;
+  // Optional explicit override for the proposalHash written into the Canton
+  // Bid contract. Production flows leave this unset and the backend derives
+  // a SHA-256 of `proposalDetails`; tests pin a known literal so a future
+  // Daml model change (e.g. proposalHash widened to a tagged union, or the
+  // CloseAndReveal mapping dropping winningProposal) fails the relevant
+  // assertion at typecheck or runtime rather than silently passing.
+  proposalHash?: string;
 }
 
 export interface RevealRequest {
