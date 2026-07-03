@@ -75,22 +75,120 @@ interface CantonRoundState {
 // sandbox init-script provisions so the flow is exercisable end-to-end
 // without extra config.
 const DEFAULT_ELIGIBLE_BIDDER_NAMES = ["Alice", "Bob", "Charlie"];
+const DEFAULT_DEMO_MANAGER = "Auctioneer";
 
 export class CantonSealedBidBackend implements SealedBidBackend {
   readonly name: BackendName = "canton";
   private rounds = new Map<string, CantonRoundState>();
+  // Populated once at construction from the ledger — lets the backend
+  // reflect auctions the Daml init-script pre-seeded on sandbox boot so
+  // visitors land on a rich demo state rather than an empty round list.
+  // Every public method awaits this before touching `rounds`.
+  private ready: Promise<void>;
 
   constructor(
     private readonly client: CantonLedgerClient,
     private readonly parties: CantonPartyRegistry,
     private readonly templates: CantonTemplateIds,
     private readonly defaultBidderNames: string[] = DEFAULT_ELIGIBLE_BIDDER_NAMES,
-  ) {}
+    private readonly demoManagerName: string = DEFAULT_DEMO_MANAGER,
+  ) {
+    this.ready = this.hydrateFromLedger().catch((err) => {
+      logger.warn(
+        `SealedBid[canton]: hydrate from ledger failed — pre-seeded rounds will not appear until first HTTP request retries: ${err instanceof Error ? err.message : err}`,
+      );
+    });
+  }
+
+  // Discover auctions and results already on the ledger (typically from the
+  // Daml init-script's demo seeding) and register them in the off-ledger
+  // state so cognivern's dispatcher can route requests against them. Only
+  // rounds authored by the demo manager party are picked up — this avoids
+  // reflecting rounds from other tenants that might share the participant
+  // in a multi-app deployment.
+  private async hydrateFromLedger(): Promise<void> {
+    const managerParty = await this.parties.resolve(this.demoManagerName);
+    const [auctions, results] = await Promise.all([
+      this.client.query<AuctionPayload>(managerParty, [this.templates.auction]),
+      this.client.query<AuctionResultPayload>(managerParty, [this.templates.result]),
+    ]);
+    const resultsByRoundId = new Map(
+      results.map((r) => [r.payload.roundId, r]),
+    );
+
+    let hydratedOpen = 0;
+    let hydratedRevealed = 0;
+
+    for (const a of auctions) {
+      if (a.payload.manager !== managerParty) continue;
+      const roundId = a.payload.roundId;
+      if (!roundId || this.rounds.has(roundId)) continue;
+      this.rounds.set(roundId, {
+        roundId,
+        auctionCid: a.contractId,
+        resultCid: null,
+        manager: this.demoManagerName,
+        managerName: this.demoManagerName,
+        eligibleBidders: a.payload.eligibleBidders,
+        description: a.payload.description,
+        serviceCategory: a.payload.serviceCategory,
+        deadline: a.payload.deadline,
+        maxBids: parseInt(a.payload.maxBids, 10) || 5,
+        status: "open",
+        createdAt: new Date().toISOString(),
+      });
+      hydratedOpen++;
+    }
+
+    for (const [roundId, r] of resultsByRoundId) {
+      if (r.payload.manager !== managerParty) continue;
+      // If the same roundId has an existing auction record (edge case where
+      // both live simultaneously), upgrade it in-place. Otherwise register
+      // a fresh revealed round with no auction contract.
+      const existing = this.rounds.get(roundId);
+      if (existing) {
+        existing.resultCid = r.contractId;
+        existing.auctionCid = null;
+        existing.status = "revealed";
+      } else {
+        this.rounds.set(roundId, {
+          roundId,
+          auctionCid: null,
+          resultCid: r.contractId,
+          manager: this.demoManagerName,
+          managerName: this.demoManagerName,
+          eligibleBidders: r.payload.eligibleBidders,
+          description: r.payload.description,
+          serviceCategory: r.payload.serviceCategory,
+          deadline: "",
+          maxBids: 0,
+          status: "revealed",
+          createdAt: r.payload.revealedAt,
+        });
+      }
+      hydratedRevealed++;
+    }
+
+    if (hydratedOpen || hydratedRevealed) {
+      logger.info(
+        `SealedBid[canton]: hydrated ${hydratedOpen} open + ${hydratedRevealed} revealed round(s) from ledger`,
+      );
+    }
+  }
+
+  // Public — the dispatcher calls this after registering the backend so it
+  // can populate its own roundId → backend index without probing every
+  // backend on every request.
+  async listHydratedRoundIds(): Promise<string[]> {
+    await this.ready;
+    return Array.from(this.rounds.keys());
+  }
 
   async createRound(
     request: CreateRoundRequest,
     manager: string,
   ): Promise<SealedBidRound> {
+    await this.ready;
     const managerParty = await this.parties.resolve(manager);
     const eligibleBidders = await Promise.all(
       this.defaultBidderNames.map((n) => this.parties.resolve(n)),
@@ -139,6 +237,7 @@ export class CantonSealedBidBackend implements SealedBidBackend {
     roundId: string,
     request: SubmitBidRequest,
   ): Promise<BidRecord> {
+    await this.ready;
     const state = this.rounds.get(roundId);
     if (!state) throw new Error(`Round ${roundId} not found`);
     if (state.status !== "open") throw new Error("Round is not open for bids");
@@ -199,6 +298,7 @@ export class CantonSealedBidBackend implements SealedBidBackend {
   }
 
   async closeRound(roundId: string, caller: string): Promise<SealedBidRound> {
+    await this.ready;
     const state = this.rounds.get(roundId);
     if (!state) throw new Error(`Round ${roundId} not found`);
     if (state.manager !== caller)
@@ -219,6 +319,7 @@ export class CantonSealedBidBackend implements SealedBidBackend {
     roundId: string,
     request: RevealRequest,
   ): Promise<SealedBidRound> {
+    await this.ready;
     const state = this.rounds.get(roundId);
     if (!state) throw new Error(`Round ${roundId} not found`);
     if (state.status !== "closed")
@@ -277,6 +378,7 @@ export class CantonSealedBidBackend implements SealedBidBackend {
   }
 
   async getRound(roundId: string): Promise<SealedBidRound | null> {
+    await this.ready;
     const state = this.rounds.get(roundId);
     if (!state) return null;
     const bids = await this.queryBidsAsManager(state);
@@ -296,6 +398,7 @@ export class CantonSealedBidBackend implements SealedBidBackend {
   }
 
   async listRounds(): Promise<SealedBidRound[]> {
+    await this.ready;
     return Promise.all(
       Array.from(this.rounds.values()).map(async (state) => {
         const bids = await this.queryBidsAsManager(state);

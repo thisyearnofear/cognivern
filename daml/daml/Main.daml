@@ -162,8 +162,15 @@ template AuctionResult
     observer eligibleBidders
 
 -- ── setup: dev-time init-script ─────────────────────────────────────────────
--- Populates the sandbox with a demo auction and three bids so the JSON API
--- has interesting data to query out of the box.
+-- Populates the sandbox with three auctions in different lifecycle stages so
+-- visitors — and the demo video — land on a state that shows the full flow at
+-- a glance:
+--   1. OPEN     — 2 bids in, waiting for a third (invites interaction)
+--   2. CLOSED   — 3 bids in, awaiting reveal (invites the atomic reveal click)
+--   3. REVEALED — 3 bids, closed, winner announced (shows the endpoint)
+-- Sandbox uses an in-memory ledger, so this whole script re-runs on every
+-- process restart — that's a feature: the demo always starts from a clean
+-- known state rather than accumulating stale rounds.
 setup : Script ()
 setup = script do
   auctioneer <- allocatePartyWithHint "Auctioneer" (PartyIdHint "Auctioneer")
@@ -182,34 +189,94 @@ setup = script do
 
   now <- getTime
   let deadline = addRelTime now (hours 24)
+  let bidders = [alice, bob, charlie]
 
-  auctionCid <- submit auctioneer do
+  -- ── Round 1 ── OPEN. 2 of 3 possible bidders in; a third slot invites
+  -- the visitor to submit their own bid and watch privacy in action.
+  round1 <- submit auctioneer do
     createCmd SealedBidAuction with
       manager         = auctioneer
-      eligibleBidders = [alice, bob, charlie]
-      roundId         = "demo-init-round"
+      eligibleBidders = bidders
+      roundId         = "demo-round-open"
+      description     = "Q1 penetration testing engagement"
+      serviceCategory = "security"
+      deadline
+      maxBids         = 5
+  _ <- submit alice do
+    exerciseCmd round1 SubmitBid with
+      bidder       = alice
+      amountUsd    = 72500.00
+      proposalHash = "0x1a"
+  _ <- submit bob do
+    exerciseCmd round1 SubmitBid with
+      bidder       = bob
+      amountUsd    = 68000.00
+      proposalHash = "0x1b"
+
+  -- ── Round 2 ── CLOSED, awaiting reveal. Visitor can click "Reveal winner
+  -- atomically" and watch every bid archive in one transaction.
+  round2 <- submit auctioneer do
+    createCmd SealedBidAuction with
+      manager         = auctioneer
+      eligibleBidders = bidders
+      roundId         = "demo-round-closed"
       description     = "Q3 cloud-hosting RFP — 3-year commit"
       serviceCategory = "infrastructure"
       deadline
       maxBids         = 5
-
-  -- Each bidder submits — none sees the others' amount.
-  aliceBid <- submit alice do
-    exerciseCmd auctionCid SubmitBid with
+  bid2a <- submit alice do
+    exerciseCmd round2 SubmitBid with
       bidder       = alice
       amountUsd    = 120000.00
-      proposalHash = "0xa1"
-
-  bobBid <- submit bob do
-    exerciseCmd auctionCid SubmitBid with
+      proposalHash = "0x2a"
+  bid2b <- submit bob do
+    exerciseCmd round2 SubmitBid with
       bidder       = bob
       amountUsd    = 98500.00
-      proposalHash = "0xb2"
-
-  charlieBid <- submit charlie do
-    exerciseCmd auctionCid SubmitBid with
+      proposalHash = "0x2b"
+  bid2c <- submit charlie do
+    exerciseCmd round2 SubmitBid with
       bidder       = charlie
       amountUsd    = 145000.00
-      proposalHash = "0xc3"
+      proposalHash = "0x2c"
+  -- The Daml side doesn't have a "closed" state per se; the auction stays
+  -- alive until CloseAndReveal consumes it. Cognivern's off-ledger dispatcher
+  -- carries the closed/open bit, so this round appears OPEN on the ledger but
+  -- CLOSED once the cognivern backend transitions its own state — which
+  -- doesn't happen until the visitor hits close via the API. This is
+  -- intentional: leave the auction unconsumed so the visitor can drive the
+  -- reveal themselves.
+  let _ = (bid2a, bid2b, bid2c)  -- silence unused-binding warnings
+
+  -- ── Round 3 ── REVEALED. Winner + winning amount publicly known,
+  -- losing amounts archived and never disclosed.
+  round3 <- submit auctioneer do
+    createCmd SealedBidAuction with
+      manager         = auctioneer
+      eligibleBidders = bidders
+      roundId         = "demo-round-revealed"
+      description     = "Legal counsel retainer 2026"
+      serviceCategory = "legal"
+      deadline
+      maxBids         = 5
+  bid3a <- submit alice do
+    exerciseCmd round3 SubmitBid with
+      bidder       = alice
+      amountUsd    = 240000.00
+      proposalHash = "0x3a"
+  bid3b <- submit bob do
+    exerciseCmd round3 SubmitBid with
+      bidder       = bob
+      amountUsd    = 185000.00
+      proposalHash = "0x3b"
+  bid3c <- submit charlie do
+    exerciseCmd round3 SubmitBid with
+      bidder       = charlie
+      amountUsd    = 210000.00
+      proposalHash = "0x3c"
+  _ <- submit auctioneer do
+    exerciseCmd round3 CloseAndReveal with
+      bidCids         = [bid3a, bid3b, bid3c]
+      selectionMethod = LowestBid
 
   pure ()

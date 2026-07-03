@@ -74,33 +74,26 @@ export class SealedBidService {
     roundId: string,
     request: SubmitBidRequest,
   ): Promise<BidRecord> {
-    return this.backendFor(roundId).submitBid(roundId, request);
+    return (await this.resolveBackend(roundId)).submitBid(roundId, request);
   }
 
   async closeRound(roundId: string, caller: string): Promise<SealedBidRound> {
-    return this.backendFor(roundId).closeRound(roundId, caller);
+    return (await this.resolveBackend(roundId)).closeRound(roundId, caller);
   }
 
   async revealWinner(
     roundId: string,
     request: RevealRequest,
   ): Promise<SealedBidRound> {
-    return this.backendFor(roundId).revealWinner(roundId, request);
+    return (await this.resolveBackend(roundId)).revealWinner(roundId, request);
   }
 
   async getRound(roundId: string): Promise<SealedBidRound | null> {
-    // If we don't know this round, either it doesn't exist or the process
-    // restarted and we lost the index — ask each backend in turn.
-    const known = this.roundToBackend.get(roundId);
-    if (known) return this.backends.get(known)!.getRound(roundId);
-    for (const backend of this.backends.values()) {
-      const found = await backend.getRound(roundId);
-      if (found) {
-        this.roundToBackend.set(roundId, backend.name);
-        return found;
-      }
+    try {
+      return (await this.resolveBackend(roundId)).getRound(roundId);
+    } catch {
+      return null;
     }
-    return null;
   }
 
   async listRounds(): Promise<SealedBidRound[]> {
@@ -110,15 +103,29 @@ export class SealedBidService {
     return all.flat();
   }
 
-  private backendFor(roundId: string): SealedBidBackend {
-    const name = this.roundToBackend.get(roundId);
-    if (!name) throw new Error(`Round ${roundId} not found`);
-    const backend = this.backends.get(name);
-    if (!backend)
-      throw new Error(
-        `Round ${roundId} references backend "${name}" which is no longer configured`,
-      );
-    return backend;
+  // Async resolve — falls back to probing every backend on cache miss so
+  // rounds that were seeded on-ledger before this process started (e.g. via
+  // the Daml init-script) become addressable without a manual re-index.
+  // Once a probe succeeds the mapping is memoized so subsequent calls are
+  // O(1) again.
+  private async resolveBackend(roundId: string): Promise<SealedBidBackend> {
+    const cached = this.roundToBackend.get(roundId);
+    if (cached) {
+      const backend = this.backends.get(cached);
+      if (!backend)
+        throw new Error(
+          `Round ${roundId} references backend "${cached}" which is no longer configured`,
+        );
+      return backend;
+    }
+    for (const backend of this.backends.values()) {
+      const found = await backend.getRound(roundId);
+      if (found) {
+        this.roundToBackend.set(roundId, backend.name);
+        return backend;
+      }
+    }
+    throw new Error(`Round ${roundId} not found`);
   }
 }
 

@@ -15,7 +15,7 @@ import { CantonPartyRegistry } from "@backend/canton/CantonPartyRegistry.js";
 import { CantonSealedBidBackend } from "@backend/services/blockchain/sealed-bid/CantonSealedBidBackend.js";
 
 const JSON_API = "http://localhost:7575";
-const PKG = process.env.CANTON_TEST_PKG_ID ?? "a4d5ee30c643fa7d4dcf708d1a5c05ea2cd66092d53993c50615435c7d228ee3";
+const PKG = process.env.CANTON_TEST_PKG_ID ?? "b0b4084a792687fe394df79f5e1c1ea31d316f78a68e605b93c481c2879c5128";
 
 // Probe at module load so describe.skipIf sees the real value at collection time.
 const sandboxUp = await (async () => {
