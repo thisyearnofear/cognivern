@@ -151,9 +151,23 @@ if (cantonClient) {
       "SealedBid: CANTON_JSON_API_URL is set but CANTON_TEMPLATE_{AUCTION,BID,RESULT} are missing — canton backend disabled",
     );
   } else {
-    const parties = new CantonPartyRegistry(cantonClient);
+    const staticParties = parseStaticPartyMap(
+      process.env.CANTON_DEMO_PARTY_IDS ?? "",
+    );
+    const parties = new CantonPartyRegistry(cantonClient, staticParties);
     sharedSealedBidService.registerBackend(
       new CantonSealedBidBackend(cantonClient, parties, templates),
     );
   }
+}
+
+function parseStaticPartyMap(raw: string): Record<string, string> | undefined {
+  if (!raw.trim()) return undefined;
+  const map: Record<string, string> = {};
+  for (const entry of raw.split(",")) {
+    const [name, ...idParts] = entry.trim().split("=");
+    const id = idParts.join("=");
+    if (name && id) map[name.trim()] = id.trim();
+  }
+  return Object.keys(map).length > 0 ? map : undefined;
 }
