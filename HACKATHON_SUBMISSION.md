@@ -18,22 +18,23 @@ HackCanton final judging requires the Daml contracts to be deployed and exercise
 | Public repository | `https://github.com/thisyearnofear/cognivern` |
 | Live product URL | `https://cognivern.vercel.app/sealed-bid` |
 | Presentation deck | `docs/pitch-deck.pptx` (export to PDF if the submission form requires a PDF) |
-| 3-minute video pitch/demo | `docs/demo-video.mp4` (≈3:00; last recorded against sandbox-backed product; re-record against the DevNet-backed live URL before submission) |
+| 3-minute video pitch/demo | `docs/demo-video.mp4` (≈3:00; recorded against the DevNet-backed live product with the production backend on HackCanton S2 DevNet) |
 | Canton DevNet participant / validator | Shared HackCanton S2 DevNet node: `https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`. Auth: NODERS Keycloak password grant (client `web-app-ui-hackcanton-01-devnet`). Source: `docs/HACKCANTON_DEVNET_MATERIALS.md`. |
 | Uploaded DAR package ID | `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454` |
 | Deployed template IDs | `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:SealedBidAuction`, `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:Bid`, `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:AuctionResult` |
-| On-ledger demo evidence | DevNet roundId `0x499eabff027c665f5326507401211f7de6a7b78dfd87342f0029cada35b6ff8b` — create → 3 bids (alice/bob/charlie) → close → reveal winner `bob-cognivern` at $74,500. Source: `.artifacts/canton-devnet-proof-latest.json` from the production backend. |
+| On-ledger demo evidence | DevNet roundId `0xeb8c4a5eb004313a1c6ec9a8de75eb61c65b047b9c6482adc05bc1bb11acaf1e` — create → 3 bids (alice/bob/charlie) → close → reveal winner `bob-cognivern` at $74,500. Source: `.artifacts/canton-devnet-proof-latest.json` from the production backend. |
 | Backend env points to DevNet | Set: `CANTON_JSON_API_URL=https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`, `CANTON_LEDGER_ID=hackcanton-01`, `CANTON_LEDGER_USER_ID=e6c5f9fc-98ed-491f-b228-00cf931a05cc`, templates `#daml:Main:*`, and `CANTON_DEMO_PARTY_IDS` static map. |
 | Automated lifecycle evidence | `pnpm canton:proof` completed against the production backend (`https://cognivern.thisyearnofear.com`): `.artifacts/canton-devnet-proof-latest.json` contains the full lifecycle + package/template IDs. |
 
 The Hetzner `cognivern-canton` sandbox remains useful for local demos and regression checks, but it does **not** satisfy the final deployment rule by itself.
 
-### What the team needs to finish before the July 13 deadline
+### Pre-submission checklist (completed)
 
-1. **Authenticate and upload the DAR.** The shared DevNet node uses Canton JSON Ledger API v2. The UI password-grant token works for read-only endpoints but **does not** have admin rights; DAR upload and party allocation require a validator/service-account token (client_credentials) or a pre-generated admin token. Ask mentors for the validator client secret. Once you have it, run `pnpm tsx scripts/hack/bootstrap-devnet.ts` to upload `daml/.daml/dist/daml-0.0.1.dar` and allocate the demo parties (`Auctioneer`, `Alice`, `Bob`, `Charlie`).
-2. **Cut over the backend.** The backend `CantonLedgerClient` already supports JSON API v2 (and falls back to v1 for the local sandbox). Set production `CANTON_JSON_API_URL`, `CANTON_LEDGER_ID`, `CANTON_TEMPLATE_*`, `CANTON_BEARER_TOKEN` or `CANTON_OIDC_*`, and `CANTON_LEDGER_USER_ID`. Then restart the backend.
-3. **Re-record evidence.** Run `pnpm canton:proof` against the DevNet-backed production API to fill the TODO fields above, and re-run `pnpm tsx scripts/demo/record-demo-video.ts` to capture the final 3-minute DevNet demo.
-4. **Export the deck to PDF** if the submission form requires a PDF rather than a PPTX.
+1. **DAR uploaded and parties allocated** on the HackCanton S2 shared DevNet node. Source: `docs/HACKCANTON_DEVNET_MATERIALS.md`.
+2. **Production backend cut over to DevNet** via Hetzner deploy (`pnpm deploy:hetzner`). Environment uses JSON Ledger API v2, `#daml:Main:*` template refs, and the static `CANTON_DEMO_PARTY_IDS` map.
+3. **Fresh DevNet evidence captured:** `pnpm canton:proof` passed against `https://cognivern.thisyearnofear.com` → `.artifacts/canton-devnet-proof-latest.json`.
+4. **3-minute demo video re-recorded** against the DevNet-backed live product: `docs/demo-video.mp4`.
+5. **Export the deck to PDF** if the submission form requires a PDF rather than a PPTX.
 
 ---
 

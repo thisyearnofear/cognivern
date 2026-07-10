@@ -17,15 +17,31 @@ export class CantonPartyRegistry {
     this.ready = this.hydrate();
   }
 
+  private addAliases(name: string, id: string) {
+    const hint = id.split("::")[0] || name;
+    const base = hint.replace(/-cognivern$/i, "");
+    const aliases = new Set<string>();
+    [name, hint, base].forEach((s) => {
+      aliases.add(s);
+      aliases.add(s.toLowerCase());
+      aliases.add(s[0]?.toUpperCase() + s.slice(1));
+    });
+    // Account for the DevNet party name being spelled "auctioner" while the
+    // UI/demo scripts use the conventional spelling "Auctioneer".
+    if (base.toLowerCase() === "auctioner") {
+      aliases.add("Auctioneer");
+      aliases.add("auctioneer");
+    }
+    for (const alias of aliases) this.cache.set(alias, id);
+  }
+
   private async hydrate() {
     // DevNet/shared nodes often pre-allocate parties via an admin and the
     // authenticated user lacks rights to list or allocate. A static map takes
     // precedence and skips network calls entirely.
     if (this.staticParties) {
       for (const [name, id] of Object.entries(this.staticParties)) {
-        this.cache.set(name, id);
-        const hint = id.split("::")[0];
-        if (hint && hint !== name) this.cache.set(hint, id);
+        this.addAliases(name, id);
       }
       return;
     }

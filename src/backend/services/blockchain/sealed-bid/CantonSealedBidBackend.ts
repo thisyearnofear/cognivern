@@ -73,9 +73,12 @@ interface CantonRoundState {
 // The set of bidders eligible to submit into an auction. In production this
 // would be configurable per-round; for Phase 2 we use the demo parties the
 // sandbox init-script provisions so the flow is exercisable end-to-end
-// without extra config.
-const DEFAULT_ELIGIBLE_BIDDER_NAMES = ["Alice", "Bob", "Charlie"];
-const DEFAULT_DEMO_MANAGER = "Auctioneer";
+// without extra config. On shared DevNet nodes parties are often suffixed by
+// project name, so allow overriding via env.
+const DEFAULT_ELIGIBLE_BIDDER_NAMES = process.env.CANTON_DEMO_BIDDER_NAMES
+  ? process.env.CANTON_DEMO_BIDDER_NAMES.split(",").map((s) => s.trim())
+  : ["Alice", "Bob", "Charlie"];
+const DEFAULT_DEMO_MANAGER = process.env.CANTON_DEMO_MANAGER_NAME ?? "Auctioneer";
 
 export class CantonSealedBidBackend implements SealedBidBackend {
   readonly name: BackendName = "canton";
@@ -308,7 +311,9 @@ export class CantonSealedBidBackend implements SealedBidBackend {
     await this.ready;
     const state = this.rounds.get(roundId);
     if (!state) throw new Error(`Round ${roundId} not found`);
-    if (state.manager !== caller)
+    const callerParty = await this.parties.resolve(caller);
+    const managerParty = await this.parties.resolve(state.managerName);
+    if (callerParty !== managerParty)
       throw new Error("Only the round manager can close the round");
     if (state.status !== "open") throw new Error("Round is already closed");
     // Canton auction close is not a separate ledger step; it happens

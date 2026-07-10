@@ -90,6 +90,9 @@ export class SealedBidController {
         parse.data;
       const manager =
         req.body.manager ||
+        (backend === "canton"
+          ? process.env.CANTON_DEMO_MANAGER_NAME || "Auctioneer"
+          : undefined) ||
         (req.headers["x-api-key"] as string) ||
         "demo-manager";
 
@@ -196,6 +199,7 @@ export class SealedBidController {
       const { roundId } = req.params;
       const caller =
         req.body.manager ||
+        (await this.sealedBidService.getRound(roundId))?.manager ||
         (req.headers["x-api-key"] as string) ||
         "demo-manager";
 

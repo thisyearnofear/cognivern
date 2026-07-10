@@ -15,7 +15,7 @@ import { CantonPartyRegistry } from "@backend/canton/CantonPartyRegistry.js";
 import { CantonSealedBidBackend } from "@backend/services/blockchain/sealed-bid/CantonSealedBidBackend.js";
 
 const JSON_API = "http://localhost:7575";
-const PKG = process.env.CANTON_TEST_PKG_ID ?? "b0b4084a792687fe394df79f5e1c1ea31d316f78a68e605b93c481c2879c5128";
+const PKG = process.env.CANTON_TEST_PKG_ID ?? "6e1a4f239d2db06cf234611af8101ac41664a7df55e2aed39a6c9ad64ee4f890";
 
 // Shape of the Bid contract as returned by the Daml JSON Ledger API through
 // CantonLedgerClient.query<T>(...). Mirrors the BidPayload declared in

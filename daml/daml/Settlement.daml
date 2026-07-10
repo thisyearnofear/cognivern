@@ -1,0 +1,146 @@
+-- Settlement.daml
+-- ─────────────────────────────────────────────────────────────────────────────
+-- HackCanton S2 draft: atomic VALUE settlement inside the sealed-bid reveal.
+--
+-- This module is a SELF-CONTAINED SKETCH. It compiles standalone (against the
+-- repo's Daml SDK 2.10.4) so the settlement seam can be reviewed and built
+-- today, without touching the live `Main.daml` model or its passing tests.
+--
+-- The placeholder `EscrowAsset` stands in for the real CBTC (BitSafe) or
+-- cETH (OnRails Finance) Daml package. To go live, swap `EscrowAsset` + its
+-- `Release` choice for the bounty asset's native transfer / unescrow choice —
+-- the rest of the pattern (select winner → settle → archive losers → emit
+-- result, all in one transaction) is asset-agnostic.
+--
+-- Nothing here is wired to the cognivern backend or the integration tests yet.
+-- See docs/CANTON.md ("Settlement seam (design)") for the integration plan.
+
+module Settlement where
+
+import DA.List (sortOn, sortBy, unique)
+import DA.Foldable (mapA_)
+
+-- ── Placeholder settlement asset ─────────────────────────────────────────────
+-- Mirrors the shape a real CBTC/cETH escrow template exposes: an owner who can
+-- release, a recipient who receives, an amount, and a tag naming the lane.
+-- The real package supplies its own template + a `Release`/`Transfer` choice
+-- exercised by an authorized party.
+template EscrowAsset
+  with
+    owner      : Party
+    recipient  : Party
+    amount     : Decimal
+    assetTag   : Text          -- "CBTC" | "cETH" — documents which bounty lane
+  where
+    signatory owner
+    observer recipient
+
+    -- Authorized release. In the real CBTC/cETH package this is the asset's
+    -- native transfer / unescrow choice (changes `owner`/`recipient`). Here it
+    -- is a no-op placeholder that preserves the call site and atomicity shape.
+    nonconsuming choice Release : ContractId EscrowAsset
+      with
+        cid : ContractId EscrowAsset
+      controller owner
+      do
+        assertMsg "release only to the escrowed recipient"
+          (recipient == this.recipient)
+        create this with {}
+
+-- ── Selection method (mirrors Main.daml) ────────────────────────────────────
+data SelectionMethodS
+  = LowestBidS
+  | HighestBidS
+  deriving (Eq, Show)
+
+-- ── Sealed bid (sketch twin of Main.Bid) ────────────────────────────────────
+template BidS
+  with
+    manager   : Party
+    bidder    : Party
+    roundId   : Text
+    amountUsd : Decimal
+  where
+    signatory bidder
+    observer manager
+
+    -- Manager-controlled consumption, used by CloseAndRevealWithSettlement to
+    -- archive losing bids silently — amount never surfaces to non-observers.
+    choice ConsumeS : ()
+      with
+        cid : ContractId BidS
+      controller manager
+      do pure ()
+
+-- ── Auction that carries a settlement leg ───────────────────────────────────
+-- Same body as Main.SealedBidAuction, plus `settlement : ContractId EscrowAsset`
+-- binding the escrowed bounty asset to the round.
+template SealedBidAuctionWithSettlement
+  with
+    manager         : Party
+    eligibleBidders : [Party]
+    roundId         : Text
+    settlement      : ContractId EscrowAsset
+  where
+    signatory manager
+    observer eligibleBidders
+
+    ensure unique eligibleBidders
+
+    -- Manager closes the auction AND settles the bounty asset atomically.
+    -- Order inside the single transaction:
+    --   1. select the winner (lowest / highest bid)
+    --   2. exercise `Release` on the escrowed asset → winner is paid
+    --   3. archive every losing bid (amount never disclosed)
+    --   4. emit AuctionResultSettled carrying the settled-asset reference
+    -- Because Daml exercises are all-or-nothing, the asset transfer and the bid
+    -- archival either both happen or neither does — atomicity preserved.
+    choice CloseAndRevealWithSettlement
+      : (ContractId AuctionResultSettled, ContractId EscrowAsset)
+      with
+        bidCids         : [ContractId BidS]
+        selectionMethod : SelectionMethodS
+      controller manager
+      do
+        assertMsg "no bids" (not (null bidCids))
+        bids <- mapA fetch bidCids
+        let bidPairs = zip bidCids bids
+        -- `winner` is the winning Bid record; `losers` are the losing Bid CIDs.
+        (winner, losers) <- case selectionMethod of
+          LowestBidS ->
+            case sortOn (\(_, b) -> b.amountUsd) bidPairs of
+              [] -> abort "no bids"
+              (w :: ls) -> pure (snd w, map fst ls)
+          HighestBidS ->
+            case sortBy (\(_, a) (_, b) -> compare b.amountUsd a.amountUsd) bidPairs of
+              [] -> abort "no bids"
+              (w :: ls) -> pure (snd w, map fst ls)
+
+        -- (2) settle the escrowed asset to the winner, atomically
+        settledEscrow <- exercise settlement Release with cid = settlement
+
+        -- (3) archive losing bids invisibly to non-observers
+        mapA_ (\c -> exercise c ConsumeS with cid = c) losers
+
+        -- (4) emit the public result with the settled-asset reference
+        result <- create AuctionResultSettled with
+          manager
+          eligibleBidders
+          roundId
+          winner          = winner.bidder
+          winningAmount   = winner.amountUsd
+          settledAsset    = settledEscrow
+        pure (result, settledEscrow)
+
+-- ── Result carrying the settled asset reference ─────────────────────────────
+template AuctionResultSettled
+  with
+    manager         : Party
+    eligibleBidders : [Party]
+    roundId         : Text
+    winner          : Party
+    winningAmount   : Decimal
+    settledAsset    : ContractId EscrowAsset
+  where
+    signatory manager
+    observer eligibleBidders

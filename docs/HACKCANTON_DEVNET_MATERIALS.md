@@ -42,7 +42,7 @@ The response contains an `access_token`. Use it as a `Bearer` token on all JSON 
 | `actAs` rights granted | Done | Rights assigned to user `e6c5f9fc-98ed-491f-b228-00cf931a05cc` for all four parties |
 | v2 client migration | Done | `src/backend/canton/CantonLedgerClient.ts` supports v1 sandbox and v2 DevNet |
 | Backend DevNet proof | Done | Local backend wired to DevNet passed `canton-devnet-proof.ts`: roundId `0x58012d8c...` |
-| Production cutover | Pending | Set Vercel env vars from `.env.example` and redeploy |
+| Production cutover | Done | Hetzner backend env updated with DevNet JSON API v2 config; `pnpm deploy:hetzner` deployed `cognivern-backend`. `pnpm canton:proof` passed against `https://cognivern.thisyearnofear.com`. Demo video re-recorded against the DevNet-backed live UI |
 
 ## Allocated parties
 
