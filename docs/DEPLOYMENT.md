@@ -7,13 +7,12 @@ private `OPS.md` that is not committed to the repository.
 ## Architecture
 
 ```text
-Internet → VPS → Express API (PM2) → optional Filecoin / LLMs
-                    ↕
-              Vercel (Frontend)
+Internet → Vercel (Frontend) → Express API (VPS / PM2) → optional Filecoin / LLMs
+                                    ↕
+                          Canton JSON API v2 (DevNet)
 ```
 
-The backend runs as a PM2 fork-mode process on a VPS. The frontend deploys
-to Vercel automatically on push to `main`.
+The frontend deploys to Vercel automatically on push to `main`. The Express backend runs as a PM2 fork-mode process on a VPS (`api.thisyearnofree.com` / `157.180.36.156:3000`). The optional local/Hetzner Daml sandbox is used only for staging and regression; final submission targets the shared HackCanton S2 Canton DevNet node directly.
 
 ## Deploy
 
@@ -51,19 +50,37 @@ See `.env.example` for the full list. Minimum for production:
 
 Optional integrations: `FILECOIN_PRIVATE_KEY`, `FHENIX_PRIVATE_KEY`, `MONGODB_URI`, `CHAINGPT_API_KEY`, `OPENAI_API_KEY`. See `.env.example` for the complete list.
 
-Canton (Daml) backend for confidential sealed-bid rounds — all optional, backend simply isn't registered if `CANTON_JSON_API_URL` is absent:
+Canton (Daml) backend for confidential sealed-bid rounds — all optional, backend simply isn't registered if `CANTON_JSON_API_URL` is absent. For HackCanton final submission this must point at a Canton DevNet participant; `http://127.0.0.1:7575` / Hetzner sandbox is useful for staging but does not satisfy the DevNet deployment requirement.
 
 | Variable | Purpose |
 | -------- | ------- |
-| `CANTON_JSON_API_URL` | Daml JSON API URL (typically `http://127.0.0.1:7575` for a local sandbox) |
+| `CANTON_JSON_API_URL` | Daml JSON API URL (`http://127.0.0.1:7575` for local staging; `https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443` for final submission) |
 | `CANTON_APPLICATION_ID` | Any string; embedded in JWT `applicationId` claim |
-| `CANTON_LEDGER_ID` | `sandbox` for the bundled sandbox; matches participant config for real deployments |
-| `CANTON_JWT_SECRET` | HS256 signing secret (empty for sandbox, set for auth-enabled participants) |
-| `CANTON_TEMPLATE_AUCTION` | `<pkgId>:Main:SealedBidAuction` |
-| `CANTON_TEMPLATE_BID` | `<pkgId>:Main:Bid` |
-| `CANTON_TEMPLATE_RESULT` | `<pkgId>:Main:AuctionResult` |
+| `CANTON_LEDGER_ID` | `sandbox` for the bundled sandbox; `hackcanton-01` for the shared DevNet node |
+| `CANTON_LEDGER_USER_ID` | Daml user ID (Keycloak `sub` UUID on the shared DevNet node) |
+| `CANTON_BEARER_TOKEN` | Static Bearer token from the NODERS Keycloak password grant |
+| `CANTON_OIDC_*` | OIDC password-grant config; preferred for production because the client refreshes tokens automatically |
+| `CANTON_TEMPLATE_AUCTION` | `#daml:Main:SealedBidAuction` on DevNet; `<pkgId>:Main:SealedBidAuction` on sandbox |
+| `CANTON_TEMPLATE_BID` | `#daml:Main:Bid` on DevNet; `<pkgId>:Main:Bid` on sandbox |
+| `CANTON_TEMPLATE_RESULT` | `#daml:Main:AuctionResult` on DevNet; `<pkgId>:Main:AuctionResult` on sandbox |
+| `CANTON_DEMO_MANAGER_NAME` | Demo manager party name (`auctioner-cognivern` on the shared node) |
+| `CANTON_DEMO_BIDDER_NAMES` | Comma-separated demo bidder names (`alice-cognivern,bob-cognivern,charlie-cognivern`) |
+| `CANTON_DEMO_PARTY_IDS` | Static `name=partyId` map; required on shared DevNet nodes where the user cannot list/allocate parties |
 
-See [`docs/CANTON.md`](./CANTON.md) for the model-change and DevNet-migration runbooks.
+See [`.env.example`](../.env.example) for the exact DevNet values and [`docs/CANTON.md`](./CANTON.md) for the model-change and DevNet-migration runbooks.
+
+## Production DevNet cutover
+
+The backend runs on the VPS; the Canton env vars must be set there and the process restarted. If you also need to update frontend-only Vercel env vars (e.g. `VITE_BACKEND_URL`), use the Vercel dashboard/CLI.
+
+1. SSH into the backend server.
+2. Update the backend `.env` file with the Canton DevNet values from `.env.example`.
+3. Restart PM2 with `--update-env`:
+   ```bash
+   pm2 restart cognivern-backend --update-env
+   ```
+4. Verify the startup logs show `Canton: JSON Ledger client bound to ... (mode=v2)` and `SealedBid: backend registered — canton`.
+5. Run `pnpm canton:proof` against the production URL and copy the evidence into `HACKATHON_SUBMISSION.md`.
 
 ## Canton Sandbox Process (Hetzner)
 

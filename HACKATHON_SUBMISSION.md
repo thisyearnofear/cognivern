@@ -18,13 +18,13 @@ HackCanton final judging requires the Daml contracts to be deployed and exercise
 | Public repository | `https://github.com/thisyearnofear/cognivern` |
 | Live product URL | `https://cognivern.vercel.app/sealed-bid` |
 | Presentation deck | `docs/pitch-deck.pptx` (export to PDF if the submission form requires a PDF) |
-| 3-minute video pitch/demo | `docs/demo-video.mp4` (≈3:00; recorded against the live sandbox-backed product; re-record on DevNet after cutover) |
+| 3-minute video pitch/demo | `docs/demo-video.mp4` (≈3:00; last recorded against sandbox-backed product; re-record against the DevNet-backed live URL before submission) |
 | Canton DevNet participant / validator | Shared HackCanton S2 DevNet node: `https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`. Auth: NODERS Keycloak password grant (client `web-app-ui-hackcanton-01-devnet`). Source: `docs/HACKCANTON_DEVNET_MATERIALS.md`. |
 | Uploaded DAR package ID | `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454` |
 | Deployed template IDs | `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:SealedBidAuction`, `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:Bid`, `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:AuctionResult` |
-| On-ledger demo evidence | DevNet roundId `0x58012d8c037135b3b664569a65ab7d99551ea992fb101f3124ac77a7627e6ddb` — create → 3 bids (alice/bob/charlie) → close → reveal winner `bob-cognivern` at $74,500. Source: `.artifacts/canton-devnet-proof-latest.json`. |
+| On-ledger demo evidence | DevNet roundId `0x499eabff027c665f5326507401211f7de6a7b78dfd87342f0029cada35b6ff8b` — create → 3 bids (alice/bob/charlie) → close → reveal winner `bob-cognivern` at $74,500. Source: `.artifacts/canton-devnet-proof-latest.json` from the production backend. |
 | Backend env points to DevNet | Set: `CANTON_JSON_API_URL=https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`, `CANTON_LEDGER_ID=hackcanton-01`, `CANTON_LEDGER_USER_ID=e6c5f9fc-98ed-491f-b228-00cf931a05cc`, templates `#daml:Main:*`, and `CANTON_DEMO_PARTY_IDS` static map. |
-| Automated lifecycle evidence | `pnpm tsx scripts/verify/canton-devnet-proof.ts` completed against a local backend wired to DevNet: `.artifacts/canton-devnet-proof-latest.json` contains the full lifecycle + package/template IDs. |
+| Automated lifecycle evidence | `pnpm canton:proof` completed against the production backend (`https://cognivern.thisyearnofear.com`): `.artifacts/canton-devnet-proof-latest.json` contains the full lifecycle + package/template IDs. |
 
 The Hetzner `cognivern-canton` sandbox remains useful for local demos and regression checks, but it does **not** satisfy the final deployment rule by itself.
 
