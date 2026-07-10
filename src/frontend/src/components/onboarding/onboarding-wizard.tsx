@@ -49,8 +49,8 @@ const STEPS = [
   },
   {
     id: "agent",
-    title: "Register Agent",
-    description: "Give an agent a wallet and budget",
+    title: "Register API Identity",
+    description: "Give an external system a wallet and budget",
     icon: Users,
   },
   {

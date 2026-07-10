@@ -115,10 +115,10 @@ export function AgentsPage() {
             className="text-2xl font-bold tracking-tight"
             style={{ fontFamily: "var(--font-space-grotesk)" }}
           >
-            Agents
+            API Identities
           </h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-            Give your external systems (bots, scripts, workflows) policy-governed access to Cognivern
+            Policy-bound identities for bots, scripts, and workflows that spend through Cognivern
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -143,8 +143,8 @@ export function AgentsPage() {
         </div>
       ) : error ? (
         <ErrorState
-          title="Failed to load agents"
-          message={error?.message || "We couldn't load your agents. Please try again."}
+          title="Failed to load API identities"
+          message={error?.message || "We couldn't load your API identities. Please try again."}
           onRetry={() => router.refresh()}
         />
       ) : agentList.length === 0 ? (
@@ -165,7 +165,7 @@ export function AgentsPage() {
             <div className="space-y-3">
               <div>
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  Example Agents
+                  Example Identities
                 </h2>
                 <p className="text-xs text-muted-foreground mt-1">
                   Demos showing what Cognivern can govern. Not configurable.
@@ -187,7 +187,7 @@ export function AgentsPage() {
           <div className="space-y-3">
             <div>
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Your Agents
+                Your API Identities
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
                 External systems you&apos;ve given governed access to Cognivern.

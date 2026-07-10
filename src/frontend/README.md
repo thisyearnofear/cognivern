@@ -4,15 +4,15 @@ Next.js dashboard for the Cognivern AI Agent Governance Platform.
 
 ## Tech Stack
 
-- **Framework:** Next.js 14 (App Router)
+- **Framework:** Next.js 16 (App Router)
 - **Language:** TypeScript (strict mode)
 - **State:** Zustand stores (`auth-store`, `demo-store`, `preferences-store`)
 - **Data Fetching:** SWR with custom hooks (`use-api.ts`)
 - **UI Components:** Custom `shadcn/ui` component library (`@/components/ui/*`)
 - **Charts:** Recharts (`activity-chart`, `decision-chart`, `agent-status-chart`)
 - **Auth:** SIWE (Sign-In with Ethereum) via RainbowKit/wagmi + email auth
-- **Styling:** Tailwind CSS
-- **WebSocket:** Real-time events via `use-socket.ts` hook
+- **Styling:** Tailwind CSS 4
+- **Real-time:** SSE event stream via `use-event-stream.ts` (used by notifications provider)
 
 ## Project Structure
 
@@ -25,7 +25,8 @@ src/frontend/
 │   │   ├── audit/                # Audit log page
 │   │   ├── governance/check/     # Governance check page
 │   │   ├── policies/             # Policy management
-│   │   ├── agents/               # Agent management
+│   │   ├── agents/               # API identity management
+│   │   ├── sealed-bid/           # Confidential vendor RFPs (Canton)
 │   │   ├── settings/             # Workspace settings & API keys
 │   │   ├── os/                   # Command Center terminal UI
 │   │   ├── demo/spend/           # Spend flow demo
@@ -37,6 +38,7 @@ src/frontend/
 │   │   ├── audit/                # AuditPage, decision detail panel
 │   │   ├── dashboard/            # Dashboard, stat cards, charts, quick check
 │   │   ├── governance/           # GovernanceCheck (NL input, voice, results)
+│   │   ├── sealed-bid/           # Canton/FHE sealed-bid UI + party view
 │   │   ├── demo/                 # SpendFlowDemo (governed/ungoverned toggle)
 │   │   ├── layout/               # AppSidebar, DemoBanner, CommandPalette
 │   │   ├── onboarding/           # OnboardingWizard
@@ -44,9 +46,9 @@ src/frontend/
 │   │   ├── policies/             # Policy CRUD
 │   │   └── ui/                   # shadcn/ui primitives (button, card, etc.)
 │   ├── hooks/
-│   │   ├── use-api.ts            # SWR hooks for agents, audit logs, policies
+│   │   ├── use-api.ts            # SWR hooks for identities, audit logs, policies
 │   │   ├── use-auth.ts           # Auth login/logout/session management
-│   │   ├── use-socket.ts         # SSE event stream hook
+│   │   ├── use-event-stream.ts   # SSE event stream hook
 │   │   ├── use-demo-simulator.ts # Demo mode real-time simulation
 │   │   └── use-voice-input.ts    # Web Speech API voice input
 │   ├── lib/
@@ -74,7 +76,7 @@ src/frontend/
 ### The Integration Engineer ("Ship governance this week")
 1. Signs in with wallet or email
 2. Creates a policy in 3 clicks (`/policies`)
-3. Registers an agent (`/agents/workshop`)
+3. Registers an API identity (`/agents/workshop`)
 4. Gets an API key (`/settings`)
 5. Calls `/api/governance/evaluate` via the curl example on `/integrate`
 6. Sees the decision appear in the audit trail (`/audit`)
@@ -85,6 +87,12 @@ src/frontend/
 3. Adjusts the policy that blocked it (`/policies`)
 4. Sees the FHE shield badge on confidential decisions
 5. Views evidence chain for cryptographic proof
+
+### The Procurement Lead ("Run a confidential vendor RFP")
+1. Opens Sealed Bids from the dashboard or `/sealed-bid`
+2. Creates a Canton-backed round and submits bids as demo parties
+3. Uses Party View to see role-based disclosure (auctioneer vs bidders)
+4. Closes and reveals the winner atomically on-ledger
 
 ## Working with Audit Data
 
@@ -98,73 +106,17 @@ Backend response → normalizeAuditLogs() → NormalizedAuditLog[]
                                      Decision Detail Panel
                                        ├─ Per-rule breakdown
                                        ├─ FHE shield badge (confidential)
-                                       ├─ ChainGPT audit badge
-                                       ├─ Latency, decision ID, timestamp
-                                       └─ Fhenix explorer link (when available)
+                                       ├─ On-chain tx links
+                                       └─ Evidence chain
 ```
-
-The `normalizers.ts` module is the single source of truth for data transformation — always use it rather than ad-hoc mapping.
-
-## Components of Note
-
-### GovernanceCheck (`governance-check.tsx`)
-- Self-contained NL-powered spend evaluation
-- Supports voice input via Web Speech API
-- Handles NO_ACTIVE_POLICY error with guided recovery (Create a Policy link)
-- Shows confidential FHE evaluation details when applicable
-- Suggest lower amounts on denial
-
-### AuditPage (`audit-page.tsx`)
-- Expandable rows with click-to-reveal decision details
-- FHE shield badge on confidential evaluations
-- ChainGPT audit badge on contract-scanned decisions
-- Per-rule breakdown with pass/fail indicators
-- Latency displayed prominently in expanded panel
-
-### SpendFlowDemo (`demo/spend/spend-flow-demo.tsx`)
-- Animated step-by-step visualization
-- Governed/ungoverned toggle — the most effective explanation of the product's value
-- Encrypted steps highlighted with lock icons
-- Summary card with duration, policies checked, audit status
-
-### Dashboard (`dashboard/dashboard.tsx`)
-- Stat cards: agents online, active policies, approval rate, decisions, blocked, avg latency
-- DecisionChart (donut), ActivityChart (area), AgentStatusChart (bar)
-- Quick Check widget for rapid policy testing
-- Get Started checklist for new users
-- Focus mode for reduced density
-
-## State Management
-
-- **Auth state** (`auth-store.ts`): Persisted via zustand/middleware. Stores token, user, workspace, workspace mode.
-- **Demo state** (`demo-store.ts`): Controls demo flag independently of auth. Demo data is loaded from `demo-data.ts`.
-- **Preferences** (`preferences-store.ts`): Persisted onboarding completion state.
-
-## Adding a New Page
-
-1. Create the route in `app/(dashboard)/<route>/page.tsx`
-2. Create the component in `src/components/<area>/<component>.tsx`
-3. Add the nav item in `src/lib/nav-items.ts`
-4. Add the API call in `src/lib/api-client.ts` (if needed)
-5. Add the SWR hook in `src/hooks/use-api.ts` (if needed)
 
 ## Development
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Run dev server (uses backend at localhost:3087 by default)
-pnpm dev
-
-# TypeScript check
-npx tsc --noEmit
-
-# Lint
-pnpm lint
-
-# Run tests
-pnpm test
+cd src/frontend
+pnpm dev        # Start dev server (port 3000)
+pnpm build      # Production build
+pnpm lint       # ESLint
 ```
 
-The frontend expects the backend API to be running. For local development, start the backend from the project root with `pnpm start`.
+The frontend proxies API requests to the backend in development. See the root [Developer Guide](../../docs/DEVELOPER.md) for full setup.

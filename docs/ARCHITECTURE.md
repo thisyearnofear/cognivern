@@ -358,7 +358,7 @@ The Fhenix confidential-compute pipeline (`ConfidentialSpendPolicy` + `SealedBid
 
 ## Test Coverage
 
-20 TestSprite integration tests (550 assertions) run against the live API, covering all major surfaces: auth, health, metrics, Fhenix FHE, intent, projects, sealed-bid auctions, MCP governance, agents, OWS wallets/keys/permissions, copilot, CRE runs, speech, deep SpendOS (preview/execute/encrypted/confirm/scan), governance CRUD, market data, dashboard, workspace management, API keys, audit, webhooks, payroll, and ingest. 16 production bugs found and fixed via the write-verify-fix loop. See [LOOP.md](./LOOP.md) for details.
+31+ Vitest unit/integration tests plus 24 TestSprite CLI tests run against the live API, covering all major surfaces: auth, health, metrics, Fhenix FHE, intent, projects, sealed-bid auctions, MCP governance, API identities, OWS wallets/keys/permissions, copilot, CRE runs, speech, deep SpendOS (preview/execute/encrypted/confirm/scan), governance CRUD, market data, dashboard, workspace management, API keys, audit, webhooks, payroll, and ingest. Canton sealed-bid privacy invariants are machine-verified by querying the Daml JSON Ledger API as each party. See [LOOP.md](./LOOP.md) for the iteration log.
 
 ## Related Docs
 

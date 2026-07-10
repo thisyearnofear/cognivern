@@ -112,21 +112,21 @@ def problem_slide(prs):
                 "The pain: information leakage kills institutional RFPs and OTC", font_size=36, bold=True, color=WHITE)
 
     cards = [
-        ("Email & portals leak", "A respondent who sees a competitor’s price bands the whole auction."),
+        ("Email & portals leak", "A leaked quote in an RFP can cost 5–15% in final price. Respondents who see a competitor’s price band the whole auction."),
         ("SaaS counterparty risk", "Unblinding is centralized in one provider — a new trust failure inside an outsourced workflow."),
-        ("OTC desks freeze up", "Market makers won’t quote tight spreads if their print levels leak."),
+        ("OTC desks freeze up", "Market makers won’t quote tight spreads if counterparties fear print-level leakage."),
     ]
     x = Inches(0.6)
     y = Inches(1.7)
     w = Inches(3.9)
-    h = Inches(2.6)
+    h = Inches(2.8)
     gap = Inches(0.35)
     for title, body in cards:
         add_shape_text(slide, x, y, w, h, "", fill_color=SLATE,
                        color=WHITE,
                        paragraphs=[(title, 20, True), (body, 14, False)])
         x += w + gap
-    add_textbox(slide, Inches(0.6), Inches(4.65), Inches(12), Inches(0.6),
+    add_textbox(slide, Inches(0.6), Inches(4.75), Inches(12), Inches(0.6),
                 "What institutions need: a sealed-bid primitive where bids exist, but only the counterparty can read them — and revealing the winner does not reveal every loser.",
                 font_size=18, color=ICE_BLUE, align=PP_ALIGN.CENTER)
     return slide
@@ -176,9 +176,9 @@ def comparison_slide(prs):
     headers = ["Public chain / SaaS", "FHE only (Fhenix)", "Canton Network"]
     rows = [
         ["Bid amounts visible to all", "Amounts stay sealed", "Amounts stay sealed"],
-        ["Reveal leaks every loser", "Needs threshold decryption by losers", "Losing bids consumed in flight, never decrypted"],
-        ["Trust a SaaS operator", "Trust CoFHE permit / manager", "Trust Daml disclosure model + participant node"],
-        ["Settlement is off-ledger", "Reveal not wired end-to-end", "Atomic reveal in one ledger transaction"],
+        ["Reveal leaks every loser", "Needs threshold decryption by losers", "Winner revealed without decrypting losers"],
+        ["Trust a SaaS operator", "Manager publishes after decrypt", "Trust Daml disclosure model + participant node"],
+        ["Settlement is off-ledger", "Reveal requires multi-party ceremony", "Atomic reveal in one ledger transaction"],
     ]
     col_x = [Inches(0.6), Inches(4.5), Inches(8.4)]
     col_w = Inches(3.7)
@@ -247,12 +247,12 @@ def rigor_slide(prs):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     add_background(slide)
     add_textbox(slide, Inches(0.6), Inches(0.45), Inches(12), Inches(0.7),
-                "Engineering rigor: tested against the real ledger", font_size=34, bold=True, color=WHITE)
+                "Engineering rigor: privacy guarantees are machine-verifiable", font_size=34, bold=True, color=WHITE)
 
     stats = [
-        ("31", "Vitest integration & unit tests passing"),
-        ("24", "TestSprite CLI backend tests on the live API"),
-        ("16", "Production bugs caught and fixed this build window"),
+        ("31+", "Vitest integration & unit tests"),
+        ("24", "TestSprite CLI tests on the live API"),
+        ("Direct", "Ledger assertions per party role"),
         ("79", "Lines of Daml across 3 templates"),
     ]
     x = Inches(0.5)
@@ -267,8 +267,61 @@ def rigor_slide(prs):
         x += w + gap
 
     add_textbox(slide, Inches(0.6), Inches(4.15), Inches(12), Inches(1.2),
-                "Privacy invariants are asserted by querying the Daml JSON Ledger API directly as each party — not by trusting our backend cache.",
+                "Privacy invariants are asserted by querying the Daml JSON Ledger API directly as each party — not by trusting our backend cache. Legal and risk teams get an immutable, non-repudiable audit trail.",
                 font_size=18, color=ICE_BLUE, align=PP_ALIGN.CENTER)
+    return slide
+
+
+def compliance_slide(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_background(slide)
+    add_textbox(slide, Inches(0.6), Inches(0.45), Inches(12), Inches(0.7),
+                "Built for legal, risk, and audit sign-off", font_size=34, bold=True, color=WHITE)
+
+    cards = [
+        ("Role-based disclosure", "Daml signatory/observer enforces who sees what — auctioneer, bidder, and auditor roles are structurally separated."),
+        ("Non-repudiation", "Every bid submission and reveal is recorded on-ledger with hash-signed events in the CRE run ledger."),
+        ("Immutable audit trail", "Full ledger history + AuctionResult contract gives procurement and compliance a durable record."),
+        ("No SaaS trust gap", "Privacy comes from the disclosure model on your participant node — not from trusting a central unblinding operator."),
+    ]
+    x = Inches(0.5)
+    y = Inches(1.35)
+    w = Inches(5.9)
+    h = Inches(1.9)
+    for i, (title, body) in enumerate(cards):
+        col = i % 2
+        row = i // 2
+        cx = x + col * (w + Inches(0.4))
+        cy = y + row * (h + Inches(0.25))
+        add_shape_text(slide, cx, cy, w, h, "", fill_color=SLATE,
+                       color=WHITE, align=PP_ALIGN.LEFT,
+                       paragraphs=[(title, 22, True, ICE_BLUE), (body, 14, False, WHITE)])
+    return slide
+
+
+def deployment_slide(prs):
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    add_background(slide)
+    add_textbox(slide, Inches(0.6), Inches(0.45), Inches(12), Inches(0.7),
+                "Deployment path: DevNet today, private participant tomorrow", font_size=32, bold=True, color=WHITE)
+
+    steps = [
+        ("Today", "Live on HackCanton S2 DevNet with on-ledger proof artifacts and automated lifecycle verification (pnpm canton:proof)."),
+        ("Private participant", "Same backend is participant-agnostic — point CANTON_JSON_API_URL at your own Canton node or a hosted validator."),
+        ("Mainnet-ready model", "79-line Daml package compiles with SDK 3.5.x; no external dependencies. SettlementLeg upgrade path for atomic value transfer."),
+    ]
+    y = Inches(1.45)
+    for i, (title, body) in enumerate(steps):
+        circle = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(0.6), y + Inches(0.1), Inches(0.55), Inches(0.55))
+        circle.fill.solid()
+        circle.fill.fore_color.rgb = CORAL
+        circle.line.fill.background()
+        add_textbox(slide, Inches(0.6), y + Inches(0.12), Inches(0.55), Inches(0.5),
+                    str(i + 1), font_size=20, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+        add_shape_text(slide, Inches(1.35), y, Inches(11.4), Inches(1.35),
+                       "", fill_color=SLATE, color=WHITE, align=PP_ALIGN.LEFT,
+                       paragraphs=[(title, 18, True, ICE_BLUE), (body, 14, False, WHITE)])
+        y += Inches(1.55)
     return slide
 
 
@@ -363,9 +416,9 @@ def team_slide(prs):
 
     bullets = [
         "Built on top of an already-deployed, tested governance API — real production logging, auth, and audit rails.",
-        "Daml model compiles clean with SDK 2.10.4; backend is participant-agnostic.",
+        "Daml model compiles clean with SDK 3.5.x; backend is participant-agnostic.",
         "End-to-end Canton flow works today: create → submit → close → atomic reveal, with privacy verified by direct ledger queries.",
-        "Iteration log (LOOP.md) shows 16 bugs fixed, 31 tests passing, and a clear Option B FHE trust-model evolution.",
+        "31+ automated tests plus direct ledger assertions keep the privacy guarantee machine-verifiable.",
     ]
     y = Inches(1.5)
     for b in bullets:
@@ -406,8 +459,10 @@ def main():
     daml_model_slide(prs)
     product_slide(prs)
     rigor_slide(prs)
+    compliance_slide(prs)
     track_fit_slide(prs)
     use_cases_slide(prs)
+    deployment_slide(prs)
     roadmap_slide(prs)
     team_slide(prs)
     closing_slide(prs)

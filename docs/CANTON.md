@@ -40,14 +40,21 @@ Every lifecycle step (create, submit, close, reveal) also fires `AuditLogService
 | Path | Purpose |
 |---|---|
 | `daml/daml/Main.daml` | Daml model — `SealedBidAuction`, `Bid`, `AuctionResult` templates |
-| `daml/daml.yaml` | SDK version + project name |
+| `daml/daml.yaml` | SDK version (**3.5.x**) + project name |
 | `daml/start-sandbox.sh` | pm2 launcher on Hetzner |
 | `src/backend/canton/CantonLedgerClient.ts` | JWT + `/v1/{query,create,exercise,parties}` client |
 | `src/backend/canton/CantonPartyRegistry.ts` | cognivern name → Daml party mapping |
 | `src/backend/services/blockchain/sealed-bid/CantonSealedBidBackend.ts` | Backend impl |
 | `src/backend/services/blockchain/sealed-bid/SealedBidBackend.ts` | Interface all backends satisfy |
-| `src/frontend/src/components/sealed-bid/` | UI: create form, round list, party viewer |
+| `src/frontend/src/components/sealed-bid/` | UI: create form, round list, party viewer, backend picker |
+| `src/frontend/src/components/dashboard/dashboard.tsx` | Dashboard card linking agent spend governance ↔ sealed-bid |
 | `tests/integration/canton-sealed-bid.test.ts` | Live-sandbox privacy invariants |
+
+## UI surfaces
+
+- **`/sealed-bid`** — create rounds, submit bids, close/reveal, and toggle the **Party view** (Auctioneer / Alice / Bob / Charlie) to see role-based disclosure.
+- **Dashboard** — "Vendor spend governance" card links day-to-day agent spend policies to confidential vendor RFPs on the same control plane.
+- **Backend picker** — Canton (recommended) for structural privacy; FHE for ciphertext bids with manager-publish reveal. Helper text on the create form explains the trade-off.
 
 ## Runtime layout
 

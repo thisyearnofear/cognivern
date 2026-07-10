@@ -155,13 +155,21 @@ export function SealedBidPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="canton">
-                    Canton — atomic reveal, structural sub-transaction privacy
+                    Canton — full privacy reveal, losers never decrypted
                   </SelectItem>
                   <SelectItem value="fhe">
-                    FHE (Fhenix) — ciphertext handles, reveal not wired
+                    FHE (Fhenix) — sealed bids, manager-publish reveal
                   </SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                <strong className="text-foreground">Canton (recommended):</strong>{" "}
+                structural sub-transaction privacy — the winner is revealed in one
+                atomic transaction without decrypting losing bids.{" "}
+                <strong className="text-foreground">FHE:</strong> amounts stay as
+                ciphertext; the round manager publishes the winner after
+                decrypt-and-publish (losing plaintexts are visible to the manager).
+              </p>
             </div>
           </div>
           <div className="flex justify-end">

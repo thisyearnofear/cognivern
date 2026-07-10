@@ -362,7 +362,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
           size="sm"
           onClick={() => router.push("/agents")}
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Agents
+          <ArrowLeft className="h-4 w-4" /> Back to API Identities
         </Button>
         <div className="rounded-xl border bg-card">
           <div className="p-12 text-center">
@@ -372,7 +372,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
               {error ? error.message : "The agent could not be loaded."}
             </p>
             <Button onClick={() => router.push("/agents")}>
-              Back to Agents
+              Back to API Identities
             </Button>
           </div>
         </div>

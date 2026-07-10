@@ -35,7 +35,7 @@ For local setup, API reference, and production deployment, see the [Developer Gu
 
 ## Verification
 
-24 CLI backend + 30 MCP frontend tests run against the live API. The [LOOP](./LOOP.md) is the write-verify-fix iteration log — sixteen production bugs caught and fixed during the build window. CI runs the suite on every PR via `.github/workflows/testsprite.yml`.
+31+ Vitest unit/integration tests plus 24 TestSprite CLI backend tests run against the live API. Privacy invariants on Canton sealed-bid are asserted by direct ledger queries per party role. CI runs the TestSprite suite on every PR via `.github/workflows/testsprite.yml`. The [LOOP](./LOOP.md) documents the write-verify-fix iteration history.
 
 ## Documentation
 
@@ -46,7 +46,7 @@ For local setup, API reference, and production deployment, see the [Developer Gu
 | [Developer Guide](./docs/DEVELOPER.md) | Local setup, API reference, testing, production readiness |
 | [Deployment](./docs/DEPLOYMENT.md) | Hetzner / PM2 / nginx, env vars, health checks |
 | [AI Safety](./scripts/hackathon/HACKATHON_REPORT.md) | Suspicion-scoring design, frontier evaluation |
-| [Hackathon Submission](./HACKATHON_SUBMISSION.md) | Track 1: Canton private RFP — full bug list |
+| [Hackathon Submission](./HACKATHON_SUBMISSION.md) | Track 1: Canton private RFP — enterprise framing, DevNet proof pack |
 
 ## License
 

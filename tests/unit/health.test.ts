@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /* ------------------------------------------------------------------ */
 /*  Mocks                                                             */
@@ -19,9 +19,24 @@ vi.mock("@backend/modules/agents/AgentsModule.js", () => {
   };
 });
 
+vi.mock("@backend/services/governance/PolicyService.js", () => ({
+  sharedPolicyService: {
+    listPolicies: vi.fn().mockResolvedValue([]),
+  },
+}));
+
 const { HealthController } = await import(
   '../../src/backend/modules/api/controllers/HealthController.js'
 );
+
+const OPTIONAL_ENV_KEYS = [
+  'MONGODB_URI',
+  'FHENIX_RPC_URL',
+  'FHENIX_PRIVATE_KEY',
+  'FILECOIN_PRIVATE_KEY',
+  'ZEROG_PRIVATE_KEY',
+  'FHE_WATCHER_ENABLED',
+] as const;
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -44,10 +59,28 @@ function mockReq(query: Record<string, string> = {}) {
 
 describe('HealthController', () => {
   let controller: InstanceType<typeof HealthController>;
+  const savedEnv: Partial<Record<(typeof OPTIONAL_ENV_KEYS)[number], string>> =
+    {};
 
   beforeEach(() => {
     vi.clearAllMocks();
+    for (const key of OPTIONAL_ENV_KEYS) {
+      if (process.env[key] !== undefined) {
+        savedEnv[key] = process.env[key];
+      }
+      delete process.env[key];
+    }
     controller = new HealthController();
+  });
+
+  afterEach(() => {
+    for (const key of OPTIONAL_ENV_KEYS) {
+      if (savedEnv[key] !== undefined) {
+        process.env[key] = savedEnv[key];
+      } else {
+        delete process.env[key];
+      }
+    }
   });
 
   describe('GET /health (basic)', () => {

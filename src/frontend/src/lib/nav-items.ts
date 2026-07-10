@@ -48,9 +48,10 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         id: "agents",
-        label: "Agents",
+        label: "API Identities",
         icon: Users,
         href: "/agents",
+        description: "Policy-bound identities for bots, scripts, and workflows",
       },
       {
         id: "governance",

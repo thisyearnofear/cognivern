@@ -45,7 +45,7 @@ The Hetzner `cognivern-canton` sandbox remains useful for local demos and regres
 - **Daml model.** `SealedBidAuction` · `Bid` (signatory bidder, observer manager — no other bidder has visibility) · `AuctionResult` (publicly visible to bidders post-reveal). 79 lines of Daml.
 - **Pluggable backend.** Live production code runs the same sealed-bid protocol over either Canton (works end-to-end) or Fhenix CoFHE (works for sealed-bid but cannot reveal — see "Why this is hard" below). Same REST surface, swapped at `createRound(backend: "canton" | "fhe")`.
 - **End-to-end on a live ledger.** Three demo rounds pre-seeded at sandbox boot — one open, one closed awaiting reveal, one already revealed — so the demo video lands on a real privacy state, not an empty screen. Bid-amount visibility is *literally* enforced by the Daml JSON API's response payload per role.
-- **Twenty-four CLI backend tests + thirty MCP-generated Playwright frontend tests run against the live API.** Sixteen production bugs were caught and fixed during the build window by the same write-verify-fix loop.
+- **Thirty-one+ Vitest tests plus twenty-four TestSprite CLI backend tests run against the live API**, with direct ledger assertions per party role keeping the privacy guarantee machine-verifiable.
 
 ---
 
@@ -71,13 +71,38 @@ auctioneer) can read it, and revealing the winner does **not** reveal every lose
 
 ---
 
+## Enterprise compliance & auditability
+
+Institutions buy when legal and risk can sign off — not just when engineering likes the tech:
+
+| Concern | How Cognivern addresses it |
+| --- | --- |
+| **Role-based disclosure** | Daml `signatory`/`observer` on `Bid` enforces who sees what — auctioneer, bidder, and auditor roles are structurally separated on the ledger. |
+| **Non-repudiation** | Every bid submission and reveal is recorded on-ledger; hash-signed `bid_submitted` / `winner_revealed` events in the CRE run ledger provide an off-ledger evidence chain. |
+| **Immutable audit trail** | Full ledger history + `AuctionResult` contract gives procurement and compliance a durable record without trusting a SaaS unblinding operator. |
+| **No central trust gap** | Privacy comes from the Daml disclosure model on your participant node — not from encryption keys held by a third party. |
+
+---
+
+## Deployment path
+
+The obvious enterprise objection: *"This demo runs on HackCanton DevNet — what about production?"*
+
+| Stage | What it means |
+| --- | --- |
+| **Today** | Live on HackCanton S2 DevNet with automated lifecycle proof (`pnpm canton:proof` → `.artifacts/canton-devnet-proof-latest.json`). |
+| **Private participant** | The backend is participant-agnostic — point `CANTON_JSON_API_URL` at your own Canton node or a hosted validator. Same Daml package, same REST surface. |
+| **Mainnet-ready model** | 79-line Daml package compiles with **SDK 3.5.x**; `SettlementLeg` upgrade path for atomic value transfer (CBTC / cETH bounty lanes). |
+
+---
+
 ## The pain: information leakage in institutional procurement and OTC
 
 When an institution runs an RFP — for legal counsel, infra, an audit — every qualifying bidder needs to see *the auction*, but no bidder needs to see the *other bids*. In the current world:
 
-- Email RFPs leak. A respondent who learns a competitor's pricing during a Q&A cycle effectively bands.
+- Email RFPs leak. A leaked quote in an RFP can cost **5–15%** in final price; a respondent who learns a competitor's pricing during a Q&A cycle effectively bands.
 - Even digital sealed-bid procurement portals tend to centralize the unblinding on a single SaaS provider — a fresh counterparty risk inside an already outsourced workflow.
-- OTC desks face a structurally similar problem: market makers won't quote tight spreads if they know other makers' print levels, and end-clients won't show real interest if a half-penny better quote leaks.
+- OTC desks face a structurally similar problem: market makers won't quote tight spreads if print levels leak, and end-clients won't show real interest if a half-penny better quote leaks.
 
 What's wanted in *both* cases is the same primitive: a sealed-bid system where the bid exists, but only the counterparty (or the auctioneer) can read it, and where revealing the winner does **not** simultaneously reveal every loser.
 
@@ -341,15 +366,15 @@ Cognivern is a spend-governance platform for AI agents — confidential policy e
 
 ---
 
-## Postscript: bugs caught and fixed by the test loop
+## Postscript: what testing validates
 
-A Canton submission that says "we test" should also say "here is what testing caught". Sixteen production bugs surfaced during the build window; the full enumeration is in [`LOOP.md`](LOOP.md). Three representative categories, with one or two concrete examples per category:
+A Canton submission that says "we test" should also say what the tests prove. **31+ Vitest tests** plus **24 TestSprite CLI tests** run against the live API; Canton privacy invariants are asserted by querying the Daml JSON Ledger API directly as each party — not by trusting the backend cache. Representative issues caught during the build window are enumerated in [`LOOP.md`](LOOP.md). Three categories:
 
 - **Endpoint access**. `/auth/*`, `/api/fhenix/encrypt`, `/api/metrics/ux-events`, `/api/mcp/governance-check`, `/api/speech/transcribe`, `/api/vendor/sealed-bid/rounds/:id/{bid,close,reveal}`, and `/api/projects/:id/{usage,tokens}` were all blocked by `apiKeyMiddleware` despite being public. Fix: parameterized path matching in `isPublicApiPath()` so the Canton sealed-bid sub-paths are not a special case.
 - **Server crashes from unhandled throws**. `OwsWalletController.{createAgent, getWallet, importWallet, connectExternal}`, `OwsApiKeyController.{createApiKey, getApiKey, deleteApiKey}`, `OwsPermissionsController.{requestPermissions, getPermissions, revokePermissions, checkPermissions}` all threw `BadRequestError` / `NotFoundError` without try/catch, turning a 4xx into a 502 by taking the Node process down. Fix: explicit try/catch returning the right status.
 - **Schema drift**. The `users` table lacked an `email` column; the `workspaces` table lacked `settings`. Inline migrations couldn't `CREATE TABLE IF NOT EXISTS` past the existing rows, so `ALTER TABLE … ADD COLUMN` statements were added as idempotent migrations.
 
-(README's count is 12 because it lists the most recent 12; the broader figure across the project lifetime is 16.)
+(README's verification section summarizes the automated suite; [`LOOP.md`](LOOP.md) has the full iteration-by-iteration log.)
 
 ---
 

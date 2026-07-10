@@ -214,7 +214,7 @@ python3 .testsprite/tests/spendos_deep.py
 
 Test files live in `.testsprite/tests/` and cover: auth (register, login, nonce, verify, refresh, logout), health (6 variants), metrics, Fhenix FHE, intent classification, projects, sealed-bid auctions, MCP governance, agents (stats, leaderboard, market data), OWS (wallets, API keys, permissions), copilot, CRE runs, speech, spend (deep SpendOS: preview, execute, encrypted, confirm, scan), governance CRUD, and audit trail integrity.
 
-The write-verify-fix loop caught 15 real production bugs during the hackathon, all fixed. See [LOOP.md](./LOOP.md) for the iteration log and [HACKATHON_SUBMISSION.md](./HACKATHON_SUBMISSION.md) for the full bug list.
+The write-verify-fix loop caught production issues during the build window; see [LOOP.md](./LOOP.md) for the iteration log and [HACKATHON_SUBMISSION.md](./HACKATHON_SUBMISSION.md) for representative examples.
 
 ## Production Readiness
 
@@ -223,7 +223,7 @@ The write-verify-fix loop caught 15 real production bugs during the hackathon, a
 - [x] Error boundaries, circuit breakers, code splitting
 - [x] Sensitive data redaction in public proofs
 - [x] Unit + integration tests, CI pipeline
-- [x] TestSprite integration suite (24 CLI + 30 MCP frontend tests, 16 bugs found/fixed)
+- [x] TestSprite integration suite (24 CLI + 30 MCP frontend tests) with direct Canton ledger assertions
 - [x] Multi-provider AI routing (6 providers)
 - [x] Rate limiting on public endpoints (configurable per-endpoint)
 - [x] SIWE wallet auth + JWT with nonce replay protection

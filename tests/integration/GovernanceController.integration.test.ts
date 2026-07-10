@@ -41,6 +41,9 @@ vi.mock("@backend/services/governance/AuditLogService.js", () => ({
     async logAction() {
       return { decisionId: "test-decision-id" };
     }
+    async getAgentHistory() {
+      return [];
+    }
   },
 }));
 

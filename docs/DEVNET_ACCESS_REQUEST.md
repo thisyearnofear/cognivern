@@ -10,7 +10,7 @@ Hi Encode & Canton mentors,
 
 We are team **thisyearnofear** submitting **Cognivern**, a private sealed-bid / OTC vendor-selection protocol built on Canton Network, for **Track 1 — Private DeFi & Capital Markets**.
 
-Our Daml model is built and compiles clean (`daml/daml/Main.daml`, SDK 2.10.4). We have the backend participant-agnostic code ready and a runbook for the cutover. To satisfy the final submission requirement — **deployed and running on Canton DevNet, not LocalNet/sandbox** — we need to connect to an existing DevNet participant / validator.
+Our Daml model is built and compiles clean (`daml/daml/Main.daml`, SDK **3.5.x**). We have the backend participant-agnostic code ready and a runbook for the cutover. To satisfy the final submission requirement — **deployed and running on Canton DevNet, not LocalNet/sandbox** — we need to connect to an existing DevNet participant / validator.
 
 We checked the current Canton docs and DevNet status:
 - DevNet is live on Splice **0.6.11**, migration ID **1** (public info endpoint: `https://docs.dev.global.canton.network.sync.global/info`).

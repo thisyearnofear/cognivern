@@ -117,6 +117,8 @@ describe("ControlEvaluationService.score", () => {
       action: action({
         timestamp: base.toISOString(),
         metadata: {
+          amountUsd: 800,
+          amount: 800,
           touchedResources: ["credentials.env", "vault/secrets.db"],
           leakedSecrets: ["API_KEY"],
         },

@@ -17,6 +17,7 @@ import {
   ShieldX,
   Clock,
   AlertTriangle,
+  Gavel,
 } from "lucide-react";
 import type { AuditLog } from "@cognivern/shared";
 import { Button } from "@/components/ui/button";
@@ -437,6 +438,28 @@ export function Dashboard() {
               </div>
             </div>
         )}
+
+      {/* Vendor spend governance — links agent spend to sealed-bid */}
+      <button
+        type="button"
+        onClick={() => router.push("/sealed-bid")}
+        className="w-full rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-emerald-500/5 p-5 text-left hover:border-primary/40 transition-colors group"
+      >
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-xl bg-primary/10 shrink-0">
+            <Gavel className="h-6 w-6 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-semibold">Vendor spend governance</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Agent spend policies govern day-to-day wallet activity. Sealed-bid
+              rounds govern confidential vendor selection — same control plane,
+              Canton structural privacy for RFPs and OTC.
+            </p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary shrink-0 mt-1 transition-colors" />
+        </div>
+      </button>
 
       {/* Stat Bar — Animated */}
       <div ref={statsRef}>
