@@ -31,31 +31,21 @@ const apiBaseUrl =
     ? "https://cognivern.thisyearnofear.com"
     : baseUrl.replace(/\/sealed-bid\/?$/, ""));
 
-const narrationScript = `Hi, this is team thisyearnofear, and this is Cognivern — a private sealed-bid RFP and OTC vendor-selection protocol built on Canton Network, submitted to Track 1, Private DeFi and Capital Markets.
+const narrationScript = `Cognivern. Private sealed-bid RFPs and OTC selection on Canton Network.
 
-When institutions run an RFP — for legal counsel, a security audit, or a cloud procurement — every bidder needs to see the auction, but no bidder should see competitor pricing. Email RFPs leak. Procurement portals unblind through a single SaaS provider, creating a new counterparty risk inside an already outsourced workflow. OTC desks face the same problem: market makers won't quote tight spreads if their print levels leak.
+Institutional RFPs leak pricing. Email RFPs let competitors band. Procurement portals centralize unblinding, creating counterparty risk. OTC desks won't quote tight spreads if print levels leak.
 
-Canton Network solves this structurally. Our Daml model gives each Bid contract a bidder signatory and the auctioneer as the sole observer. At reveal, the CloseAndReveal consuming choice selects the winner, archives every losing Bid in flight, and creates the AuctionResult — all in one atomic ledger transaction. No threshold decryption. No leaking losers.
+Canton fixes this structurally. In our Daml model, each bid is signatory bidder plus observer manager only. CloseAndReveal selects the winner, archives every losing bid in flight, and emits the AuctionResult in one atomic transaction.
 
-Here is the live product at cognivern dot vercel dot app slash sealed-bid. We will create a Canton-backed private RFP, submit three bids, and prove that competitors cannot read each other's amounts.
+Here is the live product on Canton DevNet. We create a private round, submit three bids, and prove competitors cannot read each other's amounts.
 
-We create a new Canton-backed round. The backend writes a SealedBidAuction contract to the DevNet ledger and it appears in the live UI.
+Create a Canton-backed round. Alice bids $91,000. Bob bids $74,500. Charlie bids $108,000.
 
-Alice submits a sealed bid of $91,000. On Canton, this amount is visible only to the auctioneer.
+Toggle the party view. Alice sees only Alice. Bob sees only Bob. Charlie sees only Charlie. The auctioneer sees all three. This disclosure happens inside the Canton participant node, not our backend.
 
-Bob bids $74,500.
+The auctioneer closes bidding and reveals the winner atomically. Bob wins at $74,500. Losing amounts are never disclosed.
 
-Charlie bids $108,000. Each bid becomes its own sub-transaction-private contract.
-
-Now we toggle the Party view. As Alice, only Alice's bid is readable. As Bob, only Bob's. As Charlie, only Charlie's. Switch to the auctioneer, and all three bids are visible. This filtering happens inside the Canton participant node, not in our application code.
-
-The auctioneer closes bidding, then reveals the winner atomically. One transaction consumes every losing Bid and emits the AuctionResult.
-
-Bob wins at $74,500. The losing amounts are archived and never disclosed. That is structural privacy.
-
-Behind the scenes, every lifecycle step is anchored in a hash-signed audit ledger. We ship 31 passing Vitest tests, 24 TestSprite CLI tests against the live API, and the Canton privacy invariants are asserted by querying the Daml JSON Ledger API directly as each party — not by trusting our backend cache. The Daml model is just 79 lines, and the backend is participant-agnostic, so the same code already runs against the HackCanton S2 DevNet — no code change required.
-
-Cognivern brings institutional sealed-bid workflows to Canton Network — provably private, end-to-end tested, and live today. Try the demo at cognivern dot vercel dot app slash sealed-bid and read the code at github dot com slash thisyearnofear slash cognivern.`;
+That is structural privacy, end-to-end tested on Canton DevNet. Try the demo at cognivern dot vercel dot app slash sealed-bid.`;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -68,27 +58,6 @@ async function generateNarration() {
   // macOS say to AIFF; ffmpeg will convert to AAC.
   execSync(`say -f ${scriptFile} -o ${audioPath}`, { stdio: "inherit" });
   console.log(`Narration saved to ${audioPath}`);
-
-  // Prepend 17 seconds of silence so the live product UI is visible before the
-  // narrator starts, pushing the total runtime closer to the requested 3 minutes.
-  const silenceFile = path.join(artifactsDir, "demo-silence.aiff");
-  const listFile = path.join(artifactsDir, "demo-audio-list.txt");
-  const extendedAudioPath = path.join(artifactsDir, "demo-narration-extended.aiff");
-  execSync(
-    `ffmpeg -y -f lavfi -i anullsrc=r=22050:cl=mono -t 17 -acodec pcm_s16be ${silenceFile}`,
-    { stdio: "pipe" },
-  );
-  await fs.writeFile(
-    listFile,
-    `file '${silenceFile}'\nfile '${audioPath}'\n`,
-    "utf-8",
-  );
-  execSync(
-    `ffmpeg -y -f concat -safe 0 -i ${listFile} -c copy ${extendedAudioPath}`,
-    { stdio: "pipe" },
-  );
-  await fs.copyFile(extendedAudioPath, audioPath);
-  console.log("Prepended 17s silence to narration");
 }
 
 async function createRoundViaApi(marker: string): Promise<string> {
@@ -136,7 +105,7 @@ async function recordDemo() {
     });
 
     // Intro + problem context pause while landing page is visible
-    await sleep(35000);
+    await sleep(5000);
 
     // Create a fresh Canton-backed round via the API so the manager is set
     // correctly on the DevNet backend.
@@ -156,43 +125,43 @@ async function recordDemo() {
 
     // Wait for round detail to load
     await page.waitForSelector("text=Submit sealed bid", { timeout: 15000 });
-    await sleep(5000);
+    await sleep(2000);
 
     // Submit Alice
     await submitBid(page, "Alice", "91000", "Premium implementation team");
-    await sleep(6000);
+    await sleep(2000);
 
     // Submit Bob
     await submitBid(page, "Bob", "74500", "Best-value team");
-    await sleep(5000);
+    await sleep(2000);
 
     // Submit Charlie
     await submitBid(page, "Charlie", "108000", "Enterprise support bundle");
-    await sleep(5000);
+    await sleep(2000);
 
     // Party view toggles
     await toggleParty(page, "Auctioneer");
-    await sleep(5000);
+    await sleep(1500);
     await toggleParty(page, "Alice");
-    await sleep(5000);
+    await sleep(1500);
     await toggleParty(page, "Bob");
-    await sleep(5000);
+    await sleep(1500);
     await toggleParty(page, "Charlie");
-    await sleep(5000);
+    await sleep(1500);
     await toggleParty(page, "Auctioneer");
-    await sleep(5000);
+    await sleep(1500);
 
     // Close bidding (requires Auctioneer party view to be selected)
     await page.getByRole("button", { name: /Close bidding/ }).click();
     await page.waitForSelector("text=Reveal winner atomically", {
       timeout: 15000,
     });
-    await sleep(5000);
+    await sleep(2000);
 
     // Reveal
     await page.getByRole("button", { name: "Reveal winner atomically" }).click();
     await page.waitForSelector("text=Winner:", { timeout: 15000 });
-    await sleep(60000);
+    await sleep(5000);
   } catch (err) {
     console.error("Recording failed:", err);
     throw err;
