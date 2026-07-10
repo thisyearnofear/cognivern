@@ -203,7 +203,7 @@ The project includes 24 TestSprite CLI backend tests + 30 MCP-generated Playwrig
 
 ```bash
 # List all tests
-testsprite test list --project ad5aa683-dbc5-4484-8236-e4a3aef914ee
+testsprite test list --project 8be1ec9e-a2c5-484a-8a2e-422b87832028
 
 # Run a specific test
 testsprite test rerun <test-id> --wait

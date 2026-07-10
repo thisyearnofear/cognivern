@@ -35,7 +35,7 @@ For local setup, API reference, and production deployment, see the [Developer Gu
 
 ## Verification
 
-31+ Vitest unit/integration tests plus 24 TestSprite CLI backend tests run against the live API. Privacy invariants on Canton sealed-bid are asserted by direct ledger queries per party role. CI runs the TestSprite suite on every PR via `.github/workflows/testsprite.yml`. The [LOOP](./LOOP.md) documents the write-verify-fix iteration history.
+31+ Vitest unit/integration tests plus 21 TestSprite CLI backend tests run against the live API (`testsprite test run --all --project 8be1ec9e-a2c5-484a-8a2e-422b87832028`). Privacy invariants on Canton sealed-bid are asserted by direct ledger queries per party role. CI runs the TestSprite suite on every PR and push via `.github/workflows/testsprite.yml`. The [LOOP](./LOOP.md) documents the write-verify-fix iteration history.
 
 ## Documentation
 

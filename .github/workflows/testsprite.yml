@@ -3,11 +3,13 @@ name: TestSprite Verification
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
 
 env:
   TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
-  PROJECT_ID: ad5aa683-dbc5-4484-8236-e4a3aef914ee
+  PROJECT_ID: 8be1ec9e-a2c5-484a-8a2e-422b87832028
 
 jobs:
   verify:
