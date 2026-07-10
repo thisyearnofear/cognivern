@@ -3,6 +3,8 @@
 import os
 import subprocess
 from pathlib import Path
+from typing import Optional
+import requests
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -11,6 +13,7 @@ PROC_DIR = ROOT / ".artifacts" / "demo-processed"
 ARTIFACTS_DIR = ROOT / ".artifacts"
 OUTPUT = ROOT / "docs" / "demo-video.mp4"
 AUDIO = ARTIFACTS_DIR / "demo-narration.aiff"
+MUSIC = ARTIFACTS_DIR / "demo-music-loop.mp3"
 FONT = Path("/System/Library/Fonts/Helvetica.ttc")
 
 NARRATION = """Cognivern. Private sealed-bid RFPs and OTC selection on Canton Network.
@@ -53,6 +56,39 @@ def generate_narration():
     script_file.write_text(NARRATION, encoding="utf-8")
     subprocess.run(["say", "-f", str(script_file), "-o", str(AUDIO)], check=True)
     print(f"Narration saved to {AUDIO}")
+
+
+def generate_music() -> Optional[Path]:
+    key = os.environ.get("ELEVENLABS_API_KEY")
+    if not key:
+        # Try to load from project .env if present.
+        env_file = ROOT / ".env"
+        if env_file.exists():
+            for line in env_file.read_text(encoding="utf-8").splitlines():
+                if line.startswith("ELEVENLABS_API_KEY="):
+                    key = line.split("=", 1)[1].strip()
+                    break
+    if not key:
+        print("ELEVENLABS_API_KEY not found; skipping background music.")
+        return None
+
+    url = "https://api.elevenlabs.io/v1/sound-generation"
+    headers = {"xi-api-key": key, "Content-Type": "application/json"}
+    body = {
+        "text": "upbeat electronic background music loop, corporate tech demo, instrumental, energetic, no vocals",
+        "duration_seconds": 30,
+        "loop": True,
+        "prompt_influence": 0.5,
+        "model_id": "eleven_text_to_sound_v2",
+    }
+    print("Generating background music loop via ElevenLabs Sound Effects...")
+    resp = requests.post(url, headers=headers, json=body, timeout=120)
+    if resp.status_code != 200:
+        print(f"Music generation failed ({resp.status_code}): {resp.text[:300]}")
+        return None
+    MUSIC.write_bytes(resp.content)
+    print(f"Background music saved to {MUSIC} ({len(resp.content)} bytes)")
+    return MUSIC
 
 
 def overlay_caption(image_path: Path, caption: str, out_path: Path):
@@ -158,13 +194,28 @@ def main():
     concat_file = ARTIFACTS_DIR / "demo-concat.txt"
     concat_file.write_text("\n".join(f"file '{c}'" for c in clips), encoding="utf-8")
 
-    cmd = [
-        "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(concat_file),
-        "-i", str(AUDIO),
-        "-c:v", "libx264", "-preset", "fast", "-crf", "23", "-pix_fmt", "yuv420p",
-        "-c:a", "aac", "-b:a", "128k",
-        str(OUTPUT),
-    ]
+    music = generate_music()
+    if music and music.exists():
+        cmd = [
+            "ffmpeg", "-y",
+            "-f", "concat", "-safe", "0", "-i", str(concat_file),
+            "-i", str(AUDIO),
+            "-stream_loop", "-1", "-i", str(music),
+            "-filter_complex", "[1:a][2:a]amix=inputs=2:duration=first:weights='1 0.18'[a]",
+            "-map", "0:v",
+            "-map", "[a]",
+            "-c:v", "libx264", "-preset", "fast", "-crf", "23", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "128k",
+            str(OUTPUT),
+        ]
+    else:
+        cmd = [
+            "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(concat_file),
+            "-i", str(AUDIO),
+            "-c:v", "libx264", "-preset", "fast", "-crf", "23", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "128k",
+            str(OUTPUT),
+        ]
     print(f"Muxing final video to {OUTPUT}")
     subprocess.run(cmd, check=True)
     size_mb = OUTPUT.stat().st_size / 1e6
