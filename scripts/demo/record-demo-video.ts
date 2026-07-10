@@ -39,7 +39,7 @@ Canton Network solves this structurally. Our Daml model gives each Bid contract 
 
 Here is the live product at cognivern dot vercel dot app slash sealed-bid. We will create a Canton-backed private RFP, submit three bids, and prove that competitors cannot read each other's amounts.
 
-We click New round and fill a short description. The backend writes a SealedBidAuction contract to the ledger.
+We create a new Canton-backed round. The backend writes a SealedBidAuction contract to the DevNet ledger and it appears in the live UI.
 
 Alice submits a sealed bid of $91,000. On Canton, this amount is visible only to the auctioneer.
 
@@ -53,7 +53,7 @@ The auctioneer closes bidding, then reveals the winner atomically. One transacti
 
 Bob wins at $74,500. The losing amounts are archived and never disclosed. That is structural privacy.
 
-Behind the scenes, every lifecycle step is anchored in a hash-signed audit ledger. We ship 31 passing Vitest tests, 24 TestSprite CLI tests against the live API, and the Canton privacy invariants are asserted by querying the Daml JSON Ledger API directly as each party — not by trusting our backend cache. The Daml model is just 79 lines, and the backend is participant-agnostic, so moving from this live demo to Canton DevNet is an environment change, not a code change.
+Behind the scenes, every lifecycle step is anchored in a hash-signed audit ledger. We ship 31 passing Vitest tests, 24 TestSprite CLI tests against the live API, and the Canton privacy invariants are asserted by querying the Daml JSON Ledger API directly as each party — not by trusting our backend cache. The Daml model is just 79 lines, and the backend is participant-agnostic, so the same code already runs against the HackCanton S2 DevNet — no code change required.
 
 Cognivern brings institutional sealed-bid workflows to Canton Network — provably private, end-to-end tested, and live today. Try the demo at cognivern dot vercel dot app slash sealed-bid and read the code at github dot com slash thisyearnofear slash cognivern.`;
 
