@@ -4,16 +4,36 @@ Verifies the full sealed-bid auction lifecycle: create round, submit bid,
 close round, reveal winner, and list rounds. This is a key FHE-powered
 feature — bids are encrypted until reveal.
 """
+import time
 import requests
 
-BASE = ENDPOINT_URL.rstrip("/")
+BASE = __import__("os").environ.get("ENDPOINT_URL", "https://cognivern.thisyearnofear.com").rstrip("/")
+
+TIMEOUT = 15
+MAX_RETRIES = 5
+RETRY_DELAY = 8
+
+
+def _request(method, url, **kwargs):
+    """Send an HTTP request with retry on 502/503 (server temporarily down)."""
+    kwargs.setdefault("timeout", TIMEOUT)
+    last_resp = None
+    for attempt in range(MAX_RETRIES):
+        r = requests.request(method, url, **kwargs)
+        if r.status_code not in (502, 503):
+            return r
+        last_resp = r
+        if attempt < MAX_RETRIES - 1:
+            time.sleep(RETRY_DELAY)
+    return last_resp
+
 
 
 def test_sealed_bid_full_lifecycle():
     """Exercise the full sealed-bid lifecycle:
     create round → submit bid → close round → reveal winner → get round."""
     # 1. Create a round
-    create_r = requests.post(
+    create_r = _request("POST", 
         f"{BASE}/api/vendor/sealed-bid/rounds",
         json={
             "description": "TestSprite verification — cloud compute vendor",
@@ -35,7 +55,7 @@ def test_sealed_bid_full_lifecycle():
     assert round_data.get("bids") == [], "new round should have empty bids list"
 
     # 2. Submit a bid
-    bid_r = requests.post(
+    bid_r = _request("POST", 
         f"{BASE}/api/vendor/sealed-bid/rounds/{round_id}/bid",
         json={
             "bidder": "vendor-alpha",
@@ -56,7 +76,7 @@ def test_sealed_bid_full_lifecycle():
     assert bid_data.get("index") == 0, "first bid should have index 0"
 
     # 3. Submit a second bid
-    bid2_r = requests.post(
+    bid2_r = _request("POST", 
         f"{BASE}/api/vendor/sealed-bid/rounds/{round_id}/bid",
         json={
             "bidder": "vendor-beta",
@@ -70,7 +90,7 @@ def test_sealed_bid_full_lifecycle():
     )
 
     # 4. Close the round
-    close_r = requests.post(
+    close_r = _request("POST", 
         f"{BASE}/api/vendor/sealed-bid/rounds/{round_id}/close",
         json={},
         timeout=15,
@@ -86,10 +106,9 @@ def test_sealed_bid_full_lifecycle():
     )
 
     # 5. Reveal winner (lowest bid wins)
-    # NOTE: Reveal may return 400 if FHE threshold decryption is not yet wired
-    # (CoFHE/Fhenix integration). This is a known limitation — the test
-    # accepts both 200 (reveal works) and 400 (reveal not yet implemented).
-    reveal_r = requests.post(
+    # FHE backend (Option B): reveal may return 400 when decryptionProof is
+    # required but not supplied. Canton backend returns 200 with winner.
+    reveal_r = _request("POST", 
         f"{BASE}/api/vendor/sealed-bid/rounds/{round_id}/reveal",
         json={"selectionMethod": "lowest-bid"},
         timeout=15,
@@ -109,7 +128,7 @@ def test_sealed_bid_full_lifecycle():
         )
 
     # 6. Get round details
-    get_r = requests.get(f"{BASE}/api/vendor/sealed-bid/rounds/{round_id}", timeout=15)
+    get_r = _request("GET", f"{BASE}/api/vendor/sealed-bid/rounds/{round_id}", timeout=15)
     assert get_r.status_code == 200, (
         f"get round: expected 200, got {get_r.status_code}: {get_r.text[:200]}"
     )
@@ -124,7 +143,7 @@ def test_sealed_bid_full_lifecycle():
 
 def test_sealed_bid_list_rounds():
     """GET /api/vendor/sealed-bid/rounds returns 200 with list of rounds."""
-    r = requests.get(f"{BASE}/api/vendor/sealed-bid/rounds", timeout=15)
+    r = _request("GET", f"{BASE}/api/vendor/sealed-bid/rounds", timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -133,7 +152,7 @@ def test_sealed_bid_list_rounds():
 
 def test_sealed_bid_bid_on_nonexistent_round():
     """POST /api/vendor/sealed-bid/rounds/nonexistent/bid returns 404."""
-    r = requests.post(
+    r = _request("POST", 
         f"{BASE}/api/vendor/sealed-bid/rounds/nonexistent-id/bid",
         json={"bidder": "test", "amountUsd": 100},
         timeout=15,
@@ -143,7 +162,7 @@ def test_sealed_bid_bid_on_nonexistent_round():
 
 def test_sealed_bid_create_validates_input():
     """POST /api/vendor/sealed-bid/rounds with missing fields returns 400."""
-    r = requests.post(f"{BASE}/api/vendor/sealed-bid/rounds", json={}, timeout=15)
+    r = _request("POST", f"{BASE}/api/vendor/sealed-bid/rounds", json={}, timeout=15)
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:200]}"
 
 

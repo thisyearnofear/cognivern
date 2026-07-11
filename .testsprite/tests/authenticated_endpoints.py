@@ -3,16 +3,36 @@
 Uses the legacy x-api-key header for authentication. Tests the full CRUD
 flow for OWS wallets, agents, API keys, copilot runs, and metrics.
 """
+import time
 import requests
 
-BASE = ENDPOINT_URL.rstrip("/")
+BASE = __import__("os").environ.get("ENDPOINT_URL", "https://cognivern.thisyearnofear.com").rstrip("/")
+
+TIMEOUT = 15
+MAX_RETRIES = 5
+RETRY_DELAY = 8
+
+
+def _request(method, url, **kwargs):
+    """Send an HTTP request with retry on 502/503 (server temporarily down)."""
+    kwargs.setdefault("timeout", TIMEOUT)
+    last_resp = None
+    for attempt in range(MAX_RETRIES):
+        r = requests.request(method, url, **kwargs)
+        if r.status_code not in (502, 503):
+            return r
+        last_resp = r
+        if attempt < MAX_RETRIES - 1:
+            time.sleep(RETRY_DELAY)
+    return last_resp
+
 API_KEY = "sapience-hackathon-key"
 AUTH_HEADERS = {"x-api-key": API_KEY}
 
 
 def test_ows_wallets_list():
     """GET /api/ows/wallets returns 200 with wallet list."""
-    r = requests.get(f"{BASE}/api/ows/wallets", headers=AUTH_HEADERS, timeout=15)
+    r = _request("GET", f"{BASE}/api/ows/wallets", headers=AUTH_HEADERS, timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -25,7 +45,7 @@ def test_ows_wallets_list():
 
 def test_ows_dashboard():
     """GET /api/ows/dashboard returns 200 with dashboard data."""
-    r = requests.get(f"{BASE}/api/ows/dashboard", headers=AUTH_HEADERS, timeout=15)
+    r = _request("GET", f"{BASE}/api/ows/dashboard", headers=AUTH_HEADERS, timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -37,7 +57,7 @@ def test_ows_dashboard():
 
 def test_ows_health():
     """GET /api/ows/health returns 200 with vault health status."""
-    r = requests.get(f"{BASE}/api/ows/health", headers=AUTH_HEADERS, timeout=15)
+    r = _request("GET", f"{BASE}/api/ows/health", headers=AUTH_HEADERS, timeout=15)
     assert r.status_code in (200, 503), (
         f"expected 200 or 503, got {r.status_code}: {r.text[:200]}"
     )
@@ -49,7 +69,7 @@ def test_ows_health():
 
 def test_ows_agents_list():
     """GET /api/ows/agents returns 200 with agent list."""
-    r = requests.get(f"{BASE}/api/ows/agents", headers=AUTH_HEADERS, timeout=15)
+    r = _request("GET", f"{BASE}/api/ows/agents", headers=AUTH_HEADERS, timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -58,7 +78,7 @@ def test_ows_agents_list():
 
 def test_ows_api_keys_list():
     """GET /api/ows/api-keys returns 200 with API key list."""
-    r = requests.get(f"{BASE}/api/ows/api-keys", headers=AUTH_HEADERS, timeout=15)
+    r = _request("GET", f"{BASE}/api/ows/api-keys", headers=AUTH_HEADERS, timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -67,19 +87,19 @@ def test_ows_api_keys_list():
 
 def test_ows_create_agent_validates_input():
     """POST /api/ows/agents with missing name/type returns 400."""
-    r = requests.post(f"{BASE}/api/ows/agents", json={}, headers=AUTH_HEADERS, timeout=15)
+    r = _request("POST", f"{BASE}/api/ows/agents", json={}, headers=AUTH_HEADERS, timeout=15)
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:200]}"
 
 
 def test_ows_create_api_key_validates_input():
     """POST /api/ows/api-keys with missing fields returns 400."""
-    r = requests.post(f"{BASE}/api/ows/api-keys", json={}, headers=AUTH_HEADERS, timeout=15)
+    r = _request("POST", f"{BASE}/api/ows/api-keys", json={}, headers=AUTH_HEADERS, timeout=15)
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:200]}"
 
 
 def test_copilot_list_runs():
     """GET /api/copilot/runs returns 200 with run list."""
-    r = requests.get(f"{BASE}/api/copilot/runs", headers=AUTH_HEADERS, timeout=15)
+    r = _request("GET", f"{BASE}/api/copilot/runs", headers=AUTH_HEADERS, timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -88,7 +108,7 @@ def test_copilot_list_runs():
 
 def test_copilot_create_run_validates_input():
     """POST /api/copilot/runs with short goal returns 400."""
-    r = requests.post(
+    r = _request("POST", 
         f"{BASE}/api/copilot/runs",
         json={"goal": "too short"},
         headers=AUTH_HEADERS,
@@ -99,7 +119,7 @@ def test_copilot_create_run_validates_input():
 
 def test_metrics_daily():
     """GET /api/metrics/daily returns 200 with system metrics."""
-    r = requests.get(f"{BASE}/api/metrics/daily", headers=AUTH_HEADERS, timeout=15)
+    r = _request("GET", f"{BASE}/api/metrics/daily", headers=AUTH_HEADERS, timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -112,7 +132,7 @@ def test_metrics_daily():
 
 def test_governance_evaluate_validates_input():
     """POST /api/governance/evaluate with missing fields returns 400."""
-    r = requests.post(
+    r = _request("POST", 
         f"{BASE}/api/governance/evaluate",
         json={},
         headers=AUTH_HEADERS,

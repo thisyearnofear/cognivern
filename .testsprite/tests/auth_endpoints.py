@@ -5,15 +5,35 @@ reset-password) are mounted at /auth/* (NOT /api/auth/*) and should be
 publicly accessible — you can't require auth to create an account.
 Protected endpoints (me, refresh, logout) require JWT Bearer.
 """
+import time
 import requests
 
-BASE = ENDPOINT_URL.rstrip("/")
+BASE = __import__("os").environ.get("ENDPOINT_URL", "https://cognivern.thisyearnofear.com").rstrip("/")
+
+TIMEOUT = 15
+MAX_RETRIES = 5
+RETRY_DELAY = 8
+
+
+def _request(method, url, **kwargs):
+    """Send an HTTP request with retry on 502/503 (server temporarily down)."""
+    kwargs.setdefault("timeout", TIMEOUT)
+    last_resp = None
+    for attempt in range(MAX_RETRIES):
+        r = requests.request(method, url, **kwargs)
+        if r.status_code not in (502, 503):
+            return r
+        last_resp = r
+        if attempt < MAX_RETRIES - 1:
+            time.sleep(RETRY_DELAY)
+    return last_resp
+
 
 
 def test_auth_nonce_is_public():
     """POST /auth/nonce should be accessible without auth.
     It generates a SIWE nonce for wallet-based auth flow."""
-    r = requests.post(f"{BASE}/auth/nonce", json={}, timeout=15)
+    r = _request("POST", f"{BASE}/auth/nonce", json={}, timeout=15)
     assert r.status_code == 200, (
         f"expected 200 (public endpoint), got {r.status_code}: {r.text[:200]}"
     )
@@ -24,7 +44,7 @@ def test_auth_nonce_is_public():
 def test_auth_register_is_public():
     """POST /auth/register should be accessible without auth.
     It creates a new user account — requiring auth to register is a bug."""
-    r = requests.post(
+    r = _request("POST", 
         f"{BASE}/auth/register",
         json={"email": "testsprite-test@cognivern.com", "password": "TestPass123!"},
         timeout=15,
@@ -44,7 +64,7 @@ def test_auth_register_is_public():
 
 def test_auth_register_validates_input():
     """POST /auth/register with missing fields returns 400."""
-    r = requests.post(f"{BASE}/auth/register", json={}, timeout=15)
+    r = _request("POST", f"{BASE}/auth/register", json={}, timeout=15)
     assert r.status_code == 400, (
         f"expected 400 (validation), got {r.status_code}: {r.text[:200]}"
     )
@@ -52,7 +72,7 @@ def test_auth_register_validates_input():
 
 def test_auth_login_is_public():
     """POST /auth/login should be accessible without auth."""
-    r = requests.post(
+    r = _request("POST", 
         f"{BASE}/auth/login",
         json={"email": "nonexistent@test.com", "password": "wrongpass"},
         timeout=15,
@@ -71,13 +91,13 @@ def test_auth_login_is_public():
 
 def test_auth_me_requires_jwt():
     """GET /auth/me requires JWT Bearer token."""
-    r = requests.get(f"{BASE}/auth/me", timeout=15)
+    r = _request("GET", f"{BASE}/auth/me", timeout=15)
     assert r.status_code == 401, f"expected 401, got {r.status_code}: {r.text[:200]}"
 
 
 def test_auth_forgot_password_is_public():
     """POST /auth/forgot-password should be accessible without auth."""
-    r = requests.post(
+    r = _request("POST", 
         f"{BASE}/auth/forgot-password",
         json={"email": "nonexistent@test.com"},
         timeout=15,
@@ -91,7 +111,7 @@ def test_auth_forgot_password_is_public():
 
 def test_auth_reset_password_validates_input():
     """POST /auth/reset-password with missing fields returns 400."""
-    r = requests.post(f"{BASE}/auth/reset-password", json={}, timeout=15)
+    r = _request("POST", f"{BASE}/auth/reset-password", json={}, timeout=15)
     assert r.status_code == 400, (
         f"expected 400 (validation), got {r.status_code}: {r.text[:200]}"
     )

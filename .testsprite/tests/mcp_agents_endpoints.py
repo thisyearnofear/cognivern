@@ -3,15 +3,35 @@
 Verifies the MCP tool manifest, governance check execution, and the
 agent status endpoints (unified, governance, portfolio, connections).
 """
+import time
 import requests
 
-BASE = ENDPOINT_URL.rstrip("/")
+BASE = __import__("os").environ.get("ENDPOINT_URL", "https://cognivern.thisyearnofear.com").rstrip("/")
+
+TIMEOUT = 15
+MAX_RETRIES = 5
+RETRY_DELAY = 8
+
+
+def _request(method, url, **kwargs):
+    """Send an HTTP request with retry on 502/503 (server temporarily down)."""
+    kwargs.setdefault("timeout", TIMEOUT)
+    last_resp = None
+    for attempt in range(MAX_RETRIES):
+        r = requests.request(method, url, **kwargs)
+        if r.status_code not in (502, 503):
+            return r
+        last_resp = r
+        if attempt < MAX_RETRIES - 1:
+            time.sleep(RETRY_DELAY)
+    return last_resp
+
 
 
 def test_mcp_governance_check_manifest():
     """GET /api/mcp/governance-check returns 200 with tool manifest
     describing the governance-check MCP tool schema."""
-    r = requests.get(f"{BASE}/api/mcp/governance-check", timeout=15)
+    r = _request("GET", f"{BASE}/api/mcp/governance-check", timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -25,7 +45,7 @@ def test_mcp_governance_check_manifest():
 
 def test_mcp_governance_check_validates_input():
     """POST /api/mcp/governance-check with missing agentId returns 400."""
-    r = requests.post(f"{BASE}/api/mcp/governance-check", json={}, timeout=15)
+    r = _request("POST", f"{BASE}/api/mcp/governance-check", json={}, timeout=15)
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is False
@@ -34,7 +54,7 @@ def test_mcp_governance_check_validates_input():
 def test_agents_unified():
     """GET /api/agents/unified returns 200 with system health, agents list,
     and recent activity."""
-    r = requests.get(f"{BASE}/api/agents/unified", timeout=15)
+    r = _request("GET", f"{BASE}/api/agents/unified", timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -50,7 +70,7 @@ def test_agents_unified():
 def test_agents_governance_status():
     """GET /api/agents/governance/status returns 200 with governance agent
     status including trade count and performance metrics."""
-    r = requests.get(f"{BASE}/api/agents/governance/status", timeout=15)
+    r = _request("GET", f"{BASE}/api/agents/governance/status", timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert "agent" in body, "missing agent field"
@@ -65,7 +85,7 @@ def test_agents_governance_status():
 def test_agents_portfolio_status():
     """GET /api/agents/portfolio/status returns 200 with portfolio agent
     status."""
-    r = requests.get(f"{BASE}/api/agents/portfolio/status", timeout=15)
+    r = _request("GET", f"{BASE}/api/agents/portfolio/status", timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert "agent" in body, "missing agent field"
@@ -77,7 +97,7 @@ def test_agents_sapience_status():
     """GET /api/agents/sapience/status returns 200 with sapience agent
     status. Previously returned 500 because 'sapience' was missing from
     demoAgentNames in AgentsController."""
-    r = requests.get(f"{BASE}/api/agents/sapience/status", timeout=15)
+    r = _request("GET", f"{BASE}/api/agents/sapience/status", timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert "agent" in body, "missing agent field"
@@ -88,7 +108,7 @@ def test_agents_sapience_status():
 
 def test_agents_connections():
     """GET /api/agents/connections returns 200 with connections list."""
-    r = requests.get(f"{BASE}/api/agents/connections", timeout=15)
+    r = _request("GET", f"{BASE}/api/agents/connections", timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -97,7 +117,7 @@ def test_agents_connections():
 
 def test_agents_governance_decisions():
     """GET /api/agents/governance/decisions returns 200 with decision list."""
-    r = requests.get(f"{BASE}/api/agents/governance/decisions", timeout=15)
+    r = _request("GET", f"{BASE}/api/agents/governance/decisions", timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -114,7 +134,7 @@ def test_agents_governance_decisions():
 
 def test_audit_insights():
     """GET /api/audit/insights returns 200 with audit insight data."""
-    r = requests.get(f"{BASE}/api/audit/insights", timeout=15)
+    r = _request("GET", f"{BASE}/api/audit/insights", timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -123,7 +143,7 @@ def test_audit_insights():
 def test_dashboard_bundle():
     """GET /api/dashboard/bundle returns 200 with aggregated dashboard data
     (stats, agents, activity)."""
-    r = requests.get(f"{BASE}/api/dashboard/bundle", timeout=15)
+    r = _request("GET", f"{BASE}/api/dashboard/bundle", timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True

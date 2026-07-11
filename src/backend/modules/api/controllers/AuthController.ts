@@ -59,7 +59,7 @@ export class AuthController {
       expiresAt,
     );
 
-    res.json({ nonce });
+    res.json({ nonce, expiresAt: new Date(expiresAt).toISOString() });
   }
 
   async verify(req: Request, res: Response): Promise<void> {

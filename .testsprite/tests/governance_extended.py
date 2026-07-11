@@ -6,7 +6,7 @@ and evaluation endpoints against the live Cognivern instance.
 import time
 import requests
 
-BASE = "https://cognivern.thisyearnofear.com".rstrip("/")
+BASE = __import__("os").environ.get("ENDPOINT_URL", "https://cognivern.thisyearnofear.com").rstrip("/")
 API_KEY = "sapience-hackathon-key"
 AUTH = {"x-api-key": API_KEY}
 
@@ -17,8 +17,8 @@ VALID_POLICY = {
     "category": "spend",
 }
 
-MAX_RETRIES = 3
-RETRY_DELAY = 5
+MAX_RETRIES = 5
+RETRY_DELAY = 8
 
 
 def _request(method, url, **kwargs):

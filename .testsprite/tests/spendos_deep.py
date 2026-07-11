@@ -5,11 +5,15 @@ decision confirmation, contract scanning, and status reporting.
 Verifies policy evaluation, ChainGPT audit integration, FHE fallback,
 and held-spend workflow.
 """
+import time
 import requests
 
-BASE = "https://cognivern.thisyearnofear.com".rstrip("/")
+BASE = __import__("os").environ.get("ENDPOINT_URL", "https://cognivern.thisyearnofear.com").rstrip("/")
 API_KEY = "sapience-hackathon-key"
 AUTH = {"x-api-key": API_KEY}
+TIMEOUT = 15
+MAX_RETRIES = 5
+RETRY_DELAY = 8
 
 VALID_SPEND = {
     "agentId": "test-agent-sprite",
@@ -20,9 +24,23 @@ VALID_SPEND = {
 }
 
 
+def _request(method, url, **kwargs):
+    """Send an HTTP request with retry on 502/503 (server temporarily down)."""
+    kwargs.setdefault("timeout", TIMEOUT)
+    last_resp = None
+    for attempt in range(MAX_RETRIES):
+        r = requests.request(method, url, **kwargs)
+        if r.status_code not in (502, 503):
+            return r
+        last_resp = r
+        if attempt < MAX_RETRIES - 1:
+            time.sleep(RETRY_DELAY)
+    return last_resp
+
+
 def test_spend_status_reports_spendos_layer():
     """GET /api/spend/status returns SpendOS layer status with features list."""
-    r = requests.get(f"{BASE}/api/spend/status", headers=AUTH, timeout=15)
+    r = _request("GET", f"{BASE}/api/spend/status", headers=AUTH)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -42,7 +60,7 @@ def test_spend_status_reports_spendos_layer():
 
 def test_spend_preview_with_valid_intent():
     """POST /api/spend/preview with valid intent returns policy decision."""
-    r = requests.post(f"{BASE}/api/spend/preview", json=VALID_SPEND, headers=AUTH, timeout=15)
+    r = _request("POST", f"{BASE}/api/spend/preview", json=VALID_SPEND, headers=AUTH)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -66,7 +84,7 @@ def test_spend_preview_with_valid_intent():
 
 def test_spend_preview_validates_required_fields():
     """POST /api/spend/preview with missing fields returns 400."""
-    r = requests.post(f"{BASE}/api/spend/preview", json={}, headers=AUTH, timeout=15)
+    r = _request("POST", f"{BASE}/api/spend/preview", json={}, headers=AUTH)
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is False
@@ -79,7 +97,7 @@ def test_spend_preview_validates_required_fields():
 def test_spend_execute_returns_policy_decision():
     """POST /api/spend executes spend and returns policy decision.
     Without a valid OWS scoped API key, the spend should be held."""
-    r = requests.post(f"{BASE}/api/spend", json=VALID_SPEND, headers=AUTH, timeout=30)
+    r = _request("POST", f"{BASE}/api/spend", json=VALID_SPEND, headers=AUTH, timeout=30)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True
@@ -97,7 +115,7 @@ def test_spend_execute_returns_policy_decision():
 
 def test_spend_execute_validates_required_fields():
     """POST /api/spend with missing fields returns 400."""
-    r = requests.post(f"{BASE}/api/spend", json={}, headers=AUTH, timeout=15)
+    r = _request("POST", f"{BASE}/api/spend", json={}, headers=AUTH)
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is False
@@ -108,7 +126,8 @@ def test_encrypted_spend_demo_mode_small_amount():
     """POST /api/spend/encrypted in demo mode with small amount returns approve.
     The Fhenix CoFHE SDK is not initialized on this server, so the fallback
     path is used: amounts <= 500 USD get 'approve', larger get 'hold'."""
-    r = requests.post(
+    r = _request(
+        "POST",
         f"{BASE}/api/spend/encrypted",
         json={
             "agentId": "test-agent-sprite",
@@ -133,7 +152,8 @@ def test_encrypted_spend_demo_mode_small_amount():
 def test_encrypted_spend_demo_mode_large_amount():
     """POST /api/spend/encrypted in demo mode with large amount returns hold.
     Amounts > 500 USD should be held for human review (approval threshold)."""
-    r = requests.post(
+    r = _request(
+        "POST",
         f"{BASE}/api/spend/encrypted",
         json={
             "agentId": "test-agent-sprite",
@@ -155,7 +175,8 @@ def test_encrypted_spend_demo_mode_large_amount():
 
 def test_encrypted_spend_ows_mode_validates_fields():
     """POST /api/spend/encrypted in OWS mode with missing fields returns 400."""
-    r = requests.post(
+    r = _request(
+        "POST",
         f"{BASE}/api/spend/encrypted",
         json={"agentId": "test"},
         headers=AUTH,
@@ -168,7 +189,8 @@ def test_encrypted_spend_ows_mode_validates_fields():
 
 def test_confirm_decision_confirm():
     """POST /api/spend/:decisionId/confirm with action=confirm returns approved."""
-    r = requests.post(
+    r = _request(
+        "POST",
         f"{BASE}/api/spend/test-decision-sprite/confirm",
         json={"action": "confirm"},
         headers=AUTH,
@@ -187,7 +209,8 @@ def test_confirm_decision_confirm():
 
 def test_confirm_decision_reject():
     """POST /api/spend/:decisionId/confirm with action=reject returns denied."""
-    r = requests.post(
+    r = _request(
+        "POST",
         f"{BASE}/api/spend/test-decision-sprite/confirm",
         json={"action": "reject"},
         headers=AUTH,
@@ -203,7 +226,8 @@ def test_confirm_decision_reject():
 
 def test_confirm_decision_invalid_action():
     """POST /api/spend/:decisionId/confirm with invalid action returns 400."""
-    r = requests.post(
+    r = _request(
+        "POST",
         f"{BASE}/api/spend/test-decision-sprite/confirm",
         json={"action": "invalid"},
         headers=AUTH,
@@ -217,7 +241,8 @@ def test_confirm_decision_invalid_action():
 
 def test_confirm_decision_missing_action():
     """POST /api/spend/:decisionId/confirm with missing action returns 400."""
-    r = requests.post(
+    r = _request(
+        "POST",
         f"{BASE}/api/spend/test-decision-sprite/confirm",
         json={},
         headers=AUTH,
@@ -228,7 +253,7 @@ def test_confirm_decision_missing_action():
 
 def test_scan_contract_missing_address():
     """GET /api/spend/scan without address returns 400."""
-    r = requests.get(f"{BASE}/api/spend/scan", headers=AUTH, timeout=15)
+    r = _request("GET", f"{BASE}/api/spend/scan", headers=AUTH)
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is False
@@ -237,7 +262,7 @@ def test_scan_contract_missing_address():
 
 def test_scan_contract_invalid_address():
     """GET /api/spend/scan with invalid address returns 400."""
-    r = requests.get(f"{BASE}/api/spend/scan?address=not-an-address", headers=AUTH, timeout=15)
+    r = _request("GET", f"{BASE}/api/spend/scan?address=not-an-address", headers=AUTH)
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is False
@@ -247,7 +272,8 @@ def test_scan_contract_invalid_address():
 def test_scan_contract_valid_address_returns_audit():
     """GET /api/spend/scan with valid address returns audit result or 503.
     Returns 503 if ChainGPT is not configured, 200 with audit data if it is."""
-    r = requests.get(
+    r = _request(
+        "GET",
         f"{BASE}/api/spend/scan?address=0xABCDEF1234567890abcdef1234567890abcdef12",
         headers=AUTH,
         timeout=30,
@@ -268,7 +294,8 @@ def test_scan_contract_valid_address_returns_audit():
 
 def test_spend_preview_with_contract_address():
     """POST /api/spend/preview to a contract address includes contractAudit."""
-    r = requests.post(
+    r = _request(
+        "POST",
         f"{BASE}/api/spend/preview",
         json={
             "agentId": "test-agent-sprite",

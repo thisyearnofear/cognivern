@@ -12,12 +12,13 @@ process.on("uncaughtException", (error) => {
   process.exit(1);
 });
 
-process.on("unhandledRejection", (reason, promise) => {
-  logger.error("Unhandled rejection — exiting for clean restart", {
+// Log async failures but keep serving — exiting on every rejection caused PM2
+// restarts (502) when TestSprite (or other clients) hit many endpoints at once.
+process.on("unhandledRejection", (reason) => {
+  logger.error("Unhandled rejection — request may have failed", {
     reason: reason instanceof Error ? reason.message : String(reason),
-    promise,
+    stack: reason instanceof Error ? reason.stack : undefined,
   });
-  process.exit(1);
 });
 
 // Add process exit debugging

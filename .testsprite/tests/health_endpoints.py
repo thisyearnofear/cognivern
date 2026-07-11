@@ -4,14 +4,34 @@ Verifies all health check variants: /health, /health/ready, /health/live,
 /health/slo, /system/health, and /health?deep=true for dependency checks.
 These are critical for monitoring and deployment verification.
 """
+import time
 import requests
 
-BASE = ENDPOINT_URL.rstrip("/")
+BASE = __import__("os").environ.get("ENDPOINT_URL", "https://cognivern.thisyearnofear.com").rstrip("/")
+
+TIMEOUT = 15
+MAX_RETRIES = 5
+RETRY_DELAY = 8
+
+
+def _request(method, url, **kwargs):
+    """Send an HTTP request with retry on 502/503 (server temporarily down)."""
+    kwargs.setdefault("timeout", TIMEOUT)
+    last_resp = None
+    for attempt in range(MAX_RETRIES):
+        r = requests.request(method, url, **kwargs)
+        if r.status_code not in (502, 503):
+            return r
+        last_resp = r
+        if attempt < MAX_RETRIES - 1:
+            time.sleep(RETRY_DELAY)
+    return last_resp
+
 
 
 def test_health_basic():
     """GET /health returns 200 with status=ok and uptime."""
-    r = requests.get(f"{BASE}/health", timeout=15)
+    r = _request("GET", f"{BASE}/health", timeout=15)
     assert r.status_code == 200
     body = r.json()
     assert body.get("status") == "ok"
@@ -21,7 +41,7 @@ def test_health_basic():
 
 def test_health_ready():
     """GET /health/ready returns 200 with status=ready (or 503 if not ready)."""
-    r = requests.get(f"{BASE}/health/ready", timeout=15)
+    r = _request("GET", f"{BASE}/health/ready", timeout=15)
     assert r.status_code in (200, 503)
     body = r.json()
     if r.status_code == 200:
@@ -33,7 +53,7 @@ def test_health_ready():
 
 def test_health_live():
     """GET /health/live returns 200 with status=alive."""
-    r = requests.get(f"{BASE}/health/live", timeout=15)
+    r = _request("GET", f"{BASE}/health/live", timeout=15)
     assert r.status_code == 200
     body = r.json()
     assert body.get("status") == "alive"
@@ -43,7 +63,7 @@ def test_health_live():
 def test_health_slo():
     """GET /health/slo returns 200 with SLO metrics including route-level
     request counts, error rates, and latency percentiles."""
-    r = requests.get(f"{BASE}/health/slo", timeout=15)
+    r = _request("GET", f"{BASE}/health/slo", timeout=15)
     assert r.status_code == 200
     body = r.json()
     assert "windowSeconds" in body, "missing windowSeconds"
@@ -58,7 +78,7 @@ def test_health_slo():
 
 def test_system_health():
     """GET /system/health returns 200 with component health map."""
-    r = requests.get(f"{BASE}/system/health", timeout=15)
+    r = _request("GET", f"{BASE}/system/health", timeout=15)
     assert r.status_code == 200
     body = r.json()
     assert "overall" in body, "missing overall field"
@@ -73,7 +93,7 @@ def test_system_health():
 
 def test_health_deep_returns_dependencies():
     """GET /health?deep=true returns 200 with dependency check results."""
-    r = requests.get(f"{BASE}/health", params={"deep": "true"}, timeout=30)
+    r = _request("GET", f"{BASE}/health", params={"deep": "true"}, timeout=30)
     assert r.status_code == 200
     body = r.json()
     assert "dependencies" in body, "missing dependencies array in deep health"

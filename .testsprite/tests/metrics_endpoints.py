@@ -5,7 +5,7 @@ These track system performance and user experience events.
 """
 import requests
 
-BASE = ENDPOINT_URL.rstrip("/")
+BASE = __import__("os").environ.get("ENDPOINT_URL", "https://cognivern.thisyearnofear.com").rstrip("/")
 
 
 def test_metrics_ux_summary():

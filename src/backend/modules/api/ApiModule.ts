@@ -58,6 +58,7 @@ import {
   LEGACY_DEFAULT_WORKSPACE_ID,
 } from "@backend/middleware/publicEndpoints.js";
 import { sharedSloMetrics } from "@backend/services/SloMetricsService.js";
+import { asyncHandler } from "@backend/shared/errors/ApiErrors.js";
 import type { Server } from "node:http";
 
 /** Typed controller registry */
@@ -690,6 +691,10 @@ export class ApiModule extends BaseService {
     // Mount API router
     this.app.use("/api", apiRouter);
 
+    // Wrap route handlers so async rejections reach the error middleware
+    // instead of crashing the process via unhandledRejection.
+    this.wrapAsyncHandlers(this.app);
+
     // 404 handler
     this.app.use("*", (req, res) => {
       const message = req.path.startsWith("/api")
@@ -732,6 +737,39 @@ export class ApiModule extends BaseService {
         });
       },
     );
+  }
+
+  /** Recursively wrap Express route handlers with asyncHandler. */
+  private wrapAsyncHandlers(app: express.Application | express.Router): void {
+    const stack = (
+      app as unknown as {
+        stack?: Array<{
+          route?: express.IRoute;
+          name?: string;
+          handle?: express.Router;
+        }>;
+      }
+    ).stack;
+    if (!stack) return;
+
+    for (const layer of stack) {
+      if (layer.route) {
+        for (const routeLayer of layer.route.stack) {
+          const fn = routeLayer.handle;
+          if (typeof fn === "function" && fn.length <= 3) {
+            routeLayer.handle = asyncHandler(
+              fn as (
+                req: express.Request,
+                res: express.Response,
+                next: express.NextFunction,
+              ) => Promise<void>,
+            );
+          }
+        }
+      } else if (layer.name === "router" && layer.handle) {
+        this.wrapAsyncHandlers(layer.handle);
+      }
+    }
   }
 
   private async startServer(): Promise<void> {

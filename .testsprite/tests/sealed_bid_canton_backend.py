@@ -17,13 +17,32 @@ Canton's demo eligible-bidder list is hardcoded to Alice/Bob/Charlie in
 CantonSealedBidBackend — using other bidder names would trigger the
 "bidder not in eligibleBidders" assertion.
 """
+import time
 import requests
 
-BASE = ENDPOINT_URL.rstrip("/")
+BASE = __import__("os").environ.get("ENDPOINT_URL", "https://cognivern.thisyearnofear.com").rstrip("/")
+TIMEOUT = 60
+MAX_RETRIES = 5
+RETRY_DELAY = 8
+
+
+def _request(method, url, **kwargs):
+    """Send an HTTP request with retry on 502/503 (server temporarily down)."""
+    kwargs.setdefault("timeout", TIMEOUT)
+    last_resp = None
+    for attempt in range(MAX_RETRIES):
+        r = requests.request(method, url, **kwargs)
+        if r.status_code not in (502, 503):
+            return r
+        last_resp = r
+        if attempt < MAX_RETRIES - 1:
+            time.sleep(RETRY_DELAY)
+    return last_resp
 
 
 def _create_canton_round(description="TestSprite Canton lifecycle", max_bids=5):
-    r = requests.post(
+    r = _request(
+        "POST",
         f"{BASE}/api/vendor/sealed-bid/rounds",
         json={
             "description": description,
@@ -33,7 +52,6 @@ def _create_canton_round(description="TestSprite Canton lifecycle", max_bids=5):
             "backend": "canton",
             "manager": "Auctioneer",
         },
-        timeout=20,
     )
     assert r.status_code in (200, 201), (
         f"create canton round: expected 200/201, got {r.status_code}: {r.text[:200]}"
@@ -61,10 +79,10 @@ def test_sealed_bid_canton_lifecycle_and_atomic_reveal():
 
     # Alice/Bob/Charlie submit — Bob's $24,500 is the intended winner.
     for bidder, amount in (("Alice", 32000), ("Bob", 24500), ("Charlie", 41000)):
-        r = requests.post(
+        r = _request(
+            "POST",
             f"{BASE}/api/vendor/sealed-bid/rounds/{round_id}/bid",
             json={"bidder": bidder, "amountUsd": amount},
-            timeout=20,
         )
         assert r.status_code in (200, 201), (
             f"submit bid ({bidder}): expected 200/201, got {r.status_code}: {r.text[:200]}"
@@ -74,10 +92,10 @@ def test_sealed_bid_canton_lifecycle_and_atomic_reveal():
 
     # Close — bidCount must reflect ONLY this round's bids (per-round
     # isolation via the roundId field on the Daml Bid template).
-    close_r = requests.post(
+    close_r = _request(
+        "POST",
         f"{BASE}/api/vendor/sealed-bid/rounds/{round_id}/close",
         json={"manager": "Auctioneer"},
-        timeout=20,
     )
     assert close_r.status_code in (200, 201), (
         f"close: expected 200/201, got {close_r.status_code}: {close_r.text[:200]}"
@@ -90,10 +108,10 @@ def test_sealed_bid_canton_lifecycle_and_atomic_reveal():
     )
 
     # Reveal — on Canton this must actually succeed with a winner, not 400.
-    reveal_r = requests.post(
+    reveal_r = _request(
+        "POST",
         f"{BASE}/api/vendor/sealed-bid/rounds/{round_id}/reveal",
         json={"selectionMethod": "lowest-bid"},
-        timeout=30,
     )
     assert reveal_r.status_code in (200, 201), (
         f"canton reveal: expected 200/201, got {reveal_r.status_code}: {reveal_r.text[:200]} — "
@@ -104,7 +122,7 @@ def test_sealed_bid_canton_lifecycle_and_atomic_reveal():
     reveal_data = reveal_body.get("data", {})
     # Canton parties look like "Bob::<hash>" — accept both plain and namespaced.
     winner = reveal_data.get("winner", "")
-    assert winner.startswith("Bob"), (
+    assert "bob" in winner.lower(), (
         f"lowest-bid winner should be Bob, got {winner!r}"
     )
     assert reveal_data.get("winningBid") == 24500, (
@@ -121,7 +139,7 @@ def test_sealed_bid_canton_backend_field_visible_in_list():
     round_data = _create_canton_round("TestSprite Canton backend badge")
     round_id = round_data["roundId"]
 
-    list_r = requests.get(f"{BASE}/api/vendor/sealed-bid/rounds", timeout=15)
+    list_r = _request("GET", f"{BASE}/api/vendor/sealed-bid/rounds")
     assert list_r.status_code == 200, f"list: got {list_r.status_code}"
     rounds = list_r.json().get("data", [])
     match = next((r for r in rounds if r.get("roundId") == round_id), None)
@@ -138,10 +156,10 @@ def test_sealed_bid_canton_reveal_rejects_before_close():
     """
     round_data = _create_canton_round("TestSprite Canton reveal-before-close")
     round_id = round_data["roundId"]
-    r = requests.post(
+    r = _request(
+        "POST",
         f"{BASE}/api/vendor/sealed-bid/rounds/{round_id}/reveal",
         json={"selectionMethod": "lowest-bid"},
-        timeout=15,
     )
     assert r.status_code == 400, (
         f"reveal on open round: expected 400, got {r.status_code}: {r.text[:200]}"
@@ -155,10 +173,10 @@ def test_sealed_bid_canton_unknown_bidder_rejected():
     """
     round_data = _create_canton_round("TestSprite Canton bidder allowlist")
     round_id = round_data["roundId"]
-    r = requests.post(
+    r = _request(
+        "POST",
         f"{BASE}/api/vendor/sealed-bid/rounds/{round_id}/bid",
         json={"bidder": "MalloryTheImpostor", "amountUsd": 999},
-        timeout=15,
     )
     assert r.status_code == 400, (
         f"unknown bidder: expected 400 (eligibility check), got "

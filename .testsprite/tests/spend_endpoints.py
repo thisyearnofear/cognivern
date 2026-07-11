@@ -4,15 +4,35 @@ Verifies that public spend endpoints (status, scan) respond correctly.
 /spend and /spend/status and /spend/scan are in PUBLIC_API_PATHS.
 /spend/preview is NOT public and should require auth.
 """
+import time
 import requests
 
-BASE = ENDPOINT_URL.rstrip("/")
+BASE = __import__("os").environ.get("ENDPOINT_URL", "https://cognivern.thisyearnofear.com").rstrip("/")
+
+TIMEOUT = 15
+MAX_RETRIES = 5
+RETRY_DELAY = 8
+
+
+def _request(method, url, **kwargs):
+    """Send an HTTP request with retry on 502/503 (server temporarily down)."""
+    kwargs.setdefault("timeout", TIMEOUT)
+    last_resp = None
+    for attempt in range(MAX_RETRIES):
+        r = requests.request(method, url, **kwargs)
+        if r.status_code not in (502, 503):
+            return r
+        last_resp = r
+        if attempt < MAX_RETRIES - 1:
+            time.sleep(RETRY_DELAY)
+    return last_resp
+
 
 
 def test_spend_status_returns_active_spendos():
     """GET /api/spend/status returns 200 with SpendOS layer active and
     wallet connected."""
-    r = requests.get(f"{BASE}/api/spend/status", timeout=15)
+    r = _request("GET", f"{BASE}/api/spend/status", timeout=15)
     assert r.status_code == 200, f"expected 200, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is True, f"expected success=true"
@@ -34,7 +54,7 @@ def test_spend_status_returns_active_spendos():
 def test_spend_scan_requires_address_param():
     """GET /api/spend/scan without address parameter returns 400 with
     a clear error message."""
-    r = requests.get(f"{BASE}/api/spend/scan", timeout=15)
+    r = _request("GET", f"{BASE}/api/spend/scan", timeout=15)
     assert r.status_code == 400, f"expected 400, got {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert body.get("success") is False, f"expected success=false"
@@ -48,12 +68,12 @@ def test_spend_scan_with_address_returns_audit_or_unavailable():
     when ChainGPT audit service is configured, or 503 'Audit service
     unavailable' when it is not (optional integration)."""
     # Use the wallet address from the spend status endpoint
-    status_r = requests.get(f"{BASE}/api/spend/status", timeout=15)
+    status_r = _request("GET", f"{BASE}/api/spend/status", timeout=15)
     status = status_r.json()
     wallet_addr = status.get("data", {}).get("walletAddress", "")
     assert wallet_addr, "could not get wallet address from spend status"
 
-    r = requests.get(f"{BASE}/api/spend/scan", params={"address": wallet_addr}, timeout=30)
+    r = _request("GET", f"{BASE}/api/spend/scan", params={"address": wallet_addr}, timeout=30)
     assert r.status_code in (200, 503), (
         f"expected 200 or 503, got {r.status_code}: {r.text[:200]}"
     )
@@ -73,7 +93,7 @@ def test_spend_scan_with_address_returns_audit_or_unavailable():
 def test_spend_preview_requires_auth():
     """POST /api/spend/preview is NOT in PUBLIC_API_PATHS and should
     require authentication."""
-    r = requests.post(
+    r = _request("POST", 
         f"{BASE}/api/spend/preview",
         json={"agent": "test", "action": "transfer", "amount": "1", "currency": "USDC"},
         timeout=15,

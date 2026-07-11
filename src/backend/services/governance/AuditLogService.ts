@@ -68,12 +68,14 @@ export class AuditLogService {
   /**
    * Helper to sign evidence for an audit run
    */
-  private async signEvidence(data: any) {
-    const signer = this.getSigner();
-    if (!signer) return { hash: "unsigned" };
+  private async signEvidence(data: unknown) {
     const json = JSON.stringify(data);
-    const hash = ethers.keccak256(ethers.toUtf8Bytes(json));
-    const signature = await signer.signMessage(hash);
+    const hash = crypto.createHash("sha256").update(json).digest("hex");
+    const signer = this.getSigner();
+    if (!signer) return { hash };
+    const signature = await signer.signMessage(
+      ethers.getBytes(`0x${hash}`),
+    );
     const signerAddress = await signer.getAddress();
     return { hash, signature, signer: signerAddress };
   }
