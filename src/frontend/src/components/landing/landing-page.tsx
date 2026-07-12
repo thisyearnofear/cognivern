@@ -197,7 +197,7 @@ export function LandingPage() {
     "",
     "→ Policy: OWS Spend Governance Policy",
     "→ Evaluating rules...",
-    "✓ Approved — tx broadcast to X Layer",
+    "✓ Approved — tx broadcast on-chain",
     "→ txHash: 0x6942...c0",
     "→ https://oklink.com/xlayer-test/tx/... ↗",
   ];
@@ -305,9 +305,9 @@ export function LandingPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-lg text-muted-foreground max-w-xl mx-auto mt-6 leading-relaxed"
             >
-              Policy checks, wallet controls, and cryptographic audit — every approved
-              transaction writes to a governed smart contract on-chain. Not a simulated
-              hash. A real tx, with real gas, on X Layer testnet.
+              Policy checks, wallet controls, and a tamper-evident audit trail — every
+              approved spend settles to a governed smart contract you can verify
+              on-chain. Not a simulated hash. A real transaction, with real gas.
             </motion.p>
 
             <motion.div
@@ -395,6 +395,39 @@ export function LandingPage() {
         </div>
       </motion.section>
 
+      {/* ── The Problem ── */}
+      <section className="border-t border-border">
+        <div className="max-w-3xl mx-auto px-6 py-20 text-center">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <span
+              className="text-xs font-semibold text-primary uppercase tracking-widest"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              The problem
+            </span>
+            <h2
+              className="text-3xl font-bold text-foreground mt-3"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              Autonomous agents spend real money.
+              <br />
+              <span className="text-muted-foreground">Nothing is watching.</span>
+            </h2>
+            <p className="text-muted-foreground mt-5 max-w-xl mx-auto leading-relaxed">
+              Give an AI agent your API keys and a funded wallet, and one bad loop —
+              a prompt injection, a runaway retry, a hallucinated recipient — can drain
+              it. No policy to stop the transaction. No audit to prove what happened.
+              As agents move from demos to treasuries, &ldquo;trust the model&rdquo;
+              stops being a strategy.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ── Flow Diagram ── */}
       <section className="max-w-5xl mx-auto px-6 py-24">
         <motion.div
@@ -438,7 +471,7 @@ export function LandingPage() {
           <FlowNode
             icon={Globe}
             title="On-Chain Record"
-            subtitle="Approved writes to GovernanceContract on X Layer. Real tx, real gas."
+            subtitle="Approved spends write to the GovernanceContract on-chain. Real tx, real gas."
             index={2}
             isLast={false}
           />
@@ -560,7 +593,7 @@ export function LandingPage() {
                   style={{ fontFamily: "var(--font-space-grotesk)" }}
                 >
                   {demoResult.status === "approved"
-                    ? "Approved — broadcasting to X Layer"
+                    ? "Approved — broadcasting on-chain"
                     : `Denied — ${demoResult.reason}`}
                 </span>
               </div>
@@ -651,15 +684,74 @@ export function LandingPage() {
               className="text-xs font-semibold text-primary uppercase tracking-widest"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Network architecture
+              One control plane
             </span>
             <h2
               className="text-3xl font-bold text-foreground mt-3"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Each network has a specific role
+              Govern once. Run anywhere. Prove everything.
             </h2>
           </motion.div>
+
+          {/* Benefits — what the enabling tech delivers */}
+          <div className="grid sm:grid-cols-3 gap-4 mb-16">
+            {[
+              {
+                icon: Globe,
+                title: "Portable",
+                desc: "The same GovernanceContract + GovernedVault run on Arbitrum, Robinhood (Orbit), and X Layer. Governance follows your agents to any chain.",
+              },
+              {
+                icon: Lock,
+                title: "Confidential",
+                desc: "Spend amounts and wallet balances stay encrypted end-to-end with FHE — policies evaluate without exposing the numbers to any server.",
+              },
+              {
+                icon: Eye,
+                title: "Private procurement",
+                desc: "Sealed-bid vendor selection on Canton — bids stay private through the ledger's disclosure model, so no bidder ever sees another's price.",
+              },
+            ].map((b, i) => (
+              <motion.div
+                key={b.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.4 }}
+                className="rounded-xl border border-border bg-card p-5"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 mb-3">
+                  <b.icon size={18} />
+                </div>
+                <h3
+                  className="font-semibold text-foreground text-base"
+                  style={{ fontFamily: "var(--font-space-grotesk)" }}
+                >
+                  {b.title}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                  {b.desc}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* The receipts — every network and its role */}
+          <div className="text-center mb-8">
+            <span
+              className="text-xs font-semibold text-primary uppercase tracking-widest"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              The receipts
+            </span>
+            <h3
+              className="text-xl font-bold text-foreground mt-2"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              Every network, and the role it plays
+            </h3>
+          </div>
 
           <div className="space-y-4">
             {[
@@ -716,6 +808,15 @@ export function LandingPage() {
                 border: "border-amber-500/20",
                 desc: "ConfidentialSpendPolicy deployed on Arbitrum Sepolia. FHE keeps spend amounts and wallet balances encrypted end-to-end; encrypted evaluation resumes when the Fhenix co-processor is re-exposed.",
                 status: "Arb Sepolia · FHE eval pending",
+              },
+              {
+                network: "Canton",
+                role: "Private Procurement",
+                color: "text-rose-400",
+                bg: "bg-rose-500/10",
+                border: "border-rose-500/20",
+                desc: "Sealed-bid vendor selection via Daml on Canton DevNet. Bid amounts stay private through the ledger's signatory/observer disclosure model — structural privacy, not just encryption.",
+                status: "Canton DevNet",
               },
               {
                 network: "MongoDB",
@@ -1049,6 +1150,7 @@ curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \\
               { name: "Filecoin", color: "bg-purple-400" },
               { name: "0G", color: "bg-emerald-400" },
               { name: "Fhenix", color: "bg-amber-400" },
+              { name: "Canton", color: "bg-rose-400" },
               { name: "MongoDB", color: "bg-emerald-500" },
             ].map((net) => (
               <div key={net.name} className="flex items-center gap-1.5">
