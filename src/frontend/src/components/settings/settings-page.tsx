@@ -548,12 +548,13 @@ function AppearanceCard({
 
 function ChainsCard() {
   const chains = [
-    { name: "Ethereum", role: "Execution", supported: true },
-    { name: "Arbitrum", role: "Execution", supported: true },
-    { name: "Base", role: "Execution", supported: true },
-    { name: "X Layer", role: "Execution", supported: true },
-    { name: "Mantle", role: "Execution", supported: true },
-    { name: "Fhenix", role: "Confidential Compute", supported: true },
+    { name: "Arbitrum Sepolia", role: "Governance", note: "Gov + Vault live", noteColor: "text-emerald-500" },
+    { name: "Robinhood Chain", role: "Governance", note: "Gov + Vault live", noteColor: "text-emerald-500" },
+    { name: "X Layer", role: "Execution", note: "Live", noteColor: "text-emerald-500" },
+    { name: "Fhenix / Arb Sepolia", role: "Confidential Compute", note: "FHE eval pending", noteColor: "text-amber-500" },
+    { name: "Ethereum", role: "Execution" },
+    { name: "Base", role: "Execution" },
+    { name: "Mantle", role: "Execution" },
   ];
 
   return (
@@ -577,6 +578,11 @@ function ChainsCard() {
                 <span className="text-sm font-medium">{chain.name}</span>
               </div>
               <div className="flex items-center gap-2">
+                {chain.note && (
+                  <span className={`text-[10px] font-medium ${chain.noteColor ?? "text-muted-foreground"}`}>
+                    {chain.note}
+                  </span>
+                )}
                 <span className="text-xs text-muted-foreground">
                   {chain.role}
                 </span>

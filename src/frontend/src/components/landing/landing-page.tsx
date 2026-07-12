@@ -243,7 +243,7 @@ export function LandingPage() {
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            X Layer Testnet — Live
+            Live on Arbitrum · Robinhood · X Layer
           </span>
           {hasHydrated && (isAppAuthenticated || walletConnected) ? (
             <Button
@@ -664,6 +664,24 @@ export function LandingPage() {
           <div className="space-y-4">
             {[
               {
+                network: "Arbitrum Sepolia",
+                role: "Governance",
+                color: "text-blue-400",
+                bg: "bg-blue-500/10",
+                border: "border-blue-500/20",
+                desc: "GovernanceContract + GovernedVault deployed and live on Arbitrum (chain 421614). Policy-checked spends and governed execution settle on-chain.",
+                status: "Live — Gov + Vault",
+              },
+              {
+                network: "Robinhood Chain",
+                role: "Governance",
+                color: "text-green-400",
+                bg: "bg-green-500/10",
+                border: "border-green-500/20",
+                desc: "Same GovernanceContract + GovernedVault deployed to Robinhood Chain Testnet, an Arbitrum Orbit chain (chain 46630). One control plane, portable across Orbit rollups.",
+                status: "Live — Gov + Vault",
+              },
+              {
                 network: "X Layer",
                 role: "Execution",
                 color: "text-sky-400",
@@ -691,13 +709,13 @@ export function LandingPage() {
                 status: "Newton testnet",
               },
               {
-                network: "Fhenix",
+                network: "Fhenix / FHE",
                 role: "Confidential Compute",
                 color: "text-amber-400",
                 bg: "bg-amber-500/10",
                 border: "border-amber-500/20",
-                desc: "Fully homomorphic encryption for private policy evaluation. Transaction amounts and wallet balances never exposed to servers.",
-                status: "Arbitrum Sepolia",
+                desc: "ConfidentialSpendPolicy deployed on Arbitrum Sepolia. FHE keeps spend amounts and wallet balances encrypted end-to-end; encrypted evaluation resumes when the Fhenix co-processor is re-exposed.",
+                status: "Arb Sepolia · FHE eval pending",
               },
               {
                 network: "MongoDB",
@@ -1025,6 +1043,8 @@ curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \\
           {/* Network dots visualization */}
           <div className="flex items-center justify-center gap-6 py-4 border-t border-border">
             {[
+              { name: "Arbitrum", color: "bg-blue-400" },
+              { name: "Robinhood", color: "bg-green-400" },
               { name: "X Layer", color: "bg-sky-400" },
               { name: "Filecoin", color: "bg-purple-400" },
               { name: "0G", color: "bg-emerald-400" },

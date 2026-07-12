@@ -3,8 +3,10 @@
   "chainId": 421614,
   "deployer": "0x5912d140b58c62ff007D803D25ea7CcC818548D3",
   "contracts": {
-    "GovernanceContract": "0x9899261685B4E950D3daaf8274225dF00a5aa545",
-    "GovernedVault": "0x6b53D57FCb877ACA0c6fDAe4B69AA81750110158"
+    "GovernanceContract": "0xB5326cEEDBb52C8ec9905929F5f612F7ac9819cE",
+    "GovernedVault": "0x468F1CfBB5bec9352b279192a952916610f58BB4"
   },
-  "deployedAt": "2026-07-12T10:10:27.139Z"
+  "owner": "0x5912d140b58c62ff007D803D25ea7CcC818548D3",
+  "verifiedLiveAt": "2026-07-12",
+  "note": "Canonical Arbitrum Sepolia addresses used by the product (.env ARBITRUM_GOVERNANCE_CONTRACT_ADDRESS / ARBITRUM_VAULT_ADDRESS) and the eligibility table in HACKATHON_SUBMISSION_ARBITRUM.md. Owner confirmed on-chain via owner()."
 }

@@ -22,10 +22,9 @@ All contracts are deployed and verified live on **Arbitrum Sepolia (chain 421614
 
 **Deployer:** `0x5912d140b58c62ff007D803D25ea7CcC818548D3` (owns all contracts)
 
-**Fresh re-deployment (2026-07-12)** for this submission — manifest at
-`scripts/deploy-bundle/arbitrum-sepolia-deployment.json`:
-- GovernanceContract: `0x9899261685B4E950D3daaf8274225dF00a5aa545`
-- GovernedVault: `0x6b53D57FCb877ACA0c6fDAe4B69AA81750110158`
+**Manifest:** `scripts/deploy-bundle/arbitrum-sepolia-deployment.json` and
+`docs/arbitrum-sepolia-deployment.json` record the same addresses listed above
+(owner `0x5912…548D3` confirmed on-chain via `owner()`).
 
 **Robinhood Chain Testnet (chain 46630):** ✅ **Deployed and verified live.**
 - GovernanceContract: `0x723e444ee6D7da19fADe372f85DA06dD849bF1E0`

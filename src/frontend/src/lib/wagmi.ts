@@ -34,6 +34,22 @@ export const filecoinCalibration = defineChain({
   },
 });
 
+export const robinhoodChainTestnet = defineChain({
+  id: 46630,
+  name: "Robinhood Chain Testnet",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://rpc.testnet.chain.robinhood.com"] },
+  },
+  blockExplorers: {
+    default: {
+      name: "Robinhood Explorer",
+      url: "https://explorer.testnet.chain.robinhood.com",
+    },
+  },
+  testnet: true,
+});
+
 export const config = getDefaultConfig({
   appName: "Cognivern",
   projectId:
@@ -42,6 +58,7 @@ export const config = getDefaultConfig({
     mainnet,
     sepolia,
     arbitrumSepolia,
+    robinhoodChainTestnet,
     xLayerTestnet,
     filecoinCalibration,
   ],
@@ -58,6 +75,10 @@ export const config = getDefaultConfig({
     [arbitrumSepolia.id]: fallback([
       http(process.env.NEXT_PUBLIC_RPC_ARBITRUM_SEPOLIA || "https://sepolia-rollup.arbitrum.io/rpc"),
     ]),
+    [robinhoodChainTestnet.id]: http(
+      process.env.NEXT_PUBLIC_RPC_ROBINHOOD_TESTNET ||
+        "https://rpc.testnet.chain.robinhood.com",
+    ),
     [xLayerTestnet.id]: http("https://testrpc.xlayer.tech"),
     [filecoinCalibration.id]: http("https://api.calibration.node.glif.io/rpc/v1"),
   },

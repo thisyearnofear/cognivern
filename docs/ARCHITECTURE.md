@@ -119,7 +119,7 @@ Cross-chain: Fhenix computes the encrypted decision → Hyperlane Mailbox dispat
 
 ```env
 FHENIX_RPC_URL=https://api.testnet.fhenix.zone
-FHENIX_POLICY_CONTRACT=0xeA88BD6121d181cFD6F60997B4BDd0297CA432fE
+FHENIX_POLICY_CONTRACT=0x710005F7454B8756F7E1118B26d1361b001fc818
 FHENIX_PRIVATE_KEY=             # Falls back to FILECOIN_PRIVATE_KEY
 FHENIX_CHAIN_ID=421614          # Arbitrum Sepolia
 FHENIX_EVALUATE_TIMEOUT_MS=30000
