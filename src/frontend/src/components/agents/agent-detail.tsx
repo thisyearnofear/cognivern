@@ -133,7 +133,7 @@ function AgentPersonalityCard({ agentId }: { agentId: string }) {
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <Brain className="h-4 w-4 text-violet-500" />
-          Agent Personality
+          Agent Profile
         </h3>
         <Button
           variant="ghost"
@@ -314,7 +314,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
     }
     const text = [
       `Agent ${agent.name}, ${agent.role}. Status: ${agent.status}.`,
-      `${agent.trades} trades executed. Budget: ${agent.budget}. Chain: ${agent.chain}.`,
+      `${agent.trades} actions taken. Budget: ${agent.budget}. Chain: ${agent.chain}.`,
     ].join(" ");
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.onend = () => setSpeaking(false);
@@ -367,7 +367,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
         <div className="rounded-xl border bg-card">
           <div className="p-12 text-center">
             <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Agent Not Found</h2>
+            <h2 className="text-lg font-semibold mb-2">Identity not found</h2>
             <p className="text-sm text-muted-foreground mb-4">
               {error ? error.message : "The agent could not be loaded."}
             </p>
@@ -482,7 +482,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
             <div>
               <div className="text-2xl font-bold">{agent.trades}</div>
               <div className="text-xs text-muted-foreground">
-                Total Trades
+                Total Actions
               </div>
             </div>
           </div>

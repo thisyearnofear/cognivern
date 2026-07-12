@@ -13,7 +13,11 @@ VIDEO_DIR = ROOT / "videos" / "cognivern-arbitrum-promo"
 AUDIO_DIR = VIDEO_DIR / "audio"
 AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
-API_KEY = "sk_8438e643d37fcce977502cb441afd030a7b2487785a140e2"
+API_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
+if not API_KEY:
+    print("ERROR: set ELEVENLABS_API_KEY in your environment.")
+    sys.exit(1)
+
 VOICE_ID = "ykMqqjWs4pQdCIvGPn0z"  # Constance Lee — female, Chinese accent
 
 # (frame, text, delivery_settings)

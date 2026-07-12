@@ -256,6 +256,20 @@ export function Dashboard() {
   const blockedCount = normalizedLogs.filter((l) => l.decision === "denied").length;
   const avgLatency = computeAverageLatency(normalizedLogs);
 
+  // Count decisions carrying a real on-chain governance-record tx (mirrors the
+  // audit page's getOnChainTxHash: top-level or nested data.txHash). Real data
+  // only — 0 for demo sample logs, which is accurate, so the strip stays hidden.
+  const onChainProofCount = useMemo(() => {
+    if (!Array.isArray(logs)) return 0;
+    return logs.filter((l) => {
+      const r = l as unknown as Record<string, unknown>;
+      if (typeof r.txHash === "string" && r.txHash.length > 10) return true;
+      const data = r.data as Record<string, unknown> | undefined;
+      const dataTx = data?.txHash;
+      return typeof dataTx === "string" && dataTx.length > 10;
+    }).length;
+  }, [logs]);
+
   // Animated counters
   const animatedApprovalRate = useCountUp(approvalRate, 2000, statsVisible);
   const animatedDecisions = useCountUp(decisions, 2000, statsVisible);
@@ -608,6 +622,25 @@ export function Dashboard() {
         )}
       </div>
 
+      {/* On-chain proof strip — threads the differentiator; real data only */}
+      {onChainProofCount > 0 && (
+        <button
+          type="button"
+          onClick={() => router.push("/audit")}
+          className="w-full flex items-center gap-2.5 rounded-xl border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-left hover:border-sky-500/40 transition-colors"
+        >
+          <ShieldCheck className="h-4 w-4 text-sky-500 shrink-0" />
+          <span className="text-sm text-foreground/80">
+            <span className="font-semibold text-foreground">
+              {onChainProofCount} decision{onChainProofCount === 1 ? "" : "s"}
+            </span>{" "}
+            recorded on-chain via GovernanceContract — anchored on X Layer, with
+            the same contracts live on Arbitrum + Robinhood.
+          </span>
+          <ArrowRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
+        </button>
+      )}
+
       {/* Charts Row — hidden in focus mode */}
       {!focusMode && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -689,7 +722,7 @@ export function Dashboard() {
                     </Badge>
                   </div>
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>{agent.trades} trades</span>
+                    <span>{agent.trades} actions</span>
                     <span className="font-medium">{formatBudget(agent.budget)}</span>
                   </div>
               </div>
@@ -834,13 +867,13 @@ export function Dashboard() {
           </div>
         </button>
         <button
-          onClick={() => router.push("/os")}
+          onClick={() => router.push("/integrate")}
           className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
         >
           <Rocket className="h-5 w-5 text-violet-500 mb-2" />
-          <div className="font-medium text-sm">Open Agent Command Center</div>
+          <div className="font-medium text-sm">Connect your system</div>
           <div className="text-xs text-muted-foreground mt-1">
-            Inspect agents live
+            Get an API key + quickstart
           </div>
         </button>
         <button

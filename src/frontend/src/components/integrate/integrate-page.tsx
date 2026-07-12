@@ -293,6 +293,14 @@ export function IntegratePage() {
             agents, DAO treasury ops, bridge agents — anything that spends,
             swaps, stakes, or transfers.
           </p>
+          <div className="mt-3 pt-3 border-t border-primary/10 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="font-medium text-foreground">Every decision is recorded on-chain.</span>
+            <span>GovernanceContract live on</span>
+            <Badge variant="outline" className="text-[10px]">Arbitrum</Badge>
+            <Badge variant="outline" className="text-[10px]">Robinhood</Badge>
+            <Badge variant="outline" className="text-[10px]">X Layer</Badge>
+            <span>· confidential eval via FHE (pending) · sealed-bid procurement on Canton.</span>
+          </div>
         </div>
 
       <Tabs defaultValue="quickstart" className="space-y-4">

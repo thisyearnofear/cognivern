@@ -158,7 +158,7 @@ export function SealedBidPage() {
                     Canton — full privacy reveal, losers never decrypted
                   </SelectItem>
                   <SelectItem value="fhe">
-                    FHE (Fhenix) — sealed bids, manager-publish reveal
+                    FHE (Fhenix) — pending (co-processor offline)
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -169,6 +169,8 @@ export function SealedBidPage() {
                 <strong className="text-foreground">FHE:</strong> amounts stay as
                 ciphertext; the round manager publishes the winner after
                 decrypt-and-publish (losing plaintexts are visible to the manager).
+                FHE evaluation is currently pending while the Fhenix co-processor is
+                offline — Canton is the working default.
               </p>
             </div>
           </div>

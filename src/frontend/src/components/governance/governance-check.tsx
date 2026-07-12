@@ -991,9 +991,9 @@ export function GovernanceCheck() {
                         "Idempotency verified",
                         "Policy evaluation completed",
                         "Audit trail stored",
-                        result.confidential?.fheEvaluated
-                          ? "FHE encrypted evaluation"
-                          : "ChainGPT contract audit available",
+                        ...(result.confidential?.fheEvaluated
+                          ? ["FHE encrypted evaluation"]
+                          : []),
                       ].length}{" "}
                       security layers
                     </span>
@@ -1009,9 +1009,9 @@ export function GovernanceCheck() {
                       "Idempotency verified",
                       "Policy evaluation completed",
                       "Audit trail stored",
-                      result.confidential?.fheEvaluated
-                        ? "FHE encrypted evaluation"
-                        : "ChainGPT contract audit available",
+                      ...(result.confidential?.fheEvaluated
+                        ? ["FHE encrypted evaluation"]
+                        : []),
                     ].map((layer) => (
                       <div
                         key={layer}
@@ -1143,8 +1143,8 @@ export function GovernanceCheck() {
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Every spend is evaluated against your active policies in under 100ms.
-            Encrypted policies evaluate without exposing amounts to agents.
+            Standard policies evaluate in milliseconds; encrypted (FHE) checks
+            take longer but never expose amounts to agents.
           </p>
         </div>
     </div>

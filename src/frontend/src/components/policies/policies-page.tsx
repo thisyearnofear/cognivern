@@ -509,7 +509,7 @@ export function PoliciesPage() {
               {policy.confidential && (
                 <div className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 text-xs text-amber-700 dark:text-amber-300">
                   <EyeOff className="h-3 w-3" />
-                  <span>Budget limits encrypted on-chain via Fhenix FHE</span>
+                  <span>Budget limits encrypted via Fhenix FHE — encrypted eval pending co-processor</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
