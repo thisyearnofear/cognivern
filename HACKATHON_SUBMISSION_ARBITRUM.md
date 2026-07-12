@@ -309,6 +309,30 @@ This unlocks the **Robinhood Chain: Founder-in-Residence ($60k)** and
 Robinhood Chain prizes in **Open House London: Champions** and
 **Best Agentic Project**.
 
+### Why Robinhood Chain — chain-native integration (roadmap)
+
+Today the same GovernanceContract + GovernedVault run on Robinhood Chain and
+Arbitrum. The chain-native next steps that make Robinhood Chain the *right* home
+for the agent-wallet layer:
+
+- **Account abstraction (ERC-4337) as the enforcing wallet layer.** Robinhood
+  Chain ships first-class AA (Alchemy + ZeroDev + native paymaster). Cognivern's
+  policy check becomes an on-chain **validator / session-key authority**, turning
+  today's *advisory* API governance (deny → audit-flag) into *non-custodial
+  enforcement* (deny → the userOp is rejected on-chain) — without taking custody
+  of agent funds. Gas-sponsored, session-scoped spend authority (e.g. "≤ $500 to
+  this vendor for the next 24h") is a native AA primitive that complements the
+  FHE policy layer.
+- **Governed tokenized-RWA trading.** Robinhood Chain's stock tokens (equities /
+  ETFs as ERC-20s with Chainlink price feeds) let a Cognivern-governed agent run
+  a tokenized-equity portfolio under enforced position limits and daily loss
+  caps, reading `AggregatorV3Interface.latestRoundData()` inside policy
+  evaluation.
+
+> ERC-4337 is chain-agnostic; Robinhood Chain's advantage is that AA is
+> native/bundled, making it the natural home for the enforcing wallet layer —
+> not that it runs only here.
+
 ---
 
 ## Testing & Quality
@@ -369,9 +393,13 @@ both built on the same Cognivern control plane.
 **Now:** Live on Arbitrum Sepolia with FHE spend governance, agent runtime,
 audit anchoring. 852 commits, 196 TypeScript files, 5 Solidity contracts.
 
-**Next 30 days:** Verify contracts on Arbiscan + Robinhood explorer ·
-Ship `FHE.verifyDecryptResult` upgrade · Mainnet Arbitrum One + Robinhood
-Chain mainnet deployment · Ship CrewAI/LangChain agent framework plugins.
+**Next 30 days:** Ship ERC-4337 account abstraction on Robinhood Chain
+(ZeroDev / Alchemy) — Cognivern policy as an on-chain validator / session-key
+authority, turning advisory governance into non-custodial enforcement ·
+Governed tokenized-RWA (stock-token) trading with Chainlink price feeds ·
+Verify contracts on Arbiscan + Robinhood explorer · Ship
+`FHE.verifyDecryptResult` upgrade · Mainnet Arbitrum One + Robinhood Chain ·
+CrewAI/LangChain agent framework plugins.
 
 **GTM (following the Open House London GTM + Product Canvas frameworks):**
 
