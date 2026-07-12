@@ -15,7 +15,7 @@ All contracts are deployed and verified live on **Arbitrum Sepolia (chain 421614
 
 | Contract | Address | Arbiscan | Status |
 |----------|---------|----------|--------|
-| **ConfidentialSpendPolicy** (FHE) | `0x710005F7454B8756F7E1118B26d1361b001fc818` | [link](https://sepolia.arbiscan.io/address/0x710005F7454B8756F7E1118B26d1361b001fc818) | ✅ Code verified on-chain (14,240 bytes) |
+| **ConfidentialSpendPolicy** (FHE) | `0x710005F7454B8756F7E1118B26d1361b001fc818` | [link](https://sepolia.arbiscan.io/address/0x710005F7454B8756F7E1118B26d1361b001fc818) | ✅ **Live — CoFHE end-to-end verified** (encrypt → on-chain `evaluateSpend` tx `0x47b16e88…` → `SpendEvaluated`; 14,240 bytes) |
 | **GovernanceContract** | `0xB5326cEEDBb52C8ec9905929F5f612F7ac9819cE` | [link](https://sepolia.arbiscan.io/address/0xB5326cEEDBb52C8ec9905929F5f612F7ac9819cE) | ✅ Code verified on-chain (38,712 bytes) |
 | **GovernedVault** | `0x468F1CfBB5bec9352b279192a952916610f58BB4` | [link](https://sepolia.arbiscan.io/address/0x468F1CfBB5bec9352b279192a952916610f58BB4) | ✅ Code verified on-chain (7,532 bytes) |
 | **SealedBidVendorSelection** (FHE) | Deployed alongside ConfidentialSpendPolicy | — | ✅ Compiled & deployable via `pnpm deploy:fhenix` |

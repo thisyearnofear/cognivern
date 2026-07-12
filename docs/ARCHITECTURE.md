@@ -118,10 +118,11 @@ Cross-chain: Fhenix computes the encrypted decision → Hyperlane Mailbox dispat
 ### Configuration
 
 ```env
-FHENIX_RPC_URL=https://api.testnet.fhenix.zone
+FHENIX_RPC_URL=https://sepolia-rollup.arbitrum.io/rpc   # Arbitrum Sepolia (CoFHE arb-sepolia)
 FHENIX_POLICY_CONTRACT=0x710005F7454B8756F7E1118B26d1361b001fc818
+FHENIX_COFHE_URL=https://testnet-cofhe.fhenix.zone
 FHENIX_PRIVATE_KEY=             # Falls back to FILECOIN_PRIVATE_KEY
-FHENIX_CHAIN_ID=421614          # Arbitrum Sepolia
+FHENIX_CHAIN_ID=421614          # Arbitrum Sepolia — CoFHE TaskManager 0xeA30c4B8b44078Bbf8a6ef5b9f1eC1626C7848D9
 FHENIX_EVALUATE_TIMEOUT_MS=30000
 ```
 

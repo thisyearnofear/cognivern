@@ -551,7 +551,7 @@ function ChainsCard() {
     { name: "Arbitrum Sepolia", role: "Governance", note: "Gov + Vault live", noteColor: "text-emerald-500" },
     { name: "Robinhood Chain", role: "Governance", note: "Gov + Vault live", noteColor: "text-emerald-500" },
     { name: "X Layer", role: "Execution", note: "Live", noteColor: "text-emerald-500" },
-    { name: "Fhenix / Arb Sepolia", role: "Confidential Compute", note: "FHE eval pending", noteColor: "text-amber-500" },
+    { name: "Fhenix / Arb Sepolia", role: "Confidential Compute", note: "FHE live · verified", noteColor: "text-emerald-500" },
     { name: "Ethereum", role: "Execution" },
     { name: "Base", role: "Execution" },
     { name: "Mantle", role: "Execution" },

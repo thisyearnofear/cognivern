@@ -806,8 +806,8 @@ export function LandingPage() {
                 color: "text-amber-400",
                 bg: "bg-amber-500/10",
                 border: "border-amber-500/20",
-                desc: "ConfidentialSpendPolicy deployed on Arbitrum Sepolia. FHE keeps spend amounts and wallet balances encrypted end-to-end; encrypted evaluation resumes when the Fhenix co-processor is re-exposed.",
-                status: "Arb Sepolia · FHE eval pending",
+                desc: "ConfidentialSpendPolicy live on Arbitrum Sepolia via CoFHE — spend amounts and wallet balances stay encrypted end-to-end. Verified on-chain (final outcomes resolve asynchronously).",
+                status: "Live · Arbitrum Sepolia",
               },
               {
                 network: "Canton",

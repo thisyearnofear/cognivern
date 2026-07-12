@@ -299,7 +299,7 @@ export function IntegratePage() {
             <Badge variant="outline" className="text-[10px]">Arbitrum</Badge>
             <Badge variant="outline" className="text-[10px]">Robinhood</Badge>
             <Badge variant="outline" className="text-[10px]">X Layer</Badge>
-            <span>· confidential eval via FHE (pending) · sealed-bid procurement on Canton.</span>
+            <span>· confidential eval via FHE (live on Arbitrum Sepolia) · sealed-bid procurement on Canton.</span>
           </div>
         </div>
 

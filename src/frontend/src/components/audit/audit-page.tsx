@@ -822,7 +822,7 @@ export function AuditPage() {
             { icon: Fingerprint, label: "Auth", value: "SIWE + JWT with nonce replay" },
             { icon: Lock, label: "API Keys", value: "scrypt hashed, scoped permissions" },
             { icon: Shield, label: "Rate Limiting", value: "3 layers (global, workspace, per-key)" },
-            { icon: Lock, label: "Encryption", value: "Fhenix FHE — encrypted eval (co-processor pending)" },
+            { icon: Lock, label: "Encryption", value: "Fhenix FHE — encrypted eval live on Arbitrum Sepolia" },
             { icon: Shield, label: "Audit", value: "Immutable on 0G + X Layer" },
             { icon: Shield, label: "Contract Audit", value: "ChainGPT scan on recipients" },
           ].map(({ icon: Icon, label, value }) => (
