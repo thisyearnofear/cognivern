@@ -46,7 +46,9 @@ For local setup, API reference, and production deployment, see the [Developer Gu
 | [Developer Guide](./docs/DEVELOPER.md) | Local setup, API reference, testing, production readiness |
 | [Deployment](./docs/DEPLOYMENT.md) | Hetzner / PM2 / nginx, env vars, health checks |
 | [AI Safety](./scripts/hackathon/HACKATHON_REPORT.md) | Suspicion-scoring design, frontier evaluation |
-| [Hackathon Submission](./HACKATHON_SUBMISSION.md) | Track 1: Canton private RFP — enterprise framing, DevNet proof pack |
+| [Hackathon Submission (Canton)](./HACKATHON_SUBMISSION.md) | Track 1: Canton private RFP — enterprise framing, DevNet proof pack |
+| [Hackathon Submission (Arbitrum)](./HACKATHON_SUBMISSION_ARBITRUM.md) | Arbitrum London Founder House — FHE spend governance on Arbitrum Sepolia, agent governance, deployment proof |
+| [Product & GTM Canvas](./docs/PRODUCT_GTM_CANVAS.md) | Product Canvas + GTM Canvas (Open House London templates) — wedge, why-now, why-onchain, distribution loops |
 
 ## License
 

@@ -364,6 +364,13 @@ The default backend is `canton`. To switch to the FHE path for comparison, chang
 
 Cognivern is a spend-governance platform for AI agents — confidential policy evaluation on Fhenix, hardware-gated signing on Ledger DMK, agent activity indexing through ChainGPT, durable evidence anchoring on Filecoin + 0G, and on-ledger execution via X Layer. The Canton sealed-bid module is the most recently added primitive, and the one we believe is most informative for a Canton jury. The platform context is mentioned here only to disambiguate the deployment: a Canton module on top of an existing running production API was a more credible Canton-jury signal than a fresh repo.
 
+> **Companion submission:** The FHE spend-governance and agent-governance
+> primitives are also submitted to the Arbitrum London Founder House (deployed
+> on Arbitrum Sepolia + Robinhood Chain Testnet) — see
+> [HACKATHON_SUBMISSION_ARBITRUM.md](./HACKATHON_SUBMISSION_ARBITRUM.md). The
+> two submissions are complementary, showcasing different privacy approaches
+> (Canton structural disclosure vs. Arbitrum FHE) on their native ecosystems.
+
 ---
 
 ## Postscript: what testing validates

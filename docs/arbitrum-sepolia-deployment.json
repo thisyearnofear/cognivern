@@ -1,0 +1,10 @@
+{
+  "network": "arbitrumSepolia",
+  "chainId": 421614,
+  "deployer": "0x5912d140b58c62ff007D803D25ea7CcC818548D3",
+  "contracts": {
+    "GovernanceContract": "0x9899261685B4E950D3daaf8274225dF00a5aa545",
+    "GovernedVault": "0x6b53D57FCb877ACA0c6fDAe4B69AA81750110158"
+  },
+  "deployedAt": "2026-07-12T10:10:27.139Z"
+}

@@ -1,0 +1,10 @@
+{
+  "network": "robinhoodChainTestnet",
+  "chainId": 46630,
+  "deployer": "0x5912d140b58c62ff007D803D25ea7CcC818548D3",
+  "contracts": {
+    "GovernanceContract": "0x723e444ee6D7da19fADe372f85DA06dD849bF1E0",
+    "GovernedVault": "0xeA88BD6121d181cFD6F60997B4BDd0297CA432fE"
+  },
+  "deployedAt": "2026-07-12T10:16:41.903Z"
+}
