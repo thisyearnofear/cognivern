@@ -81,6 +81,19 @@ export class SealedBidService {
     return (await this.resolveBackend(roundId)).closeRound(roundId, caller);
   }
 
+  async addEligibleBidder(
+    roundId: string,
+    newBidder: string,
+    caller: string,
+  ): Promise<SealedBidRound> {
+    const backend = await this.resolveBackend(roundId);
+    if (!backend.addEligibleBidder)
+      throw new Error(
+        `Backend "${backend.name}" does not support adding eligible bidders`,
+      );
+    return backend.addEligibleBidder(roundId, newBidder, caller);
+  }
+
   async revealWinner(
     roundId: string,
     request: RevealRequest,

@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Trophy,
   Clock,
+  UserPlus,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,11 +26,17 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSealedBidRound } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
+import { useAuthStore } from "@/stores/auth-store";
 import { mutate } from "swr";
 import { BackendBadge } from "./backend-badge";
 import { PartyView } from "./party-view";
 
 const DEMO_BIDDERS = ["Alice", "Bob", "Charlie"] as const;
+
+function shortAddress(addr?: string | null): string {
+  if (!addr) return "";
+  return addr.length > 12 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr;
+}
 
 interface RoundDetailProps {
   roundId: string;
@@ -47,6 +54,17 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   const [selectionMethod, setSelectionMethod] = useState<
     "lowest-bid" | "highest-bid"
   >("lowest-bid");
+  const [newBidderName, setNewBidderName] = useState("");
+  const [addingBidder, setAddingBidder] = useState(false);
+
+  const workspaceMode = useAuthStore((s) => s.workspaceMode);
+  const isAuthed = useAuthStore((s) => s.isConnected);
+  const walletAddress = useAuthStore((s) => s.walletAddress);
+  const isProduction = workspaceMode === "production";
+  // In production the ledger identity is the signed-in wallet; in sandbox the
+  // user acts as a demo persona. This mirrors the backend's productionIdentity.
+  const effectiveBidder = isProduction ? (walletAddress ?? "") : bidder;
+  const canSubmitBid = isProduction ? isAuthed && !!walletAddress : true;
 
   async function refresh() {
     await mutate(`/api/vendor/sealed-bid/rounds/${roundId}`);
@@ -55,21 +73,49 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isProduction && !canSubmitBid) {
+      toast.error("Sign in with your wallet to bid on the production ledger");
+      return;
+    }
     setSubmitting(true);
     try {
+      // The backend re-derives the bidder from the verified JWT in production;
+      // we send effectiveBidder for parity and labelling.
       const res = await apiClient.submitSealedBid({
         roundId,
-        bidder,
+        bidder: effectiveBidder,
         amountUsd,
         proposalDetails: proposalDetails || undefined,
       });
       if (!res.success) throw new Error(res.error || "Bid failed");
-      toast.success(`${bidder} submitted a sealed bid`);
+      const who = isProduction ? shortAddress(walletAddress) : bidder;
+      toast.success(`${who} submitted a sealed bid`);
       await refresh();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Bid failed");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleAddBidder(e: React.FormEvent) {
+    e.preventDefault();
+    const name = newBidderName.trim();
+    if (!name) return;
+    setAddingBidder(true);
+    try {
+      const res = await apiClient.addSealedBidEligibleBidder({
+        roundId,
+        newBidder: name,
+      });
+      if (!res.success) throw new Error(res.error || "Failed to admit bidder");
+      toast.success(`${name} admitted to the round`);
+      setNewBidderName("");
+      await refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to admit bidder");
+    } finally {
+      setAddingBidder(false);
     }
   }
 
@@ -188,26 +234,43 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
             <Send className="h-4 w-4" /> Submit sealed bid
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="space-y-2">
-              <label className="text-xs font-medium">Bidder</label>
-              <Select
-                value={bidder}
-                onValueChange={(v) =>
-                  setBidder(v as (typeof DEMO_BIDDERS)[number])
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DEMO_BIDDERS.map((b) => (
-                    <SelectItem key={b} value={b}>
-                      {b}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {isProduction ? (
+              <div className="space-y-2">
+                <label className="text-xs font-medium">Bidding as</label>
+                {walletAddress ? (
+                  <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 font-mono text-sm">
+                    {shortAddress(walletAddress)}
+                  </div>
+                ) : (
+                  <div className="flex h-10 items-center rounded-md border border-dashed px-3 text-xs text-muted-foreground">
+                    Sign in to bid as yourself
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-xs font-medium">
+                  Demo bidder — sandbox ledger
+                </label>
+                <Select
+                  value={bidder}
+                  onValueChange={(v) =>
+                    setBidder(v as (typeof DEMO_BIDDERS)[number])
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEMO_BIDDERS.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-xs font-medium">Amount (USD)</label>
               <Input
@@ -231,11 +294,54 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               <Lock className="h-3 w-3" /> On the Canton backend, only the
               auctioneer will see this amount.
             </p>
-            <Button type="submit" disabled={submitting || deadlineMissed}>
+            <Button
+              type="submit"
+              disabled={submitting || deadlineMissed || !canSubmitBid}
+            >
               {submitting ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : null}
-              Submit as {bidder}
+              {isProduction
+                ? canSubmitBid
+                  ? `Submit as ${shortAddress(walletAddress)}`
+                  : "Sign in to bid"
+                : `Submit as ${bidder}`}
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {round.status === "open" && round.backend === "canton" && (
+        <form
+          onSubmit={handleAddBidder}
+          className="rounded-xl border bg-card p-4 space-y-3"
+        >
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <UserPlus className="h-4 w-4" /> Admit eligible bidder
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Onboard a counterparty into this live round. The manager expands the
+            auction&apos;s on-ledger allow-list — sealed bids already submitted
+            stay untouched, and the new party can only bid going forward.
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Input
+              placeholder="Party name (e.g. Dana)"
+              value={newBidderName}
+              onChange={(e) => setNewBidderName(e.target.value)}
+              className="max-w-xs"
+            />
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={addingBidder || !newBidderName.trim()}
+            >
+              {addingBidder ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <UserPlus className="h-4 w-4 mr-2" />
+              )}
+              Admit to round
             </Button>
           </div>
         </form>

@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { tokenBlacklistStore } from "@backend/shared/storage/TokenBlacklistStore.js";
 import { isPublicApiPath } from "./publicEndpoints.js";
 
-function getJwtSecret(): Uint8Array {
+export function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === "production") {

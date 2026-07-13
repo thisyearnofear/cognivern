@@ -19,4 +19,14 @@ export interface SealedBidBackend {
   revealWinner(roundId: string, request: RevealRequest): Promise<SealedBidRound>;
   getRound(roundId: string): Promise<SealedBidRound | null>;
   listRounds(): Promise<SealedBidRound[]>;
+
+  // Optional — admit a new eligible bidder into an already-open round. Only
+  // backends with an on-ledger allow-list implement this (Canton). The FHE
+  // backend has no eligibility gate, so it leaves this undefined and the
+  // dispatcher reports it as unsupported for FHE rounds.
+  addEligibleBidder?(
+    roundId: string,
+    newBidder: string,
+    caller: string,
+  ): Promise<SealedBidRound>;
 }

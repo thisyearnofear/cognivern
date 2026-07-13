@@ -39,6 +39,15 @@ function fireAndForgetAudit(
     .catch((err) => logger.warn(`Audit anchor failed for ${eventType}`, err));
 }
 
+// In production workspace mode the acting identity is the wallet verified by
+// sealedBidWriteAuth (req.walletAddress) — persona values in the request body
+// are ignored, closing the impersonation gap on the real ledger. In sandbox
+// mode this returns undefined and the demo persona / existing fallbacks apply.
+function productionIdentity(req: Request): string | undefined {
+  const mode = (req.headers["x-workspace-mode"] as string)?.toLowerCase();
+  return mode === "production" ? req.walletAddress : undefined;
+}
+
 const createRoundSchema = z.object({
   description: z.string().min(1),
   serviceCategory: z.string().min(1),
@@ -56,6 +65,11 @@ const submitBidSchema = z.object({
 const revealSchema = z.object({
   selectionMethod: z.enum(["lowest-bid", "highest-bid", "specific"]),
   specificBidder: z.string().optional(),
+});
+
+const addBidderSchema = z.object({
+  newBidder: z.string().min(1),
+  manager: z.string().optional(),
 });
 
 export class SealedBidController {
@@ -89,6 +103,7 @@ export class SealedBidController {
       const { description, serviceCategory, deadline, maxBids, backend } =
         parse.data;
       const manager =
+        productionIdentity(req) ||
         req.body.manager ||
         (backend === "canton"
           ? process.env.CANTON_DEMO_MANAGER_NAME || "Auctioneer"
@@ -148,7 +163,8 @@ export class SealedBidController {
         return;
       }
 
-      const { bidder, amountUsd, proposalDetails } = parse.data;
+      const { amountUsd, proposalDetails } = parse.data;
+      const bidder = productionIdentity(req) || parse.data.bidder;
       const request: SubmitBidRequest = { bidder, amountUsd, proposalDetails };
       const bid = await this.sealedBidService.submitBid(roundId, request);
 
@@ -198,6 +214,7 @@ export class SealedBidController {
     try {
       const { roundId } = req.params;
       const caller =
+        productionIdentity(req) ||
         req.body.manager ||
         (await this.sealedBidService.getRound(roundId))?.manager ||
         (req.headers["x-api-key"] as string) ||
@@ -230,6 +247,66 @@ export class SealedBidController {
       res.status(error.message?.includes("not found") ? 404 : 400).json({
         success: false,
         error: error.message || "Failed to close round",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * POST /api/vendor/sealed-bid/rounds/:roundId/eligible-bidders
+   * Admit a new eligible bidder into an open round (Canton backend only).
+   * This is the on-ledger institutional-onboarding path: the manager expands
+   * the auction's allow-list so a counterparty vetted after the round opened
+   * can submit sealed bids, without disturbing bids already in.
+   */
+  async addEligibleBidder(req: Request, res: Response) {
+    try {
+      const { roundId } = req.params;
+
+      const parse = addBidderSchema.safeParse(req.body);
+      if (!parse.success) {
+        res.status(400).json({
+          success: false,
+          error: "Invalid add-bidder payload",
+          details: parse.error.format(),
+        });
+        return;
+      }
+
+      const { newBidder } = parse.data;
+      const caller =
+        productionIdentity(req) ||
+        req.body.manager ||
+        (await this.sealedBidService.getRound(roundId))?.manager ||
+        (req.headers["x-api-key"] as string) ||
+        "demo-manager";
+
+      const round = await this.sealedBidService.addEligibleBidder(
+        roundId,
+        newBidder,
+        caller,
+      );
+
+      fireAndForgetAudit(this.auditLog, "sealed_bid.bidder_admitted", {
+        roundId,
+        newBidder,
+        admittedBy: caller,
+        backend: round.backend,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: round,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error(
+        `SealedBid: addEligibleBidder failed for ${req.params.roundId}`,
+        error,
+      );
+      res.status(error.message?.includes("not found") ? 404 : 400).json({
+        success: false,
+        error: error.message || "Failed to add eligible bidder",
         timestamp: new Date().toISOString(),
       });
     }

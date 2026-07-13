@@ -5,6 +5,7 @@ import type { IntentController } from "@backend/modules/api/controllers/IntentCo
 import type { PayrollController } from "@backend/modules/api/controllers/PayrollController.js";
 import type { SealedBidController } from "@backend/modules/api/controllers/SealedBidController.js";
 import type { SpeechController } from "@backend/modules/api/controllers/SpeechController.js";
+import { sealedBidWriteAuth } from "@backend/middleware/sealedBidAuthMiddleware.js";
 
 export function createMiscRoutes(
   ingestController: IngestController,
@@ -54,18 +55,32 @@ export function createMiscRoutes(
     payrollController.executeConfidentialPayroll(req, res),
   );
 
-  // Sealed-bid vendor selection routes
-  router.post("/vendor/sealed-bid/rounds", (req, res) =>
+  // Sealed-bid vendor selection routes.
+  // Write routes carry `sealedBidWriteAuth`: sandbox mode passes through with
+  // demo personas; production mode requires a verified wallet JWT and binds the
+  // acting identity to it. GET routes stay open (landing/demo read views).
+  router.post("/vendor/sealed-bid/rounds", sealedBidWriteAuth, (req, res) =>
     sealedBidController.createRound(req, res),
   );
-  router.post("/vendor/sealed-bid/rounds/:roundId/bid", (req, res) =>
-    sealedBidController.submitBid(req, res),
+  router.post(
+    "/vendor/sealed-bid/rounds/:roundId/bid",
+    sealedBidWriteAuth,
+    (req, res) => sealedBidController.submitBid(req, res),
   );
-  router.post("/vendor/sealed-bid/rounds/:roundId/close", (req, res) =>
-    sealedBidController.closeRound(req, res),
+  router.post(
+    "/vendor/sealed-bid/rounds/:roundId/close",
+    sealedBidWriteAuth,
+    (req, res) => sealedBidController.closeRound(req, res),
   );
-  router.post("/vendor/sealed-bid/rounds/:roundId/reveal", (req, res) =>
-    sealedBidController.revealWinner(req, res),
+  router.post(
+    "/vendor/sealed-bid/rounds/:roundId/reveal",
+    sealedBidWriteAuth,
+    (req, res) => sealedBidController.revealWinner(req, res),
+  );
+  router.post(
+    "/vendor/sealed-bid/rounds/:roundId/eligible-bidders",
+    sealedBidWriteAuth,
+    (req, res) => sealedBidController.addEligibleBidder(req, res),
   );
   router.get("/vendor/sealed-bid/rounds/:roundId", (req, res) =>
     sealedBidController.getRound(req, res),

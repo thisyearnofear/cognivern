@@ -838,6 +838,23 @@ class ApiClient {
       },
     );
   }
+
+  async addSealedBidEligibleBidder(params: {
+    roundId: string;
+    newBidder: string;
+    manager?: string;
+  }): Promise<ApiResponse<SealedBidRound>> {
+    return this.fetch(
+      `/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/eligible-bidders`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          newBidder: params.newBidder,
+          manager: params.manager,
+        }),
+      },
+    );
+  }
 }
 
 // Types for the sealed-bid endpoints. Kept in this file so both apiClient
