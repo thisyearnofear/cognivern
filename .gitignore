@@ -11,6 +11,10 @@ out/
 *.tsbuildinfo
 src/frontend/dist/
 
+# ── Daml build artifacts (DARs are rebuilt from source; never commit them) ──
+*.dar
+daml/.daml/
+
 # ── TypeScript compiled output in source tree ───────────────────────
 src/backend/**/*.js
 src/backend/**/*.js.map
@@ -48,6 +52,7 @@ coverage/
 .nyc_output
 playwright-report/
 test-results/
+.testsprite/runs/
 
 # ── IDE / Editor ────────────────────────────────────────────────────
 .vscode/*
@@ -88,6 +93,11 @@ Thumbs.db
 # ── Deploy artifacts ───────────────────────────────────────────────
 deploy-bundle/
 .vercel/
+
+# ── Video production workspace (HyperFrames source + renders) ──────
+# docs/demo-video.mp4 is the tracked canonical demo and stays tracked.
+videos/
+docs/demo-video-arbitrum.mp4
 
 # ── Tool version managers ──────────────────────────────────────────
 .volta/
