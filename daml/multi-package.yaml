@@ -1,8 +1,10 @@
 # Two-package layout:
-#   .        → cognivern-auction         (templates only; this is what gets
-#              uploaded to the Canton participant — no daml-script dependency)
-#   ./scripts → cognivern-auction-scripts (setup + tests; local `daml test`
-#              and sandbox seeding only, never uploaded)
+#   .        → daml         (templates only; this is what gets uploaded to the
+#              Canton participant — no daml-script dependency. Package name is
+#              kept as `daml` so the deployed `#daml:Main:...` template refs
+#              resolve to it.)
+#   ./scripts → daml-scripts (setup + tests; local `daml test` and sandbox
+#              seeding only, never uploaded)
 packages:
   - .
   - ./scripts

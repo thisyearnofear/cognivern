@@ -3,7 +3,7 @@
 # (and local sandbox seeding) can exercise the templates without pulling
 # daml-script into the on-ledger cognivern-auction package.
 sdk-version: 3.4.11
-name: cognivern-auction-scripts
+name: daml-scripts
 source: daml
 version: 0.0.2
 dependencies:
@@ -11,4 +11,4 @@ dependencies:
   - daml-stdlib
   - daml-script
 data-dependencies:
-  - ../.daml/dist/cognivern-auction-0.0.2.dar
+  - ../.daml/dist/daml-0.0.2.dar
