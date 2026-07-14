@@ -34,8 +34,9 @@ The Hetzner `cognivern-canton` sandbox remains useful for local demos and regres
 2. ✅ **Production backend cut over to DevNet** via Hetzner deploy (`pnpm deploy:hetzner`). Environment uses JSON Ledger API v2, `#daml:Main:*` template refs, and the static `CANTON_DEMO_PARTY_IDS` map.
 3. ✅ **Fresh DevNet evidence captured:** `pnpm canton:proof` passed against `https://cognivern.thisyearnofear.com` → `.artifacts/canton-devnet-proof-latest.json`.
 4. ✅ **Live product curated** — the sealed-bid list shows a clean featured set on DevNet, not the internal test rounds (`CANTON_FEATURED_ROUNDS`).
-5. ⏳ **Re-record the 3-minute demo video** against the current DevNet-backed, curated live product. The featured rounds landed 2026-07-14, so any earlier recording shows a stale state: `docs/demo-video.mp4`.
-6. ⏳ **Export the deck to PDF** if the submission form requires a PDF rather than a PPTX.
+5. ✅ **Party view rebuilt on real per-party ledger queries** (`GET /rounds/:id/party-view`), the atomic-reveal banner made cinematic, and an interactive Canton\|FHE reveal comparison added — landed 2026-07-14.
+6. ⏳ **Re-record the 3-minute demo video** against the current DevNet-backed, curated live product — the party-view toggle and reveal moment from step 5 are the strongest beats to capture. Any earlier recording shows a stale state: `docs/demo-video.mp4`.
+7. ⏳ **Export the deck to PDF** if the submission form requires a PDF rather than a PPTX.
 
 ---
 
@@ -46,6 +47,7 @@ The Hetzner `cognivern-canton` sandbox remains useful for local demos and regres
 - **Daml model.** `SealedBidAuction` · `Bid` (signatory bidder, observer manager — no other bidder has visibility) · `AuctionResult` (publicly visible to bidders post-reveal). Three templates, ~110 lines of Daml.
 - **Pluggable backend.** Live production code runs the same sealed-bid protocol over either Canton (works end-to-end) or Fhenix CoFHE (works for sealed-bid but cannot reveal — see "Why this is hard" below). Same REST surface, swapped at `createRound(backend: "canton" | "fhe")`.
 - **End-to-end on a live ledger.** The live product opens on a curated set of real DevNet rounds (open, awaiting-reveal, revealed) so the demo lands on a real privacy state, not an empty screen. Bid-amount visibility is *literally* enforced by the Daml JSON API's response payload per role.
+- **The privacy claim is a live network call, not a UI trick.** The round detail page's party-view toggle queries the Canton participant *acting as* the selected party in real time — a judge watching the ledger-response count change (`2` as Auctioneer, `1` as Alice, `0` as Charlie, `0` for everyone once revealed) is watching Canton's disclosure model, not a client-side dim.
 - **Thirty-one+ Vitest tests plus twenty-four TestSprite CLI backend tests run against the live API**, with direct ledger assertions per party role keeping the privacy guarantee machine-verifiable.
 
 ---
@@ -124,6 +126,8 @@ Three things have to happen at reveal:
 Pure FHE asks the **losers** (the bidders with the least economic reason to cooperate) to participate in a threshold-decryption ceremony so the auctioneer can read their bids. In practice, that ceremony is the bottleneck — but the **manager-decrypt-and-publish** pattern (which we now ship as **Option B**) sidesteps it for the *sealed-bid* flow: the round manager, who holds the CoFHE `decryptForView` permit for the round, decrypts every bid amount off-chain and publishes them back through `publishWinner` (on-chain, gated on `msg.sender == round.manager`). The FHE ACL chain at `submitBid` + the CoFHE permit binding + the on-chain identity check close the impersonation gap — no threshold ceremony, no trusted third-party decryption service.
 
 This is still strictly *worse* than Canton for a multi-bidder sealed-bid auction: Option B requires the manager-permit holder to read **every losing bid's plaintext** at publish time, so sub-bidder privacy from the auctioneer / manager is lost at reveal. Canton sidesteps that whole workstream **and** the cryptography one by making the privacy property **structural**, not cryptographic: losing bids are never decrypted by anyone — they're consumed in flight inside the atomic `CloseAndReveal` transaction. Canton therefore remains the recommended primitive for institutional RFP / OTC use cases where bidders' pricing models are competitively sensitive *even from the manager*.
+
+This isn't just an argument in this document — it's an interactive toggle on every live Canton round (see "What runs live today" below): flip between Canton and FHE and watch the reveal claim change from "seen by no one" to "the manager sees every losing price."
 
 ---
 
@@ -204,9 +208,20 @@ SealedBid: bid_submitted event logged to CRE ledger (evidence hash 0x…)
 
 Every lifecycle step fires `AuditLogService.logEvent` and lands in the CRE run ledger with hash-signed evidence. The `bid_submitted` event deliberately excludes `amountUsd` because — on Canton — the amount is visible only to the auctioneer. Anchoring it into a broadly readable audit log would break the privacy story. The `winner_revealed` event includes winner + winning bid because those become public at reveal.
 
-The UI at [`/sealed-bid`](https://cognivern.vercel.app/sealed-bid) makes the privacy property clickable. The round detail page embeds a "party view" that lets visitors toggle between `Auctioneer | Alice | Bob | Charlie` and visually dim out any bid the selected party cannot read on-ledger. The reveal button calls `CloseAndReveal`, and the post-reveal banner says:
+The UI at [`/sealed-bid`](https://cognivern.vercel.app/sealed-bid) makes the privacy property clickable — and provable, not just plausible. The round detail page embeds a **party view** that toggles between `Auctioneer | Alice | Bob | Charlie`; each toggle fires a live `GET /rounds/:id/party-view?party=<name>` call that queries the Canton participant **acting as that party** (`CantonSealedBidBackend.queryBidsAsParty` → `client.query(partyId, [Bid])`). This is not a client-side filter over a shared response — a competitor's bid is never in the payload at all, because the participant itself never discloses it to a party that isn't its observer. The UI shows the raw ledger-response count so the point is unmissable: on an open round with two bids, Auctioneer sees `2`, Alice sees `1` (her own), Charlie sees `0` — verified live:
 
-> *"Losing bid amounts remain undisclosed on-ledger — Canton archived them without ever revealing them to competitors."*
+```
+Auctioneer -> 2 contract(s): alice-cognivern $72,500, bob-cognivern $68,000
+Alice      -> 1 contract(s): alice-cognivern $72,500
+Bob        -> 1 contract(s): bob-cognivern $68,000
+Charlie    -> 0 contract(s)
+```
+
+The reveal button calls `CloseAndReveal`; the post-reveal banner animates in and reads:
+
+> *"Revealed in one atomic transaction — the winner was published and every losing bid archived in the same ledger event. No losing amount was ever disclosed, to competitors or the auctioneer."*
+
+— and the party view proves it in the same breath: toggle back to Auctioneer on a revealed round and the ledger now returns **0** Bid contracts, even for the manager. An interactive **Canton | FHE** toggle sits underneath, running the same `createRound(backend: "canton" | "fhe")` argument live: Canton reads "losing prices seen by no one," FHE reads "the manager sees every losing price at reveal" — the comparative case from the section below, made clickable instead of argued in prose.
 
 The live product opens on a **curated set of real DevNet rounds** (not the empty state, and not the internal test scaffolding — a featured allowlist keeps the demo clean) so a visitor lands on something real:
 
@@ -259,7 +274,7 @@ The Canton backend is covered by `tests/integration/canton-sealed-bid.test.ts` �
 3. **Per-round visibility.** With three bidders on one round, querying the Daml JSON Ledger API as `Alice`, `Bob`, and `Charlie` returns exactly one Bid contract per bidder (matched by `payload.bidder === partyId`, not just by count), and querying as `Auctioneer` returns all three. Canton does the filtering; the assertion locks the cardinality *and* the identity.
 4. **Cross-leakage guard.** Querying the Bid template as any individual bidder, **at the whole-ledger scope**, returns only contracts for which that bidder is the signatory. Anything else — a competitor's amount slipping through, a future observer-list broadening — fails this test.
 
-The privacy claim Canton's disclosure model makes is now test-verified, not asserted in prose.
+The privacy claim Canton's disclosure model makes is test-verified *and* live-verified — the same per-party query the Vitest suite asserts against is the exact endpoint (`GET /rounds/:id/party-view`) the production UI calls on every toggle. There is one code path for "prove it in CI" and "prove it to a judge clicking the demo."
 
 ### FHE Option B trust-model evolution (sidebar, iters 24–27)
 
