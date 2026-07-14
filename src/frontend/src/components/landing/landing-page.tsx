@@ -243,7 +243,7 @@ export function LandingPage() {
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            Live on Arbitrum · Robinhood · X Layer
+            Live on Arbitrum · Robinhood · X Layer · Canton
           </span>
           {hasHydrated && (isAppAuthenticated || walletConnected) ? (
             <Button
@@ -321,6 +321,14 @@ export function LandingPage() {
               </Button>
               <Button
                 variant="secondary"
+                size="lg"
+                onClick={() => router.push("/sealed-bid")}
+              >
+                <Lock className="h-4 w-4 mr-1.5" />
+                Private auctions on Canton
+              </Button>
+              <Button
+                variant="ghost"
                 size="lg"
                 onClick={() =>
                   window.open(
