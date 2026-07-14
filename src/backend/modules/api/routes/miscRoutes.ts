@@ -77,6 +77,9 @@ export function createMiscRoutes(
     sealedBidWriteAuth,
     (req, res) => sealedBidController.revealWinner(req, res),
   );
+  router.get("/vendor/sealed-bid/rounds/:roundId/party-view", (req, res) =>
+    sealedBidController.getPartyView(req, res),
+  );
   router.get("/vendor/sealed-bid/rounds/:roundId", (req, res) =>
     sealedBidController.getRound(req, res),
   );

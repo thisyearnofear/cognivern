@@ -357,6 +357,44 @@ export class SealedBidController {
   }
 
   /**
+   * GET /api/vendor/sealed-bid/rounds/:roundId/party-view?party=<name>
+   * Query the ledger AS the given party and return exactly the bids that party
+   * can read on-ledger — real per-party disclosure, not a client-side filter.
+   */
+  async getPartyView(req: Request, res: Response) {
+    try {
+      const { roundId } = req.params;
+      const party = (req.query.party as string)?.trim();
+      if (!party) {
+        res.status(400).json({
+          success: false,
+          error: "party query parameter is required",
+        });
+        return;
+      }
+
+      const view = await this.sealedBidService.partyView(roundId, party);
+      res.status(200).json({
+        success: true,
+        data: view
+          ? { supported: true, ...view }
+          : { supported: false, party },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error(
+        `SealedBid: getPartyView failed for ${req.params.roundId}`,
+        error,
+      );
+      res.status(error.message?.includes("not found") ? 404 : 400).json({
+        success: false,
+        error: error.message || "Failed to get party view",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
    * GET /api/vendor/sealed-bid/rounds
    * List all sealed-bid rounds.
    */

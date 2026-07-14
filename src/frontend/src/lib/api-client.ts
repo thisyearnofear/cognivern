@@ -765,6 +765,17 @@ class ApiClient {
     return this.fetch(`/api/vendor/sealed-bid/rounds/${encodeURIComponent(roundId)}`);
   }
 
+  // Query the ledger AS a party — returns exactly the bids that party can read
+  // on-ledger (real Canton disclosure, not a client-side filter).
+  async getSealedBidPartyView(
+    roundId: string,
+    party: string,
+  ): Promise<ApiResponse<SealedBidPartyView>> {
+    return this.fetch(
+      `/api/vendor/sealed-bid/rounds/${encodeURIComponent(roundId)}/party-view?party=${encodeURIComponent(party)}`,
+    );
+  }
+
   async createSealedBidRound(params: {
     description: string;
     serviceCategory: string;
@@ -852,6 +863,18 @@ export interface SealedBid {
   status: "pending" | "selected" | "rejected";
   submittedAt: string;
   index: number;
+}
+export interface PartyVisibleBid {
+  bidder: string;
+  amountUsd: number;
+  proposalHash: string;
+  index: number;
+}
+export interface SealedBidPartyView {
+  supported: boolean;
+  party: string;
+  partyId?: string;
+  visibleBids?: PartyVisibleBid[];
 }
 export interface SealedBidRound {
   roundId: string;

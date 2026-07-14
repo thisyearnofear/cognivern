@@ -27,6 +27,26 @@ export interface SealedBidRound {
   backend?: BackendName;
 }
 
+// A bid as returned by the ledger when queried AS a specific party — the
+// amount is present because that party is authorized to see it (signatory of
+// its own bid, or observer/manager of all). Competitors' bids simply do not
+// appear in the query result at all — this is Canton's disclosure model, not a
+// UI filter.
+export interface PartyVisibleBid {
+  bidder: string;
+  amountUsd: number;
+  proposalHash: string;
+  index: number;
+}
+
+// The result of querying the ledger acting as `party`: exactly the bid
+// contracts that party can read on-ledger for this round.
+export interface PartyView {
+  party: string; // the requested name (e.g. "Alice")
+  partyId: string; // resolved Daml party id
+  visibleBids: PartyVisibleBid[];
+}
+
 export interface CreateRoundRequest {
   description: string;
   serviceCategory: string;

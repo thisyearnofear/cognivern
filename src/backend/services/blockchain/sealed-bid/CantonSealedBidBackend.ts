@@ -7,6 +7,7 @@ import type {
   BackendName,
   BidRecord,
   CreateRoundRequest,
+  PartyView,
   RevealRequest,
   SealedBidRound,
   SubmitBidRequest,
@@ -428,6 +429,32 @@ export class CantonSealedBidBackend implements SealedBidBackend {
         return this.toSealedBidRound(state, bids);
       }),
     );
+  }
+
+  // Query the ledger ACTING AS `party` and return exactly the Bid contracts
+  // that party can read on-ledger for this round. This is real per-party
+  // disclosure: when `party` is a bidder, Canton returns only that bidder's own
+  // Bid (they are its signatory); when `party` is the manager, Canton returns
+  // every bid (the manager is observer on all). A competitor's bid is never in
+  // the result set — there is nothing filtered client-side. The amount is
+  // present because the returning party is authorized to read it.
+  async queryBidsAsParty(roundId: string, party: string): Promise<PartyView> {
+    await this.ready;
+    const state = this.rounds.get(roundId);
+    if (!state) throw new Error(`Round ${roundId} not found`);
+    const partyId = await this.parties.resolve(party);
+    const all = await this.client.query<BidPayload>(partyId, [
+      this.templates.bid,
+    ]);
+    const visibleBids = all
+      .filter((b) => b.payload.roundId === state.roundId)
+      .map((b, i) => ({
+        bidder: b.payload.bidder,
+        amountUsd: parseFloat(b.payload.amountUsd),
+        proposalHash: b.payload.proposalHash,
+        index: i,
+      }));
+    return { party, partyId, visibleBids };
   }
 
   // ── helpers ─────────────────────────────────────────────────────────────

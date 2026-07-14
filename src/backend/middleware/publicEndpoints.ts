@@ -80,6 +80,7 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   // The controller manages round state and bid encryption internally.
   "/vendor/sealed-bid/rounds",
   "/vendor/sealed-bid/rounds/:roundId",
+  "/vendor/sealed-bid/rounds/:roundId/party-view",
   "/vendor/sealed-bid/rounds/:roundId/bid",
   "/vendor/sealed-bid/rounds/:roundId/close",
   "/vendor/sealed-bid/rounds/:roundId/reveal",

@@ -2,6 +2,7 @@ import type {
   BackendName,
   BidRecord,
   CreateRoundRequest,
+  PartyView,
   RevealRequest,
   SealedBidRound,
   SubmitBidRequest,
@@ -19,4 +20,10 @@ export interface SealedBidBackend {
   revealWinner(roundId: string, request: RevealRequest): Promise<SealedBidRound>;
   getRound(roundId: string): Promise<SealedBidRound | null>;
   listRounds(): Promise<SealedBidRound[]>;
+
+  // Optional — query the ledger AS `party`, returning exactly the bids that
+  // party can read on-ledger for this round. Only backends with real per-party
+  // disclosure implement this (Canton). It is the anti-theater endpoint: the
+  // party-view UI shows genuine ledger truth, not a client-side dim.
+  queryBidsAsParty?(roundId: string, party: string): Promise<PartyView>;
 }

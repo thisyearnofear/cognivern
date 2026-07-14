@@ -10,6 +10,7 @@ import type {
   BackendName,
   BidRecord,
   CreateRoundRequest,
+  PartyView,
   RevealRequest,
   SealedBidRound,
   SubmitBidRequest,
@@ -94,6 +95,14 @@ export class SealedBidService {
     } catch {
       return null;
     }
+  }
+
+  // Real per-party ledger view — returns null for backends without on-ledger
+  // per-party disclosure (e.g. the in-memory FHE backend).
+  async partyView(roundId: string, party: string): Promise<PartyView | null> {
+    const backend = await this.resolveBackend(roundId);
+    if (!backend.queryBidsAsParty) return null;
+    return backend.queryBidsAsParty(roundId, party);
   }
 
   async listRounds(): Promise<SealedBidRound[]> {
