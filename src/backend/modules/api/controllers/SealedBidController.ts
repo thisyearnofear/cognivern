@@ -378,9 +378,27 @@ export class SealedBidController {
         backend: r.backend,
       }));
 
+      // Curated demo state: when CANTON_FEATURED_ROUNDS is set, the default
+      // list shows only those rounds, in the listed order — keeping the live
+      // product clean instead of surfacing every test/scratch round that ever
+      // hit the ledger. Non-featured rounds still exist and stay reachable by
+      // direct id; pass ?all=true to bypass the filter (admin/debug).
+      const featured = (process.env.CANTON_FEATURED_ROUNDS ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const showAll = req.query.all === "true";
+      let data = summary;
+      if (featured.length && !showAll) {
+        const byId = new Map(summary.map((s) => [s.roundId, s]));
+        data = featured
+          .map((id) => byId.get(id))
+          .filter((s): s is (typeof summary)[number] => Boolean(s));
+      }
+
       res.status(200).json({
         success: true,
-        data: summary,
+        data,
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
