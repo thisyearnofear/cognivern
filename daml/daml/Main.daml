@@ -64,26 +64,6 @@ template SealedBidAuction
           proposalHash
           submittedAt = now
 
-    -- Manager onboards a new eligible bidder into a live auction. Because
-    -- eligibleBidders is immutable and the manager is the sole signatory, the
-    -- only way to expand the allow-list is to archive and re-create the auction
-    -- with the party appended. Existing Bid contracts are unaffected — they are
-    -- independent contracts keyed by roundId, not children of this auction, so
-    -- they survive the re-creation. The new bidder becomes an observer of the
-    -- auction (and any future AuctionResult) but gains no visibility into bids
-    -- already submitted — those name only the manager as observer. This is what
-    -- enables real institutional onboarding: a counterparty vetted after a round
-    -- opens can still be admitted without disturbing the sealed bids already in.
-    choice AddEligibleBidder : ContractId SealedBidAuction
-      with
-        newBidder : Party
-      controller manager
-      do
-        assertMsg "bidder already eligible" (newBidder `notElem` eligibleBidders)
-        assertMsg "manager cannot be a bidder" (newBidder /= manager)
-        create this with
-          eligibleBidders = eligibleBidders ++ [newBidder]
-
     -- Manager closes the auction and reveals the winner atomically.
     -- Losing bids are archived without ever being disclosed to the winner
     -- or the other bidders. The winning amount is disclosed to the winner

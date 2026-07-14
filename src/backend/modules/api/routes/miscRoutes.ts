@@ -77,11 +77,6 @@ export function createMiscRoutes(
     sealedBidWriteAuth,
     (req, res) => sealedBidController.revealWinner(req, res),
   );
-  router.post(
-    "/vendor/sealed-bid/rounds/:roundId/eligible-bidders",
-    sealedBidWriteAuth,
-    (req, res) => sealedBidController.addEligibleBidder(req, res),
-  );
   router.get("/vendor/sealed-bid/rounds/:roundId", (req, res) =>
     sealedBidController.getRound(req, res),
   );

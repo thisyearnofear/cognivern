@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   Trophy,
   Clock,
-  UserPlus,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,8 +53,6 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   const [selectionMethod, setSelectionMethod] = useState<
     "lowest-bid" | "highest-bid"
   >("lowest-bid");
-  const [newBidderName, setNewBidderName] = useState("");
-  const [addingBidder, setAddingBidder] = useState(false);
 
   const workspaceMode = useAuthStore((s) => s.workspaceMode);
   const isAuthed = useAuthStore((s) => s.isConnected);
@@ -95,27 +92,6 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
       toast.error(err instanceof Error ? err.message : "Bid failed");
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function handleAddBidder(e: React.FormEvent) {
-    e.preventDefault();
-    const name = newBidderName.trim();
-    if (!name) return;
-    setAddingBidder(true);
-    try {
-      const res = await apiClient.addSealedBidEligibleBidder({
-        roundId,
-        newBidder: name,
-      });
-      if (!res.success) throw new Error(res.error || "Failed to admit bidder");
-      toast.success(`${name} admitted to the round`);
-      setNewBidderName("");
-      await refresh();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to admit bidder");
-    } finally {
-      setAddingBidder(false);
     }
   }
 
@@ -306,42 +282,6 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
                   ? `Submit as ${shortAddress(walletAddress)}`
                   : "Sign in to bid"
                 : `Submit as ${bidder}`}
-            </Button>
-          </div>
-        </form>
-      )}
-
-      {round.status === "open" && round.backend === "canton" && (
-        <form
-          onSubmit={handleAddBidder}
-          className="rounded-xl border bg-card p-4 space-y-3"
-        >
-          <h3 className="text-sm font-semibold flex items-center gap-2">
-            <UserPlus className="h-4 w-4" /> Admit eligible bidder
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            Onboard a counterparty into this live round. The manager expands the
-            auction&apos;s on-ledger allow-list — sealed bids already submitted
-            stay untouched, and the new party can only bid going forward.
-          </p>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Input
-              placeholder="Party name (e.g. Dana)"
-              value={newBidderName}
-              onChange={(e) => setNewBidderName(e.target.value)}
-              className="max-w-xs"
-            />
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={addingBidder || !newBidderName.trim()}
-            >
-              {addingBidder ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <UserPlus className="h-4 w-4 mr-2" />
-              )}
-              Admit to round
             </Button>
           </div>
         </form>

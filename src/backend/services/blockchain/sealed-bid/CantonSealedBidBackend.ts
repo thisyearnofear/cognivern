@@ -307,60 +307,6 @@ export class CantonSealedBidBackend implements SealedBidBackend {
     return bid;
   }
 
-  // Admit a new eligible bidder into an open round. The Daml AddEligibleBidder
-  // choice is consuming — it archives the current auction contract and creates
-  // a replacement with the party appended — so we rotate the tracked auctionCid
-  // to the recreated contract. Existing Bid contracts are keyed by roundId, not
-  // parented to the auction, so they survive the rotation untouched.
-  async addEligibleBidder(
-    roundId: string,
-    newBidder: string,
-    caller: string,
-  ): Promise<SealedBidRound> {
-    await this.ready;
-    const state = this.rounds.get(roundId);
-    if (!state) throw new Error(`Round ${roundId} not found`);
-    if (state.status !== "open")
-      throw new Error("Eligible bidders can only be added while the round is open");
-    if (!state.auctionCid)
-      throw new Error("Round has no active auction contract");
-
-    const callerParty = await this.parties.resolve(caller);
-    const managerParty = await this.parties.resolve(state.managerName);
-    if (callerParty !== managerParty)
-      throw new Error("Only the round manager can add eligible bidders");
-
-    const newBidderParty = await this.parties.resolve(newBidder);
-    if (state.eligibleBidders.includes(newBidderParty))
-      throw new Error(`${newBidder} is already an eligible bidder for this round`);
-
-    const exResult = await this.client.exercise<string>(
-      managerParty,
-      this.templates.auction,
-      state.auctionCid,
-      "AddEligibleBidder",
-      { newBidder: newBidderParty },
-    );
-
-    const recreated = exResult.events.find(
-      (e) =>
-        e.created && e.created.templateId.endsWith(":Main:SealedBidAuction"),
-    )?.created;
-    if (!recreated)
-      throw new Error(
-        "AddEligibleBidder did not emit a replacement SealedBidAuction event",
-      );
-
-    state.auctionCid = recreated.contractId;
-    state.eligibleBidders = [...state.eligibleBidders, newBidderParty];
-    logger.info(
-      `SealedBid[canton]: admitted ${newBidder} to round ${roundId} — auctionCid rotated to ${recreated.contractId.slice(0, 12)}…`,
-    );
-
-    const bids = await this.queryBidsAsManager(state);
-    return this.toSealedBidRound(state, bids);
-  }
-
   async closeRound(roundId: string, caller: string): Promise<SealedBidRound> {
     await this.ready;
     const state = this.rounds.get(roundId);

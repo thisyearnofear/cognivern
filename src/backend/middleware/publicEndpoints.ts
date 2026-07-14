@@ -83,7 +83,6 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   "/vendor/sealed-bid/rounds/:roundId/bid",
   "/vendor/sealed-bid/rounds/:roundId/close",
   "/vendor/sealed-bid/rounds/:roundId/reveal",
-  "/vendor/sealed-bid/rounds/:roundId/eligible-bidders",
   // Speech transcription is used by the frontend without workspace auth.
   "/speech/transcribe",
   "/webhooks/chain-gpt-news",

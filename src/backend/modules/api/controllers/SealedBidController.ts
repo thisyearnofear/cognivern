@@ -70,11 +70,6 @@ const revealSchema = z.object({
   specificBidder: z.string().optional(),
 });
 
-const addBidderSchema = z.object({
-  newBidder: z.string().min(1),
-  manager: z.string().optional(),
-});
-
 export class SealedBidController {
   private sealedBidService: SealedBidService;
   private auditLog: AuditLogService;
@@ -254,65 +249,6 @@ export class SealedBidController {
       res.status(error.message?.includes("not found") ? 404 : 400).json({
         success: false,
         error: error.message || "Failed to close round",
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }
-
-  /**
-   * POST /api/vendor/sealed-bid/rounds/:roundId/eligible-bidders
-   * Admit a new eligible bidder into an open round (Canton backend only).
-   * This is the on-ledger institutional-onboarding path: the manager expands
-   * the auction's allow-list so a counterparty vetted after the round opened
-   * can submit sealed bids, without disturbing bids already in.
-   */
-  async addEligibleBidder(req: Request, res: Response) {
-    try {
-      const { roundId } = req.params;
-
-      const parse = addBidderSchema.safeParse(req.body);
-      if (!parse.success) {
-        res.status(400).json({
-          success: false,
-          error: "Invalid add-bidder payload",
-          details: parse.error.format(),
-        });
-        return;
-      }
-
-      const { newBidder } = parse.data;
-      const caller =
-        req.body.manager ||
-        (await this.sealedBidService.getRound(roundId))?.manager ||
-        (req.headers["x-api-key"] as string) ||
-        "demo-manager";
-
-      const round = await this.sealedBidService.addEligibleBidder(
-        roundId,
-        newBidder,
-        caller,
-      );
-
-      fireAndForgetAudit(this.auditLog, "sealed_bid.bidder_admitted", {
-        roundId,
-        newBidder,
-        admittedBy: caller,
-        backend: round.backend,
-      });
-
-      res.status(200).json({
-        success: true,
-        data: round,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error: any) {
-      logger.error(
-        `SealedBid: addEligibleBidder failed for ${req.params.roundId}`,
-        error,
-      );
-      res.status(error.message?.includes("not found") ? 404 : 400).json({
-        success: false,
-        error: error.message || "Failed to add eligible bidder",
         timestamp: new Date().toISOString(),
       });
     }
