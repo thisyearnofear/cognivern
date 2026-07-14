@@ -220,7 +220,10 @@ export function SealedBidPage() {
                 <div className="min-w-0">
                   <h3 className="font-semibold truncate">{r.description}</h3>
                   <p className="text-xs text-muted-foreground">
-                    {r.serviceCategory} · {r.bidCount}/{r.maxBids} bids
+                    {r.serviceCategory}
+                    {r.status === "revealed"
+                      ? " · bids sealed & archived"
+                      : ` · ${r.bidCount}/${r.maxBids} bids`}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

@@ -29,6 +29,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { mutate } from "swr";
 import { BackendBadge } from "./backend-badge";
 import { PartyView } from "./party-view";
+import { RevealComparison } from "./reveal-comparison";
 
 const DEMO_BIDDERS = ["Alice", "Bob", "Charlie"] as const;
 
@@ -188,19 +189,31 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
       </div>
 
       {round.winner && round.winningBid !== null && (
-        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-4 flex items-center gap-3">
-          <Trophy className="h-5 w-5 text-emerald-600 shrink-0" />
-          <div className="min-w-0">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          className="rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-4 flex items-start gap-3"
+        >
+          <Trophy className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+          <div className="min-w-0 space-y-1">
             <div className="text-sm font-semibold">
               Winner: {round.winner.split("::")[0]} at $
               {round.winningBid.toLocaleString()}
             </div>
-            <div className="text-xs text-muted-foreground truncate">
-              Losing bid amounts remain undisclosed on-ledger — Canton archived
-              them without ever revealing them to competitors.
+            <div className="text-xs text-muted-foreground">
+              Revealed in{" "}
+              <span className="font-medium text-foreground">
+                one atomic transaction
+              </span>{" "}
+              — the winner was published and every losing bid archived in the
+              same ledger event. No losing amount was ever disclosed, to
+              competitors <span className="italic">or</span> the auctioneer. See
+              it in the party view below: even as Auctioneer, the ledger now
+              returns 0 bid contracts.
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {round.status === "open" && (
@@ -347,6 +360,8 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
       )}
 
       <PartyView round={round} />
+
+      {round.backend === "canton" && <RevealComparison />}
     </motion.div>
   );
 }
