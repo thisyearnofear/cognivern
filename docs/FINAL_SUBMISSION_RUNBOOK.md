@@ -18,7 +18,7 @@ From the team / mentors:
 
 ## 2. Upload and configure the DAR
 
-1. Build the DAR from `daml/` using Daml SDK 3.5.2 (Daml-LF 2.1), which is what the HackCanton S2 shared DevNet node expects:
+1. The deployed package is `51789b5390cb…` (LF 2.1). The repo's `daml.yaml` pins Daml SDK **3.4.11** (LF 2.1), which the HackCanton S2 DevNet node accepts. To rebuild from `daml/` (note: a rebuild produces a **new** package id — re-upload and refresh `CANTON_TEMPLATE_*` if you do):
    ```bash
    cd daml && daml build
    ```

@@ -35,7 +35,7 @@ The response contains an `access_token`. Use it as a `Bearer` token on all JSON 
 
 | Step | Status | Value |
 |---|---|---|
-| DAR uploaded | Done | `daml/.daml/dist/daml-0.0.1.dar` (Daml SDK 3.5.2, LF 2.1) |
+| DAR uploaded | Done | package `51789b5390cb…` (LF 2.1, built with a Daml 3.x SDK). Note: the repo's `daml.yaml` now pins the installed **3.4.11** (LF 2.1); a rebuild produces a new package id. |
 | Package ID | `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454` |
 | Parties allocated | Done | `auctioner-cognivern::122003aa...`, `alice-cognivern::122003aa...`, `bob-cognivern::122003aa...`, `charlie-cognivern::122003aa...` |
 | Wallet onboarding | Done | Daml user ID: `e6c5f9fc-98ed-491f-b228-00cf931a05cc` |

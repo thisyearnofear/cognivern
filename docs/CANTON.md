@@ -40,7 +40,7 @@ Every lifecycle step (create, submit, close, reveal) also fires `AuditLogService
 | Path | Purpose |
 |---|---|
 | `daml/daml/Main.daml` | Daml model — `SealedBidAuction`, `Bid`, `AuctionResult` templates |
-| `daml/daml.yaml` | SDK version (**3.5.x**) + project name |
+| `daml/daml.yaml` | SDK version (**3.4.11**, LF 2.1) + project name |
 | `daml/start-sandbox.sh` | pm2 launcher on Hetzner |
 | `src/backend/canton/CantonLedgerClient.ts` | JWT + `/v1/{query,create,exercise,parties}` client |
 | `src/backend/canton/CantonPartyRegistry.ts` | cognivern name → Daml party mapping |

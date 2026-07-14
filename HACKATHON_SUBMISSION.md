@@ -6,7 +6,7 @@
 **Repository:** [github.com/thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)
 **Live product:** [cognivern.vercel.app/sealed-bid](https://cognivern.vercel.app/sealed-bid) · API: `cognivern.thisyearnofear.com`
 **Pitch deck:** `docs/pitch-deck.pptx` (PDF export before final submit if required)  
-**3-min demo video:** `docs/demo-video.mp4` (≈3:00, recorded against the live product; re-record on DevNet after the cutover)
+**3-min demo video:** `docs/demo-video.mp4` (≈3:00 — **re-record against the current DevNet-backed, curated live product before final submit**)
 **Backend on-ledger:** Canton Daml backend. **Final eligibility gate:** the submitted build must point at a Canton Network DevNet participant, not the localhost/Hetzner sandbox. Record the DevNet evidence below before submitting.
 
 ## Final eligibility gate — DevNet proof pack
@@ -18,7 +18,7 @@ HackCanton final judging requires the Daml contracts to be deployed and exercise
 | Public repository | `https://github.com/thisyearnofear/cognivern` |
 | Live product URL | `https://cognivern.vercel.app/sealed-bid` |
 | Presentation deck | `docs/pitch-deck.pptx` (export to PDF if the submission form requires a PDF) |
-| 3-minute video pitch/demo | `docs/demo-video.mp4` (≈3:00; recorded against the DevNet-backed live product with the production backend on HackCanton S2 DevNet) |
+| 3-minute video pitch/demo | `docs/demo-video.mp4` — ⏳ re-record against the current curated DevNet live product before final submit |
 | Canton DevNet participant / validator | Shared HackCanton S2 DevNet node: `https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`. Auth: NODERS Keycloak password grant (client `web-app-ui-hackcanton-01-devnet`). Source: `docs/HACKCANTON_DEVNET_MATERIALS.md`. |
 | Uploaded DAR package ID | `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454` |
 | Deployed template IDs | `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:SealedBidAuction`, `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:Bid`, `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:AuctionResult` |
@@ -28,13 +28,14 @@ HackCanton final judging requires the Daml contracts to be deployed and exercise
 
 The Hetzner `cognivern-canton` sandbox remains useful for local demos and regression checks, but it does **not** satisfy the final deployment rule by itself.
 
-### Pre-submission checklist (completed)
+### Pre-submission checklist
 
-1. **DAR uploaded and parties allocated** on the HackCanton S2 shared DevNet node. Source: `docs/HACKCANTON_DEVNET_MATERIALS.md`.
-2. **Production backend cut over to DevNet** via Hetzner deploy (`pnpm deploy:hetzner`). Environment uses JSON Ledger API v2, `#daml:Main:*` template refs, and the static `CANTON_DEMO_PARTY_IDS` map.
-3. **Fresh DevNet evidence captured:** `pnpm canton:proof` passed against `https://cognivern.thisyearnofear.com` → `.artifacts/canton-devnet-proof-latest.json`.
-4. **3-minute demo video re-recorded** against the DevNet-backed live product: `docs/demo-video.mp4`.
-5. **Export the deck to PDF** if the submission form requires a PDF rather than a PPTX.
+1. ✅ **DAR uploaded and parties allocated** on the HackCanton S2 shared DevNet node. Source: `docs/HACKCANTON_DEVNET_MATERIALS.md`.
+2. ✅ **Production backend cut over to DevNet** via Hetzner deploy (`pnpm deploy:hetzner`). Environment uses JSON Ledger API v2, `#daml:Main:*` template refs, and the static `CANTON_DEMO_PARTY_IDS` map.
+3. ✅ **Fresh DevNet evidence captured:** `pnpm canton:proof` passed against `https://cognivern.thisyearnofear.com` → `.artifacts/canton-devnet-proof-latest.json`.
+4. ✅ **Live product curated** — the sealed-bid list shows a clean featured set on DevNet, not the internal test rounds (`CANTON_FEATURED_ROUNDS`).
+5. ⏳ **Re-record the 3-minute demo video** against the current DevNet-backed, curated live product. The featured rounds landed 2026-07-14, so any earlier recording shows a stale state: `docs/demo-video.mp4`.
+6. ⏳ **Export the deck to PDF** if the submission form requires a PDF rather than a PPTX.
 
 ---
 
@@ -42,9 +43,9 @@ The Hetzner `cognivern-canton` sandbox remains useful for local demos and regres
 
 - **What we built.** Confidential RFP / OTC vendor-selection auctions on Canton/Daml with structural sub-transaction privacy and atomic multi-party settlement.
 - **Headline technical claim.** Sealed-bid reveal cannot be finished cleanly under FHE alone — it requires a threshold-decryption ceremony that the round's economic participants rarely exist in real institutional contexts. Canton rewrites the settlement layer so the privacy property comes from the disclosure model, not cryptography, and the reveal completes in **one atomic transaction**.
-- **Daml model.** `SealedBidAuction` · `Bid` (signatory bidder, observer manager — no other bidder has visibility) · `AuctionResult` (publicly visible to bidders post-reveal). 79 lines of Daml.
+- **Daml model.** `SealedBidAuction` · `Bid` (signatory bidder, observer manager — no other bidder has visibility) · `AuctionResult` (publicly visible to bidders post-reveal). Three templates, ~110 lines of Daml.
 - **Pluggable backend.** Live production code runs the same sealed-bid protocol over either Canton (works end-to-end) or Fhenix CoFHE (works for sealed-bid but cannot reveal — see "Why this is hard" below). Same REST surface, swapped at `createRound(backend: "canton" | "fhe")`.
-- **End-to-end on a live ledger.** Three demo rounds pre-seeded at sandbox boot — one open, one closed awaiting reveal, one already revealed — so the demo video lands on a real privacy state, not an empty screen. Bid-amount visibility is *literally* enforced by the Daml JSON API's response payload per role.
+- **End-to-end on a live ledger.** The live product opens on a curated set of real DevNet rounds (open, awaiting-reveal, revealed) so the demo lands on a real privacy state, not an empty screen. Bid-amount visibility is *literally* enforced by the Daml JSON API's response payload per role.
 - **Thirty-one+ Vitest tests plus twenty-four TestSprite CLI backend tests run against the live API**, with direct ledger assertions per party role keeping the privacy guarantee machine-verifiable.
 
 ---
@@ -92,7 +93,7 @@ The obvious enterprise objection: *"This demo runs on HackCanton DevNet — what
 | --- | --- |
 | **Today** | Live on HackCanton S2 DevNet with automated lifecycle proof (`pnpm canton:proof` → `.artifacts/canton-devnet-proof-latest.json`). |
 | **Private participant** | The backend is participant-agnostic — point `CANTON_JSON_API_URL` at your own Canton node or a hosted validator. Same Daml package, same REST surface. |
-| **Mainnet-ready model** | 79-line Daml package compiles with **SDK 3.5.x**; `SettlementLeg` upgrade path for atomic value transfer (CBTC / cETH bounty lanes). |
+| **Mainnet-ready model** | Compact three-template Daml package (Daml 3.x · LF 2.1); `SettlementLeg` upgrade path for atomic value transfer (CBTC / cETH bounty lanes). |
 
 ---
 
@@ -146,7 +147,7 @@ POST /api/vendor/sealed-bid/rounds/:id/reveal → CloseAndReveal choice (atomic 
 
 ## The Daml model
 
-Three templates, 79 lines, no external dependencies beyond the Daml SDK. Each one carries the privacy property:
+Three templates, ~110 lines, no external dependencies beyond the Daml SDK. Each one carries the privacy property:
 
 ```daml
 template SealedBidAuction with
@@ -184,19 +185,20 @@ Why this matters to a Hackathon judge:
 - The `CloseAndReveal` choice combines selection + consumption + result emission in a single event. Losing amounts are visible to no one outside the transaction — they're consumed in flight by the manager's exercise of `Consume` on each loser.
 - The `SelectionMethod` sum type (`LowestBid | HighestBid | SpecificBidder with bidder : Party`) keeps the auctioneer rules on-ledger instead of in application code, so what the application thinks happened is what the ledger says happened.
 
-The full file is `daml/daml/Main.daml` in this repo. It also seeds three demo rounds at sandbox boot — see "Live demo state" below.
+The full file is `daml/daml/Main.daml` in this repo (templates only; the setup/test scripts live in a separate `daml/scripts` package, so the DAR uploaded to the participant carries no `daml-script`). The local sandbox seeds three demo rounds via `Setup.daml` — see "What runs live today" below.
 
 ---
 
 ## What runs live today
 
-The deployed Cognivern backend has Canton registered as a real sealed-bid backend:
+The deployed Cognivern backend has Canton registered as a real sealed-bid backend, bound to the **HackCanton S2 DevNet participant** (verified in the live startup log):
 
 ```
-[ SealedBid ] backend registered — canton (Canton: JSON Ledger client bound to http://127.0.0.1:7575)
-SealedBid[canton]: hydrated 2 open + 1 revealed round(s) from ledger
-SealedBid[canton]: bid submitted by Alice (bidCid=…1234)
-SealedBid[canton]: round revealed — winner Bob at $24,500, lost bids archived
+SealedBid: backend registered — canton
+Canton: JSON Ledger client bound to https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443 (v2, OIDC web-app-ui-hackcanton-01-devnet)
+SealedBid[canton]: hydrated open + revealed round(s) from ledger
+SealedBid[canton]: bid submitted by alice-cognivern (bidCid=…)
+SealedBid[canton]: round revealed — winner bob-cognivern, lost bids archived
 SealedBid: bid_submitted event logged to CRE ledger (evidence hash 0x…)
 ```
 
@@ -206,13 +208,25 @@ The UI at [`/sealed-bid`](https://cognivern.vercel.app/sealed-bid) makes the pri
 
 > *"Losing bid amounts remain undisclosed on-ledger — Canton archived them without ever revealing them to competitors."*
 
-Three lifecycle states are pre-seeded at sandbox boot (one live round on each ticket — open, awaiting-reveal, already-revealed — so the demo video lands on something real):
+The live product opens on a **curated set of real DevNet rounds** (not the empty state, and not the internal test scaffolding — a featured allowlist keeps the demo clean) so a visitor lands on something real:
 
-| roundId | Description | Status on first page load |
-| --- | --- | --- |
-| `demo-round-open` | Q1 penetration testing engagement | Open, 2 of 5 bids in — visitor submits the third |
-| `demo-round-closed` | Q3 cloud-hosting RFP — 3-year commit | Three bids in, awaiting reveal — visitor drives the atomic reveal |
-| `demo-round-revealed` | Legal counsel retainer 2026 | Already revealed — Bob won at $185k, losing amounts archived |
+| Description | State on load |
+| --- | --- |
+| Security audit RFP — Q3 2026 | Open, 2 of 5 bids in — visitor submits the third, then drives close + atomic reveal |
+| Legal counsel retainer 2026 | Already revealed — `bob-cognivern` won, losing amounts archived and never disclosed |
+| Cloud infrastructure — 3-year commit | Open, 1 bid in |
+
+*(The local `daml start` sandbox additionally seeds `demo-round-open/closed/revealed` via `daml/scripts/daml/Setup.daml` for offline development.)*
+
+### Real institutional identity — production mode
+
+The persona view above (Alice / Bob / Charlie) is the **sandbox**. In **production mode** a bid is bound to a real, verified institution — not a picklist:
+
+- The institution signs in with its wallet (SIWE → JWT). Sealed-bid writes then **require** that verified identity — an unauthenticated production bid is rejected (401).
+- The backend maps each verified wallet to its own pre-allocated **Canton party** (`meridian-cognivern`, `sterling-cognivern`, `atlas-cognivern`, … — allocated on DevNet by the HackCanton operator, with `CanActAs` granted to our participant user). The bid settles on-ledger under *that* party, so the disclosure model applies per real counterparty.
+- This is a **custodial** model, and it says so: cognivern operates the participant and acts on each vetted institution's behalf after SIWE verification — the way a regulated operator runs a node for its clients. Not self-custody, but a real per-institution on-ledger identity rather than a shared demo persona.
+
+Verified live on DevNet: a SIWE-verified wallet's bid returns as its institution party (`meridian-cognivern`), not the request-body value, and the same call without a signed-in wallet returns `401`.
 
 ---
 
@@ -274,8 +288,8 @@ All 31 vitest pass on every iter; `pnpm typecheck` clean; `npx hardhat compile` 
                  │           (Daml JSON API client)        │
                  │                    │                    │
                  │                    ▼                    │
-                 │      Daml JSON API :7575 (HTTPS)        │
-                 │      Canton participant node            │
+                 │   Daml JSON Ledger API v2 (HTTPS)       │
+                 │   HackCanton S2 DevNet participant       │
                  │   SealedBidAuction / Bid / AuctionResult│
                  ├─────────────────────────────────────────┤
                  │ AuditLogService.logEvent                │
@@ -285,7 +299,7 @@ All 31 vitest pass on every iter; `pnpm typecheck` clean; `npx hardhat compile` 
                  └─────────────────────────────────────────┘
 ```
 
-Canton deployment: pm2 process `cognivern-canton` on the Hetzner production VM, binding `127.0.0.1:7575` for the Daml JSON API (admin/party-allocation endpoints JWT-authed via HS256). It's not publicly routable — verifying the on-ledger state from outside the host either (a) runs `daml start` locally and exercises `tests/integration/canton-sealed-bid.test.ts` against the local sandbox, or (b) reads the [Canton runbook](docs/CANTON.md) and the public repo. DevNet migration is a config swap, not a code change — `CANTON_JSON_API_URL` redirected to a DevNet participant node.
+Canton deployment: the production backend on the Hetzner VM binds the **HackCanton S2 DevNet participant** (`CANTON_JSON_API_URL=https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`, JSON Ledger API v2, NODERS Keycloak OIDC). Contracts are created and exercised **on-ledger on DevNet** — confirmed in the startup log and by `pnpm canton:proof`. A local `daml start` sandbox (`pm2 cognivern-canton`, `127.0.0.1:7575`) remains for offline development and `tests/integration/canton-sealed-bid.test.ts`, but it is **not** what the live product points at. Because the backend is participant-agnostic, moving to a private participant or a different validator is a config swap (`CANTON_JSON_API_URL`), not a code change.
 
 ---
 
@@ -343,7 +357,7 @@ cd src/frontend && pnpm install && pnpm dev
 # disclosure model in action.
 ```
 
-The default backend is `canton`. To switch to the FHE path for comparison, change the dropdown on the create-round form — the same HTTP surface routes to either backend, and the FHE reveal call will produce the documented `"not wired"` 400. Both round types render the same privacy-enforcing UI.
+The default backend is `canton`. To switch to the FHE path for comparison, change the dropdown on the create-round form — the same HTTP surface routes to either backend. The FHE reveal uses the Option B manager-decrypt-and-publish flow (supply a `decryptionProof`); Canton reveals atomically with no decryption. Both round types render the same privacy-enforcing UI.
 
 ---
 
@@ -355,7 +369,7 @@ The default backend is `canton`. To switch to the FHE path for comparison, chang
 | Public API | `https://cognivern.thisyearnofear.com` |
 | Repository | Public — see top of `README.md` |
 | Pitch deck | `docs/pitch-deck.pptx` (export to PDF before final submit if required) |
-| 3-minute demo video | `docs/demo-video.mp4` (≈3:00; re-record on DevNet after cutover) |
+| 3-minute demo video | `docs/demo-video.mp4` (≈3:00; ⏳ re-record against the curated DevNet live product before submit) |
 | TestSprite backend dashboards | 24 tests · 30 MCP frontend tests · `./LOOP.md` for the iteration log |
 
 ---
