@@ -172,8 +172,10 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
           <div>
             <h1 className="text-xl font-bold">{round.description}</h1>
             <p className="text-xs text-muted-foreground">
-              {round.serviceCategory} · deadline{" "}
-              {new Date(round.deadline).toLocaleString()}
+              {round.serviceCategory}
+              {round.deadline && !isNaN(new Date(round.deadline).getTime())
+                ? ` · deadline ${new Date(round.deadline).toLocaleString()}`
+                : ""}
             </p>
           </div>
         </div>
