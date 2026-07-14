@@ -18,6 +18,7 @@ import {
 } from "@backend/services/blockchain/SealedBidService.js";
 import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
 import { Logger } from "@backend/shared/logging/Logger.js";
+import { sharedWalletPartyRegistry } from "@backend/canton/WalletPartyRegistry.js";
 
 const logger = new Logger("SealedBidController");
 
@@ -39,11 +40,13 @@ function fireAndForgetAudit(
     .catch((err) => logger.warn(`Audit anchor failed for ${eventType}`, err));
 }
 
-// In production workspace mode the acting identity is the wallet verified by
-// sealedBidWriteAuth (req.walletAddress) — persona values in the request body
-// are ignored, closing the impersonation gap on the real ledger. In sandbox
-// mode this returns undefined and the demo persona / existing fallbacks apply.
-function productionIdentity(req: Request): string | undefined {
+// The SIWE-verified wallet (set by sealedBidWriteAuth) in production workspace
+// mode, else undefined. In production a bid is submitted as the Canton pool
+// party this wallet maps to (see sharedWalletPartyRegistry) rather than a
+// client-supplied persona — closing the impersonation gap on the real ledger.
+// The auctioneer/manager role is NOT tied to the wallet; it stays the platform
+// auctioneer.
+function productionWallet(req: Request): string | undefined {
   const mode = (req.headers["x-workspace-mode"] as string)?.toLowerCase();
   return mode === "production" ? req.walletAddress : undefined;
 }
@@ -103,7 +106,6 @@ export class SealedBidController {
       const { description, serviceCategory, deadline, maxBids, backend } =
         parse.data;
       const manager =
-        productionIdentity(req) ||
         req.body.manager ||
         (backend === "canton"
           ? process.env.CANTON_DEMO_MANAGER_NAME || "Auctioneer"
@@ -164,7 +166,13 @@ export class SealedBidController {
       }
 
       const { amountUsd, proposalDetails } = parse.data;
-      const bidder = productionIdentity(req) || parse.data.bidder;
+      // In production the bidder is the Canton pool party assigned to the
+      // SIWE-verified wallet (custodial mapping); in sandbox it's the demo
+      // persona from the request body.
+      const wallet = productionWallet(req);
+      const bidder = wallet
+        ? await sharedWalletPartyRegistry.assign(wallet)
+        : parse.data.bidder;
       const request: SubmitBidRequest = { bidder, amountUsd, proposalDetails };
       const bid = await this.sealedBidService.submitBid(roundId, request);
 
@@ -214,7 +222,6 @@ export class SealedBidController {
     try {
       const { roundId } = req.params;
       const caller =
-        productionIdentity(req) ||
         req.body.manager ||
         (await this.sealedBidService.getRound(roundId))?.manager ||
         (req.headers["x-api-key"] as string) ||
@@ -275,7 +282,6 @@ export class SealedBidController {
 
       const { newBidder } = parse.data;
       const caller =
-        productionIdentity(req) ||
         req.body.manager ||
         (await this.sealedBidService.getRound(roundId))?.manager ||
         (req.headers["x-api-key"] as string) ||
