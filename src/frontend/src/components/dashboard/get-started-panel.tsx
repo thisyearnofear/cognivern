@@ -10,17 +10,14 @@ import { QuickCheck } from "@/components/dashboard/quick-check";
 
 /**
  * "Pick up where you left off" panel for the dashboard. Shown when a
- * signed-in user in production mode has no agents AND no policies —
- * i.e. their real workspace is genuinely empty and the populated charts
- * below would all be zeros.
+ * signed-in user in production mode has no audit logs yet — i.e. they
+ * haven't run any governance checks. With backend seeding, every new
+ * workspace starts with 1 agent + 1 policy, so this panel gives them
+ * an immediate "aha moment" via the QuickCheck card.
  *
- * The Quick Check card gives testers an immediate "aha moment" — they
- * can fire a sample governance evaluation right from the dashboard
- * without navigating anywhere. The two CTAs below it are for setting up
- * real resources.
- *
- * Once the user has either an agent or a policy this panel disappears
- * — the dashboard's metric cards make sense again.
+ * The two CTAs below let them customize or add to the seeded defaults.
+ * Once they run a governance check, audit logs appear and this panel
+ * disappears — the dashboard's metric cards take over.
  */
 export function GetStartedPanel() {
   const router = useRouter();
@@ -41,11 +38,12 @@ export function GetStartedPanel() {
             <ShieldCheck className="h-7 w-7 text-primary" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight">
-            Your real workspace is ready
+            Your workspace is ready — try it now
           </h2>
           <p className="text-sm text-muted-foreground mt-2">
-            Nothing here yet — no agents, no policies, no runs. Try a governance
-            check below, then set up your workspace.
+            We&apos;ve set you up with a default agent and a moderate spend policy.
+            Fire a governance check below to see how it works, then customize
+            your setup.
           </p>
         </div>
 
@@ -72,12 +70,12 @@ export function GetStartedPanel() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold flex items-center gap-1">
-                  Create an agent
+                  Add another agent
                   <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  A governed identity for a trading bot, yield script, or any
-                  system that spends money on your behalf.
+                  Add a governed identity for a trading bot, yield script, or
+                  any system that spends money on your behalf.
                 </p>
               </div>
             </div>
@@ -94,12 +92,12 @@ export function GetStartedPanel() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold flex items-center gap-1">
-                  Create a policy
+                  Customize your policy
                   <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Spend limits, vendor allowlists, approval thresholds. Pick a
-                  template or build your own.
+                  Adjust spend limits, add vendor allowlists, set approval
+                  thresholds. Your default policy is a starting point.
                 </p>
               </div>
             </div>
