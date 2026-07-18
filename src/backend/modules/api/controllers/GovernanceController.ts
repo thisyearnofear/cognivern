@@ -11,6 +11,7 @@ import {
 } from "@backend/services/governance/PolicyService.js";
 import { LEGACY_DEFAULT_WORKSPACE_ID } from "@backend/middleware/publicEndpoints.js";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
+import { sharedZeroGProofService } from "@backend/services/blockchain/ZeroGProofService.js";
 
 const logger = new Logger("GovernanceController");
 import { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
@@ -70,6 +71,18 @@ export class GovernanceController {
         timestamp: new Date().toISOString(),
       });
     }
+  }
+
+  /**
+   * Get 0G Chain proof integration info.
+   * Public endpoint — lets anyone verify where governance proofs are recorded.
+   */
+  async getZeroGProofInfo(req: Request, res: Response): Promise<void> {
+    res.json({
+      success: true,
+      data: sharedZeroGProofService.getInfo(),
+      timestamp: new Date().toISOString(),
+    });
   }
 
   /**
@@ -266,6 +279,30 @@ export class GovernanceController {
         },
       );
 
+      // Post governance decision proof to 0G Chain (fire-and-forget).
+      // If 0G is unreachable, governance still works — the proof is an
+      // additional verifiability layer, not a dependency.
+      let zeroGProof: Record<string, unknown> | undefined;
+      if (sharedZeroGProofService.isEnabled()) {
+        const proof = await sharedZeroGProofService.recordDecision({
+          workspaceId: workspaceId!,
+          agentId,
+          actionType: normalizedAction.type,
+          amount: typeof action.amount === "number" ? action.amount : 0,
+          currency: action.currency || "USDC",
+          decision: decisionLabel,
+          timestamp: Math.floor(Date.now() / 1000),
+        });
+        if (proof) {
+          zeroGProof = {
+            txHash: proof.txHash,
+            blockNumber: proof.blockNumber,
+            explorerUrl: proof.explorerUrl,
+            network: proof.network,
+          };
+        }
+      }
+
       const responseData: Record<string, unknown> = {
         allowed,
         decision: decisionLabel,
@@ -279,6 +316,9 @@ export class GovernanceController {
       };
       if (suspicionResult) {
         responseData.suspicion = suspicionResult;
+      }
+      if (zeroGProof) {
+        responseData.zeroGProof = zeroGProof;
       }
 
       res.json({

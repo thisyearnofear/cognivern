@@ -159,6 +159,37 @@
           "200": { "description": "Audit logs returned" }
         }
       }
+    },
+    "/governance/proof-info": {
+      "get": {
+        "operationId": "cognivern_governance_proof_info",
+        "summary": "Get 0G Chain proof integration info (contract address, explorer URL, network)",
+        "responses": {
+          "200": {
+            "description": "0G proof integration info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": { "type": "boolean" },
+                        "contractAddress": { "type": "string" },
+                        "explorerUrl": { "type": "string" },
+                        "network": { "type": "string" },
+                        "chainId": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

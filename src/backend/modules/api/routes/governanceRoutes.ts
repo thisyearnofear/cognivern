@@ -50,6 +50,9 @@ export function createGovernanceRoutes(
   router.get("/governance/health", (req, res) =>
     governanceController.getHealth(req, res),
   );
+  router.get("/governance/proof-info", (req, res) =>
+    governanceController.getZeroGProofInfo(req, res),
+  );
   router.post("/governance/evaluate", (req, res) =>
     governanceController.evaluateAction(req, res),
   );

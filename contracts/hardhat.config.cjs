@@ -77,6 +77,19 @@ module.exports = {
             : [],
       chainId: 46630,
     },
+    zeroGTestnet: {
+      // 0G Galileo Testnet — chainId 16602
+      // Faucet: https://faucet.0g.ai
+      // Explorer: https://chainscan-galileo.0g.ai
+      // Used for GovernanceProof contract — on-chain governance decision proofs
+      url: process.env.ZEROG_RPC_URL || "https://evmrpc-testnet.0g.ai",
+      accounts: process.env.ZEROG_PRIVATE_KEY
+        ? [process.env.ZEROG_PRIVATE_KEY]
+        : process.env.OWS_BOOTSTRAP_PRIVATE_KEY
+          ? [process.env.OWS_BOOTSTRAP_PRIVATE_KEY]
+          : [],
+      chainId: 16602,
+    },
   },
   paths: {
     sources: path.join(root, "contracts", "src"),
