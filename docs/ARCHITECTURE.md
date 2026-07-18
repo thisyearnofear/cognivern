@@ -89,7 +89,7 @@ Implementation files:
 | **Fhenix** | Confidential policy evaluation via FHE. Budgets, limits, and spend counters remain encrypted. | Live (Arbitrum Sepolia) |
 | **X Layer** | Governed execution dispatch path. Approved spends dispatched here for execution and public anchoring. | Testnet (chainId 1952) |
 | **Filecoin** | Durable evidence anchoring for audit logs via `FilecoinStorageService` → FVM. | Live (Calibration testnet) |
-| **0G** | Primary agent-economy rail. On-chain governance + vault, evidence anchoring, agent-to-agent settlement, Agentic ID (ERC-7857). | Newton testnet; mainnet Wave 3 |
+| **0G** | On-chain governance decision proofs via `GovernanceProof` contract (ERC-style event log). Every evaluate call posts a `GovernanceDecision` event to 0G Chain. Optional future: Agentic ID (ERC-7857) for agent tokenization with governance policy traveling on transfer. | Galileo Testnet (chain ID 16602); mainnet Wave 3 |
 | **ChainGPT** | Web3-specialized LLM for smart contract auditing and governance queries. | Live |
 | **Ledger DMK** | Hardware signing for high-value transactions. | Live |
 | **MongoDB** | Persistent agent memory & run ledger. | Optional, gated by `MONGODB_URI` |
@@ -103,7 +103,7 @@ Fhenix (CoFHE) lets Cognivern evaluate policy on **encrypted state** — budgets
 | Layer | Chain | Role |
 |-------|-------|------|
 | Execution & Public Policy Anchoring | X Layer Testnet (1952) | `GovernanceContract`, `AIGovernanceStorage` |
-| Live Audit Anchoring | 0G Newton Testnet | Real-time governance decision anchoring |
+| Live Audit Anchoring | 0G Galileo Testnet (16602) | `GovernanceProof` contract — `GovernanceDecision` events, verifiable on ChainScan |
 | Audit Archive | Filecoin Calibration | Long-term immutable audit storage |
 | **Confidential Policy State** | **Fhenix (Arbitrum Sepolia)** | Encrypted budgets, encrypted spend counters, FHE-evaluated policy checks |
 
@@ -337,7 +337,7 @@ All file-backed stores use a common `BaseStore` abstract class. To swap to Redis
 | API Keys | scrypt hashed, workspace-scoped permissions |
 | Rate Limiting | 3 layers (global, workspace, per-endpoint) |
 | Encryption | Fhenix FHE on-chain evaluation (confidential policies) |
-| Audit | Immutable records on 0G + Filecoin (dual-anchor) |
+| Audit | Immutable records on 0G Chain (Galileo Testnet) + Filecoin (dual-anchor) |
 | Contract Audit | ChainGPT runtime scan on recipient contracts |
 
 ## Current Limitations

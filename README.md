@@ -13,6 +13,7 @@ Control plane for agent operations: governed wallet spend + AI spend governance 
 - **Confidential vendor selection** — Sealed-bid RFP auctions on Canton / Daml with structural sub-transaction privacy and atomic multi-party reveal — see [Canton docs](./docs/CANTON.md).
 - **Hardware signing** — Ledger DMK for high-value transactions with physical confirmation.
 - **Audit trail** — Every decision persisted with evidence, Filecoin + 0G dual-anchor.
+- **On-chain governance proofs** — Every governance evaluation (approved/denied/held) recorded as an on-chain event on 0G Chain (Galileo Testnet). Verifiable by anyone on ChainScan without trusting the server. Contract: [`0x723e444ee6D7da19fADe372f85DA06dD849bF1E0`](https://chainscan-galileo.0g.ai/address/0x723e444ee6D7da19fADe372f85DA06dD849bF1E0)
 - **AI safety monitoring** — Multi-dimensional suspicion scoring — see [report](./scripts/hackathon/HACKATHON_REPORT.md).
 
 ## Quick Start
