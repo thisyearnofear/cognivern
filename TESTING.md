@@ -60,6 +60,24 @@ curl https://cognivern.thisyearnofear.com/api/governance/evaluate \
 Go to **Audit** in the sidebar. Every governance check you ran in
 step 2 is logged here with the decision, reasoning, and timestamp.
 
+## 6. Verify on-chain proofs on 0G Chain (30 seconds)
+
+Every governance decision is permanently recorded as an on-chain event
+on 0G Galileo Testnet. You can verify any decision independently:
+
+1. Check the integration status:
+   ```
+   curl https://cognivern.thisyearnofear.com/api/governance/proof-info
+   ```
+2. Open the **contract on ChainScan**:
+   https://chainscan-galileo.0g.ai/address/0x723e444ee6D7da19fADe372f85DA06dD849bF1E0
+3. Click the **Events** tab — every `GovernanceDecision` event is a
+   governance evaluation recorded on-chain, with the agent ID, action
+   type, amount, decision, and timestamp.
+
+This makes every governance decision tamper-proof and verifiable by
+anyone — without trusting Cognivern's server.
+
 ---
 
 ## What you're looking at
@@ -72,6 +90,8 @@ policies with optional FHE encryption so amounts stay confidential.
 - **Agents** are governed identities with budgets and trade history
 - **Governance Check** evaluates a proposed action against active policies
 - **Audit** logs every decision with cryptographic evidence
+- **0G Chain** records every governance decision as an on-chain event for
+  tamper-proof verifiability (0G Galileo Testnet)
 - **Sealed Bids** run confidential vendor RFPs on Canton (live on Devnet)
 - **OS Terminal** is a natural-language interface to the entire platform
 
@@ -79,4 +99,5 @@ policies with optional FHE encryption so amounts stay confidential.
 
 - API spec: https://cognivern.thisyearnofear.com/api/docs/openapi.json
 - Health check: https://cognivern.thisyearnofear.com/api/health
+- 0G proof info: https://cognivern.thisyearnofear.com/api/governance/proof-info
 - Source code: https://github.com/thisyearnofear/cognivern

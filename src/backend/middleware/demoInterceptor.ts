@@ -3,6 +3,7 @@ import { jwtVerify } from "jose";
 import { getWorkspaceTier } from "./workspaceMiddleware.js";
 import { DemoDataService } from "@backend/services/DemoDataService.js";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
+import { sharedZeroGProofService } from "@backend/services/blockchain/ZeroGProofService.js";
 
 function resolveJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -151,6 +152,27 @@ function serveDemoData(
             ? `Held for review by ${approvalPolicy?.name || "approval policy"}: amount $${amount} above auto-approval threshold ($${HOLD_THRESHOLD})`
             : `Approved — passed ${policyChecks.length} policy check(s)`;
 
+      const timestamp = new Date().toISOString();
+      const auditLogId = `log-${agentId}-${timestamp}`;
+
+      // Fire-and-forget: post governance decision proof to 0G Chain.
+      // The proof is posted asynchronously — the response doesn't wait for it.
+      if (sharedZeroGProofService.isEnabled()) {
+        sharedZeroGProofService.recordDecision({
+          workspaceId: "demo",
+          agentId,
+          actionType: action.type || "unknown",
+          amount: amount,
+          currency: action.currency || "USDC",
+          decision,
+          timestamp: Math.floor(Date.now() / 1000),
+        }).then((proof) => {
+          if (proof) {
+            console.log(`[0GProof] Demo decision recorded — tx: ${proof.txHash}`);
+          }
+        }).catch(() => {});
+      }
+
       return {
         success: true,
         data: {
@@ -160,8 +182,8 @@ function serveDemoData(
           decision,
           reasoning,
           policyChecks,
-          auditLogId: `log-${agentId}-${new Date().toISOString()}`,
-          timestamp: new Date().toISOString(),
+          auditLogId,
+          timestamp,
         },
       };
     }
@@ -441,6 +463,24 @@ async function serveLiveData(
         action,
         policyId,
       });
+
+      // Fire-and-forget: post governance decision proof to 0G Chain.
+      if (sharedZeroGProofService.isEnabled()) {
+        sharedZeroGProofService.recordDecision({
+          workspaceId,
+          agentId,
+          actionType: action.type || "unknown",
+          amount: action.amount || 0,
+          currency: action.currency || "USDC",
+          decision: evaluation.decision || (evaluation.allowed ? "approved" : "denied"),
+          timestamp: Math.floor(Date.now() / 1000),
+        }).then((proof) => {
+          if (proof) {
+            console.log(`[0GProof] Workspace decision recorded — tx: ${proof.txHash}`);
+          }
+        }).catch(() => {});
+      }
+
       return { success: true, data: evaluation };
     }
 
