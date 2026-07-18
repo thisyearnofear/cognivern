@@ -89,7 +89,7 @@ Implementation files:
 | **Fhenix** | Confidential policy evaluation via FHE. Budgets, limits, and spend counters remain encrypted. | Live (Arbitrum Sepolia) |
 | **X Layer** | Governed execution dispatch path. Approved spends dispatched here for execution and public anchoring. | Testnet (chainId 1952) |
 | **Filecoin** | Durable evidence anchoring for audit logs via `FilecoinStorageService` → FVM. | Live (Calibration testnet) |
-| **0G** | On-chain governance decision proofs via `GovernanceProof` contract (ERC-style event log). Every evaluate call posts a `GovernanceDecision` event to 0G Chain. Optional future: Agentic ID (ERC-7857) for agent tokenization with governance policy traveling on transfer. | Galileo Testnet (chain ID 16602); mainnet Wave 3 |
+| **0G** | On-chain governance decision proofs via `GovernanceProof` contract. Every evaluate call posts a `GovernanceDecision` event to 0G Chain — verifiable on ChainScan without trusting the server. | Galileo Testnet (chain ID 16602) |
 | **ChainGPT** | Web3-specialized LLM for smart contract auditing and governance queries. | Live |
 | **Ledger DMK** | Hardware signing for high-value transactions. | Live |
 | **MongoDB** | Persistent agent memory & run ledger. | Optional, gated by `MONGODB_URI` |

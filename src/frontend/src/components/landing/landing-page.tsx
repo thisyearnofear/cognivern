@@ -805,8 +805,8 @@ export function LandingPage() {
                 color: "text-emerald-400",
                 bg: "bg-emerald-500/10",
                 border: "border-emerald-500/20",
-                desc: "Real-time governance decision anchoring to 0G decentralized storage for immediate availability.",
-                status: "Newton testnet",
+                desc: "Every governance decision recorded as an on-chain event on 0G Chain — permanently verifiable on ChainScan.",
+                status: "Galileo testnet",
               },
               {
                 network: "Fhenix / FHE",

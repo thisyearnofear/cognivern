@@ -8,7 +8,7 @@ import { CircuitBreaker } from "@backend/shared/utils/circuitBreaker.js";
  * Uses the 0G Storage HTTP API (no native SDK dependency required) to upload
  * JSON-encoded audit records and return a root hash as a permanent CID-equivalent.
  *
- * Network: 0G Newton Testnet
+ * Network: 0G Galileo Testnet
  * RPC:     https://evmrpc-testnet.0g.ai
  * Indexer: https://indexer-storage-testnet-standard.0g.ai
  */
@@ -67,7 +67,7 @@ export class ZeroGStorageService implements IZeroGStorage {
   constructor() {
     this.enabled = !!process.env.ZEROG_PRIVATE_KEY;
     if (this.enabled) {
-      logger.info("ZeroGStorageService initialized (0G Newton Testnet)");
+      logger.info("ZeroGStorageService initialized (0G Galileo Testnet)");
     } else {
       logger.info(
         "ZeroGStorageService: ZEROG_PRIVATE_KEY not set — running in log-only mode",
