@@ -7,7 +7,7 @@ const JSON_API_URL =
   "https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443";
 const DAR_PATH =
   process.env.CANTON_DAR_PATH ??
-  path.resolve(import.meta.dirname, "../../daml/.daml/dist/daml-0.0.1.dar");
+  path.resolve(import.meta.dirname, "../../daml/.daml/dist/daml-0.0.2.dar");
 
 const DEMO_PARTIES = ["Auctioneer", "Alice", "Bob", "Charlie"];
 
@@ -61,6 +61,7 @@ async function main() {
     auction: `#${packageName}:Main:SealedBidAuction`,
     bid: `#${packageName}:Main:Bid`,
     result: `#${packageName}:Main:AuctionResult`,
+    deposit: `#${packageName}:Main:PaymentDeposit`,
   };
 
   console.log("Allocating demo parties...");

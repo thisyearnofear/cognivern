@@ -1,0 +1,114 @@
+module SettlementProof where
+
+import Main
+import Daml.Script
+import DA.Time (hours, addRelTime)
+import DA.Foldable (toList)
+
+-- ── settlement-proof: atomic value settlement inside CloseAndReveal ─────────
+-- This script proves the full settlement flow:
+--   1. Auctioneer escrows a PaymentDeposit (USDC 74,500)
+--   2. Creates a SealedBidAuction binding the deposit as settlementAsset
+--   3. Three bidders submit sealed bids
+--   4. CloseAndReveal atomically:
+--      a. selects the winner (lowest bid)
+--      b. transfers the deposit to the winner
+--      c. archives losing bids
+--      d. emits AuctionResult with the settled asset reference
+--   5. Verify: the new deposit is owned by the winner
+--   6. Verify: the AuctionResult carries the settled asset CID
+--   7. Verify: losing bids are archived
+--
+-- All of (4) happens in a single Daml transaction — all-or-nothing.
+settlementProof : Script ()
+settlementProof = script do
+  auctioneer <- allocatePartyByHint (PartyIdHint "Auctioneer")
+  alice      <- allocatePartyByHint (PartyIdHint "Alice")
+  bob        <- allocatePartyByHint (PartyIdHint "Bob")
+  charlie    <- allocatePartyByHint (PartyIdHint "Charlie")
+
+  now <- getTime
+  let deadline = addRelTime now (hours 24)
+  let bidders = [alice, bob, charlie]
+
+  -- (1) Escrow the payment deposit
+  depositCid <- submit auctioneer do
+    createCmd PaymentDeposit with
+      issuer   = auctioneer
+      owner    = auctioneer
+      amount   = 74500.00
+      assetTag = "USDC"
+
+  -- (2) Create the auction with settlement
+  auctionCid <- submit auctioneer do
+    createCmd SealedBidAuction with
+      manager         = auctioneer
+      eligibleBidders = bidders
+      roundId         = "settlement-proof-round"
+      description     = "Settlement proof round"
+      serviceCategory = "private-otc-rfp"
+      deadline
+      maxBids         = 5
+      settlementAsset = Some depositCid
+
+  -- (3) Submit three sealed bids
+  bidA <- submit alice do
+    exerciseCmd auctionCid SubmitBid with
+      bidder       = alice
+      amountUsd    = 91000.00
+      proposalHash = "0xproof-a"
+  bidB <- submit bob do
+    exerciseCmd auctionCid SubmitBid with
+      bidder       = bob
+      amountUsd    = 74500.00
+      proposalHash = "0xproof-b"
+  bidC <- submit charlie do
+    exerciseCmd auctionCid SubmitBid with
+      bidder       = charlie
+      amountUsd    = 108000.00
+      proposalHash = "0xproof-c"
+
+  -- (4) Close and reveal atomically — this transfers the deposit to the winner
+  resultCid <- submit auctioneer do
+    exerciseCmd auctionCid CloseAndReveal with
+      bidCids         = [bidA, bidB, bidC]
+      selectionMethod = LowestBid
+
+  -- (5) Query the AuctionResult to verify winner and settled asset
+  results <- query @AuctionResult auctioneer
+  let resultOpt = fmap snd (find (\(cid, _) -> cid == resultCid) results)
+  case resultOpt of
+    Some result -> do
+      assertMsg "winner should be Bob (lowest bid)"
+        (result.winner == bob)
+      assertMsg "winning amount should be 74500"
+        (result.winningAmount == 74500.00)
+      -- (6) Verify the settled asset reference is present
+      settledCid <- case result.settledAsset of
+        Some cid -> pure cid
+        None -> abort "FAIL: settledAsset should be Some — value was not settled"
+      -- (7) Verify the deposit was transferred to the winner (Bob)
+      -- The issuer (auctioneer) is the signatory, so we query as the issuer
+      -- to see all deposits. The owner field tells us who currently holds it.
+      deposits <- query @PaymentDeposit auctioneer
+      let depositOpt = fmap snd (find (\(cid, _) -> cid == settledCid) deposits)
+      case depositOpt of
+        Some deposit -> do
+          assertMsg "FAIL: deposit owner should be Bob after settlement"
+            (deposit.owner == bob)
+          assertMsg "deposit amount should be preserved"
+            (deposit.amount == 74500.00)
+          assertMsg "deposit asset tag should be preserved"
+            (deposit.assetTag == "USDC")
+        None -> abort "FAIL: settled deposit not found"
+      -- (8) Verify the old deposit is archived (consumed by Transfer)
+      let oldDepositStillActive = any (\(cid, _) -> cid == depositCid) deposits
+      assertMsg "FAIL: old deposit should be archived after Transfer"
+        (not oldDepositStillActive)
+      -- (9) Verify losing bids are archived — Alice should see 0 active bids
+      aliceBids <- query @Bid alice
+      assertMsg "FAIL: Alice should see 0 active bids after reveal"
+        (length aliceBids == 0)
+      -- Success
+      pure ()
+    None -> abort "FAIL: AuctionResult not found"

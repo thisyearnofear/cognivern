@@ -11,6 +11,52 @@ data SelectionMethod
   | SpecificBidder with bidder : Party
   deriving (Eq, Show)
 
+-- ── PaymentDeposit ──────────────────────────────────────────────────────────
+-- A tokenized deposit escrowed by the auctioneer before the auction opens.
+-- When CloseAndReveal selects a winner, the deposit is atomically transferred
+-- to the winner in the SAME ledger transaction that archives losing bids and
+-- emits the AuctionResult. This is the value-settlement primitive — the
+-- payment moves on-ledger, not just an informational record.
+--
+-- The issuer (auctioneer) is the sole signatory — this is a bearer-instrument
+-- pattern where the issuer authorizes all transfers. The `owner` field tracks
+-- who currently holds the deposit and is an observer (can read it) but does
+-- not need to authorize the transfer. This lets CloseAndReveal (controlled by
+-- the manager/issuer) atomically transfer the deposit to the winner without
+-- requiring the winner to co-sign the reveal transaction.
+--
+-- In production this template would be replaced by (or wrap) a real tokenized
+-- deposit: CBTC (BitSafe), cETH (OnRails Finance), or a tokenized cash
+-- instrument. The atomicity pattern is asset-agnostic — swap the template,
+-- keep the Transfer choice shape, and CloseAndReveal settles value the same way.
+template PaymentDeposit
+  with
+    issuer    : Party           -- the auctioneer / buyer who funds the escrow
+    owner     : Party           -- the current holder (changes on transfer)
+    amount    : Decimal          -- the escrowed payment amount
+    assetTag  : Text             -- "USDC" | "CBTC" | "cETH" — documents the lane
+  where
+    signatory issuer
+    observer owner
+    ensure amount > 0.0
+
+    -- Atomic transfer: the issuer releases the deposit to a new recipient.
+    -- Called by CloseAndReveal when a winner is selected — the old deposit
+    -- is consumed and a new one with `owner = recipient` is created, all
+    -- inside the same transaction. Outside observers see one event: the
+    -- deposit changed hands. No intermediate state where both parties could
+    -- claim it.
+    choice Transfer : ContractId PaymentDeposit
+      with
+        recipient : Party
+      controller issuer
+      do
+        create PaymentDeposit with
+          issuer   = this.issuer
+          owner    = recipient
+          amount   = this.amount
+          assetTag = this.assetTag
+
 -- ── SealedBidAuction ────────────────────────────────────────────────────────
 -- Public auction announcement. Signatory is the manager (auctioneer).
 -- Observers are the eligible bidders — they can see the auction metadata
@@ -30,6 +76,7 @@ template SealedBidAuction
     serviceCategory : Text
     deadline        : Time
     maxBids         : Int
+    settlementAsset : Optional (ContractId PaymentDeposit)
   where
     signatory manager
     observer eligibleBidders
@@ -70,6 +117,13 @@ template SealedBidAuction
     -- (via AuctionResult) inside the same atomic transaction that archives
     -- the auction — so from the outside there is no intermediate state
     -- where amounts leak.
+    --
+    -- VALUE SETTLEMENT: when `settlementAsset` is present, the escrowed
+    -- PaymentDeposit is transferred to the winner IN THE SAME TRANSACTION.
+    -- Daml's all-or-nothing semantics guarantee: either the deposit transfers
+    -- AND losing bids are archived AND the result is emitted, or none of it
+    -- happens. No intermediate state where the winner is known but payment
+    -- hasn't moved, or where bids are archived but the deposit is stuck.
     choice CloseAndReveal : ContractId AuctionResult
       with
         bidCids         : [ContractId Bid]
@@ -95,11 +149,20 @@ template SealedBidAuction
               [] -> abort "specific bidder submitted no bid"
               (w :: _) -> pure (fst w, snd w, map fst others)
         now <- getTime
-        -- Consume the winning bid — superseded by the AuctionResult.
+        -- (1) Settle value: transfer the escrowed deposit to the winner.
+        -- This is the atomic value-settlement step — the payment moves
+        -- on-ledger in the same transaction as the reveal.
+        settledCid <- case settlementAsset of
+          Some depositCid -> do
+            newDepositCid <- exercise depositCid Transfer with recipient = winner.bidder
+            pure (Some newDepositCid)
+          None -> pure None
+        -- (2) Consume the winning bid — superseded by the AuctionResult.
         exercise winnerCid Consume
-        -- Consume every losing bid — this happens invisibly to non-observers,
+        -- (3) Consume every losing bid — this happens invisibly to non-observers,
         -- so losing amounts are never disclosed to the winner or competitors.
         mapA_ (`exercise` Consume) losers
+        -- (4) Emit the public result with the settled-asset reference.
         create AuctionResult with
           manager
           eligibleBidders
@@ -109,6 +172,7 @@ template SealedBidAuction
           winningProposal = winner.proposalHash
           description
           serviceCategory
+          settledAsset    = settledCid
           revealedAt      = now
 
 -- ── Bid ─────────────────────────────────────────────────────────────────────
@@ -144,6 +208,11 @@ template Bid
 -- The public reveal — winner + winning amount + proposal hash are disclosed
 -- to all eligible bidders. Losing bidders never see the winning amount they
 -- competed against — they only learn who won.
+--
+-- `settledAsset` carries the on-ledger contract ID of the PaymentDeposit that
+-- was transferred to the winner, when value settlement was enabled. `None`
+-- means the round was informational-only (no escrowed deposit). This lets
+-- auditors and the winner verify on-ledger that payment actually moved.
 template AuctionResult
   with
     manager         : Party
@@ -154,6 +223,7 @@ template AuctionResult
     winningProposal : Text
     description     : Text
     serviceCategory : Text
+    settledAsset    : Optional (ContractId PaymentDeposit)
     revealedAt      : Time
   where
     signatory manager

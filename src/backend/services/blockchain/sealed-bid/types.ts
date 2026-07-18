@@ -25,6 +25,14 @@ export interface SealedBidRound {
   winningProposalHash: string | null;
   createdAt: string;
   backend?: BackendName;
+  // Value settlement — present when the round included an escrowed
+  // PaymentDeposit that was atomically transferred to the winner inside
+  // CloseAndReveal. `settledAssetCid` is the on-ledger contract ID of the
+  // new deposit (owned by the winner). `settlementAmount` and
+  // `settlementAssetTag` document what was transferred.
+  settledAssetCid?: string | null;
+  settlementAmount?: number | null;
+  settlementAssetTag?: string | null;
 }
 
 // A bid as returned by the ledger when queried AS a specific party — the
@@ -53,6 +61,13 @@ export interface CreateRoundRequest {
   deadline: string;
   maxBids: number;
   backend?: BackendName;
+  // Optional value settlement: when provided, the backend escrows a
+  // PaymentDeposit for this amount before creating the auction, and
+  // CloseAndReveal atomically transfers it to the winner. The assetTag
+  // documents which token lane ("USDC", "CBTC", "cETH") — defaults to
+  // "USDC" for the demo.
+  settlementAmount?: number;
+  settlementAssetTag?: string;
 }
 
 export interface SubmitBidRequest {

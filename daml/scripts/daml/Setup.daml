@@ -44,6 +44,7 @@ setup = script do
       serviceCategory = "security"
       deadline
       maxBids         = 5
+      settlementAsset = None
   _ <- submit alice do
     exerciseCmd round1 SubmitBid with
       bidder       = alice
@@ -66,6 +67,7 @@ setup = script do
       serviceCategory = "infrastructure"
       deadline
       maxBids         = 5
+      settlementAsset = None
   bid2a <- submit alice do
     exerciseCmd round2 SubmitBid with
       bidder       = alice
@@ -83,8 +85,17 @@ setup = script do
       proposalHash = "0x2c"
   let _ = (bid2a, bid2b, bid2c)  -- silence unused-binding warnings
 
-  -- ── Round 3 ── REVEALED. Winner + winning amount publicly known,
-  -- losing amounts archived and never disclosed.
+  -- ── Round 3 ── REVEALED with VALUE SETTLEMENT. Winner + winning amount
+  -- publicly known, losing amounts archived and never disclosed. A
+  -- PaymentDeposit was escrowed before the auction and atomically transferred
+  -- to the winner inside CloseAndReveal — value settled on-ledger, not just
+  -- an informational record.
+  deposit3 <- submit auctioneer do
+    createCmd PaymentDeposit with
+      issuer   = auctioneer
+      owner    = auctioneer
+      amount   = 185000.00
+      assetTag = "USDC"
   round3 <- submit auctioneer do
     createCmd SealedBidAuction with
       manager         = auctioneer
@@ -94,6 +105,7 @@ setup = script do
       serviceCategory = "legal"
       deadline
       maxBids         = 5
+      settlementAsset = Some deposit3
   bid3a <- submit alice do
     exerciseCmd round3 SubmitBid with
       bidder       = alice

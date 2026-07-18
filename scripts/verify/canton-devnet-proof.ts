@@ -31,6 +31,9 @@ type SealedBidRound = {
   winningProposalHash: string | null;
   createdAt: string;
   backend?: "fhe" | "canton";
+  settledAssetCid?: string | null;
+  settlementAmount?: number | null;
+  settlementAssetTag?: string | null;
 };
 
 type BidResponse = Omit<SealedBid, "encryptedAmount"> & {
@@ -121,6 +124,12 @@ async function main() {
     serviceCategory: "private-otc-rfp",
     deadline,
     maxBids: 5,
+    // Value settlement: escrow a PaymentDeposit that will be atomically
+    // transferred to the winner inside CloseAndReveal. This proves the
+    // "what settles atomically?" requirement — value moves on-ledger,
+    // not just an informational record.
+    settlementAmount: 74500,
+    settlementAssetTag: "USDC",
   });
 
   if (created.backend !== "canton") {
@@ -198,6 +207,12 @@ async function main() {
         winningBid: finalRound.winningBid,
         winningProposalHash: finalRound.winningProposalHash,
         bidCountVisibleAfterReveal: finalRound.bids.length,
+        // Value settlement evidence — the on-ledger contract ID of the
+        // PaymentDeposit that was atomically transferred to the winner.
+        settledAssetCid: finalRound.settledAssetCid ?? null,
+        settlementAmount: finalRound.settlementAmount ?? null,
+        settlementAssetTag: finalRound.settlementAssetTag ?? null,
+        valueSettledAtomically: !!finalRound.settledAssetCid,
       },
     },
     submissionFieldsToFill: {
@@ -207,6 +222,7 @@ async function main() {
         auction: process.env.CANTON_TEMPLATE_AUCTION || "TODO",
         bid: process.env.CANTON_TEMPLATE_BID || "TODO",
         result: process.env.CANTON_TEMPLATE_RESULT || "TODO",
+        deposit: process.env.CANTON_TEMPLATE_DEPOSIT || "#daml:Main:PaymentDeposit",
       },
     },
   };
@@ -220,10 +236,11 @@ async function main() {
   );
 
   console.log("\nProof flow completed.");
-  console.log(`  roundId : ${created.roundId}`);
-  console.log(`  winner  : ${revealed.winner}`);
-  console.log(`  amount  : ${revealed.winningBid}`);
-  console.log(`  artifact: ${file}`);
+  console.log(`  roundId         : ${created.roundId}`);
+  console.log(`  winner          : ${revealed.winner}`);
+  console.log(`  amount          : ${revealed.winningBid}`);
+  console.log(`  value settled   : ${finalRound.settledAssetCid ? `YES — ${finalRound.settlementAssetTag} ${finalRound.settlementAmount} → ${finalRound.settledAssetCid.slice(0, 16)}…` : "NO"}`);
+  console.log(`  artifact        : ${file}`);
 }
 
 main().catch((err) => {

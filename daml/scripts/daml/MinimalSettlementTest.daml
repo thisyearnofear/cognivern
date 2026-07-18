@@ -1,0 +1,34 @@
+module MinimalSettlementTest where
+
+import Main
+import Daml.Script
+
+-- Minimal test: create a deposit and transfer it
+minimalTest : Script ()
+minimalTest = script do
+  auctioneer <- allocatePartyByHint (PartyIdHint "Auctioneer")
+  bob <- allocatePartyByHint (PartyIdHint "Bob")
+
+  -- Create a deposit owned by auctioneer
+  depositCid <- submit auctioneer do
+    createCmd PaymentDeposit with
+      issuer   = auctioneer
+      owner    = auctioneer
+      amount   = 100.00
+      assetTag = "USDC"
+
+  -- Transfer the deposit to Bob (exercised by auctioneer as issuer)
+  newDepositCid <- submit auctioneer do
+    exerciseCmd depositCid Transfer with
+      recipient = bob
+
+  -- Verify: query deposits as the issuer (auctioneer is signatory)
+  deposits <- query @PaymentDeposit auctioneer
+  let found = any (\(cid, d) -> cid == newDepositCid && d.owner == bob) deposits
+  assertMsg "Bob should be the owner of the transferred deposit" found
+
+  -- Verify old deposit is archived
+  let oldActive = any (\(cid, _) -> cid == depositCid) deposits
+  assertMsg "Old deposit should be archived" (not oldActive)
+
+  pure ()

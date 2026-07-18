@@ -75,6 +75,7 @@ const cantonConfigSchema = z.object({
   CANTON_TEMPLATE_AUCTION: z.string().optional(),
   CANTON_TEMPLATE_BID: z.string().optional(),
   CANTON_TEMPLATE_RESULT: z.string().optional(),
+  CANTON_TEMPLATE_DEPOSIT: z.string().optional(),
 });
 
 // Combined configuration schema

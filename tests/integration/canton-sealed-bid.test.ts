@@ -43,13 +43,22 @@ interface AuctionResultPayload {
   winningProposal: string;
   description: string;
   serviceCategory: string;
+  settledAsset: { tag: "None" } | { tag: "Some", value: { contractId: string } } | null;
   revealedAt: string;
+}
+
+interface PaymentDepositPayload {
+  issuer: string;
+  owner: string;
+  amount: string;
+  assetTag: string;
 }
 
 const TEMPLATES = {
   auction: `${PKG}:Main:SealedBidAuction`,
   bid: `${PKG}:Main:Bid`,
   result: `${PKG}:Main:AuctionResult`,
+  deposit: `${PKG}:Main:PaymentDeposit`,
 };
 
 // Probe at module load so describe.skipIf sees the real value at collection time.
@@ -185,6 +194,81 @@ describe.skipIf(!sandboxUp)("Canton sealed-bid backend (live sandbox)", () => {
     // this assertion fires on the literal we pinned in the submitBid call
     // above — exact value comparison, not just non-empty.
     expect(resultQuery.contracts[0].payload.winningProposal).toBe("0x2b");
+  });
+
+  // ── Value settlement test ──────────────────────────────────────────────────
+  // This test verifies the atomic value-settlement feature: when a round is
+  // created with settlementAmount, the backend escrows a PaymentDeposit, and
+  // CloseAndReveal atomically transfers it to the winner in the same
+  // transaction that archives losing bids and emits the AuctionResult.
+  it("value settlement: CloseAndReveal atomically transfers PaymentDeposit to winner", async () => {
+    const round = await svc.createRound(
+      {
+        description: "Settlement RFP — atomic value transfer",
+        serviceCategory: "private-otc-rfp",
+        deadline: new Date(Date.now() + 24 * 3600e3).toISOString(),
+        maxBids: 5,
+        backend: "canton",
+        settlementAmount: 24500,
+        settlementAssetTag: "USDC",
+      },
+      "Auctioneer",
+    );
+    expect(round.backend).toBe("canton");
+    expect(round.settlementAmount).toBe(24500);
+    expect(round.settlementAssetTag).toBe("USDC");
+
+    await svc.submitBid(round.roundId, {
+      bidder: "Alice",
+      amountUsd: 32000,
+      proposalDetails: "Alice settlement bid",
+    });
+    await svc.submitBid(round.roundId, {
+      bidder: "Bob",
+      amountUsd: 24500,
+      proposalDetails: "Bob settlement bid",
+    });
+    await svc.submitBid(round.roundId, {
+      bidder: "Charlie",
+      amountUsd: 41000,
+      proposalDetails: "Charlie settlement bid",
+    });
+
+    await svc.closeRound(round.roundId, "Auctioneer");
+
+    const revealed = await svc.revealWinner(round.roundId, {
+      selectionMethod: "lowest-bid",
+    });
+    expect(revealed.status).toBe("revealed");
+    expect(revealed.winner).toContain("Bob");
+    expect(revealed.winningBid).toBe(24500);
+
+    // The settled asset CID must be present — value was transferred on-ledger.
+    expect(revealed.settledAssetCid).toBeTruthy();
+
+    // Verify on-ledger: the AuctionResult carries the settled asset reference.
+    const resultQuery = await findRoundOn<AuctionResultPayload>(
+      "Auctioneer",
+      "result",
+      round.roundId,
+    );
+    expect(resultQuery.contracts).toHaveLength(1);
+    const result = resultQuery.contracts[0].payload;
+    expect(result.settledAsset).toBeTruthy();
+    expect(result.settledAsset?.tag).toBe("Some");
+
+    // Verify on-ledger: the PaymentDeposit was transferred to Bob.
+    const settledCid = result.settledAsset!.value.contractId;
+    const depositQuery = await client.query<PaymentDepositPayload>(
+      await parties.resolve("Auctioneer"),
+      [TEMPLATES.deposit],
+    );
+    const settledDeposit = depositQuery.find((d) => d.contractId === settledCid);
+    expect(settledDeposit).toBeTruthy();
+    const bobParty = await parties.resolve("Bob");
+    expect(settledDeposit!.payload.owner).toBe(bobParty);
+    expect(parseFloat(settledDeposit!.payload.amount)).toBe(24500);
+    expect(settledDeposit!.payload.assetTag).toBe("USDC");
   });
 
   // FHE backend assertions live in tests/unit/SealedBidService.test.ts

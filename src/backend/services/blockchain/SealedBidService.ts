@@ -154,6 +154,7 @@ if (cantonClient) {
     auction: process.env.CANTON_TEMPLATE_AUCTION ?? "",
     bid: process.env.CANTON_TEMPLATE_BID ?? "",
     result: process.env.CANTON_TEMPLATE_RESULT ?? "",
+    deposit: process.env.CANTON_TEMPLATE_DEPOSIT ?? "#daml:Main:PaymentDeposit",
   };
   if (!templates.auction || !templates.bid || !templates.result) {
     logger.warn(

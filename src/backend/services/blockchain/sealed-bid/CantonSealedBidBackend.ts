@@ -19,6 +19,7 @@ interface CantonTemplateIds {
   auction: string;
   bid: string;
   result: string;
+  deposit: string;
 }
 
 interface AuctionPayload {
@@ -29,6 +30,14 @@ interface AuctionPayload {
   serviceCategory: string;
   deadline: string;
   maxBids: string;
+  settlementAsset: { tag: "None" } | { tag: "Some", value: { contractId: string } } | null;
+}
+
+interface PaymentDepositPayload {
+  issuer: string;
+  owner: string;
+  amount: string;
+  assetTag: string;
 }
 
 interface BidPayload {
@@ -49,6 +58,7 @@ interface AuctionResultPayload {
   winningProposal: string;
   description: string;
   serviceCategory: string;
+  settledAsset: { tag: "None" } | { tag: "Some", value: { contractId: string } } | null;
   revealedAt: string;
 }
 
@@ -69,6 +79,14 @@ interface CantonRoundState {
   maxBids: number;
   status: "open" | "closed" | "revealed";
   createdAt: string;
+  // Value settlement state — populated when the round was created with a
+  // settlementAmount. The depositCid is the escrowed PaymentDeposit contract
+  // (owned by the manager). After reveal, settledAssetCid is the new deposit
+  // contract owned by the winner.
+  depositCid: string | null;
+  settledAssetCid: string | null;
+  settlementAmount: number | null;
+  settlementAssetTag: string | null;
 }
 
 // The set of bidders eligible to submit into an auction. In production this
@@ -140,6 +158,10 @@ export class CantonSealedBidBackend implements SealedBidBackend {
         maxBids: parseInt(a.payload.maxBids, 10) || 5,
         status: "open",
         createdAt: new Date().toISOString(),
+        depositCid: null,
+        settledAssetCid: null,
+        settlementAmount: null,
+        settlementAssetTag: null,
       });
       hydratedOpen++;
     }
@@ -168,6 +190,11 @@ export class CantonSealedBidBackend implements SealedBidBackend {
           maxBids: 0,
           status: "revealed",
           createdAt: r.payload.revealedAt,
+          depositCid: null,
+          settledAssetCid: r.payload.settledAsset && r.payload.settledAsset.tag === "Some"
+            ? r.payload.settledAsset.value.contractId : null,
+          settlementAmount: null,
+          settlementAssetTag: null,
         });
       }
       hydratedRevealed++;
@@ -202,6 +229,39 @@ export class CantonSealedBidBackend implements SealedBidBackend {
     // itself. This gives the ledger a per-round key we can filter Bids on.
     const roundId = "0x" + crypto.randomBytes(32).toString("hex");
 
+    // Value settlement: if settlementAmount is provided, escrow a
+    // PaymentDeposit on-ledger BEFORE creating the auction. The deposit's
+    // contract ID is passed to the SealedBidAuction so CloseAndReveal can
+    // atomically transfer it to the winner.
+    let depositCid: string | null = null;
+    let settlementAmount: number | null = null;
+    let settlementAssetTag: string | null = null;
+    if (request.settlementAmount && request.settlementAmount > 0) {
+      settlementAmount = request.settlementAmount;
+      settlementAssetTag = request.settlementAssetTag ?? "USDC";
+      const deposit = await this.client.create<PaymentDepositPayload>(
+        managerParty,
+        this.templates.deposit,
+        {
+          issuer: managerParty,
+          owner: managerParty,
+          amount: settlementAmount.toFixed(2),
+          assetTag: settlementAssetTag,
+        },
+      );
+      depositCid = deposit.contractId;
+      logger.info(
+        `SealedBid[canton]: escrowed PaymentDeposit ${depositCid.slice(0, 12)}… (${settlementAssetTag} ${settlementAmount}) for round ${roundId}`,
+      );
+    }
+
+    // Build the settlementAsset field for the auction create. Daml JSON API
+    // encodes Optional as { tag: "Some", value: { contractId: "..." } } or
+    // { tag: "None" }.
+    const settlementAssetField = depositCid
+      ? { tag: "Some", value: { contractId: depositCid } }
+      : { tag: "None" };
+
     const created = await this.client.create<AuctionPayload>(
       managerParty,
       this.templates.auction,
@@ -213,6 +273,7 @@ export class CantonSealedBidBackend implements SealedBidBackend {
         serviceCategory: request.serviceCategory,
         deadline: request.deadline,
         maxBids: String(request.maxBids),
+        settlementAsset: settlementAssetField,
       },
     );
     const state: CantonRoundState = {
@@ -228,6 +289,10 @@ export class CantonSealedBidBackend implements SealedBidBackend {
       maxBids: request.maxBids,
       status: "open",
       createdAt: new Date().toISOString(),
+      depositCid,
+      settledAssetCid: null,
+      settlementAmount,
+      settlementAssetTag,
     };
     this.rounds.set(roundId, state);
 
@@ -387,6 +452,16 @@ export class CantonSealedBidBackend implements SealedBidBackend {
     state.status = "revealed";
 
     const result = resultCreated.payload as AuctionResultPayload;
+
+    // Capture the settled asset CID from the AuctionResult — this is the
+    // on-ledger proof that value was transferred to the winner atomically.
+    if (result.settledAsset && result.settledAsset.tag === "Some") {
+      state.settledAssetCid = result.settledAsset.value.contractId;
+      logger.info(
+        `SealedBid[canton]: value settled — PaymentDeposit ${state.settledAssetCid.slice(0, 12)}… transferred to winner in atomic reveal`,
+      );
+    }
+
     return this.toSealedBidRoundRevealed(state, result, bidsOnLedger);
   }
 
@@ -507,6 +582,9 @@ export class CantonSealedBidBackend implements SealedBidBackend {
       winningProposalHash: null,
       createdAt: state.createdAt,
       backend: this.name,
+      settledAssetCid: state.settledAssetCid,
+      settlementAmount: state.settlementAmount,
+      settlementAssetTag: state.settlementAssetTag,
     };
   }
 
@@ -544,6 +622,9 @@ export class CantonSealedBidBackend implements SealedBidBackend {
       winningProposalHash: result.winningProposal,
       createdAt: state.createdAt,
       backend: this.name,
+      settledAssetCid: state.settledAssetCid,
+      settlementAmount: state.settlementAmount,
+      settlementAssetTag: state.settlementAssetTag,
     };
   }
 }
