@@ -401,6 +401,18 @@ export function IntegratePage() {
                 <HelpIcon helpKey="security:apikeys" />
               </h3>
               <p className="text-sm text-muted-foreground">
+                A machine-readable OpenAPI 3 spec is available at{" "}
+                <a
+                  href={`${baseUrl}/api/docs/openapi.json`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2 hover:no-underline"
+                >
+                  /api/docs/openapi.json
+                </a>{" "}
+                for agent self-discovery.
+              </p>
+              <p className="text-sm text-muted-foreground">
                 All requests require an{" "}
                 <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
                   x-api-key
@@ -451,6 +463,38 @@ export function IntegratePage() {
               </ul>
             </div>
 
+          <div className="rounded-lg border border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/30 p-4 space-y-2">
+            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+              Which governance endpoint should I use?
+            </h4>
+            <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1.5">
+              <li>
+                <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">/api/governance/evaluate</code>{" "}
+                — Policy check only. Use this to test whether an action would
+                pass your rules. No on-chain execution, no contract audit.
+                Returns <code>allowed</code>, <code>decision</code>,{" "}
+                <code>policyChecks</code>.
+              </li>
+              <li>
+                <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">/api/spend/preview</code>{" "}
+                — Dry-run a real spend. Runs policy check + ChainGPT contract
+                audit + tx simulation. No money moves. Use this before
+                executing.
+              </li>
+              <li>
+                <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">/api/spend</code>{" "}
+                — Execute a real on-chain spend. Requires a successful preview
+                and (for the Copilot agent) human confirmation.
+              </li>
+              <li>
+                <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">/api/mcp/governance-check</code>{" "}
+                — MCP-compliant tool endpoint for AI agents. Same evaluation
+                as /api/governance/evaluate but returns an MCP tool result
+                envelope.
+              </li>
+            </ul>
+          </div>
+
           <EndpointCard
             method="POST"
             path="/api/governance/evaluate"
@@ -469,7 +513,8 @@ export function IntegratePage() {
   "success": true,
   "data": {
     "allowed": boolean,
-    "reasoning": "string — why allowed or denied",
+    "decision": "approved" | "denied" | "held",
+    "reasoning": "string — why allowed, denied, or held",
     "policyChecks": [
       { "policyId": "string", "result": boolean, "reason": "string" }
     ],

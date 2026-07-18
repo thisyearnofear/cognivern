@@ -29,6 +29,29 @@ export interface AuditLog {
     artifactIds?: string[];
     policyIds?: string[];
     citations?: string[];
+    // Storage-anchoring fields surfaced from the CRE run so the audit
+    // page's "Cross-Chain Anchoring" panel renders for real runs.
+    zeroGRootHash?: string;
+    filecoinCid?: string;
+    filecoinTxHash?: string;
+    // Suspicion score from the control-evaluation service. Surfaced here
+    // so the audit page's "Suspicion Analysis" panel survives reloads.
+    suspicion?: {
+      composite: number;
+      label: string;
+      dimensions: Record<string, number>;
+      escalated: boolean;
+      reasoning: string[];
+    };
+    // AI usage (provider/model/tokens/cost) for the AI Spend insights.
+    aiUsage?: {
+      provider: string;
+      model: string;
+      inputTokens: number;
+      outputTokens: number;
+      costUsd: number;
+      taskClass: string;
+    };
   };
 }
 
@@ -86,7 +109,39 @@ export class AuditLogService {
   public mapCreRunToAuditLog(run: CreRun): AuditLog {
     const lastStep = run.steps[run.steps.length - 1];
 
-    return {
+    // Surface real policyChecks from the run. The governance workflow
+    // stores them on the last step's details.policyChecks, and/or on the
+    // run's evidence block. Prefer step details (set by the workflow),
+    // fall back to any artifact that carries them.
+    const policyChecks = extractPolicyChecks(run);
+
+    // Surface the on-chain txHash from attestation artifacts so the
+    // audit page's "On-Chain" badge and explorer link render for real
+    // attestation runs.
+    const txHash = extractTxHash(run);
+
+    // Confidential (FHE) metadata — present when the policy was evaluated
+    // under Fhenix. The frontend gates its FHE badge on
+    // confidential.fheEvaluated or a policyCheck.metadata.confidential
+    // flag.
+    const confidential = extractConfidential(run, policyChecks);
+
+    // Suspicion score from the control-evaluation service. The governance
+    // workflow writes it to evidence.suspicion; surface it so the audit
+    // page's "Suspicion Analysis" panel renders post-reload.
+    const suspicion = run.evidence?.suspicion;
+
+    // AI usage (provider/model/tokens/cost) — written by the governance
+    // workflow when the evaluator calls an LLM (Together AI / etc.).
+    // Surfaced as a top-level field because AuditLogController reads
+    // log.aiUsage directly for the AI Spend insights endpoint.
+    const aiUsage = run.evidence?.aiUsage;
+
+    // Build the base AuditLog, then attach the rich fields the frontend
+    // audit page renders. We cast through Record<string, unknown> because
+    // the legacy AuditLog interface doesn't declare confidential / txHash
+    // / suspicion / aiUsage, but the frontend reads them via duck-typing.
+    const log: AuditLog = {
       id: run.runId,
       timestamp: run.finishedAt || run.startedAt,
       agent: run.provenance?.model || "governance-agent",
@@ -101,7 +156,7 @@ export class AuditLogService {
         artifactCount: run.artifacts.length,
         workflowVersion: run.provenance?.workflowVersion,
       },
-      policyChecks: [],
+      policyChecks,
       outcome: run.ok ? "allowed" : "denied",
       signingProvider: extractSigningProvider(run),
       metadata: {
@@ -115,8 +170,27 @@ export class AuditLogService {
         signature: run.evidence?.signature,
         signer: run.evidence?.signer,
         artifactIds: run.artifacts.map((a) => a.id),
+        // Preserve storage-anchoring fields so the audit page's
+        // "Cross-Chain Anchoring" panel renders for real runs.
+        zeroGRootHash: run.evidence?.zeroGRootHash,
+        filecoinCid: run.evidence?.filecoinCid,
+        filecoinTxHash: run.evidence?.filecoinTxHash,
+        // Preserve the suspicion score so it survives a page reload.
+        suspicion,
       },
     };
+
+    // Attach fields the frontend reads via duck-typing but the legacy
+    // AuditLog interface doesn't declare.
+    const enriched = log as AuditLog & Record<string, unknown>;
+    if (txHash) enriched.txHash = txHash;
+    if (confidential) enriched.confidential = confidential;
+    if (aiUsage) enriched.aiUsage = aiUsage;
+    // Always expose artifacts so getOnChainTxHash() can find attestation
+    // txHashes even when the workflow didn't surface them at top level.
+    enriched.artifacts = run.artifacts;
+
+    return enriched;
   }
 
   async logEvent(eventData: {
@@ -236,6 +310,17 @@ export class AuditLogService {
     action: AgentAction,
     policyChecks: PolicyCheck[],
     allowed: boolean,
+    options?: {
+      suspicion?: Record<string, unknown>;
+      aiUsage?: {
+        provider: string;
+        model: string;
+        inputTokens: number;
+        outputTokens: number;
+        costUsd: number;
+        taskClass: string;
+      };
+    },
   ): Promise<string> {
     const runId = crypto.randomUUID();
     const now = new Date().toISOString();
@@ -251,6 +336,12 @@ export class AuditLogService {
       latencyMs: action.metadata?.durationMs || 0,
       stepCount: 1,
       artifactCount: 1,
+      // Surface AI cost on the run metrics so the runs page and audit
+      // page can display it without re-deriving from evidence.
+      estimatedCostUsd: options?.aiUsage?.costUsd,
+      estimatedTokens: options?.aiUsage
+        ? options.aiUsage.inputTokens + options.aiUsage.outputTokens
+        : undefined,
     };
 
     const evidence = await this.signEvidence({
@@ -262,6 +353,15 @@ export class AuditLogService {
         ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(artifact.data))),
       ],
     });
+
+    // Attach suspicion + aiUsage to the evidence block so they survive
+    // reload and are surfaced by mapCreRunToAuditLog.
+    if (options?.suspicion) {
+      (evidence as Record<string, unknown>).suspicion = options.suspicion;
+    }
+    if (options?.aiUsage) {
+      (evidence as Record<string, unknown>).aiUsage = options.aiUsage;
+    }
 
     const run: CreRun = {
       runId,
@@ -276,7 +376,7 @@ export class AuditLogService {
         source: "cognivern",
         model: String(action.metadata?.agentId || "governance-agent"),
       },
-      evidence,
+      evidence: evidence as CreRun["evidence"],
       artifacts: [artifact],
       steps: [
         {
@@ -286,7 +386,12 @@ export class AuditLogService {
           finishedAt: now,
           ok: allowed,
           summary: action.description,
-          details: action.metadata,
+          details: {
+            ...action.metadata,
+            // Persist policyChecks on the step so mapCreRunToAuditLog's
+            // extractPolicyChecks() can surface them on the audit page.
+            policyChecks,
+          },
         },
       ],
     };
@@ -441,6 +546,78 @@ function extractSigningProvider(run: CreRun): AuditLog["signingProvider"] {
     sp === "ows_remote"
   ) {
     return sp;
+  }
+  return undefined;
+}
+
+/**
+ * Extract policyChecks from a CRE run. The governance workflow stores
+ * them on the last compute step's details.policyChecks. Fall back to
+ * any artifact that carries them (e.g. spend_intent artifacts).
+ */
+function extractPolicyChecks(run: CreRun): PolicyCheck[] {
+  // 1. Last step details
+  for (let i = run.steps.length - 1; i >= 0; i--) {
+    const step = run.steps[i];
+    const details = step.details as Record<string, unknown> | undefined;
+    const checks = details?.policyChecks;
+    if (Array.isArray(checks) && checks.length > 0) {
+      return checks as PolicyCheck[];
+    }
+  }
+  // 2. Artifacts
+  for (const artifact of run.artifacts) {
+    const data = artifact.data as Record<string, unknown> | undefined;
+    const checks = data?.policyChecks;
+    if (Array.isArray(checks) && checks.length > 0) {
+      return checks as PolicyCheck[];
+    }
+  }
+  return [];
+}
+
+/**
+ * Extract an on-chain txHash from attestation_result artifacts.
+ */
+function extractTxHash(run: CreRun): string | undefined {
+  const artifact = run.artifacts.find((a) => a.type === "attestation_result");
+  if (!artifact) return undefined;
+  const data = artifact.data as Record<string, unknown> | undefined;
+  const txHash = data?.txHash;
+  if (typeof txHash === "string" && txHash.length > 0) {
+    return txHash;
+  }
+  return undefined;
+}
+
+/**
+ * Extract confidential (FHE) metadata. Present when any policyCheck was
+ * evaluated under FHE (metadata.confidential === true) or when the run
+ * carries Fhenix decision ids on its evidence block.
+ */
+function extractConfidential(
+  run: CreRun,
+  policyChecks: PolicyCheck[],
+): Record<string, unknown> | undefined {
+  const fheCheck = policyChecks.find(
+    (c) =>
+      (c.metadata as Record<string, unknown> | undefined)?.confidential === true,
+  );
+  const decisionIds: string[] = [];
+  for (const c of policyChecks) {
+    const meta = c.metadata as Record<string, unknown> | undefined;
+    const did = meta?.decisionId;
+    if (typeof did === "string") decisionIds.push(did);
+  }
+  if (fheCheck || decisionIds.length > 0) {
+    return {
+      fheEvaluated: true,
+      chain: "fhenix-arbitrum-sepolia",
+      decisionIds,
+      attestations: policyChecks
+        .map((c) => (c.metadata as Record<string, unknown> | undefined)?.attestation)
+        .filter((a): a is string => typeof a === "string"),
+    };
   }
   return undefined;
 }

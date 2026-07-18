@@ -25,9 +25,11 @@ Agent
 Cognivern Evaluation Layer
   |
   ├── GovernanceController.evaluateAction()
-  │   ├── standard rule → PolicyEnforcementService.evaluateRule()
+  │   ├── standard rule → WorkspaceDataService.evaluateAction()
+  │   │   └── evaluateRule() — amount, daily_total, budget, allowlist, chain
   │   ├── confidential rule → FhenixPolicyService → Fhenix FHE
   │   └── contract_audit rule → ChainGPTAuditService
+  │   └── recordSpend() — updates agent.spend_history + trades counter
   │
   ├── [optional] ControlEvaluationService.score()  ← CONTROL_EVAL_MODE=true
   │   └── 4-dimension suspicion score (0-1), never blocks the decision
@@ -52,10 +54,11 @@ Every governance decision follows this path:
 ```
 Agent action
   → GovernanceController.evaluateAction()
-  → PolicyEnforcementService.evaluateRule()
-      ├─ standard rule → local evaluation (allow/deny/require/rate_limit)
+  → WorkspaceDataService.evaluateAction()
+      ├─ standard rule → evaluateRule() (allow/deny/require/rate_limit)
       ├─ confidential rule → FhenixPolicyService → Fhenix FHE
       └─ contract_audit rule → ChainGPTAuditService
+  → recordSpend() — updates agent.spend_history + trades counter
   → decision: approve / hold / deny
   → [optional, CONTROL_EVAL_MODE=true] ControlEvaluationService.score()
       └─ 4 dimensions: rule violations (2x), behavioral, temporal, scope creep
@@ -290,8 +293,10 @@ Mode resolution (`demoInterceptor.ts`): workspace `tier` stored in SQLite (`'dem
 | `/ingest/runs` | POST | Project-scoped run ingestion |
 | `/api/governance/policies` | GET, POST | Policy management |
 | `/api/governance/policies/confidential` | POST | Create encrypted policy on Fhenix |
-| `/api/governance/evaluate` | POST | Evaluate action against policy |
+| `/api/governance/evaluate` | POST | Evaluate action against policy (canonical policy check; records spend to agent history) |
 | `/api/governance/decisions/:decisionId` | GET | FHE decision + cross-chain anchoring status |
+| `/api/mcp/governance-check` | GET, POST | MCP-compliant tool endpoint for AI agents (same evaluation, MCP tool result envelope) |
+| `/api/docs/openapi.json` | GET | OpenAPI 3 spec for agent self-discovery |
 | `/api/ows/bootstrap` | POST | Bootstrap OWS wallet |
 | `/api/ows/api-keys` | GET, POST | API key management |
 | `/api/spend` | POST | Execute governed spend |

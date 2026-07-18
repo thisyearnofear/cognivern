@@ -13,6 +13,9 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import rateLimit from "express-rate-limit";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { createHash, timingSafeEqual } from "crypto";
 import { BaseService } from "@backend/shared/services/BaseService.js";
 import { Logger } from "@backend/shared/logging/Logger.js";
@@ -687,6 +690,26 @@ export class ApiModule extends BaseService {
         this.ctrl("sapience").getDecisions(req, res);
       });
     }
+
+    // Serve the OpenAPI spec at /api/docs/openapi.json so external agents
+    // and the integrate page can self-discover the governance API shape.
+    // The spec is sourced from agent/cognivern-openapi.json (the same file
+    // the Cognivern Copilot agent registers with Gemini/Agent Builder).
+    apiRouter.get("/docs/openapi.json", (_req, res) => {
+      try {
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = dirname(__filename);
+        // Resolve to <repo-root>/agent/cognivern-openapi.json
+        const specPath = join(__dirname, "../../../../../agent/cognivern-openapi.json");
+        const spec = readFileSync(specPath, "utf-8");
+        res.type("application/json").send(spec);
+      } catch {
+        res.status(404).json({
+          success: false,
+          error: "OpenAPI spec not found",
+        });
+      }
+    });
 
     // Mount API router
     this.app.use("/api", apiRouter);

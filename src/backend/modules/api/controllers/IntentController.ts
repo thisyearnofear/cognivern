@@ -10,6 +10,8 @@ import { Logger } from "@backend/shared/logging/Logger.js";
 import { CircuitBreaker } from "@backend/shared/utils/circuitBreaker.js";
 import { MultiModelRouter } from "@backend/services/ai/MultiModelRouter.js";
 import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
+import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
+import { LEGACY_DEFAULT_WORKSPACE_ID } from "@backend/middleware/publicEndpoints.js";
 
 const logger = new Logger("IntentController");
 
@@ -213,11 +215,18 @@ export class IntentController {
       // Classify intent using AI
       const classification = await this.classifyIntent(query);
 
+      // Enrich context with real workspace data so the AI response
+      // includes actual numbers instead of hallucinated placeholders.
+      const enrichedContext = await this.enrichContext(
+        classification.type,
+        context || {},
+      );
+
       // Generate response using AI
       const response = await this.generateResponse(
         query,
         classification.type,
-        context,
+        enrichedContext,
       );
 
       // Log the intent for audit trail
@@ -232,12 +241,14 @@ export class IntentController {
       this.updateLatency(Date.now() - startTime);
       this.metrics.successfulRequests++;
 
+      const component = await this.buildComponent(classification.type, context);
+
       res.json({
         success: true,
         data: {
           type: classification.type,
           response: response.text,
-          component: this.buildComponent(classification.type, context),
+          component,
           context: response.context,
           suggestions: response.suggestions,
         },
@@ -282,12 +293,14 @@ export class IntentController {
       // Non-blocking
     }
 
+    const component = await this.buildComponent(classification.type, context);
+
     res.json({
       success: true,
       data: {
         type: classification.type,
         response: fallbackResponse.text,
-        component: this.buildComponent(classification.type, context),
+        component,
         context: {},
         suggestions: fallbackResponse.suggestions,
         _fallback: true, // Signal to frontend that this is fallback data
@@ -413,41 +426,130 @@ export class IntentController {
   /**
    * Build UI component based on intent type
    */
-  private buildComponent(
+  private async buildComponent(
     intentType: IntentType,
     context?: Record<string, any>,
-  ): IntentResponse["component"] | undefined {
+  ): Promise<IntentResponse["component"] | undefined> {
+    const workspaceId =
+      (context?.workspaceId as string) || LEGACY_DEFAULT_WORKSPACE_ID;
+
     switch (intentType) {
-      case "forensic":
-        return {
-          type: "forensic-timeline",
-          props: {
-            agentName: context?.lastAgentName || "System",
-          },
-        };
+      case "forensic": {
+        // Fetch recent audit logs so the forensic timeline has real data
+        try {
+          const logs = await this.auditLogService.getFilteredLogs({});
+          const recent = logs.slice(-10).map((l) => ({
+            id: l.id,
+            timestamp: l.timestamp,
+            agent: l.agent,
+            action: l.actionType,
+            decision: l.outcome,
+            description: l.description,
+          }));
+          return {
+            type: "forensic-timeline",
+            props: {
+              agentName: context?.lastAgentName || "System",
+              logs: recent,
+            },
+          };
+        } catch {
+          return {
+            type: "forensic-timeline",
+            props: { agentName: context?.lastAgentName || "System" },
+          };
+        }
+      }
       case "governance":
-      case "risk":
-        return {
-          type: "governance-score",
-          props: {},
-        };
-      case "agent":
-        return {
-          type: "agent",
-          props: {},
-        };
-      case "policy":
-        return {
-          type: "policy",
-          props: {},
-        };
-      case "stats":
-        return {
-          type: "stat",
-          props: {
-            title: "Performance Metrics",
-          },
-        };
+      case "risk": {
+        // Fetch real governance health data
+        try {
+          const logs = await this.auditLogService.getFilteredLogs({});
+          const total = logs.length;
+          const approved = logs.filter((l) => l.outcome === "allowed").length;
+          const denied = logs.filter((l) => l.outcome === "denied").length;
+          const complianceRate = total > 0 ? Math.round((approved / total) * 100) : 100;
+          return {
+            type: "governance-score",
+            props: {
+              totalDecisions: total,
+              approved,
+              denied,
+              complianceRate,
+            },
+          };
+        } catch {
+          return { type: "governance-score", props: {} };
+        }
+      }
+      case "agent": {
+        // Fetch real agent list
+        try {
+          const agents = WorkspaceDataService.getAgents(workspaceId);
+          return {
+            type: "agent",
+            props: {
+              agents: agents.map((a) => ({
+                id: a.id,
+                name: a.name,
+                role: a.role,
+                status: a.status,
+                chain: a.chain,
+                trades: a.trades,
+                budget: a.budget,
+              })),
+            },
+          };
+        } catch {
+          return { type: "agent", props: {} };
+        }
+      }
+      case "policy": {
+        // Fetch real policies
+        try {
+          const policies = WorkspaceDataService.getPolicies(workspaceId);
+          return {
+            type: "policy",
+            props: {
+              policies: policies.map((p) => ({
+                id: p.id,
+                name: p.name,
+                type: p.type,
+                status: p.status,
+                rules: p.rules,
+              })),
+            },
+          };
+        } catch {
+          return { type: "policy", props: {} };
+        }
+      }
+      case "stats": {
+        // Fetch real metrics
+        try {
+          const logs = await this.auditLogService.getFilteredLogs({});
+          const agents = WorkspaceDataService.getAgents(workspaceId);
+          const total = logs.length;
+          const approved = logs.filter((l) => l.outcome === "allowed").length;
+          const avgLatency = logs.length > 0
+            ? Math.round(logs.reduce((s, l) => s + (l.responseTime || 0), 0) / logs.length)
+            : 0;
+          return {
+            type: "stat",
+            props: {
+              title: "Performance Metrics",
+              totalDecisions: total,
+              approved,
+              denied: total - approved,
+              activeAgents: agents.filter((a) => a.status === "active").length,
+              totalAgents: agents.length,
+              avgLatencyMs: avgLatency,
+            },
+          };
+        } catch {
+          return { type: "stat", props: { title: "Performance Metrics" } };
+        }
+      }
       case "create":
         return {
           type: "action-form",
@@ -476,6 +578,95 @@ export class IntentController {
     }
 
     return newContext;
+  }
+
+  /**
+   * Enrich the context with real workspace data so the AI response
+   * generator includes actual numbers (agent count, compliance rate,
+   * recent decisions) instead of hallucinated placeholders.
+   */
+  private async enrichContext(
+    intentType: IntentType,
+    context: Record<string, any>,
+  ): Promise<Record<string, any>> {
+    const workspaceId =
+      (context.workspaceId as string) || LEGACY_DEFAULT_WORKSPACE_ID;
+    const enriched = { ...context };
+
+    try {
+      switch (intentType) {
+        case "agent": {
+          const agents = WorkspaceDataService.getAgents(workspaceId);
+          enriched.workspaceData = {
+            agentCount: agents.length,
+            activeAgents: agents.filter((a) => a.status === "active").length,
+            agents: agents.map((a) => ({
+              name: a.name,
+              role: a.role,
+              status: a.status,
+              chain: a.chain,
+              trades: a.trades,
+              budget: a.budget,
+            })),
+          };
+          break;
+        }
+        case "governance":
+        case "risk":
+        case "stats": {
+          const logs = await this.auditLogService.getFilteredLogs({});
+          const total = logs.length;
+          const approved = logs.filter((l) => l.outcome === "allowed").length;
+          const denied = logs.filter((l) => l.outcome === "denied").length;
+          enriched.workspaceData = {
+            totalDecisions: total,
+            approved,
+            denied,
+            complianceRate: total > 0 ? Math.round((approved / total) * 100) : 100,
+            recentDecisions: logs.slice(-5).map((l) => ({
+              agent: l.agent,
+              action: l.actionType,
+              decision: l.outcome,
+              timestamp: l.timestamp,
+            })),
+          };
+          break;
+        }
+        case "policy": {
+          const policies = WorkspaceDataService.getPolicies(workspaceId);
+          enriched.workspaceData = {
+            policyCount: policies.length,
+            activePolicies: policies.filter((p) => p.status === "active").length,
+            policies: policies.map((p) => ({
+              name: p.name,
+              type: p.type,
+              status: p.status,
+              ruleCount: p.rules?.length || 0,
+            })),
+          };
+          break;
+        }
+        case "forensic": {
+          const logs = await this.auditLogService.getFilteredLogs({});
+          enriched.workspaceData = {
+            recentAuditLogs: logs.slice(-10).map((l) => ({
+              id: l.id,
+              agent: l.agent,
+              action: l.actionType,
+              decision: l.outcome,
+              description: l.description,
+              timestamp: l.timestamp,
+            })),
+          };
+          break;
+        }
+      }
+    } catch (err) {
+      // Enrichment is best-effort — don't fail the intent if data fetch fails
+      logger.debug("Context enrichment failed (non-fatal)", err);
+    }
+
+    return enriched;
   }
 
   /**

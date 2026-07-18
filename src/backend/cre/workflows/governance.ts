@@ -151,6 +151,17 @@ async function runAndPersist(
       params.normalizedAction,
       decision.policyChecks,
       decision.allowed,
+      {
+        suspicion: decision.suspicion
+          ? {
+              composite: decision.suspicion.composite,
+              label: decision.suspicion.label,
+              dimensions: decision.suspicion.dimensions,
+              escalated: decision.suspicion.escalated,
+              reasoning: decision.suspicion.reasoning,
+            }
+          : undefined,
+      },
     );
     s3.end({
       ok: true,

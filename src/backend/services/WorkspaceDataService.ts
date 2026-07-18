@@ -403,14 +403,12 @@ export const WorkspaceDataService = {
       | { id: string; name: string; budget: string }
       | undefined;
 
-    if (!agent) {
-      return {
-        allowed: false,
-        reasoning: `Agent ${params.agentId} not found in this workspace`,
-        policyChecks: [],
-        timestamp: now,
-      };
-    }
+    // Agent not found: still evaluate the policy rules so callers like the
+    // onboarding completion check (which uses a synthetic "onboarding-agent"
+    // id) get a real policy evaluation. We only skip recordSpend, since
+    // there's no agent row to update.
+    const agentMissing = !agent;
+    const agentSafe = agent || { id: params.agentId, name: "unknown", budget: "$0" };
 
     // Load policies to evaluate against
     let policies: Row[];
@@ -455,7 +453,7 @@ export const WorkspaceDataService = {
     for (const policy of policies) {
       const rules = JSON.parse((policy.rules as string) || "[]") as Array<{ condition: string; action: string; params?: Record<string, unknown> }>;
       for (const rule of rules) {
-        const check = evaluateRule(rule, params.action, agent);
+        const check = evaluateRule(rule, params.action, agentSafe);
         policyChecks.push({
           policyId: policy.id as string,
           result: check.passed,
@@ -468,15 +466,20 @@ export const WorkspaceDataService = {
       }
     }
 
-    const decision = denied ? "denied" : "approved";
+    const decision: "approved" | "denied" = denied ? "denied" : "approved";
     const reasoning = denied
       ? denialReasons.join("; ")
       : `Action approved — passed ${policyChecks.length} policy check(s)`;
 
-    this.recordSpend(workspaceId, params.agentId, params.action, decision, now);
+    // Only record spend against a real agent row. Synthetic agent ids
+    // (e.g. "onboarding-agent") have no workspace_agents row to update.
+    if (!agentMissing) {
+      this.recordSpend(workspaceId, params.agentId, params.action, decision, now);
+    }
 
     return {
       allowed: !denied,
+      decision,
       reasoning,
       policyChecks,
       auditLogId: `log-${params.agentId}-${now}`,

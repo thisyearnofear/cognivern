@@ -250,13 +250,26 @@ export class McpGovernanceController {
         model = "rule-engine";
       }
 
-      // Record audit log
+      // Record audit log — pass provider/model so AI Spend insights
+      // can surface real cost data for MCP-driven governance checks.
       const auditLogId: string | null = null;
       try {
         await this.auditLogService.logAction(
           normalizedAction,
           policyChecks,
           allowed,
+          {
+            aiUsage: useTogetherAI
+              ? {
+                  provider,
+                  model,
+                  inputTokens: 0,
+                  outputTokens: 0,
+                  costUsd: 0,
+                  taskClass: "governance",
+                }
+              : undefined,
+          },
         );
       } catch (auditErr) {
         logger.warn("Audit log write failed (non-fatal)", {

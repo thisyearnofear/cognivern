@@ -102,12 +102,13 @@ pnpm monorepo with three packages:
 | `PolicyService`            | Loads and stores policies |
 | `PolicyEnforcementService` | Evaluates actions against rules, returns allow/deny |
 | `FhenixPolicyService`      | Confidential policy paths, encrypted decisions, permit-ready evidence |
-| `AuditLogService`          | Maps events into CRE-backed evidence records |
+| `AuditLogService`          | Maps CRE runs to audit logs; persists policyChecks, suspicion, aiUsage, txHash, anchoring evidence |
 | `OwsLocalVaultService`     | Encrypted local wallet storage, API-key issuance |
 | `OwsWalletService`         | Spend execution, policy enforcement, signed authorizations |
-| `IntentController`         | Natural language intent via AI with multi-provider routing |
+| `IntentController`         | Natural language intent via AI with multi-provider routing; enriches responses with real workspace data |
 | `MultiModelRouter`         | Routes AI across 6 providers with fallback + circuit breakers |
 | `ControlEvaluationService` | Parallel suspicion scoring (0-1), gated by `CONTROL_EVAL_MODE` |
+| `WorkspaceDataService`     | Agent/policy/spend management; `evaluateAction()` is the canonical rule evaluator called by `GovernanceController` |
 
 ## API Reference
 

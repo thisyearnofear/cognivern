@@ -160,7 +160,8 @@ describe("GovernanceController.evaluateAction (sync path)", () => {
     );
     expect(res.statusCode).toBe(200);
     expect(res.payload.success).toBe(true);
-    expect(res.payload.data.approved).toBe(true);
+    expect(res.payload.data.allowed).toBe(true);
+    expect(res.payload.data.decision).toBe("approved");
     expect(res.payload.data.policyChecks.length).toBeGreaterThanOrEqual(1);
     expect(res.payload.data.suspicion).toBeUndefined();
   });

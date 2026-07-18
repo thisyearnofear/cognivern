@@ -10,6 +10,7 @@ import {
   sharedPolicyService,
 } from "@backend/services/governance/PolicyService.js";
 import { LEGACY_DEFAULT_WORKSPACE_ID } from "@backend/middleware/publicEndpoints.js";
+import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 
 const logger = new Logger("GovernanceController");
 import { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
@@ -73,6 +74,19 @@ export class GovernanceController {
 
   /**
    * Evaluate governance action.
+   *
+   * This is the canonical policy-evaluation endpoint for the dashboard,
+   * onboarding, and the integrate page. It delegates to
+   * WorkspaceDataService.evaluateAction, which runs the real rule
+   * evaluator and records spend against the agent's spend_history.
+   *
+   * For on-chain spend execution, use /api/spend/preview + /api/spend
+   * (SpendController → OwsWalletService), which adds contract audit and
+   * tx simulation on top of policy evaluation.
+   *
+   * For MCP-compliant agents, use /api/mcp/governance-check
+   * (McpGovernanceController), which wraps the same evaluator in an MCP
+   * tool result envelope.
    */
   async evaluateAction(req: Request, res: Response): Promise<void> {
     try {
@@ -159,12 +173,32 @@ export class GovernanceController {
         return;
       }
 
-      // Evaluate against the workspace policy's rules
-      const policyChecks = rules.map((rule: any) => ({
-        policyId,
-        result: true,
-        reason: `${policyRow.name}: ${rule.condition || "no condition"}`,
-      }));
+      // Evaluate against ALL active workspace policies using the real
+      // rule evaluator. This also records spend against the agent's
+      // spend_history (so the agent detail page's Spend Trend / Spend
+      // History / Total Actions populate for real workspaces).
+      // We intentionally don't pass policyId here — the controller already
+      // confirmed an active policy exists via resolveWorkspacePolicy; the
+      // evaluator should check ALL active policies so multiple policies
+      // are enforced simultaneously.
+      const evalResult = WorkspaceDataService.evaluateAction(
+        workspaceId,
+        {
+          agentId,
+          action: {
+            type: normalizedAction.type,
+            description: normalizedAction.description,
+            amount: typeof action.amount === "number" ? action.amount : undefined,
+            currency: action.currency,
+          },
+        },
+      );
+
+      let allowed = evalResult.allowed;
+      let decisionLabel: "approved" | "denied" | "held" =
+        evalResult.decision || (evalResult.allowed ? "approved" : "denied");
+      const policyChecks = evalResult.policyChecks;
+      let reasoning = evalResult.reasoning;
 
       let suspicionResult: Record<string, unknown> | undefined;
       if (process.env.CONTROL_EVAL_MODE === "true") {
@@ -195,7 +229,6 @@ export class GovernanceController {
       }
 
       // Auto-hold: if suspicion exceeds threshold, override approval
-      let approved = true;
       if (suspicionResult && typeof suspicionResult.composite === "number") {
         let holdThreshold = parseFloat(process.env.SUSPICION_HOLD_THRESHOLD || "0");
         if (workspaceId) {
@@ -212,7 +245,9 @@ export class GovernanceController {
           } catch {}
         }
         if (holdThreshold > 0 && suspicionResult.composite >= holdThreshold) {
-          approved = false;
+          allowed = false;
+          decisionLabel = "held";
+          reasoning = `Held for review: suspicion score ${suspicionResult.composite.toFixed(2)} exceeded threshold ${holdThreshold}`;
           policyChecks.push({
             policyId: "suspicion:auto_hold",
             result: false,
@@ -225,27 +260,30 @@ export class GovernanceController {
       await this.auditLogService.logAction(
         normalizedAction,
         policyChecks,
-        approved,
+        allowed,
+        {
+          suspicion: suspicionResult as Record<string, unknown> | undefined,
+        },
       );
 
-      const decision: Record<string, unknown> = {
-        approved,
-        reason: approved
-          ? `Action approved under policy ${policyRow.name}`
-          : `Action held for review under policy ${policyRow.name}`,
+      const responseData: Record<string, unknown> = {
+        allowed,
+        decision: decisionLabel,
+        reasoning,
         agentId,
         actionType: normalizedAction.type,
         policyId,
         policyChecks,
+        auditLogId: evalResult.auditLogId,
         timestamp: new Date().toISOString(),
       };
       if (suspicionResult) {
-        decision.suspicion = suspicionResult;
+        responseData.suspicion = suspicionResult;
       }
 
       res.json({
         success: true,
-        data: decision,
+        data: responseData,
         source: "workspace",
         timestamp: new Date().toISOString(),
       });
