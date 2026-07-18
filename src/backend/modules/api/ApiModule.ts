@@ -693,14 +693,15 @@ export class ApiModule extends BaseService {
 
     // Serve the OpenAPI spec at /api/docs/openapi.json so external agents
     // and the integrate page can self-discover the governance API shape.
-    // The spec is sourced from agent/cognivern-openapi.json (the same file
-    // the Cognivern Copilot agent registers with Gemini/Agent Builder).
+    // The spec is copied into dist/ during the backend build (see
+    // build-backend-artifact.sh) so it's available in production without
+    // the agent/ source directory.
     apiRouter.get("/docs/openapi.json", (_req, res) => {
       try {
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = dirname(__filename);
-        // Resolve to <repo-root>/agent/cognivern-openapi.json
-        const specPath = join(__dirname, "../../../../../agent/cognivern-openapi.json");
+        // dist/backend/modules/api/ → dist/openapi.json (3 levels up)
+        const specPath = join(__dirname, "../../../openapi.json");
         const spec = readFileSync(specPath, "utf-8");
         res.type("application/json").send(spec);
       } catch {

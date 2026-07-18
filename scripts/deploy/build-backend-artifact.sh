@@ -18,6 +18,13 @@ echo "== building backend"
 pnpm -s install
 pnpm -s build:backend
 
+# Copy the OpenAPI spec into dist/ so /api/docs/openapi.json works in production
+# (the agent/ source directory is not included in the deployment artifact).
+if [ -f agent/cognivern-openapi.json ]; then
+  cp agent/cognivern-openapi.json dist/openapi.json
+  echo "  (copied openapi spec to dist/openapi.json)"
+fi
+
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
