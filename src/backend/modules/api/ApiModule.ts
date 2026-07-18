@@ -700,8 +700,8 @@ export class ApiModule extends BaseService {
       try {
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = dirname(__filename);
-        // dist/backend/modules/api/ → dist/openapi.json (3 levels up)
-        const specPath = join(__dirname, "../../../openapi.json");
+        // dist/src/backend/modules/api/ → dist/openapi.json (4 levels up)
+        const specPath = join(__dirname, "../../../../openapi.json");
         const spec = readFileSync(specPath, "utf-8");
         res.type("application/json").send(spec);
       } catch {
