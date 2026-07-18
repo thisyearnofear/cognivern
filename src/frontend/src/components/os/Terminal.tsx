@@ -69,8 +69,7 @@ async function handleLocalCommand(
   term: XTerminal,
   cmd: string,
   writePrompt: () => void,
-  pushPromptAfter = true,
-) {
+): Promise<boolean> {
   const lower = cmd.toLowerCase();
 
   if (lower === "help") {
@@ -112,8 +111,10 @@ async function handleLocalCommand(
       '  \x1b[38;2;113;113;122mYou can also type plain English, e.g. "show me active agents".\x1b[0m',
     );
     term.writeln("");
+    return true;
   } else if (lower === "clear") {
     term.clear();
+    return true;
   } else if (lower === "status") {
     term.writeln("");
     term.writeln("  System Status");
@@ -123,6 +124,7 @@ async function handleLocalCommand(
     term.writeln("  Audit:      ONLINE");
     term.writeln("  CRE:        ONLINE");
     term.writeln("");
+    return true;
   } else if (lower === "suggest") {
     term.writeln("");
     term.writeln("  \x1b[38;2;56;189;248mSuggested commands:\x1b[0m");
@@ -130,6 +132,7 @@ async function handleLocalCommand(
       term.writeln("  \x1b[38;2;34;197;94m>\x1b[0m " + sug);
     });
     term.writeln("");
+    return true;
   } else if (lower === "agents") {
     term.writeln("");
     term.writeln("  \x1b[38;2;56;189;248mFetching agents...\x1b[0m");
@@ -162,7 +165,8 @@ async function handleLocalCommand(
         term.writeln("");
         writePrompt();
       });
-    return; // prompt handled in callback
+    return true; // prompt handled in callback
+    return true;
   } else if (lower === "history") {
     term.writeln("");
     commandHistoryStore.forEach((h, i) => {
@@ -191,6 +195,7 @@ async function handleLocalCommand(
       "  \x1b[38;2;113;113;122m└── system.conf\x1b[0m   System configuration",
     );
     term.writeln("");
+    return true;
   } else if (lower.startsWith("cat ") || lower.startsWith("read ")) {
     const path = cmd.slice(lower.startsWith("cat ") ? 4 : 5).trim();
     term.writeln("");
@@ -224,6 +229,7 @@ async function handleLocalCommand(
       term.writeln(`  \x1b[38;2;234;179;8mNo such file: ${path}\x1b[0m`);
     }
     term.writeln("");
+    return true;
   } else if (lower.startsWith("cd ")) {
     const dir = cmd.slice(3).trim();
     term.writeln("");
@@ -241,6 +247,7 @@ async function handleLocalCommand(
       term.writeln(`  \x1b[38;2;234;179;8mNo such directory: ${dir}\x1b[0m`);
     }
     term.writeln("");
+    return true;
   } else if (lower.startsWith("hydra")) {
     const parts = cmd.slice("hydra".length).trim().split(/\s+/);
     const sub = parts[0]?.toLowerCase() || "help";
@@ -316,7 +323,7 @@ async function handleLocalCommand(
           term.writeln("");
           writePrompt();
         });
-      return;
+      return true;
     } else if (sub === "stats") {
       term.writeln("");
       term.writeln("  \x1b[38;2;56;189;248mHydraDB Memory System\x1b[0m");
@@ -390,7 +397,7 @@ async function handleLocalCommand(
           term.writeln("");
           writePrompt();
         });
-      return;
+      return true;
     } else if (sub === "recent") {
       const limit = Math.min(Math.max(1, parseInt(parts[1], 10) || 5), 20);
       term.writeln("");
@@ -430,7 +437,7 @@ async function handleLocalCommand(
           term.writeln("");
           writePrompt();
         });
-      return;
+      return true;
     } else if (sub === "recall" || sub === "search") {
       const query = parts.slice(1).join(" ");
       if (!query) {
@@ -483,7 +490,7 @@ async function handleLocalCommand(
             term.writeln("");
             writePrompt();
           });
-        return;
+        return true;
       }
     } else if (sub === "memory" || sub === "remember") {
       const text = parts.slice(1).join(" ");
@@ -518,7 +525,7 @@ async function handleLocalCommand(
             term.writeln("");
             writePrompt();
           });
-        return;
+        return true;
       }
     } else if (sub === "qna") {
       const question = parts.slice(1).join(" ");
@@ -561,7 +568,7 @@ async function handleLocalCommand(
             term.writeln("");
             writePrompt();
           });
-        return;
+        return true;
       }
     } else if (sub === "prefs" || sub === "preferences") {
       const query = parts.slice(1).join(" ");
@@ -611,7 +618,7 @@ async function handleLocalCommand(
             term.writeln("");
             writePrompt();
           });
-        return;
+        return true;
       }
     } else {
       term.writeln("");
@@ -623,6 +630,7 @@ async function handleLocalCommand(
       );
       term.writeln("");
     }
+    return true;
   } else if (lower === "audit") {
     term.writeln("");
     term.writeln("  \x1b[38;2;56;189;248mFetching recent audit logs...\x1b[0m");
@@ -661,19 +669,12 @@ async function handleLocalCommand(
         term.writeln("");
         writePrompt();
       });
-    return; // prompt handled in callback
-  } else {
-    term.writeln("");
-    term.writeln(`  \x1b[38;2;234;179;8mUnknown command: ${cmd}\x1b[0m`);
-    term.writeln(
-      `  \x1b[38;2;113;113;122mType 'help' for available commands.\x1b[0m`,
-    );
-    term.writeln("");
+    return true; // prompt handled in callback
   }
 
-  if (pushPromptAfter) {
-    writePrompt();
-  }
+  // Not a recognized local command — let the caller handle it
+  // (e.g. send to the intent API).
+  return false;
 }
 
 /** Module-level history store so local command handler can access it */
@@ -725,6 +726,15 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
         commandHistoryStore.push(text);
         commandHistoryIndex.current = commandHistoryStore.length;
         inputBufferRef.current = "";
+
+        // Check for local commands first (help, clear, status, hydra, etc.)
+        const promptFn = () => {
+          term.write(PROMPT);
+        };
+        const handledLocally = await handleLocalCommand(term, text, promptFn);
+        if (handledLocally) {
+          return;
+        }
 
         const handler = onCommandRef.current;
         if (handler) {
@@ -805,6 +815,7 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
 
       // Input handling
       term.onKey(({ key, domEvent }) => {
+        void (async () => {
         const ev = domEvent;
         const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
 
@@ -818,6 +829,19 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
           if (trimmed) {
             commandHistoryStore.push(trimmed);
             commandHistoryIndex.current = commandHistoryStore.length;
+
+            // Local commands (help, clear, status, hydra, etc.) are handled
+            // immediately without hitting the intent API. This ensures the
+            // expanded help text and Hydra subcommands work even when an
+            // onCommand handler is wired up.
+            const handledLocally = await handleLocalCommand(
+              term,
+              trimmed,
+              promptFn,
+            );
+            if (handledLocally) {
+              return;
+            }
 
             const handler = onCommandRef.current;
             if (handler) {
@@ -884,6 +908,7 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
           inputBufferRef.current += key;
           term.write(key);
         }
+        })();
       });
 
       const handleResize = () => fitAddon.fit();
