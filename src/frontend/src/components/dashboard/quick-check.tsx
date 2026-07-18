@@ -40,6 +40,8 @@ export function QuickCheck() {
       const checkType = type || actionType;
       const checkAmount = amt || amount;
 
+      console.log("[QuickCheck] handleQuickCheck called", { demoMode, checkType, checkAmount });
+
       setEvaluating(true);
       setError(null);
       setResult(null);
