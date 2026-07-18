@@ -76,6 +76,8 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   "/auth/reset-password",
   // MCP tool manifest and governance check are public for agent discovery.
   "/mcp/governance-check",
+  // OpenAPI spec is public so external agents can self-discover the API.
+  "/docs/openapi.json",
   // Sealed-bid vendor selection — vendors submit bids without workspace auth.
   // The controller manages round state and bid encryption internally.
   "/vendor/sealed-bid/rounds",
