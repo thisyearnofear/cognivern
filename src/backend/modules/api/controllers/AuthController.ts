@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createHash, randomBytes } from "node:crypto";
 import type { AuthUser, Workspace } from "@cognivern/shared";
 import { getDb } from "@backend/db/index.js";
+import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 
 // Simple bcrypt-like hashing using scrypt (built into Node.js crypto)
 async function hashPassword(password: string): Promise<string> {
@@ -12,6 +13,47 @@ async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16).toString("hex");
   const hash = scryptSync(password, salt, 64).toString("hex");
   return `${salt}:${hash}`;
+}
+
+/**
+ * Seed a default "Moderate Spend Policy" for a newly created workspace so
+ * the governance check page works on the first click — without this, a
+ * tester lands on an empty dashboard and the first governance evaluation
+ * returns 503 NO_ACTIVE_POLICY.
+ *
+ * The template matches the onboarding wizard's "Moderate" preset so the
+ * wizard and the seed are consistent. Testers can tighten or relax it
+ * from the policies page.
+ */
+function seedDefaultWorkspaceData(workspaceId: string): void {
+  try {
+    WorkspaceDataService.createPolicy(workspaceId, {
+      name: "Default Spend Policy",
+      type: "budget",
+      description:
+        "Auto-created moderate policy: deny single transactions over $1,000, flag daily totals over $500. Adjust or replace this from the Policies page.",
+      rules: [
+        { condition: "amount > 1000", action: "deny" },
+        { condition: "daily_total > 500", action: "flag" },
+      ],
+    });
+  } catch {
+    // Seeding is best-effort — never block workspace creation.
+  }
+  // Also seed a default test agent so the governance check examples
+  // ($50 approved, $500 held, $5,000 denied) work on the first click
+  // without the tester needing to create an agent first.
+  try {
+    WorkspaceDataService.createAgent(workspaceId, {
+      name: "Test Agent",
+      role: "general",
+      chain: "base",
+      budget: "$5,000",
+      source: "managed",
+    });
+  } catch {
+    // Best-effort — never block workspace creation.
+  }
 }
 
 async function verifyPassword(
@@ -171,6 +213,9 @@ export class AuthController {
         );
       });
       transaction();
+
+      // Seed a default policy so governance check works on first click.
+      seedDefaultWorkspaceData(workspaceId);
 
       user = {
         id: userId,
@@ -474,6 +519,9 @@ export class AuthController {
       });
       return;
     }
+
+    // Seed a default policy so governance check works on first click.
+    seedDefaultWorkspaceData(workspaceId);
 
     // In production, send verification email here
     // For now, we'll auto-verify in demo mode

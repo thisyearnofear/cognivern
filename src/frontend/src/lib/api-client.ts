@@ -132,8 +132,42 @@ class ApiClient {
             window.dispatchEvent(new CustomEvent("auth:expired"));
           }
         }
-        const error = await response.text();
-        throw new Error(`API error ${response.status}: ${error}`);
+        const errorBody = await response.text();
+        // Parse structured error codes from the backend and surface
+        // actionable guidance instead of raw "API error 500: ...".
+        let actionableMsg: string;
+        try {
+          const parsed = JSON.parse(errorBody);
+          const code = parsed?.error?.code || parsed?.code;
+          const msg = parsed?.error?.message || parsed?.error || parsed?.message || errorBody;
+          switch (code) {
+            case "NO_ACTIVE_POLICY":
+              actionableMsg = `No active policy found. Create one in the Policies page to start governing spends.`;
+              break;
+            case "BAD_REQUEST":
+              actionableMsg = `Invalid request: ${msg}. Check your input and try again.`;
+              break;
+            default:
+              actionableMsg = msg || errorBody;
+          }
+        } catch {
+          actionableMsg = errorBody;
+        }
+        // Add status-specific guidance for common error codes.
+        if (response.status === 403) {
+          actionableMsg = `Permission denied: ${actionableMsg}. Check that your API key has the required scopes.`;
+        } else if (response.status === 404) {
+          actionableMsg = `Resource not found: ${actionableMsg}`;
+        } else if (response.status === 429) {
+          actionableMsg = `Rate limit exceeded. Wait 60 seconds and try again.`;
+        } else if (response.status >= 500) {
+          actionableMsg = `Server error (${response.status}): ${actionableMsg}. Try again in a moment.`;
+        }
+        // Attach the status code so the retry logic can decide whether
+        // to retry (5xx = retry, 4xx = don't retry).
+        const err = new Error(actionableMsg) as Error & { status?: number };
+        err.status = response.status;
+        throw err;
       }
 
       return await response.json();
@@ -145,8 +179,10 @@ class ApiClient {
         throw error;
       }
 
-      const isClientError =
-        error instanceof Error && /API error 4\d\d/.test(error.message);
+      // 4xx errors are not retried (they'll fail the same way). Only
+      // 5xx and network errors get retried with exponential backoff.
+      const status = (error as Error & { status?: number }).status;
+      const isClientError = typeof status === "number" && status >= 400 && status < 500;
       if (retries > 0 && !isClientError) {
         const delay = Math.min(1000 * Math.pow(2, 3 - retries), 8000);
         await new Promise((resolve) => setTimeout(resolve, delay));

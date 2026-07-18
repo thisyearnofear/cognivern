@@ -22,12 +22,12 @@ const INTENT_TYPE_COLORS: Record<string, string> = {
 };
 
 export const QUICK_PROMPTS = [
+  "help",
   "show me active agents",
   "check governance health score",
   "create a new agent",
   "show performance stats",
   "hydra status",
-  "hydra help",
 ] as const;
 
 export const RECENT_PROMPTS_STORAGE_KEY = "cognivern-os-recent-prompts";

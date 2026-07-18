@@ -28,6 +28,7 @@ import { useRouter } from "next/navigation";
 import { useAgents, useAuditLogs, usePolicies, useNetworkStatus } from "@/hooks/use-api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDemoStore } from "@/stores/demo-store";
+import { usePreferencesStore } from "@/stores/preferences-store";
 import dynamic from "next/dynamic";
 import { DecisionChart, type DecisionFilter } from "./decision-chart";
 import { ApprovalSparkline } from "./approval-sparkline";
@@ -216,7 +217,37 @@ export function Dashboard() {
     return () => obs.disconnect();
   }, []);
 
+  const onboardingCompleted = usePreferencesStore((s) => s.onboardingCompleted);
+
   const agentList = agents || [];
+
+  // Auto-redirect to the onboarding wizard when a newly authenticated user
+  // has an empty workspace (no agents, no policies) and hasn't completed
+  // onboarding yet. The wizard walks them through wallet → policy → agent
+  // → governance check in a single guided flow.
+  useEffect(() => {
+    if (
+      isAuthenticated &&
+      workspaceMode === "production" &&
+      !onboardingCompleted &&
+      !agentsLoading &&
+      !policiesLoading &&
+      agentList.length === 0 &&
+      (policies || []).filter((p) => p.status === "active").length === 0
+    ) {
+      router.push("/onboarding");
+    }
+  }, [
+    isAuthenticated,
+    workspaceMode,
+    onboardingCompleted,
+    agentsLoading,
+    policiesLoading,
+    agentList.length,
+    policies,
+    router,
+  ]);
+
   const normalizedLogs = useMemo(() => {
     return normalizeAuditLogs(logs as AuditLog[]);
   }, [logs]);

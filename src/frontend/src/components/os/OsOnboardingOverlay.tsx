@@ -66,6 +66,17 @@ export function OsOnboardingOverlay({
               <li>1. Start with a suggested prompt.</li>
               <li>2. Reuse follow-up actions to go deeper.</li>
               <li>3. Run the demo tour for the full walkthrough.</li>
+              <li>
+                4. Type{" "}
+                <span className="text-emerald-400 font-mono">help</span> to see
+                all commands.
+              </li>
+              <li>
+                5. Use{" "}
+                <span className="text-emerald-400 font-mono">hydra</span>{" "}
+                commands to store and recall memories — every command is
+                auto-remembered.
+              </li>
             </ul>
             <button
               onClick={onRunDemo}

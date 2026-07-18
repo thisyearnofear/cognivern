@@ -75,21 +75,41 @@ async function handleLocalCommand(
 
   if (lower === "help") {
     term.writeln("");
-    term.writeln("  Available commands:");
-    term.writeln("  help         Show this help");
-    term.writeln("  clear        Clear terminal");
-    term.writeln("  status       Show system status");
-    term.writeln("  agents       List active agents");
-    term.writeln("  hydra        Agent memory & recall");
-    term.writeln("  ls           List virtual filesystem");
-    term.writeln("  cat <path>   Read virtual file");
-    term.writeln("  cd <dir>     Change virtual directory");
-    term.writeln("  audit        Show recent audit logs");
-    term.writeln("  history      Show command history");
-    term.writeln("  suggest      Show suggested commands");
+    term.writeln("  \x1b[38;2;56;189;248mCognivern OS — Available commands\x1b[0m");
+    term.writeln("  \x1b[38;2;113;113;122m────────────────────────────────────────────────────\x1b[0m");
+    term.writeln("");
+    term.writeln("  \x1b[38;2;34;197;94mhelp\x1b[0m              Show this help");
+    term.writeln("  \x1b[38;2;34;197;94mclear\x1b[0m             Clear terminal");
+    term.writeln("  \x1b[38;2;34;197;94mstatus\x1b[0m            Show system status");
+    term.writeln("  \x1b[38;2;34;197;94magents\x1b[0m            List active agents");
+    term.writeln("  \x1b[38;2;34;197;94maudit\x1b[0m             Show recent audit logs");
+    term.writeln("  \x1b[38;2;34;197;94mhistory\x1b[0m           Show command history");
+    term.writeln("  \x1b[38;2;34;197;94msuggest\x1b[0m           Show suggested commands");
+    term.writeln("  \x1b[38;2;34;197;94mls\x1b[0m                List virtual filesystem");
+    term.writeln("  \x1b[38;2;34;197;94mcat <path>\x1b[0m        Read virtual file");
+    term.writeln("  \x1b[38;2;34;197;94mcd <dir>\x1b[0m          Change virtual directory");
+    term.writeln("");
+    term.writeln("  \x1b[38;2;56;189;248mHydra — Agent Memory & Recall\x1b[0m");
+    term.writeln("  \x1b[38;2;113;113;122m────────────────────────────────────────────────────\x1b[0m");
+    term.writeln("  \x1b[38;2;34;197;94mhydra status\x1b[0m       Check memory system status");
+    term.writeln("  \x1b[38;2;34;197;94mhydra stats\x1b[0m        Memory count + health");
+    term.writeln("  \x1b[38;2;34;197;94mhydra recent [N]\x1b[0m   Browse recent memories");
+    term.writeln("  \x1b[38;2;34;197;94mhydra search <q>\x1b[0m   Find memories by topic");
+    term.writeln('  \x1b[38;2;34;197;94mhydra memory "text"\x1b[0m  Store a memory');
+    term.writeln("  \x1b[38;2;34;197;94mhydra help\x1b[0m         Show Hydra help");
     term.writeln("");
     term.writeln(
-      "  Memory system: Every command is auto-stored as a HydraDB memory. Use 'hydra search <topic>' to recall previous context.",
+      "  \x1b[38;2;113;113;122mWhat is Hydra?\x1b[0m Hydra is a vector memory system — every",
+    );
+    term.writeln(
+      "  \x1b[38;2;113;113;122mcommand you run is auto-stored so you can recall context later.\x1b[0m",
+    );
+    term.writeln(
+      "  \x1b[38;2;113;113;122mUse 'hydra search <topic>' to find past interactions.\x1b[0m",
+    );
+    term.writeln("");
+    term.writeln(
+      '  \x1b[38;2;113;113;122mYou can also type plain English, e.g. "show me active agents".\x1b[0m',
     );
     term.writeln("");
   } else if (lower === "clear") {

@@ -183,6 +183,16 @@ export function GovernanceCheck() {
     connectToFheSse,
   } = useFheProgress();
   const [nlInput, setNlInput] = useState("");
+
+  const agentList = useMemo(() => agents || [], [agents]);
+
+  // Auto-select the first available agent when none is selected. This
+  // ensures the pre-filled examples ($50 approved, $500 held, $5,000
+  // denied) work on the first click for testers who haven't manually
+  // picked an agent from the dropdown. We derive the effective agent ID
+  // rather than using an effect to avoid cascading renders.
+  const effectiveAgentId = agentId || agentList[0]?.id || "";
+
   // Auto-expand advanced fields when arriving with a pre-selected agent,
   // so the user can see which identity will be evaluated.
   const [showAdvanced, setShowAdvanced] = useState(Boolean(initialAgentId));
@@ -209,7 +219,7 @@ export function GovernanceCheck() {
   const copyShareLink = useCallback(async () => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams();
-    if (agentId) params.set("agent", agentId);
+    if (effectiveAgentId) params.set("agent", effectiveAgentId);
     if (actionType) params.set("type", actionType);
     if (amount) params.set("amount", amount);
     if (actionDesc) params.set("desc", actionDesc);
@@ -221,9 +231,7 @@ export function GovernanceCheck() {
     } catch {
       // Clipboard blocked — fail silently rather than crashing the page.
     }
-  }, [agentId, actionType, amount, actionDesc]);
-
-  const agentList = useMemo(() => agents || [], [agents]);
+  }, [effectiveAgentId, actionType, amount, actionDesc]);
 
   // Simple NL parser: extracts amount and infers action type from keywords
   const parseNlInput = useCallback((input: string) => {
@@ -283,7 +291,7 @@ export function GovernanceCheck() {
     try {
       const parsed = nlInput.trim() ? parseNlInput(nlInput) : null;
       const evalParams = {
-        agentId: agentId || agentList[0]?.id || "unknown",
+        agentId: effectiveAgentId || "unknown",
         action: {
           type: parsed?.type || actionType,
           description:
@@ -341,8 +349,7 @@ export function GovernanceCheck() {
     }
   }, [
     nlInput,
-    agentId,
-    agentList,
+    effectiveAgentId,
     actionType,
     actionDesc,
     amount,
@@ -369,7 +376,7 @@ export function GovernanceCheck() {
       resetFheSteps();
       try {
         const evalParams = {
-          agentId: agentId || agentList[0]?.id || "unknown",
+          agentId: effectiveAgentId || "unknown",
           action: {
             type: ex.type,
             description: ex.desc,
@@ -416,7 +423,7 @@ export function GovernanceCheck() {
         setEvaluating(false);
       }
     },
-    [agentId, agentList, connectToFheSse, resetFheSteps, setFheRunId],
+    [effectiveAgentId, connectToFheSse, resetFheSteps, setFheRunId],
   );
 
   const handleRetryWithAmount = useCallback(
@@ -428,7 +435,7 @@ export function GovernanceCheck() {
       setResult(null);
       apiClient
         .evaluateGovernance({
-          agentId: agentId || agentList[0]?.id || "unknown",
+          agentId: effectiveAgentId || "unknown",
           action: {
             type: actionType,
             description:
@@ -448,7 +455,7 @@ export function GovernanceCheck() {
         )
         .finally(() => setEvaluating(false));
     },
-    [agentId, agentList, actionType, actionDesc],
+    [effectiveAgentId, actionType, actionDesc],
   );
 
   return (
@@ -550,7 +557,7 @@ export function GovernanceCheck() {
                         API Identity
                       </label>
                       <Select
-                        value={agentId}
+                        value={effectiveAgentId}
                         onValueChange={(v) => v && setAgentId(v)}
                       >
                         <SelectTrigger>
@@ -647,7 +654,7 @@ export function GovernanceCheck() {
                 const effectiveAmount =
                   debouncedNlParsed?.amount || amount || "0";
                 const effectiveAgent =
-                  agentList.find((a) => a.id === agentId) || agentList[0];
+                  agentList.find((a) => a.id === effectiveAgentId) || agentList[0];
                 const numAmount = parseFloat(effectiveAmount) || 0;
                 return (
                   <div className="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50/40 dark:bg-sky-950/20 p-3">

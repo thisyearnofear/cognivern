@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Check, Terminal, Code2, Zap, ArrowRight, Shield, Key, Plus, Loader2 } from "lucide-react";
+import { Copy, Check, Terminal, Code2, Zap, ArrowRight, Shield, Key, Plus, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { HelpIcon } from "@/components/ui/help-icon";
 import { apiClient } from "@/lib/api-client";
 import type { ApiKeyCreateResponse } from "@/lib/api-client";
@@ -90,6 +90,12 @@ function ApiKeyGenerator() {
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<
+    | { ok: true; agentCount: number }
+    | { ok: false; message: string }
+    | null
+  >(null);
 
   const handleCreate = useCallback(async () => {
     if (!newKeyName.trim()) return;
@@ -118,6 +124,31 @@ function ApiKeyGenerator() {
       navigator.clipboard.writeText(createdKey.key);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  }, [createdKey]);
+
+  const handleTestKey = useCallback(async () => {
+    if (!createdKey?.key) return;
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await apiClient.getAgents();
+      if (res.success) {
+        const count = (res.data || []).length;
+        setTestResult({ ok: true, agentCount: count });
+      } else {
+        setTestResult({
+          ok: false,
+          message: res.error || "Request failed",
+        });
+      }
+    } catch (err) {
+      setTestResult({
+        ok: false,
+        message: err instanceof Error ? err.message : "Request failed",
+      });
+    } finally {
+      setTesting(false);
     }
   }, [createdKey]);
 
@@ -219,12 +250,51 @@ function ApiKeyGenerator() {
             <code className="font-mono bg-background/50 px-1 rounded">x-api-key</code>{" "}
             header. Next step: try it with a governance check below.
           </p>
+
+          {/* Test your key */}
+          <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800/50">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="h-3.5 w-3.5 text-amber-500" />
+              <span className="text-xs font-semibold">Test your key</span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleTestKey}
+              disabled={testing}
+              className="h-7 gap-1.5 text-xs"
+            >
+              {testing ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Shield className="h-3 w-3" />
+              )}
+              {testing ? "Testing..." : "Verify key works"}
+            </Button>
+            {testResult?.ok && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  Key works — {testResult.agentCount} agent
+                  {testResult.agentCount === 1 ? "" : "s"} visible.
+                </span>
+              </div>
+            )}
+            {testResult && !testResult.ok && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+                <XCircle className="h-3.5 w-3.5 shrink-0" />
+                <span>Key test failed: {testResult.message}</span>
+              </div>
+            )}
+          </div>
+
           <Button
             size="sm"
             variant="ghost"
             onClick={() => {
               setCreatedKey(null);
               setCopied(false);
+              setTestResult(null);
             }}
             className="text-xs"
           >

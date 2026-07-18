@@ -3,9 +3,10 @@
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { mutate } from "swr";
-import { Users, ShieldCheck, ArrowRight, PlayCircle } from "lucide-react";
+import { Users, ShieldCheck, ArrowRight, PlayCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
+import { QuickCheck } from "@/components/dashboard/quick-check";
 
 /**
  * "Pick up where you left off" panel for the dashboard. Shown when a
@@ -13,10 +14,10 @@ import { useAuthStore } from "@/stores/auth-store";
  * i.e. their real workspace is genuinely empty and the populated charts
  * below would all be zeros.
  *
- * Three CTAs, in declining specificity:
- *   1. Create an agent (the most common first step for trading bots)
- *   2. Create a policy (preferred starting point for compliance flows)
- *   3. View sandbox demo (low-pressure fallback for the curious)
+ * The Quick Check card gives testers an immediate "aha moment" — they
+ * can fire a sample governance evaluation right from the dashboard
+ * without navigating anywhere. The two CTAs below it are for setting up
+ * real resources.
  *
  * Once the user has either an agent or a policy this panel disappears
  * — the dashboard's metric cards make sense again.
@@ -43,9 +44,20 @@ export function GetStartedPanel() {
             Your real workspace is ready
           </h2>
           <p className="text-sm text-muted-foreground mt-2">
-            Nothing here yet — no agents, no policies, no runs. Pick a starting
-            point and the dashboard fills in as you go.
+            Nothing here yet — no agents, no policies, no runs. Try a governance
+            check below, then set up your workspace.
           </p>
+        </div>
+
+        {/* Quick win: try a governance check right now */}
+        <div className="text-left">
+          <div className="flex items-center gap-2 mb-2">
+            <Zap className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-semibold">
+              Try it now — no setup needed
+            </span>
+          </div>
+          <QuickCheck />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">

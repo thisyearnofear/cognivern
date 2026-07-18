@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { SignJWT } from "jose";
 import { getDb } from "@backend/db/index.js";
 import type { Workspace } from "@cognivern/shared";
+import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 
 function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -236,6 +237,22 @@ export class WorkspaceController {
         error: "Failed to create workspace",
       });
       return;
+    }
+
+    // Seed a default policy so governance check works on first click.
+    try {
+      WorkspaceDataService.createPolicy(workspaceId, {
+        name: "Default Spend Policy",
+        type: "budget",
+        description:
+          "Auto-created moderate policy: deny single transactions over $1,000, flag daily totals over $500. Adjust or replace this from the Policies page.",
+        rules: [
+          { condition: "amount > 1000", action: "deny" },
+          { condition: "daily_total > 500", action: "flag" },
+        ],
+      });
+    } catch {
+      // Seeding is best-effort — never block workspace creation.
     }
 
     const workspace: Workspace = {
