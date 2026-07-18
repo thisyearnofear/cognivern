@@ -13,7 +13,7 @@ src/frontend/dist/
 
 # ── Daml build artifacts (DARs are rebuilt from source; never commit them) ──
 *.dar
-daml/.daml/
+**/.daml/
 
 # ── TypeScript compiled output in source tree ───────────────────────
 src/backend/**/*.js
@@ -94,10 +94,26 @@ Thumbs.db
 deploy-bundle/
 .vercel/
 
-# ── Video production workspace (HyperFrames source + renders) ──────
-# docs/demo-video.mp4 is the tracked canonical demo and stays tracked.
+# ── Video / media / binary assets (host externally, don't bloat git) ──
 videos/
-docs/demo-video-arbitrum.mp4
+*.mp4
+*.webm
+*.mov
+*.avi
+*.mkv
+*.mp3
+*.wav
+*.aiff
+*.ogg
+*.flac
+docs/*.pptx
+docs/*.pdf
+
+# ── TestSprite transient output ────────────────────────────────────
+src/frontend/testsprite_tests/tmp/
+
+# ── Generated plots / images ───────────────────────────────────────
+scripts/hackathon/*.png
 
 # ── Tool version managers ──────────────────────────────────────────
 .volta/
@@ -132,3 +148,4 @@ remix-smart-bin-monitoring-das/
 /tsc
 /cognivern@*
 /cognivern-frontend@*
+BRIEF.md
