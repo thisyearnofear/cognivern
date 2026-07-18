@@ -1,6 +1,7 @@
 # Tester Guide — Cognivern
 
-**Live app:** https://cognivern.thisyearnofear.com
+**Live app:** https://cognivern.persidian.com
+**API:** https://cognivern.thisyearnofear.com
 **API docs:** https://cognivern.thisyearnofear.com/api/docs/openapi.json
 
 You can test the entire product in under 5 minutes. No setup required —
@@ -10,7 +11,7 @@ your workspace comes pre-seeded with a default agent and spend policy.
 
 ## 1. Sign in (30 seconds)
 
-- Go to https://cognivern.thisyearnofear.com
+- Go to https://cognivern.persidian.com
 - Click **Connect Wallet** (MetaMask, WalletConnect, or email)
 - Sign the SIWE message — no gas, no transaction
 
