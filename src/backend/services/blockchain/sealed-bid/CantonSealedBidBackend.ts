@@ -257,24 +257,32 @@ export class CantonSealedBidBackend implements SealedBidBackend {
 
     // Build the settlementAsset field for the auction create. Daml JSON API
     // encodes Optional as { tag: "Some", value: { contractId: "..." } } or
-    // { tag: "None" }.
-    const settlementAssetField = depositCid
-      ? { tag: "Some", value: { contractId: depositCid } }
-      : { tag: "None" };
+    // { tag: "None" }. We only include the field when a deposit was actually
+    // escrowed — this keeps the backend compatible with both the old DAR
+    // (no settlementAsset field on SealedBidAuction) and the new DAR
+    // (Optional settlementAsset field). When the new DAR is deployed,
+    // non-settlement rounds omit the field and Daml treats missing Optional
+    // as None.
+    const auctionPayload: Record<string, unknown> = {
+      manager: managerParty,
+      eligibleBidders,
+      roundId,
+      description: request.description,
+      serviceCategory: request.serviceCategory,
+      deadline: request.deadline,
+      maxBids: String(request.maxBids),
+    };
+    if (depositCid) {
+      auctionPayload.settlementAsset = {
+        tag: "Some",
+        value: { contractId: depositCid },
+      };
+    }
 
     const created = await this.client.create<AuctionPayload>(
       managerParty,
       this.templates.auction,
-      {
-        manager: managerParty,
-        eligibleBidders,
-        roundId,
-        description: request.description,
-        serviceCategory: request.serviceCategory,
-        deadline: request.deadline,
-        maxBids: String(request.maxBids),
-        settlementAsset: settlementAssetField,
-      },
+      auctionPayload,
     );
     const state: CantonRoundState = {
       roundId,
