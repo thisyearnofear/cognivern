@@ -57,6 +57,8 @@ const createRoundSchema = z.object({
   deadline: z.string().min(1),
   maxBids: z.number().int().positive(),
   backend: z.enum(["fhe", "canton"]).optional(),
+  settlementAmount: z.number().positive().optional(),
+  settlementAssetTag: z.string().optional(),
 });
 
 const submitBidSchema = z.object({
@@ -98,8 +100,8 @@ export class SealedBidController {
         return;
       }
 
-      const { description, serviceCategory, deadline, maxBids, backend } =
-        parse.data;
+      const { description, serviceCategory, deadline, maxBids, backend,
+              settlementAmount, settlementAssetTag } = parse.data;
       const manager =
         req.body.manager ||
         (backend === "canton"
@@ -114,6 +116,8 @@ export class SealedBidController {
         deadline,
         maxBids,
         backend,
+        settlementAmount,
+        settlementAssetTag,
       };
       const round = await this.sealedBidService.createRound(request, manager);
 
