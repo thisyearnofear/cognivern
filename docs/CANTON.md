@@ -139,7 +139,7 @@ CANTON_DEMO_PARTY_IDS=auctioner-cognivern=auctioner-cognivern::122003aa7c491e00a
 
 ## HackCanton S2 — value settlement, bounty lanes & demo rails
 
-### Value settlement — implemented
+### Value settlement — implemented in model, pending DevNet upload
 `CloseAndReveal` now settles **value**, not just an informational record. A
 `PaymentDeposit` template (bearer instrument pattern — issuer is sole signatory,
 `owner` tracks the current holder) is escrowed before the auction opens and
@@ -147,6 +147,14 @@ atomically transferred to the winner inside the same `CloseAndReveal`
 transaction that archives losing bids and emits the `AuctionResult`. The
 `AuctionResult` carries a `settledAsset` reference to the new deposit —
 on-ledger proof that value moved.
+
+**Status:** The Daml source compiles and `SettlementProof.daml` passes all 9
+assertions on the IDE ledger. The updated DAR (`daml-0.0.2.dar`) is pending
+upload to the shared DevNet participant. The existing DevNet rounds continue to
+work on the prior DAR (non-settlement path); settlement rounds will go live
+once the new DAR is uploaded. The backend is backward-compatible — it omits the
+`settlementAsset` field when no deposit is escrowed, so the old DAR accepts
+non-settlement round creation without error.
 
 The deposit is asset-agnostic: today it carries a `Decimal` amount and
 `assetTag` ("USDC"). Swapping in **CBTC** (BitSafe) or **cETH** (OnRails

@@ -64,7 +64,7 @@ reads as a serious Canton product, not a weekend demo:
 | Who are the parties? | Auctioneer (manager) + an eligible-bidder list, enforced by Daml `signatory`/`observer`. |
 | What should each party see? | A `Bid`'s observer is the manager and **only** the manager. Competitors can't even see the contract exists — structural sub-transaction privacy, no FHE/ZK. |
 | Who can approve? | The manager's `CloseAndReveal` choice — the only path that archives bids and emits the result. |
-| What settles atomically? | Winner selection + archive of every losing `Bid` + `AuctionResult` emission + **atomic transfer of escrowed `PaymentDeposit` to the winner**, all in one transaction, no intermediate leak state. Value moves on-ledger — not just an informational record. |
+| What settles atomically? | Winner selection + archive of every losing `Bid` + `AuctionResult` emission, in one transaction, no intermediate leak state. **Value settlement** (atomic transfer of escrowed `PaymentDeposit` to the winner) is implemented in the Daml model and proven via Daml Script — pending DAR upload to DevNet to go live (see "Value settlement" section). |
 | What becomes auditable? | Full ledger history + `AuctionResult` (winner + winning amount + proposal hash) + hash-signed `bid_submitted` / `winner_revealed` events in the CRE run ledger. |
 | Why weaker on a public chain? | Public chains leak bid amounts; FHE needs a threshold-decryption ceremony losers won't join. Canton makes the privacy property *structural*, not cryptographic — the reveal completes in one atomic tx. |
 
@@ -95,7 +95,7 @@ The obvious enterprise objection: *"This demo runs on HackCanton DevNet — what
 | --- | --- |
 | **Today** | Live on HackCanton S2 DevNet with automated lifecycle proof (`pnpm canton:proof` → `.artifacts/canton-devnet-proof-latest.json`). |
 | **Private participant** | The backend is participant-agnostic — point `CANTON_JSON_API_URL` at your own Canton node or a hosted validator. Same Daml package, same REST surface. |
-| **Mainnet-ready model** | Compact four-template Daml package (Daml 3.x · LF 2.1): `SealedBidAuction`, `Bid`, `AuctionResult`, `PaymentDeposit`. The `PaymentDeposit` template implements atomic value settlement — escrow before the auction opens, atomic transfer to the winner inside `CloseAndReveal`. Asset-agnostic: swap the deposit for CBTC (BitSafe) or cETH (OnRails Finance) and the settlement pattern is identical. |
+| **Mainnet-ready model** | Compact four-template Daml package (Daml 3.x · LF 2.1): `SealedBidAuction`, `Bid`, `AuctionResult`, `PaymentDeposit`. The `PaymentDeposit` template implements atomic value settlement — escrow before the auction opens, atomic transfer to the winner inside `CloseAndReveal`. Asset-agnostic: swap the deposit for CBTC (BitSafe) or cETH (OnRails Finance) and the settlement pattern is identical. **Status:** Daml source compiles, Daml Script proof passes (all 9 assertions); pending DAR upload to DevNet to go live on the shared participant. |
 
 ---
 
@@ -136,7 +136,7 @@ This isn't just an argument in this document — it's an interactive toggle on e
 The Canton billing primitive for this is well-suited:
 
 - **Sub-transaction privacy**: Daml contracts only become visible to authorized signatories and observers on the ledger. Create a `Bid` whose observer is the auctioneer alone → other bidders verify the contract exists *as a fact* (it's referenced from the auction) but cannot read *its fields*. This is the privacy property, enforced by the participant node, not by encryption.
-- **Atomic multi-party settlement**: `CloseAndReveal` is a **consuming** Daml choice that, in a single ledger transaction, (a) fetches every bid auth token by its contract ID, (b) selects a winner by an in-model sort routine, (c) **transfers the escrowed `PaymentDeposit` to the winner** (if the auction was created with a settlement asset), (d) consumes every losing `Bid` contract, and (e) creates the `AuctionResult` with the winning amount publicly disclosed to all eligible bidders and a `settledAsset` reference to the new deposit. Outside observers see *one* event: the `AuctionResult`. There is no intermediate state where amounts leak or where the deposit is claimable by two parties.
+- **Atomic multi-party settlement**: `CloseAndReveal` is a **consuming** Daml choice that, in a single ledger transaction, (a) fetches every bid auth token by its contract ID, (b) selects a winner by an in-model sort routine, (c) **transfers the escrowed `PaymentDeposit` to the winner** (if the auction was created with a settlement asset), (d) consumes every losing `Bid` contract, and (e) creates the `AuctionResult` with the winning amount publicly disclosed to all eligible bidders and a `settledAsset` reference to the new deposit. Outside observers see *one* event: the `AuctionResult`. There is no intermediate state where amounts leak or where the deposit is claimable by two parties. *(The value-transfer step is implemented in the Daml model and proven via Daml Script; the DevNet participant currently runs the prior DAR without `PaymentDeposit`, so non-settlement rounds are live while settlement rounds await the DAR upload.)*
 
 The Canton backend is live (`src/backend/services/blockchain/sealed-bid/CantonSealedBidBackend.ts`):
 
@@ -290,7 +290,7 @@ Engineering rigor is the difference between a Canton submission that compiles on
 The Canton backend is covered by `tests/integration/canton-sealed-bid.test.ts` — a Vitest suite that auto-skips if no Daml sandbox is reachable on `localhost:7575`, and asserts four properties the integration with Canton actually depends on. Every assertion in this file is made by querying the **Daml JSON Ledger API directly as the relevant party**, so the privacy and settlement properties are verified by what Canton's participant node actually returns, not by the backend's read-through cache:
 
 1. **End-to-end correctness + post-reveal atomic settlement.** `create → SubmitBid × 3 → close → CloseAndReveal` returns the right winner (Bob, lowest bid) and the right winningBid (24500). The same test then re-queries the **Bid** template as the auctioneer for this round and asserts zero active contracts — losing bids were consumed in-flight by the atomic `CloseAndReveal` transaction. Then it queries the **AuctionResult** template the same way and asserts the on-ledger contract carries `winner === Bob`'s namespaced party id and `winningAmount === 24500`. Both halves of "atomic settlement" are checked against the ledger, not the backend cache.
-5. **Value settlement — atomic PaymentDeposit transfer.** A separate test creates a round with `settlementAmount: 24500, settlementAssetTag: "USDC"`. The backend escrows a `PaymentDeposit` before the auction opens. After `CloseAndReveal`, the test queries the `AuctionResult` on-ledger and asserts `settledAsset.tag === "Some"`. It then queries the `PaymentDeposit` template and asserts the settled deposit's `owner === Bob`'s party ID, `amount === 24500`, and `assetTag === "USDC"` — verifying value moved on-ledger, atomically, in the same transaction as the reveal. Additionally, `daml/scripts/daml/SettlementProof.daml` is a Daml Script that exercises the full settlement flow on the IDE ledger and asserts all post-conditions (winner, deposit ownership transfer, old deposit archived, losing bids archived, `settledAsset` is `Some`).
+5. **Value settlement — atomic PaymentDeposit transfer (sandbox/IDE).** A separate test creates a round with `settlementAmount: 24500, settlementAssetTag: "USDC"`. The backend escrows a `PaymentDeposit` before the auction opens. After `CloseAndReveal`, the test queries the `AuctionResult` on-ledger and asserts `settledAsset.tag === "Some"`. It then queries the `PaymentDeposit` template and asserts the settled deposit's `owner === Bob`'s party ID, `amount === 24500`, and `assetTag === "USDC"` — verifying value moved on-ledger, atomically, in the same transaction as the reveal. Additionally, `daml/scripts/daml/SettlementProof.daml` is a Daml Script that exercises the full settlement flow on the IDE ledger and asserts all post-conditions (winner, deposit ownership transfer, old deposit archived, losing bids archived, `settledAsset` is `Some`). *(This test runs against a local Daml sandbox; the DevNet participant currently runs the prior DAR without `PaymentDeposit`, so the settlement path is model-proven but not yet DevNet-live.)*
 2. **FHE manager-decrypt-and-publish happy path.** `revealWinner` on the FHE path now uses the Option B flow: callers supply a `decryptionProof` (`Array<{bidder, plaintext}>` with every bid covered). Tests assert (a) omitting `decryptionProof` rejects with `"decryption proof required"`, (b) supplying all plaintexts selects the lowest / highest bidder per `selectionMethod`, (c) `missing plaintext for bidder X` structurally rejects so the manager cannot silently drop a competitor, (d) losers are marked `rejected` and the winner `selected` on the round. The old `"threshold decryption of real CoFHE bids is not wired"` error is gone — replaced by behavior-tested reveal semantics on the in-memory backend, with an on-chain counterpart (`contracts/fhenix/src/SealedBidVendorSelection.sol::publishWinner`) gated by `msg.sender == round.manager`.
 3. **Per-round visibility.** With three bidders on one round, querying the Daml JSON Ledger API as `Alice`, `Bob`, and `Charlie` returns exactly one Bid contract per bidder (matched by `payload.bidder === partyId`, not just by count), and querying as `Auctioneer` returns all three. Canton does the filtering; the assertion locks the cardinality *and* the identity.
 4. **Cross-leakage guard.** Querying the Bid template as any individual bidder, **at the whole-ledger scope**, returns only contracts for which that bidder is the signatory. Anything else — a competitor's amount slipping through, a future observer-list broadening — fails this test.
@@ -355,22 +355,26 @@ Three lessons from the HackCanton S2 track guidance shape the next build window:
    headline is the sealed-bid auction; the governance stack is supporting context
    (the auction is governed and audit-logged by agents), not a competing submission.
 
-2. **Settlement of value — implemented.** `CloseAndReveal` now settles **value**,
-   not just an informational record. A new `PaymentDeposit` template (bearer
-   instrument pattern — issuer is sole signatory, `owner` tracks the current
-   holder) is escrowed before the auction opens and atomically transferred to the
-   winner inside the same `CloseAndReveal` transaction that archives losing bids
-   and emits the `AuctionResult`. The `AuctionResult` carries a `settledAsset`
-   reference to the new deposit contract — proof on-ledger that value moved. The
-   deposit is asset-agnostic: today it carries a `Decimal` amount and `assetTag`
-   ("USDC"); swapping in **CBTC** (BitSafe) or **cETH** (OnRails Finance) requires
-   only replacing the `PaymentDeposit` template with the token contract — the
-   `CloseAndReveal` atomicity pattern is unchanged. Verified by
-   `daml/scripts/daml/SettlementProof.daml` — a Daml Script that exercises the
-   full flow (escrow → 3 bids → close → reveal → transfer) and asserts:
-   winner is Bob (lowest bid), deposit owner changed from auctioneer to Bob,
-   old deposit archived, losing bids archived, `AuctionResult.settledAsset` is
-   `Some`. All assertions pass on the Daml IDE ledger.
+2. **Settlement of value — implemented in the model, pending DevNet upload.**
+   `CloseAndReveal` now settles **value**, not just an informational record. A new
+   `PaymentDeposit` template (bearer instrument pattern — issuer is sole signatory,
+   `owner` tracks the current holder) is escrowed before the auction opens and
+   atomically transferred to the winner inside the same `CloseAndReveal`
+   transaction that archives losing bids and emits the `AuctionResult`. The
+   `AuctionResult` carries a `settledAsset` reference to the new deposit contract
+   — proof on-ledger that value moved. The deposit is asset-agnostic: today it
+   carries a `Decimal` amount and `assetTag` ("USDC"); swapping in **CBTC**
+   (BitSafe) or **cETH** (OnRails Finance) requires only replacing the
+   `PaymentDeposit` template with the token contract — the `CloseAndReveal`
+   atomicity pattern is unchanged. Verified by `daml/scripts/daml/SettlementProof.daml`
+   — a Daml Script that exercises the full flow (escrow → 3 bids → close → reveal
+   → transfer) and asserts: winner is Bob (lowest bid), deposit owner changed
+   from auctioneer to Bob, old deposit archived, losing bids archived,
+   `AuctionResult.settledAsset` is `Some`. All 9 assertions pass on the Daml IDE
+   ledger. **The updated DAR (`daml-0.0.2.dar`) is pending upload to the shared
+   DevNet participant — the existing DevNet rounds continue to work on the prior
+   DAR (non-settlement path), and settlement rounds will go live once the new DAR
+   is uploaded.**
 
 3. **Make the demo usable with the PixelPlex rails.** The brief stresses a good
    MVP is "can users sign safely / see what happened / find the right party."
