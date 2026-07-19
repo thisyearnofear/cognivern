@@ -151,7 +151,7 @@ Code: `contracts/fhenix/src/ConfidentialSpendPolicy.sol`, `src/backend/services/
 
 ## Canton Integration — Confidential Vendor Selection
 
-Canton (Daml) is a swappable settlement backend for cognivern's sealed-bid vendor selection. The Fhenix-backed sealed-bid path holds bids as CoFHE ciphertext handles but can't complete the reveal; the Canton backend rewrites the settlement layer so the reveal actually works — atomically, in one transaction — while giving structural sub-transaction privacy that FHE alone can't. For HackCanton S2 the sealed-bid auction is the headline primitive; the agent-governance stack (Fhenix/Filecoin/0G/ChainGPT/X Layer) is supporting context. The open upgrade is wiring a real settlement asset (CBTC / cETH) into the atomic `CloseAndReveal` — see `docs/CANTON.md`.
+Canton (Daml) is a swappable settlement backend for cognivern's sealed-bid vendor selection. The Fhenix-backed sealed-bid path holds bids as CoFHE ciphertext handles but can't complete the reveal; the Canton backend rewrites the settlement layer so the reveal actually works — atomically, in one transaction — while giving structural sub-transaction privacy that FHE alone can't. For HackCanton S2 the sealed-bid auction is the headline primitive; the agent-governance stack (Fhenix/Filecoin/0G/ChainGPT/X Layer) is supporting context. Value settlement is implemented: a `PaymentDeposit` template is escrowed before the auction and atomically transferred to the winner inside `CloseAndReveal` — see `docs/CANTON.md`.
 
 The Canton path is locked against future Daml refactors by a literal-value canary in the post-reveal `AuctionResult` assertion (`winningProposal === "0x2b"` for the bid whose `proposalHash` was pinned in `submitBid`). Four live-sandbox invariants in `tests/integration/canton-sealed-bid.test.ts` cover the settlement + privacy surface — see [`docs/CANTON.md`](./CANTON.md).
 
@@ -166,11 +166,12 @@ The Canton path is locked against future Daml refactors by a literal-value canar
 
 ### Daml model
 
-`daml/daml/Main.daml` defines three templates:
+`daml/daml/Main.daml` defines four templates:
 
-- **`SealedBidAuction`** — signatory `manager`, observers `eligibleBidders`. Carries `roundId` for per-round bid isolation. Choice `SubmitBid` (nonconsuming) creates a Bid; choice `CloseAndReveal` (consuming) archives all bids and emits the AuctionResult atomically.
+- **`PaymentDeposit`** — signatory `issuer`, observer `owner`. Bearer-instrument pattern: the issuer authorizes all transfers, the `owner` field tracks the current holder. Choice `Transfer` (issuer-controlled) consumes the deposit and creates a new one with `owner = recipient`. Used to escrow value before an auction and atomically transfer it to the winner inside `CloseAndReveal`.
+- **`SealedBidAuction`** — signatory `manager`, observers `eligibleBidders`. Carries `roundId` for per-round bid isolation and an optional `settlementAsset` reference to an escrowed `PaymentDeposit`. Choice `SubmitBid` (nonconsuming) creates a Bid; choice `CloseAndReveal` (consuming) transfers the deposit to the winner, archives all bids, and emits the AuctionResult atomically.
 - **`Bid`** — signatory `bidder`, observer `manager` only. Other bidders are **not** observers, so sub-transaction privacy is enforced by the ledger — no cryptography needed. Choice `Consume` (manager-controlled) allows the atomic reveal to archive it.
-- **`AuctionResult`** — signatory `manager`, observers all eligible bidders. Carries winner, winning amount, winning proposal hash.
+- **`AuctionResult`** — signatory `manager`, observers all eligible bidders. Carries winner, winning amount, winning proposal hash, and an optional `settledAsset` reference to the `PaymentDeposit` now owned by the winner.
 
 ### Runtime
 

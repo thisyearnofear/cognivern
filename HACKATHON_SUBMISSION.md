@@ -5,8 +5,8 @@
 **Team:** thisyearnofear
 **Repository:** [github.com/thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)
 **Live product:** [cognivern.vercel.app/sealed-bid](https://cognivern.vercel.app/sealed-bid) · API: `cognivern.thisyearnofear.com`
-**Pitch deck:** `docs/pitch-deck.pptx` (PDF export before final submit if required)  
-**3-min demo video:** `docs/demo-video.mp4` (≈3:00 — **re-record against the current DevNet-backed, curated live product before final submit**)
+**Pitch deck:** `docs/pitch-deck.pptx` (PDF export before final submit if required — file is local, not in git)
+**3-min demo video:** YouTube (⏳ link TBD — re-record against the current DevNet-backed, curated live product before final submit)
 **Backend on-ledger:** Canton Daml backend. **Final eligibility gate:** the submitted build must point at a Canton Network DevNet participant, not the localhost/Hetzner sandbox. Record the DevNet evidence below before submitting.
 
 ## Final eligibility gate — DevNet proof pack
@@ -17,11 +17,11 @@ HackCanton final judging requires the Daml contracts to be deployed and exercise
 | --- | --- |
 | Public repository | `https://github.com/thisyearnofear/cognivern` |
 | Live product URL | `https://cognivern.vercel.app/sealed-bid` |
-| Presentation deck | `docs/pitch-deck.pptx` (export to PDF if the submission form requires a PDF) |
-| 3-minute video pitch/demo | `docs/demo-video.mp4` — ⏳ re-record against the current curated DevNet live product before final submit |
+| Presentation deck | `docs/pitch-deck.pptx` (local file — export to PDF if the submission form requires a PDF) |
+| 3-minute video pitch/demo | YouTube (⏳ link TBD — re-record against the current curated DevNet live product before final submit) |
 | Canton DevNet participant / validator | Shared HackCanton S2 DevNet node: `https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`. Auth: NODERS Keycloak password grant (client `web-app-ui-hackcanton-01-devnet`). Source: `docs/HACKCANTON_DEVNET_MATERIALS.md`. |
 | Uploaded DAR package ID | `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454` |
-| Deployed template IDs | `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:SealedBidAuction`, `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:Bid`, `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:AuctionResult` |
+| Deployed template IDs | `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:SealedBidAuction`, `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:Bid`, `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454:Main:AuctionResult`. *(New DAR with `PaymentDeposit` template pending upload — see settlement section.)* |
 | On-ledger demo evidence | DevNet roundId `0x27328a7a1b5675f5d4869573e01c9221186aa65490cde1dcb497d0bca936915c` — create → 3 bids (alice/bob/charlie) → close → reveal winner `bob-cognivern` at $74,500. Source: `.artifacts/canton-devnet-proof-latest.json` from the production backend. |
 | Backend env points to DevNet | Set: `CANTON_JSON_API_URL=https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`, `CANTON_LEDGER_ID=hackcanton-01`, `CANTON_LEDGER_USER_ID=e6c5f9fc-98ed-491f-b228-00cf931a05cc`, templates `#daml:Main:*`, and `CANTON_DEMO_PARTY_IDS` static map. |
 | Automated lifecycle evidence | `pnpm canton:proof` completed against the production backend (`https://cognivern.thisyearnofear.com`): `.artifacts/canton-devnet-proof-latest.json` contains the full lifecycle + package/template IDs. |
@@ -35,7 +35,7 @@ The Hetzner `cognivern-canton` sandbox remains useful for local demos and regres
 3. ✅ **Fresh DevNet evidence captured:** `pnpm canton:proof` passed against `https://cognivern.thisyearnofear.com` → `.artifacts/canton-devnet-proof-latest.json`.
 4. ✅ **Live product curated** — the sealed-bid list shows a clean featured set on DevNet, not the internal test rounds (`CANTON_FEATURED_ROUNDS`).
 5. ✅ **Party view rebuilt on real per-party ledger queries** (`GET /rounds/:id/party-view`), the atomic-reveal banner made cinematic, and an interactive Canton\|FHE reveal comparison added — landed 2026-07-14.
-6. ⏳ **Re-record the 3-minute demo video** against the current DevNet-backed, curated live product — the party-view toggle and reveal moment from step 5 are the strongest beats to capture. Any earlier recording shows a stale state: `docs/demo-video.mp4`.
+6. ⏳ **Re-record the 3-minute demo video** against the current DevNet-backed, curated live product — the party-view toggle and reveal moment from step 5 are the strongest beats to capture. Upload to YouTube and add the link above.
 7. ⏳ **Export the deck to PDF** if the submission form requires a PDF rather than a PPTX.
 
 ---
@@ -411,8 +411,8 @@ The default backend is `canton`. To switch to the FHE path for comparison, chang
 | Live product | [cognivern.vercel.app/sealed-bid](https://cognivern.vercel.app/sealed-bid) |
 | Public API | `https://cognivern.thisyearnofear.com` |
 | Repository | Public — see top of `README.md` |
-| Pitch deck | `docs/pitch-deck.pptx` (export to PDF before final submit if required) |
-| 3-minute demo video | `docs/demo-video.mp4` (≈3:00; ⏳ re-record against the curated DevNet live product before submit) |
+| Pitch deck | `docs/pitch-deck.pptx` (local file — export to PDF before final submit if required) |
+| 3-minute demo video | YouTube (⏳ link TBD — re-record against the curated DevNet live product before submit) |
 | TestSprite backend dashboards | 24 tests · 30 MCP frontend tests · `./LOOP.md` for the iteration log |
 
 ---

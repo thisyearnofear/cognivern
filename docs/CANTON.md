@@ -137,14 +137,27 @@ CANTON_DEMO_PARTY_IDS=auctioner-cognivern=auctioner-cognivern::122003aa7c491e00a
 
 `CANTON_DEMO_PARTY_IDS` is required on shared DevNet nodes because the authenticated user typically lacks rights to list or allocate parties.
 
-## HackCanton S2 — settlement gap, bounty lanes & demo rails
+## HackCanton S2 — value settlement, bounty lanes & demo rails
 
-### The open gap: informational settlement
-`CloseAndReveal` today archives losing bids and emits an `AuctionResult` whose
-`winningAmount` is a plain `Decimal`. No asset moves — the auction *decides* a
-winner and announces the number; it does not *pay* them. That is the one place
-the current build under-answers the HackCanton S2 builder-test question "what
-settles atomically?" and it is also the gateway to the track's bounty lanes.
+### Value settlement — implemented
+`CloseAndReveal` now settles **value**, not just an informational record. A
+`PaymentDeposit` template (bearer instrument pattern — issuer is sole signatory,
+`owner` tracks the current holder) is escrowed before the auction opens and
+atomically transferred to the winner inside the same `CloseAndReveal`
+transaction that archives losing bids and emits the `AuctionResult`. The
+`AuctionResult` carries a `settledAsset` reference to the new deposit —
+on-ledger proof that value moved.
+
+The deposit is asset-agnostic: today it carries a `Decimal` amount and
+`assetTag` ("USDC"). Swapping in **CBTC** (BitSafe) or **cETH** (OnRails
+Finance) requires only replacing the `PaymentDeposit` template with the token
+contract — the `CloseAndReveal` atomicity pattern is unchanged.
+
+Verified by `daml/scripts/daml/SettlementProof.daml` — a Daml Script that
+exercises the full flow (escrow → 3 bids → close → reveal → transfer) and
+asserts: winner is Bob (lowest bid), deposit owner changed from auctioneer
+to Bob, old deposit archived, losing bids archived, `AuctionResult.settledAsset`
+is `Some`. All assertions pass on the Daml IDE ledger.
 
 ### Bounty-lane scoping (recommendation: CBTC private OTC)
 - **CBTC (BitSafe) — best fit.** The sealed-bid vendor-selection / OTC flow is
@@ -153,18 +166,9 @@ settles atomically?" and it is also the gateway to the track's bounty lanes.
   `CloseAndReveal`. Lowest conceptual lift; strongest narrative fit.
 - **cETH (OnRails Finance) — also viable.** Maps to "private collateral / OTC
   settlement." Same atomic-settlement pattern, different asset package.
-- **Decision:** pursue CBTC first; keep cETH as a drop-in second backend once the
-  settlement seam exists (the `SettlementLeg` below is asset-agnostic).
-
-### Settlement seam (design)
-Add a `SettlementLeg` to `SealedBidAuction` (asset reference + amount + recipient
-role) and a `Settle` choice on the escrowed asset, exercised atomically from
-`CloseAndReveal` right after the winner is selected and before losers are archived.
-Because Daml exercises are all-or-nothing, the asset transfer and the bid archival
-either both happen or neither does — preserving the atomicity property.
-A draft, self-contained Daml module lives at `daml/daml/Settlement.daml` (this
-repo) using a minimal local `EscrowAsset` placeholder so it compiles today; swap
-the placeholder for the CBTC/cETH Daml package when its interface is available.
+- **Decision:** pursue CBTC first; keep cETH as a drop-in second backend. The
+  `PaymentDeposit` template is asset-agnostic — swap the deposit for the
+  CBTC/cETH Daml package when its interface is available.
 
 ### Demo rails (PixelPlex)
 - **Console Wallet** — sign `SubmitBid` / `CloseAndReveal` as a real party.
@@ -244,7 +248,7 @@ The cognivern backend code is participant-agnostic — swapping from sandbox to 
 Capture these before submitting so the deployment requirement is undeniable:
 
 - DevNet participant / validator identifier and JSON API base URL used by the submitted backend.
-- Uploaded DAR package ID and the three template IDs configured in production.
+- Uploaded DAR package ID and the four template IDs configured in production.
 - One fresh DevNet lifecycle trace: `SealedBidAuction` create contract ID, three `Bid` contract IDs, `CloseAndReveal` exercise transaction, and resulting `AuctionResult` contract ID.
 - A public product URL exercising the DevNet-backed API, plus a screenshot or clip showing create → bid privacy view → reveal.
 - A fresh API response with non-expired deadlines or a newly-created round for the demo path.

@@ -1,6 +1,6 @@
 # Pitch Deck Source — Cognivern on Canton
 
-**Generated file:** `docs/pitch-deck.pptx`  
+**Generated file:** `docs/pitch-deck.pptx` (local, not in git — export to PDF for submission)
 **Generator script:** `scripts/create-pitch-deck.py`  
 **Regenerate:** `pnpm pitch-deck` (or `/usr/local/bin/python3.13 scripts/create-pitch-deck.py`)
 
@@ -76,7 +76,7 @@ Two lines do the privacy work: `observer manager` on `Bid`, and `CloseAndReveal`
 - **31+** Vitest integration & unit tests.
 - **24** TestSprite CLI backend tests on the live API.
 - **Direct** ledger assertions per party role.
-- **79** lines of Daml across 3 templates.
+- **~160** lines of Daml across 4 templates.
 
 Privacy invariants are asserted by querying the Daml JSON Ledger API directly as each party — not by trusting the backend cache. Legal and risk teams get an immutable, non-repudiable audit trail.
 
@@ -113,13 +113,12 @@ One primitive, four institutional workflows:
 
 1. **Today** — Live on HackCanton S2 DevNet with on-ledger proof artifacts (`pnpm canton:proof`).
 2. **Private participant** — Same backend is participant-agnostic; point at your Canton node or hosted validator.
-3. **Mainnet-ready** — Daml SDK 3.5.x; SettlementLeg upgrade for atomic value transfer.
+3. **Mainnet-ready** — Daml SDK 3.4.11; `PaymentDeposit` template for atomic value transfer, asset-agnostic (swap for CBTC/cETH).
 
 ## Slide 12 — Roadmap: atomic value settlement
 
-1. **Today** — `CloseAndReveal` archives bids and emits `AuctionResult` with winning amount.
-2. **Next** — Add a `SettlementLeg` and exercise the escrowed asset's `Settle` choice inside the same `CloseAndReveal` transaction.
-3. **Bounty lane** — CBTC (BitSafe) private OTC escrow or cETH (OnRails) private collateral — 50,000 CC bounty.
+1. **Today** — `CloseAndReveal` atomically transfers an escrowed `PaymentDeposit` to the winner, archives losing bids, and emits `AuctionResult` with `settledAsset` reference — value moves on-ledger.
+2. **Bounty lane** — Swap `PaymentDeposit` for CBTC (BitSafe) private OTC escrow or cETH (OnRails) private collateral — 50,000 CC bounty.
 
 ## Slide 13 — Why us
 
