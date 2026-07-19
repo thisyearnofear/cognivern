@@ -172,8 +172,8 @@ template SealedBidAuction
           winningProposal = winner.proposalHash
           description
           serviceCategory
-          settledAsset    = settledCid
           revealedAt      = now
+          settledAsset    = settledCid
 
 -- ── Bid ─────────────────────────────────────────────────────────────────────
 -- A sealed bid. Signatory is the bidder (they authorize it) — observer is
@@ -223,8 +223,8 @@ template AuctionResult
     winningProposal : Text
     description     : Text
     serviceCategory : Text
-    settledAsset    : Optional (ContractId PaymentDeposit)
     revealedAt      : Time
+    settledAsset    : Optional (ContractId PaymentDeposit)
   where
     signatory manager
     observer eligibleBidders
