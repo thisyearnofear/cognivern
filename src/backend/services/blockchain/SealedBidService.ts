@@ -1,5 +1,6 @@
 import logger from "@backend/utils/logger.js";
 import { sharedFhenixPolicyService } from "./FhenixPolicyService.js";
+import { rebuildSealedBidRoundMapping } from "@backend/cre/workflows/sealedBidGovernance.js";
 import type { SealedBidBackend } from "./sealed-bid/SealedBidBackend.js";
 import {
   FheSealedBidBackend,
@@ -32,11 +33,19 @@ export type {
   SubmitBidRequest,
 } from "./sealed-bid/types.js";
 
+// Off-ledger governance metadata for a sealed-bid round.
+// Stored separately from the backend round so no Daml model change is needed.
+interface RoundGovernance {
+  createdByAgent: string;
+  governanceRunId: string;
+}
+
 // Thin async dispatcher over pluggable sealed-bid backends.
 // Round IDs are unique across backends; we remember which backend owns each.
 export class SealedBidService {
   private backends = new Map<BackendName, SealedBidBackend>();
   private roundToBackend = new Map<string, BackendName>();
+  private governanceByRoundId = new Map<string, RoundGovernance>();
 
   // Keep the historical constructor signature. Passing an encryptFn wires it
   // to the FHE backend as before; leaving it undefined disables FHE bid
@@ -68,30 +77,39 @@ export class SealedBidService {
       );
     const round = await backend.createRound(request, manager);
     this.roundToBackend.set(round.roundId, backendName);
-    return round;
+    return this.withGovernance(round);
   }
 
   async submitBid(
     roundId: string,
     request: SubmitBidRequest,
-  ): Promise<BidRecord> {
-    return (await this.resolveBackend(roundId)).submitBid(roundId, request);
+  ): Promise<{ bid: BidRecord; governanceRunId?: string }> {
+    const backend = await this.resolveBackend(roundId);
+    const bid = await backend.submitBid(roundId, request);
+    const governance = this.getGovernance(roundId);
+    return { bid, governanceRunId: governance?.governanceRunId };
   }
 
   async closeRound(roundId: string, caller: string): Promise<SealedBidRound> {
-    return (await this.resolveBackend(roundId)).closeRound(roundId, caller);
+    const backend = await this.resolveBackend(roundId);
+    const round = await backend.closeRound(roundId, caller);
+    return this.withGovernance(round);
   }
 
   async revealWinner(
     roundId: string,
     request: RevealRequest,
   ): Promise<SealedBidRound> {
-    return (await this.resolveBackend(roundId)).revealWinner(roundId, request);
+    const backend = await this.resolveBackend(roundId);
+    const round = await backend.revealWinner(roundId, request);
+    return this.withGovernance(round);
   }
 
   async getRound(roundId: string): Promise<SealedBidRound | null> {
     try {
-      return (await this.resolveBackend(roundId)).getRound(roundId);
+      const backend = await this.resolveBackend(roundId);
+      const round = await backend.getRound(roundId);
+      return round ? this.withGovernance(round) : null;
     } catch {
       return null;
     }
@@ -109,7 +127,52 @@ export class SealedBidService {
     const all = await Promise.all(
       Array.from(this.backends.values()).map((b) => b.listRounds()),
     );
-    return all.flat();
+    return all.flat().map((r) => this.withGovernance(r));
+  }
+
+  /**
+   * Attach off-ledger agent governance metadata to a round, if any exists.
+   * This keeps the Daml model unchanged while still surfacing agent ownership
+   * and the CRE run id in API responses.
+   */
+  withGovernance(round: SealedBidRound): SealedBidRound {
+    const governance = this.governanceByRoundId.get(round.roundId);
+    if (!governance) return round;
+    return {
+      ...round,
+      createdByAgent: governance.createdByAgent,
+      governanceRunId: governance.governanceRunId,
+    };
+  }
+
+  /**
+   * Register agent governance metadata for a round. Called by the controller
+   * after it creates a governance run for an agent-initiated round.
+   */
+  setGovernance(
+    roundId: string,
+    governance: RoundGovernance,
+  ): void {
+    this.governanceByRoundId.set(roundId, governance);
+  }
+
+  /**
+   * Rebuild the in-memory round→governance mapping from persisted CRE runs.
+   * Call this after a process restart so that agent-governed rounds created
+   * before the restart can still record bid/reveal events.
+   */
+  async bootstrapGovernance(): Promise<void> {
+    const mapping = await rebuildSealedBidRoundMapping();
+    for (const [roundId, governance] of mapping.entries()) {
+      this.governanceByRoundId.set(roundId, governance);
+    }
+  }
+
+  /**
+   * Retrieve the governance metadata for a round, if any.
+   */
+  getGovernance(roundId: string): RoundGovernance | undefined {
+    return this.governanceByRoundId.get(roundId);
   }
 
   // Async resolve — falls back to probing every backend on cache miss so

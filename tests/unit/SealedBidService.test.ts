@@ -63,7 +63,7 @@ describe('SealedBidService', () => {
   it('submitBid adds a bid to an open round', async () => {
     const service = createService();
     const round = await service.createRound(defaultRound, 'manager-1');
-    const bid = await service.submitBid(round.roundId, defaultBid());
+    const { bid } = await service.submitBid(round.roundId, defaultBid());
 
     expect(bid.encryptedAmount).toContain('ctHash');
     expect(bid.proposalHash.startsWith('0x')).toBeTruthy();
@@ -126,7 +126,7 @@ describe('SealedBidService', () => {
     const service = createService();
     const round = await service.createRound(defaultRound, 'manager-1');
 
-    const bid = await service.submitBid(round.roundId, defaultBid({ proposalDetails: undefined }));
+    const { bid } = await service.submitBid(round.roundId, defaultBid({ proposalDetails: undefined }));
 
     expect(bid.proposalHash.startsWith('0x')).toBeTruthy();
   });
@@ -136,11 +136,11 @@ describe('SealedBidService', () => {
     const round1 = await service.createRound(defaultRound, 'manager-1');
     const round2 = await service.createRound(defaultRound, 'manager-1');
 
-    const bid1 = await service.submitBid(
+    const { bid: bid1 } = await service.submitBid(
       round1.roundId,
       defaultBid({ proposalDetails: 'Same proposal' }),
     );
-    const bid2 = await service.submitBid(
+    const { bid: bid2 } = await service.submitBid(
       round2.roundId,
       defaultBid({ proposalDetails: 'Same proposal' }),
     );
@@ -152,9 +152,9 @@ describe('SealedBidService', () => {
     const service = createService();
     const round = await service.createRound(defaultRound, 'manager-1');
 
-    const bid1 = await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorA' }));
-    const bid2 = await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorB' }));
-    const bid3 = await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorC' }));
+    const { bid: bid1 } = await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorA' }));
+    const { bid: bid2 } = await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorB' }));
+    const { bid: bid3 } = await service.submitBid(round.roundId, defaultBid({ bidder: '0xVendorC' }));
 
     expect(bid1.index).toBe(0);
     expect(bid2.index).toBe(1);

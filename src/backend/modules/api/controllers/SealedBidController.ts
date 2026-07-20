@@ -19,6 +19,12 @@ import {
 import { AuditLogService } from "@backend/services/governance/AuditLogService.js";
 import { Logger } from "@backend/shared/logging/Logger.js";
 import { sharedWalletPartyRegistry } from "@backend/canton/WalletPartyRegistry.js";
+import {
+  startAgentRoundCreation,
+  evaluateClosePolicy,
+  recordSealedBidEvent,
+  getGovernanceTimeline,
+} from "@backend/cre/workflows/sealedBidGovernance.js";
 
 const logger = new Logger("SealedBidController");
 
@@ -59,6 +65,7 @@ const createRoundSchema = z.object({
   backend: z.enum(["fhe", "canton"]).optional(),
   settlementAmount: z.number().positive().optional(),
   settlementAssetTag: z.string().optional(),
+  agentId: z.string().min(1).optional(),
 });
 
 const submitBidSchema = z.object({
@@ -85,6 +92,22 @@ export class SealedBidController {
   }
 
   /**
+   * Called once by ApiModule during startup. Rebuilds the in-memory
+   * round→governance mapping from persisted CRE runs so that agent-governed
+   * rounds survive a process restart.
+   */
+  async initialize(): Promise<void> {
+    try {
+      await sharedSealedBidService.bootstrapGovernance();
+    } catch (error) {
+      logger.warn(
+        "Failed to bootstrap sealed-bid governance mapping; continuing without it",
+        error,
+      );
+    }
+  }
+
+  /**
    * POST /api/vendor/sealed-bid/rounds
    * Create a new sealed-bid round.
    */
@@ -100,8 +123,16 @@ export class SealedBidController {
         return;
       }
 
-      const { description, serviceCategory, deadline, maxBids, backend,
-              settlementAmount, settlementAssetTag } = parse.data;
+      const {
+        description,
+        serviceCategory,
+        deadline,
+        maxBids,
+        backend,
+        settlementAmount,
+        settlementAssetTag,
+        agentId,
+      } = parse.data;
       const manager =
         req.body.manager ||
         (backend === "canton"
@@ -121,6 +152,33 @@ export class SealedBidController {
       };
       const round = await this.sealedBidService.createRound(request, manager);
 
+      // If an agent initiated this round, create the off-ledger governance run
+      // and attach its metadata to the round record. The Daml contract itself
+      // is unchanged — agent governance is an off-ledger layer.
+      if (agentId) {
+        const { runId } = await startAgentRoundCreation({
+          agentId,
+          roundId: round.roundId,
+          roundParams: {
+            description,
+            serviceCategory,
+            maxBids,
+            deadline,
+            settlementAmount,
+            settlementAssetTag,
+          },
+        });
+        this.sealedBidService.setGovernance(round.roundId, {
+          createdByAgent: agentId,
+          governanceRunId: runId,
+        });
+      }
+
+      // Re-fetch so the response includes any governance metadata attached above.
+      const roundWithGovernance = await this.sealedBidService.getRound(
+        round.roundId,
+      );
+
       fireAndForgetAudit(this.auditLog, "sealed_bid.round_created", {
         roundId: round.roundId,
         backend: round.backend,
@@ -129,11 +187,12 @@ export class SealedBidController {
         serviceCategory: round.serviceCategory,
         deadline: round.deadline,
         maxBids: round.maxBids,
+        createdByAgent: agentId ?? null,
       });
 
       res.status(201).json({
         success: true,
-        data: round,
+        data: roundWithGovernance,
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
@@ -173,19 +232,42 @@ export class SealedBidController {
         ? await sharedWalletPartyRegistry.assign(wallet)
         : parse.data.bidder;
       const request: SubmitBidRequest = { bidder, amountUsd, proposalDetails };
-      const bid = await this.sealedBidService.submitBid(roundId, request);
+      const { bid, governanceRunId } = await this.sealedBidService.submitBid(
+        roundId,
+        request,
+      );
 
       // Note: amountUsd is intentionally excluded from the audit record — for
       // Canton rounds only the auctioneer should ever see it, and the audit
       // trail is fetched by anyone with an API key. proposalHash is a safe
       // commitment; ratcheting up transparency happens at reveal time.
-      fireAndForgetAudit(this.auditLog, "sealed_bid.bid_submitted", {
+      const bidAuditDetails: Record<string, unknown> = {
         roundId,
         bidder: bid.bidder,
         proposalHash: bid.proposalHash,
         index: bid.index,
         submittedAt: bid.submittedAt,
-      });
+      };
+      fireAndForgetAudit(this.auditLog, "sealed_bid.bid_submitted", bidAuditDetails);
+
+      // For agent-governed rounds, also record a hash-signed event in the CRE
+      // run ledger. amountUsd is intentionally excluded — same privacy rule.
+      // The service returns the governance run id alongside the bid, so we avoid
+      // an extra round-trip to look it up.
+      if (governanceRunId) {
+        recordSealedBidEvent({
+          runId: governanceRunId,
+          eventType: "bid_submitted",
+          payload: {
+            roundId,
+            bidder: bid.bidder,
+            proposalHash: bid.proposalHash,
+            index: bid.index,
+          },
+        }).catch((err) =>
+          logger.warn("Failed to record bid_submitted governance event", err),
+        );
+      }
 
       res.status(201).json({
         success: true,
@@ -220,13 +302,61 @@ export class SealedBidController {
   async closeRound(req: Request, res: Response) {
     try {
       const { roundId } = req.params;
+      const roundBefore = await this.sealedBidService.getRound(roundId);
+      if (!roundBefore) {
+        res.status(404).json({
+          success: false,
+          error: `Round ${roundId} not found`,
+        });
+        return;
+      }
+
       const caller =
         req.body.manager ||
-        (await this.sealedBidService.getRound(roundId))?.manager ||
+        roundBefore.manager ||
         (req.headers["x-api-key"] as string) ||
         "demo-manager";
 
+      // For agent-governed rounds, policy must pass before the close is
+      // allowed. Non-agent rounds skip this gate entirely.
+      let policyChecks;
+      if (roundBefore.governanceRunId) {
+        const result = await evaluateClosePolicy({
+          runId: roundBefore.governanceRunId,
+          roundId,
+          bidCount: roundBefore.bids.length,
+          deadline: roundBefore.deadline,
+        });
+        if (!result.allowed) {
+          res.status(403).json({
+            success: false,
+            error: "Policy gate failed",
+            policyChecks: result.checks,
+            reason: result.reason,
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+        policyChecks = result.checks;
+      }
+
       const round = await this.sealedBidService.closeRound(roundId, caller);
+
+      // Record the round_closed event in the CRE run ledger for agent-governed
+      // rounds after the close succeeds.
+      if (round.governanceRunId) {
+        recordSealedBidEvent({
+          runId: round.governanceRunId,
+          eventType: "round_closed",
+          payload: {
+            roundId: round.roundId,
+            bidCount: round.bids.length,
+            closedBy: caller,
+          },
+        }).catch((err) =>
+          logger.warn("Failed to record round_closed governance event", err),
+        );
+      }
 
       fireAndForgetAudit(this.auditLog, "sealed_bid.round_closed", {
         roundId: round.roundId,
@@ -241,6 +371,7 @@ export class SealedBidController {
           roundId: round.roundId,
           status: round.status,
           bidCount: round.bids.length,
+          policyChecks,
           note: `Round closed with ${round.bids.length} encrypted bids`,
         },
         timestamp: new Date().toISOString(),
@@ -294,6 +425,27 @@ export class SealedBidController {
         winningProposalHash: round.winningProposalHash,
         totalBids: round.bids.length,
       });
+
+      // For agent-governed rounds, record the winner_revealed event in the CRE
+      // run ledger. The winning amount is public at reveal time via AuctionResult.
+      if (round.governanceRunId) {
+        recordSealedBidEvent({
+          runId: round.governanceRunId,
+          eventType: "winner_revealed",
+          payload: {
+            roundId: round.roundId,
+            winner: round.winner,
+            winningBid: round.winningBid,
+            winningProposalHash: round.winningProposalHash,
+            totalBids: round.bids.length,
+          },
+        }).catch((err) =>
+          logger.warn(
+            "Failed to record winner_revealed governance event",
+            err,
+          ),
+        );
+      }
 
       res.status(200).json({
         success: true,
@@ -361,6 +513,50 @@ export class SealedBidController {
   }
 
   /**
+   * GET /api/vendor/sealed-bid/rounds/:roundId/governance-timeline
+   * Return the tamper-evident CRE run ledger timeline for an agent-governed
+   * round. 404 if the round is not agent-governed.
+   */
+  async getGovernanceTimeline(req: Request, res: Response) {
+    try {
+      const { roundId } = req.params;
+      const round = await this.sealedBidService.getRound(roundId);
+      if (!round) {
+        res.status(404).json({
+          success: false,
+          error: `Round ${roundId} not found`,
+        });
+        return;
+      }
+
+      if (!round.governanceRunId) {
+        res.status(404).json({
+          success: false,
+          error: "Round is not agent-governed",
+        });
+        return;
+      }
+
+      const timeline = await getGovernanceTimeline(round.governanceRunId);
+      res.status(200).json({
+        success: true,
+        data: timeline,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      logger.error(
+        `SealedBid: getGovernanceTimeline failed for ${req.params.roundId}`,
+        error,
+      );
+      res.status(500).json({
+        success: false,
+        error: error.message || "Failed to get governance timeline",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
    * GET /api/vendor/sealed-bid/rounds/:roundId/party-view?party=<name>
    * Query the ledger AS the given party and return exactly the bids that party
    * can read on-ledger — real per-party disclosure, not a client-side filter.
@@ -418,6 +614,8 @@ export class SealedBidController {
         winningBid: r.winningBid,
         createdAt: r.createdAt,
         backend: r.backend,
+        createdByAgent: r.createdByAgent,
+        governanceRunId: r.governanceRunId,
       }));
 
       // Curated demo state: when CANTON_FEATURED_ROUNDS is set, the default

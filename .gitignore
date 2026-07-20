@@ -96,6 +96,7 @@ deploy-bundle/
 
 # ── Video / media / binary assets (host externally, don't bloat git) ──
 videos/
+docs/demo-video-canton/
 *.mp4
 *.webm
 *.mov

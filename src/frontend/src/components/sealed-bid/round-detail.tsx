@@ -86,6 +86,9 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   async function refresh() {
     await mutate(`/api/vendor/sealed-bid/rounds/${roundId}`);
     await mutate("/api/vendor/sealed-bid/rounds");
+    await mutate(
+      `/api/vendor/sealed-bid/rounds/${roundId}/governance-timeline`,
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {

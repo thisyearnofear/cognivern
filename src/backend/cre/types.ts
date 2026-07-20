@@ -1,30 +1,35 @@
 export type ChainId = number;
 export type CreRunStatus =
-  | "queued"
-  | "running"
-  | "paused_for_approval"
-  | "cancelled"
-  | "completed"
-  | "failed";
+  | 'queued'
+  | 'running'
+  | 'paused_for_approval'
+  | 'cancelled'
+  | 'completed'
+  | 'failed';
 export type CreRunEventType =
-  | "run_started"
-  | "message_delta"
-  | "tool_call_started"
-  | "tool_result"
-  | "run_paused_for_approval"
-  | "run_cancel_requested"
-  | "run_cancelled"
-  | "run_retry_requested"
-  | "run_finished"
-  | "run_failed";
+  | 'run_started'
+  | 'message_delta'
+  | 'tool_call_started'
+  | 'tool_result'
+  | 'run_paused_for_approval'
+  | 'run_cancel_requested'
+  | 'run_cancelled'
+  | 'run_retry_requested'
+  | 'run_finished'
+  | 'run_failed'
+  | 'sealed_bid.round_created'
+  | 'sealed_bid.bid_submitted'
+  | 'sealed_bid.policy_checked'
+  | 'sealed_bid.round_closed'
+  | 'sealed_bid.winner_revealed';
 
 export type CreStepKind =
-  | "cron"
-  | "http"
-  | "confidential_http"
-  | "evm_read"
-  | "evm_write"
-  | "compute";
+  | 'cron'
+  | 'http'
+  | 'confidential_http'
+  | 'evm_read'
+  | 'evm_write'
+  | 'compute';
 
 export interface CreStepLog {
   kind: CreStepKind;
@@ -62,7 +67,7 @@ export interface CreRunPlanStep {
   title: string;
   description?: string;
   enabled: boolean;
-  status?: "pending" | "approved" | "rejected";
+  status?: 'pending' | 'approved' | 'rejected';
 }
 
 export interface CreRunPlan {
@@ -75,13 +80,13 @@ export interface CreRunPlan {
 export interface CreArtifact {
   id: string;
   type:
-    | "sapience_conditions"
-    | "chainlink_price_feeds"
-    | "llm_forecast"
-    | "attestation_request"
-    | "attestation_result"
-    | "spend_intent"
-    | "error";
+    | 'sapience_conditions'
+    | 'chainlink_price_feeds'
+    | 'llm_forecast'
+    | 'attestation_request'
+    | 'attestation_result'
+    | 'spend_intent'
+    | 'error';
   createdAt: string;
   data: unknown;
   evidence?: {
@@ -98,8 +103,8 @@ export interface CreArtifact {
 export interface CreRun {
   runId: string;
   projectId?: string;
-  workflow: "forecasting" | "governance" | "registration" | "spend" | "generic";
-  mode: "local" | "cre";
+  workflow: 'forecasting' | 'governance' | 'registration' | 'spend' | 'sealed_bid' | 'generic';
+  mode: 'local' | 'cre';
   startedAt: string;
   finishedAt?: string;
   ok: boolean;
@@ -108,7 +113,7 @@ export interface CreRun {
   retryCount?: number;
   currentStepName?: string;
   requiresApproval?: boolean;
-  approvalState?: "not_required" | "pending" | "approved" | "rejected";
+  approvalState?: 'not_required' | 'pending' | 'approved' | 'rejected';
   approvalReason?: string;
   plan?: CreRunPlan;
   controls?: {
@@ -124,7 +129,7 @@ export interface CreRun {
     estimatedCostUsd?: number;
   };
   provenance?: {
-    source: "cognivern" | "ingested";
+    source: 'cognivern' | 'ingested';
     workflowVersion?: string;
     model?: string;
     citations?: Array<{ label: string; value: string }>;

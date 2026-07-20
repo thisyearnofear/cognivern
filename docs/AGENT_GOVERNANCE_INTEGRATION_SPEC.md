@@ -6,6 +6,12 @@ event is recorded as a hash-signed event in the CRE run ledger. This makes the
 submission credible for Track 3 (Agentic Commerce) alongside Track 1 (Private
 DeFi).
 
+**Status:** Implemented, polished, and verified. All three owners completed
+their files; typecheck is clean; backend and frontend tests pass. The polish
+items (typed 403 response, `submitBid` lookup optimization, restart-scenario
+integration test, and startup governance bootstrap) are complete. The
+integration is live on the deployed backend.
+
 **Hard constraint:** No Daml model changes. `createdByAgent` and
 `governanceRunId` live on the off-ledger round record in the backend, not on
 the on-ledger `SealedBidAuction` contract. This avoids a DAR rebuild + NODERS
@@ -382,7 +388,9 @@ happen. If they do, it's a spec violation — re-read this doc.
    with `winningBid` in payload (public at reveal time).
 
 6. **Governance timeline** — `GET /rounds/:id/governance-timeline` → returns
-   all 6 events in order with hashes. Frontend renders them as a timeline.
+   all events in order with hashes (typically 6 events for a single close, or
+   8 if the first close is blocked by the policy gate and a second close later
+   succeeds). Frontend renders them as a timeline.
 
 7. **Backward compatibility** — `POST /rounds` without `agentId` → response
    has no governance fields → `closeRound` skips policy → works as before.

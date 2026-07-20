@@ -33,6 +33,13 @@ export interface SealedBidRound {
   settledAssetCid?: string | null;
   settlementAmount?: number | null;
   settlementAssetTag?: string | null;
+  // Agent governance — present when the round was created by a software agent
+  // through the governance layer. `createdByAgent` is the agent id;
+  // `governanceRunId` is the CRE run that records the tamper-evident event
+  // trail (round_created, bid_submitted, policy_checked, round_closed,
+  // winner_revealed).
+  createdByAgent?: string;
+  governanceRunId?: string;
 }
 
 // A bid as returned by the ledger when queried AS a specific party — the

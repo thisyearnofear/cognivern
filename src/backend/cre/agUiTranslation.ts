@@ -1,21 +1,18 @@
-import { CreRunEvent, CreRunEventType } from "./types.js";
+import { CreRunEvent, CreRunEventType } from './types.js';
 
 export enum AgUiEventType {
-  RUN_STARTED = "RUN_STARTED",
-  RUN_FINISHED = "RUN_FINISHED",
-  RUN_ERROR = "RUN_ERROR",
-  TEXT_MESSAGE_CONTENT = "TEXT_MESSAGE_CONTENT",
-  TOOL_CALL_START = "TOOL_CALL_START",
-  TOOL_CALL_RESULT = "TOOL_CALL_RESULT",
-  STEP_STARTED = "STEP_STARTED",
-  STEP_FINISHED = "STEP_FINISHED",
-  CUSTOM = "CUSTOM",
+  RUN_STARTED = 'RUN_STARTED',
+  RUN_FINISHED = 'RUN_FINISHED',
+  RUN_ERROR = 'RUN_ERROR',
+  TEXT_MESSAGE_CONTENT = 'TEXT_MESSAGE_CONTENT',
+  TOOL_CALL_START = 'TOOL_CALL_START',
+  TOOL_CALL_RESULT = 'TOOL_CALL_RESULT',
+  STEP_STARTED = 'STEP_STARTED',
+  STEP_FINISHED = 'STEP_FINISHED',
+  CUSTOM = 'CUSTOM',
 }
 
-const creToAgUiMap: Record<
-  CreRunEventType,
-  { agUiType: AgUiEventType; agUiName?: string }
-> = {
+const creToAgUiMap: Record<CreRunEventType, { agUiType: AgUiEventType; agUiName?: string }> = {
   run_started: { agUiType: AgUiEventType.RUN_STARTED },
   run_finished: { agUiType: AgUiEventType.RUN_FINISHED },
   run_failed: { agUiType: AgUiEventType.RUN_ERROR },
@@ -24,16 +21,36 @@ const creToAgUiMap: Record<
   tool_result: { agUiType: AgUiEventType.TOOL_CALL_RESULT },
   run_paused_for_approval: {
     agUiType: AgUiEventType.CUSTOM,
-    agUiName: "approval_required",
+    agUiName: 'approval_required',
   },
   run_cancel_requested: {
     agUiType: AgUiEventType.CUSTOM,
-    agUiName: "cancel_requested",
+    agUiName: 'cancel_requested',
   },
-  run_cancelled: { agUiType: AgUiEventType.CUSTOM, agUiName: "run_cancelled" },
+  run_cancelled: { agUiType: AgUiEventType.CUSTOM, agUiName: 'run_cancelled' },
   run_retry_requested: {
     agUiType: AgUiEventType.CUSTOM,
-    agUiName: "retry_requested",
+    agUiName: 'retry_requested',
+  },
+  'sealed_bid.round_created': {
+    agUiType: AgUiEventType.CUSTOM,
+    agUiName: 'sealed_bid.round_created',
+  },
+  'sealed_bid.bid_submitted': {
+    agUiType: AgUiEventType.CUSTOM,
+    agUiName: 'sealed_bid.bid_submitted',
+  },
+  'sealed_bid.policy_checked': {
+    agUiType: AgUiEventType.CUSTOM,
+    agUiName: 'sealed_bid.policy_checked',
+  },
+  'sealed_bid.round_closed': {
+    agUiType: AgUiEventType.CUSTOM,
+    agUiName: 'sealed_bid.round_closed',
+  },
+  'sealed_bid.winner_revealed': {
+    agUiType: AgUiEventType.CUSTOM,
+    agUiName: 'sealed_bid.winner_revealed',
   },
 };
 

@@ -136,10 +136,16 @@ class ApiClient {
         // Parse structured error codes from the backend and surface
         // actionable guidance instead of raw "API error 500: ...".
         let actionableMsg: string;
+        let parsed: Record<string, unknown> | undefined;
         try {
-          const parsed = JSON.parse(errorBody);
-          const code = parsed?.error?.code || parsed?.code;
-          const msg = parsed?.error?.message || parsed?.error || parsed?.message || errorBody;
+          parsed = JSON.parse(errorBody) as Record<string, unknown>;
+          const errorObj = (parsed?.error as Record<string, unknown> | undefined) ?? parsed;
+          const code = errorObj?.code ?? parsed?.code;
+          const msg =
+            (errorObj?.message as string | undefined) ??
+            (parsed?.error as string | undefined) ??
+            (parsed?.message as string | undefined) ??
+            errorBody;
           switch (code) {
             case "NO_ACTIVE_POLICY":
               actionableMsg = `No active policy found. Create one in the Policies page to start governing spends.`;
@@ -152,6 +158,16 @@ class ApiClient {
           }
         } catch {
           actionableMsg = errorBody;
+        }
+        // Policy-gate failures are structured 403s from the sealed-bid
+        // controller. Return them as normal responses so callers can read
+        // policyChecks; don't treat them as auth errors.
+        if (
+          response.status === 403 &&
+          parsed &&
+          (parsed.error === "Policy gate failed" || parsed.policyChecks)
+        ) {
+          return parsed as unknown as T;
         }
         // Add status-specific guidance for common error codes.
         if (response.status === 403) {
@@ -854,12 +870,13 @@ class ApiClient {
     roundId: string;
     manager?: string;
   }): Promise<
-    ApiResponse<{
-      roundId: string;
-      status: string;
-      bidCount: number;
-      policyChecks?: PolicyCheck[];
-    }>
+    | ApiResponse<{
+        roundId: string;
+        status: string;
+        bidCount: number;
+        policyChecks?: PolicyCheck[];
+      }>
+    | ClosePolicyRejected
   > {
     return this.fetch(
       `/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/close`,

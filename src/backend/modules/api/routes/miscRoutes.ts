@@ -80,6 +80,10 @@ export function createMiscRoutes(
   router.get("/vendor/sealed-bid/rounds/:roundId/party-view", (req, res) =>
     sealedBidController.getPartyView(req, res),
   );
+  router.get(
+    "/vendor/sealed-bid/rounds/:roundId/governance-timeline",
+    (req, res) => sealedBidController.getGovernanceTimeline(req, res),
+  );
   router.get("/vendor/sealed-bid/rounds/:roundId", (req, res) =>
     sealedBidController.getRound(req, res),
   );
