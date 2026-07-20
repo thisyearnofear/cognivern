@@ -926,6 +926,14 @@ export interface SealedBidRound {
   winningProposalHash: string | null;
   createdAt: string;
   backend?: SealedBidBackendName;
+  // Value settlement — present when the round was created with
+  // settlementAmount/settlementAssetTag and the CloseAndReveal has
+  // atomically transferred the escrowed PaymentDeposit to the winner.
+  // settledAssetCid is the on-ledger contract ID of the new deposit
+  // (owned by the winner); null until reveal completes.
+  settledAssetCid?: string | null;
+  settlementAmount?: number | null;
+  settlementAssetTag?: string | null;
 }
 export interface SealedBidRoundSummary {
   roundId: string;

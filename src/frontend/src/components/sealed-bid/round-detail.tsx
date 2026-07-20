@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  BadgeCheck,
   Loader2,
   Lock,
   Send,
@@ -196,10 +197,16 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
           className="rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-4 flex items-start gap-3"
         >
           <Trophy className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-          <div className="min-w-0 space-y-1">
-            <div className="text-sm font-semibold">
+          <div className="min-w-0 space-y-1.5">
+            <div className="text-sm font-semibold flex items-center gap-2 flex-wrap">
               Winner: {round.winner.split("::")[0]} at $
               {round.winningBid.toLocaleString()}
+              {round.settledAssetCid && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                  <BadgeCheck className="h-3 w-3" />
+                  Value settled atomically
+                </span>
+              )}
             </div>
             <div className="text-xs text-muted-foreground">
               Revealed in{" "}
@@ -212,6 +219,21 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               it in the party view below: even as Auctioneer, the ledger now
               returns 0 bid contracts.
             </div>
+            {round.settledAssetCid && round.settlementAmount != null && (
+              <div className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  {round.settlementAssetTag ?? "USDC"}{" "}
+                  {round.settlementAmount.toLocaleString()}
+                </span>{" "}
+                transferred to the winner in the same transaction — on-ledger
+                contract{" "}
+                <code className="font-mono text-[10px] text-foreground/80">
+                  {round.settledAssetCid.slice(0, 16)}…
+                </code>
+                . No separate settlement step, no escrow-release window: value
+                moved at the moment the winner was published.
+              </div>
+            )}
           </div>
         </motion.div>
       )}
