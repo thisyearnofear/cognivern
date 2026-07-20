@@ -129,7 +129,7 @@
     "drizzle-kit": "^0.30.0",
     "esbuild": "^0.25.0",
     "eslint": "^9.31.0",
-    "eslint-plugin-prettier": "^5.5.1",
+    "eslint-plugin-prettier": "^5.5.6",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
