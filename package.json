@@ -104,7 +104,7 @@
     "siwe": "3.0.0",
     "solidity-cborutils": "^2.0.0",
     "viem": "^2.32.0",
-    "winston": "^3.11.0",
+    "winston": "^3.19.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
