@@ -30,7 +30,7 @@ interface AuctionPayload {
   serviceCategory: string;
   deadline: string;
   maxBids: string;
-  settlementAsset: { tag: "None" } | { tag: "Some", value: { contractId: string } } | null;
+  settlementAsset: string | null;
 }
 
 interface PaymentDepositPayload {
@@ -58,7 +58,7 @@ interface AuctionResultPayload {
   winningProposal: string;
   description: string;
   serviceCategory: string;
-  settledAsset: { tag: "None" } | { tag: "Some", value: { contractId: string } } | null;
+  settledAsset: string | null;
   revealedAt: string;
 }
 
@@ -191,8 +191,7 @@ export class CantonSealedBidBackend implements SealedBidBackend {
           status: "revealed",
           createdAt: r.payload.revealedAt,
           depositCid: null,
-          settledAssetCid: r.payload.settledAsset && r.payload.settledAsset.tag === "Some"
-            ? r.payload.settledAsset.value.contractId : null,
+          settledAssetCid: r.payload.settledAsset ?? null,
           settlementAmount: null,
           settlementAssetTag: null,
         });
@@ -272,11 +271,12 @@ export class CantonSealedBidBackend implements SealedBidBackend {
       deadline: request.deadline,
       maxBids: String(request.maxBids),
     };
+    // Canton JSON API v2 encodes Optional T as the raw value or null
+    // (NOT as {"tag":"Some","value":...} — that is the v1 encoding).
     if (depositCid) {
-      auctionPayload.settlementAsset = {
-        tag: "Some",
-        value: { contractId: depositCid },
-      };
+      auctionPayload.settlementAsset = depositCid;
+    } else {
+      auctionPayload.settlementAsset = null;
     }
 
     const created = await this.client.create<AuctionPayload>(
@@ -463,8 +463,8 @@ export class CantonSealedBidBackend implements SealedBidBackend {
 
     // Capture the settled asset CID from the AuctionResult — this is the
     // on-ledger proof that value was transferred to the winner atomically.
-    if (result.settledAsset && result.settledAsset.tag === "Some") {
-      state.settledAssetCid = result.settledAsset.value.contractId;
+    if (result.settledAsset) {
+      state.settledAssetCid = result.settledAsset;
       logger.info(
         `SealedBid[canton]: value settled — PaymentDeposit ${state.settledAssetCid.slice(0, 12)}… transferred to winner in atomic reveal`,
       );

@@ -216,12 +216,12 @@ async function main() {
       },
     },
     submissionFieldsToFill: {
-      cantonDevnetParticipantOrValidator: process.env.CANTON_DEVNET_PARTICIPANT || "TODO",
-      uploadedDarPackageId: process.env.CANTON_DEVNET_PACKAGE_ID || "TODO",
+      cantonDevnetParticipantOrValidator: process.env.CANTON_DEVNET_PARTICIPANT || "hackcanton-01.devnet.naas.noders.services",
+      uploadedDarPackageId: process.env.CANTON_DEVNET_PACKAGE_ID || "d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad",
       deployedTemplateIds: {
-        auction: process.env.CANTON_TEMPLATE_AUCTION || "TODO",
-        bid: process.env.CANTON_TEMPLATE_BID || "TODO",
-        result: process.env.CANTON_TEMPLATE_RESULT || "TODO",
+        auction: process.env.CANTON_TEMPLATE_AUCTION || "#daml:Main:SealedBidAuction",
+        bid: process.env.CANTON_TEMPLATE_BID || "#daml:Main:Bid",
+        result: process.env.CANTON_TEMPLATE_RESULT || "#daml:Main:AuctionResult",
         deposit: process.env.CANTON_TEMPLATE_DEPOSIT || "#daml:Main:PaymentDeposit",
       },
     },

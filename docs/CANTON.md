@@ -62,7 +62,7 @@ Every lifecycle step (create, submit, close, reveal) also fires `AuditLogService
 
 **Hetzner** — Daml SDK at `/home/deploy/.daml/`, `daml/` project synced to `/opt/cognivern/daml/`, launched via `pm2 start /opt/cognivern/daml/start-sandbox.sh --name cognivern-canton --interpreter bash`. Localhost-bound.
 
-**Canton DevNet** — the required final-submission target. We use the shared HackCanton S2 DevNet node (`https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`). The DAR (`51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454`) was uploaded, demo parties were allocated with the `-cognivern` suffix, and the authenticated Daml user is `e6c5f9fc-98ed-491f-b228-00cf931a05cc`. The backend is participant-agnostic, but final judging requires contract/transaction evidence from a real DevNet round. A sandbox-only run is not enough.
+**Canton DevNet** — the required final-submission target. We use the shared HackCanton S2 DevNet node (`https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`). The current DAR (`d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad`, upgrading `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454`) is uploaded, demo parties were allocated with the `-cognivern` suffix, and the authenticated Daml user is `e6c5f9fc-98ed-491f-b228-00cf931a05cc`. The backend is participant-agnostic, but final judging requires contract/transaction evidence from a real DevNet round. A sandbox-only run is not enough.
 
 ## Demo state on boot
 
@@ -139,7 +139,7 @@ CANTON_DEMO_PARTY_IDS=auctioner-cognivern=auctioner-cognivern::122003aa7c491e00a
 
 ## HackCanton S2 — value settlement, bounty lanes & demo rails
 
-### Value settlement — implemented in model, pending DevNet upload
+### Value settlement — live on DevNet
 `CloseAndReveal` now settles **value**, not just an informational record. A
 `PaymentDeposit` template (bearer instrument pattern — issuer is sole signatory,
 `owner` tracks the current holder) is escrowed before the auction opens and
@@ -148,13 +148,14 @@ transaction that archives losing bids and emits the `AuctionResult`. The
 `AuctionResult` carries a `settledAsset` reference to the new deposit —
 on-ledger proof that value moved.
 
-**Status:** The Daml source compiles and `SettlementProof.daml` passes all 9
-assertions on the IDE ledger. The updated DAR (`daml-0.0.2.dar`) is pending
-upload to the shared DevNet participant. The existing DevNet rounds continue to
-work on the prior DAR (non-settlement path); settlement rounds will go live
-once the new DAR is uploaded. The backend is backward-compatible — it omits the
-`settlementAsset` field when no deposit is escrowed, so the old DAR accepts
-non-settlement round creation without error.
+**Status:** The updated DAR (`daml-0.0.2.dar`, package
+`d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad`) is uploaded
+to the shared DevNet participant. `pnpm canton:proof` against the production
+backend produces `valueSettledAtomically: true` with an on-ledger
+`settledAssetCid` (see `.artifacts/canton-devnet-proof-latest.json`).
+`SettlementProof.daml` passes all 9 assertions on the IDE ledger. The backend is
+backward-compatible — it sends `settlementAsset = null` when no deposit is
+escrowed, so the old DAR accepts non-settlement round creation without error.
 
 The deposit is asset-agnostic: today it carries a `Decimal` amount and
 `assetTag` ("USDC"). Swapping in **CBTC** (BitSafe) or **cETH** (OnRails
@@ -242,7 +243,7 @@ The team used the shared HackCanton S2 DevNet node. The DAR was uploaded and par
    CANTON_PROOF_MANAGER=auctioner-cognivern \
    CANTON_PROOF_BIDDERS=alice-cognivern,bob-cognivern,charlie-cognivern \
    CANTON_DEVNET_PARTICIPANT='https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443' \
-   CANTON_DEVNET_PACKAGE_ID='51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454' \
+   CANTON_DEVNET_PACKAGE_ID='d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad' \
    CANTON_TEMPLATE_AUCTION='#daml:Main:SealedBidAuction' \
    CANTON_TEMPLATE_BID='#daml:Main:Bid' \
    CANTON_TEMPLATE_RESULT='#daml:Main:AuctionResult' \
