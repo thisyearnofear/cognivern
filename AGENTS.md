@@ -33,10 +33,11 @@ or the onboarded user id — they are all in those docs.
 
 ## The Daml package on Devnet
 
-The uploaded package name is `daml` (package id `51789b…`); templates are referenced
-as `#daml:Main:SealedBidAuction` / `:Main:Bid` / `:Main:AuctionResult` (LF 2.x
-package-name references). If you rebuild for Devnet, **keep the package name `daml`**
-or those `#daml:` references break.
+The uploaded package name is `daml` (current package id `d62e13ab…`, upgrading `51789b…`);
+templates are referenced as `#daml:Main:SealedBidAuction` / `:Main:Bid` /
+`:Main:AuctionResult` / `:Main:PaymentDeposit` (LF 2.x package-name references).
+If you rebuild for Devnet, **keep the package name `daml`** or those `#daml:`
+references break.
 
 ## Process lesson
 

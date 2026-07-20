@@ -18,7 +18,7 @@ From the team / mentors:
 
 ## 2. Upload and configure the DAR
 
-1. The deployed package is `51789b5390cb…` (LF 2.1). The repo's `daml.yaml` pins Daml SDK **3.4.11** (LF 2.1), which the HackCanton S2 DevNet node accepts. To rebuild from `daml/` (note: a rebuild produces a **new** package id — re-upload and refresh `CANTON_TEMPLATE_*` if you do):
+1. The deployed package is `d62e13ab174d…` (LF 2.1, upgrades `51789b5390cb…`). The repo's `daml.yaml` pins Daml SDK **3.4.11** (LF 2.1), which the HackCanton S2 DevNet node accepts. To rebuild from `daml/` (note: a rebuild produces a **new** package id — re-upload and refresh `CANTON_TEMPLATE_*` if you do):
    ```bash
    cd daml && daml build
    ```
@@ -26,7 +26,7 @@ From the team / mentors:
    ```bash
    pnpm tsx scripts/hack/bootstrap-devnet.ts
    ```
-3. Record the returned package ID: `51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454`.
+3. Record the returned package ID: `d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad`.
 4. Set production env (use the Vercel dashboard/CLI):
 
    ```env
@@ -63,7 +63,7 @@ CANTON_PROOF_NETWORK="Canton DevNet (HackCanton S2 shared node)" \
 CANTON_PROOF_MANAGER=auctioner-cognivern \
 CANTON_PROOF_BIDDERS=alice-cognivern,bob-cognivern,charlie-cognivern \
 CANTON_DEVNET_PARTICIPANT="https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443" \
-CANTON_DEVNET_PACKAGE_ID="51789b5390cb810a1352165c4c5db1e546a5323cf23c7f50a5d4f8dc01293454" \
+CANTON_DEVNET_PACKAGE_ID="d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad" \
 CANTON_TEMPLATE_AUCTION="#daml:Main:SealedBidAuction" \
 CANTON_TEMPLATE_BID="#daml:Main:Bid" \
 CANTON_TEMPLATE_RESULT="#daml:Main:AuctionResult" \
