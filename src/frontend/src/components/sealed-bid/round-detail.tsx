@@ -6,10 +6,13 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   BadgeCheck,
+  Bot,
+  CheckCircle2,
   Loader2,
   Lock,
   Send,
   ShieldCheck,
+  ShieldX,
   Trophy,
   Clock,
   X,
@@ -24,11 +27,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useSealedBidRound } from "@/hooks/use-api";
-import { apiClient } from "@/lib/api-client";
+import {
+  useSealedBidRound,
+  useGovernanceTimeline,
+} from "@/hooks/use-api";
+import {
+  apiClient,
+  type PolicyCheck,
+} from "@/lib/api-client";
 import { useAuthStore } from "@/stores/auth-store";
 import { mutate } from "swr";
 import { BackendBadge } from "./backend-badge";
+import { GovernanceTimelineView } from "./governance-timeline";
 import { PartyView } from "./party-view";
 import { RevealComparison } from "./reveal-comparison";
 
@@ -55,6 +65,14 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   const [selectionMethod, setSelectionMethod] = useState<
     "lowest-bid" | "highest-bid"
   >("lowest-bid");
+  // Policy gate state — populated when closeRound returns 403 with
+  // policyChecks. Cleared on successful close or when the round changes.
+  const [policyChecks, setPolicyChecks] = useState<PolicyCheck[] | null>(null);
+
+  // Governance timeline — only fetched for agent-governed rounds (rounds
+  // with a governanceRunId). SWR null-keys for non-governed rounds.
+  const { data: governanceTimeline, isLoading: governanceLoading } =
+    useGovernanceTimeline(roundId, round?.governanceRunId);
 
   const workspaceMode = useAuthStore((s) => s.workspaceMode);
   const isAuthed = useAuthStore((s) => s.isConnected);
@@ -99,13 +117,29 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
 
   async function handleClose() {
     setClosing(true);
+    setPolicyChecks(null);
     try {
       const res = await apiClient.closeSealedBidRound({
         roundId,
         manager: "Auctioneer",
       });
-      if (!res.success) throw new Error(res.error || "Close failed");
-      toast.success("Round closed");
+      if (!res.success) {
+        // Policy gate rejection (403) carries policyChecks — surface them
+        // inline so the user sees *which* check failed, not just "Close failed".
+        const checks = (res as { policyChecks?: PolicyCheck[] }).policyChecks;
+        if (checks && checks.length > 0) {
+          setPolicyChecks(checks);
+          const failed = checks.filter((c) => !c.passed);
+          toast.error(
+            `Policy gate blocked close — ${failed.length} check${failed.length === 1 ? "" : "s"} failed`,
+          );
+        } else {
+          throw new Error(res.error || "Close failed");
+        }
+        return;
+      }
+      toast.success("Round closed — policy checks passed");
+      setPolicyChecks(null);
       await refresh();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Close failed");
@@ -183,6 +217,12 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
         </div>
         <div className="flex items-center gap-2">
           <BackendBadge backend={round.backend} />
+          {round.createdByAgent && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/50 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400">
+              <Bot className="h-3 w-3" />
+              Agent-governed
+            </span>
+          )}
           <span className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">
             {round.status}
           </span>
@@ -328,6 +368,11 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
         <div className="rounded-xl border bg-card p-4 space-y-3">
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <ShieldCheck className="h-4 w-4" /> Auctioneer actions
+            {round.createdByAgent && (
+              <span className="text-[10px] font-normal text-muted-foreground">
+                · policy-gated for agent-governed rounds
+              </span>
+            )}
           </h3>
           <div className="flex items-center gap-2 flex-wrap">
             {round.status === "open" && (
@@ -338,10 +383,13 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               >
                 {closing ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : round.createdByAgent ? (
+                  <ShieldCheck className="h-4 w-4 mr-2" />
                 ) : (
                   <X className="h-4 w-4 mr-2" />
                 )}
                 Close bidding ({round.bids.length} bids)
+                {round.createdByAgent ? " · check policy" : ""}
               </Button>
             )}
             {round.status === "closed" && (
@@ -378,12 +426,63 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               </>
             )}
           </div>
+
+          {/* Policy gate results — shown when closeRound returns 403 with
+              policyChecks. Each check is rendered with pass/fail icon + detail. */}
+          {policyChecks && policyChecks.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-lg border border-red-500/40 bg-red-500/5 p-3 space-y-2"
+            >
+              <div className="flex items-center gap-2 text-sm font-semibold text-red-600 dark:text-red-400">
+                <ShieldX className="h-4 w-4" />
+                Policy gate blocked close
+              </div>
+              <div className="space-y-1.5">
+                {policyChecks.map((c) => (
+                  <div
+                    key={c.name}
+                    className="flex items-start gap-2 text-xs"
+                  >
+                    {c.passed ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                    ) : (
+                      <ShieldX className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
+                    )}
+                    <span className="text-muted-foreground">
+                      <span className="font-mono text-foreground/70">
+                        {c.name}
+                      </span>
+                      {" — "}
+                      {c.detail}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                The auctioneer cannot close until all policy checks pass. This
+                is the agent governance layer enforcing commercial safety —
+                not a UI hint.
+              </p>
+            </motion.div>
+          )}
         </div>
       )}
 
       <PartyView round={round} />
 
       {round.backend === "canton" && <RevealComparison />}
+
+      {/* Agent governance timeline — only renders for agent-governed rounds
+          (the hook null-keys for non-governed rounds). Shows every CRE run
+          event with its SHA-256 hash — the tamper-evident audit trail. */}
+      {round.governanceRunId && (
+        <GovernanceTimelineView
+          timeline={governanceTimeline}
+          isLoading={governanceLoading}
+        />
+      )}
     </motion.div>
   );
 }

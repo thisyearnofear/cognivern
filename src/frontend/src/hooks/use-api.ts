@@ -4,6 +4,7 @@ import {
   apiClient,
   type SealedBidRound,
   type SealedBidRoundSummary,
+  type GovernanceTimeline,
 } from "@/lib/api-client";
 import { useDemoStore } from "@/stores/demo-store";
 import { useAuthStore } from "@/stores/auth-store";
@@ -188,6 +189,29 @@ export function useSealedBidRound(roundId: string | null) {
       if (!roundId) return null;
       const res = await apiClient.getSealedBidRound(roundId);
       return (res.data ?? null) as SealedBidRound | null;
+    },
+    null,
+  );
+}
+
+// Fetch the tamper-evident governance timeline for an agent-governed round.
+// Pass `null` for roundId or a round without governanceRunId to skip the
+// fetch (SWR null-key pattern). Returns { data, isLoading, error } where
+// data is undefined for non-agent-governed rounds.
+export function useGovernanceTimeline(
+  roundId: string | null,
+  governanceRunId?: string | null,
+) {
+  return useApiWithDemo<GovernanceTimeline | null>(
+    roundId && governanceRunId
+      ? `/api/vendor/sealed-bid/rounds/${roundId}/governance-timeline`
+      : null,
+    async () => {
+      if (!roundId) return null;
+      const res = await apiClient.getGovernanceTimeline(roundId);
+      // 404 for non-agent-governed rounds — treat as no timeline.
+      if (!res.success) return null;
+      return (res.data ?? null) as GovernanceTimeline | null;
     },
     null,
   );

@@ -819,6 +819,11 @@ class ApiClient {
     maxBids: number;
     backend?: "fhe" | "canton";
     manager?: string;
+    // Agent governance — optional. If present, the backend creates a CRE
+    // run, records a round_created event, and gates closeRound on policy.
+    agentId?: string;
+    settlementAmount?: number;
+    settlementAssetTag?: string;
   }): Promise<ApiResponse<SealedBidRound>> {
     return this.fetch("/api/vendor/sealed-bid/rounds", {
       method: "POST",
@@ -849,7 +854,12 @@ class ApiClient {
     roundId: string;
     manager?: string;
   }): Promise<
-    ApiResponse<{ roundId: string; status: string; bidCount: number }>
+    ApiResponse<{
+      roundId: string;
+      status: string;
+      bidCount: number;
+      policyChecks?: PolicyCheck[];
+    }>
   > {
     return this.fetch(
       `/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/close`,
@@ -857,6 +867,16 @@ class ApiClient {
         method: "POST",
         body: JSON.stringify({ manager: params.manager }),
       },
+    );
+  }
+
+  // Fetch the tamper-evident governance event timeline for an agent-governed
+  // round. Returns 404 for non-agent-governed rounds — callers should guard.
+  async getGovernanceTimeline(
+    roundId: string,
+  ): Promise<ApiResponse<GovernanceTimeline>> {
+    return this.fetch(
+      `/api/vendor/sealed-bid/rounds/${encodeURIComponent(roundId)}/governance-timeline`,
     );
   }
 
@@ -934,6 +954,12 @@ export interface SealedBidRound {
   settledAssetCid?: string | null;
   settlementAmount?: number | null;
   settlementAssetTag?: string | null;
+  // Agent governance — present when the round was created by an agent
+  // (agentId in the create request). createdByAgent is the agent id;
+  // governanceRunId is the CRE run that tracks the tamper-evident event
+  // timeline for this round. Absent for human-created rounds.
+  createdByAgent?: string;
+  governanceRunId?: string;
 }
 export interface SealedBidRoundSummary {
   roundId: string;
@@ -947,6 +973,41 @@ export interface SealedBidRoundSummary {
   winningBid: number | null;
   createdAt: string;
   backend?: SealedBidBackendName;
+  createdByAgent?: string;
+  governanceRunId?: string;
+}
+
+// ── Agent governance types ──────────────────────────────────────────────
+// Mirrors the backend PolicyCheck / GovernanceEvent / GovernanceTimeline
+// shapes from docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md. Used by the
+// governance timeline component and the policy-gated close flow.
+
+export interface PolicyCheck {
+  name: string; // "min_bids" | "deadline_elapsed" | "budget_within_limit"
+  passed: boolean;
+  detail: string; // human-readable, e.g. "3 bids received (min: 3)"
+}
+
+export interface GovernanceEvent {
+  eventType: string; // "round_created" | "bid_submitted" | "policy_checked" | "round_closed" | "winner_revealed"
+  timestamp: string; // ISO 8601
+  eventHash: string; // SHA-256(runId|eventType|timestamp|canonicalJSON(payload))
+  payload: Record<string, unknown>;
+}
+
+export interface GovernanceTimeline {
+  runId: string;
+  agentId: string;
+  events: GovernanceEvent[];
+}
+
+// Response shape when the policy gate rejects a close attempt (HTTP 403).
+export interface ClosePolicyRejected {
+  success: false;
+  error: "Policy gate failed";
+  policyChecks: PolicyCheck[];
+  reason: string;
+  timestamp: string;
 }
 
 export const apiClient = new ApiClient();

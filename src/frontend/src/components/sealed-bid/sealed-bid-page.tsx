@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Loader2,
   Shield,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSealedBidRounds } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
+import { AgentCreateRound } from "./agent-create-round";
 import { BackendBadge } from "./backend-badge";
 import { RoundDetail } from "./round-detail";
 
@@ -37,6 +39,7 @@ export function SealedBidPage() {
   const { data: rounds, isLoading, error } = useSealedBidRounds();
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [showAgentCreate, setShowAgentCreate] = useState(false);
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
 
   const [description, setDescription] = useState("");
@@ -94,21 +97,53 @@ export function SealedBidPage() {
             ledger; on the FHE backend, amounts are held as ciphertext handles.
           </p>
         </div>
-        <Button
-          onClick={() => setShowCreate((v) => !v)}
-          variant={showCreate ? "outline" : "default"}
-        >
-          {showCreate ? (
-            <>
-              <X className="h-4 w-4 mr-2" /> Cancel
-            </>
-          ) : (
-            <>
-              <PlusCircle className="h-4 w-4 mr-2" /> New round
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => {
+              setShowCreate((v) => !v);
+              setShowAgentCreate(false);
+            }}
+            variant={showCreate ? "outline" : "default"}
+          >
+            {showCreate ? (
+              <>
+                <X className="h-4 w-4 mr-2" /> Cancel
+              </>
+            ) : (
+              <>
+                <PlusCircle className="h-4 w-4 mr-2" /> New round
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={() => {
+              setShowAgentCreate((v) => !v);
+              setShowCreate(false);
+            }}
+            variant={showAgentCreate ? "outline" : "secondary"}
+          >
+            {showAgentCreate ? (
+              <>
+                <X className="h-4 w-4 mr-2" /> Cancel
+              </>
+            ) : (
+              <>
+                <Bot className="h-4 w-4 mr-2" /> Agent round
+              </>
+            )}
+          </Button>
+        </div>
       </div>
+
+      {showAgentCreate && (
+        <AgentCreateRound
+          onCreated={(id) => {
+            setShowAgentCreate(false);
+            setSelectedRoundId(id);
+          }}
+          onCancel={() => setShowAgentCreate(false)}
+        />
+      )}
 
       {showCreate && (
         <motion.form
@@ -228,6 +263,12 @@ export function SealedBidPage() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <BackendBadge backend={r.backend} />
+                  {r.createdByAgent && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/50 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400">
+                      <Bot className="h-2.5 w-2.5" />
+                      Agent
+                    </span>
+                  )}
                   <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
                 </div>
               </div>
