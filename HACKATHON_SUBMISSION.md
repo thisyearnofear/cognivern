@@ -1,6 +1,6 @@
 # Canton Network Hackathon Submission — Cognivern
 
-**Track:** 1 · Private DeFi & Capital Markets
+**Track:** 1 · Private DeFi & Capital Markets (primary) + 3 · Payments, Neobanking & Agentic Commerce (secondary — agent-governed vendor selection)
 **Hackathon:** HackCanton S2
 **Team:** thisyearnofear
 **Repository:** [github.com/thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)
@@ -42,7 +42,7 @@ The Hetzner `cognivern-canton` sandbox remains useful for local demos and regres
 
 ## TL;DR
 
-- **What we built.** Confidential RFP / OTC vendor-selection auctions on Canton/Daml with structural sub-transaction privacy and atomic multi-party settlement.
+- **What we built.** Agent-governed confidential RFP / OTC vendor-selection auctions on Canton/Daml. Software agents initiate, audit, and log sealed-bid procurement rounds; Canton's disclosure model provides structural sub-transaction privacy (bid amounts visible only to the bidder and the auctioneer — no FHE, no ZK); and `CloseAndReveal` settles value atomically in one transaction — winner selection, losing-bid archival, and `PaymentDeposit` transfer to the winner all commit or none do.
 - **Headline technical claim.** Sealed-bid reveal cannot be finished cleanly under FHE alone — it requires a threshold-decryption ceremony that the round's economic participants rarely exist in real institutional contexts. Canton rewrites the settlement layer so the privacy property comes from the disclosure model, not cryptography, and the reveal completes in **one atomic transaction**.
 - **Daml model.** `SealedBidAuction` · `Bid` (signatory bidder, observer manager — no other bidder has visibility) · `AuctionResult` (publicly visible to bidders post-reveal). Three templates, ~110 lines of Daml.
 - **Pluggable backend.** Live production code runs the same sealed-bid protocol over either Canton (works end-to-end) or Fhenix CoFHE (works for sealed-bid but cannot reveal — see "Why this is hard" below). Same REST surface, swapped at `createRound(backend: "canton" | "fhe")`.
@@ -95,7 +95,7 @@ The obvious enterprise objection: *"This demo runs on HackCanton DevNet — what
 | --- | --- |
 | **Today** | Live on HackCanton S2 DevNet with automated lifecycle proof (`pnpm canton:proof` → `.artifacts/canton-devnet-proof-latest.json`). |
 | **Private participant** | The backend is participant-agnostic — point `CANTON_JSON_API_URL` at your own Canton node or a hosted validator. Same Daml package, same REST surface. |
-| **Mainnet-ready model** | Compact four-template Daml package (Daml 3.x · LF 2.1): `SealedBidAuction`, `Bid`, `AuctionResult`, `PaymentDeposit`. The `PaymentDeposit` template implements atomic value settlement — escrow before the auction opens, atomic transfer to the winner inside `CloseAndReveal`. Asset-agnostic: swap the deposit for CBTC (BitSafe) or cETH (OnRails Finance) and the settlement pattern is identical. **Status:** Live on DevNet (package `d62e13ab…`); `pnpm canton:proof` produces `valueSettledAtomically: true` with on-ledger `settledAssetCid`. Daml Script proof passes all 9 assertions. |
+| **Mainnet-ready model** | Compact four-template Daml package (Daml 3.x · LF 2.1): `SealedBidAuction`, `Bid`, `AuctionResult`, `PaymentDeposit`. The `PaymentDeposit` template implements atomic value settlement — escrow before the auction opens, atomic transfer to the winner inside `CloseAndReveal`. The atomicity pattern is designed to be asset-agnostic; integrating a CIP-0056 token (CBTC, cETH) requires depending on the registry's DAR and exercising `TransferFactory_Transfer` inside `CloseAndReveal` — a documented next step, not a one-line swap. **Status:** Live on DevNet (package `d62e13ab…`); `pnpm canton:proof` produces `valueSettledAtomically: true` with on-ledger `settledAssetCid`. Daml Script proof passes all 9 assertions. |
 
 ---
 
@@ -341,7 +341,7 @@ Canton deployment: the production backend on the Hetzner VM binds the **HackCant
 
 ## Track claim
 
-We submit under **Track 1 — Private DeFi & Capital Markets**, with the strongest fit on the "Private deal execution" and "OTC trading workflows" problem statements. We do **not** claim Track 2 (RWA / tokenized deposits) or Track 3 (agentic commerce) for this submission — the sealed-bid module is the Canton piece. Cognivern's broader spend-governance work is referenced once, as backdrop, not as a competing submission.
+We submit primarily under **Track 1 — Private DeFi & Capital Markets**, with the strongest fit on the "Private deal execution" and "OTC trading workflows" problem statements. We also claim a secondary fit on **Track 3 — Payments, Neobanking & Agentic Commerce**: the sealed-bid rounds are initiated, audited, and logged by software agents (the CRE/governance stack), and the brief explicitly calls for "systems where software agents can initiate or coordinate commercial actions safely." The agent layer is not a wrapper — it governs who can create rounds, records every bid/reveal as a hash-signed event in the run ledger, and enforces policy before the auctioneer can close. We do **not** claim Track 2 (RWA / tokenized deposits) — the settlement deposit is a synthetic bearer instrument, not a tokenized real-world asset.
 
 ---
 
@@ -349,11 +349,15 @@ We submit under **Track 1 — Private DeFi & Capital Markets**, with the stronge
 
 Three lessons from the HackCanton S2 track guidance shape the next build window:
 
-1. **Lead with the Canton workflow, not the multi-chain stack.** Cognivern also
-   does agent-wallet governance (Fhenix FHE, Filecoin/0G anchoring, ChainGPT,
-   X Layer). That work is real but dilutes the "why Canton?" signal. For S2 the
-   headline is the sealed-bid auction; the governance stack is supporting context
-   (the auction is governed and audit-logged by agents), not a competing submission.
+1. **Lead with the Canton workflow, frame the agents as governors.** Cognivern
+   also does agent-wallet governance (Fhenix FHE, Filecoin/0G anchoring, ChainGPT,
+   X Layer). For S2 the Canton sealed-bid auction is the headline primitive, but
+   the agent layer is not backdrop — it's the Track 3 fit. Software agents
+   initiate rounds, record hash-signed bid/reveal events in the run ledger, and
+   enforce policy before the auctioneer can close. "Agents privately negotiate
+   vendor selection on Canton" is the two-track framing; the multi-chain stack
+   (Fhenix/Filecoin/0G/X Layer) is the supporting context, not the agent layer
+   itself.
 
 2. **Settlement of value — live on DevNet.**
    `CloseAndReveal` now settles **value**, not just an informational record. A new
@@ -362,11 +366,17 @@ Three lessons from the HackCanton S2 track guidance shape the next build window:
    atomically transferred to the winner inside the same `CloseAndReveal`
    transaction that archives losing bids and emits the `AuctionResult`. The
    `AuctionResult` carries a `settledAsset` reference to the new deposit contract
-   — proof on-ledger that value moved. The deposit is asset-agnostic: today it
-   carries a `Decimal` amount and `assetTag` ("USDC"); swapping in **CBTC**
-   (BitSafe) or **cETH** (OnRails Finance) requires only replacing the
-   `PaymentDeposit` template with the token contract — the `CloseAndReveal`
-   atomicity pattern is unchanged. Verified by `daml/scripts/daml/SettlementProof.daml`
+   — proof on-ledger that value moved. The deposit is a synthetic bearer
+   instrument: today it carries a `Decimal` amount and `assetTag` ("USDC"). The
+   atomicity pattern is designed to be asset-agnostic, but integrating a real
+   CIP-0056 token (**CBTC** by BitSafe, **cETH** by OnRails) is not a one-line
+   swap — it requires depending on the registry's DAR, exercising
+   `TransferFactory_Transfer` on a disclosed factory contract inside
+   `CloseAndReveal`, and verifying the registry's transfer is one-step (settles
+   in the same Daml transaction) rather than two-step (creates a
+   `TransferInstruction` the receiver must accept, which would break the
+   single-transaction atomicity claim). This is a documented next step, not a
+   current capability. Verified by `daml/scripts/daml/SettlementProof.daml`
    — a Daml Script that exercises the full flow (escrow → 3 bids → close → reveal
    → transfer) and asserts: winner is Bob (lowest bid), deposit owner changed
    from auctioneer to Bob, old deposit archived, losing bids archived,

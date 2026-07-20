@@ -157,10 +157,11 @@ backend produces `valueSettledAtomically: true` with an on-ledger
 backward-compatible — it sends `settlementAsset = null` when no deposit is
 escrowed, so the old DAR accepts non-settlement round creation without error.
 
-The deposit is asset-agnostic: today it carries a `Decimal` amount and
-`assetTag` ("USDC"). Swapping in **CBTC** (BitSafe) or **cETH** (OnRails
-Finance) requires only replacing the `PaymentDeposit` template with the token
-contract — the `CloseAndReveal` atomicity pattern is unchanged.
+The deposit is a synthetic bearer instrument: today it carries a `Decimal`
+amount and `assetTag` ("USDC"). The atomicity pattern is designed to be
+asset-agnostic, but integrating a real CIP-0056 token (**CBTC** by BitSafe,
+**cETH** by OnRails) is not a one-line swap — see the bounty-lane scoping
+below for the actual integration path.
 
 Verified by `daml/scripts/daml/SettlementProof.daml` — a Daml Script that
 exercises the full flow (escrow → 3 bids → close → reveal → transfer) and
@@ -168,16 +169,32 @@ asserts: winner is Bob (lowest bid), deposit owner changed from auctioneer
 to Bob, old deposit archived, losing bids archived, `AuctionResult.settledAsset`
 is `Some`. All assertions pass on the Daml IDE ledger.
 
-### Bounty-lane scoping (recommendation: CBTC private OTC)
-- **CBTC (BitSafe) — best fit.** The sealed-bid vendor-selection / OTC flow is
-  *literally* the "private OTC" lane the CBTC bounty names. Winner settlement =
-  release the CBTC escrow (or transfer CBTC to the winning vendor) inside
-  `CloseAndReveal`. Lowest conceptual lift; strongest narrative fit.
-- **cETH (OnRails Finance) — also viable.** Maps to "private collateral / OTC
-  settlement." Same atomic-settlement pattern, different asset package.
-- **Decision:** pursue CBTC first; keep cETH as a drop-in second backend. The
-  `PaymentDeposit` template is asset-agnostic — swap the deposit for the
-  CBTC/cETH Daml package when its interface is available.
+### Bounty-lane scoping (CBTC private OTC — documented next step, not built)
+- **CBTC (BitSafe) — best narrative fit.** The sealed-bid vendor-selection / OTC
+  flow is literally the "private OTC" lane the CBTC bounty names. CBTC is a
+  CIP-0056 token on Canton, available on DevNet via the
+  [CBTC faucet](https://cbtc-faucet.bitsafe.finance/). BitSafe provides a Rust
+  SDK (`cbtc-lib`) and DAR files.
+- **cETH (OnRails Finance) — also viable.** CIP-0056 compliant, 1:1 wrapped ETH.
+  Faucet is a [Google Form](https://forms.gle/qY1Eq4AxuTFrxf49A) (manual).
+- **Integration path (not a one-line swap):**
+  1. Install the CBTC (or cETH) DAR on our DevNet participant (NODERS admin).
+  2. Add it as a dependency in `daml.yaml` and rebuild our package (new package
+     ID → re-upload).
+  3. Rewrite `CloseAndReveal` to exercise `TransferFactory_Transfer` on the
+     registry's factory contract (a disclosed contract) instead of our
+     `PaymentDeposit.Transfer`.
+  4. **Atomicity risk:** CIP-0056 transfers can be one-step (settles in the same
+     Daml transaction) or two-step (creates a `TransferInstruction` the receiver
+     must `Accept`). If the registry's transfer is two-step, the
+     single-transaction atomicity claim breaks — the winner would need to
+     separately accept the transfer after reveal. This must be verified
+     experimentally before committing to the integration.
+  5. Fund the auctioneer party with CBTC from the faucet before escrow.
+- **Decision:** deferred to post-submission. The current synthetic deposit
+  proves the atomicity pattern end-to-end on DevNet. CBTC integration is the
+  strongest bounty-lane follow-up, but only if the registry's transfer is
+  one-step — otherwise the headline atomicity claim is weakened.
 
 ### Demo rails (PixelPlex)
 - **Console Wallet** — sign `SubmitBid` / `CloseAndReveal` as a real party.

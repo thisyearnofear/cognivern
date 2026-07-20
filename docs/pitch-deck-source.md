@@ -113,12 +113,12 @@ One primitive, four institutional workflows:
 
 1. **Today** — Live on HackCanton S2 DevNet with on-ledger proof artifacts (`pnpm canton:proof`).
 2. **Private participant** — Same backend is participant-agnostic; point at your Canton node or hosted validator.
-3. **Mainnet-ready** — Daml SDK 3.4.11; `PaymentDeposit` template for atomic value transfer, asset-agnostic (swap for CBTC/cETH).
+3. **Mainnet-ready** — Daml SDK 3.4.11; `PaymentDeposit` template for atomic value transfer. Atomicity pattern is asset-agnostic by design; CIP-0056 token integration (CBTC/cETH) is a documented next step.
 
 ## Slide 12 — Roadmap: atomic value settlement
 
 1. **Today** — `CloseAndReveal` atomically transfers an escrowed `PaymentDeposit` to the winner, archives losing bids, and emits `AuctionResult` with `settledAsset` reference — value moves on-ledger.
-2. **Bounty lane** — Swap `PaymentDeposit` for CBTC (BitSafe) private OTC escrow or cETH (OnRails) private collateral — 50,000 CC bounty.
+2. **Bounty lane** — Integrate CBTC (BitSafe) or cETH (OnRails) via CIP-0056 `TransferFactory_Transfer` inside `CloseAndReveal`. Requires registry DAR dependency + verifying one-step transfer (atomicity-preserving). 50,000 CC bounty.
 
 ## Slide 13 — Why us
 
