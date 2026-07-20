@@ -108,7 +108,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250109.0",
+    "@cloudflare/workers-types": "^4.20260702.1",
     "@cofhe/hardhat-plugin": "^0.5.2",
     "@cofhe/mock-contracts": "^0.5.2",
     "@cofhe/sdk": "0.5.2",
