@@ -246,10 +246,19 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               Winner: {round.winner.split("::")[0]} at $
               {round.winningBid.toLocaleString()}
               {round.settledAssetCid && (
-                <span className="animate-pulse inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                <motion.span
+                  key={`settled-${round.settledAssetCid}`}
+                  animate={{ opacity: [1, 0.55, 1] }}
+                  transition={{
+                    duration: 0.8,
+                    repeat: 4,
+                    ease: "easeInOut",
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400"
+                >
                   <BadgeCheck className="h-3 w-3" />
                   Value settled atomically
-                </span>
+                </motion.span>
               )}
             </div>
             <div className="text-xs text-muted-foreground">

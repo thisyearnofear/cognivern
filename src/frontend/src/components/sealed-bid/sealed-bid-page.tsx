@@ -236,74 +236,82 @@ export function SealedBidPage() {
         </div>
       )}
 
-      {!isLoading && !error && rounds && rounds.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 px-4 text-center">
-          <div className="rounded-full bg-primary/10 p-4 mb-4">
-            <Gavel className="h-6 w-6 text-primary" />
-          </div>
-          <h3 className="text-lg font-semibold mb-1">
-            No vendor selection rounds
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-sm mb-4">
-            Kick off a confidential RFP. Start with an agent-governed round to
-            see Canton privacy and policy checks in action.
-          </p>
-          <Button
-            onClick={() => {
-              setShowCreate(false);
-              setShowAgentCreate(true);
-            }}
-          >
-            <Bot className="h-4 w-4 mr-2" />
-            Create agent round
-          </Button>
-        </div>
-      )}
-
-      {rounds && rounds.length > 0 && (
+      {!isLoading && !error && rounds && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <AnimatePresence>
-          {rounds.map((r) => (
-            <motion.button
-              key={r.roundId}
-              type="button"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20 }}
-              onClick={() => setSelectedRoundId(r.roundId)}
-              className="text-left rounded-xl border bg-card p-4 hover:border-primary transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="min-w-0">
-                  <h3 className="font-semibold truncate">{r.description}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {r.serviceCategory}
-                    {r.status === "revealed"
-                      ? " · bids sealed & archived"
-                      : ` · ${r.bidCount}/${r.maxBids} bids`}
-                  </p>
+          <AnimatePresence mode="wait">
+            {rounds.length === 0 ? (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                className="col-span-full flex flex-col items-center justify-center rounded-xl border border-dashed py-16 px-4 text-center"
+              >
+                <div className="rounded-full bg-primary/10 p-4 mb-4">
+                  <Gavel className="h-6 w-6 text-primary" />
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <BackendBadge backend={r.backend} />
-                  {r.createdByAgent && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/50 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400">
-                      <Bot className="h-2.5 w-2.5" />
-                      Agent
-                    </span>
-                  )}
-                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span className="capitalize">{r.status}</span>
-                {r.winner && (
-                  <span className="text-emerald-600 font-medium">
-                    winner: {r.winner.split("::")[0]}
-                  </span>
-                )}            </div>
-          </motion.button>
-          ))}
+                <h3 className="text-lg font-semibold mb-1">
+                  No vendor selection rounds
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-sm mb-4">
+                  Kick off a confidential RFP. Start with an agent-governed round
+                  to see Canton privacy and policy checks in action.
+                </p>
+                <Button
+                  onClick={() => {
+                    setShowCreate(false);
+                    setShowAgentCreate(true);
+                  }}
+                >
+                  <Bot className="h-4 w-4 mr-2" />
+                  Create agent round
+                </Button>
+              </motion.div>
+            ) : (
+              rounds.map((r) => (
+                <motion.button
+                  key={r.roundId}
+                  type="button"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                  onClick={() => setSelectedRoundId(r.roundId)}
+                  className="text-left rounded-xl border bg-card p-4 hover:border-primary transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold truncate">{r.description}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {r.serviceCategory}
+                        {r.status === "revealed"
+                          ? " · bids sealed & archived"
+                          : ` · ${r.bidCount}/${r.maxBids} bids`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <BackendBadge backend={r.backend} />
+                      {r.createdByAgent && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/50 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400">
+                          <Bot className="h-2.5 w-2.5" />
+                          Agent
+                        </span>
+                      )}
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="capitalize">{r.status}</span>
+                    {r.winner && (
+                      <span className="text-emerald-600 font-medium">
+                        winner: {r.winner.split("::")[0]}
+                      </span>
+                    )}
+                  </div>
+                </motion.button>
+              ))
+            )}
           </AnimatePresence>
         </div>
       )}
