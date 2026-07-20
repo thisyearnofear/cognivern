@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import {
   Gavel,
@@ -237,19 +237,42 @@ export function SealedBidPage() {
       )}
 
       {!isLoading && !error && rounds && rounds.length === 0 && (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No rounds yet. Create one to kick off a confidential vendor selection.
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 px-4 text-center">
+          <div className="rounded-full bg-primary/10 p-4 mb-4">
+            <Gavel className="h-6 w-6 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold mb-1">
+            No vendor selection rounds
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-sm mb-4">
+            Kick off a confidential RFP. Start with an agent-governed round to
+            see Canton privacy and policy checks in action.
+          </p>
+          <Button
+            onClick={() => {
+              setShowCreate(false);
+              setShowAgentCreate(true);
+            }}
+          >
+            <Bot className="h-4 w-4 mr-2" />
+            Create agent round
+          </Button>
         </div>
       )}
 
       {rounds && rounds.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <AnimatePresence>
           {rounds.map((r) => (
-            <button
+            <motion.button
               key={r.roundId}
               type="button"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20 }}
               onClick={() => setSelectedRoundId(r.roundId)}
-              className="text-left rounded-xl border bg-card p-4 hover:border-primary transition-colors group"
+              className="text-left rounded-xl border bg-card p-4 hover:border-primary transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="min-w-0">
@@ -278,10 +301,10 @@ export function SealedBidPage() {
                   <span className="text-emerald-600 font-medium">
                     winner: {r.winner.split("::")[0]}
                   </span>
-                )}
-              </div>
-            </button>
+                )}            </div>
+          </motion.button>
           ))}
+          </AnimatePresence>
         </div>
       )}
     </div>

@@ -13,6 +13,7 @@ import {
   Send,
   ShieldCheck,
   ShieldX,
+  Sparkles,
   Trophy,
   Clock,
   X,
@@ -245,7 +246,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               Winner: {round.winner.split("::")[0]} at $
               {round.winningBid.toLocaleString()}
               {round.settledAssetCid && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                <span className="animate-pulse inline-flex items-center gap-1 rounded-full border border-emerald-500/50 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
                   <BadgeCheck className="h-3 w-3" />
                   Value settled atomically
                 </span>
@@ -289,6 +290,16 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <Send className="h-4 w-4" /> Submit sealed bid
           </h3>
+          {round.bids.length < 2 && !isProduction && (
+            <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-700 dark:text-blue-400 flex items-start gap-2">
+              <Sparkles className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                <span className="font-medium">Demo tip:</span> Submit at least
+                2 bids as different Sandbox Bidders, then close the auction to
+                see how Canton keeps losing bids hidden from the Auctioneer.
+              </span>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {isProduction ? (
               <div className="space-y-2">

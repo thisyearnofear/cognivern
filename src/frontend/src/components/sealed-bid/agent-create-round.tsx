@@ -8,6 +8,7 @@ import {
   Loader2,
   X,
   Gavel,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -181,10 +182,14 @@ export function AgentCreateRound({
               setSettlementAmount(parseFloat(e.target.value) || 0)
             }
           />
-          <p className="text-[10px] text-muted-foreground">
-            Budget policy gates close at $100,000 — set above to demo a blocked
-            close.
-          </p>
+          <div className="mt-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 flex items-start gap-2">
+            <ShieldCheck className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+            <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-400">
+              <strong className="font-semibold">Test the policy gate:</strong>{" "}
+              Set this above $100,000 to demo a blocked close by the agent
+              governance layer.
+            </p>
+          </div>
         </div>
         <div className="space-y-2">
           <label className="text-xs font-medium">Asset tag</label>

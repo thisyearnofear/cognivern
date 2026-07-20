@@ -5,7 +5,7 @@
 **Team:** thisyearnofear
 **Repository:** [github.com/thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)
 **Live product:** [cognivern.vercel.app/sealed-bid](https://cognivern.vercel.app/sealed-bid) · API: `cognivern.thisyearnofear.com`
-**Pitch deck:** `docs/pitch-deck.pptx` (PDF export before final submit if required — file is local, not in git)
+**Pitch deck:** [Google Slides](https://docs.google.com/presentation/d/1l_aGavufcyoGVertsf-a6LsL5fq_YJi-/edit?usp=share_link&ouid=109240813203948140410&rtpof=true&sd=true) · source `docs/pitch-deck.pptx` (PDF export before final submit if required)
 **3-min demo video:** YouTube (⏳ link TBD — re-record against the current DevNet-backed, curated live product before final submit)
 **Backend on-ledger:** Canton Daml backend. **Final eligibility gate:** the submitted build must point at a Canton Network DevNet participant, not the localhost/Hetzner sandbox. Record the DevNet evidence below before submitting.
 
@@ -36,7 +36,7 @@ The Hetzner `cognivern-canton` sandbox remains useful for local demos and regres
 4. ✅ **Live product curated** — the sealed-bid list shows a clean featured set on DevNet, not the internal test rounds (`CANTON_FEATURED_ROUNDS`).
 5. ✅ **Party view rebuilt on real per-party ledger queries** (`GET /rounds/:id/party-view`), the atomic-reveal banner made cinematic, and an interactive Canton\|FHE reveal comparison added — landed 2026-07-14.
 6. ⏳ **Re-record the 3-minute demo video** against the current DevNet-backed, curated live product — the party-view toggle and reveal moment from step 5 are the strongest beats to capture. Upload to YouTube and add the link above.
-7. ⏳ **Export the deck to PDF** if the submission form requires a PDF rather than a PPTX.
+7. ✅ **Deck link captured** — Google Slides link added above. ⏳ **Export the deck to PDF** if the submission form requires a PDF rather than a PPTX.
 
 ---
 
