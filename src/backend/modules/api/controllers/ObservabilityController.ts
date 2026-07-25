@@ -63,6 +63,7 @@ interface SigNozQuerySpec {
     timeAggregation?: string;
     spaceAggregation?: string;
     metricName?: string;
+    expression?: string;
   }>;
   filter?: { expression: string };
 }
@@ -343,11 +344,10 @@ export class ObservabilityController {
             spec: {
               name: params.name,
               signal: "traces",
-              source: "durationNano",
               stepInterval: 60,
               aggregations: [
                 {
-                  timeAggregation: params.aggregation,
+                  expression: `${params.aggregation}(durationNano)`,
                 },
               ],
               filter: {
