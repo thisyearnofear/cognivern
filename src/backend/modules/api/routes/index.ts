@@ -12,3 +12,4 @@ export { createWorkspaceRoutes } from "./workspaceRoutes.js";
 export { createApiKeyRoutes } from "./apiKeyRoutes.js";
 export { createWebhookRoutes } from "./webhookRoutes.js";
 export { createEventsRoutes } from "./eventsRoutes.js";
+export { createObservabilityRoutes } from "./observabilityRoutes.js";

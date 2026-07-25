@@ -5,6 +5,7 @@ import { FhenixPolicyService } from "@backend/services/blockchain/FhenixPolicySe
 import { ChainGPTAuditService } from "@backend/services/ai/ChainGPTAuditService.js";
 import { AgentPreferences } from "@backend/services/ai/AgentPreferenceService.js";
 import { ControlEvaluationService, SuspicionResult, AgentActionHistory } from "./ControlEvaluationService.js";
+import { tracer, meter, governanceDecisionCounter, policyViolationCounter, governanceLatencyHistogram } from "@backend/observability/otel.js";
 import logger from "@backend/utils/logger.js";
 import { Script } from "node:vm";
 
@@ -150,6 +151,54 @@ export class PolicyEnforcementService {
       throw new Error("No policy loaded");
     }
 
+    const startedAt = Date.now();
+    return tracer.startActiveSpan(
+      "governance.evaluate_decision",
+      {
+        attributes: {
+          "governance.action_type": action.type,
+          "governance.agent_id": action.metadata?.agentId || "unknown",
+          "governance.policy_id": this.currentPolicy.id,
+          "governance.action_amount": action.metadata?.amount ?? action.metadata?.amountUsd ?? 0,
+        },
+      },
+      async (span) => {
+        try {
+          const result = await this.evaluateDecisionInner(action, agentPreferences, agentHistory, workspaceHoldThreshold);
+          const durationMs = Date.now() - startedAt;
+          governanceDecisionCounter.add(1, {
+            action_type: action.type,
+            outcome: result.allowed ? "allowed" : "denied",
+          });
+          if (!result.allowed) {
+            policyViolationCounter.add(1, { action_type: action.type });
+          }
+          governanceLatencyHistogram.record(durationMs, { action_type: action.type });
+          span.setAttributes({
+            "governance.outcome": result.allowed ? "allowed" : "denied",
+            "governance.duration_ms": durationMs,
+            "governance.violations": result.policyChecks.filter((c) => !c.result).length,
+            "governance.suspicion_composite": result.suspicion?.composite ?? 0,
+          });
+          span.setStatus({ code: 1 });
+          return result;
+        } catch (error) {
+          span.recordException(error as Error);
+          span.setStatus({ code: 2, message: (error as Error).message });
+          throw error;
+        } finally {
+          span.end();
+        }
+      },
+    );
+  }
+
+  private async evaluateDecisionInner(
+    action: AgentAction,
+    agentPreferences?: AgentPreferences | null,
+    agentHistory?: AgentActionHistory[],
+    workspaceHoldThreshold?: number,
+  ): Promise<{ allowed: boolean; policyChecks: PolicyCheck[]; suspicion?: SuspicionResult }> {
     const checks = await this.evaluateAction(action);
 
     // Check if any DENY rules were triggered
@@ -180,7 +229,7 @@ export class PolicyEnforcementService {
     }
 
     // Check if all REQUIRE rules passed
-    const allRequireRulesPassed = this.currentPolicy.rules
+    const allRequireRulesPassed = this.currentPolicy!.rules
       .filter((r: PolicyRule) => this.normalizeRuleType(r.type) === "require")
       .every(
         (r: PolicyRule) => checks.find((c) => c.policyId === r.id)?.result,

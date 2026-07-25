@@ -37,6 +37,7 @@ import {
   GovernanceClient,
   sharedGovernanceClient,
 } from "@backend/services/governance/GovernanceClient.js";
+import { tracer, meter } from "@backend/observability/otel.js";
 
 const logger = new Logger("SapienceTradingAgent");
 
@@ -145,12 +146,28 @@ export class SapienceTradingAgent implements TradingAgent {
       return { success: false, error: "agent not active" };
     }
 
-    try {
-      await this.ensureServices();
-      const result = await this.forecastingService!.runForecastingCycle();
-      if (!result.success) {
-        return { success: false, error: result.error || "forecast failed" };
-      }
+    return tracer.startActiveSpan(
+      "agent.sapience.forecast_cycle",
+      {
+        attributes: {
+          "agent.id": this.id,
+          "agent.type": this.type,
+          "agent.name": this.name,
+        },
+      },
+      async (span) => {
+        const startedAt = Date.now();
+        try {
+          await this.ensureServices();
+          const result = await this.forecastingService!.runForecastingCycle();
+          if (!result.success) {
+            span.setAttributes({
+              "agent.cycle.success": false,
+              "agent.cycle.error": result.error || "forecast failed",
+            });
+            span.setStatus({ code: 2, message: result.error || "forecast failed" });
+            return { success: false, error: result.error || "forecast failed" };
+          }
 
       // Record the forecast in local history so the dashboard still has
       // a decision record. The on-chain submission was already gated by
@@ -172,18 +189,36 @@ export class SapienceTradingAgent implements TradingAgent {
       this.history.unshift(decision);
       if (this.history.length > 50) this.history.pop();
 
+      meter
+        .createCounter("cognivern.agent.cycles.total")
+        .add(1, { agent_type: this.type, outcome: "success" });
+      meter
+        .createHistogram("cognivern.agent.cycle.duration.ms")
+        .record(Date.now() - startedAt, { agent_type: this.type });
+
+      span.setAttribute("agent.cycle.success", true);
+      span.setStatus({ code: 1 });
+
       return {
         success: true,
         forecastTxHash: result.forecastTxHash,
         tradeTxHash: result.tradeTxHash,
       };
     } catch (error) {
+      meter
+        .createCounter("cognivern.agent.cycles.total")
+        .add(1, { agent_type: this.type, outcome: "error" });
+      span.recordException(error as Error);
+      span.setStatus({ code: 2, message: "internal" });
       logger.error(
         "Forecast cycle failed",
         error instanceof Error ? error : undefined,
       );
       return { success: false, error: "internal" };
+    } finally {
+      span.end();
     }
+    });
   }
 
   /**

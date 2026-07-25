@@ -363,6 +363,73 @@ The Fhenix confidential-compute pipeline (`ConfidentialSpendPolicy` + `SealedBid
 - **Architectural separation (clarifies who consumes what):** `publishSpendResult` and `resolveDecision` dispatch to `xLayerRecipient` (which `GovernanceContract.handle()` receives on X Layer, lines 133–162 of `contracts/src/GovernanceContract.sol` — decode → `bool approved = (outcome == 2)` → `_evaluateActionInternal(...)`). `publishDeFiAction` dispatches to a SEPARATE recipient, `xLayerDeFiVault`, which is a different contract entirely (`GovernedVault`, the specialized DeFi execution target). So `GovernanceContract.handle()` does not need to special-case the DeFi path at all — its semantics are unchanged. **Audit result (this iter):** zero TypeScript event listeners for `DecisionPublished` / `DeFiActionPublished` / `DeFiActionRequested` in `src/` (the only match in `FhenixPolicyService.ts:108` is an ABI-constant reference, not a `viem.watchEvent` or `web3.eth.subscribe`). Zero telemetry counters anywhere matching "dispatches per agent" / "approvals by agent" / "dispatchCount". Zero FheDecisionWatcher references in any metric path (the watcher is referenced only in `HealthController.ts` for `isRunning()` + `getPendingCount()`, a pending-decision count, not a dispatch count). **Action required for any future telemetry consumer:** if you build a dashboard that tallies `GovernanceContract.ActionEvaluated` events as a per-agent approval metric, note that this metric covers spend-path decisions only; DeFi-action resolutions are observable via the Fhenix `DeFiActionPublished` event-index topic (read by block range + topic filter; the `outcome` field is the resolved `uint8`). The cross-chain Hyperlane handler on X Layer will not see Deny/Hold DeFi dispatches — that is by design. **Off-chain observation**: standard `eth_getLogs` over the Fhenix RPC (chain id 421614), filtering on the `DeFiActionPublished(bytes32,uint8)` topic, returns the resolved `Outcome` for every decisionId including Deny/Hold — i.e. the Fhenix-side event stream remains the canonical surface for DeFi-action observability even though the cross-chain Hyperlane handler on X Layer doesn't see Deny/Hold.
 - **Audit scope (the iter-26-codebase subscriber check, exhaustively):** swept `src/`, `tests/`, `deploy/`, `scripts/`, `monitoring/` for `DecisionPublished` / `DeFiActionPublished` / `DeFiActionRequested` / `xLayerRecipient` / `xLayerDeFiVault` / `xLayerDestinationDomain` / `mailbox.dispatch` references. Result: one match — `src/backend/services/blockchain/FhenixPolicyService.ts:108` includes `DecisionPublished` in an `ABI` constant (encoding reference, not a `viem.watchEvent` or `web3.eth.subscribe`). No other consumers. Zero telemetry counters matching `dispatches per agent` / `approvals by agent` / `dispatchCount`. `FheDecisionWatcher` referenced only in `HealthController.ts` for `isRunning()` + `getPendingCount()` (pending-decision count, NOT a dispatch count). Future telemetry builders: re-run a similar sweep at the time of building — pattern is `grep -rIn --include='*.ts' --include='*.tsx' --include='*.sol' --include='*.cjs' --include='*.js' --include='*.sh' --include='*.yml' --include='*.yaml' --include='*.toml' --include='*.env*' --include='*.json' 'DeFiActionPublished|DecisionPublished|xLayer\.\|mailbox\.dispatch' src tests deploy scripts monitoring`.
 
+## Telemetry & Observability
+
+Cognivern exports OpenTelemetry-native traces, metrics, and logs to SigNoz
+for end-to-end observability of agent governance decisions. The integration
+is designed so that every LLM call, policy evaluation, audit log entry, and
+agent cycle appears as a correlated span in SigNoz.
+
+### Bootstrap
+
+The OTel SDK is initialized in `src/backend/observability/otel.ts`, which is
+imported before any other module in `src/index.ts` so auto-instrumentations
+patch http/express/dns/winston before they load. When
+`OTEL_EXPORTER_OTLP_ENDPOINT` is unset, the SDK stays disabled with zero
+overhead. When set, it exports via OTLP/HTTP to SigNoz Cloud (or any
+OTLP-compatible backend).
+
+### Instrumented surfaces
+
+| Surface | Span name | Source file |
+|---------|-----------|-------------|
+| LLM call (with fallback) | `llm.execute_with_fallback` | `MultiModelRouter.ts` |
+| LLM provider call | `llm.provider.<name>` | `MultiModelRouter.ts` |
+| Governance decision | `governance.evaluate_decision` | `PolicyEnforcementService.ts` |
+| Audit log entry | `audit.log_action` | `AuditLogService.ts` |
+| Agent cycle | `agent.sapience.forecast_cycle` | `SapienceTradingAgent.ts` |
+
+Each span carries attributes (provider, model, tokens, cost, outcome,
+suspicion score, etc.) and the trace is nested so a governance decision
+contains the LLM call and audit log as child spans.
+
+### Trace deep-linking
+
+Each governance evaluation captures the active OTel span's `traceId` and
+stores it on the CRE run's evidence block. The audit page renders a
+"View trace in SigNoz" link that opens the exact trace in SigNoz Cloud,
+showing the full decision tree for that one governance call.
+
+### Metrics
+
+Counters and histograms are emitted for token consumption, cost, latency,
+policy violations, HTTP request SLOs, and agent cycle health. See
+`docs/signoz-dashboards.json` for three pre-built dashboard definitions.
+
+### Status endpoint
+
+`GET /api/observability/status` (public, no workspace auth) returns the
+real backend OTel state: whether tracing is enabled, whether the OTLP
+endpoint is reachable, which spans/metrics are instrumented, and the
+SigNoz Cloud URL for deep-linking. The frontend Observability page renders
+this as a status card with a Live/Disabled/Unreachable badge.
+
+### Seed script
+
+`pnpm signoz:seed` runs a scripted sequence of 6 governance evaluations
+(3 approved, 2 denied, 1 held) to populate the SigNoz dashboards with
+correlated trace data.
+
+### Graceful fallbacks
+
+All SigNoz touchpoints degrade gracefully when telemetry is unavailable.
+The frontend helper (`src/frontend/src/lib/signoz.ts`) never throws,
+caches the cloud URL with a 60s TTL, and falls back to the default SigNoz
+Cloud URL on any error. The dashboard observability strip distinguishes
+"disabled" from "fetch failed" so a network error is never mistaken for
+an unconfigured backend. See `HACKATHON_SUBMISSION_SIGNOZ.md` for the
+full fallback matrix.
+
 ## Test Coverage
 
 31+ Vitest unit/integration tests plus 24 TestSprite CLI tests run against the live API, covering all major surfaces: auth, health, metrics, Fhenix FHE, intent, projects, sealed-bid auctions, MCP governance, API identities, OWS wallets/keys/permissions, copilot, CRE runs, speech, deep SpendOS (preview/execute/encrypted/confirm/scan), governance CRUD, market data, dashboard, workspace management, API keys, audit, webhooks, payroll, and ingest. Canton sealed-bid privacy invariants are machine-verified by querying the Daml JSON Ledger API as each party. See [LOOP.md](./LOOP.md) for the iteration log.

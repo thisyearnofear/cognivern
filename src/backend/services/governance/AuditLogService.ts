@@ -4,6 +4,7 @@ import { zeroGStorageService } from "@backend/services/blockchain/ZeroGStorageSe
 import { filecoinStorageService } from "@backend/services/blockchain/FilecoinStorageService.js";
 import { creRunStore, CreRunStore } from "@backend/cre/storage/CreRunStore.js";
 import { CreRun, CreArtifact } from "@backend/cre/types.js";
+import { tracer, meter, trace as otelTrace } from "@backend/observability/otel.js";
 import { ethers } from "ethers";
 import crypto from "node:crypto";
 
@@ -52,6 +53,8 @@ export interface AuditLog {
       costUsd: number;
       taskClass: string;
     };
+    // OTel traceId for SigNoz deep-linking from the audit page.
+    traceId?: string;
   };
 }
 
@@ -177,6 +180,10 @@ export class AuditLogService {
         filecoinTxHash: run.evidence?.filecoinTxHash,
         // Preserve the suspicion score so it survives a page reload.
         suspicion,
+        // OTel traceId for SigNoz deep-linking. The audit page renders a
+        // "View trace" link that opens the exact governance trace in
+        // SigNoz, showing the nested LLM + policy + audit spans.
+        traceId: run.evidence?.traceId,
       },
     };
 
@@ -322,6 +329,63 @@ export class AuditLogService {
       };
     },
   ): Promise<string> {
+    return tracer.startActiveSpan(
+      "audit.log_action",
+      {
+        attributes: {
+          "audit.action_type": action.type,
+          "audit.agent_id": String(action.metadata?.agentId || "unknown"),
+          "audit.outcome": allowed ? "allowed" : "denied",
+          "audit.policy_checks": policyChecks.length,
+          "audit.violations": policyChecks.filter((c) => !c.result).length,
+          "audit.ai_provider": options?.aiUsage?.provider || "none",
+          "audit.ai_cost_usd": options?.aiUsage?.costUsd ?? 0,
+          "audit.ai_tokens": options?.aiUsage
+            ? options.aiUsage.inputTokens + options.aiUsage.outputTokens
+            : 0,
+        },
+      },
+      async (span) => {
+        try {
+          const activeSpan = otelTrace.getActiveSpan();
+          const traceId = activeSpan?.spanContext()?.traceId;
+          const runId = await this.logActionInner(action, policyChecks, allowed, options, traceId);
+          meter
+            .createCounter("cognivern.audit.logs.total")
+            .add(1, {
+              action_type: action.type,
+              outcome: allowed ? "allowed" : "denied",
+            });
+          span.setStatus({ code: 1 });
+          return runId;
+        } catch (error) {
+          span.recordException(error as Error);
+          span.setStatus({ code: 2, message: (error as Error).message });
+          throw error;
+        } finally {
+          span.end();
+        }
+      },
+    );
+  }
+
+  private async logActionInner(
+    action: AgentAction,
+    policyChecks: PolicyCheck[],
+    allowed: boolean,
+    options?: {
+      suspicion?: Record<string, unknown>;
+      aiUsage?: {
+        provider: string;
+        model: string;
+        inputTokens: number;
+        outputTokens: number;
+        costUsd: number;
+        taskClass: string;
+      };
+    },
+    traceId?: string,
+  ): Promise<string> {
     const runId = crypto.randomUUID();
     const now = new Date().toISOString();
 
@@ -361,6 +425,9 @@ export class AuditLogService {
     }
     if (options?.aiUsage) {
       (evidence as Record<string, unknown>).aiUsage = options.aiUsage;
+    }
+    if (traceId) {
+      (evidence as Record<string, unknown>).traceId = traceId;
     }
 
     const run: CreRun = {

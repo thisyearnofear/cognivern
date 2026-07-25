@@ -213,6 +213,11 @@ class ApiClient {
     return this.fetch("/api/audit/logs");
   }
 
+  // Observability (SigNoz / OpenTelemetry)
+  async getObservabilityStatus(): Promise<ApiResponse<ObservabilityStatus>> {
+    return this.fetch("/api/observability/status");
+  }
+
   async getAuditInsights(): Promise<ApiResponse<AuditInsights>> {
     return this.fetch("/api/audit/insights");
   }
@@ -1025,6 +1030,31 @@ export interface ClosePolicyRejected {
   policyChecks: PolicyCheck[];
   reason: string;
   timestamp: string;
+}
+
+// Observability (SigNoz / OpenTelemetry)
+export interface ObservabilityStatus {
+  enabled: boolean;
+  reachable: boolean | null;
+  endpoint: string | null;
+  serviceName: string;
+  ingestionKeyConfigured: boolean;
+  signozCloudUrl: string | null;
+  dashboards: Array<{
+    title: string;
+    description: string;
+    status: "live" | "upcoming";
+  }>;
+  instrumentedSpans: Array<{
+    name: string;
+    source: string;
+    status: "live" | "upcoming";
+  }>;
+  instrumentedMetrics: Array<{
+    name: string;
+    source: string;
+    status: "live" | "upcoming";
+  }>;
 }
 
 export const apiClient = new ApiClient();

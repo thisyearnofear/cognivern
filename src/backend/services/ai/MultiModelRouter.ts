@@ -1,5 +1,6 @@
 import type { MultiModelConfig } from "./multi-model-types.js";
 import { executeProvider } from "./MultiModelRouter.providers.js";
+import { tracer, meter, recordLlmUsage } from "@backend/observability/otel.js";
 
 export interface AiUsageRecord {
   provider: string;
@@ -190,34 +191,77 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
   ): Promise<string> {
     const provider = this.config.fallbackOrder[attempt] || initialProvider;
 
-    try {
-      const result = await this.executeWithProvider(prompt, provider, taskType);
+    return tracer.startActiveSpan(
+      "llm.execute_with_fallback",
+      {
+        attributes: {
+          "llm.provider": provider,
+          "llm.task_type": taskType,
+          "llm.fallback_attempt": attempt,
+          "llm.prompt_chars": prompt.length,
+        },
+      },
+      async (span) => {
+        try {
+          const result = await this.executeWithProvider(prompt, provider, taskType);
 
-      const inputTokens = Math.ceil(prompt.length / 4);
-      const outputTokens = Math.ceil(result.length / 4);
-      const costPer1k = ESTIMATED_COST_PER_1K_TOKENS[provider] || 0.0001;
-      this.lastUsage = {
-        provider,
-        model: this.config.providers[provider as keyof typeof this.config.providers]?.model || "unknown",
-        inputTokens,
-        outputTokens,
-        costUsd: ((inputTokens + outputTokens) / 1000) * costPer1k,
-        taskClass: taskType,
-        timestamp: new Date().toISOString(),
-      };
+          const inputTokens = Math.ceil(prompt.length / 4);
+          const outputTokens = Math.ceil(result.length / 4);
+          const costPer1k = ESTIMATED_COST_PER_1K_TOKENS[provider] || 0.0001;
+          this.lastUsage = {
+            provider,
+            model: this.config.providers[provider as keyof typeof this.config.providers]?.model || "unknown",
+            inputTokens,
+            outputTokens,
+            costUsd: ((inputTokens + outputTokens) / 1000) * costPer1k,
+            taskClass: taskType,
+            timestamp: new Date().toISOString(),
+          };
 
-      return result;
-    } catch (error) {
-      console.warn(`Provider ${provider} failed:`, error);
+          // Emit to OTel pipeline + metrics buffer.
+          recordLlmUsage(this.lastUsage);
+          meter
+            .createHistogram("cognivern.llm.tokens.histogram")
+            .record(inputTokens + outputTokens, {
+              provider,
+              direction: "total",
+              task_class: taskType,
+            });
 
-      if (attempt < this.config.fallbackOrder.length - 1) {
-        return this.executeWithFallback(prompt, initialProvider, taskType, attempt + 1);
-      }
+          span.setAttributes({
+            "llm.input_tokens": inputTokens,
+            "llm.output_tokens": outputTokens,
+            "llm.cost_usd": this.lastUsage.costUsd,
+            "llm.model": this.lastUsage.model,
+            "llm.succeeded": true,
+          });
+          span.setStatus({ code: 1 }); // OK
 
-      throw new Error(
-        `All AI providers failed (attempted: ${this.config.fallbackOrder.join(", ")})`,
-      );
-    }
+          return result;
+        } catch (error) {
+          span.recordException(error as Error);
+          span.setStatus({ code: 2, message: (error as Error).message }); // ERROR
+          span.setAttributes({
+            "llm.succeeded": false,
+            "llm.error": (error as Error).message,
+          });
+          meter
+            .createCounter("cognivern.llm.failures.total")
+            .add(1, { provider, task_class: taskType });
+
+          if (attempt < this.config.fallbackOrder.length - 1) {
+            span.setAttribute("llm.falling_back", true);
+            return this.executeWithFallback(prompt, initialProvider, taskType, attempt + 1);
+          }
+
+          throw new Error(
+            `All AI providers failed (attempted: ${this.config.fallbackOrder.join(", ")})`,
+          );
+        } finally {
+          span.end();
+        }
+      },
+    );
   }
 
   getLastUsage(): AiUsageRecord | null {
@@ -229,19 +273,48 @@ Focus on key decisions, risk assessments, and policy enforcement highlights.
     provider: string,
     taskType: "governance" | "briefing",
   ): Promise<string> {
-    const apiKey = this.getApiKey(provider);
-    if (!apiKey && provider !== "workers-ai") {
-      throw new Error(`${provider} API key not configured`);
-    }
+    return tracer.startActiveSpan(
+      `llm.provider.${provider}`,
+      {
+        attributes: {
+          "llm.provider": provider,
+          "llm.task_type": taskType,
+          "llm.model": this.config.providers[provider as keyof typeof this.config.providers]?.model || "unknown",
+        },
+      },
+      async (span) => {
+        const apiKey = this.getApiKey(provider);
+        if (!apiKey && provider !== "workers-ai") {
+          const err = new Error(`${provider} API key not configured`);
+          span.recordException(err);
+          span.setStatus({ code: 2, message: err.message });
+          span.end();
+          throw err;
+        }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+        const startedAt = Date.now();
 
-    try {
-      return await executeProvider(provider, prompt, controller.signal, taskType, this.config, apiKey || "");
-    } finally {
-      clearTimeout(timeoutId);
-    }
+        try {
+          const result = await executeProvider(provider, prompt, controller.signal, taskType, this.config, apiKey || "");
+          const durationMs = Date.now() - startedAt;
+          meter
+            .createHistogram("cognivern.llm.provider.latency.ms")
+            .record(durationMs, { provider, task_class: taskType });
+          span.setAttribute("llm.duration_ms", durationMs);
+          span.setStatus({ code: 1 });
+          return result;
+        } catch (error) {
+          span.recordException(error as Error);
+          span.setStatus({ code: 2, message: (error as Error).message });
+          throw error;
+        } finally {
+          clearTimeout(timeoutId);
+          span.end();
+        }
+      },
+    );
   }
 
   async testProviders(): Promise<Record<string, boolean>> {

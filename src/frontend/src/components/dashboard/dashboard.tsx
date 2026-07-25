@@ -18,6 +18,7 @@ import {
   Clock,
   AlertTriangle,
   Gavel,
+  Radar,
 } from "lucide-react";
 import type { AuditLog } from "@cognivern/shared";
 import { Button } from "@/components/ui/button";
@@ -121,6 +122,60 @@ function AiSpendCard() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ObservabilityStrip({ onClick }: { onClick: () => void }) {
+  const [otelStatus, setOtelStatus] = useState<{
+    enabled: boolean;
+    reachable: boolean | null;
+  } | null>(null);
+  const [fetchFailed, setFetchFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/observability/status")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (cancelled) return;
+        if (json?.data) {
+          setOtelStatus({
+            enabled: json.data.enabled,
+            reachable: json.data.reachable,
+          });
+        } else {
+          setFetchFailed(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFetchFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const tracingLive = otelStatus?.enabled && otelStatus?.reachable !== false;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-left hover:border-emerald-500/40 transition-colors"
+    >
+      <Radar className={`h-4 w-4 shrink-0 ${tracingLive ? "text-emerald-500" : "text-muted-foreground"}`} />
+      <span className="text-sm text-foreground/80">
+        <span className="font-semibold text-foreground">Agent observability</span>{" "}
+        {fetchFailed
+          ? "— tracing status unavailable, click to view details"
+          : tracingLive
+            ? "— tracing live, every LLM call and governance decision visible in SigNoz"
+            : otelStatus?.enabled
+              ? "— tracing configured but endpoint unreachable"
+              : "— configure SigNoz to trace every governance decision end-to-end"}
+      </span>
+      <ArrowRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
+    </button>
   );
 }
 
@@ -644,6 +699,9 @@ export function Dashboard() {
           <ArrowRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
         </button>
       )}
+
+      {/* Observability strip — surfaces tracing availability to dashboard users */}
+      <ObservabilityStrip onClick={() => router.push("/observability")} />
 
       {/* Charts Row — hidden in focus mode */}
       {!focusMode && (

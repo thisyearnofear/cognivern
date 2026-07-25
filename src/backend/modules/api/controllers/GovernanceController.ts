@@ -22,6 +22,7 @@ import { NotificationService } from "@backend/services/NotificationService.js";
 import type { AgentAction } from "@backend/types/Agent.js";
 import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
 import { startGovernanceEvaluation } from "@backend/cre/workflows/governance.js";
+import { trace as otelTrace } from "@backend/observability/otel.js";
 import crypto from "node:crypto";
 
 export class GovernanceController {
@@ -313,6 +314,7 @@ export class GovernanceController {
         policyChecks,
         auditLogId: evalResult.auditLogId,
         timestamp: new Date().toISOString(),
+        traceId: otelTrace.getActiveSpan()?.spanContext()?.traceId,
       };
       if (suspicionResult) {
         responseData.suspicion = suspicionResult;

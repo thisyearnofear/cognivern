@@ -19,6 +19,7 @@ import {
   Terminal,
   KeyRound,
   Link,
+  Activity,
   AlertTriangle,
 } from "lucide-react";
 import { PermitDialog } from "./permit-dialog";
@@ -421,6 +422,51 @@ function TimelineNode({
                   </div>
                 </div>
               )}
+
+              {/* SigNoz distributed trace card — visual peer of the on-chain record */}
+              {(() => {
+                const raw = rawLog as Record<string, unknown>;
+                const ev = raw.evidence as Record<string, unknown> | undefined;
+                const traceId = ev?.traceId as string | undefined;
+                if (!traceId) return null;
+                return (
+                  <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 p-3 space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                      <Activity className="h-3.5 w-3.5" />
+                      Distributed Trace
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Full execution trace of this governance decision in SigNoz:
+                      LLM calls, policy evaluation, and audit logging as nested spans.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="text-[11px] font-mono text-foreground/70 truncate">
+                        {traceId.slice(0, 18)}...{traceId.slice(-6)}
+                      </code>
+                      <a
+                        href={`https://us.signoz.cloud/trace/${traceId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline shrink-0"
+                        onClick={async (e) => {
+                          // Prevent default immediately to avoid double-open,
+                          // then resolve the real URL. If resolution fails,
+                          // open the fallback URL from the href attribute.
+                          e.preventDefault();
+                          try {
+                            const { buildSignozTraceLink } = await import("@/lib/signoz");
+                            window.open(await buildSignozTraceLink(traceId), "_blank");
+                          } catch {
+                            window.open(`https://us.signoz.cloud/trace/${traceId}`, "_blank");
+                          }
+                        }}
+                      >
+                        View trace in SigNoz <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* FHE detail */}
               {isFhe && (

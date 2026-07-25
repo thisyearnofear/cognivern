@@ -159,6 +159,7 @@ export interface CreRun {
       costUsd: number;
       taskClass: string;
     };
+    traceId?: string;
   };
   events?: CreRunEvent[];
   steps: CreStepLog[];

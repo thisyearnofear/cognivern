@@ -46,6 +46,7 @@ export const PUBLIC_API_PATHS: ReadonlySet<string> = new Set([
   "/spendos/decisions",
   "/metrics/ux-summary",
   "/metrics/ux-events",
+  "/observability/status",
   "/cre/runs",
   "/cre/projects",
   "/cre/forecast",

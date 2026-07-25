@@ -31,6 +31,8 @@ import {
   Clock,
   Share2,
   Check,
+  ExternalLink,
+  Activity,
 } from "lucide-react";
 import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
@@ -1064,6 +1066,39 @@ export function GovernanceCheck() {
                     </button>
                   </div>
                 </div>
+
+                {/* SigNoz trace deep-link */}
+                {result.traceId && (
+                  <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 p-3 space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                      <Activity className="h-3.5 w-3.5" />
+                      Distributed Trace
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      View the full execution trace of this governance check in SigNoz.
+                    </p>
+                    <a
+                      href={`https://us.signoz.cloud/trace/${result.traceId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        try {
+                          const { buildSignozTraceLink } = await import("@/lib/signoz");
+                          window.open(await buildSignozTraceLink(result.traceId!), "_blank");
+                        } catch {
+                          window.open(`https://us.signoz.cloud/trace/${result.traceId}`, "_blank");
+                        }
+                      }}
+                    >
+                      <code className="font-mono">
+                        {result.traceId.slice(0, 18)}...{result.traceId.slice(-6)}
+                      </code>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                )}
               </div>
             );
           })()}

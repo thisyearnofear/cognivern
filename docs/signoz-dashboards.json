@@ -1,0 +1,145 @@
+{
+  "dashboards": [
+    {
+      "title": "Cognivern - AI Agent Governance Overview",
+      "description": "Top-level observability for the Cognivern agent governance plane: LLM spend, governance decisions, policy violations, and agent cycle health. Built for the SigNoz Agents of SigNoz hackathon (Track 01: AI & Agent Observability).",
+      "tags": ["cognivern", "ai-agents", "governance", "hackathon"],
+      "layout": [
+        {
+          "title": "LLM Token Cost (Total USD)",
+          "query": "sum(cognivern_llm_cost_usd_total)",
+          "unit": "usd",
+          "panel_type": "stat"
+        },
+        {
+          "title": "LLM Tokens Consumed (by provider)",
+          "query": "sum(cognivern_llm_tokens_total) by (provider, direction)",
+          "unit": "none",
+          "panel_type": "bar_chart"
+        },
+        {
+          "title": "Governance Decisions (allowed vs denied)",
+          "query": "sum(rate(cognivern_governance_decisions_total[5m])) by (outcome)",
+          "unit": "ops/sec",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Policy Violations (by action type)",
+          "query": "sum(rate(cognivern_governance_policy_violations_total[5m])) by (action_type)",
+          "unit": "ops/sec",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Governance Decision Latency (p50/p95/p99)",
+          "query": "histogram_quantile(0.50, sum(rate(cognivern_governance_latency_ms_bucket[5m])) by (le)) ; histogram_quantile(0.95, sum(rate(cognivern_governance_latency_ms_bucket[5m])) by (le)) ; histogram_quantile(0.99, sum(rate(cognivern_governance_latency_ms_bucket[5m])) by (le))",
+          "unit": "ms",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "LLM Provider Failures (by provider)",
+          "query": "sum(rate(cognivern_llm_failures_total[5m])) by (provider)",
+          "unit": "ops/sec",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Agent Cycle Duration (p95)",
+          "query": "histogram_quantile(0.95, sum(rate(cognivern_agent_cycle_duration_ms_bucket[5m])) by (le, agent_type))",
+          "unit": "ms",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Suspicion Score Distribution",
+          "query": "sum(cognivern_governance_decisions_total) by (outcome)",
+          "unit": "none",
+          "panel_type": "pie_chart"
+        }
+      ]
+    },
+    {
+      "title": "Cognivern - LLM Provider Health & Fallback Chain",
+      "description": "Deep dive into the MultiModelRouter fallback chain: per-provider latency, failure rates, token economics, and fallback cascade events. Tracks all 9 providers (gemini, fireworks, groq, venice, openai, anthropic, kilocode, chaingpt, workers-ai).",
+      "tags": ["cognivern", "llm", "providers", "fallback"],
+      "layout": [
+        {
+          "title": "Provider Latency (p95)",
+          "query": "histogram_quantile(0.95, sum(rate(cognivern_llm_provider_latency_ms_bucket[5m])) by (le, provider))",
+          "unit": "ms",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Provider Failure Rate",
+          "query": "sum(rate(cognivern_llm_failures_total[5m])) by (provider) / sum(rate(cognivern_llm_tokens_total[5m])) by (provider)",
+          "unit": "percent",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Token Consumption by Provider (stacked)",
+          "query": "sum(rate(cognivern_llm_tokens_total[5m])) by (provider, direction)",
+          "unit": "tokens/sec",
+          "panel_type": "bar_chart"
+        },
+        {
+          "title": "Cost per Provider (USD/min)",
+          "query": "sum(rate(cognivern_llm_cost_usd_total[1m])) by (provider)",
+          "unit": "usd/min",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Fallback Cascade Events",
+          "query": "sum(rate(cognivern_llm_failures_total[5m])) by (provider, task_class)",
+          "unit": "events/sec",
+          "panel_type": "table"
+        },
+        {
+          "title": "Active Traces - LLM Execute with Fallback",
+          "query": "traces where span_name = 'llm.execute_with_fallback'",
+          "unit": "",
+          "panel_type": "traces"
+        }
+      ]
+    },
+    {
+      "title": "Cognivern - HTTP API SLO & Audit Trail",
+      "description": "Request-level SLO tracking (built on SloMetricsService OTel exports) plus audit trail volume. Maps the /api/governance/evaluate, /api/audit/logs, /api/spend endpoints against their SLO targets.",
+      "tags": ["cognivern", "slo", "http", "audit"],
+      "layout": [
+        {
+          "title": "Request Rate by Route",
+          "query": "sum(rate(cognivern_http_requests_total[5m])) by (route)",
+          "unit": "req/sec",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Request Latency p95 by Route",
+          "query": "histogram_quantile(0.95, sum(rate(cognivern_http_request_duration_ms_bucket[5m])) by (le, route))",
+          "unit": "ms",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Error Rate by Status Class",
+          "query": "sum(rate(cognivern_http_requests_total{http_status_class=\"5xx\"}[5m])) by (route)",
+          "unit": "errors/sec",
+          "panel_type": "time_series"
+        },
+        {
+          "title": "Audit Logs Written (by outcome)",
+          "query": "sum(rate(cognivern_audit_logs_total[5m])) by (outcome)",
+          "unit": "logs/sec",
+          "panel_type": "bar_chart"
+        },
+        {
+          "title": "Governance Traces (full decision tree)",
+          "query": "traces where span_name = 'governance.evaluate_decision'",
+          "unit": "",
+          "panel_type": "traces"
+        },
+        {
+          "title": "Agent Cycle Traces",
+          "query": "traces where span_name = 'agent.sapience.forecast_cycle'",
+          "unit": "",
+          "panel_type": "traces"
+        }
+      ]
+    }
+  ]
+}

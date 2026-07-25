@@ -1,3 +1,5 @@
+import { meter } from "@backend/observability/otel.js";
+
 interface Sample {
   route: string;
   status: number;
@@ -88,6 +90,21 @@ export class SloMetricsService {
     if (this.samples.length > this.maxSamples) {
       this.samples.splice(0, this.samples.length - this.maxSamples);
     }
+
+    // Emit to OpenTelemetry for SigNoz dashboards.
+    meter
+      .createHistogram("cognivern.http.request.duration.ms")
+      .record(durationMs, {
+        route,
+        http_status_class: `${Math.floor(status / 100)}xx`,
+        http_status: status.toString(),
+      });
+    meter
+      .createCounter("cognivern.http.requests.total")
+      .add(1, {
+        route,
+        http_status_class: `${Math.floor(status / 100)}xx`,
+      });
   }
 
   snapshot(): SloSnapshot {

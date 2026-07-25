@@ -10,6 +10,7 @@ import {
   Code2,
   Sparkles,
   Gavel,
+  Radar,
 } from "lucide-react";
 
 export interface NavItem {
@@ -101,6 +102,13 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Integrate",
         icon: Code2,
         href: "/integrate",
+      },
+      {
+        id: "observability",
+        label: "Tracing",
+        icon: Radar,
+        href: "/observability",
+        description: "SigNoz distributed tracing & metrics",
       },
       {
         id: "os",

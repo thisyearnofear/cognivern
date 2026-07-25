@@ -1,3 +1,6 @@
+// OpenTelemetry must be initialized before any other module is imported so
+// auto-instrumentations can patch http/express/dns before they are loaded.
+import "./backend/observability/otel.js";
 import { startServer } from "./server.js";
 import logger from "./backend/utils/logger.js";
 

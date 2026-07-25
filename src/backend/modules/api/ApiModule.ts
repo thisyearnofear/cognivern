@@ -48,6 +48,7 @@ import { WebhookController } from "./controllers/WebhookController.js";
 import { AuthController } from "./controllers/AuthController.js";
 import { WorkspaceController } from "./controllers/WorkspaceController.js";
 import { EventsController } from "./controllers/EventsController.js";
+import { ObservabilityController } from "./controllers/ObservabilityController.js";
 import {
   ApiKeyController,
   resolveWorkspaceFromApiKey,
@@ -100,6 +101,7 @@ interface ControllerRegistry {
   workspace: WorkspaceController;
   apiKey: ApiKeyController;
   events: EventsController;
+  observability: ObservabilityController;
 }
 
 /** Typed error with optional HTTP status code */
@@ -571,6 +573,7 @@ export class ApiModule extends BaseService {
     this.controllers.workspace = new WorkspaceController();
     this.controllers.apiKey = new ApiKeyController();
     this.controllers.events = new EventsController();
+    this.controllers.observability = new ObservabilityController();
 
     // Initialize all controllers that have an initialize method
     for (const [name, controller] of Object.entries(this.controllers)) {
@@ -601,6 +604,7 @@ export class ApiModule extends BaseService {
       createApiKeyRoutes,
       createWebhookRoutes,
       createEventsRoutes,
+      createObservabilityRoutes,
     } = await import("./routes/index.js");
 
     // Health check (no API key required)
@@ -671,6 +675,7 @@ export class ApiModule extends BaseService {
     );
     apiRouter.use(createWebhookRoutes(this.ctrl("webhook")));
     apiRouter.use(createEventsRoutes(this.ctrl("events")));
+    apiRouter.use(createObservabilityRoutes(this.ctrl("observability")));
 
     // Sapience routes (conditional)
     if (this.controllers.sapience) {

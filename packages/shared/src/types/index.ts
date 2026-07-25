@@ -114,6 +114,7 @@ export interface GovernanceEvaluation {
   provider?: string;
   model?: string;
   timestamp: string;
+  traceId?: string;
 }
 
 export interface IntentMetrics {

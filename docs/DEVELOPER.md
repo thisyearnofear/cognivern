@@ -239,6 +239,59 @@ The write-verify-fix loop caught production issues during the build window; see 
 - [ ] Staging environment
 - [ ] Self-service workspace tier upgrade (demo → live)
 
+## Running with SigNoz (Observability)
+
+Cognivern ships with OpenTelemetry instrumentation for every LLM call,
+governance decision, audit log, and agent cycle. To export telemetry to
+SigNoz:
+
+### 1. Set environment variables
+
+```env
+# SigNoz Cloud OTLP endpoint (e.g. https://us.ingest.signoz.cloud)
+OTEL_EXPORTER_OTLP_ENDPOINT=https://us.ingest.signoz.cloud
+# SigNoz ingestion key (from Settings -> Ingestion)
+SIGNOZ_INGESTION_KEY=your-ingestion-key
+# Optional: SigNoz Cloud URL for trace deep-links
+SIGNOZ_CLOUD_URL=https://us.signoz.cloud
+# Service name shown in SigNoz
+OTEL_SERVICE_NAME=cognivern-backend
+```
+
+If omitted, the OTel SDK stays disabled with zero overhead.
+
+### 2. Start the backend
+
+```bash
+pnpm build:backend
+node --loader config/esm-dir-loader.mjs dist/src/index.js
+```
+
+### 3. Seed telemetry data
+
+```bash
+pnpm signoz:seed -- --api-key $COGNIVERN_API_KEY
+```
+
+This runs 6 governance evaluations (3 approved, 2 denied, 1 held) to
+populate the SigNoz dashboards with correlated trace data.
+
+### 4. Import dashboards
+
+In SigNoz Cloud, go to Dashboards -> Import -> paste the JSON from
+`docs/signoz-dashboards.json`.
+
+### 5. Verify
+
+Open the Observability page in the Cognivern frontend (Developer ->
+Observability) to confirm the status card shows "Tracing: Live, exporting".
+The audit page should show "View trace in SigNoz" links on governance
+decisions.
+
+See `docs/ARCHITECTURE.md` -> "Telemetry & Observability" for the full
+instrumentation map, and `HACKATHON_SUBMISSION_SIGNOZ.md` for the hackathon
+submission write-up.
+
 ## Related Docs
 
 - [Architecture](./ARCHITECTURE.md) — System design, integrations, data flows
