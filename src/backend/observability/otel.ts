@@ -23,7 +23,6 @@ import {
   ATTR_DEPLOYMENT_ENVIRONMENT_NAME,
 } from "@opentelemetry/semantic-conventions";
 import { trace, metrics, diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
-import fs from "node:fs";
 
 // IMPORTANT: do not import @backend/utils/logger.js here. Winston loads
 // before the OTel winston instrumentation patches it, which produces a
@@ -35,63 +34,10 @@ const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || "cognivern-backend";
 
 let sdk: NodeSDK | null = null;
 
-// Lightweight wrapper that logs OTLP metric export failures so we can tell
-// whether data is being accepted by SigNoz without importing @opentelemetry/core.
-class DiagnosticMetricExporter {
-  constructor(private readonly exporter: any) {}
-
-  export(metrics: any, resultCallback: (result: number) => void): void {
-    // Dump the full metrics object to disk so we can compare the SDK payload
-    // against the working manual curl. Only resource attributes and metric
-    // names are sensitive-free; no secrets are written. Guarded so it does not
-    // run once we are done debugging.
-    if (process.env.OTEL_DEBUG_SNAPSHOT === "1") {
-      try {
-        fs.writeFileSync(
-          "/tmp/otlp-export-snapshot.json",
-          JSON.stringify(metrics, null, 2),
-        );
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    this.exporter.export(metrics, (result: any) => {
-      const code =
-        typeof result === "object" && result !== null ? (result.code ?? 0) : Number(result);
-      if (code !== 0) {
-        console.error("[otel] metrics export failed, result:", result);
-      }
-      resultCallback(result);
-    });
-  }
-
-  async forceFlush(): Promise<void> {
-    if (this.exporter.forceFlush) {
-      await this.exporter.forceFlush();
-    }
-  }
-
-  async shutdown(): Promise<void> {
-    await this.exporter.shutdown();
-  }
-
-  // Forward optional aggregation selection so the wrapped exporter's
-  // delta/cumulative preference is preserved.
-  selectAggregationTemporality(instrumentType: any): any {
-    return this.exporter.selectAggregationTemporality?.(instrumentType);
-  }
-
-  selectAggregation(instrumentType: any): any {
-    return this.exporter.selectAggregation?.(instrumentType);
-  }
-}
-
 if (OTEL_ENABLED) {
-  // DEBUG level logs every OTLP export request/response. Keep it on while we
-  // are diagnosing why metrics are not visible in SigNoz; lower to INFO once
-  // exports are healthy.
-  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+  // Log OTel warnings/errors so export failures are visible in the
+  // backend logs without enabling the noisier DEBUG diagnostics.
+  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
 
   const traceExporter = new OTLPTraceExporter({
     url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT
@@ -108,7 +54,7 @@ if (OTEL_ENABLED) {
   });
 
   const metricReader = new PeriodicExportingMetricReader({
-    exporter: new DiagnosticMetricExporter(metricExporter) as any,
+    exporter: metricExporter as any,
     exportIntervalMillis: 15000,
   });
 

@@ -39,7 +39,47 @@ describe("ObservabilityController - executeSigNozQuery", () => {
     (controller as unknown as { executeSigNozQuery: (...args: unknown[]) => Promise<unknown> })
       .executeSigNozQuery("https://cloud.url", "api-key", {} as never, "testQuery");
 
-  it("returns sorted point values for a well-formed response", async () => {
+  it("returns sorted point values for the SigNoz v5 response shape", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        status: "success",
+        data: {
+          type: "time_series",
+          meta: {},
+          data: {
+            results: [
+              {
+                queryName: "testQuery",
+                aggregations: [
+                  {
+                    index: 0,
+                    alias: "__result_0",
+                    meta: {},
+                    series: [
+                      { values: [{ timestamp: 200, value: 5 }, { timestamp: 100, value: 3 }] },
+                      { values: [{ timestamp: 300, value: 2 }] },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      }),
+    } as Response));
+
+    const points = await runQuery();
+
+    expect(points).toEqual([
+      { timestamp: 100, value: 3 },
+      { timestamp: 200, value: 5 },
+      { timestamp: 300, value: 2 },
+    ]);
+    expect(loggerFns.warn).not.toHaveBeenCalled();
+  });
+
+  it("returns sorted point values for the legacy response shape", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({

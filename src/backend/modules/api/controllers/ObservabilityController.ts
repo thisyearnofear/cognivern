@@ -81,18 +81,33 @@ interface SigNozPoint {
 }
 
 interface SigNozSeries {
-  pointValues: SigNozPoint[];
+  pointValues?: SigNozPoint[];
+  values?: SigNozPoint[];
   labels?: Record<string, string>;
+}
+
+interface SigNozAggregation {
+  index?: number;
+  alias?: string;
+  meta?: Record<string, unknown>;
+  series?: SigNozSeries[];
 }
 
 interface SigNozResult {
   queryName: string;
-  series: SigNozSeries[];
+  series?: SigNozSeries[];
+  aggregations?: SigNozAggregation[];
 }
 
 interface SigNozQueryResponse {
+  status?: string;
   data?: {
+    type?: string;
+    meta?: unknown;
     results?: SigNozResult[];
+    data?: {
+      results?: SigNozResult[];
+    };
   };
 }
 
@@ -393,7 +408,11 @@ export class ObservabilityController {
 
       const raw = (await response.json()) as SigNozQueryResponse;
 
-      if (!raw.data || !Array.isArray(raw.data.results)) {
+      const results = Array.isArray(raw.data?.results)
+        ? raw.data!.results
+        : raw.data?.data?.results;
+
+      if (!Array.isArray(results)) {
         logger.warn(
           `SigNoz query "${queryName}" returned unexpected shape: missing data.results`,
           { queryName, response: JSON.stringify(raw).slice(0, 500) },
@@ -401,16 +420,28 @@ export class ObservabilityController {
         return [];
       }
 
-      const result = raw.data.results.find((r) => r.queryName === queryName);
+      const result = results.find((r) => r.queryName === queryName);
       if (!result) {
         logger.warn(
           `SigNoz query "${queryName}" returned results but no matching queryName`,
-          { queryName, available: raw.data.results.map((r) => r.queryName) },
+          { queryName, available: results.map((r) => r.queryName) },
         );
         return [];
       }
 
-      if (!Array.isArray(result.series) || result.series.length === 0) {
+      // SigNoz v5 may nest series directly on the result or inside aggregations.
+      const allSeries: SigNozSeries[] = [];
+      if (Array.isArray(result.series)) {
+        allSeries.push(...result.series);
+      }
+      if (Array.isArray(result.aggregations)) {
+        for (const agg of result.aggregations) {
+          if (Array.isArray(agg.series)) {
+            allSeries.push(...agg.series);
+          }
+        }
+      }
+      if (allSeries.length === 0) {
         logger.warn(
           `SigNoz query "${queryName}" returned no series`,
           { queryName, result },
@@ -419,11 +450,11 @@ export class ObservabilityController {
       }
 
       // Flatten all series' points into one sorted array.
-      const allPoints = result.series.flatMap((s) => s.pointValues ?? []);
+      const allPoints = allSeries.flatMap((s) => s.pointValues ?? s.values ?? []);
       if (allPoints.length === 0) {
         logger.warn(
           `SigNoz query "${queryName}" returned series but no pointValues`,
-          { queryName, series: result.series },
+          { queryName, series: allSeries },
         );
         return [];
       }
