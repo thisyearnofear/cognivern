@@ -167,6 +167,17 @@ Import: in SigNoz Cloud, go to Dashboards -> Import -> paste the JSON from
 uses a different prefix convention (the instruments emit
 `cognivern.*` metric names).
 
+### Inline dashboard embedding
+
+Dashboards are not just importable - they are embedded directly in the
+Cognivern Observability page via iframe. Set
+`SIGNOZ_DASHBOARD_EMBED_URL` to a SigNoz dashboard public share URL, and
+the dashboard renders inline on the Tracing page with a refresh button.
+Judges and users see live SigNoz data without leaving the Cognivern UI.
+
+When the embed URL is not configured, the section shows a graceful
+placeholder with instructions and a link to the SigNoz dashboards page.
+
 ---
 
 ## Trace deep-linking

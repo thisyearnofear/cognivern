@@ -1040,6 +1040,7 @@ export interface ObservabilityStatus {
   serviceName: string;
   ingestionKeyConfigured: boolean;
   signozCloudUrl: string | null;
+  dashboardEmbedUrl: string | null;
   dashboards: Array<{
     title: string;
     description: string;

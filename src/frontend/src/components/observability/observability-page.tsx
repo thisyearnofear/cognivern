@@ -155,6 +155,11 @@ export function ObservabilityPage() {
         ) : status ? (
           <div className="space-y-8">
             <StatusCard status={status} />
+            <EmbeddedDashboardSection
+              embedUrl={status.dashboardEmbedUrl}
+              enabled={status.enabled}
+              cloudUrl={cloudUrl}
+            />
             <TraceSearchSection
               traceSearch={traceSearch}
               setTraceSearch={setTraceSearch}
@@ -287,6 +292,89 @@ function StatusCard({ status }: { status: ObservabilityStatus }) {
         </div>
       )}
     </div>
+  );
+}
+
+/* --- Embedded SigNoz Dashboard --- */
+
+function EmbeddedDashboardSection({
+  embedUrl,
+  enabled,
+  cloudUrl,
+}: {
+  embedUrl: string | null;
+  enabled: boolean;
+  cloudUrl: string;
+}) {
+  const [iframeKey, setIframeKey] = useState(0);
+
+  if (!enabled) {
+    return null;
+  }
+
+  if (!embedUrl) {
+    return (
+      <Section
+        title="Live dashboards"
+        icon={<Gauge className="h-5 w-5 text-primary" />}
+        subtitle="SigNoz dashboards will appear here once public sharing is enabled."
+      >
+        <div className="rounded-lg border border-dashed p-6 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            Dashboard embedding not configured
+          </div>
+          <p className="text-xs text-muted-foreground">
+            To embed live SigNoz dashboards here, enable public sharing on a
+            dashboard in your SigNoz Cloud and set the share URL as
+            <code className="bg-muted px-1 py-0.5 rounded text-[10px] mx-1 font-mono">
+              SIGNOZ_DASHBOARD_EMBED_URL
+            </code>
+            in the backend env. The dashboard will render inline, so judges
+            and users never leave the Cognivern UI.
+          </p>
+          <a
+            href={`${cloudUrl}/dashboards`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline pt-1"
+          >
+            Open SigNoz dashboards
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      </Section>
+    );
+  }
+
+  return (
+    <Section
+      title="Live dashboards"
+      icon={<Gauge className="h-5 w-5 text-primary" />}
+      subtitle="Real-time SigNoz dashboards embedded inline. Refresh to update data."
+    >
+      <div className="rounded-lg border overflow-hidden bg-card">
+        <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
+          <span className="text-xs font-medium text-muted-foreground">
+            SigNoz Cloud - live data
+          </span>
+          <button
+            onClick={() => setIframeKey((k) => k + 1)}
+            className="text-xs text-primary hover:underline"
+          >
+            Refresh
+          </button>
+        </div>
+        <iframe
+          key={iframeKey}
+          src={embedUrl}
+          className="w-full"
+          style={{ height: "500px", border: "none" }}
+          title="SigNoz embedded dashboard"
+          loading="lazy"
+        />
+      </div>
+    </Section>
   );
 }
 

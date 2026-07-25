@@ -19,6 +19,7 @@ export interface ObservabilityStatus {
   serviceName: string;
   ingestionKeyConfigured: boolean;
   signozCloudUrl: string | null;
+  dashboardEmbedUrl: string | null;
   dashboards: Array<{ title: string; description: string; status: "live" | "upcoming" }>;
   instrumentedSpans: Array<{ name: string; source: string; status: "live" | "upcoming" }>;
   instrumentedMetrics: Array<{ name: string; source: string; status: "live" | "upcoming" }>;
@@ -43,6 +44,7 @@ export class ObservabilityController {
       serviceName: process.env.OTEL_SERVICE_NAME || "cognivern-backend",
       ingestionKeyConfigured: !!(process.env.SIGNOZ_INGESTION_KEY || "").trim(),
       signozCloudUrl: process.env.SIGNOZ_CLOUD_URL || null,
+      dashboardEmbedUrl: process.env.SIGNOZ_DASHBOARD_EMBED_URL || null,
       dashboards: [
         {
           title: "AI Agent Governance Overview",
