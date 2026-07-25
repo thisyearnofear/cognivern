@@ -61,7 +61,11 @@ export function ObservabilityPage() {
           setError(statusRes.error || "Failed to load observability status");
         }
         if (logsRes.success && logsRes.data) {
-          setAuditLogs(logsRes.data);
+          const data = logsRes.data as unknown;
+          const logs = Array.isArray(data)
+            ? data
+            : (data as { logs?: AuditLog[] })?.logs ?? [];
+          setAuditLogs(logs);
         } else {
           setLogsFetchFailed(true);
         }
