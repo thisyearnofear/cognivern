@@ -10,6 +10,11 @@ import type {
 } from "@cognivern/shared";
 import { NotificationService } from "./NotificationService.js";
 import type { CreRun } from "@backend/cre/types.js";
+import {
+  governanceDecisionCounter,
+  policyViolationCounter,
+  governanceLatencyHistogram,
+} from "@backend/observability/otel.js";
 
 type Row = Record<string, unknown>;
 
@@ -391,6 +396,7 @@ export const WorkspaceDataService = {
       policyId?: string;
     },
   ): GovernanceEvaluation {
+    const startedAt = Date.now();
     const db = getDb();
     const now = new Date().toISOString();
 
@@ -476,6 +482,19 @@ export const WorkspaceDataService = {
     if (!agentMissing) {
       this.recordSpend(workspaceId, params.agentId, params.action, decision, now);
     }
+
+    // Emit OTel governance metrics for every evaluation, regardless of source.
+    const actionType = params.action.type || "unknown";
+    governanceDecisionCounter.add(1, {
+      action_type: actionType,
+      outcome: decision,
+    });
+    if (decision === "denied") {
+      policyViolationCounter.add(1, { action_type: actionType });
+    }
+    governanceLatencyHistogram.record(Date.now() - startedAt, {
+      action_type: actionType,
+    });
 
     return {
       allowed: !denied,
