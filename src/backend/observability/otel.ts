@@ -40,9 +40,24 @@ class DiagnosticMetricExporter {
   constructor(private readonly exporter: any) {}
 
   export(metrics: any, resultCallback: (result: number) => void): void {
-    this.exporter.export(metrics, (result: number) => {
-      if (Number(result) !== 0) {
-        console.error("[otel] metrics export failed, result code:", result);
+    // Log what is about to be exported so we can confirm metric names and
+    // resource attributes reach SigNoz. This is intentionally verbose while
+    // we debug empty charts.
+    const names = (metrics.scopeMetrics ?? []).flatMap((scope: any) =>
+      (scope.metrics ?? []).map((m: any) => m.descriptor?.name ?? m.name),
+    );
+    const resourceAttrs = metrics.resource?.attributes ?? {};
+    console.info("[otel] exporting metrics", {
+      count: names.length,
+      names,
+      resource: resourceAttrs,
+    });
+
+    this.exporter.export(metrics, (result: any) => {
+      const code =
+        typeof result === "object" && result !== null ? (result.code ?? 0) : Number(result);
+      if (code !== 0) {
+        console.error("[otel] metrics export failed, result:", result);
       }
       resultCallback(result);
     });
