@@ -23,6 +23,7 @@ import {
   ATTR_DEPLOYMENT_ENVIRONMENT_NAME,
 } from "@opentelemetry/semantic-conventions";
 import { trace, metrics, diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
+import fs from "node:fs";
 
 // IMPORTANT: do not import @backend/utils/logger.js here. Winston loads
 // before the OTel winston instrumentation patches it, which produces a
@@ -40,18 +41,20 @@ class DiagnosticMetricExporter {
   constructor(private readonly exporter: any) {}
 
   export(metrics: any, resultCallback: (result: number) => void): void {
-    // Log what is about to be exported so we can confirm metric names and
-    // resource attributes reach SigNoz. This is intentionally verbose while
-    // we debug empty charts.
-    const names = (metrics.scopeMetrics ?? []).flatMap((scope: any) =>
-      (scope.metrics ?? []).map((m: any) => m.descriptor?.name ?? m.name),
-    );
-    const resourceAttrs = metrics.resource?.attributes ?? {};
-    console.info("[otel] exporting metrics", {
-      count: names.length,
-      names,
-      resource: resourceAttrs,
-    });
+    // Dump the full metrics object to disk so we can compare the SDK payload
+    // against the working manual curl. Only resource attributes and metric
+    // names are sensitive-free; no secrets are written. Guarded so it does not
+    // run once we are done debugging.
+    if (process.env.OTEL_DEBUG_SNAPSHOT === "1") {
+      try {
+        fs.writeFileSync(
+          "/tmp/otlp-export-snapshot.json",
+          JSON.stringify(metrics, null, 2),
+        );
+      } catch (e) {
+        // ignore
+      }
+    }
 
     this.exporter.export(metrics, (result: any) => {
       const code =
