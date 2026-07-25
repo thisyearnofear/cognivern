@@ -34,6 +34,41 @@ const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || "cognivern-backend";
 
 let sdk: NodeSDK | null = null;
 
+// Lightweight wrapper that logs OTLP metric export failures so we can tell
+// whether data is being accepted by SigNoz without importing @opentelemetry/core.
+class DiagnosticMetricExporter {
+  constructor(private readonly exporter: any) {}
+
+  export(metrics: any, resultCallback: (result: number) => void): void {
+    this.exporter.export(metrics, (result: number) => {
+      if (Number(result) !== 0) {
+        console.error("[otel] metrics export failed, result code:", result);
+      }
+      resultCallback(result);
+    });
+  }
+
+  async forceFlush(): Promise<void> {
+    if (this.exporter.forceFlush) {
+      await this.exporter.forceFlush();
+    }
+  }
+
+  async shutdown(): Promise<void> {
+    await this.exporter.shutdown();
+  }
+
+  // Forward optional aggregation selection so the wrapped exporter's
+  // delta/cumulative preference is preserved.
+  selectAggregationTemporality(instrumentType: any): any {
+    return this.exporter.selectAggregationTemporality?.(instrumentType);
+  }
+
+  selectAggregation(instrumentType: any): any {
+    return this.exporter.selectAggregation?.(instrumentType);
+  }
+}
+
 if (OTEL_ENABLED) {
   // DEBUG level logs every OTLP export request/response. Keep it on while we
   // are diagnosing why metrics are not visible in SigNoz; lower to INFO once
@@ -55,7 +90,7 @@ if (OTEL_ENABLED) {
   });
 
   const metricReader = new PeriodicExportingMetricReader({
-    exporter: metricExporter,
+    exporter: new DiagnosticMetricExporter(metricExporter) as any,
     exportIntervalMillis: 15000,
   });
 
@@ -86,15 +121,25 @@ if (OTEL_ENABLED) {
 
 function parseOtelHeaders(): Record<string, string> {
   // Support both explicit header map and the SigNoz Cloud key+region shorthand.
+  // SigNoz Cloud OTLP/HTTP ingestion expects the header `signoz-access-token`.
+  // If the env var provides the legacy `signoz-ingestion-key` name, normalise it.
   const headers: Record<string, string> = {};
   if (process.env.OTEL_EXPORTER_OTLP_HEADERS) {
     for (const pair of process.env.OTEL_EXPORTER_OTLP_HEADERS.split(",")) {
       const [k, ...rest] = pair.split("=");
-      if (k && rest.length) headers[k.trim()] = rest.join("=").trim();
+      if (k && rest.length) {
+        const key = k.trim().toLowerCase();
+        const value = rest.join("=").trim();
+        if (key === "signoz-ingestion-key") {
+          headers["signoz-access-token"] = value;
+        } else {
+          headers[key] = value;
+        }
+      }
     }
   }
   if (process.env.SIGNOZ_INGESTION_KEY) {
-    headers["signoz-access-token"] = process.env.SIGNOZ_INGESTION_KEY;
+    headers["signoz-access-token"] = process.env.SIGNOZ_INGESTION_KEY.trim();
   }
   return headers;
 }
