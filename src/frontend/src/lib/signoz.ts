@@ -1,6 +1,6 @@
 "use client";
 
-import { apiClient, type ObservabilityStatus } from "@/lib/api-client";
+import { apiClient } from "@/lib/api-client";
 
 /**
  * Cached fetch of the SigNoz Cloud URL from the observability status

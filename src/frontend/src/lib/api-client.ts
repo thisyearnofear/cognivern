@@ -218,6 +218,10 @@ class ApiClient {
     return this.fetch("/api/observability/status");
   }
 
+  async getObservabilityMetrics(): Promise<ApiResponse<ObservabilityMetrics>> {
+    return this.fetch("/api/observability/metrics");
+  }
+
   async getAuditInsights(): Promise<ApiResponse<AuditInsights>> {
     return this.fetch("/api/audit/insights");
   }
@@ -1056,6 +1060,26 @@ export interface ObservabilityStatus {
     source: string;
     status: "live" | "upcoming";
   }>;
+}
+
+export interface ObservabilityMetrics {
+  timeRange: { start: string; end: string };
+  buckets: Array<{
+    timestamp: number;
+    label: string;
+    decisions: number;
+    cost: number;
+    failures: number;
+    latencyP95: number;
+  }>;
+  summary: {
+    totalDecisions: number;
+    totalCostUsd: number;
+    totalFailures: number;
+    avgLatencyP95Ms: number;
+  };
+  live: boolean;
+  message?: string;
 }
 
 export const apiClient = new ApiClient();

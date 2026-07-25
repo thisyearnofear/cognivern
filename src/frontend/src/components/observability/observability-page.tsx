@@ -1,11 +1,28 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import type { ReactNode, ComponentProps } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { apiClient, type ObservabilityStatus, type AuditLog } from "@/lib/api-client";
-import { getSignozCloudUrl, buildSignozTraceLinkSync } from "@/lib/signoz";
+import {
+  apiClient,
+  type ObservabilityStatus,
+  type ObservabilityMetrics,
+  type AuditLog,
+} from "@/lib/api-client";
+import { buildSignozTraceLinkSync } from "@/lib/signoz";
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import {
   Radar,
   Activity,
@@ -38,6 +55,8 @@ export function ObservabilityPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [logsFetchFailed, setLogsFetchFailed] = useState(false);
   const [cloudUrl, setCloudUrl] = useState<string>("https://us.signoz.cloud");
+  const [metrics, setMetrics] = useState<ObservabilityMetrics | null>(null);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,10 +67,12 @@ export function ObservabilityPage() {
     async function load() {
       setLoading(true);
       setError(null);
+      setMetricsError(null);
       try {
-        const [statusRes, logsRes] = await Promise.all([
+        const [statusRes, logsRes, metricsRes] = await Promise.all([
           apiClient.getObservabilityStatus(),
           apiClient.getAuditLogs(),
+          apiClient.getObservabilityMetrics(),
         ]);
         if (cancelled) return;
         if (statusRes.success && statusRes.data) {
@@ -70,6 +91,11 @@ export function ObservabilityPage() {
           setAuditLogs(logs);
         } else {
           setLogsFetchFailed(true);
+        }
+        if (metricsRes.success && metricsRes.data) {
+          setMetrics(metricsRes.data);
+        } else {
+          setMetricsError(metricsRes.error || "Failed to load metrics");
         }
       } catch (err) {
         if (!cancelled) {
@@ -160,11 +186,7 @@ export function ObservabilityPage() {
         ) : status ? (
           <div className="space-y-8">
             <StatusCard status={status} />
-            <EmbeddedDashboardSection
-              embedUrl={status.dashboardEmbedUrl}
-              enabled={status.enabled}
-              cloudUrl={cloudUrl}
-            />
+            <LiveMetricsSection metrics={metrics} error={metricsError} />
             <TraceSearchSection
               traceSearch={traceSearch}
               setTraceSearch={setTraceSearch}
@@ -186,7 +208,7 @@ export function ObservabilityPage() {
                 <DashboardsSection dashboards={status.dashboards} />
                 <SpansSection spans={status.instrumentedSpans} />
                 <MetricsSection metrics={status.instrumentedMetrics} />
-                <SetupSection enabled={status.enabled} />
+                <SetupSection enabled={status.enabled} cloudUrl={cloudUrl} />
               </div>
             )}
           </div>
@@ -194,6 +216,12 @@ export function ObservabilityPage() {
       </div>
     </div>
   );
+}
+
+function asTooltipFormatter(
+  fn: (value: number) => [string, string],
+): NonNullable<ComponentProps<typeof Tooltip>["formatter"]> {
+  return fn as unknown as NonNullable<ComponentProps<typeof Tooltip>["formatter"]>;
 }
 
 /* ─── Provenance helpers ─────────────────────────────────────── */
@@ -313,89 +341,6 @@ function StatusCard({ status }: { status: ObservabilityStatus }) {
   );
 }
 
-/* --- Embedded SigNoz Dashboard --- */
-
-function EmbeddedDashboardSection({
-  embedUrl,
-  enabled,
-  cloudUrl,
-}: {
-  embedUrl: string | null;
-  enabled: boolean;
-  cloudUrl: string;
-}) {
-  const [iframeKey, setIframeKey] = useState(0);
-
-  if (!enabled) {
-    return null;
-  }
-
-  if (!embedUrl) {
-    return (
-      <Section
-        title="Live dashboards"
-        icon={<Gauge className="h-5 w-5 text-primary" />}
-        subtitle="SigNoz dashboards will appear here once public sharing is enabled."
-      >
-        <div className="rounded-lg border border-dashed p-6 space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-            Dashboard embedding not configured
-          </div>
-          <p className="text-xs text-muted-foreground">
-            To embed live SigNoz dashboards here, enable public sharing on a
-            dashboard in your SigNoz Cloud and set the share URL as
-            <code className="bg-muted px-1 py-0.5 rounded text-[10px] mx-1 font-mono">
-              SIGNOZ_DASHBOARD_EMBED_URL
-            </code>
-            in the backend env. The dashboard will render inline, so judges
-            and users never leave the Cognivern UI.
-          </p>
-          <a
-            href={`${cloudUrl}/dashboards`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-primary hover:underline pt-1"
-          >
-            Open SigNoz dashboards
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        </div>
-      </Section>
-    );
-  }
-
-  return (
-    <Section
-      title="Live dashboards"
-      icon={<Gauge className="h-5 w-5 text-primary" />}
-      subtitle="Real-time SigNoz dashboards embedded inline. Refresh to update data."
-    >
-      <div className="rounded-lg border overflow-hidden bg-card">
-        <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
-          <span className="text-xs font-medium text-muted-foreground">
-            SigNoz Cloud - live data
-          </span>
-          <button
-            onClick={() => setIframeKey((k) => k + 1)}
-            className="text-xs text-primary hover:underline"
-          >
-            Refresh
-          </button>
-        </div>
-        <iframe
-          key={iframeKey}
-          src={embedUrl}
-          className="w-full"
-          style={{ height: "500px", border: "none" }}
-          title="SigNoz embedded dashboard"
-          loading="lazy"
-        />
-      </div>
-    </Section>
-  );
-}
-
 function StatusField({
   label,
   value,
@@ -421,6 +366,233 @@ function StatusField({
       >
         {value}
       </div>
+    </div>
+  );
+}
+
+/* ─── Live metrics dashboard (replaces iframe) ──────────────── */
+
+function LiveMetricsSection({
+  metrics,
+  error,
+}: {
+  metrics: ObservabilityMetrics | null;
+  error: string | null;
+}) {
+  const unavailable = error || !metrics || !metrics.live || metrics.buckets.length === 0;
+  if (unavailable) {
+    const backendMessage = metrics?.message;
+    return (
+      <Section
+        title="Live telemetry"
+        icon={<Gauge className="h-5 w-5 text-primary" />}
+        subtitle={
+          error
+            ? "Live charts are unavailable right now."
+            : "Set SIGNOZ_CLOUD_URL and SIGNOZ_API_KEY on the backend to query SigNoz metrics."
+        }
+      >
+        <div className="rounded-lg border border-dashed p-6 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            {error ? "Metrics query failed" : "Live metrics not configured"}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {error
+              ? error
+              : backendMessage ||
+                "The backend needs a SigNoz Service Account API key to fetch live metrics. Add SIGNOZ_API_KEY and the recent traces table below will continue to work."}
+          </p>
+        </div>
+      </Section>
+    );
+  }
+
+  const { summary } = metrics;
+
+  return (
+    <Section
+      title="Live telemetry"
+      icon={<Gauge className="h-5 w-5 text-primary" />}
+      subtitle="Real-time data from SigNoz, rendered natively in Cognivern."
+    >
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <SummaryCard
+          label="Governance decisions"
+          value={summary.totalDecisions.toLocaleString()}
+          tone="positive"
+        />
+        <SummaryCard
+          label="LLM cost"
+          value={`$${summary.totalCostUsd.toFixed(4)}`}
+          tone="neutral"
+        />
+        <SummaryCard
+          label="LLM failures"
+          value={summary.totalFailures.toLocaleString()}
+          tone={summary.totalFailures > 0 ? "warning" : "positive"}
+        />
+        <SummaryCard
+          label="LLM p95 latency"
+          value={`${Math.round(summary.avgLatencyP95Ms)} ms`}
+          tone="neutral"
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <ChartCard title="Governance decisions" subtitle="Decisions over the last 24h">
+          <ResponsiveContainer width="100%" height={240}>
+            <AreaChart data={metrics.buckets}>
+              <defs>
+                <linearGradient id="colorDecisions" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                formatter={asTooltipFormatter((value: number) => {
+                  const num = typeof value === "number" ? value : Number(value);
+                  return [num.toLocaleString(), "Decisions"] as [string, string];
+                })}
+              />
+              <Area
+                type="monotone"
+                dataKey="decisions"
+                stroke="#10b981"
+                fillOpacity={1}
+                fill="url(#colorDecisions)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title="LLM cost (USD)" subtitle="Cumulative LLM spend over the last 24h">
+          <ResponsiveContainer width="100%" height={240}>
+            <AreaChart data={metrics.buckets}>
+              <defs>
+                <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip
+                contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                formatter={asTooltipFormatter((value: number) => {
+                  const num = typeof value === "number" ? value : Number(value);
+                  return [`$${num.toFixed(4)}`, "Cost"] as [string, string];
+                })}
+              />
+              <Area
+                type="monotone"
+                dataKey="cost"
+                stroke="#3b82f6"
+                fillOpacity={1}
+                fill="url(#colorCost)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title="LLM failures" subtitle="Failed LLM calls over the last 24h">
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={metrics.buckets}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                formatter={asTooltipFormatter((value: number) => {
+                  const num = typeof value === "number" ? value : Number(value);
+                  return [num.toLocaleString(), "Failures"] as [string, string];
+                })}
+              />
+              <Line
+                type="monotone"
+                dataKey="failures"
+                stroke="#ef4444"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title="LLM p95 latency" subtitle="p95 span duration over the last 24h">
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={metrics.buckets}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip
+                contentStyle={{ borderRadius: 8, fontSize: 12 }}
+                formatter={asTooltipFormatter((value: number) => {
+                  const num = typeof value === "number" ? value : Number(value);
+                  return [`${Math.round(num)} ms`, "p95 Latency"] as [string, string];
+                })}
+              />
+              <Line
+                type="monotone"
+                dataKey="latencyP95"
+                stroke="#8b5cf6"
+                strokeWidth={2}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      </div>
+    </Section>
+  );
+}
+
+function ChartCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-3">
+      <div className="space-y-0.5">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        <p className="text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+      <div className="h-[240px]">{children}</div>
+    </div>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "positive" | "neutral" | "warning";
+}) {
+  const toneClass =
+    tone === "positive"
+      ? "text-emerald-600 dark:text-emerald-400"
+      : tone === "warning"
+        ? "text-red-600 dark:text-red-400"
+        : "text-foreground";
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-1">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={`text-lg font-semibold ${toneClass}`}>{value}</div>
     </div>
   );
 }
@@ -493,13 +665,7 @@ function RecentTracesSection({
             {logsFetchFailed ? (
               "Failed to fetch audit logs. The trace search above still works if you have a trace ID."
             ) : (
-              <>
-                No traced governance decisions yet. Run{" "}
-                <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">
-                  pnpm signoz:seed
-                </code>{" "}
-                to generate sample traces, or run a governance check.
-              </>
+              "No traced governance decisions yet. Run pnpm signoz:seed to generate sample traces, or run a governance check."
             )}
           </p>
         </div>
@@ -724,7 +890,13 @@ function MetricsSection({
 
 /* ─── Setup ──────────────────────────────────────────────────── */
 
-function SetupSection({ enabled }: { enabled: boolean }) {
+function SetupSection({
+  enabled,
+  cloudUrl,
+}: {
+  enabled: boolean;
+  cloudUrl: string;
+}) {
   return (
     <Section
       title="Setup"
@@ -772,7 +944,14 @@ function SetupSection({ enabled }: { enabled: boolean }) {
         </div>
         <div>
           <span className="text-emerald-400">SIGNOZ_CLOUD_URL</span>
-          =https://us.signoz.cloud
+          ={cloudUrl}
+        </div>
+        <div className="text-zinc-500 mt-2">
+          # SigNoz Cloud API key (Settings -&gt; Service Accounts)
+        </div>
+        <div>
+          <span className="text-emerald-400">SIGNOZ_API_KEY</span>
+          =your-api-key
         </div>
       </div>
       <div className="flex items-center gap-3 pt-2 flex-wrap">
@@ -818,8 +997,8 @@ function Section({
 }: {
   title: string;
   subtitle?: string;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
+  icon?: ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="space-y-3">

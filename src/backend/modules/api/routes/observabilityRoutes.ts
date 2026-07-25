@@ -10,5 +10,9 @@ export function createObservabilityRoutes(
     observabilityController.getStatus(req, res),
   );
 
+  router.get("/observability/metrics", (req, res) =>
+    observabilityController.getMetrics(req, res),
+  );
+
   return router;
 }

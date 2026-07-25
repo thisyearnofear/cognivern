@@ -101,9 +101,10 @@ async function main() {
   const { values } = parseArgs({
     options: {
       "base-url": { type: "string", default: process.env.COGNIVERN_SELF_BASE_URL || "http://localhost:3001" },
-      "api-key": { type: "string", default: process.env.COGNIVERN_API_KEY || "" },
+      "api-key": { type: "string", default: process.env.COGNIVERN_API_KEY || process.env.API_KEY || "" },
       delay: { type: "string", default: "500" },
     },
+    allowPositionals: true,
   });
 
   const baseUrl = values["base-url"]!;
