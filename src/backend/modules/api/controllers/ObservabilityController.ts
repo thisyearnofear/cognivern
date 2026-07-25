@@ -57,8 +57,9 @@ export interface ObservabilityMetrics {
 interface SigNozQuerySpec {
   name: string;
   signal: "metrics" | "traces";
+  source: string;
   stepInterval: number;
-  aggregations: Array<{ metricName: string; timeAggregation?: string; spaceAggregation: string }>;
+  aggregations: Array<{ timeAggregation?: string; spaceAggregation: string }>;
   filter?: { expression: string };
 }
 
@@ -296,10 +297,10 @@ export class ObservabilityController {
             spec: {
               name: params.name,
               signal: "metrics",
+              source: params.metricName,
               stepInterval: 60,
               aggregations: [
                 {
-                  metricName: params.metricName,
                   timeAggregation: params.timeAggregation,
                   spaceAggregation: "sum",
                 },
@@ -338,10 +339,10 @@ export class ObservabilityController {
             spec: {
               name: params.name,
               signal: "traces",
+              source: "durationNano",
               stepInterval: 60,
               aggregations: [
                 {
-                  metricName: "durationNano",
                   spaceAggregation: params.aggregation,
                 },
               ],
