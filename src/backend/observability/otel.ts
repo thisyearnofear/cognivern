@@ -35,7 +35,10 @@ const SERVICE_NAME = process.env.OTEL_SERVICE_NAME || "cognivern-backend";
 let sdk: NodeSDK | null = null;
 
 if (OTEL_ENABLED) {
-  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
+  // DEBUG level logs every OTLP export request/response. Keep it on while we
+  // are diagnosing why metrics are not visible in SigNoz; lower to INFO once
+  // exports are healthy.
+  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
   const traceExporter = new OTLPTraceExporter({
     url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT
@@ -44,13 +47,15 @@ if (OTEL_ENABLED) {
     headers: parseOtelHeaders(),
   });
 
+  const metricExporter = new OTLPMetricExporter({
+    url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT
+      ? `${process.env.OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/$/, "")}/v1/metrics`
+      : undefined,
+    headers: parseOtelHeaders(),
+  });
+
   const metricReader = new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter({
-      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT
-        ? `${process.env.OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/$/, "")}/v1/metrics`
-        : undefined,
-      headers: parseOtelHeaders(),
-    }),
+    exporter: metricExporter,
     exportIntervalMillis: 15000,
   });
 
