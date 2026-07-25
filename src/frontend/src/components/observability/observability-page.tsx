@@ -20,6 +20,7 @@ import {
   ArrowUpRight,
   Search,
   Clock,
+  ChevronDown,
   ArrowRight,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ export function ObservabilityPage() {
   const [logsFetchFailed, setLogsFetchFailed] = useState(false);
   const [cloudUrl, setCloudUrl] = useState<string>("https://us.signoz.cloud");
   const [loading, setLoading] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [traceSearch, setTraceSearch] = useState("");
 
@@ -117,9 +119,8 @@ export function ObservabilityPage() {
               {status && <ProvenanceBadge enabled={status.enabled} />}
             </div>
             <p className="text-sm text-muted-foreground max-w-2xl">
-              OpenTelemetry-native tracing, metrics, and logs for every LLM
-              call, governance decision, and agent cycle. Exported to SigNoz
-              for end-to-end debuggability of autonomous agent spend.
+              Every LLM call, governance decision, and agent cycle traced
+              end-to-end in SigNoz via OpenTelemetry.
             </p>
           </div>
           <a
@@ -171,10 +172,23 @@ export function ObservabilityPage() {
               cloudUrl={cloudUrl}
             />
             <RecentTracesSection traces={tracedLogs} cloudUrl={cloudUrl} logsFetchFailed={logsFetchFailed} />
-            <DashboardsSection dashboards={status.dashboards} />
-            <SpansSection spans={status.instrumentedSpans} />
-            <MetricsSection metrics={status.instrumentedMetrics} />
-            <SetupSection enabled={status.enabled} />
+            <div className="pt-2">
+              <button
+                onClick={() => setShowDetails((v) => !v)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+              >
+                {showDetails ? "Hide" : "Show"} technical details
+                <ChevronDown className={`h-3 w-3 transition-transform ${showDetails ? "rotate-180" : ""}`} />
+              </button>
+            </div>
+            {showDetails && (
+              <div className="space-y-8">
+                <DashboardsSection dashboards={status.dashboards} />
+                <SpansSection spans={status.instrumentedSpans} />
+                <MetricsSection metrics={status.instrumentedMetrics} />
+                <SetupSection enabled={status.enabled} />
+              </div>
+            )}
           </div>
         ) : null}
       </div>
