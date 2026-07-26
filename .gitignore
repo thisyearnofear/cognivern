@@ -149,4 +149,12 @@ remix-smart-bin-monitoring-das/
 /tsc
 /cognivern@*
 /cognivern-frontend@*
-BRIEF.md
+
+# ── Local-only trailers (regenerate from docs/) ────────────────────
+cognivern-signoz-trailer/
+
+# ── Old top-level MDs (moved to docs/) ──────────────────────────────
+/BRIEF.md
+/TESTING.md
+/HACKATHON_SUBMISSION.md
+/HACKATHON_SUBMISSION_SIGNOZ.md
