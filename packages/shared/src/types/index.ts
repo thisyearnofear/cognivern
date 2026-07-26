@@ -169,6 +169,7 @@ export interface OwsWallet {
   chain: string;
   address: string;
   createdAt: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface OwsApiKey {

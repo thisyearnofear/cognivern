@@ -326,6 +326,20 @@ class ApiClient {
     return this.fetch("/api/ows/wallets");
   }
 
+  async updateWallet(
+    walletId: string,
+    params: {
+      executionProvider?: "local" | "keeperhub";
+      chainId?: number | string;
+      keeperHubWalletAddress?: string;
+    },
+  ): Promise<ApiResponse<Record<string, unknown>>> {
+    return this.fetch(`/api/ows/wallets/${encodeURIComponent(walletId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(params),
+    });
+  }
+
   async createApiKey(params: {
     walletId: string;
     scopes: string[];

@@ -19,6 +19,7 @@ import {
 import { OwsWalletPolicyEvaluator } from "./OwsWalletPolicy.js";
 import { OwsWalletOnChainManager } from "./OwsWalletOnChain.js";
 import { blockchainConfig } from "@backend/shared/config/index.js";
+import { keeperHubExecutionProvider } from "./KeeperHubExecutionProvider.js";
 
 export interface SpendIntent {
   id: string;
@@ -436,16 +437,36 @@ export class OwsWalletService {
     } = params;
 
     // Broadcast the real native value transfer FROM the scoped wallet.
-    const transfer = await owsLocalVaultService.sendNativeTransfer({
-      walletId: access.wallet.id,
-      apiKeyToken: operatorApproved ? undefined : apiKeyToken,
-      operatorApproved,
-      to: intent.recipient,
-      valueWei,
-      rpcUrl: blockchainConfig.rpcUrl,
-      chainId: blockchainConfig.chainId,
-      gasLimit: blockchainConfig.gasLimits.nativeTransfer,
-    });
+    // If the wallet is configured to use KeeperHub, route the broadcast
+    // through KeeperHub's managed execution layer instead of a local RPC.
+    const executionProvider = (access.wallet.metadata?.executionProvider as string) || "local";
+    const rawChainId = access.wallet.metadata?.chainId;
+    const walletChainId =
+      typeof rawChainId === "number"
+        ? rawChainId
+        : typeof rawChainId === "string"
+          ? Number(rawChainId)
+          : blockchainConfig.chainId;
+    const keeperHubWalletAddress = access.wallet.metadata?.keeperHubWalletAddress as string | undefined;
+    const transfer =
+      executionProvider === "keeperhub"
+        ? await keeperHubExecutionProvider.executeTransfer({
+            intentId: intent.id,
+            from: keeperHubWalletAddress || access.wallet.accounts[0]?.address || signer,
+            to: intent.recipient,
+            valueWei,
+            chainId: walletChainId,
+          })
+        : await owsLocalVaultService.sendNativeTransfer({
+            walletId: access.wallet.id,
+            apiKeyToken: operatorApproved ? undefined : apiKeyToken,
+            operatorApproved,
+            to: intent.recipient,
+            valueWei,
+            rpcUrl: blockchainConfig.rpcUrl,
+            chainId: blockchainConfig.chainId,
+            gasLimit: blockchainConfig.gasLimits.nativeTransfer,
+          });
     // Never fabricate transferTxHash on failure (same fail-loud contract as
     // onChainStatus). A failed transfer with status=approved is a PARTIAL
     // success, not moved money — callers must surface it.
@@ -472,6 +493,7 @@ export class OwsWalletService {
       type: "attestation_result",
       data: {
         signingProvider,
+        executionProvider,
         txHash,
         signature,
         transferTxHash,

@@ -58,6 +58,9 @@ export function createSpendRoutes(
   router.post("/ows/wallets/import", (req, res) =>
     owsWalletController.importWallet(req, res),
   );
+  router.patch("/ows/wallets/:id", (req, res) =>
+    owsWalletController.updateWallet(req, res),
+  );
 
   // Agent routes
   router.get("/ows/agents", (req, res) =>

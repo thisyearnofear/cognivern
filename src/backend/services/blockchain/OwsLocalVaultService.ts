@@ -193,6 +193,25 @@ export class OwsLocalVaultService {
     });
   }
 
+  async updateWalletMetadata(
+    walletId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<OwsWalletDescriptor> {
+    const vault = this.readVault();
+    const wallet = vault.wallets.find((w) => w.id === walletId);
+    if (!wallet) {
+      throw new Error(`Wallet ${walletId} not found`);
+    }
+
+    wallet.metadata = {
+      ...wallet.metadata,
+      ...metadata,
+    };
+
+    this.writeVault(vault);
+    return this.toDescriptor(wallet);
+  }
+
   async importWallet(params: {
     name: string;
     privateKey: string;

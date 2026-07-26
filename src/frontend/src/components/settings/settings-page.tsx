@@ -21,11 +21,15 @@ import {
   Rocket,
   Check,
   AlertTriangle,
+  Wallet,
+  Shield,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { apiClient } from "@/lib/api-client";
 import { authFetch } from "@/lib/auth-fetch";
+import { useWallets } from "@/hooks/use-api";
 import type { ApiKey, ApiKeyCreateResponse } from "@/lib/api-client";
+import type { OwsWallet } from "@cognivern/shared";
 import useSWR, { mutate } from "swr";
 
 const AVAILABLE_SCOPES = [
@@ -54,6 +58,7 @@ export function SettingsPage() {
       <Tabs defaultValue="workspace" className="space-y-4">
         <TabsList>
           <TabsTrigger value="workspace">Workspace</TabsTrigger>
+          <TabsTrigger value="wallets">Wallets</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
@@ -62,6 +67,10 @@ export function SettingsPage() {
           <WorkspaceCard workspace={workspace} setWorkspace={setWorkspace} />
           <SuspicionThresholdCard workspaceId={workspace?.id} />
           <ChainsCard />
+        </TabsContent>
+
+        <TabsContent value="wallets">
+          <WalletsCard />
         </TabsContent>
 
         <TabsContent value="api-keys">
@@ -76,6 +85,234 @@ export function SettingsPage() {
       <Separator />
       <div className="text-xs text-muted-foreground">
         Cognivern v0.1.0 — AI Agent Governance Platform
+      </div>
+    </div>
+  );
+}
+
+function WalletsCard() {
+  const { data: wallets, isLoading, error, mutate } = useWallets();
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [errorId, setErrorId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const handleSave = useCallback(
+    async (
+      walletId: string,
+      updates: {
+        executionProvider?: "local" | "keeperhub";
+        chainId?: string;
+        keeperHubWalletAddress?: string;
+      },
+    ) => {
+      setSavingId(walletId);
+      setSavedId(null);
+      setErrorId(null);
+      setErrorMsg(null);
+      try {
+        const res = await apiClient.updateWallet(walletId, {
+          executionProvider: updates.executionProvider,
+          chainId: updates.chainId ? Number(updates.chainId) : undefined,
+          keeperHubWalletAddress: updates.keeperHubWalletAddress,
+        });
+        if (res.success) {
+          setSavedId(walletId);
+          setTimeout(() => setSavedId(null), 2000);
+          mutate();
+        } else {
+          setErrorId(walletId);
+          setErrorMsg(res.error || "Failed to update wallet");
+        }
+      } catch (err) {
+        setErrorId(walletId);
+        setErrorMsg(err instanceof Error ? err.message : "Failed to update wallet");
+      } finally {
+        setSavingId(null);
+      }
+    },
+    [mutate],
+  );
+
+  return (
+    <div className="rounded-xl border bg-card p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <Wallet className="h-4 w-4 text-sky-500" />
+        <h2 className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
+          Wallet Execution Provider
+        </h2>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Choose how each OWS wallet broadcasts approved spends. Local execution uses
+        the Cognivern vault; KeeperHub routes transfers through KeeperHub&apos;s
+        managed infrastructure.
+      </p>
+
+      {isLoading ? (
+        <div className="rounded-lg border p-4 space-y-3 animate-pulse">
+          <div className="h-4 w-40 bg-muted rounded" />
+          <div className="h-8 w-full bg-muted rounded" />
+        </div>
+      ) : error ? (
+        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 text-xs text-red-600 dark:text-red-400">
+          Failed to load wallets
+        </div>
+      ) : !wallets || wallets.length === 0 ? (
+        <div className="text-sm text-muted-foreground">
+          No wallets found. Bootstrap or import a wallet first.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {wallets.map((wallet) => (
+            <WalletExecutionForm
+              key={wallet.id}
+              wallet={wallet}
+              saving={savingId === wallet.id}
+              saved={savedId === wallet.id}
+              error={errorId === wallet.id ? errorMsg : null}
+              onSave={handleSave}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface WalletExecutionFormProps {
+  wallet: OwsWallet;
+  saving: boolean;
+  saved: boolean;
+  error: string | null;
+  onSave: (
+    walletId: string,
+    updates: {
+      executionProvider?: "local" | "keeperhub";
+      chainId?: string;
+      keeperHubWalletAddress?: string;
+    },
+  ) => void;
+}
+
+function WalletExecutionForm({
+  wallet,
+  saving,
+  saved,
+  error,
+  onSave,
+}: WalletExecutionFormProps) {
+  const meta = (wallet.metadata || {}) as {
+    executionProvider?: string;
+    chainId?: number | string;
+    keeperHubWalletAddress?: string;
+  };
+  const [provider, setProvider] = useState<"local" | "keeperhub">(
+    meta.executionProvider === "keeperhub" ? "keeperhub" : "local",
+  );
+  const [chainId, setChainId] = useState<string>(
+    meta.chainId !== undefined ? String(meta.chainId) : "",
+  );
+  const [keeperHubWalletAddress, setKeeperHubWalletAddress] = useState<string>(
+    meta.keeperHubWalletAddress || "",
+  );
+
+  return (
+    <div className="rounded-lg border p-4 space-y-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">{wallet.name}</span>
+          <code className="text-xs text-muted-foreground font-mono">
+            {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+          </code>
+        </div>
+        <Badge variant={provider === "keeperhub" ? "default" : "secondary"}>
+          {provider === "keeperhub" ? "KeeperHub" : "Local"}
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-xs font-medium">Execution provider</label>
+          <select
+            value={provider}
+            onChange={(e) => setProvider(e.target.value as "local" | "keeperhub")}
+            disabled={saving}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+          >
+            <option value="local">Local vault</option>
+            <option value="keeperhub">KeeperHub</option>
+          </select>
+          <p className="text-[10px] text-muted-foreground">
+            {provider === "keeperhub"
+              ? "Transfers are routed through KeeperHub."
+              : "Transfers are signed and broadcast by the local Cognivern vault."}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium">Chain ID</label>
+          <Input
+            type="number"
+            placeholder="e.g. 84532"
+            value={chainId}
+            onChange={(e) => setChainId(e.target.value)}
+            disabled={saving}
+          />
+          <p className="text-[10px] text-muted-foreground">
+            Chain ID for KeeperHub execution. Defaults to the configured Cognivern chain.
+          </p>
+        </div>
+      </div>
+
+      {provider === "keeperhub" && (
+        <div className="space-y-2">
+          <label className="text-xs font-medium">KeeperHub wallet address</label>
+          <Input
+            type="text"
+            placeholder="0x..."
+            value={keeperHubWalletAddress}
+            onChange={(e) => setKeeperHubWalletAddress(e.target.value)}
+            disabled={saving}
+          />
+          <p className="text-[10px] text-muted-foreground">
+            The KeeperHub-funded wallet address to send from. Must match the address in KeeperHub.
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-3 text-xs text-red-600 dark:text-red-400">
+          {error}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 pt-2">
+        <Button
+          size="sm"
+          onClick={() =>
+            onSave(wallet.id, {
+              executionProvider: provider,
+              chainId,
+              keeperHubWalletAddress,
+            })
+          }
+          disabled={saving}
+          className="gap-1.5"
+        >
+          {saving ? "Saving..." : saved ? (
+            <>
+              <Check className="h-3.5 w-3.5" /> Saved
+            </>
+          ) : (
+            "Save"
+          )}
+        </Button>
+        {saved && (
+          <span className="text-xs text-emerald-600 dark:text-emerald-400">
+            Saved successfully
+          </span>
+        )}
       </div>
     </div>
   );

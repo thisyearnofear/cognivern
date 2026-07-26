@@ -4,6 +4,7 @@
 
 import { Request, Response } from "express";
 import { z } from "zod";
+import { ethers } from "ethers";
 import {
   OwsLocalVaultService,
   OwsAgentRecord,
@@ -25,6 +26,12 @@ const importWalletSchema = z.object({
 
 const connectExternalSchema = z.object({
   url: z.string().url().optional(),
+});
+
+const updateWalletSchema = z.object({
+  executionProvider: z.enum(["local", "keeperhub"]).optional(),
+  chainId: z.union([z.number(), z.string()]).optional(),
+  keeperHubWalletAddress: z.string().optional(),
 });
 
 export class OwsWalletController {
@@ -132,6 +139,73 @@ export class OwsWalletController {
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Failed to get wallet",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * PATCH /ows/wallets/:id - Update wallet metadata (executionProvider, chainId, keeperHubWalletAddress)
+   */
+  async updateWallet(req: Request, res: Response) {
+    try {
+      const parse = updateWalletSchema.safeParse(req.body);
+      if (!parse.success) {
+        res.status(400).json({
+          success: false,
+          error: "Invalid wallet update payload",
+          details: parse.error.format(),
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const { id } = req.params;
+      const wallets = await this.vaultService.listWallets();
+      const wallet = wallets.find((w) => w.id === id);
+
+      if (!wallet) {
+        res.status(404).json({
+          success: false,
+          error: "Wallet not found",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const metadata: Record<string, unknown> = {};
+      if (parse.data.executionProvider !== undefined) {
+        metadata.executionProvider = parse.data.executionProvider;
+      }
+      if (parse.data.chainId !== undefined) {
+        metadata.chainId =
+          typeof parse.data.chainId === "string"
+            ? Number(parse.data.chainId)
+            : parse.data.chainId;
+      }
+      if (parse.data.keeperHubWalletAddress !== undefined) {
+        if (!ethers.isAddress(parse.data.keeperHubWalletAddress)) {
+          res.status(400).json({
+            success: false,
+            error: "Invalid keeperHubWalletAddress",
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+        metadata.keeperHubWalletAddress = parse.data.keeperHubWalletAddress;
+      }
+
+      const updated = await this.vaultService.updateWalletMetadata(id, metadata);
+
+      res.json({
+        success: true,
+        data: updated,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to update wallet",
         timestamp: new Date().toISOString(),
       });
     }

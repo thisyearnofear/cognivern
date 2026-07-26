@@ -78,12 +78,19 @@ const cantonConfigSchema = z.object({
   CANTON_TEMPLATE_DEPOSIT: z.string().optional(),
 });
 
+// KeeperHub configuration
+const keeperHubConfigSchema = z.object({
+  KEEPERHUB_API_KEY: z.string().optional(),
+  KEEPERHUB_BASE_URL: z.string().default("https://app.keeperhub.com"),
+});
+
 // Combined configuration schema
 const configSchema = baseConfigSchema
   .merge(sapienceConfigSchema)
   .merge(apiConfigSchema)
   .merge(aiConfigSchema)
-  .merge(cantonConfigSchema);
+  .merge(cantonConfigSchema)
+  .merge(keeperHubConfigSchema);
 
 // Parse and validate configuration
 const parseConfig = () => {
@@ -229,6 +236,12 @@ export const aiConfig = {
   openaiApiKey: config.OPENAI_API_KEY,
   modelName: config.MODEL_NAME,
   geminiApiKey: config.GEMINI_API_KEY,
+};
+
+export const keeperHubConfig = {
+  apiKey: config.KEEPERHUB_API_KEY || "",
+  baseUrl: config.KEEPERHUB_BASE_URL || "https://app.keeperhub.com",
+  enabled: Boolean(config.KEEPERHUB_API_KEY),
 };
 
 // Environment helpers
