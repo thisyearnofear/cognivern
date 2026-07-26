@@ -1,0 +1,9 @@
+{
+  "$schema": "https://docs.keeperhub.com/schemas/mcp-config.json",
+  "mcpServers": {
+    "keeperhub": {
+      "type": "http",
+      "url": "https://app.keeperhub.com/mcp"
+    }
+  }
+}

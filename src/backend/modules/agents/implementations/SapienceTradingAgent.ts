@@ -38,6 +38,11 @@ import {
   sharedGovernanceClient,
 } from "@backend/services/governance/GovernanceClient.js";
 import { tracer, meter } from "@backend/observability/otel.js";
+import { owsWalletService } from "@backend/services/blockchain/OwsWalletService.js";
+import type {
+  ExecutionResult as OwsExecutionResult,
+  SpendIntent as OwsSpendIntent,
+} from "@backend/services/blockchain/OwsWalletService.js";
 
 const logger = new Logger("SapienceTradingAgent");
 
@@ -46,6 +51,24 @@ const AGENT_ID = "sapience-agent-1";
 const HUMAN_CONFIRM_TOKEN_ENV = "SAPIENCE_HUMAN_CONFIRM_TOKEN";
 // Trades above this USDe amount auto-fail in CI/dev if no human token is set.
 const AUTO_CONFIRM_MAX_USDE = 5;
+
+export type KeeperHubRebalanceResult =
+  | {
+      ok: true;
+      runId?: string;
+      transferTxHash?: string;
+      txHash?: string;
+      traceId?: string;
+      intentId: string;
+      policyId?: string;
+      status: "approved" | "held" | "denied";
+      executionProvider: "keeperhub";
+    }
+  | {
+      ok: false;
+      error: string;
+      traceId?: string;
+    };
 
 type SapienceServiceType = InstanceType<
   typeof import("@backend/services/SapienceService.js").SapienceService
@@ -691,5 +714,140 @@ export class SapienceTradingAgent implements TradingAgent {
       ...d,
       timestamp: d.timestamp instanceof Date ? d.timestamp : new Date(d.timestamp),
     })) as TradingDecision[];
+  }
+
+  /**
+   * KeeperHub-routed rebalance cycle.
+   *
+   * Drives a single end-to-end policy-checked → KeeperHub-executed →
+   * audit-recorded spend for a configured wallet. The intent is built
+   * with `metadata.executionProvider === "keeperhub"`, so the existing
+   * `OwsWalletService.finalizeApprovedSpend` routes the broadcast
+   * through `KeeperHubExecutionProvider` instead of the local RPC.
+   *
+   * Returns the spend outcome plus the receipt fields that the demo
+   * script (`scripts/demo/run-keeperhub-rebalance.ts`) persists to
+   * `.artifacts/keeperhub-rebalance.json` for the hackathon
+   * submission. If the spend is held or denied, the call still returns
+   * the policy verdict and no broadcast is attempted.
+   */
+  async runKeeperHubRebalanceCycle(params: {
+    walletId: string;
+    recipient: string;
+    amountWei: bigint;
+    reason: string;
+    policyId?: string;
+  }): Promise<KeeperHubRebalanceResult> {
+    if (this.status !== "active") {
+      return { ok: false, error: "agent not active" };
+    }
+
+    return tracer.startActiveSpan(
+      "agent.sapience.keeperhub_rebalance",
+      {
+        attributes: {
+          "agent.id": this.id,
+          "agent.type": this.type,
+          "agent.name": this.name,
+          "wallet.id": params.walletId,
+          "agent.cycle.execution_provider": "keeperhub",
+        },
+      },
+      async (span): Promise<KeeperHubRebalanceResult> => {
+        const intent: OwsSpendIntent = {
+          id: `kh-rebalance-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          agentId: this.id,
+          recipient: params.recipient,
+          amount: params.amountWei.toString(),
+          asset: "wei",
+          reason: params.reason,
+          timestamp: new Date().toISOString(),
+          metadata: {
+            policyId: params.policyId || SAPIENCE_POLICY_ID,
+            executionProvider: "keeperhub",
+            walletId: params.walletId,
+            workflow: "keeperhub-rebalance",
+          },
+        };
+
+        try {
+          const result: OwsExecutionResult = await owsWalletService.executeSpend(
+            intent,
+            { walletId: params.walletId },
+          );
+
+          span.setAttributes({
+            "spend.intent_id": intent.id,
+            "spend.status": result.status,
+            "spend.policy_id": result.policyId || "",
+            "spend.transfer_status": result.transferStatus || "skipped",
+            "spend.transfer_tx_hash": result.transferTxHash || "",
+            "spend.on_chain_status": result.onChainStatus || "skipped",
+            "spend.execution_provider": "keeperhub",
+          });
+          if (result.error) {
+            span.setAttributes({ "spend.error": result.error });
+          }
+          span.setStatus({
+            code:
+              result.status === "approved" &&
+              result.transferStatus === "sent"
+                ? 0
+                : 2,
+            message:
+              result.status === "approved" && result.transferStatus === "sent"
+                ? "ok"
+                : result.error || result.reason || result.status,
+          });
+
+          const traceId = span.spanContext().traceId;
+          meter
+            .createCounter("cognivern.agent.keeperhub.rebalance.total", {
+              description:
+                "Sapience agent KeeperHub-routed rebalance outcomes",
+            })
+            .add(1, {
+              "spend.status": result.status,
+              "spend.transfer_status": result.transferStatus || "skipped",
+            });
+
+          if (result.status === "approved" && result.transferStatus === "sent") {
+            return {
+              ok: true,
+              runId: result.runId,
+              transferTxHash: result.transferTxHash,
+              txHash: result.txHash,
+              traceId,
+              intentId: intent.id,
+              policyId: result.policyId,
+              status: "approved",
+              executionProvider: "keeperhub",
+            };
+          }
+          return {
+            ok: true,
+            runId: result.runId,
+            transferTxHash: result.transferTxHash,
+            txHash: result.txHash,
+            traceId,
+            intentId: intent.id,
+            policyId: result.policyId,
+            status: result.status,
+            executionProvider: "keeperhub",
+          };
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          span.setStatus({ code: 2, message });
+          logger.error("KeeperHub rebalance cycle failed", {
+            error: message,
+            intentId: intent.id,
+          });
+          return { ok: false, error: message, traceId: span.spanContext().traceId };
+        } finally {
+          span.end();
+        }
+      },
+    );
   }
 }
