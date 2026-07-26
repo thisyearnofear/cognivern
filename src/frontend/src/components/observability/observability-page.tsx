@@ -39,6 +39,7 @@ import {
   Clock,
   ChevronDown,
   ArrowRight,
+  Wallet,
 } from "lucide-react";
 
 /**
@@ -162,6 +163,34 @@ export function ObservabilityPage() {
 
         {/* Provenance legend */}
         <ProvenanceLegend />
+
+        {/* Cross-link to KeeperHub-routed spends */}
+        <div className="rounded-xl border border-sky-200 dark:border-sky-900 bg-sky-50/30 dark:bg-sky-950/20 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-sky-500" />
+            <h2
+              className="text-sm font-semibold text-sky-900 dark:text-sky-200"
+              style={{ fontFamily: "var(--font-space-grotesk)" }}
+            >
+              Finding a KeeperHub-routed spend
+            </h2>
+          </div>
+          <p className="text-xs text-sky-900/80 dark:text-sky-200/80 leading-relaxed">
+            When a wallet is configured with <code>executionProvider: &quot;keeperhub&quot;</code> and a
+            governance-approved spend is executed, the audit trail surfaces the
+            same three spans you&apos;d see for a local-vault spend — just with
+            different attributes. To find one:
+          </p>
+          <ul className="text-xs text-sky-900/80 dark:text-sky-200/80 space-y-1 list-disc list-inside">
+            <li>Open <a className="underline" href="https://app.keeperhub.com" target="_blank" rel="noreferrer">app.keeperhub.com</a> for the keeper-side view (execution status, retries, gas sponsorship).</li>
+            <li>In SigNoz, search for the <code>wallet_sign_and_broadcast</code> span and look for the <code>keeperhub.execution_id</code> attribute.</li>
+            <li>The nested <code>audit.log_action</code> event records the on-chain <code>txHash</code> alongside the KeeperHub <code>executionId</code> so you can correlate the two views.</li>
+          </ul>
+          <p className="text-[10px] text-sky-900/70 dark:text-sky-200/70">
+            Tip: configure a wallet in <a className="underline" href="/settings">Settings → Wallets</a> to enable the
+            KeeperHub execution path.
+          </p>
+        </div>
 
         {/* Body */}
         {loading ? (

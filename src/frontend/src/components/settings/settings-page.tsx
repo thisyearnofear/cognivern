@@ -134,6 +134,10 @@ function WalletsCard() {
     [mutate],
   );
 
+  const keeperHubWallets =
+    wallets?.filter((w) => (w.metadata as { executionProvider?: string } | null)?.executionProvider === "keeperhub") ?? [];
+  const hasAnyWallet = (wallets?.length ?? 0) > 0;
+
   return (
     <div className="rounded-xl border bg-card p-5 space-y-4">
       <div className="flex items-center gap-2">
@@ -141,11 +145,18 @@ function WalletsCard() {
         <h2 className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
           Wallet Execution Provider
         </h2>
+        {keeperHubWallets.length > 0 && (
+          <Badge variant="default" className="ml-auto">
+            {keeperHubWallets.length} on KeeperHub
+          </Badge>
+        )}
       </div>
       <p className="text-xs text-muted-foreground">
-        Choose how each OWS wallet broadcasts approved spends. Local execution uses
-        the Cognivern vault; KeeperHub routes transfers through KeeperHub&apos;s
-        managed infrastructure.
+        Choose how each OWS wallet broadcasts approved spends. Local execution
+        uses the Cognivern vault; KeeperHub routes transfers through
+        KeeperHub&apos;s managed infrastructure with gas sponsorship, MEV
+        protection, and a structured audit trail that shows up in
+        <a className="underline ml-1" href="/observability">Observability</a>.
       </p>
 
       {isLoading ? (
@@ -157,13 +168,11 @@ function WalletsCard() {
         <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 text-xs text-red-600 dark:text-red-400">
           Failed to load wallets
         </div>
-      ) : !wallets || wallets.length === 0 ? (
-        <div className="text-sm text-muted-foreground">
-          No wallets found. Bootstrap or import a wallet first.
-        </div>
+      ) : !hasAnyWallet ? (
+        <KeeperHubEmptyState />
       ) : (
         <div className="space-y-4">
-          {wallets.map((wallet) => (
+          {wallets!.map((wallet) => (
             <WalletExecutionForm
               key={wallet.id}
               wallet={wallet}
@@ -175,6 +184,50 @@ function WalletsCard() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function KeeperHubEmptyState() {
+  return (
+    <div className="rounded-lg border border-dashed border-sky-300 dark:border-sky-800 bg-sky-50/40 dark:bg-sky-950/20 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Rocket className="h-4 w-4 text-sky-500" />
+        <h3 className="text-sm font-semibold">Set up a KeeperHub-routed wallet</h3>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        You don&apos;t have an OWS wallet yet. To use KeeperHub, first bootstrap
+        a wallet (Cognivern creates one from your <code>OWS_BOOTSTRAP_PRIVATE_KEY</code>),
+        then return here to pick the KeeperHub execution provider.
+      </p>
+      <ol className="text-xs text-muted-foreground list-decimal list-inside space-y-1">
+        <li>Set <code>OWS_BOOTSTRAP_PRIVATE_KEY</code> in the backend env and restart the API.</li>
+        <li>Reload this page — the wallet will appear in the list above.</li>
+        <li>Choose <strong>KeeperHub</strong> as the execution provider and supply a KeeperHub-funded wallet address.</li>
+      </ol>
+      <p className="text-[10px] text-muted-foreground">
+        Need a KeeperHub wallet? Create one at <a className="underline" href="https://app.keeperhub.com" target="_blank" rel="noreferrer">app.keeperhub.com</a>.
+      </p>
+    </div>
+  );
+}
+
+function KeeperHubConsequences() {
+  return (
+    <div className="rounded-lg border border-sky-200 dark:border-sky-900 bg-sky-50/30 dark:bg-sky-950/20 p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <Wallet className="h-3.5 w-3.5 text-sky-500" />
+        <span className="text-xs font-semibold text-sky-900 dark:text-sky-200">
+          What you&apos;re opting into
+        </span>
+      </div>
+      <ul className="text-[11px] text-sky-900/80 dark:text-sky-200/80 space-y-1 list-disc list-inside">
+        <li><strong>Managed execution.</strong> KeeperHub handles gas, nonces, retries, and multi-RPC failover on your behalf.</li>
+        <li><strong>Gas sponsorship.</strong> Mainnet Ethereum transactions are gas-sponsored by KeeperHub.</li>
+        <li><strong>MEV protection.</strong> Private routing avoids the public mempool.</li>
+        <li><strong>Audit trail.</strong> Every spend flows through the same <code>wallet_sign_and_broadcast</code> span in SigNoz, with the KeeperHub <code>executionId</code> as a span attribute.</li>
+        <li><strong>Cost.</strong> KeeperHub charges its own fee on top of gas — see <a className="underline" href="https://docs.keeperhub.com" target="_blank" rel="noreferrer">docs.keeperhub.com</a> for current pricing.</li>
+      </ul>
     </div>
   );
 }
@@ -266,19 +319,22 @@ function WalletExecutionForm({
       </div>
 
       {provider === "keeperhub" && (
-        <div className="space-y-2">
-          <label className="text-xs font-medium">KeeperHub wallet address</label>
-          <Input
-            type="text"
-            placeholder="0x..."
-            value={keeperHubWalletAddress}
-            onChange={(e) => setKeeperHubWalletAddress(e.target.value)}
-            disabled={saving}
-          />
-          <p className="text-[10px] text-muted-foreground">
-            The KeeperHub-funded wallet address to send from. Must match the address in KeeperHub.
-          </p>
-        </div>
+        <>
+          <KeeperHubConsequences />
+          <div className="space-y-2">
+            <label className="text-xs font-medium">KeeperHub wallet address</label>
+            <Input
+              type="text"
+              placeholder="0x..."
+              value={keeperHubWalletAddress}
+              onChange={(e) => setKeeperHubWalletAddress(e.target.value)}
+              disabled={saving}
+            />
+            <p className="text-[10px] text-muted-foreground">
+              The KeeperHub-funded wallet address to send from. Must match the address in KeeperHub.
+            </p>
+          </div>
+        </>
       )}
 
       {error && (
