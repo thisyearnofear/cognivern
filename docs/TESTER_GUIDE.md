@@ -80,6 +80,31 @@ anyone — without trusting Cognivern's server.
 
 ---
 
+## 7. Try a KeeperHub-routed spend (1 minute)
+
+The Settings → Wallets card lets you pick the **execution provider**
+for each wallet — `local` (default, Cognivern signs and broadcasts)
+or `keeperhub` (KeeperHub signs and broadcasts with gas sponsorship
+and MEV protection).
+
+1. Go to **Settings → Wallets** in the sidebar.
+2. Find the wallet you want to route through KeeperHub, choose
+   `KeeperHub` as the execution provider, paste the wallet address
+   you funded on [app.keeperhub.com](https://app.keeperhub.com), and
+   save.
+3. Trigger any approved spend on that wallet — for example, run
+   `pnpm tsx scripts/demo/run-keeperhub-rebalance.ts
+   --wallet-id $WALLET_ID --recipient 0xRecipient --amount-wei
+   1000000000000000 --reason "test rebalance"` from your terminal.
+4. Open the **Observability** page. The card header now shows
+   "Finding a KeeperHub-routed spend" — click through to the trace
+   tree, then drill into the `wallet_sign_and_broadcast` span and
+   look for the `keeperhub.execution_id` attribute. That id also
+   shows up on app.keeperhub.com so you can correlate the two sides.
+
+If the card is empty (no wallets), the empty state links straight
+to `app.keeperhub.com` and walks you through the one-time setup.
+
 ## What you're looking at
 
 Cognivern is a **governance layer for autonomous spending agents**. It

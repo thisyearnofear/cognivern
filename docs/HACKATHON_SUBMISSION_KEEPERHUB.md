@@ -5,7 +5,47 @@
 **Window:** 2026-07-27 → 2026-08-13 submission deadline
 **Team:** thisyearnofear
 **Repository:** [github.com/thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)
-**Live product:** [cognivern.vercel.app](https://cognivern.vercel.app) · API: `cognivern.thisyearnofear.com`
+**Live product:** [cognivern.vercel.app](https://cognivern.vercel.app) · [cognivern.persidian.com](https://cognivern.persidian.com) · API: `cognivern.thisyearnofear.com`
+
+---
+
+## Live deployment status
+
+This submission ships two commits that are both live on
+`https://cognivern.thisyearnofear.com`:
+
+- `f21bf50 feat(keeperhub): wire Sapience rebalance through the existing
+  KeeperHub execution provider` — server-side wiring + MCP config +
+  orchestration script.
+- `2122614 feat(keeperhub): surface the integration end-to-end in the UI`
+  — local round-trip test rig, Settings → Wallets surfaces, Observability
+  cross-link.
+
+Backend: PM2 process `cognivern-backend` on `snel-bot` (Hetzner), port
+3087, default branch `main`. Frontend is served by the same backend
+through `cognivern.thisyearnofear.com` (nginx → 3087). The new
+`KEEPERHUB_API_KEY` is set in `/opt/cognivern/shared/.env` and loaded via
+`dotenv/config` at process start. The runtime check `keeperHubConfig.enabled`
+returns `true` in `/api/observability/status` once the env is in place.
+
+A fresh OWS wallet has been bootstrapped for KeeperHub testing:
+
+| Field | Value |
+| --- | --- |
+| Wallet id | `ab1af94a-65a2-4bdd-a830-9439f2dea763` |
+| Name | `KeeperHub Test Wallet (Sepolia)` |
+| Address | `0x22496706CBAB7c5A08C4D3377EEef06ef190BbAE` |
+| Chain id | `421614` (Arbitrum Sepolia) |
+| `metadata.executionProvider` | `keeperhub` |
+| `metadata.keeperHubWalletAddress` | pending — set via Settings → Wallets |
+
+The address above is the OWS controller signer. The actual onchain
+sender — the wallet funded on `app.keeperhub.com` and registered against
+the API key — is set on `metadata.keeperHubWalletAddress` by the user
+through the UI. The provider hashes that wallet address into each
+KeeperHub Direct Execution request, and the broadcast is signed by
+KeeperHub itself (so the funded wallet's private key is never on the
+Cognivern box).
 
 ---
 
@@ -59,14 +99,18 @@ modules, no new providers, no new controllers.
   Goose, Windsurf, Cline, and any other MCP-compatible editor can drive
   the same execution surface from the developer's environment.
 
-### 2. New files (4)
+### 2. New or extended files
 
-| File | Purpose | LOC |
-| --- | --- | --- |
-| `.mcp.json` | Declares the KeeperHub MCP server for editor agents | ~10 |
-| `docs/HACKATHON_SUBMISSION_KEEPERHUB.md` | This submission document | — |
-| `src/backend/modules/agents/implementations/SapienceTradingAgent.ts` (extension) | One new method `runKeeperHubRebalanceCycle` that calls the existing `executeSpend` path with `executionProvider: "keeperhub"` metadata; reuses the existing `agent.sapience.forecast_cycle` span | ~30 |
-| `scripts/demo/run-keeperhub-rebalance.ts` | One-shot script that drives the loop against a configured testnet, prints the tx hash, and writes the receipt JSON for the submission form | ~80 |
+| File | Purpose | LOC | Commit |
+| --- | --- | --- | --- |
+| `.mcp.json` | Declares the KeeperHub MCP server for editor agents | 9 | `f21bf50` |
+| `docs/HACKATHON_SUBMISSION_KEEPERHUB.md` | This submission document | — | `f21bf50` |
+| `src/backend/modules/agents/implementations/SapienceTradingAgent.ts` (extension) | One new method `runKeeperHubRebalanceCycle` that calls the existing `executeSpend` path with `executionProvider: "keeperhub"` metadata; wrapped in OTel span `agent.sapience.keeperhub_rebalance`; counter `cognivern.agent.keeperhub.rebalance.total`; exports `KeeperHubRebalanceResult` union type | +158 | `f21bf50` |
+| `scripts/demo/run-keeperhub-rebalance.ts` | One-shot script that drives the loop against a configured testnet, prints the tx hash, and writes the receipt JSON for the submission form | 189 | `f21bf50` |
+| `scripts/demo/mock-keeperhub-server.mjs` | Local mock of the Direct Execution API (`/api/execute/transfer` + `/api/execute/{id}/status`) returning `0xMOCK…` synthetic tx hashes — used by the round-trip test below | 85 | `2122614` |
+| `scripts/demo/test-keeperhub-rebalance.ts` | Three-check round-trip test: (1) provider round-trip against the mock, (2) agent method approved-path shape with stubbed `OwsWalletService.executeSpend`, (3) agent method held-path shape (no `transferTxHash` fabricated on held/denied) | 279 | `2122614` |
+| `src/frontend/src/components/settings/settings-page.tsx` (extension) | `WalletsCard` derives "N on KeeperHub" badge from existing wallet metadata; description cross-links to `/observability`; `KeeperHubEmptyState` (numbered setup CTA + link to `app.keeperhub.com`) when the user has no wallets; `KeeperHubConsequences` 5-bullet panel rendered when provider is `keeperhub` (managed execution, gas sponsorship, MEV protection, audit trail linked to SigNoz, cost) | +98 / -21 | `2122614` |
+| `src/frontend/src/components/observability/observability-page.tsx` (extension) | Always-visible "Finding a KeeperHub-routed spend" callout: points at the `wallet_sign_and_broadcast` span, the `keeperhub.execution_id` attribute, and the nested `audit.log_action` event so users can find a KeeperHub-routed spend without digging through the technical-details toggle | +29 | `2122614` |
 
 ### 3. The end-to-end loop
 
@@ -121,6 +165,72 @@ agent executed via KeeperHub" requirement are written by
 - `.artifacts/keeperhub-rebalance.json` — `{ intentId, runId, transferTxHash, txHash, traceId, sig: "...", executedAt }`
 - A demo video captured by `scripts/demo/capture-demo-screenshots.ts`
   showing the policy approval + KeeperHub execution + SigNoz trace.
+
+The rebalance script prints the policy verdict, the OTel `traceId`,
+the KeeperHub execution id, and the onchain `txHash` once the
+broadcast confirms. The Artifacts Service emits each step as a
+separate SigNoz span keyed by the same traceId, so the trace tree is
+recoverable from either side.
+
+### 5. Local round-trip test (mock + 3-check test)
+
+`scripts/demo/mock-keeperhub-server.mjs` is a tiny local mock of the
+KeeperHub Direct Execution API. It listens on `PORT` (default 9997),
+queues a synthetic execution, returns `0xMOCK00000001aaaa…aa` on the
+second poll, and is the only piece of test infrastructure outside the
+production code path.
+
+`scripts/demo/test-keeperhub-rebalance.ts` exercises three
+independent checks:
+
+1. **Provider round-trip.** Spawns the mock, calls
+   `KeeperHubExecutionProvider.executeTransfer`, asserts the request
+   body, the `Idempotency-Key` header, and that the resolved `txHash`
+   matches what the mock returned. Catches regressions in the
+   provider's auth header, request payload, and poll loop in one
+   shot.
+2. **Agent method — approved path.** Stubs
+   `OwsWalletService.executeSpend` to return a synthetic
+   `ExecutionResult`, asserts that
+   `SapienceTradingAgent.runKeeperHubRebalanceCycle` returns
+   `{ ok: true, status: "approved", executionProvider: "keeperhub",
+   transferTxHash, runId, traceId, … }` and that the OTel span
+   `agent.sapience.keeperhub_rebalance` actually fires.
+3. **Agent method — held path.** Stubs a `held / skipped` result and
+   asserts that **no `transferTxHash` is fabricated** when the policy
+   does not approve (the held path must never claim a broadcast).
+   This is the fail-closed contract from `OwsWalletService.executeSpend`.
+
+All three checks run with `pnpm tsx scripts/demo/test-keeperhub-rebalance.ts`
+and pass cleanly with the captured output `[test] all checks passed`.
+
+> The test bypasses `SapienceTradingAgent.start()` (which loads the
+> SapienceService forecasting chain via wagmi/viem, broken in this
+> Node version). The bypass sets `agent.status = "active"` directly
+> **only in the test**; production still goes through `start()` and
+> the original status-guard logic. This is documented in the test file.
+
+### 6. UI surfaces (Settings → Wallets, Observability)
+
+The UI surfaces make the optionality visible end-to-end without adding
+any new modules or components — they extend `WalletsCard` and
+`ObservabilityPage` only.
+
+- **Settings → Wallets.** A "N on KeeperHub" badge derived from
+  existing wallet metadata sits in the card title; the description
+  cross-links to `/observability`; an empty state (when no wallets
+  exist) shows a numbered bootstrap CTA + link to `app.keeperhub.com`;
+  when the user picks the KeeperHub execution provider for a wallet,
+  a `KeeperHubConsequences` panel lists the five things they are
+  opting into — managed execution, gas sponsorship, MEV protection,
+  audit trail linked to SigNoz, cost.
+- **Observability page.** An always-visible callout explains how to
+  find a KeeperHub-routed spend: open the `wallet_sign_and_broadcast`
+  span, look for the `keeperhub.execution_id` attribute, drill into
+  the nested `audit.log_action` to correlate with the
+  KeeperHub-side `executionId`. The callout sits next to the
+  provenance legend so a user never has to toggle the "show technical
+  details" panel to discover it.
 
 ---
 
@@ -267,14 +377,42 @@ KeeperHub surface through .mcp.json → https://app.keeperhub.com/mcp
 
 | File | Change | Status |
 | --- | --- | --- |
-| `.mcp.json` | NEW — declare the KeeperHub MCP server for editor agents | Live |
-| `docs/HACKATHON_SUBMISSION_KEEPERHUB.md` | NEW — this document | Live |
-| `src/backend/modules/agents/implementations/SapienceTradingAgent.ts` | NEW method `runKeeperHubRebalanceCycle` that wraps the existing `executeSpend` path with `executionProvider: "keeperhub"` | Live |
-| `scripts/demo/run-keeperhub-rebalance.ts` | NEW — one-shot orchestration that drives the loop and writes the receipt JSON | Live |
+| `.mcp.json` | NEW — declare the KeeperHub MCP server for editor agents | Live (`f21bf50`) |
+| `docs/HACKATHON_SUBMISSION_KEEPERHUB.md` | NEW — this document | Live (`f21bf50`) |
+| `src/backend/modules/agents/implementations/SapienceTradingAgent.ts` | NEW method `runKeeperHubRebalanceCycle` (+158 LOC); exports `KeeperHubRebalanceResult` type; OTel span `agent.sapience.keeperhub_rebalance` and counter `cognivern.agent.keeperhub.rebalance.total` | Live (`f21bf50`) |
+| `scripts/demo/run-keeperhub-rebalance.ts` | NEW — one-shot orchestration that drives the loop and writes the receipt JSON (189 LOC) | Live (`f21bf50`) |
+| `scripts/demo/mock-keeperhub-server.mjs` | NEW — local mock of the Direct Execution API for the round-trip test (85 LOC) | Live (`2122614`) |
+| `scripts/demo/test-keeperhub-rebalance.ts` | NEW — 3-check round-trip test (provider round-trip, agent method approved, agent method held) (279 LOC) | Live (`2122614`) |
+| `src/frontend/src/components/settings/settings-page.tsx` | EXTENDED — `WalletsCard` derives "N on KeeperHub" badge; cross-link to `/observability`; `KeeperHubEmptyState` (numbered setup CTA) when no wallets; `KeeperHubConsequences` 5-bullet panel when provider is `keeperhub` | Live (`2122614`) |
+| `src/frontend/src/components/observability/observability-page.tsx` | EXTENDED — always-visible "Finding a KeeperHub-routed spend" callout next to the provenance legend | Live (`2122614`) |
 | `OwsWalletService` (existing) | Already routes to KeeperHub via `executionProvider === "keeperhub"` in `finalizeApprovedSpend` | Live (shipped in `56e8e07`) |
 | `KeeperHubExecutionProvider` (existing) | Already implements the Direct Execution API contract with backoff, timeout, and structured response handling | Live (shipped in `56e8e07`) |
 | `OwsWalletOnChainManager` (existing) | Already writes the audit record to the X Layer contract and surfaces the `txHash` in the trace | Live |
-| `src/frontend/src/components/settings/settings-page.tsx` (existing) | Already exposes the per-wallet execution form that lets the user pick `local` vs `keeperhub` | Live (shipped in `56e8e07`) |
+
+---
+
+## What is real vs. what is pending
+
+- **Real (live now):**
+  - Code on `main`, deployed to `cognivern.thisyearnofear.com` (PM2 #75).
+  - `KEEPERHUB_API_KEY` set in `/opt/cognivern/shared/.env` and loaded
+    at runtime by dotenv (`keeperHubConfig.enabled === true`).
+  - Test OWS wallet `ab1af94a-65a2-4bdd-a830-9439f2dea763` bootstrapped
+    on Arbitrum Sepolia (`chainId: 421614`), with provider metadata
+    preset to `keeperhub`.
+  - Local round-trip test (`scripts/demo/test-keeperhub-rebalance.ts`)
+    passes all three checks against the mock; the OTel span and metric
+    are confirmed wired through.
+  - UI surfaces (Settings → Wallets + Observability) are live and
+    make the optionality visible end-to-end.
+- **Pending the user (one step):**
+  - Set the `keeperHubWalletAddress` on the test wallet via Settings →
+    Wallets in the UI (paste the `0x…` address from `app.keeperhub.com`
+    of the wallet funded there). Until that is set, running
+    `scripts/demo/run-keeperhub-rebalance.ts` against Arbitrum Sepolia
+    will fail with "keeperHubWalletAddress is required" — by design.
+  - After that one step, `transferTxHash` becomes real onchain receipt
+    and gets captured in `.artifacts/keeperhub-rebalance.json`.
 
 ---
 

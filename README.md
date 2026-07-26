@@ -40,6 +40,7 @@ For local setup, API reference, and production deployment, see the [Developer Gu
 | [Canton final submission runbook](./docs/FINAL_SUBMISSION_RUNBOOK.md) | Cutover / config that is already done for DevNet |
 | [Canton hackathon submission](./docs/HACKATHON_SUBMISSION_CANTON.md) | Track 1: Canton private RFP — enterprise framing, DevNet proof pack |
 | [SigNoz submission](./docs/HACKATHON_SUBMISSION_SIGNOZ.md) | OpenTelemetry instrumentation of the full agent governance decision tree |
+| [KeeperHub — Agents Onchain submission](./docs/HACKATHON_SUBMISSION_KEEPERHUB.md) | Sapience-driven rebalance loop through KeeperHub Direct Execution + MCP for editor agents, with a local round-trip test rig |
 | [SigNoz dashboard definitions](./docs/signoz-dashboards.json) | 3 dashboards: governance overview, LLM provider health, HTTP SLO + audit |
 | [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) | Wire the sealed-bid auction to the agent-governance layer |
 | [Agentic commerce demo runbook](./docs/AGENTIC_COMMERCE_DEMO_RUNBOOK.md) | End-to-end demo path for the agentic-commerce track |
