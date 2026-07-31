@@ -81,6 +81,14 @@ The implementation codifies this direction through shared `PageHeader`,
 `motion-enter` tokens. New routes should reuse these primitives before adding
 one-off spacing, status colors, or entrance animations.
 
+### Proof that travels safely
+
+Operational proof is also a collaboration surface. Audit decisions and run
+outcomes should offer an explicit, copyable receipt for a review thread: the
+outcome, subject, evidence categories, and protected route back to the record.
+Receipts are never published automatically and do not include secret material,
+policy values, wallet addresses, or spend amounts by default.
+
 ## Product modes and information architecture
 
 | Mode | User goal | Routes |

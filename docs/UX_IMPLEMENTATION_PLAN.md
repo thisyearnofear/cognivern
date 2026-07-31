@@ -223,6 +223,16 @@ Run the checklist with:
 Keep each slice independently deployable and run typecheck, lint, unit tests,
 and the relevant checklist section before merging.
 
+## Phase 6 — Proof and collaboration loop
+
+Turn decisions into concise, copyable review artifacts. A receipt should state
+the outcome, the governed subject, the evidence categories, and a protected
+link back to Cognivern—without copying wallet addresses, policy content, or
+spend amounts by default. Audit selection should also produce a lightweight
+review brief for a teammate or stakeholder. Measure explicit receipt/brief
+copies as `proof_shared`; never auto-publish a decision or expose a workspace
+record to a recipient who lacks access.
+
 ## Definition of done
 
 The phase is complete when:

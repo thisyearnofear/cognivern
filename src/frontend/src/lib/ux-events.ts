@@ -6,7 +6,8 @@ export type UxEventName =
   | "search_used"
   | "empty_state_action_clicked"
   | "error_retry_clicked"
-  | "route_backtracked";
+  | "route_backtracked"
+  | "proof_shared";
 
 /**
  * Privacy-safe UX instrumentation. Production transport is opt-in through

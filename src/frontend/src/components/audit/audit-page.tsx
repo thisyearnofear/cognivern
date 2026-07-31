@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { DecisionReceipt } from "@/components/ui/decision-receipt";
+import { trackUxEvent } from "@/lib/ux-events";
 import { motion } from "motion/react";
 import {
   CheckCircle2,
@@ -247,6 +249,12 @@ function TimelineNode({
   const policyId = getPolicyId(rawLog);
   const anchoring = getAnchoringData(rawLog);
   const suspicion = getSuspicionData(rawLog);
+  const evidence = [
+    "Policy evaluated",
+    ...(txHash ? ["On-chain record"] : []),
+    ...(isFhe ? ["Encrypted evaluation"] : []),
+    ...(isLedger ? ["Hardware signed"] : []),
+  ];
 
   useEffect(() => {
     if (!expanded || timelineEvents.length > 0 || timelineLoading) return;
@@ -402,6 +410,15 @@ function TimelineNode({
                   Timestamp: <span className="text-foreground/70">{log.timestamp}</span>
                 </span>
               </div>
+
+              <DecisionReceipt
+                decision={log.decision}
+                subject={`${log.agent} · ${log.action}`}
+                summary={log.description || "Governance decision recorded for review."}
+                reference={`Decision ${log.id}`}
+                evidence={evidence}
+                timestamp={log.timestamp}
+              />
 
               {/* On-chain tx link */}
               {txHash && (
@@ -788,6 +805,7 @@ export function AuditPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [groupBy, setGroupBy] = useState<"none" | "decision" | "agent" | "chain">("none");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [reviewBriefCopied, setReviewBriefCopied] = useState(false);
 
   const logs = normalizeAuditLogs(rawLogs);
   const total = logs.length;
@@ -841,6 +859,15 @@ export function AuditPage() {
     link.download = "cognivern-audit-selection.csv";
     link.click();
     URL.revokeObjectURL(url);
+  };
+  const copyReviewBrief = async () => {
+    if (selectedLogs.length === 0) return;
+    const outcomes = selectedLogs.reduce<Record<string, number>>((counts, log) => ({ ...counts, [log.decision]: (counts[log.decision] || 0) + 1 }), {});
+    const summary = Object.entries(outcomes).map(([outcome, count]) => `${count} ${outcome}`).join(", ");
+    await navigator.clipboard.writeText(`Cognivern audit review\n${selectedLogs.length} selected decision${selectedLogs.length === 1 ? "" : "s"}: ${summary}.\nOpen the protected audit trail: ${window.location.origin}/audit`);
+    setReviewBriefCopied(true);
+    trackUxEvent("proof_shared", "audit_review_brief", String(selectedLogs.length));
+    window.setTimeout(() => setReviewBriefCopied(false), 1800);
   };
 
   return (
@@ -948,6 +975,7 @@ export function AuditPage() {
                 {filteredLogs.length > 0 && filteredLogs.every((log) => selectedIds.has(log.id)) ? "Clear selection" : "Select visible"}
               </Button>
               {selectedLogs.length > 0 && <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={exportSelected}><Download className="h-3.5 w-3.5" /> Export {selectedLogs.length}</Button>}
+              {selectedLogs.length > 0 && <Button type="button" size="sm" variant="outline" className="h-8 text-xs" onClick={() => void copyReviewBrief()}>{reviewBriefCopied ? "Brief copied" : "Copy review brief"}</Button>}
             </div>
           </div>
 

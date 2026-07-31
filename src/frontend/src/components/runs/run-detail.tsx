@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageState } from '@/components/ui/error-state';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { DecisionReceipt } from '@/components/ui/decision-receipt';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -235,6 +236,15 @@ export function RunDetail({ runId }: { runId: string }) {
           <div className="text-xs text-muted-foreground">Artifacts</div>
         </div>
       </div>
+
+      <DecisionReceipt
+        decision={run.status}
+        subject={run.workflow}
+        summary={run.status === 'paused_for_approval' ? 'An operator review is required before this action can continue.' : run.status === 'failed' ? 'The execution stopped before completion. Review the trace before retrying.' : 'This governance execution has a recorded operational outcome.'}
+        reference={`Run ${run.id}`}
+        evidence={["Policy evaluation", ...(events.length > 0 ? ["Execution trace"] : []), ...(sourceContext.provenance ? ["Source authorization"] : [])]}
+        reviewPath={`/runs/${run.id}`}
+      />
 
       {/* Execution Trace */}
       {events.length > 0 && (
