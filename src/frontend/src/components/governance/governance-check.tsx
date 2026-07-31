@@ -27,7 +27,6 @@ import {
   Lock,
   Mic,
   MicOff,
-  Sparkles,
   Clock,
   Share2,
   Check,
@@ -471,15 +470,6 @@ export function GovernanceCheck() {
             Evaluate a spend action against your active policies
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => router.push("/os")}
-          className="gap-2"
-        >
-          <Sparkles className="h-4 w-4" />
-          Try Command Center
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

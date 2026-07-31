@@ -82,7 +82,7 @@ src/frontend/
 6. Sees the decision appear in the audit trail (`/audit`)
 
 ### The Operator ("Prove my agents stay within bounds")
-1. Logs into dashboard — sees approval rate, blocked actions, latency trend
+1. Logs into dashboard — sees attention status, approval rate, blocked actions, and recent activity
 2. Drills into a denied decision in audit — reads exactly why it was blocked
 3. Adjusts the policy that blocked it (`/policies`)
 4. Sees the FHE shield badge on confidential decisions

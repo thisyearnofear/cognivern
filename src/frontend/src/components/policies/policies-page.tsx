@@ -434,18 +434,7 @@ export function PoliciesPage() {
             Retry
           </Button>
         </div>
-      ) : policies.length === 0 ? (
-        <div className="p-12 text-center text-muted-foreground border rounded-xl">
-          <ShieldCheck className="h-8 w-8 mx-auto mb-3 opacity-50" />
-          <p className="font-medium">No policies yet</p>
-          <p className="text-sm mt-1">
-            Create a policy to govern spending
-          </p>
-          <Button className="mt-4" onClick={() => setShowCreate(true)}>
-            <PlusCircle className="h-4 w-4" /> Create Policy
-          </Button>
-        </div>
-      ) : (
+      ) : policies.length === 0 ? null : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border rounded-xl overflow-hidden">
           {policies.map((policy, i) => (
             <motion.div

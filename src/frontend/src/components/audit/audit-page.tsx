@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { motion } from "motion/react";
 import {
   CheckCircle2,
@@ -37,7 +38,7 @@ import {
 
 /* ─── Terminal typewriter hook ───────────────────────────────── */
 
-function useTypewriter(lines: string[], speed = 40, _initialDelay?: number) {
+function useTypewriter(lines: string[], speed = 40, initialDelay?: number) {
   const [displayed, setDisplayed] = useState<string[]>([]);
   const [currentLine, setCurrentLine] = useState(0);
   const [currentChar, setCurrentChar] = useState(0);
@@ -62,9 +63,13 @@ function useTypewriter(lines: string[], speed = 40, _initialDelay?: number) {
         setCurrentLine((l) => l + 1);
         setCurrentChar(0);
       }
-    }, currentChar === 0 && currentLine > 0 ? speed * 8 : speed);
+    }, currentChar === 0 && currentLine === 0
+      ? initialDelay ?? speed
+      : currentChar === 0 && currentLine > 0
+        ? speed * 8
+        : speed);
     return () => clearTimeout(timer);
-  }, [currentLine, currentChar, lines, speed]);
+  }, [currentLine, currentChar, initialDelay, lines, speed]);
 
   return { displayed, done };
 }
@@ -775,6 +780,9 @@ function EmptyAuditState({ onRunCheck }: { onRunCheck: () => void }) {
 export function AuditPage() {
   const router = useRouter();
   const { data: rawLogs, isLoading, error } = useAuditLogs();
+  const [proofDetailsExpanded, setProofDetailsExpanded] = useState(false);
+  const [decisionFilter, setDecisionFilter] = useState<"all" | NormalizedAuditLog["decision"]>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const logs = normalizeAuditLogs(rawLogs);
   const total = logs.length;
@@ -784,6 +792,13 @@ export function AuditPage() {
   const onChainCount = Array.isArray(rawLogs)
     ? rawLogs.filter((r) => getOnChainTxHash(r) !== null).length
     : 0;
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredLogs = logs.filter((log) => {
+    const matchesDecision = decisionFilter === "all" || log.decision === decisionFilter;
+    const matchesSearch = !normalizedQuery || [log.agent, log.action, log.description, log.chain]
+      .some((value) => value.toLowerCase().includes(normalizedQuery));
+    return matchesDecision && matchesSearch;
+  });
 
   return (
     <div className="space-y-6">
@@ -856,60 +871,93 @@ export function AuditPage() {
         </div>
       )}
 
-      {/* Ledger Integrity — global verification */}
-      <LedgerIntegrityCard />
-
-      {/* Security Architecture — inline banner */}
-      <div className="rounded-xl border border-border bg-muted/20 p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Shield className="h-4 w-4 text-emerald-500" />
-          <h2 className="font-semibold text-sm" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-            Security Architecture
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-xs">
-          {[
-            { icon: Fingerprint, label: "Auth", value: "SIWE + JWT with nonce replay" },
-            { icon: Lock, label: "API Keys", value: "scrypt hashed, scoped permissions" },
-            { icon: Shield, label: "Rate Limiting", value: "3 layers (global, workspace, per-key)" },
-            { icon: Lock, label: "Encryption", value: "Fhenix FHE — encrypted eval live on Arbitrum Sepolia" },
-            { icon: Shield, label: "Audit", value: "Immutable on 0G + X Layer" },
-            { icon: Shield, label: "Contract Audit", value: "ChainGPT scan on recipients" },
-          ].map(({ icon: Icon, label, value }) => (
-            <div key={label} className="flex items-center gap-2 text-muted-foreground">
-              <Icon className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-              <span>
-                <span className="font-medium text-foreground">{label}:</span> {value}
-              </span>
-            </div>
-          ))}
-        </div>
-        {onChainCount > 0 && (
-          <div className="mt-3 pt-3 border-t border-border flex items-center gap-2 text-[11px] text-muted-foreground">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-            {onChainCount} of {total} decisions have on-chain proof on X Layer
-          </div>
-        )}
-      </div>
-
-      {/* Suspicion Overview */}
-      <SuspicionOverview />
-
       {/* Decision Timeline */}
       {!error && logs.length === 0 && !isLoading ? (
         <EmptyAuditState onRunCheck={() => router.push("/governance/check")} />
       ) : (
-        <div className="pt-2">
-          {logs.map((log, idx) => (
-            <TimelineNode
-              key={log.id}
-              log={log}
-              rawLog={Array.isArray(rawLogs) ? rawLogs[idx] : log}
-              index={idx}
+        <section className="space-y-4">
+          <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center">
+            <Input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search identity, action, or chain"
+              aria-label="Search audit decisions"
+              className="sm:max-w-xs"
             />
-          ))}
-        </div>
+            <div className="flex flex-wrap gap-1.5" aria-label="Filter audit decisions">
+              {(["all", "approved", "held", "denied"] as const).map((filter) => (
+                <Button
+                  key={filter}
+                  type="button"
+                  size="sm"
+                  variant={decisionFilter === filter ? "secondary" : "ghost"}
+                  onClick={() => setDecisionFilter(filter)}
+                  className="h-8 capitalize"
+                >
+                  {filter}
+                </Button>
+              ))}
+            </div>
+            <span className="text-xs text-muted-foreground sm:ml-auto">{filteredLogs.length} of {total} decisions</span>
+          </div>
+
+          {filteredLogs.length === 0 ? (
+            <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+              No decisions match these filters.
+              <Button variant="link" size="sm" className="ml-1 h-auto p-0" onClick={() => { setDecisionFilter("all"); setSearchQuery(""); }}>Clear filters</Button>
+            </div>
+          ) : (
+            <div className="pt-2">
+              {filteredLogs.map((log, index) => {
+                const rawLogIndex = logs.findIndex((item) => item.id === log.id);
+                return <TimelineNode key={log.id} log={log} rawLog={Array.isArray(rawLogs) ? rawLogs[rawLogIndex] : log} index={index} />;
+              })}
+            </div>
+          )}
+        </section>
       )}
+
+      <section className="border-t pt-5">
+        <button
+          type="button"
+          onClick={() => setProofDetailsExpanded((expanded) => !expanded)}
+          aria-expanded={proofDetailsExpanded}
+          aria-controls="audit-proof-details"
+          className="flex w-full items-center justify-between text-left"
+        >
+          <div>
+            <h2 className="text-sm font-semibold">Proof & security details</h2>
+            <p className="text-xs text-muted-foreground">Ledger verification, security controls, and risk signals</p>
+          </div>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${proofDetailsExpanded ? "rotate-180" : ""}`} />
+        </button>
+
+        {proofDetailsExpanded && (
+          <div id="audit-proof-details" className="mt-5 space-y-5">
+            <LedgerIntegrityCard />
+            <div className="rounded-xl border border-border bg-muted/20 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Shield className="h-4 w-4 text-emerald-500" />
+                <h3 className="font-semibold text-sm" style={{ fontFamily: "var(--font-space-grotesk)" }}>Security Architecture</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-xs">
+                {[
+                  { icon: Fingerprint, label: "Auth", value: "SIWE + JWT with nonce replay" },
+                  { icon: Lock, label: "API Keys", value: "scrypt hashed, scoped permissions" },
+                  { icon: Shield, label: "Rate Limiting", value: "3 layers (global, workspace, per-key)" },
+                  { icon: Lock, label: "Encryption", value: "Fhenix FHE — encrypted eval live on Arbitrum Sepolia" },
+                  { icon: Shield, label: "Audit", value: "Immutable on 0G + X Layer" },
+                  { icon: Shield, label: "Contract Audit", value: "ChainGPT scan on recipients" },
+                ].map(({ icon: Icon, label, value }) => (
+                  <div key={label} className="flex items-center gap-2 text-muted-foreground"><Icon className="h-3.5 w-3.5 text-emerald-500 shrink-0" /><span><span className="font-medium text-foreground">{label}:</span> {value}</span></div>
+                ))}
+              </div>
+              {onChainCount > 0 && <div className="mt-3 pt-3 border-t border-border flex items-center gap-2 text-[11px] text-muted-foreground"><span className="w-1.5 h-1.5 rounded-full bg-sky-500" />{onChainCount} of {total} decisions have on-chain proof on X Layer</div>}
+            </div>
+            <SuspicionOverview />
+          </div>
+        )}
+      </section>
     </div>
   );
 }

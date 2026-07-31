@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState, EmptyState } from "@/components/ui/error-state";
 import { useRouter } from "next/navigation";
-import { PlusCircle, Key, Eye } from "lucide-react";
+import { PlusCircle, Key, Eye, ChevronDown } from "lucide-react";
 import { useAgents } from "@/hooks/use-api";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -94,6 +94,7 @@ function AgentCard({ agent }: { agent: { id: string; name: string; role: string;
 export function AgentsPage() {
   const router = useRouter();
   const { data: agents, isLoading, error } = useAgents();
+  const [examplesExpanded, setExamplesExpanded] = useState(false);
 
   const agentList = useMemo(() => agents || [], [agents]);
 
@@ -163,24 +164,32 @@ export function AgentsPage() {
         <div className="space-y-8">
           {showcase.length > 0 && (
             <div className="space-y-3">
-              <div>
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  Example Identities
-                </h2>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Demos showing what Cognivern can govern. Not configurable.
-                </p>
-              </div>
-              <motion.div
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
+              <button
+                type="button"
+                onClick={() => setExamplesExpanded((expanded) => !expanded)}
+                aria-expanded={examplesExpanded}
+                aria-controls="example-identities"
+                className="flex w-full items-center justify-between rounded-xl border border-dashed px-4 py-3 text-left hover:bg-muted/30 transition-colors"
               >
-                {showcase.map((agent) => (
-                  <AgentCard key={agent.id} agent={agent} />
-                ))}
-              </motion.div>
+                <div>
+                  <h2 className="text-sm font-semibold">View example identities</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Demo-only systems showing what Cognivern can govern.</p>
+                </div>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${examplesExpanded ? "rotate-180" : ""}`} />
+              </button>
+              {examplesExpanded && (
+                <motion.div
+                  id="example-identities"
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {showcase.map((agent) => (
+                    <AgentCard key={agent.id} agent={agent} />
+                  ))}
+                </motion.div>
+              )}
             </div>
           )}
 

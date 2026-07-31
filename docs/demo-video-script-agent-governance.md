@@ -40,7 +40,7 @@ event hash-signed.
 | Time | Shot | Action |
 | --- | --- | --- |
 | 0:00–0:06 | Landing | Static on `/sealed-bid` list. Narration intro. |
-| 0:06–0:18 | Agent round form | Click **Agent round**, select an agent, fill RFP (description, $50,000 settlement), click **Create governed round**. |
+| 0:06–0:18 | Agent round form | Click **Create agent round**, select an agent, fill RFP (description, $50,000 settlement), click **Create governed round**. |
 | 0:18–0:24 | Round created | Round appears with "Agent" badge. Click to open. |
 | 0:24–0:36 | Three bids | Quickly submit Alice $91k, Bob $74.5k, Charlie $108k. (Can be pre-seeded + shown via refresh to save time.) |
 | 0:36–0:48 | Policy gate blocks | Click **Close bidding · check policy**. Red panel: `deadline_elapsed: failed`. |

@@ -90,27 +90,10 @@ export function SealedBidPage() {
         <div className="flex items-center gap-2">
           <Button
             onClick={() => {
-              setShowCreate((v) => !v);
-              setShowAgentCreate(false);
-            }}
-            variant={showCreate ? "outline" : "default"}
-          >
-            {showCreate ? (
-              <>
-                <X className="h-4 w-4 mr-2" /> Cancel
-              </>
-            ) : (
-              <>
-                <PlusCircle className="h-4 w-4 mr-2" /> New round
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={() => {
               setShowAgentCreate((v) => !v);
               setShowCreate(false);
             }}
-            variant={showAgentCreate ? "outline" : "secondary"}
+            variant={showAgentCreate ? "outline" : "default"}
           >
             {showAgentCreate ? (
               <>
@@ -118,7 +101,24 @@ export function SealedBidPage() {
               </>
             ) : (
               <>
-                <Bot className="h-4 w-4 mr-2" /> Agent round
+                <Bot className="h-4 w-4 mr-2" /> Create agent round
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={() => {
+              setShowCreate((v) => !v);
+              setShowAgentCreate(false);
+            }}
+            variant={showCreate ? "outline" : "secondary"}
+          >
+            {showCreate ? (
+              <>
+                <X className="h-4 w-4 mr-2" /> Cancel
+              </>
+            ) : (
+              <>
+                <PlusCircle className="h-4 w-4 mr-2" /> Create manually
               </>
             )}
           </Button>

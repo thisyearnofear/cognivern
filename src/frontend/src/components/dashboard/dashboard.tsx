@@ -9,16 +9,15 @@ import {
   Activity,
   ArrowRight,
   Sparkles,
-  Rocket,
   TrendingUp,
   TrendingDown,
   ChevronDown,
-  CheckCircle2,
   ShieldX,
   Clock,
   AlertTriangle,
   Gavel,
   Radar,
+  BarChart3,
 } from "lucide-react";
 import type { AuditLog } from "@cognivern/shared";
 import { Button } from "@/components/ui/button";
@@ -250,14 +249,15 @@ export function Dashboard() {
     isLoading: logsLoading,
     error: logsError,
   } = useAuditLogs();
-  const { data: policies, isLoading: policiesLoading } = usePolicies();
+  const { isLoading: policiesLoading } = usePolicies();
 
   // Cross-filtering state
   const [decisionFilter, setDecisionFilter] = useState<DecisionFilter>(null);
   // Progressive disclosure state
   const [activityExpanded, setActivityExpanded] = useState(false);
-  // Focus mode — reduces dashboard density for new users
-  const [focusMode, setFocusMode] = useState(false);
+  // Detailed operating data is useful, but should not compete with the
+  // dashboard's primary job: tell an operator whether they need to act.
+  const [insightsExpanded, setInsightsExpanded] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
   const [statsVisible, setStatsVisible] = useState(false);
 
@@ -311,6 +311,13 @@ export function Dashboard() {
   const decisions = normalizedLogs.length;
   const blockedCount = normalizedLogs.filter((l) => l.decision === "denied").length;
   const avgLatency = computeAverageLatency(normalizedLogs);
+  const showSetup =
+    isAuthenticated &&
+    workspaceMode === "production" &&
+    !agentsLoading &&
+    !policiesLoading &&
+    !logsLoading &&
+    normalizedLogs.length === 0;
 
   // Count decisions carrying a real on-chain governance-record tx (mirrors the
   // audit page's getOnChainTxHash: top-level or nested data.txHash). Real data
@@ -328,14 +335,13 @@ export function Dashboard() {
 
   // Animated counters
   const animatedApprovalRate = useCountUp(approvalRate, 2000, statsVisible);
-  const animatedDecisions = useCountUp(decisions, 2000, statsVisible);
   const animatedBlocked = useCountUp(blockedCount, 2000, statsVisible);
   const animatedActive = useCountUp(activeCount, 2000, statsVisible);
 
   // Stat deltas (compare first half vs second half of logs for trend)
-  const { approvalDelta, decisionsDelta } = useMemo(() => {
+  const approvalDelta = useMemo(() => {
     if (normalizedLogs.length < 4)
-      return { approvalDelta: 0, decisionsDelta: 0 };
+      return 0;
     const mid = Math.floor(normalizedLogs.length / 2);
     const recentHalf = normalizedLogs.slice(0, mid);
     const olderHalf = normalizedLogs.slice(mid);
@@ -349,10 +355,7 @@ export function Dashboard() {
         olderHalf.length) *
         100,
     );
-    return {
-      approvalDelta: recentApproval - olderApproval,
-      decisionsDelta: recentHalf.length - olderHalf.length,
-    };
+    return recentApproval - olderApproval;
   }, [normalizedLogs]);
 
   return (
@@ -361,6 +364,13 @@ export function Dashboard() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          {!demoMode && !showSetup && (
+            <p className="text-sm text-muted-foreground">
+              {blockedCount > 0
+                ? `${blockedCount} decision${blockedCount === 1 ? "" : "s"} needs your attention.`
+                : "Your governed activity at a glance."}
+            </p>
+          )}
           {demoMode && workspace && (
             <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
               <Sparkles className="h-3 w-3" />
@@ -396,19 +406,8 @@ export function Dashboard() {
               </Button>
             </div>
           )}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setFocusMode(!focusMode)}
-            className="text-xs"
-          >
-            {focusMode ? "Expand" : "Focus"}
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => router.refresh()}>
+          <Button size="sm" variant="ghost" onClick={() => router.refresh()}>
             Refresh
-          </Button>
-          <Button size="sm" onClick={() => router.push("/governance/check")}>
-            Governance Check
           </Button>
         </div>
       </div>
@@ -418,133 +417,21 @@ export function Dashboard() {
           panel when there are no audit logs (i.e. the tester hasn't run
           any governance checks yet). The QuickCheck card inside gives them
           an immediate "aha moment". */}
-      {isAuthenticated &&
-        workspaceMode === "production" &&
-        !agentsLoading &&
-        !policiesLoading &&
-        !logsLoading &&
-        normalizedLogs.length === 0 && (
-          <GetStartedPanel />
-        )}
+      {showSetup && <GetStartedPanel />}
 
-      {/* Returning user, partial setup. Keeps the existing checklist UI
-          because its checkmarks meaningfully signal progress. Only renders
-          when one of (agents, active policies) exists but not both — the
-          fully-empty case is handled by GetStartedPanel above. */}
-      {isAuthenticated &&
-        workspaceMode === "production" &&
-        !agentsLoading &&
-        !policiesLoading &&
-        (agentList.length > 0
-          ? (policies || []).filter((p) => p.status === "active").length === 0
-          : (policies || []).filter((p) => p.status === "active").length > 0) && (
-          <div className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-sky-500/5 p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-primary/10">
-                  <Rocket className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold">Get Started</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Set up your governance in 3 steps
-                  </p>
-                  <div className="mt-4 space-y-3">
-                    <button
-                      onClick={() => router.push("/policies")}
-                      className="flex items-center gap-3 w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      {(policies || []).filter((p) => p.status === "active")
-                        .length > 0 ? (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
-                      )}
-                      <div>
-                        <div className="text-sm font-medium">Create a policy</div>
-                        <div className="text-xs text-muted-foreground">
-                          Set spending limits and rules for your API identities
-                        </div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => router.push("/agents/workshop")}
-                      className="flex items-center gap-3 w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      {agentList.length > 0 ? (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
-                      )}
-                      <div>
-                        <div className="text-sm font-medium">Create an API identity</div>
-                        <div className="text-xs text-muted-foreground">
-                          Give your external system governed access to Cognivern
-                        </div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => router.push("/settings")}
-                      className="flex items-center gap-3 w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
-                      <div>
-                        <div className="text-sm font-medium">Get your API key</div>
-                        <div className="text-xs text-muted-foreground">
-                          Connect the governance API to your external system
-                        </div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => router.push("/demo/spend")}
-                      className="flex items-center gap-3 w-full text-left p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
-                      <div>
-                        <div className="text-sm font-medium">Watch how it works</div>
-                        <div className="text-xs text-muted-foreground">
-                          See the governed vs ungoverned spend flow demo
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-        )}
-
-      {/* Vendor spend governance — links agent spend to sealed-bid */}
-      <button
-        type="button"
-        onClick={() => router.push("/sealed-bid")}
-        className="w-full rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-emerald-500/5 p-5 text-left hover:border-primary/40 transition-colors group"
-      >
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-primary/10 shrink-0">
-            <Gavel className="h-6 w-6 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold">Vendor spend governance</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Agent spend policies govern day-to-day wallet activity. Sealed-bid
-              rounds govern confidential vendor selection — same control plane,
-              Canton structural privacy for RFPs and OTC.
-            </p>
-          </div>
-          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary shrink-0 mt-1 transition-colors" />
-        </div>
-      </button>
-
-      {/* Stat Bar — Animated */}
-      <div ref={statsRef}>
+      {!showSetup && (
+        <>
+          {/* Operational overview */}
+          <div ref={statsRef}>
         {agentsLoading || logsLoading || policiesLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[1, 2, 3].map((i) => (
               <div key={i} className="h-[72px] rounded-xl bg-card border border-border animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px bg-border rounded-xl overflow-hidden">
-            <div className="bg-card p-4 flex items-center gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden">
+            <div className="bg-card p-5 flex items-center gap-3">
               <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950 flex-shrink-0">
                 <Users className="h-5 w-5 text-primary" />
               </div>
@@ -555,26 +442,11 @@ export function Dashboard() {
                 >
                   {statsVisible ? `${animatedActive}/${agentList.length}` : "—"}
                 </div>
-                <div className="text-xs text-muted-foreground">Identities Online</div>
+                <div className="text-xs text-muted-foreground">Active identities</div>
               </div>
             </div>
 
-            <div className="bg-card p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950 flex-shrink-0">
-                <ShieldCheck className="h-5 w-5 text-sky-500" />
-              </div>
-              <div>
-                <div
-                  className="text-2xl font-bold"
-                  style={{ fontFamily: "var(--font-space-grotesk)" }}
-                >
-                  {(policies || []).filter((p) => p.status === "active").length}
-                </div>
-                <div className="text-xs text-muted-foreground">Active Policies</div>
-              </div>
-            </div>
-
-            <div className="bg-card p-4 flex items-center justify-between">
+            <div className="bg-card p-5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950 flex-shrink-0">
                   <Percent className="h-5 w-5 text-emerald-500" />
@@ -611,9 +483,9 @@ export function Dashboard() {
               <ApprovalSparkline logs={Array.isArray(logs) ? logs : []} />
             </div>
 
-            <div className="bg-card p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950 flex-shrink-0">
-                <FileSearch className="h-5 w-5 text-amber-500" />
+            <div className="bg-card p-5 flex items-center gap-3">
+              <div className={`p-2 rounded-lg flex-shrink-0 ${blockedCount > 0 ? "bg-red-50 dark:bg-red-950" : "bg-emerald-50 dark:bg-emerald-950"}`}>
+                {blockedCount > 0 ? <ShieldX className="h-5 w-5 text-red-500" /> : <ShieldCheck className="h-5 w-5 text-emerald-500" />}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -621,180 +493,25 @@ export function Dashboard() {
                     className="text-2xl font-bold"
                     style={{ fontFamily: "var(--font-space-grotesk)" }}
                   >
-                    {statsVisible ? animatedDecisions : "—"}
+                    {statsVisible ? animatedBlocked : "—"}
                   </span>
-                  {decisionsDelta !== 0 && (
-                    <span
-                      className={`flex items-center text-[11px] font-medium ${
-                        decisionsDelta > 0
-                          ? "text-emerald-600"
-                          : "text-red-500"
-                      }`}
-                    >
-                      {decisionsDelta > 0 ? (
-                        <TrendingUp className="h-3 w-3 mr-0.5" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3 mr-0.5" />
-                      )}
-                      {decisionsDelta > 0 ? "+" : ""}
-                      {decisionsDelta}
-                    </span>
-                  )}
+                  <span className="text-[11px] font-medium text-muted-foreground">
+                    {decisions} total
+                  </span>
                 </div>
-                <div className="text-xs text-muted-foreground">Policy Decisions</div>
+                <div className="text-xs text-muted-foreground">Blocked decisions</div>
               </div>
             </div>
 
-            <div className="bg-card p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950 flex-shrink-0">
-                <ShieldX className="h-5 w-5 text-red-500" />
-              </div>
-              <div>
-                <div
-                  className="text-2xl font-bold"
-                  style={{ fontFamily: "var(--font-space-grotesk)" }}
-                >
-                  {statsVisible ? animatedBlocked : "—"}
-                </div>
-                <div className="text-xs text-muted-foreground">Blocked</div>
-              </div>
-            </div>
-
-            <div className="bg-card p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950 flex-shrink-0">
-                <Clock className="h-5 w-5 text-slate-500" />
-              </div>
-              <div>
-                <div
-                  className="text-2xl font-bold"
-                  style={{ fontFamily: "var(--font-space-grotesk)" }}
-                >
-                  {avgLatency}ms
-                </div>
-                <div className="text-xs text-muted-foreground">Avg Latency</div>
-              </div>
-            </div>
-
-            <AiSpendCard />
-            <ControlScoreCard />
           </div>
         )}
-      </div>
-
-      {/* On-chain proof strip — threads the differentiator; real data only */}
-      {onChainProofCount > 0 && (
-        <button
-          type="button"
-          onClick={() => router.push("/audit")}
-          className="w-full flex items-center gap-2.5 rounded-xl border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-left hover:border-sky-500/40 transition-colors"
-        >
-          <ShieldCheck className="h-4 w-4 text-sky-500 shrink-0" />
-          <span className="text-sm text-foreground/80">
-            <span className="font-semibold text-foreground">
-              {onChainProofCount} decision{onChainProofCount === 1 ? "" : "s"}
-            </span>{" "}
-            recorded on-chain via GovernanceContract — anchored on X Layer, with
-            the same contracts live on Arbitrum + Robinhood.
-          </span>
-          <ArrowRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
-        </button>
-      )}
-
-      {/* Observability strip — surfaces tracing availability to dashboard users */}
-      <ObservabilityStrip onClick={() => router.push("/observability")} />
-
-      {/* Charts Row — hidden in focus mode */}
-      {!focusMode && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <DecisionChart
-            logs={Array.isArray(logs) ? logs : []}
-            loading={logsLoading}
-            activeFilter={decisionFilter}
-            onFilterChange={setDecisionFilter}
-          />
-          <ActivityChart
-            logs={Array.isArray(logs) ? logs : []}
-            loading={logsLoading}
-          />
-          <AgentStatusChart agents={agentList} loading={agentsLoading} />
-        </div>
-      )}
-
-      {/* Quick Check */}
-      <QuickCheck />
-
-      {/* Governed Identities — hidden in focus mode */}
-      {!focusMode && <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">Governed Identities</h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push("/agents")}
-          >
-            View All <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-        {agentsLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-card p-4 rounded-xl border">
-                <Skeleton className="h-24 w-full" />
-              </div>
-            ))}
           </div>
-        ) : agentsError ? (
-          <div className="p-8 text-center text-muted-foreground">
-            <p>Failed to load agents</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => router.refresh()}
-            >
-              Retry
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
-            {agentList.map((agent) => (
-              <div
-                key={agent.id}
-                className="bg-card p-4 hover:bg-accent/50 transition-colors cursor-pointer"
-                onClick={() => router.push(`/agents/${agent.id}`)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === "Enter" && router.push(`/agents/${agent.id}`)}
-              >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-2 h-2 rounded-full ${agent.status === "active" ? "bg-emerald-500" : "bg-amber-500"}`}
-                        aria-label={agent.status === "active" ? "Active" : "Inactive"}
-                      />
-                      <span className="font-medium text-sm">{agent.name}</span>
-                    </div>
-                    <Badge
-                      variant={
-                        agent.status === "active" ? "secondary" : "outline"
-                      }
-                      className="text-xs"
-                    >
-                      {agent.status}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>{agent.trades} actions</span>
-                    <span className="font-medium">{formatBudget(agent.budget)}</span>
-                  </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>}
+
+      {/* The sole primary task: run a spend through governance. */}
+          <QuickCheck />
 
       {/* Recent Activity */}
-      <div>
+          <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <h2 className="font-semibold">Recent Activity</h2>
@@ -914,51 +631,64 @@ export function Dashboard() {
             )}
           </div>
         )}
-      </div>
+          </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <section className="border-t pt-5">
         <button
-          onClick={() => router.push("/governance/check")}
-          className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
+          type="button"
+          onClick={() => setInsightsExpanded((expanded) => !expanded)}
+          aria-expanded={insightsExpanded}
+          aria-controls="dashboard-insights"
+          className="group flex w-full items-center justify-between text-left"
         >
-          <ShieldCheck className="h-5 w-5 text-primary mb-2" />
-          <div className="font-medium text-sm">Governance Check</div>
-          <div className="text-xs text-muted-foreground mt-1">
-            Test policies live
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <h2 className="text-sm font-semibold">Operating insights</h2>
+              <p className="text-xs text-muted-foreground">Trends, identities, and technical signals</p>
+            </div>
           </div>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${insightsExpanded ? "rotate-180" : ""}`} />
         </button>
-        <button
-          onClick={() => router.push("/integrate")}
-          className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
-        >
-          <Rocket className="h-5 w-5 text-violet-500 mb-2" />
-          <div className="font-medium text-sm">Connect your system</div>
-          <div className="text-xs text-muted-foreground mt-1">
-            Get an API key + quickstart
+
+        {insightsExpanded && (
+          <div id="dashboard-insights" className="mt-5 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <DecisionChart logs={Array.isArray(logs) ? logs : []} loading={logsLoading} activeFilter={decisionFilter} onFilterChange={setDecisionFilter} />
+              <ActivityChart logs={Array.isArray(logs) ? logs : []} loading={logsLoading} />
+              <AgentStatusChart agents={agentList} loading={agentsLoading} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="rounded-xl border bg-card p-4 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950"><Clock className="h-5 w-5 text-slate-500" /></div>
+                <div><div className="text-2xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>{avgLatency}ms</div><div className="text-xs text-muted-foreground">Average decision latency</div></div>
+              </div>
+              <AiSpendCard />
+              <ControlScoreCard />
+              <button type="button" onClick={() => router.push("/sealed-bid")} className="rounded-xl border bg-card p-4 text-left hover:border-primary/40 transition-colors group">
+                <div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-primary/10"><Gavel className="h-5 w-5 text-primary" /></div><div className="flex-1"><div className="text-sm font-semibold">Vendor governance</div><p className="text-xs text-muted-foreground mt-0.5">Manage confidential vendor selections.</p></div><ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" /></div>
+              </button>
+            </div>
+
+            {onChainProofCount > 0 && (
+              <button type="button" onClick={() => router.push("/audit")} className="w-full flex items-center gap-2.5 rounded-xl border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-left hover:border-sky-500/40 transition-colors">
+                <ShieldCheck className="h-4 w-4 text-sky-500 shrink-0" />
+                <span className="text-sm text-foreground/80"><span className="font-semibold text-foreground">{onChainProofCount} decision{onChainProofCount === 1 ? "" : "s"}</span> recorded on-chain.</span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
+              </button>
+            )}
+            <ObservabilityStrip onClick={() => router.push("/observability")} />
+
+            <div>
+              <div className="flex items-center justify-between mb-3"><h2 className="font-semibold">Governed identities</h2><Button variant="ghost" size="sm" onClick={() => router.push("/agents")}>View all <ArrowRight className="h-3.5 w-3.5" /></Button></div>
+              {agentsLoading ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">{[1, 2, 3, 4].map((i) => <div key={i} className="bg-card p-4 rounded-xl border"><Skeleton className="h-24 w-full" /></div>)}</div> : agentsError ? <div className="p-8 text-center text-muted-foreground border rounded-xl"><p>Failed to load identities</p><Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>Retry</Button></div> : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">{agentList.map((agent) => <button key={agent.id} onClick={() => router.push(`/agents/${agent.id}`)} className="bg-card p-4 hover:bg-accent/50 transition-colors text-left"><div className="flex items-center justify-between mb-3"><div className="flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${agent.status === "active" ? "bg-emerald-500" : "bg-amber-500"}`} /><span className="font-medium text-sm">{agent.name}</span></div><Badge variant={agent.status === "active" ? "secondary" : "outline"} className="text-xs">{agent.status}</Badge></div><div className="flex justify-between text-sm text-muted-foreground"><span>{agent.trades} actions</span><span className="font-medium">{formatBudget(agent.budget)}</span></div></button>)}</div>}
+            </div>
           </div>
-        </button>
-        <button
-          onClick={() => router.push("/agents/workshop")}
-          className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
-        >
-          <Sparkles className="h-5 w-5 text-sky-500 mb-2" />
-          <div className="font-medium text-sm">Create API Identity</div>
-          <div className="text-xs text-muted-foreground mt-1">
-            Create a governed API slot
-          </div>
-        </button>
-        <button
-          onClick={() => router.push("/audit")}
-          className="p-4 rounded-xl border border-border bg-card hover:border-sky-200 hover:bg-muted/50 transition-all text-left"
-        >
-          <FileSearch className="h-5 w-5 text-amber-500 mb-2" />
-          <div className="font-medium text-sm">Audit Trail</div>
-          <div className="text-xs text-muted-foreground mt-1">
-            Review all decisions
-          </div>
-        </button>
-      </div>
+        )}
+          </section>
+        </>
+      )}
     </div>
   );
 }

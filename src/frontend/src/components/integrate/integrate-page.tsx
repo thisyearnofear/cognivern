@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -335,11 +336,30 @@ export function IntegratePage() {
         </p>
       </div>
 
-      {/* Quick overview */}
-      <div className="rounded-xl border bg-gradient-to-r from-primary/5 to-sky-500/5 border-primary/20 p-5">
+      <div className="grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3">
+        <Link href="/policies" className="bg-card p-4 transition-colors hover:bg-muted/40">
+          <span className="text-xs font-semibold text-muted-foreground">1. Guardrails</span>
+          <p className="mt-1 text-sm font-medium">Create an active policy</p>
+        </Link>
+        <Link href="/agents/workshop" className="bg-card p-4 transition-colors hover:bg-muted/40">
+          <span className="text-xs font-semibold text-muted-foreground">2. Identity</span>
+          <p className="mt-1 text-sm font-medium">Register the calling system</p>
+        </Link>
+        <a href="#quickstart" className="bg-card p-4 transition-colors hover:bg-muted/40">
+          <span className="text-xs font-semibold text-muted-foreground">3. Key</span>
+          <p className="mt-1 text-sm font-medium">Generate and test an API key</p>
+        </a>
+      </div>
+
+      <details className="group rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-sky-500/5">
+        <summary className="flex cursor-pointer list-none items-center justify-between p-5 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center gap-3"><Zap className="h-5 w-5 text-primary" /> How Cognivern works</span>
+          <span className="text-xs font-normal text-muted-foreground group-open:hidden">Optional overview</span>
+          <span className="hidden text-xs font-normal text-muted-foreground group-open:inline">Hide overview</span>
+        </summary>
+        <div className="px-5 pb-5">
           <div className="flex items-center gap-3 mb-3">
-            <Zap className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>How it works</h2>
+            <h2 className="font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Governance decision flow</h2>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
             <Badge variant="secondary">System sends request</Badge>
@@ -372,6 +392,7 @@ export function IntegratePage() {
             <span>· confidential eval via FHE (live on Arbitrum Sepolia) · sealed-bid procurement on Canton.</span>
           </div>
         </div>
+      </details>
 
       <Tabs defaultValue="quickstart" className="space-y-4">
         <TabsList>
@@ -381,7 +402,7 @@ export function IntegratePage() {
         </TabsList>
 
         {/* Quickstart */}
-        <TabsContent value="quickstart" className="space-y-2">
+        <TabsContent id="quickstart" value="quickstart" className="space-y-2">
           <StepCard step={1} title="Get an API key">
             <ApiKeyGenerator />
           </StepCard>

@@ -35,7 +35,7 @@
 | --- | --- | --- |
 | 0:00–0:07 | Landing | Static on `/sealed-bid` list. |
 | 0:07–0:23 | Problem context | Slow pan / still of the page, no clicks. |
-| 0:23–0:45 | Create round | Click **New round**, fill description + category, click **Create round**. |
+| 0:23–0:45 | Create round | Click **Create manually**, fill description + category, click **Create round**. |
 | 0:45–1:00 | Alice bid | Select Alice, enter $91,000, submit. |
 | 1:00–1:15 | Bob bid | Select Bob, enter $74,500, submit. |
 | 1:15–1:28 | Charlie bid | Select Charlie, enter $108,000, submit. |
