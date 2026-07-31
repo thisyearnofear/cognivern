@@ -5,6 +5,7 @@ import {
   type SealedBidRound,
   type SealedBidRoundSummary,
   type GovernanceTimeline,
+  type CreLedgerVerifyResponse,
 } from "@/lib/api-client";
 import { useDemoStore } from "@/stores/demo-store";
 import { useAuthStore } from "@/stores/auth-store";
@@ -119,6 +120,17 @@ export function useRun(runId: string) {
     async () => (await apiClient.getRun(runId)).data as Run,
     demoData,
   );
+}
+
+export function useLedgerIntegrity() {
+  // Verification requires auth; gate on the token so we don't fetch (and get
+  // 401 → logout) when signed out. This is the cheap non-deep check only.
+  const token = useAuthStore((s) => s.token);
+  return useSWR<CreLedgerVerifyResponse | undefined>(
+    token ? "/api/cre/ledger/verify" : null,
+    async () => (await apiClient.verifyLedger(false)).data,
+    { ...SWR_DEFAULTS, ...RUNS_SWR_CONFIG },
+  ) as SWRResult<CreLedgerVerifyResponse | undefined>;
 }
 
 /* ── Governance ── */

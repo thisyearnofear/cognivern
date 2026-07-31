@@ -81,6 +81,44 @@ export interface CopilotRun {
   events: CopilotEvent[];
 }
 
+export type CreAnchorStatus =
+  | "verified"
+  | "mismatch"
+  | "unavailable"
+  | "disabled"
+  | "no_expected_hash"
+  | "no_retrieval_key";
+
+export interface CreLedgerVerifyResponse {
+  success: true;
+  chain: {
+    valid: boolean;
+    entries: number;
+    headHash: string;
+    brokenAtSeq?: number;
+    reason?: string;
+  };
+  store: {
+    runs: number;
+    tamperedRuns: string[];
+    unchainedRuns: string[];
+  };
+  anchors?: Array<{
+    runId: string;
+    zeroG?: CreAnchorStatus;
+    filecoin?: CreAnchorStatus;
+  }>;
+  anchorSummary?: {
+    checked: number;
+    verified: number;
+    mismatch: number;
+    unavailable: number;
+    skipped: number;
+  };
+  valid: boolean;
+  timestamp: string;
+}
+
 class ApiClient {
   private baseUrl: string;
   private apiKey: string | null;
@@ -233,6 +271,12 @@ class ApiClient {
 
   async getRun(runId: string): Promise<ApiResponse<Run>> {
     return this.fetch(`/api/cre/runs/${runId}`);
+  }
+
+  async verifyLedger(
+    deep = false,
+  ): Promise<ApiResponse<CreLedgerVerifyResponse>> {
+    return this.fetch(`/api/cre/ledger/verify${deep ? "?deep=true" : ""}`);
   }
 
   // Policies

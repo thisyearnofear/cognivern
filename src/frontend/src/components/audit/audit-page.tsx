@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { PermitDialog } from "./permit-dialog";
 import { SuspicionOverview } from "./suspicion-overview";
+import { LedgerIntegrityCard } from "./ledger-integrity-card";
 import { EventTimeline, type TimelineEvent } from "@/components/shared/event-timeline";
 import { useRouter } from "next/navigation";
 import { useAuditLogs } from "@/hooks/use-api";
@@ -854,6 +855,9 @@ export function AuditPage() {
           </div>
         </div>
       )}
+
+      {/* Ledger Integrity — global verification */}
+      <LedgerIntegrityCard />
 
       {/* Security Architecture — inline banner */}
       <div className="rounded-xl border border-border bg-muted/20 p-5">
