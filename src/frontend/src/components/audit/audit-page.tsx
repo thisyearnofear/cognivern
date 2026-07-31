@@ -729,7 +729,7 @@ function TimelineNode({
 
 function EmptyAuditState({ onRunCheck }: { onRunCheck: () => void }) {
   const terminalLines = [
-    "$ curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \\",
+    "$ curl -X POST https://cognivern.persidian.com/api/governance/evaluate \\",
     '  -H "Content-Type: application/json" \\',
     '  -d \'{"agentId":"demo","action":{"type":"spend","metadata":{"amount":50}}}\'',
     "",

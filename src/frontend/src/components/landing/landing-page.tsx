@@ -168,7 +168,7 @@ export function LandingPage() {
 
   const handleCopyCurl = useCallback(() => {
     navigator.clipboard.writeText(
-      `curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \\\n  -H "Content-Type: application/json" \\\n  -d '{"agentId":"demo","action":{"type":"spend","metadata":{"amount":50}}}'`,
+      `curl -X POST https://cognivern.persidian.com/api/governance/evaluate \\\n  -H "Content-Type: application/json" \\\n  -d '{"agentId":"demo","action":{"type":"spend","metadata":{"amount":50}}}'`,
     );
     setCopyFeedback(true);
     if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
@@ -773,7 +773,7 @@ export function LandingPage() {
                 style={{ fontFamily: "var(--font-jetbrains-mono, var(--font-geist-mono))" }}
               >
 {`# Evaluate a spend against the active policy
-curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \\
+curl -X POST https://cognivern.persidian.com/api/governance/evaluate \\
   -H "Content-Type: application/json" \\
   -d '{
     "agentId": "demo",

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useAuthStore, useAuthHydrated } from "@/stores/auth-store";
+import { apiUrl } from "@/lib/runtime-config";
 
 type EventCallback = (data: Record<string, unknown>) => void;
 const listeners = new Map<string, Set<EventCallback>>();
@@ -11,11 +12,7 @@ let retryCount = 0;
 function connect(token: string) {
   if (source) source.close();
 
-  const backendUrl =
-    process.env.NEXT_PUBLIC_API_URL ||
-    "https://cognivern.thisyearnofear.com";
-
-  const url = `${backendUrl}/api/events/stream?token=${encodeURIComponent(token)}`;
+  const url = apiUrl(`/api/events/stream?token=${encodeURIComponent(token)}`);
   source = new EventSource(url);
 
   const dispatch = (eventName: string) => (e: MessageEvent) => {

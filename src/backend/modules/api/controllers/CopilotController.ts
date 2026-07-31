@@ -169,7 +169,7 @@ async function executeRun(run: PersistedCopilotRun, previewOnly: boolean) {
       goal: run.goal,
       cognivernApiKey: process.env.COGNIVERN_API_KEY || "development-api-key",
       cognivernBaseUrl:
-        process.env.COGNIVERN_BASE_URL || "https://cognivern.thisyearnofear.com",
+        process.env.COGNIVERN_BASE_URL || "https://cognivern.persidian.com",
       mongodbUri: process.env.MONGODB_URI || "mongodb://localhost:27017",
       mongodbDatabase: process.env.MONGODB_DB_NAME || "cognivern",
       geminiApiKey: process.env.GEMINI_API_KEY,

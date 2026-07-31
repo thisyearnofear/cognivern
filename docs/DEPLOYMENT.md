@@ -163,7 +163,7 @@ No manual migration step required.
 After production points at DevNet:
 
 ```bash
-COGNIVERN_URL=https://cognivern.thisyearnofear.com \
+COGNIVERN_URL=https://cognivern.persidian.com \
 COGNIVERN_API_KEY=<your-api-key> \
 CANTON_PROOF_MANAGER=auctioner-cognivern \
 CANTON_PROOF_BIDDERS=alice-cognivern,bob-cognivern,charlie-cognivern \

@@ -4,7 +4,7 @@
 
 Control plane for agent operations: governed wallet spend + AI spend governance across IDE, CLI, and agent workflows. Every spend is policy-checked, privacy-preserving, efficiency-aware, and audit-ready.
 
-**Live:** [Frontend](https://cognivern.vercel.app) · [API](https://cognivern.thisyearnofear.com) · [PromptOS Terminal](https://cognivern.vercel.app/os)
+**Live:** [Frontend](https://cognivern.persidian.com) · [API](https://cognivern.persidian.com) · [PromptOS Terminal](https://cognivern.persidian.com/os)
 
 ## Focus
 

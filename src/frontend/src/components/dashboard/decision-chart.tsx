@@ -94,7 +94,7 @@ export function DecisionChart({
   }
 
   return (
-    <div className="rounded-xl border bg-card h-full min-h-[280px] flex flex-col">
+    <div className="min-w-0 rounded-xl border bg-card h-full min-h-[280px] flex flex-col">
       <div className="p-4 pb-2 flex-row items-center justify-between space-y-0 flex">
         <div className="text-sm font-medium">Decision Breakdown</div>
         {activeFilter && (
@@ -107,8 +107,8 @@ export function DecisionChart({
           </button>
         )}
       </div>
-      <div className="p-4 pt-2 flex-1 min-h-[200px]">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+      <div className="min-w-0 p-4 pt-2 flex-1 min-h-[200px]">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={180}>
           <PieChart>
             <Pie
               data={data}

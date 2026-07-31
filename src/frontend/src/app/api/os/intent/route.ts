@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { isConfigured, fullRecall } from "@/lib/hydradb-service";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://cognivern.thisyearnofear.com";
+import { apiUrl } from "@/lib/runtime-config";
 
 /**
  * POST /api/os/intent
@@ -47,7 +45,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const response = await fetch(`${API_URL}/api/intent`, {
+    const response = await fetch(apiUrl("/api/intent"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, context: enrichedContext }),
