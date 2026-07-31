@@ -36,10 +36,10 @@ ssh "$HOST" "set -e; \
   if pm2 describe '$PM2_APP_NAME' >/dev/null 2>&1; then \
     CURRENT_SCRIPT=\"\$(pm2 describe '$PM2_APP_NAME' | awk -F '│' '/script path/ {gsub(/^ +| +$/, \"\", \$3); print \$3; exit}')\"; \
     EXPECTED_SCRIPT='$REMOTE_APP_DIR/dist/src/index.js'; \
-    if [ \"$CURRENT_SCRIPT\" = \"$EXPECTED_SCRIPT\" ]; then \
+    if [ \"\$CURRENT_SCRIPT\" = \"\$EXPECTED_SCRIPT\" ]; then \
       pm2 restart '$PM2_APP_NAME' --update-env; \
     else \
-      echo \"== replacing stale PM2 entry ($CURRENT_SCRIPT)\"; \
+      echo \"== replacing stale PM2 entry (\$CURRENT_SCRIPT)\"; \
       pm2 delete '$PM2_APP_NAME'; \
       pm2 start '$REMOTE_APP_DIR/config/ecosystem.config.cjs'; \
     fi; \

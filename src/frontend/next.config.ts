@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 import { DEFAULT_API_ORIGIN } from "./src/lib/runtime-config";
 
-const publicApiOrigin =
-  process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_ORIGIN;
+const publicApiOrigin = process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_ORIGIN;
 const publicApiWsOrigin = publicApiOrigin.replace(/^http/, "ws");
 
 const cspHeader = [
