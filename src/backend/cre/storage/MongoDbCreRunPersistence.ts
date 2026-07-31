@@ -19,7 +19,13 @@ export class MongoDbCreRunPersistence implements CreRunPersistence {
     try {
       await this.ensureConnected();
       const col = mongoDbService.collection(CACHE_COLLECTION);
-      await col.insertOne(run as unknown as Parameters<typeof col.insertOne>[0]);
+      // Insert a shallow copy so MongoDB's auto _id assignment doesn't
+      // mutate the shared run object. CreRunStore.add() records the ledger
+      // hash AFTER append(); if insertOne added _id in place, the ledger
+      // would hash a _id-bearing object while the canonical JSONL store
+      // holds the _id-free version — every run would false-flag as
+      // "tampered" after the next reload from JSONL.
+      await col.insertOne({ ...run } as unknown as Parameters<typeof col.insertOne>[0]);
       logger.debug(`Persisted CRE run ${run.runId} to MongoDB`);
     } catch (error) {
       logger.error(`Failed to persist CRE run ${run.runId} to MongoDB:`, error);
@@ -35,7 +41,9 @@ export class MongoDbCreRunPersistence implements CreRunPersistence {
         .sort({ startedAt: -1 })
         .limit(100)
         .toArray();
-      return docs as unknown as CreRun[];
+      // Strip Mongo's storage _id so it never participates in run hashing
+      // (see append()); _id is a Mongo concern, not part of the CreRun domain.
+      return docs.map(({ _id, ...rest }) => rest) as unknown as CreRun[];
     } catch (error) {
       logger.error("Failed to load CRE runs from MongoDB:", error);
       return [];
@@ -48,7 +56,10 @@ export class MongoDbCreRunPersistence implements CreRunPersistence {
       const col = mongoDbService.collection(CACHE_COLLECTION);
       await col.deleteMany({});
       if (runs.length > 0) {
-        await col.insertMany(runs as unknown as Parameters<typeof col.insertMany>[0]);
+        // Insert shallow copies (see append() for the _id-mutation rationale).
+        await col.insertMany(
+          runs.map((r) => ({ ...r })) as unknown as Parameters<typeof col.insertMany>[0],
+        );
       }
       logger.debug(`Replaced all CRE runs in MongoDB (${runs.length} runs)`);
     } catch (error) {

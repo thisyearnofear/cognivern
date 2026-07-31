@@ -41,11 +41,37 @@ Cognivern Evaluation Layer
   v
 Cognivern Audit + Run Ledger
   ├── AuditLogService.logAction() — every decision recorded, reasons preserved
+  ├── Tamper-evident hash-chained mutation ledger (CreLedgerChain) — every
+  │     add/replace is hash-linked; verify() detects edited runs + broken links
   ├── [optional] Suspicion evidence persisted to CreRun.evidence.suspicion
   ├── [optional] Filecoin evidence anchoring via FilecoinStorageService (FVM AIGovernanceStorage)
-  ├── [optional] 0G Storage evidence anchoring via ZeroGStorageService (dual-anchor)
+  ├── [optional] 0G Storage evidence anchoring via ZeroGStorageService (indexer
+  │     upload, gated by ZEROG_PRIVATE_KEY; deep-verify re-fetches + hash-compares)
+  ├── [optional] 0G on-chain decision proof via ZeroGProofService (GovernanceProof
+  │     contract — GovernanceDecision events on Galileo, verifiable on ChainScan)
   └── [optional] X Layer execution dispatch via Hyperlane
 ```
+
+### Tamper-evident run ledger
+
+CRE runs mutate over their lifecycle (status transitions, post-anchor evidence
+updates), so the run file itself can't be append-only. `CreLedgerChain` is a
+sidecar append-only, hash-chained journal (`data/cre-ledger.jsonl`) that records
+every `add` / `replace` / `truncate` op with `sha256(prevHash | seq | op | runId |
+runHash | timestamp)`. `verify()` recomputes each entry hash and the prevHash
+linkage, so rewriting or deleting history breaks the chain; the verify endpoint
+additionally compares each run's current `hashRun(run)` against the latest
+recorded `runHash` — a byte edited on disk flips that run to "Tampered".
+
+**Persistence invariant:** `hashRun(run) = sha256(JSON.stringify(run))` is
+computed by `CreRunStore` *after* `persistence.append(run)` and *before*
+`ledger.record(...)`. Persistence layers must not mutate the run object in
+place — MongoDB's `insertOne` adds an `_id` to the passed document, which would
+make the ledger hash a `_id`-bearing object while the canonical JSONL store
+holds the `_id`-free version, false-flagging every run as tampered after the
+next reload. `MongoDbCreRunPersistence` therefore inserts shallow copies and
+strips `_id` on load. Any new persistence layer must respect the same
+no-mutation contract.
 
 ## Canonical Decision Lifecycle
 
@@ -89,10 +115,10 @@ Implementation files:
 | **Fhenix** | Confidential policy evaluation via FHE. Budgets, limits, and spend counters remain encrypted. | Live (Arbitrum Sepolia) |
 | **X Layer** | Governed execution dispatch path. Approved spends dispatched here for execution and public anchoring. | Testnet (chainId 1952) |
 | **Filecoin** | Durable evidence anchoring for audit logs via `FilecoinStorageService` → FVM. | Live (Calibration testnet) |
-| **0G** | On-chain governance decision proofs via `GovernanceProof` contract. Every evaluate call posts a `GovernanceDecision` event to 0G Chain — verifiable on ChainScan without trusting the server. | Galileo Testnet (chain ID 16602) |
+| **0G** | Dual surface: (a) on-chain governance decision proofs via `GovernanceProof` contract — every evaluate call posts a `GovernanceDecision` event to 0G Chain, verifiable on ChainScan; (b) 0G Storage evidence anchoring via `ZeroGStorageService` (indexer upload, gated by `ZEROG_PRIVATE_KEY`, re-fetched by deep-verify). | Galileo Testnet (chain ID 16602) |
 | **ChainGPT** | Web3-specialized LLM for smart contract auditing and governance queries. | Live |
 | **Ledger DMK** | Hardware signing for high-value transactions. | Live |
-| **MongoDB** | Persistent agent memory & run ledger. | Optional, gated by `MONGODB_URI` |
+| **MongoDB** | Persistent agent memory & run ledger. Inserts copies of CRE runs so its auto `_id` never mutates the ledger-hashed object (see persistence invariant above). | Optional, gated by `MONGODB_URI` |
 
 ## Fhenix Integration — Confidential Policy Evaluation
 

@@ -48,7 +48,7 @@ See `.env.example` for the full list. Minimum for production:
 | `JWT_SECRET` | JWT signing secret — authMiddleware throws if missing |
 | `OWS_VAULT_SECRET` | Secret used to encrypt the local OWS vault |
 
-Optional integrations: `FILECOIN_PRIVATE_KEY`, `FHENIX_PRIVATE_KEY`, `MONGODB_URI`, `CHAINGPT_API_KEY`, `OPENAI_API_KEY`. See `.env.example` for the complete list.
+Optional integrations: `FILECOIN_PRIVATE_KEY`, `FHENIX_PRIVATE_KEY`, `ZEROG_PRIVATE_KEY` / `ZEROG_RPC_URL` / `ZEROG_CHAIN_ID` / `ZEROG_PROOF_CONTRACT`, `MONGODB_URI`, `CHAINGPT_API_KEY`, `OPENAI_API_KEY`. See `.env.example` for the complete list.
 
 Canton (Daml) backend for confidential sealed-bid rounds — all optional, backend simply isn't registered if `CANTON_JSON_API_URL` is absent. For HackCanton final submission this must point at a Canton DevNet participant; `http://127.0.0.1:7575` / Hetzner sandbox is useful for staging but does not satisfy the DevNet deployment requirement.
 
