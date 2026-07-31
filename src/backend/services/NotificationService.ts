@@ -13,6 +13,7 @@ import { CircuitBreaker } from "@backend/shared/utils/circuitBreaker.js";
 import { sendAlert } from "./alerting/index.js";
 import { eventBus } from "./EventBus.js";
 import logger from "@backend/utils/logger.js";
+import { egressPolicyService } from "@backend/services/governance/EgressPolicyService.js";
 
 interface NotificationPayload {
   event: string;
@@ -175,6 +176,14 @@ export const NotificationService = {
    * Send a POST request to a webhook URL with the notification payload.
    */
   async sendWebhook(url: string, payload: NotificationPayload): Promise<void> {
+    const egress = egressPolicyService.evaluate({
+      connector: "webhook",
+      destination: url,
+      payload,
+    });
+    if (!egress.allowed) {
+      throw new Error(`Webhook egress blocked: ${egress.reason}`);
+    }
     const controller = new AbortController();
     let timeout: ReturnType<typeof setTimeout>;
     timeout = setTimeout(() => controller.abort(), 5000);

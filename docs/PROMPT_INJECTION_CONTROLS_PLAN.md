@@ -38,8 +38,15 @@ Completed in the current release:
 
 Still required for the broader claim: automatic provenance collectors for web,
 email, repository, and document connectors; shared nonce storage for
-multi-instance deployments; and connector-level egress policies for publishing,
-messaging, and data export.
+multi-instance deployments; and egress policies for any publishing, messaging,
+or data-export connectors added in the future.
+
+The first egress slice now covers the connectors present in this repository:
+agent/workspace webhooks, Slack alert webhooks, and MCP server POSTs. Set
+`EGRESS_POLICY_ENFORCEMENT=true` and configure
+`COGNIVERN_EGRESS_ALLOWLIST` to enforce HTTPS, hostname allowlisting, and a
+64 KiB payload ceiling. Email, GitHub, and storage-export connectors are not
+implemented here yet and remain follow-on work.
 
 ## Delivered: Source-Aware Spend Gate
 

@@ -1,5 +1,6 @@
 import logger from "@backend/utils/logger.js";
 import type { AlertEvent, AlertSink } from './AlertSink.js';
+import { egressPolicyService } from '@backend/services/governance/EgressPolicyService.js';
 
 export class SlackWebhookNotifier implements AlertSink {
   readonly name = 'slack';
@@ -29,6 +30,16 @@ export class SlackWebhookNotifier implements AlertSink {
         },
       ],
     };
+
+    const egress = egressPolicyService.evaluate({
+      connector: "slack",
+      destination: this.webhookUrl,
+      payload,
+    });
+    if (!egress.allowed) {
+      logger.warn(`[slack] Egress blocked: ${egress.reason}`);
+      return;
+    }
 
     try {
       const controller = new AbortController();

@@ -1,6 +1,7 @@
 // @ts-expect-error - no type declarations available for event-source-polyfill
 import { EventSourcePolyfill } from "event-source-polyfill";
 import logger from "@backend/utils/logger.js";
+import { egressPolicyService } from "@backend/services/governance/EgressPolicyService.js";
 
 export interface MCPMessage {
   id: string;
@@ -163,6 +164,15 @@ export class MCPClientService {
           apiUrl = apiUrl.slice(0, -1);
         }
         apiUrl = `${apiUrl}/api/messages`;
+      }
+
+      const egress = egressPolicyService.evaluate({
+        connector: "mcp",
+        destination: apiUrl,
+        payload: message,
+      });
+      if (!egress.allowed) {
+        throw new Error(`MCP egress blocked: ${egress.reason}`);
       }
 
       const response = await fetch(apiUrl, {
