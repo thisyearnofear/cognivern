@@ -37,8 +37,8 @@ import type { GovernanceEvaluation } from "@/lib/api-client";
 const STEPS = [
   {
     id: "wallet",
-    title: "Connect Wallet",
-    description: "Link your wallet to start governing agent spend",
+    title: "Connect an Account",
+    description: "Link an account to manage governed agent activity",
     icon: Wallet,
   },
   {
@@ -50,7 +50,7 @@ const STEPS = [
   {
     id: "agent",
     title: "Register API Identity",
-    description: "Give an external system a wallet and budget",
+    description: "Give an external system permission and a budget",
     icon: Users,
   },
   {
@@ -178,7 +178,7 @@ function CompactGovernanceCheck() {
       <p className="text-xs text-muted-foreground">
         See how it works — test a spend action against your policy.
         {result?.confidential?.fheEvaluated &&
-          " Your policy is encrypted — evaluation runs on Fhenix FHE."}
+            " Your policy stayed protected throughout the evaluation."}
       </p>
 
       {/* Input row */}
@@ -224,7 +224,7 @@ function CompactGovernanceCheck() {
         <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
           <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
             <Lock className="h-3.5 w-3.5" />
-            FHE Confidential Evaluation
+            Private policy check
           </div>
           <div className="space-y-0.5">
             {fheSteps.map((step) => (
@@ -328,7 +328,7 @@ function CompactGovernanceCheck() {
           {result.confidential?.fheEvaluated && (
             <div className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
               <Lock className="h-3 w-3" />
-              Evaluated via Fhenix FHE — budget encrypted throughout
+              Evaluated privately — budget protected throughout
             </div>
           )}
 
@@ -529,9 +529,9 @@ export function OnboardingWizard() {
               >
               <div className="text-center py-4">
                 <Wallet className="h-12 w-12 mx-auto mb-3 text-primary opacity-70" />
-                <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Connect Your Wallet</h2>
+                <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Connect an Account</h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Link a wallet to create and manage governance policies
+                  Connect an account to create and manage governance policies
                 </p>
               </div>
               {isAppConnected ? (

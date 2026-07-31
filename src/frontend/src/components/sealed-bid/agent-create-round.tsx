@@ -112,7 +112,7 @@ export function AgentCreateRound({
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        An agent creates a confidential vendor-selection round on Canton. The
+        An agent creates a confidential vendor-selection round. The
         round is <span className="font-medium text-foreground">policy-governed</span>:
         the auctioneer cannot close until minimum bids, deadline, and budget
         checks all pass. Every event is hash-signed in a tamper-evident run

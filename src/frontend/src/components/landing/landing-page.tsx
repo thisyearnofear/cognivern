@@ -243,7 +243,7 @@ export function LandingPage() {
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-muted text-muted-foreground rounded-full text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            Live on Arbitrum · Robinhood · X Layer · Canton
+            Live governance controls
           </span>
           {hasHydrated && (isAppAuthenticated || walletConnected) ? (
             <Button
@@ -284,7 +284,7 @@ export function LandingPage() {
               className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium mb-8 border border-primary/20"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Every approval writes a real on-chain transaction
+              Every approval is accountable
             </motion.span>
 
             <motion.h1
@@ -296,7 +296,7 @@ export function LandingPage() {
             >
               Govern every agent spend.
               <br />
-              <span className="text-primary">With real on-chain proof.</span>
+              <span className="text-primary">With confidence built in.</span>
             </motion.h1>
 
             <motion.p
@@ -305,9 +305,9 @@ export function LandingPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-lg text-muted-foreground max-w-xl mx-auto mt-6 leading-relaxed"
             >
-              Policy checks, wallet controls, and a tamper-evident audit trail — every
-              approved spend settles to a governed smart contract you can verify
-              on-chain. Not a simulated hash. A real transaction, with real gas.
+              Set clear limits, review risky actions, and keep an accountable record
+              of what every agent does. Cognivern works quietly in the background so
+              your team can move quickly without giving up control.
             </motion.p>
 
             <motion.div
@@ -325,7 +325,7 @@ export function LandingPage() {
                 onClick={() => router.push("/sealed-bid")}
               >
                 <Lock className="h-4 w-4 mr-1.5" />
-                Private auctions on Canton
+                Private vendor selection
               </Button>
               <Button
                 variant="ghost"
@@ -454,10 +454,11 @@ export function LandingPage() {
             className="text-3xl font-bold text-foreground mt-3"
             style={{ fontFamily: "var(--font-space-grotesk)" }}
           >
-            From agent request to on-chain proof
+            From agent request to accountable action
           </h2>
           <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
-            Every spend flows through the same pipeline. No shortcuts, no simulations.
+            Every spend follows the same clear path: request, policy check, decision,
+            and a record your team can review.
           </p>
         </motion.div>
 
@@ -478,15 +479,15 @@ export function LandingPage() {
           />
           <FlowNode
             icon={Globe}
-            title="On-Chain Record"
-            subtitle="Approved spends write to the GovernanceContract on-chain. Real tx, real gas."
+            title="Accountable Record"
+            subtitle="Approved spends receive a tamper-evident record your team can review."
             index={2}
             isLast={false}
           />
           <FlowNode
             icon={Eye}
             title="Audit Trail"
-            subtitle="Dual on-chain + MongoDB trail. Verifiable forever."
+            subtitle="A durable activity trail for reviews, investigations, and reporting."
             index={3}
             isLast={true}
           />
@@ -698,7 +699,7 @@ export function LandingPage() {
               className="text-3xl font-bold text-foreground mt-3"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Govern once. Run anywhere. Prove everything.
+              Govern once. Run anywhere. Stay in control.
             </h2>
           </motion.div>
 
@@ -708,17 +709,17 @@ export function LandingPage() {
               {
                 icon: Globe,
                 title: "Portable",
-                desc: "The same GovernanceContract + GovernedVault run on Arbitrum, Robinhood (Orbit), and X Layer. Governance follows your agents to any chain.",
+                desc: "The same guardrails follow your agents across the systems where they work.",
               },
               {
                 icon: Lock,
                 title: "Confidential",
-                desc: "Spend amounts and wallet balances stay encrypted end-to-end with FHE — policies evaluate without exposing the numbers to any server.",
+                desc: "Sensitive amounts stay protected while policies evaluate, so agents receive decisions without seeing your private limits.",
               },
               {
                 icon: Eye,
                 title: "Private procurement",
-                desc: "Sealed-bid vendor selection on Canton — bids stay private through the ledger's disclosure model, so no bidder ever sees another's price.",
+                desc: "Run vendor selections where each bidder sees only what they are meant to see until the decision is complete.",
               },
             ].map((b, i) => (
               <motion.div
@@ -757,7 +758,7 @@ export function LandingPage() {
               className="text-xl font-bold text-foreground mt-2"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Every network, and the role it plays
+              Technical details and verification
             </h3>
           </div>
 

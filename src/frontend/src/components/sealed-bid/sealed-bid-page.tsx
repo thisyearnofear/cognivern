@@ -14,19 +14,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSealedBidRounds } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
 import { AgentCreateRound } from "./agent-create-round";
-import { BackendBadge } from "./backend-badge";
 import { RoundDetail } from "./round-detail";
 
 function defaultDeadline(): string {
@@ -45,7 +37,6 @@ export function SealedBidPage() {
   const [description, setDescription] = useState("");
   const [serviceCategory, setServiceCategory] = useState("consulting");
   const [maxBids, setMaxBids] = useState(5);
-  const [backend, setBackend] = useState<"canton" | "fhe">("canton");
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -57,12 +48,12 @@ export function SealedBidPage() {
         serviceCategory,
         deadline: defaultDeadline(),
         maxBids,
-        backend,
+        backend: "canton",
         manager: "Auctioneer",
       });
       if (!res.success) throw new Error(res.error || "Failed to create round");
       toast.success(
-        `Round created on ${backend === "canton" ? "Canton" : "FHE"} backend`,
+        "Private vendor selection created",
       );
       await mutate("/api/vendor/sealed-bid/rounds");
       setDescription("");
@@ -92,9 +83,8 @@ export function SealedBidPage() {
             <Gavel className="h-6 w-6" /> Sealed-bid vendor selection
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl">
-            Confidential vendor RFPs. Bids stay sealed from competitors — on
-            the Canton backend, sub-transaction privacy is enforced by the
-            ledger; on the FHE backend, amounts are held as ciphertext handles.
+            Confidential vendor RFPs. Bids stay sealed from competitors until
+            the selection is complete.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -179,34 +169,6 @@ export function SealedBidPage() {
                 onChange={(e) => setMaxBids(parseInt(e.target.value) || 1)}
               />
             </div>
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-xs font-medium">Privacy backend</label>
-              <Select
-                value={backend}
-                onValueChange={(v) => setBackend(v as "canton" | "fhe")}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="canton">
-                    Canton — full privacy reveal, losers never decrypted
-                  </SelectItem>
-                  <SelectItem value="fhe">
-                    FHE (Fhenix) — sealed bids, manager-publish reveal
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                <strong className="text-foreground">Canton (recommended):</strong>{" "}
-                structural sub-transaction privacy — the winner is revealed in one
-                atomic transaction without decrypting losing bids.{" "}
-                <strong className="text-foreground">FHE:</strong> amounts stay as
-                ciphertext; the round manager publishes the winner after
-                decrypt-and-publish (losing plaintexts are visible to the manager).
-                Canton is the recommended default.
-              </p>
-            </div>
           </div>
           <div className="flex justify-end">
             <Button type="submit" disabled={creating || !description.trim()}>
@@ -256,7 +218,7 @@ export function SealedBidPage() {
                 </h3>
                 <p className="text-sm text-muted-foreground max-w-sm mb-4">
                   Kick off a confidential RFP. Start with an agent-governed round
-                  to see Canton privacy and policy checks in action.
+                  to see private bidding and policy checks in action.
                 </p>
                 <Button
                   onClick={() => {
@@ -291,7 +253,6 @@ export function SealedBidPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <BackendBadge backend={r.backend} />
                       {r.createdByAgent && (
                         <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/50 bg-violet-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400">
                           <Bot className="h-2.5 w-2.5" />

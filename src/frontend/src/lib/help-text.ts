@@ -8,16 +8,16 @@ export const HELP_TEXT: Record<string, { title: string; body: string }> = {
     body: "Restricts agent spending to pre-approved protocols, vendors, or contract addresses.",
   },
   "policy:chain": {
-    title: "Chain Restriction",
-    body: "Limits which blockchain networks an agent can operate on.",
+    title: "Network Restriction",
+    body: "Limits which networks an agent can use for transactions.",
   },
   "policy:approval": {
     title: "Human Approval",
     body: "Flags transactions above a threshold for manual review before execution.",
   },
   "policy:encrypt": {
-    title: "Encrypted Policy (FHE)",
-    body: "Budget limits are encrypted on-chain via Fhenix FHE. The agent cannot see its spending caps — only whether a spend passes or fails.",
+    title: "Private Policy Checks",
+    body: "Budget limits stay protected while the policy is evaluated. The agent receives only the decision — not the limits themselves.",
   },
   "governance:nl-input": {
     title: "Natural Language Input",
@@ -29,7 +29,7 @@ export const HELP_TEXT: Record<string, { title: string; body: string }> = {
   },
   "security:auth": {
     title: "Authentication",
-    body: "SIWE (Sign-In With Ethereum) with nonce replay protection. JWT tokens verified server-side and revocable.",
+    body: "Secure sign-in with replay protection and revocable sessions.",
   },
   "security:apikeys": {
     title: "API Key Security",

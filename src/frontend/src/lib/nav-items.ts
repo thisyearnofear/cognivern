@@ -73,7 +73,7 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Sealed Bids",
         icon: Gavel,
         href: "/sealed-bid",
-        description: "Confidential vendor RFPs — Canton privacy",
+        description: "Run private vendor selections without exposing bids",
       },
     ],
   },
