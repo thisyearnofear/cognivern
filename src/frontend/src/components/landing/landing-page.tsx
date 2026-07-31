@@ -746,23 +746,26 @@ export function LandingPage() {
             ))}
           </div>
 
-          {/* The receipts — every network and its role */}
-          <div className="text-center mb-8">
-            <span
-              className="text-xs font-semibold text-primary uppercase tracking-widest"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              The receipts
-            </span>
-            <h3
-              className="text-xl font-bold text-foreground mt-2"
-              style={{ fontFamily: "var(--font-space-grotesk)" }}
-            >
-              Technical details and verification
-            </h3>
-          </div>
+          <details className="rounded-xl border border-border bg-card/40 p-5">
+            <summary className="cursor-pointer text-center">
+              <span
+                className="text-xs font-semibold text-primary uppercase tracking-widest"
+                style={{ fontFamily: "var(--font-space-grotesk)" }}
+              >
+                The receipts
+              </span>
+              <h3
+                className="text-xl font-bold text-foreground mt-2"
+                style={{ fontFamily: "var(--font-space-grotesk)" }}
+              >
+                Technical details and verification
+              </h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                Open this section for networks, contracts, and verification references.
+              </p>
+            </summary>
 
-          <div className="space-y-4">
+          <div className="space-y-4 mt-6">
             {[
               {
                 network: "Arbitrum Sepolia",
@@ -862,6 +865,7 @@ export function LandingPage() {
               </motion.div>
             ))}
           </div>
+          </details>
         </div>
       </section>
 

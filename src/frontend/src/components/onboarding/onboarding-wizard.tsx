@@ -531,32 +531,20 @@ export function OnboardingWizard() {
                 <Wallet className="h-12 w-12 mx-auto mb-3 text-primary opacity-70" />
                 <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Connect an Account</h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Connect an account to create and manage governance policies
+                  Start with email, or connect a wallet when an external transaction
+                  needs your approval.
                 </p>
               </div>
               {isAppConnected ? (
                 <div className="flex items-center justify-center gap-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
                   <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                   <span className="font-medium">
-                    Wallet connected: {walletAddress?.slice(0, 6)}...
+                    Account connected: {walletAddress?.slice(0, 6)}...
                     {walletAddress?.slice(-4)}
                   </span>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="flex justify-center">
-                    <ConnectButton />
-                  </div>
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-border" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">
-                        or
-                      </span>
-                    </div>
-                  </div>
                   <Button
                     variant="default"
                     onClick={() => setShowAuthModal(true)}
@@ -565,9 +553,14 @@ export function OnboardingWizard() {
                     <Mail className="h-4 w-4" />
                     Continue with Email
                   </Button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    No wallet needed — sign up with email and password
-                  </p>
+                  <div className="rounded-lg border border-dashed p-3 space-y-2">
+                    <p className="text-xs text-muted-foreground text-center">
+                      Need to execute approved transactions externally?
+                    </p>
+                    <div className="flex justify-center">
+                      <ConnectButton />
+                    </div>
+                  </div>
                   <Button
                     variant="outline"
                     onClick={() => {

@@ -254,12 +254,12 @@ export function RunDetail({ runId }: { runId: string }) {
 
       {/* Execution Trace */}
       {events.length > 0 && (
-        <div className="rounded-xl border bg-card p-5">
-          <h2 className="font-semibold mb-4 flex items-center gap-2">
+        <details className="rounded-xl border bg-card p-5">
+          <summary className="cursor-pointer font-semibold flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
-            Execution Trace
-          </h2>
-          <div className="space-y-0">
+            Activity details
+          </summary>
+          <div className="space-y-0 mt-4">
             {events.map((event, idx) => (
               <div key={idx} className="flex gap-4">
                 <div className="flex flex-col items-center">
@@ -297,16 +297,16 @@ export function RunDetail({ runId }: { runId: string }) {
               </div>
             ))}
           </div>
-        </div>
+        </details>
       )}
 
       {/* Actions */}
       {sourceContext.provenance && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-50/50 p-5 dark:bg-amber-950/20">
-          <h2 className="flex items-center gap-2 font-semibold">
+        <details className="rounded-xl border border-amber-500/30 bg-amber-50/50 p-5 dark:bg-amber-950/20">
+          <summary className="flex cursor-pointer items-center gap-2 font-semibold">
             <ShieldAlert className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            Untrusted Source Context
-          </h2>
+            Source and authorization details
+          </summary>
           <div className="mt-3 space-y-2 text-sm">
             {sourceContext.provenance.sources.map((source) => (
               <div
@@ -326,7 +326,7 @@ export function RunDetail({ runId }: { runId: string }) {
                   'No matching source authorization was presented.'}
             </p>
           )}
-        </div>
+        </details>
       )}
 
       <div className="flex items-center gap-2 flex-wrap">
@@ -386,7 +386,7 @@ export function RunDetail({ runId }: { runId: string }) {
                 </div>
                 {approval.transfer?.transferTxHash ? (
                   <div className="text-sm text-muted-foreground mt-1">
-                    Transfer hash:{' '}
+                    Network transfer reference:{' '}
                     <a
                       href={`https://www.oklink.com/xlayer-test/tx/${approval.transfer.transferTxHash}`}
                       target="_blank"
@@ -400,7 +400,7 @@ export function RunDetail({ runId }: { runId: string }) {
                   </div>
                 ) : (
                   <div className="text-sm text-muted-foreground mt-1">
-                    No on-chain transfer for this run.
+                    No external transfer was made for this run.
                   </div>
                 )}
               </div>

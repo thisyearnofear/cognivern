@@ -95,7 +95,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (isProduction && !canSubmitBid) {
-      toast.error("Sign in with your wallet to bid on the production ledger");
+      toast.error("Sign in with your connected account to bid");
       return;
     }
     setSubmitting(true);
@@ -220,7 +220,6 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <BackendBadge backend={round.backend} />
           {round.createdByAgent && (
             <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/50 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400">
               <Bot className="h-3 w-3" />
@@ -232,6 +231,23 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
           </span>
         </div>
       </div>
+
+      <details className="rounded-lg border bg-muted/20 px-3 py-2 text-xs">
+        <summary className="cursor-pointer font-medium text-muted-foreground">
+          Privacy evidence and technical details
+        </summary>
+        <div className="mt-3 space-y-2 text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span>Implementation:</span>
+            <BackendBadge backend={round.backend} />
+          </div>
+          <p>
+            The selected implementation keeps competing bids private and records
+            the outcome for later verification. These details are provided for
+            technical review; no setup is required to use the round.
+          </p>
+        </div>
+      </details>
 
       {round.winner && round.winningBid !== null && (
         <motion.div
@@ -262,15 +278,8 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               )}
             </div>
             <div className="text-xs text-muted-foreground">
-              Revealed in{" "}
-              <span className="font-medium text-foreground">
-                one atomic transaction
-              </span>{" "}
-              — the winner was published and every losing bid archived in the
-              same ledger event. No losing amount was ever disclosed, to
-              competitors <span className="italic">or</span> the auctioneer. See
-              it in the party view below: even as Auctioneer, the ledger now
-              returns 0 bid contracts.
+              The winner was published and all losing bids were archived together.
+              No losing amount was disclosed to competitors or the auctioneer.
             </div>
             {round.settledAssetCid && round.settlementAmount != null && (
               <div className="text-xs text-muted-foreground">
@@ -278,8 +287,8 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
                   {round.settlementAssetTag ?? "USDC"}{" "}
                   {round.settlementAmount.toLocaleString()}
                 </span>{" "}
-                transferred to the winner in the same transaction — on-ledger
-                contract{" "}
+                transferred to the winner as part of the same settlement. Reference
+                ID{" "}
                 <code className="font-mono text-[10px] text-foreground/80">
                   {round.settledAssetCid.slice(0, 16)}…
                 </code>
@@ -305,7 +314,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
               <span>
                 <span className="font-medium">Demo tip:</span> Submit at least
                 2 bids as different Sandbox Bidders, then close the auction to
-                see how Canton keeps losing bids hidden from the Auctioneer.
+                see how losing bids stay hidden from the auctioneer.
               </span>
             </div>
           )}
@@ -326,7 +335,7 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
             ) : (
               <div className="space-y-2">
                 <label className="text-xs font-medium">
-                  Demo bidder — sandbox ledger
+                  Demo bidder
                 </label>
                 <Select
                   value={bidder}
@@ -367,8 +376,8 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
           </div>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Lock className="h-3 w-3" /> On the Canton backend, only the
-              auctioneer will see this amount.
+              <Lock className="h-3 w-3" /> Only the auctioneer can see this amount
+              before the selection is complete.
             </p>
             <Button
               type="submit"
@@ -442,8 +451,8 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
                   Reveal winner atomically
                 </Button>
                 <p className="text-xs text-muted-foreground w-full">
-                  <Clock className="h-3 w-3 inline mr-1" /> One transaction:
-                  archives every bid + emits the AuctionResult. Losing amounts
+                  <Clock className="h-3 w-3 inline mr-1" /> The selection records
+                  the winner and archives losing bids together. Losing amounts
                   never surface.
                 </p>
               </>
@@ -493,9 +502,21 @@ export function RoundDetail({ roundId, onBack }: RoundDetailProps) {
         </div>
       )}
 
-      <PartyView round={round} />
+      <details className="space-y-3">
+        <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">
+          Verify who can see each bid
+        </summary>
+        <PartyView round={round} />
+      </details>
 
-      {round.backend === "canton" && <RevealComparison />}
+      {round.backend === "canton" && (
+        <details className="space-y-3">
+          <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">
+            Compare privacy guarantees
+          </summary>
+          <RevealComparison />
+        </details>
+      )}
 
       {/* Agent governance timeline — only renders for agent-governed rounds
           (the hook null-keys for non-governed rounds). Shows every CRE run
