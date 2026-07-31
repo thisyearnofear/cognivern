@@ -303,6 +303,48 @@ describe("FilecoinStorageService", () => {
     });
   });
 
+  describe("verifyDetailed", () => {
+    it("reports disabled when not configured", async () => {
+      const service = await makeService(false);
+      const result = await service.verifyDetailed("0xabc", "anyhash");
+      expect(result.status).toBe("disabled");
+      expect(mockGetGovernanceRecord).not.toHaveBeenCalled();
+    });
+
+    it("reports unavailable when the record cannot be retrieved", async () => {
+      const service = await makeService(true);
+      mockGetGovernanceRecord.mockRejectedValueOnce(new Error("RPC down"));
+      const result = await service.verifyDetailed("0xabc", "anyhash");
+      expect(result.status).toBe("unavailable");
+    });
+
+    it("reports mismatch when the on-chain CID differs", async () => {
+      const service = await makeService(true);
+      mockGetGovernanceRecord.mockResolvedValueOnce({
+        actionId: "0xabc",
+        timestamp: 1000n,
+        filecoinCID: "sha256:differenthash",
+      });
+      const result = await service.verifyDetailed("0xabc", "expectedhash");
+      expect(result.status).toBe("mismatch");
+      if (result.status === "mismatch") {
+        expect(result.expected).toBe("sha256:expectedhash");
+        expect(result.actual).toBe("sha256:differenthash");
+      }
+    });
+
+    it("reports verified when the on-chain CID matches", async () => {
+      const service = await makeService(true);
+      mockGetGovernanceRecord.mockResolvedValueOnce({
+        actionId: "0xabc",
+        timestamp: 1000n,
+        filecoinCID: "sha256:expectedhash",
+      });
+      const result = await service.verifyDetailed("0xabc", "expectedhash");
+      expect(result.status).toBe("verified");
+    });
+  });
+
   describe("getStatus", () => {
     it("reports enabled when key and contract are set", async () => {
       const service = await makeService(true);

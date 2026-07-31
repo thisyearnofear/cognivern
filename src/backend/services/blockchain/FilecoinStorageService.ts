@@ -3,10 +3,12 @@ import { ethers } from "ethers";
 import logger from "@backend/utils/logger.js";
 import { CircuitBreaker } from "@backend/shared/utils/circuitBreaker.js";
 import { filecoinConfig } from "@backend/shared/config/index.js";
+import type { AnchorVerification } from "@backend/services/blockchain/ZeroGStorageService.js";
 
 export interface FilecoinUploadResult {
   cid: string;
   localHash: string;
+  actionId: string;
   txHash?: string;
   network: "filecoin-calibration";
   timestamp: string;
@@ -147,6 +149,7 @@ export class FilecoinStorageService {
         return {
           cid: filecoinCID,
           localHash,
+          actionId,
           txHash: receipt?.hash,
           network: "filecoin-calibration" as const,
           timestamp: new Date().toISOString(),
@@ -193,12 +196,26 @@ export class FilecoinStorageService {
     }
   }
 
-  async verify(actionId: string, expectedHash: string): Promise<boolean> {
+  async verifyDetailed(
+    actionId: string,
+    expectedHash: string,
+  ): Promise<AnchorVerification> {
+    if (!this.enabled) return { status: "disabled" };
+
     const record = await this.retrieveRecord(actionId);
-    if (!record) return false;
+    if (!record) return { status: "unavailable" };
 
     const cid = record.filecoinCID as string;
-    return cid === `sha256:${expectedHash}`;
+    const expectedCid = `sha256:${expectedHash}`;
+    if (cid === expectedCid) {
+      return { status: "verified", actual: cid };
+    }
+    return { status: "mismatch", actual: cid, expected: expectedCid };
+  }
+
+  async verify(actionId: string, expectedHash: string): Promise<boolean> {
+    const result = await this.verifyDetailed(actionId, expectedHash);
+    return result.status === "verified";
   }
 }
 

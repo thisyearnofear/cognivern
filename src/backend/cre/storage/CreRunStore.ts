@@ -4,16 +4,25 @@ import {
   JsonlCreRunPersistence,
   MultiCreRunPersistence,
 } from "@backend/cre/persistence/CreRunPersistence.js";
+import {
+  CreLedgerChain,
+  creLedgerChain,
+} from "@backend/cre/persistence/CreLedgerChain.js";
 import { MongoDbCreRunPersistence } from "./MongoDbCreRunPersistence.js";
 
 export class CreRunStore {
   private runs: CreRun[] = [];
   private maxRuns: number;
   private persistence: CreRunPersistence;
+  private ledger: CreLedgerChain;
   private loaded = false;
 
   constructor(
-    params: { maxRuns?: number; persistence?: CreRunPersistence } = {},
+    params: {
+      maxRuns?: number;
+      persistence?: CreRunPersistence;
+      ledger?: CreLedgerChain;
+    } = {},
   ) {
     this.maxRuns = params.maxRuns ?? 100;
 
@@ -23,6 +32,7 @@ export class CreRunStore {
       layers.push(new MongoDbCreRunPersistence());
     }
     this.persistence = params.persistence || new MultiCreRunPersistence(layers);
+    this.ledger = params.ledger || creLedgerChain;
   }
 
   async ensureLoaded() {
@@ -39,6 +49,7 @@ export class CreRunStore {
       this.runs.pop();
     }
     await this.persistence.append(run);
+    await this.ledger.record("add", run);
   }
 
   async replace(run: CreRun) {
@@ -53,6 +64,7 @@ export class CreRunStore {
       this.runs[idx] = run;
     }
     await this.persistence.writeAll(this.runs);
+    await this.ledger.record("replace", run);
   }
 
   async list() {
@@ -74,6 +86,7 @@ export class CreRunStore {
     this.runs = [];
     this.loaded = true;
     await this.persistence.truncate();
+    await this.ledger.record("truncate");
   }
 }
 

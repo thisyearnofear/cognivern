@@ -12,6 +12,18 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+// Shared default signer so recorder-created runs are signed even when the
+// call site doesn't wire one explicitly. Same key AuditLogService uses.
+let defaultSignerCache: ethers.Signer | null | undefined;
+function getDefaultEvidenceSigner(): ethers.Signer | undefined {
+  if (defaultSignerCache === undefined) {
+    const pk =
+      process.env.EVIDENCE_SIGNING_KEY || process.env.FILECOIN_PRIVATE_KEY;
+    defaultSignerCache = pk ? new ethers.Wallet(pk) : null;
+  }
+  return defaultSignerCache ?? undefined;
+}
+
 export class CreRunRecorder {
   private run: CreRun;
   private signer?: ethers.Signer;
@@ -21,7 +33,7 @@ export class CreRunRecorder {
     mode: CreRun["mode"];
     signer?: ethers.Signer;
   }) {
-    this.signer = params.signer;
+    this.signer = params.signer ?? getDefaultEvidenceSigner();
     this.run = {
       runId: crypto.randomUUID(),
       workflow: params.workflow,
@@ -55,8 +67,8 @@ export class CreRunRecorder {
   }
 
   private async signEvidence(data: unknown) {
-    if (!this.signer) return undefined;
     const hash = this.computeHash(data);
+    if (!this.signer) return { hash };
     const signature = await this.signer.signMessage(hash);
     const signerAddress = await this.signer.getAddress();
     return { hash, signature, signer: signerAddress };

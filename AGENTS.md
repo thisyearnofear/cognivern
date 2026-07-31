@@ -9,9 +9,7 @@ Cognivern's sealed-bid auctions run on the **HackCanton S2 Canton Devnet** and h
 since 2026-07-10. Contracts are on-ledger; the submission's "must be on Devnet"
 requirement is already met. Before touching anything Canton-related, READ:
 
-- `docs/HACKCANTON_DEVNET_MATERIALS.md` — endpoints, auth, allocated parties, Daml user id
-- `docs/FINAL_SUBMISSION_RUNBOOK.md` — the cutover/config that is **already done**
-- `docs/CANTON.md` — architecture
+- `docs/CANTON.md` — endpoints, auth, allocated parties, Daml user id, architecture, and cutover config
 
 Do **not** ask the Canton team (or the user) for the JSON Ledger API URL, OIDC auth,
 or the onboarded user id — they are all in those docs.

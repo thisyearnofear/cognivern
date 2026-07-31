@@ -181,36 +181,18 @@ export class SapienceTradingAgent implements TradingAgent {
       async (span) => {
         const startedAt = Date.now();
         try {
-          await this.ensureServices();
-          const result = await this.forecastingService!.runForecastingCycle();
+          // Delegate to the governed cycle. The old path called
+          // AutomatedForecastingService.runForecastingCycle directly, which
+          // submitted forecasts AND executed trades with no governance check.
+          const result = await this.runCycleWithGovernance();
           if (!result.success) {
             span.setAttributes({
               "agent.cycle.success": false,
-              "agent.cycle.error": result.error || "forecast failed",
+              "agent.cycle.error": result.reason || "forecast failed",
             });
-            span.setStatus({ code: 2, message: result.error || "forecast failed" });
-            return { success: false, error: result.error || "forecast failed" };
+            span.setStatus({ code: 2, message: result.reason || "forecast failed" });
+            return { success: false, error: result.reason || "forecast failed" };
           }
-
-      // Record the forecast in local history so the dashboard still has
-      // a decision record. The on-chain submission was already gated by
-      // AutomatedForecastingService.submitForecast (which now must be
-      // preceded by a governance check, handled in runCycleWithGovernance).
-      const decision: TradingDecision = {
-        id: result.forecastTxHash || `forecast-${Date.now()}`,
-        agentId: this.id,
-        agentType: "sapience",
-        timestamp: new Date(),
-        action: "buy",
-        symbol: result.conditionId || "Sapience Market",
-        quantity: 1,
-        price: 0,
-        confidence: result.forecast.probability / 100,
-        reasoning: result.forecast.reasoning,
-        riskScore: 0.1,
-      };
-      this.history.unshift(decision);
-      if (this.history.length > 50) this.history.pop();
 
       meter
         .createCounter("cognivern.agent.cycles.total")
@@ -224,8 +206,11 @@ export class SapienceTradingAgent implements TradingAgent {
 
       return {
         success: true,
-        forecastTxHash: result.forecastTxHash,
-        tradeTxHash: result.tradeTxHash,
+        decisionId: result.decisionId,
+        attestationHash: result.attestationHash,
+        governanceStatus: result.tradeSubmitted
+          ? "trade_executed"
+          : "forecast_only",
       };
     } catch (error) {
       meter
@@ -429,12 +414,20 @@ export class SapienceTradingAgent implements TradingAgent {
       humanConfirmationToken: humanToken,
     });
 
-    if (executed.status === "denied") {
+    // Anything other than an explicit approval (denied OR held) must block
+    // the real market trade — a held spend awaits operator review.
+    if (executed.status !== "approved") {
       return {
-        success: false,
+        success: executed.status === "held",
         forecastSubmitted: true,
         tradeSubmitted: false,
-        reason: executed.reason,
+        decisionId: executed.decisionId || preview.decisionId,
+        attestationHash: preview.attestationHash,
+        reason:
+          executed.reason ||
+          (executed.status === "held"
+            ? "spend held for operator review"
+            : "spend denied"),
       };
     }
 
@@ -509,7 +502,7 @@ export class SapienceTradingAgent implements TradingAgent {
       };
     }
 
-    await this.governance.executeSpend({
+    const executed = await this.governance.executeSpend({
       agentId: this.id,
       policyId: SAPIENCE_POLICY_ID,
       recipient: decision.symbol,
@@ -527,6 +520,20 @@ export class SapienceTradingAgent implements TradingAgent {
       attestationHash: preview.attestationHash,
       humanConfirmationToken: humanToken,
     });
+
+    if (executed.status !== "approved") {
+      return {
+        id: `forecast_${Date.now()}`,
+        decision,
+        status: executed.status === "held" ? "pending" : "failed",
+        error:
+          executed.reason ||
+          (executed.status === "held"
+            ? "spend held for operator review"
+            : "governance denied spend"),
+        timestamp: new Date(),
+      };
+    }
 
     try {
       const txHash = await this.sapienceService!.submitForecast({

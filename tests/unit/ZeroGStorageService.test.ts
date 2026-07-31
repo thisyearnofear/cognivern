@@ -185,6 +185,48 @@ describe("ZeroGStorageService", () => {
     });
   });
 
+  describe("verifyDetailed", () => {
+    it("reports disabled when no key is configured", async () => {
+      const service = await makeService(false);
+      const result = await service.verifyDetailed("0xabc", "any-hash");
+      expect(result.status).toBe("disabled");
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("reports unavailable when the record cannot be retrieved", async () => {
+      const service = await makeService(true);
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 503 });
+      const result = await service.verifyDetailed("0xabc", "any-hash");
+      expect(result.status).toBe("unavailable");
+    });
+
+    it("reports mismatch when the anchored content hash differs", async () => {
+      const service = await makeService(true);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ runId: "tampered" }),
+      });
+      const result = await service.verifyDetailed("0xabc", "expected-hash");
+      expect(result.status).toBe("mismatch");
+      if (result.status === "mismatch") {
+        expect(result.expected).toBe("expected-hash");
+        expect(result.actual).not.toBe("expected-hash");
+      }
+    });
+
+    it("reports verified when the anchored content matches", async () => {
+      const service = await makeService(true);
+      const record = { runId: "test", value: 42 };
+      mockFetch.mockResolvedValueOnce({ ok: true, json: async () => record });
+      const expectedHash = crypto
+        .createHash("sha256")
+        .update(JSON.stringify(record))
+        .digest("hex");
+      const result = await service.verifyDetailed("0xabc", expectedHash);
+      expect(result.status).toBe("verified");
+    });
+  });
+
   describe("getStatus", () => {
     it("reports enabled when key is set", async () => {
       const service = await makeService(true);

@@ -434,17 +434,21 @@ export const WorkspaceDataService = {
     }
 
     if (policies.length === 0) {
-      // No policies → allow by default
+      // Fail closed: with no active policy there is nothing that approved this
+      // action, so we must not report it as approved. Hold it for operator
+      // review instead of rubber-stamping an ungoverned spend.
       this.recordSpend(
         workspaceId,
         params.agentId,
         params.action,
-        "approved",
+        "held",
         now,
       );
       return {
-        allowed: true,
-        reasoning: "No active policies — action allowed by default",
+        allowed: false,
+        decision: "held",
+        reasoning:
+          "No active policy governs this action — held for operator review (fail-closed)",
         policyChecks: [],
         auditLogId: `log-${params.agentId}-${now}`,
         timestamp: now,

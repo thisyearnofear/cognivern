@@ -282,6 +282,7 @@ export class AuditLogService {
             hash: run.evidence?.hash ?? "pending",
             ...(run.evidence ?? {}),
             zeroGRootHash: result.rootHash,
+            zeroGLocalHash: result.localHash,
           };
           await this.creStore.replace(run);
         }
@@ -306,6 +307,7 @@ export class AuditLogService {
             zeroGRootHash: run.evidence?.zeroGRootHash,
             filecoinCid: result.cid,
             filecoinTxHash: result.txHash,
+            filecoinActionId: result.actionId,
           };
           await this.creStore.replace(run);
         }
@@ -482,6 +484,7 @@ export class AuditLogService {
             hash: run.evidence?.hash ?? "pending",
             ...(run.evidence ?? {}),
             zeroGRootHash: result.rootHash,
+            zeroGLocalHash: result.localHash,
           };
           await this.creStore.replace(run);
         }
@@ -509,6 +512,7 @@ export class AuditLogService {
             zeroGRootHash: run.evidence?.zeroGRootHash,
             filecoinCid: result.cid,
             filecoinTxHash: result.txHash,
+            filecoinActionId: result.actionId,
           };
           await this.creStore.replace(run);
         }

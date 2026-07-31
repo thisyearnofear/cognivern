@@ -50,6 +50,8 @@ export interface ConfidentialSpendDecision {
   agentId: string;
   policyId: string;
   timestamp: string;
+  /** True when no FHE evaluation happened and this decision was synthesized locally. */
+  fabricated?: boolean;
 }
 
 export interface FhenixPolicyServiceConfig {
@@ -235,6 +237,7 @@ export class FhenixPolicyService {
         agentId: input.agentId,
         policyId: input.policyId,
         timestamp: new Date().toISOString(),
+        fabricated: true,
       };
     }
 

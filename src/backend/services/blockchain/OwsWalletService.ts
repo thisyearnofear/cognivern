@@ -72,6 +72,27 @@ export interface ExecutionResult {
   transferTxHash?: string;
   transferStatus?: "sent" | "failed" | "skipped";
   transferError?: string;
+  /**
+   * Independent reconciliation of the recorded transferTxHash against the
+   * actual chain receipt (status, recipient, value). The audit record is
+   * built from this verification, not from the broadcast call's own
+   * return value — the executor's claim is treated as a claim.
+   * - "verified"   — receipt fetched; status/recipient/value all match
+   * - "mismatch"   — receipt fetched but at least one check failed
+   * - "unverified" — no receipt available (timeout, managed executor, RPC error)
+   */
+  receiptVerification?: ReceiptVerification;
+}
+
+export interface ReceiptVerification {
+  outcome: "verified" | "mismatch" | "unverified";
+  checks?: {
+    receiptStatusOk: boolean;
+    recipientMatches: boolean;
+    valueMatches: boolean;
+  };
+  blockNumber?: number;
+  reason?: string;
 }
 
 export interface SpendExecutionContext {
@@ -477,6 +498,44 @@ export class OwsWalletService {
     const transferError =
       "error" in transfer ? transfer.error : undefined;
 
+    // Reconcile the claimed txHash against the actual chain receipt. The
+    // executor's return value is treated as a claim; the audit record
+    // carries the independent verification outcome.
+    let receiptVerification: ReceiptVerification;
+    if (transferStatus !== "sent" || !transferTxHash) {
+      receiptVerification = {
+        outcome: "unverified",
+        reason: "no broadcast to verify",
+      };
+    } else if (executionProvider === "keeperhub") {
+      receiptVerification = {
+        outcome: "unverified",
+        reason: "keeperhub-managed broadcast; no local RPC receipt check",
+      };
+    } else {
+      receiptVerification = await this.verifyTransferReceipt(
+        transferTxHash,
+        intent.recipient,
+        valueWei,
+      );
+      if (receiptVerification.outcome === "mismatch") {
+        logger.error(
+          `Receipt mismatch for spend ${intent.id} (tx ${transferTxHash}): ${JSON.stringify(receiptVerification.checks)}`,
+        );
+      }
+    }
+
+    await recorder.addArtifact({
+      type: "receipt_verification",
+      data: {
+        intentId: intent.id,
+        transferTxHash,
+        expectedRecipient: intent.recipient,
+        expectedValueWei: valueWei.toString(),
+        ...receiptVerification,
+      },
+    });
+
     // Governance approval record (audit), independent of the value transfer.
     const onChain = await this.onChainManager.recordOnChainApproval({
       intentId: intent.id,
@@ -485,6 +544,7 @@ export class OwsWalletService {
       metadata: intent.metadata || {},
     });
     const txHash = onChain.success ? onChain.txHash : undefined;
+    const onChainDataHash = onChain.success ? onChain.dataHash : undefined;
     const onChainStatus: "recorded" | "failed" = onChain.success
       ? "recorded"
       : "failed";
@@ -499,6 +559,7 @@ export class OwsWalletService {
         transferTxHash,
         transferStatus,
         transferError,
+        receiptVerification,
         operatorApproved,
         intentId: intent.id,
         policyId,
@@ -507,6 +568,7 @@ export class OwsWalletService {
         apiKeyId: access.apiKey?.id,
         status: "approved",
         onChainStatus,
+        onChainDataHash,
       },
     });
 
@@ -534,6 +596,7 @@ export class OwsWalletService {
       transferTxHash,
       transferStatus,
       transferError,
+      receiptVerification,
     };
   }
 
@@ -712,6 +775,47 @@ export class OwsWalletService {
     }
 
     return result;
+  }
+
+  /**
+   * Fetch the real chain receipt for a claimed transfer txHash and compare
+   * it against what the intent said should happen. Best-effort: RPC errors
+   * or timeouts yield "unverified", never a throw.
+   */
+  private async verifyTransferReceipt(
+    txHash: string,
+    expectedRecipient: string,
+    expectedValueWei: bigint,
+  ): Promise<ReceiptVerification> {
+    try {
+      const provider = new ethers.JsonRpcProvider(blockchainConfig.rpcUrl);
+      const receipt = await provider.waitForTransaction(txHash, 1, 10_000);
+      if (!receipt) {
+        return {
+          outcome: "unverified",
+          reason: "no receipt within 10s of broadcast",
+        };
+      }
+      const tx = await provider.getTransaction(txHash);
+      const checks = {
+        receiptStatusOk: receipt.status === 1,
+        recipientMatches:
+          (tx?.to || "").toLowerCase() === expectedRecipient.toLowerCase(),
+        valueMatches: tx ? tx.value === expectedValueWei : false,
+      };
+      const ok =
+        checks.receiptStatusOk && checks.recipientMatches && checks.valueMatches;
+      return {
+        outcome: ok ? "verified" : "mismatch",
+        checks,
+        blockNumber: receipt.blockNumber,
+      };
+    } catch (error) {
+      return {
+        outcome: "unverified",
+        reason: `receipt fetch failed: ${error instanceof Error ? error.message : "unknown"}`,
+      };
+    }
   }
 
   private async handleHold(

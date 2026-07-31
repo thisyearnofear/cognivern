@@ -22,7 +22,49 @@ const spendIntentSchema = z.object({
   asset: z.string().min(1),
   reason: z.string().min(1),
   metadata: z.record(z.any()).optional(),
+  // Binding fields from /api/spend/preview. Previously these were silently
+  // stripped by this schema, so the server never verified them — the
+  // attestation flow was a client-side convention only.
+  attestationHash: z.string().optional(),
+  humanConfirmationToken: z.string().optional(),
 });
+
+// Secret for preview→execute attestation binding. Falls back to a
+// per-process random secret (verification still works because preview and
+// execute hit the same process; set SPEND_ATTESTATION_SECRET for
+// multi-process deployments or restart-survival).
+const attestationSecret =
+  process.env.SPEND_ATTESTATION_SECRET ||
+  crypto.randomBytes(32).toString("hex");
+
+function computeAttestationHash(payload: {
+  agentId: string;
+  recipient: string;
+  amount: string;
+  asset: string;
+}): string {
+  return crypto
+    .createHmac("sha256", attestationSecret)
+    .update(
+      `${payload.agentId}|${payload.recipient}|${payload.amount}|${payload.asset}`,
+    )
+    .digest("hex");
+}
+
+function verifyAttestationHash(
+  provided: string,
+  payload: {
+    agentId: string;
+    recipient: string;
+    amount: string;
+    asset: string;
+  },
+): boolean {
+  const expected = computeAttestationHash(payload);
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 const encryptedSpendIntentSchema = spendIntentSchema.extend({
   encryptedAmount: z.string().min(1).optional(),
@@ -51,6 +93,59 @@ export class SpendController {
       asset: payload.asset,
       reason: payload.reason,
       metadata: payload.metadata,
+    };
+  }
+
+  /**
+   * Verify the preview→execute attestation binding and the human
+   * confirmation token server-side. Returns metadata to persist on the
+   * intent (and thus into the audit run), or null if a 403 was sent.
+   * The raw token is never stored — only its verification outcome.
+   */
+  private verifyBindings(
+    payload: z.infer<typeof spendIntentSchema>,
+    res: Response,
+  ): Record<string, unknown> | null {
+    const attestationProvided = Boolean(payload.attestationHash);
+    if (
+      payload.attestationHash &&
+      !verifyAttestationHash(payload.attestationHash, payload)
+    ) {
+      logger.warn(
+        `Attestation mismatch for agent ${payload.agentId}: execution does not match any preview of this intent`,
+      );
+      res.status(403).json({
+        success: false,
+        error:
+          "Attestation hash does not match this spend intent. Re-run /api/spend/preview and pass its attestationHash unchanged.",
+        timestamp: new Date().toISOString(),
+      });
+      return null;
+    }
+
+    const configuredToken =
+      process.env.COGNIVERN_HUMAN_CONFIRM_TOKEN ||
+      process.env.SAPIENCE_HUMAN_CONFIRM_TOKEN;
+    const token = payload.humanConfirmationToken;
+    const tokenVerified = Boolean(
+      token &&
+        configuredToken &&
+        token.length === configuredToken.length &&
+        crypto.timingSafeEqual(
+          Buffer.from(token),
+          Buffer.from(configuredToken),
+        ),
+    );
+
+    return {
+      attestation: {
+        provided: attestationProvided,
+        verified: attestationProvided,
+      },
+      humanConfirmation: {
+        provided: Boolean(token),
+        verified: tokenVerified,
+      },
     };
   }
 
@@ -142,6 +237,17 @@ export class SpendController {
     } catch (auditError) {
       const auditErr = auditError instanceof Error ? auditError : new Error(String(auditError));
       logger.warn("ChainGPT audit failed, continuing with spend:", auditErr);
+      // The spend proceeds, but the run must show the audit never happened —
+      // otherwise the absence of findings reads as a clean audit.
+      contractAudit = {
+        address: intent.recipient,
+        decision: "unavailable",
+        error: `audit skipped: ${auditErr.message.slice(0, 120)}`,
+      };
+      intent.metadata = {
+        ...(intent.metadata || {}),
+        contractAuditSkipped: true,
+      };
     }
 
     const result = await owsWalletService.executeSpend(intent, {
@@ -175,7 +281,11 @@ export class SpendController {
         return;
       }
 
+      const bindings = this.verifyBindings(parse.data, res);
+      if (!bindings) return;
+
       const intent = this.buildIntent(parse.data);
+      intent.metadata = { ...(intent.metadata || {}), ...bindings };
       await this.executeIntent(req, res, intent);
     } catch (error) {
       logger.error(
@@ -222,8 +332,12 @@ export class SpendController {
         return;
       }
 
+      const bindings = this.verifyBindings(parse.data, res);
+      if (!bindings) return;
+
       const metadata: Record<string, any> = {
         ...(parse.data.metadata || {}),
+        ...bindings,
         encryptedAmount: parse.data.encryptedAmount,
       };
       if (parse.data.vendorHash) {
@@ -293,8 +407,10 @@ export class SpendController {
         data: {
           decisionId: decision.decisionId,
           outcome: outcomeMap[decision.outcome] || decision.outcome,
-          note:
-            amountUsd <= 500
+          fabricated: decision.fabricated === true || undefined,
+          note: decision.fabricated
+            ? "CoFHE unavailable — locally synthesized deny, no ciphertext evaluation"
+            : amountUsd <= 500
               ? "FHE.lte(newSpent, dailyLimit) evaluated in ciphertext"
               : "Amount > approvalThreshold — sealed for human review",
         },
@@ -302,14 +418,12 @@ export class SpendController {
       });
     } catch (error: any) {
       logger.warn(`Demo confidential spend failed: ${error.message}`);
-      // Return a graceful fallback so the demo can continue
-      res.json({
-        success: true,
-        data: {
-          decisionId: `0x${crypto.randomUUID().replace(/-/g, "")}`,
-          outcome: amountUsd <= 500 ? "approve" : "hold",
-          note: `FHE evaluation fallback: ${error.message.slice(0, 80)}`,
-        },
+      // The FHE evaluation failed — do NOT fabricate a decisionId and report
+      // success. A fabricated decision is exactly the kind of self-reported
+      // claim this system exists to prevent.
+      res.status(502).json({
+        success: false,
+        error: `FHE evaluation unavailable: ${error.message.slice(0, 120)}`,
         timestamp: new Date().toISOString(),
       });
     }
@@ -317,49 +431,22 @@ export class SpendController {
 
   /**
    * Confirm or reject a held spend decision.
-   * Used by operators to approve pending trades from the agent detail page.
+   *
+   * Held spends are CRE runs; the canonical operator-approval path is
+   * POST /api/cre/runs/:runId/approval, which authenticates the operator,
+   * broadcasts the held transfer, and finalizes the run. This endpoint
+   * previously echoed success without doing any of that — a fabricated
+   * approval. It now refuses honestly instead of pretending.
    */
   async confirmDecision(req: Request, res: Response) {
-    try {
-      const { decisionId } = req.params;
-      const { action } = req.body;
-
-      if (!action || !["confirm", "reject"].includes(action)) {
-        res.status(400).json({
-          success: false,
-          error: "action must be 'confirm' or 'reject'",
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-
-      const outcome = action === "confirm" ? "approve" : "deny";
-
-      res.json({
-        success: true,
-        data: {
-          decisionId,
-          action,
-          outcome,
-          confirmedAt: new Date().toISOString(),
-          confirmedBy: ((req as unknown as Record<string, unknown>).userId as string) || "operator",
-        },
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      logger.error(
-        "Decision confirmation failed",
-        error instanceof Error ? error : undefined,
-      );
-      res.status(500).json({
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown confirmation error",
-        timestamp: new Date().toISOString(),
-      });
-    }
+    const { decisionId } = req.params;
+    res.status(501).json({
+      success: false,
+      error:
+        "Not implemented here. Held spends are approved via the CRE run approval endpoint, which broadcasts the held transfer and records the operator identity.",
+      canonicalEndpoint: `/api/cre/runs/${decisionId}/approval`,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   /**
@@ -512,6 +599,12 @@ export class SpendController {
         success: true,
         data: {
           ...preview,
+          // Server-minted binding: pass this back unchanged to /api/spend so
+          // execution can be verified against this exact intent.
+          attestationHash:
+            preview.status === "denied"
+              ? undefined
+              : computeAttestationHash(parse.data),
           contractAudit,
         },
         timestamp: new Date().toISOString(),

@@ -9,6 +9,9 @@ export function createCreRoutes(
   const router = Router();
 
   router.get("/cre/runs", (req, res) => creController.listRuns(req, res));
+  router.get("/cre/ledger/verify", (req, res) =>
+    creController.verifyLedger(req, res),
+  );
   router.get("/cre/runs/:runId", (req, res) => creController.getRun(req, res));
   router.get("/cre/runs/:runId/events", (req, res) =>
     creController.getRunEvents(req, res),

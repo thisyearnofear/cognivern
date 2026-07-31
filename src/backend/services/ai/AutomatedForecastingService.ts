@@ -1,5 +1,12 @@
 import logger from "@backend/utils/logger.js";
 import { MarketDataService, MarketData } from "@backend/services/MarketDataService.js";
+import {
+  GovernanceClient,
+  sharedGovernanceClient,
+} from "@backend/services/governance/GovernanceClient.js";
+
+const AGENT_ID = "sapience-agent-1";
+const POLICY_ID = "sapience-trading-policy";
 
 export interface ForecastResult {
   probability: number;
@@ -17,6 +24,7 @@ export interface MarketCondition {
 export class AutomatedForecastingService {
   private sapienceService: any;
   private marketDataService: MarketDataService;
+  private governance: GovernanceClient;
   private forecastedMarkets: Set<string> = new Set();
   private graphqlEndpoint = "https://api.sapience.xyz/graphql";
   private nextRunAt: Date | null = null;
@@ -57,10 +65,12 @@ export class AutomatedForecastingService {
   constructor(config: {
     sapienceService: any;
     marketDataService?: MarketDataService;
+    governanceClient?: GovernanceClient;
   }) {
     this.sapienceService = config.sapienceService;
     this.marketDataService =
       config.marketDataService || new MarketDataService();
+    this.governance = config.governanceClient || sharedGovernanceClient;
     logger.info(
       "Initialized with Multi-LLM Fallback and Market Data Integration",
     );
@@ -331,6 +341,47 @@ export class AutomatedForecastingService {
       );
       logger.info(`Generated forecast: ${forecast.probability}%`);
 
+      // Governance gate (fail-closed): the attestation is an external
+      // on-chain action and must be approved before submission.
+      let forecastApproved = false;
+      let forecastDenyReason = "";
+      try {
+        const evaluation = await this.governance.evaluate({
+          agentId: AGENT_ID,
+          policyId: POLICY_ID,
+          action: {
+            type: "sapience_forecast_attestation",
+            description: `Submit EAS attestation for market ${condition.id}`,
+            input: JSON.stringify({
+              conditionId: condition.id,
+              probability: forecast.probability,
+              reasoning: forecast.reasoning,
+            }),
+            metadata: {
+              protocol: "sapience",
+              asset: "USDe",
+              tradeType: "forecast_attestation",
+              conditionId: condition.id,
+              gasCostUsd: 0.05,
+            },
+          },
+        });
+        forecastApproved = evaluation.approved;
+        forecastDenyReason = evaluation.reason;
+      } catch (e) {
+        forecastDenyReason = `governance unreachable: ${e instanceof Error ? e.message : "unknown"}`;
+      }
+      if (!forecastApproved) {
+        this.recordThought(
+          `Forecast blocked by governance: ${forecastDenyReason}`,
+        );
+        logger.warn(`Forecast attestation blocked: ${forecastDenyReason}`);
+        return {
+          success: false,
+          error: `governance denied forecast: ${forecastDenyReason}`,
+        };
+      }
+
       // Step 1: Submit forecast to Arbitrum (Forecasting Track)
       this.recordThought(
         `Submitting on-chain attestation for ${condition.id.substring(0, 8)}...`,
@@ -365,7 +416,54 @@ export class AutomatedForecastingService {
             // Trade if edge > 10%
             if (Math.abs(edge) > 0.1) {
               const side = edge > 0 ? "YES" : "NO";
-              const tradeAmount = "10.0"; // Start with 10 USDe per trade
+              const tradeAmountUsde = 10;
+              const tradeAmount = "10.0"; // 10 USDe per trade
+
+              // Governance gate (fail-closed): only an explicit approval
+              // lets the trade through; held/denied/unreachable all skip.
+              let tradeVerdict = "denied";
+              let tradeReason = "";
+              try {
+                const preview = await this.governance.previewSpend({
+                  agentId: AGENT_ID,
+                  policyId: POLICY_ID,
+                  recipient: condition.id,
+                  amount: (tradeAmountUsde * 1e18).toString(),
+                  asset: "USDe",
+                  reason: `Sapience ${side} trade on: ${condition.shortName || condition.question}`,
+                  metadata: {
+                    protocol: "sapience",
+                    asset: "USDe",
+                    tradeType: "mint",
+                    side,
+                    amountUsde: tradeAmountUsde,
+                    confidence: forecast.confidence,
+                    edge,
+                    conditionId: condition.id,
+                  },
+                });
+                tradeVerdict = preview.status;
+                tradeReason = preview.reason || "";
+              } catch (e) {
+                tradeReason = `governance unreachable: ${e instanceof Error ? e.message : "unknown"}`;
+              }
+              if (tradeVerdict !== "approved") {
+                logger.warn(
+                  `Trade blocked by governance (${tradeVerdict}): ${tradeReason}`,
+                );
+                this.recordThought(
+                  `Trade blocked by governance (${tradeVerdict}). Forecast only.`,
+                );
+                this.forecastedMarkets.add(condition.id);
+                return {
+                  success: true,
+                  forecastTxHash,
+                  forecast,
+                  conditionId: condition.id,
+                  traded: false,
+                  tradeBlocked: { verdict: tradeVerdict, reason: tradeReason },
+                };
+              }
 
               logger.info(
                 `Significant edge detected (${(edge * 100).toFixed(1)}%). Executing ${side} trade...`,

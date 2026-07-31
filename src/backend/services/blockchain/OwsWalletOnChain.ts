@@ -67,7 +67,7 @@ export class OwsWalletOnChainManager {
     agentId: string;
     actionType: string;
     metadata: Record<string, any>;
-  }): Promise<{ success: boolean; txHash?: string }> {
+  }): Promise<{ success: boolean; txHash?: string; dataHash?: string }> {
     const signer = await this.getOnChainSigner();
     if (!signer) return { success: false };
 
@@ -75,7 +75,21 @@ export class OwsWalletOnChainManager {
       return await circuitBreakers.blockchain.execute(async () => {
         const actionId = ethers.id(params.intentId);
         const agentBytes32 = ethers.id(params.agentId);
-        const dataHash = ethers.ZeroHash;
+        // Commit to the actual decision payload, not ZeroHash. A zero
+        // dataHash makes the on-chain record look like an evidence anchor
+        // while committing to nothing — an unverifiable claim dressed as
+        // proof. Hash the canonical decision fields so the on-chain record
+        // is a real commitment that off-chain evidence can be checked against.
+        const dataHash = ethers.keccak256(
+          ethers.toUtf8Bytes(
+            JSON.stringify({
+              intentId: params.intentId,
+              agentId: params.agentId,
+              actionType: params.actionType,
+              metadata: params.metadata ?? {},
+            }),
+          ),
+        );
         const gas = blockchainConfig.gasLimits;
 
         await this.ensureOnChainAgent(signer.wallet, signer.contract, params.agentId);
@@ -93,7 +107,7 @@ export class OwsWalletOnChainManager {
           60000,
         );
         logger.info(`On-chain approval recorded: ${receipt?.hash}`);
-        return { success: true, txHash: receipt?.hash };
+        return { success: true, txHash: receipt?.hash, dataHash };
       });
     } catch (error) {
       logger.error("On-chain record failed:", error);

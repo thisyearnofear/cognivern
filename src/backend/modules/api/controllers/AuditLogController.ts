@@ -201,16 +201,11 @@ export class AuditLogController {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      // Graceful fallback for demo when CoFHE is unavailable
-      res.json({
-        success: true,
-        data: {
-          permit: `0x${crypto.randomUUID().replace(/-/g, '')}`,
-          auditor,
-          policyId: parse.data.policyId,
-          scope,
-          note: `Permit fallback: ${error.message.slice(0, 80)}`,
-        },
+      // No fabricated permit: a permit that was never minted by CoFHE grants
+      // nothing, and reporting one as issued would be a false audit claim.
+      res.status(502).json({
+        success: false,
+        error: `Permit issuance unavailable: ${error.message.slice(0, 120)}`,
         timestamp: new Date().toISOString(),
       });
     }
@@ -229,15 +224,17 @@ export class AuditLogController {
       return;
     }
 
-    // Demo response with mock decrypted values
+    // Static demo payload — no real threshold decryption happens here.
+    // Explicitly labeled so it can never be mistaken for decrypted evidence.
     res.json({
       success: true,
+      demo: true,
       data: {
         decisionId,
         dailyLimit: '0x0800000000000010000000000000000000000000000000000000000000000000',
         spentToday: '0x0800000000000000c80000000000000000000000000000000000000000000000',
         outcome: 'approve',
-        note: 'approvalThreshold not in permit scope — remains encrypted',
+        note: 'DEMO DATA: static mock values, not a real decryption of this decision',
       },
       timestamp: new Date().toISOString(),
     });

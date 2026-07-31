@@ -136,11 +136,10 @@ export class AgentOrchestrator extends BaseService {
       name: agent.name,
       trade: async () => {
         try {
-          // If it's a Sapience agent, use the governed cycle. The governed
-          // cycle routes every external action (forecast attestation,
-          // trade) through Cognivern's policy engine. Falling back to the
-          // legacy performForecastCycle only when runCycleWithGovernance
-          // isn't available.
+          // Sapience agents must run the governed cycle, which routes every
+          // external action (forecast attestation, trade) through
+          // Cognivern's policy engine. There is intentionally NO fallback to
+          // an ungoverned cycle.
           if (agent.type === "sapience") {
             const governedAgent = agent as GovernedAgent;
             if (typeof governedAgent.runCycleWithGovernance === "function") {
@@ -159,13 +158,10 @@ export class AgentOrchestrator extends BaseService {
               }
               return;
             }
-            if (typeof governedAgent.performForecastCycle === "function") {
-              this.logger.info(
-                `Starting forecast cycle (legacy path) for ${agent.name}`,
-              );
-              await governedAgent.performForecastCycle();
-              return;
-            }
+            this.logger.warn(
+              `Agent ${agent.name} has no governed cycle; skipping (ungoverned execution is not permitted)`,
+            );
+            return;
           }
 
           // Fallback for other agent types

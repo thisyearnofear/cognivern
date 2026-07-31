@@ -85,6 +85,7 @@ export interface CreArtifact {
     | 'llm_forecast'
     | 'attestation_request'
     | 'attestation_result'
+    | 'receipt_verification'
     | 'spend_intent'
     | 'error';
   createdAt: string;
@@ -138,8 +139,10 @@ export interface CreRun {
     hash: string;
     cid?: string;
     zeroGRootHash?: string;
+    zeroGLocalHash?: string;
     filecoinCid?: string;
     filecoinTxHash?: string;
+    filecoinActionId?: string;
     signature?: string;
     signer?: string;
     artifactIds?: string[];

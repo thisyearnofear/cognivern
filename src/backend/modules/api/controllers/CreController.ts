@@ -5,9 +5,15 @@ import { enrichCreRunEvidence } from "@backend/shared/utils/evidence.js";
 import { z } from "zod";
 import { runForecastingWorkflow } from "@backend/cre/workflows/forecasting.js";
 import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
+import {
+  creLedgerChain,
+  hashRun,
+} from "@backend/cre/persistence/CreLedgerChain.js";
 import { CreRun } from "@backend/cre/types.js";
 import { translateCreEventToAgUi } from "@backend/cre/agUiTranslation.js";
 import { owsWalletService } from "@backend/services/blockchain/OwsWalletService.js";
+import { zeroGStorageService } from "@backend/services/blockchain/ZeroGStorageService.js";
+import { filecoinStorageService } from "@backend/services/blockchain/FilecoinStorageService.js";
 import {
   IdempotencyRecord,
   idempotencyStore,
@@ -222,6 +228,138 @@ export class CreController {
       });
     } catch (err) {
       res.status(500).json({ success: false, error: "Failed to list runs" });
+    }
+  }
+
+  /**
+   * Verify the append-only mutation ledger and cross-check the run store
+   * against it. A run whose current content hash differs from the last
+   * chained mutation was edited outside the store — i.e. tampered.
+   */
+  async verifyLedger(req: Request, res: Response) {
+    try {
+      const chain = await creLedgerChain.verify();
+      const latestHashes = await creLedgerChain.latestRunHashes();
+      const runs = await creRunStore.list();
+
+      const tamperedRuns: string[] = [];
+      const unchainedRuns: string[] = [];
+      for (const run of runs) {
+        const chained = latestHashes.get(run.runId);
+        if (!chained) {
+          // Predates the ledger (or was written outside the store).
+          unchainedRuns.push(run.runId);
+        } else if (chained !== hashRun(run)) {
+          tamperedRuns.push(run.runId);
+        }
+      }
+
+      // Opt-in deep pass: turn the storage anchors from self-reported claims
+      // into checked proofs by re-fetching the anchored record and comparing
+      // hashes. This makes live network calls to the 0G indexer and the
+      // Filecoin RPC, so it is off by default. A network miss is reported as
+      // "unavailable"/"skipped" and never counts as tampering — only a real
+      // content "mismatch" fails the ledger.
+      const deep =
+        req.query.deep === "true" || req.query.deep === "1";
+      let anchors:
+        | Array<{
+            runId: string;
+            zeroG?: string;
+            filecoin?: string;
+          }>
+        | undefined;
+      let anchorSummary:
+        | {
+            checked: number;
+            verified: number;
+            mismatch: number;
+            unavailable: number;
+            skipped: number;
+          }
+        | undefined;
+      let anchorMismatch = false;
+
+      if (deep) {
+        anchors = [];
+        const summary = {
+          checked: 0,
+          verified: 0,
+          mismatch: 0,
+          unavailable: 0,
+          skipped: 0,
+        };
+
+        const tally = (status: string) => {
+          if (status === "verified") summary.verified += 1;
+          else if (status === "mismatch") {
+            summary.mismatch += 1;
+            anchorMismatch = true;
+          } else if (status === "unavailable" || status === "disabled")
+            summary.unavailable += 1;
+          else summary.skipped += 1;
+        };
+
+        for (const run of runs) {
+          const ev = run.evidence;
+          if (!ev) continue;
+          const entry: { runId: string; zeroG?: string; filecoin?: string } = {
+            runId: run.runId,
+          };
+
+          if (ev.zeroGRootHash) {
+            if (ev.zeroGLocalHash) {
+              const r = await zeroGStorageService.verifyDetailed(
+                ev.zeroGRootHash,
+                ev.zeroGLocalHash,
+              );
+              entry.zeroG = r.status;
+            } else {
+              // Anchored before we persisted the expected hash — can't verify.
+              entry.zeroG = "no_expected_hash";
+            }
+            summary.checked += 1;
+            tally(entry.zeroG);
+          }
+
+          if (ev.filecoinCid) {
+            if (ev.filecoinActionId) {
+              const expected = ev.filecoinCid.replace(/^sha256:/, "");
+              const r = await filecoinStorageService.verifyDetailed(
+                ev.filecoinActionId,
+                expected,
+              );
+              entry.filecoin = r.status;
+            } else {
+              // Anchored before we persisted the retrieval key — can't verify.
+              entry.filecoin = "no_retrieval_key";
+            }
+            summary.checked += 1;
+            tally(entry.filecoin);
+          }
+
+          if (entry.zeroG || entry.filecoin) anchors.push(entry);
+        }
+
+        anchorSummary = summary;
+      }
+
+      res.json({
+        success: true,
+        chain,
+        store: {
+          runs: runs.length,
+          tamperedRuns,
+          unchainedRuns,
+        },
+        ...(deep ? { anchors, anchorSummary } : {}),
+        valid: chain.valid && tamperedRuns.length === 0 && !anchorMismatch,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err) {
+      res
+        .status(500)
+        .json({ success: false, error: "Failed to verify ledger" });
     }
   }
 

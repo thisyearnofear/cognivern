@@ -156,6 +156,47 @@ No manual migration step required.
 - SIWE authentication uses nonce replay protection
 - Helmet CSP, CORS, body size limits, trust-proxy configured for production
 
+## Final submission — proof artifact and demo
+
+### Generate the proof artifact
+
+After production points at DevNet:
+
+```bash
+COGNIVERN_URL=https://cognivern.thisyearnofear.com \
+COGNIVERN_API_KEY=<your-api-key> \
+CANTON_PROOF_MANAGER=auctioner-cognivern \
+CANTON_PROOF_BIDDERS=alice-cognivern,bob-cognivern,charlie-cognivern \
+CANTON_DEVNET_PARTICIPANT="https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443" \
+CANTON_DEVNET_PACKAGE_ID="d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad" \
+CANTON_TEMPLATE_AUCTION="#daml:Main:SealedBidAuction" \
+CANTON_TEMPLATE_BID="#daml:Main:Bid" \
+CANTON_TEMPLATE_RESULT="#daml:Main:AuctionResult" \
+pnpm canton:proof
+```
+
+This writes `.artifacts/canton-devnet-proof-latest.json` and `.artifacts/canton-devnet-proof-<timestamp>.json`. Copy the round ID, bid contract IDs, winner, winning amount, package ID, and template IDs into the hackathon submission.
+
+### Record the 3-minute demo
+
+Minimum demo beats:
+
+1. Show public product URL.
+2. Create a Canton-backed sealed-bid RFP round.
+3. Submit Alice/Bob/Charlie bids.
+4. Toggle party visibility: each bidder cannot see competitors' amounts.
+5. Close and reveal: Bob wins; losing bids remain undisclosed/archived.
+6. Show evidence JSON / package ID / DevNet note.
+
+### Final submission package checklist
+
+- Public GitHub repo.
+- Live product URL.
+- Hackathon submission with DevNet proof fields filled.
+- Pitch deck PDF or hosted deck link.
+- 3-minute demo video MP4 or hosted video link.
+- Optional: `.artifacts/canton-devnet-proof-latest.json` included or linked.
+
 ## Related Docs
 
 - [Architecture](./ARCHITECTURE.md) — System design, integrations, data flows

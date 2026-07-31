@@ -26,6 +26,18 @@ export interface ZeroGUploadResult {
 }
 
 /**
+ * Three-way anchor verification outcome. Unlike the boolean verify(), this
+ * distinguishes a real integrity failure ("mismatch") from a best-effort miss
+ * ("unavailable" — network/indexer down, record not found) or a service that
+ * isn't configured ("disabled"). Only "mismatch" should be treated as tampering.
+ */
+export type AnchorVerification =
+  | { status: "verified"; actual: string }
+  | { status: "mismatch"; actual: string; expected: string }
+  | { status: "unavailable" }
+  | { status: "disabled" };
+
+/**
  * Contract for 0G decentralized storage operations.
  * Enables mocking in tests and swapping implementations (e.g. mainnet).
  */
@@ -33,6 +45,10 @@ export interface IZeroGStorage {
   anchorAuditRecord(record: Record<string, unknown>): Promise<ZeroGUploadResult | null>;
   retrieveRecord(rootHash: string): Promise<Record<string, unknown> | null>;
   verify(rootHash: string, expectedHash: string): Promise<boolean>;
+  verifyDetailed(
+    rootHash: string,
+    expectedHash: string,
+  ): Promise<AnchorVerification>;
   getStatus(): { enabled: boolean; indexerUrl: string };
 }
 
@@ -166,9 +182,14 @@ export class ZeroGStorageService implements IZeroGStorage {
     }
   }
 
-  async verify(rootHash: string, expectedHash: string): Promise<boolean> {
+  async verifyDetailed(
+    rootHash: string,
+    expectedHash: string,
+  ): Promise<AnchorVerification> {
+    if (!this.enabled) return { status: "disabled" };
+
     const record = await this.retrieveRecord(rootHash);
-    if (!record) return false;
+    if (!record) return { status: "unavailable" };
 
     const serialized = JSON.stringify(record);
     const actualHash = crypto
@@ -176,7 +197,15 @@ export class ZeroGStorageService implements IZeroGStorage {
       .update(serialized)
       .digest("hex");
 
-    return actualHash === expectedHash;
+    if (actualHash === expectedHash) {
+      return { status: "verified", actual: actualHash };
+    }
+    return { status: "mismatch", actual: actualHash, expected: expectedHash };
+  }
+
+  async verify(rootHash: string, expectedHash: string): Promise<boolean> {
+    const result = await this.verifyDetailed(rootHash, expectedHash);
+    return result.status === "verified";
   }
 }
 
