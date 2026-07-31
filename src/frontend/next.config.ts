@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 import { DEFAULT_API_ORIGIN } from "./src/lib/runtime-config";
 
-const publicApiOrigin = process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_ORIGIN;
-const publicApiWsOrigin = publicApiOrigin.replace(/^http/, "ws");
-
 const cspHeader = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
@@ -13,7 +10,7 @@ const cspHeader = [
   // Keep this allowlist in sync with the RPC transports configured in
   // src/lib/wagmi.ts — any new fallback host must be added here or it
   // will be blocked at runtime.
-  `connect-src 'self' ${publicApiOrigin} ${publicApiWsOrigin} https://*.walletconnect.com https://*.walletconnect.org https://*.web3modal.org https://*.reown.com wss://*.walletconnect.com wss://*.walletconnect.org wss://*.reown.com https://*.llamarpc.com https://*.publicnode.com https://rpc.ankr.com https://*.infura.io https://cloudflare-eth.com https://sepolia-rollup.arbitrum.io https://sepolia.base.org https://eth.merkle.io https://*.merkle.io https://eth.drpc.org https://*.drpc.org https://1rpc.io https://rpc.mevblocker.io https://verify.walletconnect.org https://verify.walletconnect.com https://ipfs.io https://*.ipfs.io https://cloudflare-ipfs.com https://gateway.pinata.cloud https://testrpc.xlayer.tech https://api.calibration.node.glif.io`,
+  "connect-src 'self' https://*.walletconnect.com https://*.walletconnect.org https://*.web3modal.org https://*.reown.com wss://*.walletconnect.com wss://*.walletconnect.org wss://*.reown.com https://*.llamarpc.com https://*.publicnode.com https://rpc.ankr.com https://*.infura.io https://cloudflare-eth.com https://sepolia-rollup.arbitrum.io https://sepolia.base.org https://eth.merkle.io https://*.merkle.io https://eth.drpc.org https://*.drpc.org https://1rpc.io https://rpc.mevblocker.io https://verify.walletconnect.org https://verify.walletconnect.com https://ipfs.io https://*.ipfs.io https://cloudflare-ipfs.com https://gateway.pinata.cloud https://testrpc.xlayer.tech https://api.calibration.node.glif.io",
   "frame-src 'self' https://verify.walletconnect.org https://verify.walletconnect.com https://*.walletconnect.org https://*.walletconnect.com",
   "object-src 'none'",
   "base-uri 'self'",
