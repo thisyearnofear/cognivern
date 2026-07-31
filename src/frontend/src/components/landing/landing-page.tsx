@@ -11,7 +11,6 @@ import {
   Globe,
   Lock,
   Eye,
-  FileText,
   ExternalLink,
   Copy,
 } from "lucide-react";
@@ -21,41 +20,6 @@ import { useDemoStore, startDemoTour } from "@/stores/demo-store";
 import { useAuthStore, useAuthHydrated } from "@/stores/auth-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useAccount } from "wagmi";
-
-/* ─── Terminal typing hook ──────────────────────────────────── */
-
-function useTypewriter(lines: string[], speed = 40, _initialDelay?: number) {
-  const [displayed, setDisplayed] = useState<string[]>([]);
-  const [currentLine, setCurrentLine] = useState(0);
-  const [currentChar, setCurrentChar] = useState(0);
-  const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (currentLine >= lines.length) {
-        setDone(true);
-        return;
-      }
-      const line = lines[currentLine];
-      if (currentChar < line.length) {
-        setDisplayed((prev) => {
-          const copy = [...prev];
-          if (copy.length <= currentLine) copy.push("");
-          copy[currentLine] = line.slice(0, currentChar + 1);
-          return copy;
-        });
-        setCurrentChar((c) => c + 1);
-      } else {
-        setCurrentLine((l) => l + 1);
-        setCurrentChar(0);
-      }
-    }, currentChar === 0 && currentLine > 0 ? speed * 8 : speed);
-
-    return () => clearTimeout(timer);
-  }, [currentLine, currentChar, lines, speed]);
-
-  return { displayed, done };
-}
 
 /* ─── Flow node component ───────────────────────────────────── */
 
@@ -188,27 +152,10 @@ export function LandingPage() {
     startDemoTour((path) => router.push(path));
   };
 
-  // Terminal lines
-  const terminalLines = [
-    "$ curl -X POST https://cognivern.thisyearnofear.com/api/spend \\",
-    '  -H "x-api-key: sapience-hackathon-key" \\',
-    '  -H "Content-Type: application/json" \\',
-    '  -d \'{"agentId":"demo-bot","amount":"25","asset":"USDC"}\'',
-    "",
-    "→ Policy: OWS Spend Governance Policy",
-    "→ Evaluating rules...",
-    "✓ Approved — tx broadcast on-chain",
-    "→ txHash: 0x6942...c0",
-    "→ https://oklink.com/xlayer-test/tx/... ↗",
-  ];
-
-  const { displayed: terminalOutput, done: terminalDone } = useTypewriter(terminalLines, 35, 600);
-
-  // Demo evaluation — deterministic hash based on amount
+  // Demo evaluation mirrors the policy limit shown in the first-use preview.
   const demoResult = (() => {
     if (demoAmount < 100) {
-      const hash = ((demoAmount * 2654435761) ^ 0x6942d4bf) >>> 0;
-      return { status: "approved" as const, txHash: `0x${hash.toString(16).padStart(8, "0")}...` };
+      return { status: "approved" as const };
     }
     return { status: "denied" as const, reason: "Amount exceeds hard limit of $100" };
   })();
@@ -294,9 +241,9 @@ export function LandingPage() {
               className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1] tracking-tight max-w-3xl mx-auto"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Govern every agent spend.
+              Keep AI agents
               <br />
-              <span className="text-primary">With confidence built in.</span>
+              <span className="text-primary">inside the lines.</span>
             </motion.h1>
 
             <motion.p
@@ -305,9 +252,8 @@ export function LandingPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-lg text-muted-foreground max-w-xl mx-auto mt-6 leading-relaxed"
             >
-              Set clear limits, review risky actions, and keep an accountable record
-              of what every agent does. Cognivern works quietly in the background so
-              your team can move quickly without giving up control.
+              Set the budget. Decide what needs approval. See why every action was
+              allowed or stopped, before a small mistake becomes an expensive one.
             </motion.p>
 
             <motion.div
@@ -317,7 +263,7 @@ export function LandingPage() {
               className="flex gap-4 justify-center flex-wrap mt-8"
             >
               <Button variant="default" size="lg" onClick={handleTryDemo}>
-                Try Live Demo <ArrowRight />
+                Try a blocked spend <ArrowRight />
               </Button>
               <Button
                 variant="secondary"
@@ -325,78 +271,61 @@ export function LandingPage() {
                 onClick={() => router.push("/sealed-bid")}
               >
                 <Lock className="h-4 w-4 mr-1.5" />
-                Private vendor selection
-              </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={() =>
-                  window.open(
-                    "https://github.com/thisyearnofear/cognivern/blob/main/docs/ARCHITECTURE.md",
-                    "_blank",
-                  )
-                }
-              >
-                <FileText className="h-4 w-4 mr-1.5" />
-                Architecture
+                Explore private selection
               </Button>
             </motion.div>
           </div>
 
-          {/* Animated Terminal */}
+          {/* Interactive first-use moment */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="max-w-2xl mx-auto"
+            className="max-w-3xl mx-auto"
           >
-            <div className="rounded-xl border border-border bg-[#0A0A0A] dark:bg-black overflow-hidden shadow-2xl">
-              <div className="flex items-center gap-1.5 px-4 py-3 border-b border-white/5">
-                <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                <span className="ml-3 text-[11px] text-white/40 font-medium">
-                  cognivern — spend request
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+              <div className="flex items-center justify-between border-b border-border bg-muted/40 px-5 py-3">
+                <div>
+                  <p className="text-sm font-semibold">Incoming agent request</p>
+                  <p className="text-xs text-muted-foreground">Pay an approved vendor</p>
+                </div>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  Checking policy
                 </span>
               </div>
-              <div className="p-5 overflow-x-auto">
-                <pre
-                  className="text-sm leading-relaxed text-white/80"
-                  style={{ fontFamily: "var(--font-jetbrains-mono, var(--font-geist-mono))" }}
-                >
-                  {terminalOutput.map((line, i) => (
-                    <div key={i} className="whitespace-pre">
-                      {line.startsWith("→") ? (
-                        <span className="text-amber-400/90">{line}</span>
-                      ) : line.startsWith("✓") ? (
-                        <span className="text-emerald-400">{line}</span>
-                      ) : line.startsWith("$") ? (
-                        <span>
-                          <span className="text-emerald-400">$</span>
-                          {line.slice(1)}
-                        </span>
-                      ) : (
-                        line
-                      )}
-                    </div>
-                  ))}
-                  {!terminalDone && (
-                    <span className="inline-block w-2 h-4 bg-white/60 ml-0.5 animate-pulse" />
-                  )}
-                  {terminalDone && (
-                    <span className="text-emerald-400/60 text-xs mt-2 block">
-                      ✓ Live — view on{" "}
-                      <a
-                        href="https://www.oklink.com/xlayer-test"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline underline-offset-2 hover:text-emerald-300"
-                      >
-                        X Layer explorer
-                      </a>
-                    </span>
-                  )}
-                </pre>
+              <div className="grid md:grid-cols-[1.1fr_0.9fr]">
+                <div className="p-5 md:border-r md:border-border">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-sm text-muted-foreground">Requested amount</span>
+                    <span className="text-3xl font-bold text-foreground" style={{ fontFamily: "var(--font-space-grotesk)" }}>${demoAmount}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={10}
+                    max={500}
+                    step={5}
+                    value={demoAmount}
+                    onChange={(e) => setDemoAmount(Number(e.target.value))}
+                    aria-label="Requested amount"
+                    aria-valuetext={`$${demoAmount}`}
+                    className="mt-6 h-2 w-full cursor-pointer appearance-none rounded-full bg-muted [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-lg"
+                  />
+                  <div className="mt-2 flex justify-between text-xs text-muted-foreground"><span>$10</span><span>$500</span></div>
+                  <p className="mt-5 text-sm text-muted-foreground">Move the amount past $100 to see Cognivern stop the request.</p>
+                </div>
+                <div className={`p-5 transition-colors duration-300 ${demoResult.status === "approved" ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Decision</p>
+                  <p className={`mt-2 text-2xl font-bold ${demoResult.status === "approved" ? "text-emerald-600" : "text-red-600"}`} style={{ fontFamily: "var(--font-space-grotesk)" }}>
+                    {demoResult.status === "approved" ? "Approved" : "Stopped"}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {demoResult.status === "approved" ? "Within the automatic approval limit." : "Over the $100 limit. Your agent cannot send this payment."}
+                  </p>
+                  <div className="mt-5 border-t border-border/60 pt-4 text-xs text-muted-foreground">
+                    {demoResult.status === "approved" ? "Recorded for review" : "Reason recorded for review"}
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -421,16 +350,14 @@ export function LandingPage() {
               className="text-3xl font-bold text-foreground mt-3"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Autonomous agents spend real money.
+              Agents are becoming operators.
               <br />
-              <span className="text-muted-foreground">Nothing is watching.</span>
+              <span className="text-muted-foreground">They need boundaries, not blind trust.</span>
             </h2>
             <p className="text-muted-foreground mt-5 max-w-xl mx-auto leading-relaxed">
-              Give an AI agent your API keys and a funded wallet, and one bad loop —
-              a prompt injection, a runaway retry, a hallucinated recipient — can drain
-              it. No policy to stop the transaction. No audit to prove what happened.
-              As agents move from demos to treasuries, &ldquo;trust the model&rdquo;
-              stops being a strategy.
+              A prompt injection, a runaway retry, or the wrong recipient should not
+              become a financial incident. Cognivern gives agents room to work while
+              making the boundaries and accountability explicit.
             </p>
           </motion.div>
         </div>
@@ -494,7 +421,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── Interactive Demo ── */}
+      {/* ── Jobs to be done ── */}
       <section className="border-t border-border bg-muted/30">
         <div className="max-w-5xl mx-auto px-6 py-20">
           <motion.div
@@ -507,115 +434,40 @@ export function LandingPage() {
               className="text-xs font-semibold text-primary uppercase tracking-widest"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Try it
+              Built for the moments that matter
             </span>
             <h2
               className="text-3xl font-bold text-foreground mt-3"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              See the policy in action
+              Stay in control without slowing agents down
             </h2>
             <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
-              Drag the slider. Watch the policy evaluate in real time.
+              Cognivern gives teams a clear answer at the moment an agent asks to do something consequential.
             </p>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="max-w-2xl mx-auto"
-          >
-            {/* Controls */}
-            <div className="bg-background rounded-xl border border-border p-6 mb-4">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <div className="text-sm font-medium text-foreground">Agent</div>
-                  <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                    cognivern-demo-agent
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-foreground">Asset</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">USDC</div>
-                </div>
-              </div>
-
-              <div className="mb-2">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-muted-foreground">Spend Amount</span>
-                  <span
-                    className={`font-bold text-lg ${
-                      demoResult.status === "approved"
-                        ? "text-emerald-500"
-                        : "text-red-500"
-                    }`}
-                    style={{ fontFamily: "var(--font-space-grotesk)" }}
-                  >
-                    ${demoAmount}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={10}
-                  max={500}
-                  step={5}
-                  value={demoAmount}
-                  onChange={(e) => setDemoAmount(Number(e.target.value))}
-                  aria-label="Spend amount"
-                  aria-valuetext={`$${demoAmount}`}
-                  className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted
-                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
-                    [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary
-                    [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer
-                    [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>$10</span>
-                  <span>$500</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Result */}
-            <div
-              className={`rounded-xl border p-5 transition-colors duration-300 ${
-                demoResult.status === "approved"
-                  ? "border-emerald-500/30 bg-emerald-500/5"
-                  : "border-red-500/30 bg-red-500/5"
-              }`}
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div
-                  className={`w-2.5 h-2.5 rounded-full ${
-                    demoResult.status === "approved"
-                      ? "bg-emerald-500"
-                      : "bg-red-500"
-                  }`}
-                />
-                <span
-                  className={`font-semibold ${
-                    demoResult.status === "approved"
-                      ? "text-emerald-500"
-                      : "text-red-500"
-                  }`}
-                  style={{ fontFamily: "var(--font-space-grotesk)" }}
-                >
-                  {demoResult.status === "approved"
-                    ? "Approved — broadcasting on-chain"
-                    : `Denied — ${demoResult.reason}`}
-                </span>
-              </div>
-              <pre
-                className="text-xs text-foreground/70 mt-2"
-                style={{ fontFamily: "var(--font-jetbrains-mono, var(--font-geist-mono))" }}
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              { icon: Shield, title: "Set limits", body: "Give every agent a clear budget, approved recipients, and actions it can take without asking.", note: "Stop overspending before it starts." },
+              { icon: Eye, title: "Review exceptions", body: "Route high-risk or unusual actions to the right person instead of blindly letting them through.", note: "Keep human judgment for the moments that need it." },
+              { icon: Terminal, title: "Investigate decisions", body: "See what the agent attempted, which policy applied, and the evidence behind every decision.", note: "Answer “what happened?” without guesswork." },
+            ].map((job, index) => (
+              <motion.div
+                key={job.title}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="rounded-xl border border-border bg-card p-5"
               >
-                {demoResult.status === "approved"
-                  ? `→ Policy: OWS Spend Governance Policy\n→ Rule: auto-approve (< $100)\n→ txHash: ${demoResult.txHash}`
-                  : `→ Policy: OWS Spend Governance Policy\n→ Rule: deny-over-hard-limit\n→ Action: blocked`}
-              </pre>
-            </div>
-          </motion.div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary"><job.icon size={18} /></div>
+                <h3 className="mt-4 text-lg font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>{job.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{job.body}</p>
+                <p className="mt-5 border-t border-border pt-3 text-xs font-medium text-foreground">{job.note}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -635,8 +487,8 @@ export function LandingPage() {
               >
                 {txCount}
               </div>
-              <div className="text-sm text-muted-foreground mt-1">On-chain actions recorded</div>
-              <div className="text-[11px] text-muted-foreground/60 mt-0.5">X Layer GovernanceContract</div>
+              <div className="text-sm text-muted-foreground mt-1">Agent decisions recorded</div>
+              <div className="text-[11px] text-muted-foreground/60 mt-0.5">A clear record for review</div>
             </motion.div>
 
             <motion.div
@@ -671,9 +523,9 @@ export function LandingPage() {
               >
                 {"<"}1min
               </div>
-              <div className="text-sm text-muted-foreground mt-1">Time to first on-chain tx</div>
+              <div className="text-sm text-muted-foreground mt-1">Time to first governed action</div>
               <div className="text-[11px] text-muted-foreground/60 mt-0.5">
-                Bootstrap wallet → API key → spend
+                Sign up → set a policy → try a scenario
               </div>
             </motion.div>
           </div>
@@ -969,37 +821,37 @@ curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \\
             className="text-3xl font-bold text-foreground mt-3"
             style={{ fontFamily: "var(--font-space-grotesk)" }}
           >
-            Built for agents that move value
+              Start with the agent you already have
           </h2>
           <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
-            Any autonomous agent that spends, swaps, stakes, or transfers on-chain.
+            Begin with one consequential workflow, prove the guardrails work, then expand with confidence.
           </p>
         </motion.div>
 
         <div className="space-y-6">
           {[
             {
-              title: "DeFi Trading Bots",
-              desc: "Enforce per-trade limits, restrict to allowlisted DEXs, cap daily volume. Every swap is policy-checked before execution.",
-              example: "Swap 2,000 USDC → ETH on Uniswap — approved under daily limit",
+              title: "Payment agents",
+              desc: "Set per-payment and daily limits, restrict recipients, and hold unusual requests for review.",
+              example: "Pay a new vendor $500 — held for approval",
               icon: Globe,
             },
             {
-              title: "Payment Agents",
-              desc: "Cap per-payment and daily totals, restrict recipient addresses. Auto-deny any attempt to send to an unknown address.",
-              example: "Pay 500 USDC to vendor wallet — held because amount exceeds soft limit",
+              title: "Procurement agents",
+              desc: "Run confidential vendor selections with a clear record of the process and outcome.",
+              example: "Select a security vendor — competing bids stay private",
               icon: Terminal,
             },
             {
-              title: "Yield Optimizers",
-              desc: "Approve deposit/withdraw within budget, block unknown protocols. Policies evaluated in under 100ms.",
-              example: "Deposit 10,000 USDC into Aave v3 — blocked, protocol not in allowlist",
+              title: "Operations agents",
+              desc: "Let routine work proceed automatically while sensitive changes and purchases require the right review.",
+              example: "Upgrade a customer plan — approved within the agent's limit",
               icon: Lock,
             },
             {
-              title: "DAO Treasury Agents",
-              desc: "Enforce proposal-linked budgets, require multi-sig for large disbursements. Transaction recorded on-chain for public verification.",
-              example: "Fund grant #42 with 3 ETH — approved, on-chain tx at 0x6942...",
+              title: "Financial agents",
+              desc: "Apply strict rules to trading, treasury, and transfer workflows without slowing every routine decision.",
+              example: "Move $2,000 to a new protocol — blocked by policy",
               icon: Eye,
             },
           ].map((uc, i) => (
@@ -1050,9 +902,9 @@ curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \\
 
           <div className="flex flex-wrap justify-center gap-3">
             {[
-              { label: "Crypto Funds", desc: "Constrain trading bots to pre-approved strategies" },
-              { label: "Agent Developers", desc: "Ship agents customers trust — governance built in" },
-              { label: "DAOs & Multisigs", desc: "Let ops execute within proposal-linked budgets" },
+              { label: "AI product teams", desc: "Ship agents that customers can trust with consequential work" },
+              { label: "Operations teams", desc: "Delegate routine work without surrendering oversight" },
+              { label: "Financial teams", desc: "Keep spending agents inside explicit limits" },
             ].map((persona) => (
               <motion.div
                 key={persona.label}
@@ -1088,9 +940,8 @@ curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \\
               See it before you set it up.
             </h2>
             <p className="text-muted-foreground max-w-md mx-auto mb-8 leading-relaxed">
-              Watch a live spend-flow demo — see policies, governance checks, and real
-              on-chain transactions. When you&apos;re ready, the same screens work with
-              your own treasury.
+              Try a realistic scenario first. When you&apos;re ready, the same controls
+              can govern your own agents and workflows.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Button variant="default" size="lg" onClick={handleTryDemo}>
