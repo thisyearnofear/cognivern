@@ -1,4 +1,5 @@
 export type UxEventName =
+  | "route_viewed"
   | "primary_action_clicked"
   | "primary_action_completed"
   | "disclosure_opened"
@@ -20,10 +21,12 @@ export function trackUxEvent(
   variant?: string,
 ) {
   if (typeof window === "undefined") return;
+  const { workspaceMode } = useAuthStore.getState();
   const payload = {
     event,
     route: window.location.pathname,
     component,
+    workspaceMode,
     ...(variant ? { variant } : {}),
   };
   const endpoint = process.env.NEXT_PUBLIC_UX_EVENTS_URL;
@@ -36,3 +39,4 @@ export function trackUxEvent(
     console.debug("[ux]", payload);
   }
 }
+import { useAuthStore } from "@/stores/auth-store";

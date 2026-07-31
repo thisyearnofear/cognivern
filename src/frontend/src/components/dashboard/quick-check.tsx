@@ -16,6 +16,7 @@ import { apiClient, type GovernanceEvaluation } from "@/lib/api-client";
 import { useAgents } from "@/hooks/use-api";
 import { useDemoStore } from "@/stores/demo-store";
 import { HelpIcon } from "@/components/ui/help-icon";
+import { trackUxEvent } from "@/lib/ux-events";
 
 const QUICK_ACTIONS = [
   { type: "swap", label: "Swap", amount: "500" },
@@ -40,6 +41,7 @@ export function QuickCheck() {
       const checkType = type || actionType;
       const checkAmount = amt || amount;
 
+      trackUxEvent("primary_action_clicked", "quick_check", checkType);
       setEvaluating(true);
       setError(null);
       setResult(null);
@@ -48,10 +50,11 @@ export function QuickCheck() {
         if (demoMode) {
           // Simulate response in demo mode
           await new Promise((resolve) => setTimeout(resolve, 800));
+          const allowed = Math.random() > 0.3;
           setResult({
-            allowed: Math.random() > 0.3,
+            allowed,
             reasoning:
-              Math.random() > 0.3
+              allowed
                 ? `Demo: ${checkType} of $${checkAmount} approved by simulated policy`
                 : `Demo: ${checkType} of $${checkAmount} exceeds demo budget limit`,
             policyChecks: [
@@ -63,6 +66,7 @@ export function QuickCheck() {
             ],
             timestamp: new Date().toISOString(),
           });
+          trackUxEvent("primary_action_completed", "quick_check", allowed ? "approved" : "denied");
         } else {
           const res = await apiClient.evaluateGovernance({
             agentId: agentList[0]?.id || "unknown",
@@ -75,6 +79,7 @@ export function QuickCheck() {
           });
           setResult(res.data || null);
           if (!res.data) setError("No result returned");
+          else trackUxEvent("primary_action_completed", "quick_check", res.data.allowed ? "approved" : "denied");
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Check failed");
@@ -96,7 +101,10 @@ export function QuickCheck() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push("/governance/check")}
+            onClick={() => {
+              trackUxEvent("primary_action_clicked", "quick_check", "full_check");
+              router.push("/governance/check");
+            }}
             className="h-7 gap-1 text-xs"
           >
             Full Check <ArrowRight className="h-3 w-3" />

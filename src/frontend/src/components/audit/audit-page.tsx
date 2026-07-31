@@ -807,6 +807,10 @@ export function AuditPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [reviewBriefCopied, setReviewBriefCopied] = useState(false);
 
+  useEffect(() => {
+    trackUxEvent("route_viewed", "audit");
+  }, []);
+
   const logs = normalizeAuditLogs(rawLogs);
   const total = logs.length;
   const compliance = computeComplianceRate(logs);
@@ -1005,7 +1009,12 @@ export function AuditPage() {
       <section className="border-t pt-5">
         <button
           type="button"
-          onClick={() => setProofDetailsExpanded((expanded) => !expanded)}
+          onClick={() => {
+            setProofDetailsExpanded((expanded) => {
+              if (!expanded) trackUxEvent("disclosure_opened", "audit_proof_details");
+              return !expanded;
+            });
+          }}
           aria-expanded={proofDetailsExpanded}
           aria-controls="audit-proof-details"
           className="flex w-full items-center justify-between text-left"

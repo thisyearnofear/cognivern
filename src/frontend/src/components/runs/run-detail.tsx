@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useRun } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
+import { trackUxEvent } from '@/lib/ux-events';
 
 type ApprovalResult = Awaited<ReturnType<typeof apiClient.submitRunApproval>>;
 
@@ -159,6 +160,10 @@ export function RunDetail({ runId }: { runId: string }) {
   const animatedSteps = useCountUp(run?.steps || 0, 2000, statsVisible);
   const animatedArtifacts = useCountUp(run?.artifacts || 0, 2000, statsVisible);
 
+  useEffect(() => {
+    trackUxEvent('route_viewed', 'run_detail');
+  }, []);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -248,7 +253,12 @@ export function RunDetail({ runId }: { runId: string }) {
 
       {/* Execution Trace */}
       {events.length > 0 && (
-        <details className="rounded-xl border bg-card p-5">
+        <details
+          className="rounded-xl border bg-card p-5"
+          onToggle={(event) => {
+            if (event.currentTarget.open) trackUxEvent('disclosure_opened', 'run_activity_details');
+          }}
+        >
           <summary className="cursor-pointer font-semibold flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
             Activity details

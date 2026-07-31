@@ -33,6 +33,8 @@ import dynamic from "next/dynamic";
 import { DecisionChart, type DecisionFilter } from "./decision-chart";
 import { ApprovalSparkline } from "./approval-sparkline";
 import { GetStartedPanel } from "./get-started-panel";
+import { GovernancePosture } from "./governance-posture";
+import { trackUxEvent } from "@/lib/ux-events";
 
 const ActivityChart = dynamic(
   () => import("./activity-chart").then((m) => ({ default: m.ActivityChart })),
@@ -261,6 +263,10 @@ export function Dashboard() {
   const [insightsExpanded, setInsightsExpanded] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
   const [statsVisible, setStatsVisible] = useState(false);
+
+  useEffect(() => {
+    trackUxEvent("route_viewed", "dashboard");
+  }, []);
 
   useEffect(() => {
     if (!statsRef.current) return;
@@ -510,6 +516,12 @@ export function Dashboard() {
 
       {/* The sole primary task: run a spend through governance. */}
           <QuickCheck />
+
+          <GovernancePosture
+            logs={normalizedLogs}
+            activeIdentities={activeCount}
+            onChainProofCount={onChainProofCount}
+          />
 
       {/* Recent Activity */}
           <div>

@@ -160,6 +160,7 @@ Create a small client helper such as `trackUxEvent` with this payload:
 ```ts
 type UxEvent = {
   event:
+    | "route_viewed"
     | "primary_action_clicked"
     | "primary_action_completed"
     | "disclosure_opened"
@@ -167,7 +168,8 @@ type UxEvent = {
     | "search_used"
     | "empty_state_action_clicked"
     | "error_retry_clicked"
-    | "route_backtracked";
+    | "route_backtracked"
+    | "proof_shared";
   route: string;
   component: string;
   variant?: string;
@@ -191,6 +193,19 @@ Start with Dashboard, Audit, Integrate, Settings, and Runs. Measure:
 
 Do not instrument every click. Review an aggregate report after the first user
 testing round and remove events that do not change a product decision.
+
+### 4.3 Measure the proof-and-collaboration funnel
+
+For the Dashboard → Audit/Run → disclosure → copied-artifact path, use only
+these privacy-safe events: `route_viewed`, `disclosure_opened`,
+`primary_action_clicked`, `primary_action_completed`, and `proof_shared`.
+Review the sequence in aggregate by route and component; never send decision
+text, policy values, wallet addresses, or spend amounts to UX analytics.
+
+The Dashboard posture artifact is aggregate-only. It exists to let an operator
+copy a current governance summary into an existing review thread, with a link
+back to the protected audit trail. It must remain disclosed by default so the
+operational dashboard stays compact.
 
 ## Phase 5 — Validate and roll out
 

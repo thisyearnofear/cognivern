@@ -89,6 +89,12 @@ outcome, subject, evidence categories, and protected route back to the record.
 Receipts are never published automatically and do not include secret material,
 policy values, wallet addresses, or spend amounts by default.
 
+The Dashboard also offers a disclosed **governance posture**: an aggregate
+snapshot of approval rate, review-needed count, active identities, and available
+on-chain records. It gives a stakeholder a useful status update without turning
+the dashboard into a reporting surface. Copying is explicit and always links
+back to the protected audit trail.
+
 ## Product modes and information architecture
 
 | Mode | User goal | Routes |
