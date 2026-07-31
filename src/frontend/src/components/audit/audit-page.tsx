@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageState } from "@/components/ui/error-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { motion } from "motion/react";
 import {
   CheckCircle2,
@@ -768,7 +770,7 @@ function EmptyAuditState({ onRunCheck }: { onRunCheck: () => void }) {
             <PlayCircle className="h-3.5 w-3.5 mr-1.5" /> Run a Check
           </Button>
           <Button variant="secondary" size="sm" onClick={() => window.open("/agents/workshop", "_self")}>
-            <Terminal className="h-3.5 w-3.5 mr-1.5" /> Create API Identity
+            <Terminal className="h-3.5 w-3.5 mr-1.5" /> Create API identity
           </Button>
         </div>
       </div>
@@ -782,7 +784,7 @@ export function AuditPage() {
   const router = useRouter();
   const { data: rawLogs, isLoading, error } = useAuditLogs();
   const [proofDetailsExpanded, setProofDetailsExpanded] = useState(false);
-  const [decisionFilter, setDecisionFilter] = useState<"all" | NormalizedAuditLog["decision"]>("all");
+  const [decisionFilter, setDecisionFilter] = useState<"all" | "needs_attention" | NormalizedAuditLog["decision"]>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [groupBy, setGroupBy] = useState<"none" | "decision" | "agent" | "chain">("none");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -797,7 +799,7 @@ export function AuditPage() {
     : 0;
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredLogs = logs.filter((log) => {
-    const matchesDecision = decisionFilter === "all" || log.decision === decisionFilter;
+    const matchesDecision = decisionFilter === "all" || (decisionFilter === "needs_attention" ? log.decision === "held" || log.decision === "denied" : log.decision === decisionFilter);
     const matchesSearch = !normalizedQuery || [log.agent, log.action, log.description, log.chain]
       .some((value) => value.toLowerCase().includes(normalizedQuery));
     return matchesDecision && matchesSearch;
@@ -844,12 +846,7 @@ export function AuditPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Audit Logs</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Complete governance audit trail — every decision recorded on-chain
-        </p>
-      </div>
+      <PageHeader title="Audit logs" description="Review governance decisions, investigate exceptions, and export selected evidence." />
 
       {/* Metrics — seamless gap-px grid */}
       {isLoading ? (
@@ -858,12 +855,7 @@ export function AuditPage() {
             <div key={i} className="h-[72px] rounded-xl border border-border animate-pulse bg-card" />
           ))}
         </div>
-      ) : error ? (
-        <div className="col-span-4 p-8 text-center text-muted-foreground border rounded-xl">
-          <p>Failed to load audit logs</p>
-          <p className="text-xs mt-1">The backend may be unavailable</p>
-        </div>
-      ) : (
+      ) : error ? null : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
           <div className="bg-card p-4 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950 flex-shrink-0">
@@ -913,7 +905,9 @@ export function AuditPage() {
       )}
 
       {/* Decision Timeline */}
-      {!error && logs.length === 0 && !isLoading ? (
+      {error ? (
+        <PageState variant="error" title="Could not load audit history" message="Governance decisions are unavailable right now." action={{ label: "Retry", onClick: () => router.refresh() }} />
+      ) : logs.length === 0 && !isLoading ? (
         <EmptyAuditState onRunCheck={() => router.push("/governance/check")} />
       ) : (
         <section className="space-y-4">
@@ -926,7 +920,7 @@ export function AuditPage() {
               className="sm:max-w-xs"
             />
             <div className="flex flex-wrap gap-1.5" aria-label="Filter audit decisions">
-              {(["all", "approved", "held", "denied"] as const).map((filter) => (
+              {(["all", "needs_attention", "approved", "held", "denied"] as const).map((filter) => (
                 <Button
                   key={filter}
                   type="button"
@@ -935,7 +929,7 @@ export function AuditPage() {
                   onClick={() => setDecisionFilter(filter)}
                   className="h-8 capitalize"
                 >
-                  {filter}
+                  {filter === "needs_attention" ? "Needs attention" : filter}
                 </Button>
               ))}
             </div>
@@ -958,10 +952,7 @@ export function AuditPage() {
           </div>
 
           {filteredLogs.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-              No decisions match these filters.
-              <Button variant="link" size="sm" className="ml-1 h-auto p-0" onClick={() => { setDecisionFilter("all"); setSearchQuery(""); }}>Clear filters</Button>
-            </div>
+            <PageState variant="no-results" title="No matching decisions" message="Clear the saved view or search to see more of the audit trail." action={{ label: "Clear filters", onClick: () => { setDecisionFilter("all"); setSearchQuery(""); } }} />
           ) : (
             <div className="space-y-5 pt-2">
               {groupedLogs.map(([group, groupLogs]) => (

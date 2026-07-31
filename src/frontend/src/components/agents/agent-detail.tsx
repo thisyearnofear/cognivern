@@ -43,6 +43,7 @@ import { useAgent, usePolicies } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
 import { authFetch } from "@/lib/auth-fetch";
 import { mutate } from "swr";
+import { PageState } from "@/components/ui/error-state";
 
 function Breadcrumbs({ agentName }: { agentName: string }) {
   const router = useRouter();
@@ -364,18 +365,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
         >
           <ArrowLeft className="h-4 w-4" /> Back to API Identities
         </Button>
-        <div className="rounded-xl border bg-card">
-          <div className="p-12 text-center">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Identity not found</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              {error ? error.message : "The agent could not be loaded."}
-            </p>
-            <Button onClick={() => router.push("/agents")}>
-              Back to API Identities
-            </Button>
-          </div>
-        </div>
+        <PageState variant={error ? "error" : "empty"} title={error ? "Could not load API identity" : "API identity not found"} message={error?.message || "This governed identity is no longer available."} action={{ label: "Back to API identities", onClick: () => router.push("/agents") }} />
       </div>
     );
   }
@@ -685,7 +675,7 @@ export function AgentDetailPage({ agentId }: { agentId: string }) {
                   onClick={() => router.push("/policies")}
                   className="text-xs"
                 >
-                  Create Policy
+                  Create policy
                 </Button>
               </div>
             )}

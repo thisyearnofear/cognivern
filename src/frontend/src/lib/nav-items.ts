@@ -56,7 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         id: "governance",
-        label: "Test a Spend",
+        label: "Governance Check",
         icon: PlayCircle,
         href: "/governance/check",
         description: "Test a spend against your policy",

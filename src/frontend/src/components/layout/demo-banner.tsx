@@ -59,7 +59,7 @@ export function DemoBanner() {
         description:
           "Your real workspace is empty until you create an agent and policy. Want to start now?",
         action: {
-          label: "Create an agent",
+          label: "Create an API identity",
           onClick: () => {
             if (typeof window !== "undefined") {
               window.location.href = "/agents/workshop";

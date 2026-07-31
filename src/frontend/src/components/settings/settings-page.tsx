@@ -29,6 +29,7 @@ import { apiClient } from "@/lib/api-client";
 import { authFetch } from "@/lib/auth-fetch";
 import { useWallets } from "@/hooks/use-api";
 import { PageState } from "@/components/ui/error-state";
+import { PageHeader } from "@/components/ui/page-header";
 import type { ApiKey, ApiKeyCreateResponse } from "@/lib/api-client";
 import type { OwsWallet } from "@cognivern/shared";
 import useSWR, { mutate } from "swr";
@@ -49,19 +50,18 @@ export function SettingsPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-space-grotesk)" }}>Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage your workspace, API keys, and preferences
-        </p>
+      <PageHeader title="Settings" description="Configure workspace access, wallet execution, and interface preferences." />
+      <div className="app-surface-card flex flex-wrap items-center gap-2 p-3 text-xs text-muted-foreground">
+        <span className="font-medium text-foreground">Recommended setup</span>
+        <span>Policy</span><span aria-hidden="true">→</span><span>API identity</span><span aria-hidden="true">→</span><span>Access key</span>
       </div>
 
       <Tabs defaultValue="workspace" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4">
           <TabsTrigger value="workspace">Workspace</TabsTrigger>
-          <TabsTrigger value="wallets">Wallets</TabsTrigger>
+          <TabsTrigger value="wallets">Wallet execution</TabsTrigger>
           <TabsTrigger value="api-keys">Access & API keys</TabsTrigger>
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
+          <TabsTrigger value="appearance">Interface</TabsTrigger>
         </TabsList>
 
         <TabsContent value="workspace" className="space-y-4">
@@ -484,14 +484,14 @@ function WorkspaceCard({
                   size="sm"
                   onClick={() => router.push("/agents/workshop")}
                 >
-                  Create API Identity
+                  Create API identity
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => router.push("/policies")}
                 >
-                  Create Policy
+                  Create policy
                 </Button>
               </div>
             )}
@@ -658,7 +658,7 @@ function ApiKeysCard() {
       <div>
         <h2 className="font-semibold flex items-center gap-2" style={{ fontFamily: "var(--font-space-grotesk)" }}>
             <Key className="h-4 w-4 text-amber-500" />
-            API Keys
+            API keys
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
             Create keys for your external systems to authenticate with the Cognivern API.

@@ -289,7 +289,7 @@ export function PoliciesPage() {
             </Badge>
           )}
           <Button onClick={() => setShowCreate(true)}>
-            <PlusCircle className="h-4 w-4" /> Create Policy
+            <PlusCircle className="h-4 w-4" /> Create policy
           </Button>
         </div>
       </div>
@@ -821,7 +821,7 @@ function CreatePolicyForm({
       <div className="flex items-center justify-between">
         <h3 className="font-semibold flex items-center gap-2">
           {encrypted && <Lock className="h-4 w-4 text-amber-500" />}
-          Create Policy
+          Create policy
         </h3>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-4 w-4" />
@@ -1194,7 +1194,7 @@ function CreatePolicyForm({
               ? "Creating..."
               : encrypted
                 ? "Create Encrypted Policy"
-                : "Create Policy"}
+                : "Create policy"}
           </Button>
         </div>
       </div>

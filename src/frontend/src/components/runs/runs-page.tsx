@@ -3,6 +3,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageState } from "@/components/ui/error-state";
@@ -84,16 +86,9 @@ export function RunsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Runs</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {awaitingCount + failedCount > 0
-              ? `${awaitingCount + failedCount} execution${awaitingCount + failedCount === 1 ? "" : "s"} need attention.`
-              : "Monitor governance evaluations and execution traces."}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader title="Runs" description={awaitingCount + failedCount > 0
+        ? `${awaitingCount + failedCount} execution${awaitingCount + failedCount === 1 ? "" : "s"} need attention.`
+        : "Monitor governance evaluations and execution traces."} action={<>
           {error && (
             <Badge variant="destructive" className="text-xs">
               Error
@@ -101,10 +96,9 @@ export function RunsPage() {
           )}
           <Badge variant="secondary">{runs.length} tracked</Badge>
           <Button size="sm" variant="default" onClick={() => router.push("/governance/check")}>
-            <PlayCircle className="h-3.5 w-3.5" /> New Evaluation
+            <PlayCircle className="h-3.5 w-3.5" /> Run governance check
           </Button>
-        </div>
-      </div>
+          </>} />
 
       {/* Stats */}
       {isLoading ? (
@@ -116,10 +110,7 @@ export function RunsPage() {
           ))}
         </div>
       ) : error ? (
-        <div className="p-12 text-center text-muted-foreground border rounded-xl">
-          <p>Failed to load runs</p>
-          <p className="text-xs mt-1">The backend may be unavailable</p>
-        </div>
+        <PageState variant="error" title="Could not load runs" message="The run history is unavailable right now. Try again in a moment." action={{ label: "Retry", onClick: () => router.refresh() }} />
       ) : (
         <div ref={statsRef} className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
           <div className="bg-card p-4 flex items-center gap-3">
@@ -163,7 +154,7 @@ export function RunsPage() {
 
       {/* Run List */}
       {!error && runs.length === 0 && !isLoading ? (
-        <PageState variant="empty" title="No runs yet" message="Runs appear after your first governance evaluation or execution." action={{ label: "Run a Governance Check", onClick: () => router.push("/governance/check") }} secondaryAction={{ label: "Create API Identity", onClick: () => router.push("/agents/workshop") }} />
+        <PageState variant="empty" title="No runs yet" message="Runs appear after your first governance evaluation or execution." action={{ label: "Run governance check", onClick: () => router.push("/governance/check") }} secondaryAction={{ label: "Create API identity", onClick: () => router.push("/agents/workshop") }} />
       ) : error ? (
         <PageState variant="error" title="Could not load runs" message="The run history is unavailable right now. Try again in a moment." action={{ label: "Retry", onClick: () => router.refresh() }} />
       ) : (
@@ -190,19 +181,7 @@ export function RunsPage() {
             >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <Badge
-                      variant={
-                        run.status === "completed"
-                          ? "secondary"
-                          : run.status === "running"
-                            ? "default"
-                            : run.status === "failed"
-                              ? "destructive"
-                              : "outline"
-                      }
-                    >
-                      {run.status.toUpperCase()}
-                    </Badge>
+                    <StatusBadge status={run.status} />
                     <span className="font-medium text-sm">{run.workflow}</span>
                     <span className="text-xs text-muted-foreground">
                       {run.mode}
@@ -215,6 +194,11 @@ export function RunsPage() {
                     <span>{run.time}</span>
                   </div>
                 </div>
+                {(run.status === "failed" || run.status === "paused_for_approval") && (
+                  <p className="mt-2 text-xs font-medium text-muted-foreground">
+                    {run.status === "failed" ? "Open the run to inspect the failure and retry safely." : "Open the run to review and approve or deny the pending action."}
+                  </p>
+                )}
             </div>
               ))}
             </div>

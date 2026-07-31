@@ -42,7 +42,7 @@ export default function DashboardLayout({
         {isOsPage ? null : <DemoBanner />}
         {isOsPage ? null : <DemoSimulator />}
         <main
-          className={`flex-1 overflow-auto ${isOsPage ? "p-0" : "p-4 md:p-6"}`}
+          className={`flex-1 overflow-auto ${isOsPage ? "p-0" : "app-surface p-4 md:p-6"}`}
         >
           <Breadcrumb />
           <WelcomeOverlay />

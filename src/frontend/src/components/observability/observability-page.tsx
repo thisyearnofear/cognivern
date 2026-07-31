@@ -5,6 +5,7 @@ import type { ReactNode, ComponentProps } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageState } from "@/components/ui/error-state";
 import {
   apiClient,
   type ObservabilityStatus,
@@ -198,20 +199,7 @@ export function ObservabilityPage() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : error ? (
-          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-6 space-y-2">
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="font-medium">Failed to load status</span>
-            </div>
-            <p className="text-sm text-muted-foreground">{error}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.location.reload()}
-            >
-              Retry
-            </Button>
-          </div>
+          <PageState variant="error" title="Could not load observability" message={error} action={{ label: "Retry", onClick: () => window.location.reload() }} />
         ) : status ? (
           <div className="space-y-8">
             <StatusCard status={status} />

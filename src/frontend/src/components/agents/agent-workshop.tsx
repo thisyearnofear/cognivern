@@ -438,7 +438,7 @@ export function AgentWorkshop() {
               </>
             ) : (
               <>
-                <Key className="h-4 w-4" /> Create API Identity
+                <Key className="h-4 w-4" /> Create API identity
               </>
             )}
           </Button>

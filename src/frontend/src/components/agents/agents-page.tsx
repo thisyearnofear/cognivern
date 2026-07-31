@@ -129,7 +129,7 @@ export function AgentsPage() {
             </Badge>
           )}
           <Button onClick={() => router.push("/agents/workshop")}>
-            <PlusCircle className="h-4 w-4" /> Create API Identity
+            <PlusCircle className="h-4 w-4" /> Create API identity
           </Button>
         </div>
       </div>
@@ -145,7 +145,7 @@ export function AgentsPage() {
       ) : error ? (
         <PageState variant="error" title="Could not load API identities" message={error?.message || "Your governed identities are unavailable right now."} action={{ label: "Retry", onClick: () => router.refresh() }} />
       ) : agentList.length === 0 ? (
-        <PageState variant="empty" title="No API identities yet" message="Give your first external system governed access to Cognivern." action={{ label: "Create API Identity", onClick: () => router.push("/agents/workshop") }} />
+        <PageState variant="empty" title="No API identities yet" message="Give your first external system governed access to Cognivern." action={{ label: "Create API identity", onClick: () => router.push("/agents/workshop") }} />
       ) : (
         <div className="space-y-8">
           {showcase.length > 0 && (

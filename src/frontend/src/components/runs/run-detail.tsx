@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PageState } from '@/components/ui/error-state';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -174,13 +176,7 @@ export function RunDetail({ runId }: { runId: string }) {
         <Button variant="ghost" size="icon" onClick={() => router.push('/runs')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div className="p-8 text-center text-muted-foreground border rounded-xl">
-          <AlertTriangle className="h-8 w-8 mx-auto mb-3 opacity-50" />
-          <p>Failed to load run details</p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>
-            Retry
-          </Button>
-        </div>
+        <PageState variant="error" title="Could not load run details" message="This execution is unavailable right now. Try again or return to Runs." action={{ label: "Retry", onClick: () => router.refresh() }} secondaryAction={{ label: "Back to Runs", onClick: () => router.push('/runs') }} />
       </div>
     );
   }
@@ -200,19 +196,7 @@ export function RunDetail({ runId }: { runId: string }) {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">{run.workflow}</h1>
-            <Badge
-              variant={
-                run.status === 'completed'
-                  ? 'secondary'
-                  : run.status === 'failed'
-                    ? 'destructive'
-                    : run.status === 'running'
-                      ? 'default'
-                      : 'outline'
-              }
-            >
-              {status.label}
-            </Badge>
+            <StatusBadge status={run.status} />
           </div>
           <p className="text-sm text-muted-foreground mt-1">Run ID: {run.id}</p>
         </div>
@@ -360,7 +344,7 @@ export function RunDetail({ runId }: { runId: string }) {
           </>
         )}
         <Button variant="outline" onClick={() => router.push('/governance/check')}>
-          New Evaluation
+          Run governance check
         </Button>
       </div>
 

@@ -67,6 +67,20 @@ without hierarchy.
 “Agent” remains appropriate for an autonomous actor; the configuration object
 is an **API identity**.
 
+### Visual direction
+
+Cognivern should feel like a calm operational instrument: editorial hierarchy,
+precise status color, and enough atmosphere to distinguish the control plane
+from a generic card dashboard. The app shell uses a quiet grid and primary
+accent line as its signature. Keep surfaces restrained; reserve saturated color
+for status, attention, and the current action. New visual treatments should
+support scanability rather than add decorative density.
+
+The implementation codifies this direction through shared `PageHeader`,
+`StatusBadge`, and `PageState` components plus `app-surface-card` and
+`motion-enter` tokens. New routes should reuse these primitives before adding
+one-off spacing, status colors, or entrance animations.
+
 ## Product modes and information architecture
 
 | Mode | User goal | Routes |

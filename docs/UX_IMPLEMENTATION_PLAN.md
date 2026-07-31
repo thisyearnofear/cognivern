@@ -61,7 +61,9 @@ Add an attention summary above the timeline:
 
 Support:
 
-- Saved views: All, Needs attention, Blocked, Held, Approved.
+- Saved views: All, Needs attention, Blocked, Held, Approved. The first release
+  uses safe local presets; persistence and shareable URL state follow once the
+  filter vocabulary is validated.
 - Search by identity, action, policy, chain, or transaction identifier.
 - Grouping by decision, API identity, policy, and time.
 - Clear-all and result-count feedback.
@@ -126,7 +128,7 @@ Change the default order to:
 4. Run list with clear next action.
 5. Detail timeline after selecting a run.
 
-Keep **New Evaluation** as the single primary action. Make failed and awaiting
+Keep **Run governance check** as the single primary action. Make failed and awaiting
 runs visually prominent; do not make completed runs compete with them.
 
 Acceptance: a user can find an awaiting or failed run without scanning every

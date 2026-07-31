@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageState } from "@/components/ui/error-state";
 import { useRouter } from "next/navigation";
 import { useAgents, useAuditLogs, usePolicies, useNetworkStatus } from "@/hooks/use-api";
 import { useAuthStore } from "@/stores/auth-store";
@@ -541,9 +542,7 @@ export function Dashboard() {
             ))}
           </div>
         ) : logsError ? (
-          <div className="p-8 text-center text-muted-foreground border rounded-xl">
-            <p>Failed to load activity</p>
-          </div>
+          <PageState variant="error" title="Could not load activity" message="Recent governance decisions are unavailable right now." action={{ label: "Retry", onClick: () => router.refresh() }} />
         ) : filteredActivity.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground border rounded-xl">
             <p>
@@ -682,7 +681,7 @@ export function Dashboard() {
 
             <div>
               <div className="flex items-center justify-between mb-3"><h2 className="font-semibold">Governed identities</h2><Button variant="ghost" size="sm" onClick={() => router.push("/agents")}>View all <ArrowRight className="h-3.5 w-3.5" /></Button></div>
-              {agentsLoading ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">{[1, 2, 3, 4].map((i) => <div key={i} className="bg-card p-4 rounded-xl border"><Skeleton className="h-24 w-full" /></div>)}</div> : agentsError ? <div className="p-8 text-center text-muted-foreground border rounded-xl"><p>Failed to load identities</p><Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>Retry</Button></div> : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">{agentList.map((agent) => <button key={agent.id} onClick={() => router.push(`/agents/${agent.id}`)} className="bg-card p-4 hover:bg-accent/50 transition-colors text-left"><div className="flex items-center justify-between mb-3"><div className="flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${agent.status === "active" ? "bg-emerald-500" : "bg-amber-500"}`} /><span className="font-medium text-sm">{agent.name}</span></div><Badge variant={agent.status === "active" ? "secondary" : "outline"} className="text-xs">{agent.status}</Badge></div><div className="flex justify-between text-sm text-muted-foreground"><span>{agent.trades} actions</span><span className="font-medium">{formatBudget(agent.budget)}</span></div></button>)}</div>}
+              {agentsLoading ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">{[1, 2, 3, 4].map((i) => <div key={i} className="bg-card p-4 rounded-xl border"><Skeleton className="h-24 w-full" /></div>)}</div> : agentsError ? <PageState variant="error" title="Could not load identities" message="Governed identity data is unavailable right now." action={{ label: "Retry", onClick: () => router.refresh() }} /> : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">{agentList.map((agent) => <button key={agent.id} onClick={() => router.push(`/agents/${agent.id}`)} className="bg-card p-4 hover:bg-accent/50 transition-colors text-left"><div className="flex items-center justify-between mb-3"><div className="flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${agent.status === "active" ? "bg-emerald-500" : "bg-amber-500"}`} /><span className="font-medium text-sm">{agent.name}</span></div><Badge variant={agent.status === "active" ? "secondary" : "outline"} className="text-xs">{agent.status}</Badge></div><div className="flex justify-between text-sm text-muted-foreground"><span>{agent.trades} actions</span><span className="font-medium">{formatBudget(agent.budget)}</span></div></button>)}</div>}
             </div>
           </div>
         )}

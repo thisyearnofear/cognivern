@@ -140,7 +140,7 @@ export function PartialGetStartedBanner({
     missing === "agent"
       ? `You have ${presentName} but no agent yet — create one to start governing spends.`
       : `You have ${presentName} but no policy yet — pick a template so spends get evaluated.`;
-  const cta = missing === "agent" ? "Create an agent" : "Create a policy";
+  const cta = missing === "agent" ? "Create an API identity" : "Create a policy";
 
   return (
     <div className="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50/40 dark:bg-sky-950/20 p-3 flex items-center gap-3 flex-wrap">

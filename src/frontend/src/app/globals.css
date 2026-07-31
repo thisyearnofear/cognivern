@@ -215,6 +215,71 @@
   );
 }
 
+/* Cognivern surface: a quiet operational grid that distinguishes the app
+   shell from generic card layouts without competing with page content. */
+.app-surface {
+  position: relative;
+  isolation: isolate;
+  background-image:
+    radial-gradient(circle at 96% 0%, oklch(0.62 0.19 250 / 0.08), transparent 28rem),
+    linear-gradient(to right, oklch(0 0 0 / 0.018) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0 0 0 / 0.018) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
+}
+
+/* Shared visual tokens for operational surfaces and motion. */
+.app-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.25rem;
+}
+
+.app-page-description {
+  max-width: 62ch;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.app-surface-card {
+  border: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+  border-radius: var(--radius-xl);
+  background: color-mix(in oklab, var(--card) 94%, transparent);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.03);
+}
+
+.motion-enter {
+  animation: app-enter 360ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+@keyframes app-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-enter { animation: none; }
+}
+
+.app-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.dark .app-surface {
+  background-image:
+    radial-gradient(circle at 96% 0%, oklch(0.7 0.2 250 / 0.1), transparent 28rem),
+    linear-gradient(to right, oklch(1 0 0 / 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(1 0 0 / 0.025) 1px, transparent 1px);
+}
+
 /* CRT scanline overlay */
 .crt-effect::after {
   content: "";
