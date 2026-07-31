@@ -1,25 +1,23 @@
-import logger from "@backend/utils/logger.js";
-import { Policy } from "@backend/types/Policy.js";
-import { PolicyService, sharedPolicyService } from "@backend/services/governance/PolicyService.js";
-import { PolicyEnforcementService } from "@backend/services/governance/PolicyEnforcementService.js";
-import { CreRunRecorder } from "@backend/cre/runRecorder.js";
-import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
-import { enrichCreRunEvidence } from "@backend/shared/utils/evidence.js";
-import { AgentAction } from "@backend/types/Agent.js";
-import { ethers } from "ethers";
+import logger from '@backend/utils/logger.js';
+import { Policy } from '@backend/types/Policy.js';
+import { PolicyService, sharedPolicyService } from '@backend/services/governance/PolicyService.js';
+import { PolicyEnforcementService } from '@backend/services/governance/PolicyEnforcementService.js';
+import { CreRunRecorder } from '@backend/cre/runRecorder.js';
+import { creRunStore } from '@backend/cre/storage/CreRunStore.js';
+import { enrichCreRunEvidence } from '@backend/shared/utils/evidence.js';
+import { AgentAction } from '@backend/types/Agent.js';
+import { ethers } from 'ethers';
+import { owsLocalVaultService, OwsResolvedAccess } from './OwsLocalVaultService.js';
+import { ledgerSigningProvider } from '@backend/signing/LedgerSigningProvider.js';
+import { FhenixPolicyService, sharedFhenixPolicyService } from './FhenixPolicyService.js';
+import { OwsWalletPolicyEvaluator } from './OwsWalletPolicy.js';
+import { OwsWalletOnChainManager } from './OwsWalletOnChain.js';
+import { blockchainConfig } from '@backend/shared/config/index.js';
+import { keeperHubExecutionProvider } from './KeeperHubExecutionProvider.js';
 import {
-  owsLocalVaultService,
-  OwsResolvedAccess,
-} from "./OwsLocalVaultService.js";
-import { ledgerSigningProvider } from "@backend/signing/LedgerSigningProvider.js";
-import {
-  FhenixPolicyService,
-  sharedFhenixPolicyService,
-} from "./FhenixPolicyService.js";
-import { OwsWalletPolicyEvaluator } from "./OwsWalletPolicy.js";
-import { OwsWalletOnChainManager } from "./OwsWalletOnChain.js";
-import { blockchainConfig } from "@backend/shared/config/index.js";
-import { keeperHubExecutionProvider } from "./KeeperHubExecutionProvider.js";
+  sourceAwareSpendAuthorizationService,
+  SpendSourceProvenance,
+} from '@backend/services/governance/SourceAwareSpendAuthorization.js';
 
 export interface SpendIntent {
   id: string;
@@ -35,7 +33,7 @@ export interface SpendIntent {
 export interface ExecutionResult {
   intentId: string;
   runId?: string;
-  status: "approved" | "held" | "denied";
+  status: 'approved' | 'held' | 'denied';
   policyId?: string;
   walletId?: string;
   walletAddress?: string;
@@ -57,7 +55,7 @@ export interface ExecutionResult {
    * because it conflated "approved" with "on-chain recorded" and was the
    * single most dangerous line in the spend path for credibility.
    */
-  onChainStatus?: "recorded" | "failed" | "skipped";
+  onChainStatus?: 'recorded' | 'failed' | 'skipped';
   /**
    * Real on-chain value transfer result (native gas token), separate from the
    * governance approval record above.
@@ -70,7 +68,7 @@ export interface ExecutionResult {
    * NOT moved money. Never fabricate transferTxHash on failure.
    */
   transferTxHash?: string;
-  transferStatus?: "sent" | "failed" | "skipped";
+  transferStatus?: 'sent' | 'failed' | 'skipped';
   transferError?: string;
   /**
    * Independent reconciliation of the recorded transferTxHash against the
@@ -85,7 +83,7 @@ export interface ExecutionResult {
 }
 
 export interface ReceiptVerification {
-  outcome: "verified" | "mismatch" | "unverified";
+  outcome: 'verified' | 'mismatch' | 'unverified';
   checks?: {
     receiptStatusOk: boolean;
     recipientMatches: boolean;
@@ -101,6 +99,9 @@ export interface SpendExecutionContext {
   confidential?: boolean;
   encryptedAmount?: string;
   vendorHash?: string;
+  /** Raw, short-lived authorization supplied for this request only. It is
+   * validated into audit-safe evidence and is never persisted in the run. */
+  sourceAuthorizationToken?: string;
 }
 
 export class OwsWalletService {
@@ -110,10 +111,7 @@ export class OwsWalletService {
   private policyEvaluator: OwsWalletPolicyEvaluator;
   onChainManager: OwsWalletOnChainManager;
 
-  constructor(
-    policyService?: PolicyService,
-    fhenixPolicyService?: FhenixPolicyService,
-  ) {
+  constructor(policyService?: PolicyService, fhenixPolicyService?: FhenixPolicyService) {
     this.policyService = policyService || sharedPolicyService;
     this.fhenixPolicyService = fhenixPolicyService || sharedFhenixPolicyService;
     this.policyEnforcement = new PolicyEnforcementService(
@@ -124,10 +122,7 @@ export class OwsWalletService {
     this.onChainManager = new OwsWalletOnChainManager();
   }
 
-  public async issueAuditPermit(
-    auditor: string,
-    policyId: string,
-  ): Promise<string> {
+  public async issueAuditPermit(auditor: string, policyId: string): Promise<string> {
     return this.fhenixPolicyService.issueAuditPermit(auditor, policyId);
   }
 
@@ -135,13 +130,8 @@ export class OwsWalletService {
     await owsLocalVaultService.ensureBootstrapWallet();
   }
 
-  public async getScopedAccess(
-    agentId: string,
-    scope: string[],
-  ): Promise<boolean> {
-    logger.info(
-      `Requesting scoped access for agent ${agentId}: ${scope.join(", ")}`,
-    );
+  public async getScopedAccess(agentId: string, scope: string[]): Promise<boolean> {
+    logger.info(`Requesting scoped access for agent ${agentId}: ${scope.join(', ')}`);
     const wallets = await owsLocalVaultService.listWallets();
     if (wallets.length === 0) {
       await owsLocalVaultService.ensureBootstrapWallet();
@@ -155,21 +145,44 @@ export class OwsWalletService {
   ): Promise<ExecutionResult> {
     const access = await this.resolveAccess(intent, context);
     const recorder = new CreRunRecorder({
-      workflow: "spend",
-      mode: access ? "cre" : "local",
+      workflow: 'spend',
+      mode: access ? 'cre' : 'local',
     });
 
     try {
-      logger.info(
-        `SpendOS: Evaluating intent ${intent.id} from agent ${intent.agentId}`,
-      );
+      logger.info(`SpendOS: Evaluating intent ${intent.id} from agent ${intent.agentId}`);
+
+      const sourceAuthorization = sourceAwareSpendAuthorizationService.evaluate({
+        agentId: intent.agentId,
+        recipient: intent.recipient,
+        amount: intent.amount,
+        asset: intent.asset,
+        reason: intent.reason,
+        provenance: intent.metadata?.sourceProvenance as SpendSourceProvenance | undefined,
+        token: context.sourceAuthorizationToken,
+        consume: true,
+      });
+      intent.metadata = {
+        ...(intent.metadata || {}),
+        sourceAuthorization,
+      };
 
       await recorder.addArtifact({
-        type: "spend_intent",
+        type: 'spend_intent',
         data: intent,
       });
 
-      const step = recorder.startStep("compute", "policy_evaluation", {
+      if (!sourceAuthorization.authorized) {
+        return await this.handleHold(
+          intent,
+          recorder,
+          sourceAuthorization.reason || 'Source-aware authorization is required.',
+          'source-aware-authorization',
+          access,
+        );
+      }
+
+      const step = recorder.startStep('compute', 'policy_evaluation', {
         intent,
       });
 
@@ -177,25 +190,21 @@ export class OwsWalletService {
       const activePolicy = await this.policyEvaluator.resolveActiveSpendPolicy(
         this.policyService,
         access?.apiKey?.policyIds?.[0] ||
-          (typeof intent.metadata?.policyId === "string"
-            ? intent.metadata.policyId
-            : undefined),
+          (typeof intent.metadata?.policyId === 'string' ? intent.metadata.policyId : undefined),
       );
       if (!activePolicy) {
-        step.end({ ok: false, summary: "No active spend policy available" });
+        step.end({ ok: false, summary: 'No active spend policy available' });
         return await this.handleHold(
           intent,
           recorder,
-          "No active spend policy is available. Held for manual review.",
+          'No active spend policy is available. Held for manual review.',
           undefined,
           access,
         );
       }
 
-      let policyChecks: AgentAction["policyChecks"] = [];
-      let policyDecision:
-        | { status: ExecutionResult["status"]; reason?: string }
-        | undefined;
+      let policyChecks: AgentAction['policyChecks'] = [];
+      let policyDecision: { status: ExecutionResult['status']; reason?: string } | undefined;
       try {
         const evaluated = await this.policyEvaluator.evaluatePolicyChecks(
           intent,
@@ -208,10 +217,8 @@ export class OwsWalletService {
         policyChecks = evaluated.policyChecks;
         policyDecision = evaluated.decision;
       } catch (e) {
-        step.end({ ok: false, summary: "Policy evaluation failed" });
-        logger.warn(
-          `Policy evaluation failed: ${e instanceof Error ? e.message : "unknown"}`,
-        );
+        step.end({ ok: false, summary: 'Policy evaluation failed' });
+        logger.warn(`Policy evaluation failed: ${e instanceof Error ? e.message : 'unknown'}`);
         return await this.handleHold(
           intent,
           recorder,
@@ -225,9 +232,9 @@ export class OwsWalletService {
         policyDecision || this.policyEvaluator.classifyDecision(activePolicy, policyChecks);
       const failedChecks = policyChecks.filter((check) => !check.result);
       step.end({
-        ok: decision.status === "approved",
+        ok: decision.status === 'approved',
         summary:
-          decision.status === "approved"
+          decision.status === 'approved'
             ? `Policy ${activePolicy.id} approved spend`
             : decision.reason || `Policy ${activePolicy.id} blocked spend`,
         details: {
@@ -239,22 +246,22 @@ export class OwsWalletService {
         },
       });
 
-      if (decision.status === "denied") {
+      if (decision.status === 'denied') {
         return await this.handleDeny(
           intent,
           recorder,
-          decision.reason || "Policy violation",
+          decision.reason || 'Policy violation',
           policyChecks,
           activePolicy.id,
           access,
         );
       }
 
-      if (decision.status === "held") {
+      if (decision.status === 'held') {
         return await this.handleHold(
           intent,
           recorder,
-          decision.reason || "Spend requires manual review.",
+          decision.reason || 'Spend requires manual review.',
           activePolicy.id,
           access,
         );
@@ -268,14 +275,13 @@ export class OwsWalletService {
         context.apiKeyToken,
       );
     } catch (error) {
-      const errMsg =
-        error instanceof Error ? error.message : "Unknown execution error";
+      const errMsg = error instanceof Error ? error.message : 'Unknown execution error';
       logger.error(`SpendOS execution failed: ${errMsg}`);
       await recorder.finish(false);
       await this.persistRun(recorder);
       return {
         intentId: intent.id,
-        status: "denied",
+        status: 'denied',
         error: errMsg,
       };
     }
@@ -288,14 +294,14 @@ export class OwsWalletService {
     access?: OwsResolvedAccess | null,
     apiKeyToken?: string | null,
   ): Promise<ExecutionResult> {
-    const s = recorder.startStep("evm_write", "wallet_sign_and_broadcast");
+    const s = recorder.startStep('evm_write', 'wallet_sign_and_broadcast');
 
     if (!access) {
-      s.end({ ok: false, summary: "Wallet unavailable for signing" });
+      s.end({ ok: false, summary: 'Wallet unavailable for signing' });
       return await this.handleHold(
         intent,
         recorder,
-        "Wallet access is not authorized. Spend held until a valid OWS API key is provided.",
+        'Wallet access is not authorized. Spend held until a valid OWS API key is provided.',
         policyId,
         access,
       );
@@ -319,11 +325,11 @@ export class OwsWalletService {
     let signer: string;
 
     const metadata = access.wallet.metadata || {};
-    const provider = (metadata.signingProvider as string) ||
-      (metadata.externalSource ? "ows_remote" : "local");
+    const provider =
+      (metadata.signingProvider as string) || (metadata.externalSource ? 'ows_remote' : 'local');
 
     switch (provider) {
-      case "ledger": {
+      case 'ledger': {
         try {
           const result = await ledgerSigningProvider.sign({
             walletId: access.wallet.id,
@@ -332,16 +338,13 @@ export class OwsWalletService {
           signature = result.signature;
           signer = result.signer;
         } catch (error) {
-          s.end({ ok: false, summary: "Ledger hardware signing failed" });
-          const message =
-            error instanceof Error
-              ? error.message
-              : "Unknown Ledger error";
+          s.end({ ok: false, summary: 'Ledger hardware signing failed' });
+          const message = error instanceof Error ? error.message : 'Unknown Ledger error';
           return await this.handleHold(
             intent,
             recorder,
             `Ledger signing failed: ${message}. ` +
-              "Connect and unlock your Ledger device, open the Ethereum app, and try again.",
+              'Connect and unlock your Ledger device, open the Ethereum app, and try again.',
             policyId,
             access,
           );
@@ -349,20 +352,19 @@ export class OwsWalletService {
         break;
       }
 
-      case "speculos":
-      case "ows_remote": {
-        const externalResult =
-          await owsLocalVaultService.signWithExternalWallet({
-            walletId: access.wallet.id,
-            message: payload,
-          });
+      case 'speculos':
+      case 'ows_remote': {
+        const externalResult = await owsLocalVaultService.signWithExternalWallet({
+          walletId: access.wallet.id,
+          message: payload,
+        });
 
         if (!externalResult) {
-          s.end({ ok: false, summary: "External wallet signing failed" });
+          s.end({ ok: false, summary: 'External wallet signing failed' });
           return await this.handleHold(
             intent,
             recorder,
-            "External wallet signing failed. Spend held for manual review.",
+            'External wallet signing failed. Spend held for manual review.',
             policyId,
             access,
           );
@@ -389,7 +391,7 @@ export class OwsWalletService {
     try {
       valueWei = BigInt(intent.amount);
     } catch {
-      s.end({ ok: false, summary: "Invalid spend amount" });
+      s.end({ ok: false, summary: 'Invalid spend amount' });
       return await this.handleHold(
         intent,
         recorder,
@@ -399,7 +401,7 @@ export class OwsWalletService {
       );
     }
     if (valueWei <= 0n) {
-      s.end({ ok: false, summary: "Non-positive spend amount" });
+      s.end({ ok: false, summary: 'Non-positive spend amount' });
       return await this.handleHold(
         intent,
         recorder,
@@ -433,7 +435,9 @@ export class OwsWalletService {
   private async finalizeApprovedSpend(params: {
     intent: SpendIntent;
     recorder: CreRunRecorder;
-    step: { end: (p: { ok: boolean; summary?: string; details?: Record<string, unknown> }) => void };
+    step: {
+      end: (p: { ok: boolean; summary?: string; details?: Record<string, unknown> }) => void;
+    };
     policyId: string;
     access: OwsResolvedAccess;
     signer: string;
@@ -460,17 +464,19 @@ export class OwsWalletService {
     // Broadcast the real native value transfer FROM the scoped wallet.
     // If the wallet is configured to use KeeperHub, route the broadcast
     // through KeeperHub's managed execution layer instead of a local RPC.
-    const executionProvider = (access.wallet.metadata?.executionProvider as string) || "local";
+    const executionProvider = (access.wallet.metadata?.executionProvider as string) || 'local';
     const rawChainId = access.wallet.metadata?.chainId;
     const walletChainId =
-      typeof rawChainId === "number"
+      typeof rawChainId === 'number'
         ? rawChainId
-        : typeof rawChainId === "string"
+        : typeof rawChainId === 'string'
           ? Number(rawChainId)
           : blockchainConfig.chainId;
-    const keeperHubWalletAddress = access.wallet.metadata?.keeperHubWalletAddress as string | undefined;
+    const keeperHubWalletAddress = access.wallet.metadata?.keeperHubWalletAddress as
+      | string
+      | undefined;
     const transfer =
-      executionProvider === "keeperhub"
+      executionProvider === 'keeperhub'
         ? await keeperHubExecutionProvider.executeTransfer({
             intentId: intent.id,
             from: keeperHubWalletAddress || access.wallet.accounts[0]?.address || signer,
@@ -491,26 +497,23 @@ export class OwsWalletService {
     // Never fabricate transferTxHash on failure (same fail-loud contract as
     // onChainStatus). A failed transfer with status=approved is a PARTIAL
     // success, not moved money — callers must surface it.
-    const transferTxHash =
-      "txHash" in transfer ? transfer.txHash : undefined;
-    const transferStatus: "sent" | "failed" =
-      "txHash" in transfer ? "sent" : "failed";
-    const transferError =
-      "error" in transfer ? transfer.error : undefined;
+    const transferTxHash = 'txHash' in transfer ? transfer.txHash : undefined;
+    const transferStatus: 'sent' | 'failed' = 'txHash' in transfer ? 'sent' : 'failed';
+    const transferError = 'error' in transfer ? transfer.error : undefined;
 
     // Reconcile the claimed txHash against the actual chain receipt. The
     // executor's return value is treated as a claim; the audit record
     // carries the independent verification outcome.
     let receiptVerification: ReceiptVerification;
-    if (transferStatus !== "sent" || !transferTxHash) {
+    if (transferStatus !== 'sent' || !transferTxHash) {
       receiptVerification = {
-        outcome: "unverified",
-        reason: "no broadcast to verify",
+        outcome: 'unverified',
+        reason: 'no broadcast to verify',
       };
-    } else if (executionProvider === "keeperhub") {
+    } else if (executionProvider === 'keeperhub') {
       receiptVerification = {
-        outcome: "unverified",
-        reason: "keeperhub-managed broadcast; no local RPC receipt check",
+        outcome: 'unverified',
+        reason: 'keeperhub-managed broadcast; no local RPC receipt check',
       };
     } else {
       receiptVerification = await this.verifyTransferReceipt(
@@ -518,7 +521,7 @@ export class OwsWalletService {
         intent.recipient,
         valueWei,
       );
-      if (receiptVerification.outcome === "mismatch") {
+      if (receiptVerification.outcome === 'mismatch') {
         logger.error(
           `Receipt mismatch for spend ${intent.id} (tx ${transferTxHash}): ${JSON.stringify(receiptVerification.checks)}`,
         );
@@ -526,7 +529,7 @@ export class OwsWalletService {
     }
 
     await recorder.addArtifact({
-      type: "receipt_verification",
+      type: 'receipt_verification',
       data: {
         intentId: intent.id,
         transferTxHash,
@@ -540,17 +543,15 @@ export class OwsWalletService {
     const onChain = await this.onChainManager.recordOnChainApproval({
       intentId: intent.id,
       agentId: intent.agentId,
-      actionType: "spend",
+      actionType: 'spend',
       metadata: intent.metadata || {},
     });
     const txHash = onChain.success ? onChain.txHash : undefined;
     const onChainDataHash = onChain.success ? onChain.dataHash : undefined;
-    const onChainStatus: "recorded" | "failed" = onChain.success
-      ? "recorded"
-      : "failed";
+    const onChainStatus: 'recorded' | 'failed' = onChain.success ? 'recorded' : 'failed';
 
     await recorder.addArtifact({
-      type: "attestation_result",
+      type: 'attestation_result',
       data: {
         signingProvider,
         executionProvider,
@@ -566,26 +567,26 @@ export class OwsWalletService {
         walletId: access.wallet.id,
         walletAddress: signer,
         apiKeyId: access.apiKey?.id,
-        status: "approved",
+        status: 'approved',
         onChainStatus,
         onChainDataHash,
       },
     });
 
     s.end({
-      ok: transferStatus === "sent",
+      ok: transferStatus === 'sent',
       summary:
-        transferStatus === "sent"
+        transferStatus === 'sent'
           ? `Transfer broadcast: ${transferTxHash}`
           : `Transfer failed: ${transferError}`,
     });
-    await recorder.finish(transferStatus === "sent");
+    await recorder.finish(transferStatus === 'sent');
     const run = await this.persistRun(recorder);
 
     return {
       intentId: intent.id,
       runId: run.runId,
-      status: "approved",
+      status: 'approved',
       policyId,
       walletId: access.wallet.id,
       walletAddress: signer,
@@ -618,10 +619,7 @@ export class OwsWalletService {
   // Multi-process deployments still need an external lock (Redis, DB advisory).
   private resumeLocks = new Map<string, Promise<unknown>>();
 
-  public async resumeHeldSpend(
-    runId: string,
-    operatorId: string,
-  ): Promise<ExecutionResult> {
+  public async resumeHeldSpend(runId: string, operatorId: string): Promise<ExecutionResult> {
     const prior = this.resumeLocks.get(runId);
     if (prior) {
       await prior.catch(() => undefined);
@@ -641,67 +639,57 @@ export class OwsWalletService {
     }
   }
 
-  private async resumeHeldSpendInner(
-    runId: string,
-    operatorId: string,
-  ): Promise<ExecutionResult> {
+  private async resumeHeldSpendInner(runId: string, operatorId: string): Promise<ExecutionResult> {
     const heldRun = await creRunStore.get(runId);
     if (!heldRun) {
-      return { intentId: runId, status: "denied", error: "Run not found" };
+      return { intentId: runId, status: 'denied', error: 'Run not found' };
     }
-    if (heldRun.workflow !== "spend") {
+    if (heldRun.workflow !== 'spend') {
       return {
         intentId: runId,
-        status: "denied",
+        status: 'denied',
         error: `Run ${runId} is not a spend workflow`,
       };
     }
-    if (heldRun.status !== "paused_for_approval") {
+    if (heldRun.status !== 'paused_for_approval') {
       return {
         intentId: runId,
-        status: "denied",
+        status: 'denied',
         error: `Run ${runId} is not awaiting approval (status: ${heldRun.status})`,
       };
     }
 
-    const intentArtifact = heldRun.artifacts.find(
-      (a) => a.type === "spend_intent",
-    );
+    const intentArtifact = heldRun.artifacts.find((a) => a.type === 'spend_intent');
     const intent = intentArtifact?.data as SpendIntent | undefined;
     if (!intent || !intent.id) {
       return {
         intentId: runId,
-        status: "denied",
-        error: "Held run has no spend_intent artifact to resume",
+        status: 'denied',
+        error: 'Held run has no spend_intent artifact to resume',
       };
     }
 
     // handleHold persisted walletId/policyId on the "error" (held) artifact.
-    const heldArtifact = heldRun.artifacts.find((a) => a.type === "error");
+    const heldArtifact = heldRun.artifacts.find((a) => a.type === 'error');
     const heldData = (heldArtifact?.data as Record<string, unknown>) || {};
     const walletId =
-      (typeof heldData.walletId === "string" ? heldData.walletId : undefined) ||
-      (typeof intent.metadata?.walletId === "string"
-        ? intent.metadata.walletId
-        : undefined);
-    const policyId =
-      typeof heldData.policyId === "string" ? heldData.policyId : "unknown";
+      (typeof heldData.walletId === 'string' ? heldData.walletId : undefined) ||
+      (typeof intent.metadata?.walletId === 'string' ? intent.metadata.walletId : undefined);
+    const policyId = typeof heldData.policyId === 'string' ? heldData.policyId : 'unknown';
 
     if (!walletId) {
       return {
         intentId: intent.id,
-        status: "denied",
-        error: "Held run has no wallet bound; cannot resume",
+        status: 'denied',
+        error: 'Held run has no wallet bound; cannot resume',
       };
     }
 
-    const wallet = (await owsLocalVaultService.listWallets()).find(
-      (w) => w.id === walletId,
-    );
+    const wallet = (await owsLocalVaultService.listWallets()).find((w) => w.id === walletId);
     if (!wallet) {
       return {
         intentId: intent.id,
-        status: "denied",
+        status: 'denied',
         error: `Wallet ${walletId} no longer exists in the vault`,
       };
     }
@@ -713,14 +701,14 @@ export class OwsWalletService {
     } catch {
       return {
         intentId: intent.id,
-        status: "denied",
+        status: 'denied',
         error: `Spend amount "${intent.amount}" is not a valid integer (wei)`,
       };
     }
     if (valueWei <= 0n) {
       return {
         intentId: intent.id,
-        status: "denied",
+        status: 'denied',
         error: `Spend amount must be positive (got ${valueWei} wei)`,
       };
     }
@@ -731,22 +719,20 @@ export class OwsWalletService {
     // resumeLocks gate above is the primary defense; this is belt + braces.
     const claimed = {
       ...heldRun,
-      status: "running" as const,
+      status: 'running' as const,
       finishedAt: undefined,
     };
     await creRunStore.replace(claimed);
 
-    const recorder = new CreRunRecorder({ workflow: "spend", mode: "cre" });
+    const recorder = new CreRunRecorder({ workflow: 'spend', mode: 'cre' });
     recorder.getRun().parentRunId = runId;
-    await recorder.addArtifact({ type: "spend_intent", data: intent });
-    const s = recorder.startStep("evm_write", "wallet_sign_and_broadcast", {
+    await recorder.addArtifact({ type: 'spend_intent', data: intent });
+    const s = recorder.startStep('evm_write', 'wallet_sign_and_broadcast', {
       resumedFrom: runId,
       operatorId,
     });
 
-    logger.info(
-      `Operator ${operatorId} resuming held spend ${intent.id} (run ${runId})`,
-    );
+    logger.info(`Operator ${operatorId} resuming held spend ${intent.id} (run ${runId})`);
 
     const result = await this.finalizeApprovedSpend({
       intent,
@@ -756,7 +742,7 @@ export class OwsWalletService {
       access,
       signer: wallet.accounts[0]?.address || walletId,
       signature: undefined,
-      signingProvider: "operator",
+      signingProvider: 'operator',
       valueWei,
       apiKeyToken: null,
       operatorApproved: true,
@@ -765,10 +751,10 @@ export class OwsWalletService {
     // Roll back the claim on failure so the held run is retryable. The
     // transfer didn't move money, so the run is still "needs approval" —
     // leaving it at "running" would cause the next attempt to deny.
-    if (result.transferStatus !== "sent") {
+    if (result.transferStatus !== 'sent') {
       const rolledBack = {
         ...heldRun,
-        status: "paused_for_approval" as const,
+        status: 'paused_for_approval' as const,
         finishedAt: undefined,
       };
       await creRunStore.replace(rolledBack);
@@ -792,28 +778,26 @@ export class OwsWalletService {
       const receipt = await provider.waitForTransaction(txHash, 1, 10_000);
       if (!receipt) {
         return {
-          outcome: "unverified",
-          reason: "no receipt within 10s of broadcast",
+          outcome: 'unverified',
+          reason: 'no receipt within 10s of broadcast',
         };
       }
       const tx = await provider.getTransaction(txHash);
       const checks = {
         receiptStatusOk: receipt.status === 1,
-        recipientMatches:
-          (tx?.to || "").toLowerCase() === expectedRecipient.toLowerCase(),
+        recipientMatches: (tx?.to || '').toLowerCase() === expectedRecipient.toLowerCase(),
         valueMatches: tx ? tx.value === expectedValueWei : false,
       };
-      const ok =
-        checks.receiptStatusOk && checks.recipientMatches && checks.valueMatches;
+      const ok = checks.receiptStatusOk && checks.recipientMatches && checks.valueMatches;
       return {
-        outcome: ok ? "verified" : "mismatch",
+        outcome: ok ? 'verified' : 'mismatch',
         checks,
         blockNumber: receipt.blockNumber,
       };
     } catch (error) {
       return {
-        outcome: "unverified",
-        reason: `receipt fetch failed: ${error instanceof Error ? error.message : "unknown"}`,
+        outcome: 'unverified',
+        reason: `receipt fetch failed: ${error instanceof Error ? error.message : 'unknown'}`,
       };
     }
   }
@@ -826,10 +810,10 @@ export class OwsWalletService {
     access?: OwsResolvedAccess | null,
   ): Promise<ExecutionResult> {
     await recorder.addArtifact({
-      type: "error",
+      type: 'error',
       data: {
         intentId: intent.id,
-        status: "held",
+        status: 'held',
         reason,
         policyId,
         walletId: access?.wallet.id,
@@ -838,7 +822,7 @@ export class OwsWalletService {
       },
     });
 
-    await recorder.pauseForApproval(reason, "wallet_sign_and_broadcast", {
+    await recorder.pauseForApproval(reason, 'wallet_sign_and_broadcast', {
       intentId: intent.id,
       policyId,
     });
@@ -847,7 +831,7 @@ export class OwsWalletService {
     return {
       intentId: intent.id,
       runId: run.runId,
-      status: "held",
+      status: 'held',
       policyId,
       walletId: access?.wallet.id,
       walletAddress: access?.wallet.accounts[0]?.address,
@@ -860,15 +844,15 @@ export class OwsWalletService {
     intent: SpendIntent,
     recorder: CreRunRecorder,
     reason: string,
-    checks: AgentAction["policyChecks"],
+    checks: AgentAction['policyChecks'],
     policyId?: string,
     access?: OwsResolvedAccess | null,
   ): Promise<ExecutionResult> {
     await recorder.addArtifact({
-      type: "error",
+      type: 'error',
       data: {
         intentId: intent.id,
-        status: "denied",
+        status: 'denied',
         reason,
         policyId,
         walletId: access?.wallet.id,
@@ -884,7 +868,7 @@ export class OwsWalletService {
     return {
       intentId: intent.id,
       runId: run.runId,
-      status: "denied",
+      status: 'denied',
       policyId,
       walletId: access?.wallet.id,
       walletAddress: access?.wallet.accounts[0]?.address,
@@ -898,8 +882,8 @@ export class OwsWalletService {
     const vaultStatus = await owsLocalVaultService.getStatus();
     const activePolicy = await this.policyEvaluator.resolveActiveSpendPolicy(this.policyService);
     return {
-      layer: "SpendOS",
-      status: vaultStatus.walletCount > 0 ? "active" : "unconfigured",
+      layer: 'SpendOS',
+      status: vaultStatus.walletCount > 0 ? 'active' : 'unconfigured',
       provider: vaultStatus.provider,
       walletConnected: vaultStatus.walletCount > 0,
       walletAddress: vaultStatus.wallets[0]?.accounts[0]?.address || null,
@@ -908,19 +892,22 @@ export class OwsWalletService {
       activePolicyId: activePolicy?.id || null,
       activePolicyName: activePolicy?.name || null,
       features: [
-        "encrypted-local-wallet-storage",
-        "delegated-api-keys",
-        "pre-sign-policies",
-        "held-action-review",
-        "scoped-access",
-        "run-ledger-persistence",
+        'encrypted-local-wallet-storage',
+        'delegated-api-keys',
+        'pre-sign-policies',
+        'held-action-review',
+        'scoped-access',
+        'run-ledger-persistence',
       ],
     };
   }
 
-  public async previewSpend(intent: SpendIntent): Promise<{
+  public async previewSpend(
+    intent: SpendIntent,
+    context: SpendExecutionContext = {},
+  ): Promise<{
     intentId: string;
-    status: "approved" | "denied" | "held";
+    status: 'approved' | 'denied' | 'held';
     policyId?: string;
     reason?: string;
     simulation: {
@@ -930,25 +917,44 @@ export class OwsWalletService {
     };
   }> {
     const access = await this.resolveAccess(intent, {
-      apiKeyToken: intent.metadata?.apiKeyToken as string | undefined,
+      apiKeyToken: context.apiKeyToken || (intent.metadata?.apiKeyToken as string | undefined),
     });
+
+    const sourceAuthorization = sourceAwareSpendAuthorizationService.evaluate({
+      agentId: intent.agentId,
+      recipient: intent.recipient,
+      amount: intent.amount,
+      asset: intent.asset,
+      reason: intent.reason,
+      provenance: intent.metadata?.sourceProvenance as SpendSourceProvenance | undefined,
+      token: context.sourceAuthorizationToken,
+    });
+    if (!sourceAuthorization.authorized) {
+      return {
+        intentId: intent.id,
+        status: 'held',
+        reason: sourceAuthorization.reason,
+        simulation: {
+          wouldExecute: false,
+          warnings: [sourceAuthorization.reason || 'Source-aware authorization is required.'],
+        },
+      };
+    }
 
     const activePolicy = await this.policyEvaluator.resolveActiveSpendPolicy(
       this.policyService,
       access?.apiKey?.policyIds?.[0] ||
-        (typeof intent.metadata?.policyId === "string"
-          ? intent.metadata.policyId
-          : undefined),
+        (typeof intent.metadata?.policyId === 'string' ? intent.metadata.policyId : undefined),
     );
 
     if (!activePolicy) {
       return {
         intentId: intent.id,
-        status: "held",
-        reason: "No active spend policy available",
+        status: 'held',
+        reason: 'No active spend policy available',
         simulation: {
           wouldExecute: false,
-          warnings: ["No policy configured - spend would be held for review"],
+          warnings: ['No policy configured - spend would be held for review'],
         },
       };
     }
@@ -962,13 +968,11 @@ export class OwsWalletService {
         apiKeyToken: intent.metadata?.apiKeyToken as string | undefined,
         confidential: intent.metadata?.confidentialPolicy === true,
         encryptedAmount:
-          typeof intent.metadata?.encryptedAmount === "string"
+          typeof intent.metadata?.encryptedAmount === 'string'
             ? intent.metadata.encryptedAmount
             : undefined,
         vendorHash:
-          typeof intent.metadata?.vendorHash === "string"
-            ? intent.metadata.vendorHash
-            : undefined,
+          typeof intent.metadata?.vendorHash === 'string' ? intent.metadata.vendorHash : undefined,
       },
       this.policyEnforcement,
       this.fhenixPolicyService,
@@ -983,8 +987,8 @@ export class OwsWalletService {
       policyId: activePolicy.id,
       reason: policyResult.reason,
       simulation: {
-        wouldExecute: policyResult.status === "approved",
-        gasEstimate: policyResult.status === "approved" ? "21000" : undefined,
+        wouldExecute: policyResult.status === 'approved',
+        gasEstimate: policyResult.status === 'approved' ? '21000' : undefined,
         warnings: evaluated.policyChecks
           .filter((c) => !c.result)
           .map((c) => c.reason || `Policy check failed`),
@@ -1021,23 +1025,17 @@ export class OwsWalletService {
         txHash: result.txHash,
       };
     } catch (error) {
-      const errMsg =
-        error instanceof Error ? error.message : "DeFi execution failed";
+      const errMsg = error instanceof Error ? error.message : 'DeFi execution failed';
       logger.error(`DeFi action failed: ${errMsg}`);
       return { success: false, error: errMsg };
     }
   }
 
-  private async resolveAccess(
-    intent: SpendIntent,
-    context: SpendExecutionContext,
-  ) {
+  private async resolveAccess(intent: SpendIntent, context: SpendExecutionContext) {
     return owsLocalVaultService.resolveAccess({
       walletId:
         context.walletId ||
-        (typeof intent.metadata?.walletId === "string"
-          ? intent.metadata.walletId
-          : undefined),
+        (typeof intent.metadata?.walletId === 'string' ? intent.metadata.walletId : undefined),
       apiKeyToken: context.apiKeyToken,
     });
   }

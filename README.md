@@ -32,28 +32,29 @@ For local setup, API reference, and production deployment, see the [Developer Gu
 
 ## Documentation
 
-| Doc | What's in it |
-|-----|--------------|
-| [Architecture](./docs/ARCHITECTURE.md) | System design, data flows, Fhenix / Canton / ChainGPT / Ledger integrations |
-| [Canton](./docs/CANTON.md) | Daml sealed-bid model, hydration, sandbox + DevNet runbooks |
-| [Canton DevNet materials](./docs/HACKCANTON_DEVNET_MATERIALS.md) | Endpoints, auth, allocated parties, Daml user id |
-| [Canton final submission runbook](./docs/FINAL_SUBMISSION_RUNBOOK.md) | Cutover / config that is already done for DevNet |
-| [Canton hackathon submission](./docs/HACKATHON_SUBMISSION_CANTON.md) | Track 1: Canton private RFP — enterprise framing, DevNet proof pack |
-| [SigNoz submission](./docs/HACKATHON_SUBMISSION_SIGNOZ.md) | OpenTelemetry instrumentation of the full agent governance decision tree |
+| Doc                                                                               | What's in it                                                                                                                |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| [Architecture](./docs/ARCHITECTURE.md)                                            | System design, data flows, Fhenix / Canton / ChainGPT / Ledger integrations                                                 |
+| [Canton](./docs/CANTON.md)                                                        | Daml sealed-bid model, hydration, sandbox + DevNet runbooks                                                                 |
+| [Canton DevNet materials](./docs/HACKCANTON_DEVNET_MATERIALS.md)                  | Endpoints, auth, allocated parties, Daml user id                                                                            |
+| [Canton final submission runbook](./docs/FINAL_SUBMISSION_RUNBOOK.md)             | Cutover / config that is already done for DevNet                                                                            |
+| [Canton hackathon submission](./docs/HACKATHON_SUBMISSION_CANTON.md)              | Track 1: Canton private RFP — enterprise framing, DevNet proof pack                                                         |
+| [SigNoz submission](./docs/HACKATHON_SUBMISSION_SIGNOZ.md)                        | OpenTelemetry instrumentation of the full agent governance decision tree                                                    |
 | [KeeperHub — Agents Onchain submission](./docs/HACKATHON_SUBMISSION_KEEPERHUB.md) | Sapience-driven rebalance loop through KeeperHub Direct Execution + MCP for editor agents, with a local round-trip test rig |
-| [SigNoz dashboard definitions](./docs/signoz-dashboards.json) | 3 dashboards: governance overview, LLM provider health, HTTP SLO + audit |
-| [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) | Wire the sealed-bid auction to the agent-governance layer |
-| [Agentic commerce demo runbook](./docs/AGENTIC_COMMERCE_DEMO_RUNBOOK.md) | End-to-end demo path for the agentic-commerce track |
-| [Agentic commerce demo script](./docs/demo-video-script-agent-governance.md) | Narration + timing for the agent-governance demo |
-| [Canton demo script](./docs/demo-video-script.md) | Narration + timing for the Canton sealed-bid demo |
-| [Pitch deck source](./docs/pitch-deck-source.md) | Source for the open-house / pitch deck |
-| [Product & GTM canvas](./docs/PRODUCT_GTM_CANVAS.md) | Product Canvas + GTM Canvas — wedge, why-now, why-onchain, distribution loops |
-| [Developer guide](./docs/DEVELOPER.md) | Local setup, API reference, testing, production readiness |
-| [Deployment](./docs/DEPLOYMENT.md) | Hetzner / PM2 / nginx, env vars, health checks |
-| [Tester guide](./docs/TESTER_GUIDE.md) | 5-minute hands-on walk-through of the live product |
-| [Prava hackathon](./docs/PRAVA_HACKATHON.md) | Agents of Commerce — Cognivern as governance layer + Prava as payment execution |
-| [Agent guidance for AI / humans](./AGENTS.md) | How to verify Canton runtime state without re-diagnosing it |
-| [Iteration log](./LOOP.md) | Write-verify-fix history of the build |
+| [SigNoz dashboard definitions](./docs/signoz-dashboards.json)                     | 3 dashboards: governance overview, LLM provider health, HTTP SLO + audit                                                    |
+| [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md)  | Wire the sealed-bid auction to the agent-governance layer                                                                   |
+| [Prompt-injection controls plan](./docs/PROMPT_INJECTION_CONTROLS_PLAN.md)        | Source-aware authorization, spend enforcement, and adversarial test plan                                                    |
+| [Agentic commerce demo runbook](./docs/AGENTIC_COMMERCE_DEMO_RUNBOOK.md)          | End-to-end demo path for the agentic-commerce track                                                                         |
+| [Agentic commerce demo script](./docs/demo-video-script-agent-governance.md)      | Narration + timing for the agent-governance demo                                                                            |
+| [Canton demo script](./docs/demo-video-script.md)                                 | Narration + timing for the Canton sealed-bid demo                                                                           |
+| [Pitch deck source](./docs/pitch-deck-source.md)                                  | Source for the open-house / pitch deck                                                                                      |
+| [Product & GTM canvas](./docs/PRODUCT_GTM_CANVAS.md)                              | Product Canvas + GTM Canvas — wedge, why-now, why-onchain, distribution loops                                               |
+| [Developer guide](./docs/DEVELOPER.md)                                            | Local setup, API reference, testing, production readiness                                                                   |
+| [Deployment](./docs/DEPLOYMENT.md)                                                | Hetzner / PM2 / nginx, env vars, health checks                                                                              |
+| [Tester guide](./docs/TESTER_GUIDE.md)                                            | 5-minute hands-on walk-through of the live product                                                                          |
+| [Prava hackathon](./docs/PRAVA_HACKATHON.md)                                      | Agents of Commerce — Cognivern as governance layer + Prava as payment execution                                             |
+| [Agent guidance for AI / humans](./AGENTS.md)                                     | How to verify Canton runtime state without re-diagnosing it                                                                 |
+| [Iteration log](./LOOP.md)                                                        | Write-verify-fix history of the build                                                                                       |
 
 ## License
 

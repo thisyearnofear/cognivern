@@ -1,19 +1,20 @@
-import { Request, Response } from "express";
-import { z } from "zod";
+import { Request, Response } from 'express';
+import { z } from 'zod';
 import {
   owsWalletService,
   SpendIntent,
   SpendExecutionContext,
-} from "@backend/services/blockchain/OwsWalletService.js";
-import { sharedFhenixPolicyService } from "@backend/services/blockchain/FhenixPolicyService.js";
+} from '@backend/services/blockchain/OwsWalletService.js';
+import { sharedFhenixPolicyService } from '@backend/services/blockchain/FhenixPolicyService.js';
+import { getChainGPTAuditService, AuditResult } from '@backend/services/ai/ChainGPTAuditService.js';
+import crypto from 'node:crypto';
+import { Logger } from '@backend/shared/logging/Logger.js';
 import {
-  getChainGPTAuditService,
-  AuditResult,
-} from "@backend/services/ai/ChainGPTAuditService.js";
-import crypto from "node:crypto";
-import { Logger } from "@backend/shared/logging/Logger.js";
+  SOURCE_KINDS,
+  sourceAwareSpendAuthorizationService,
+} from '@backend/services/governance/SourceAwareSpendAuthorization.js';
 
-const logger = new Logger("SpendController");
+const logger = new Logger('SpendController');
 
 const spendIntentSchema = z.object({
   agentId: z.string().min(1),
@@ -27,6 +28,31 @@ const spendIntentSchema = z.object({
   // attestation flow was a client-side convention only.
   attestationHash: z.string().optional(),
   humanConfirmationToken: z.string().optional(),
+  sourceAuthorization: z.string().optional(),
+});
+
+const sourceProvenanceSchema = z.object({
+  sources: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        kind: z.enum(SOURCE_KINDS),
+        locator: z.string().min(1).optional(),
+        contentHash: z.string().min(1).optional(),
+      }),
+    )
+    .min(1),
+  recipientIntroducedByUntrustedSource: z.boolean().optional(),
+});
+
+const sourceAuthorizationRequestSchema = z.object({
+  agentId: z.string().min(1),
+  recipient: z.string().min(1),
+  asset: z.string().min(1),
+  maxAmount: z.string().regex(/^\d+$/),
+  reason: z.string().min(1),
+  allowedSourceKinds: z.array(z.enum(SOURCE_KINDS)).min(1),
+  expiresInSeconds: z.number().int().positive().optional(),
 });
 
 // Secret for preview→execute attestation binding. Falls back to a
@@ -34,8 +60,7 @@ const spendIntentSchema = z.object({
 // execute hit the same process; set SPEND_ATTESTATION_SECRET for
 // multi-process deployments or restart-survival).
 const attestationSecret =
-  process.env.SPEND_ATTESTATION_SECRET ||
-  crypto.randomBytes(32).toString("hex");
+  process.env.SPEND_ATTESTATION_SECRET || crypto.randomBytes(32).toString('hex');
 
 function computeAttestationHash(payload: {
   agentId: string;
@@ -44,11 +69,9 @@ function computeAttestationHash(payload: {
   asset: string;
 }): string {
   return crypto
-    .createHmac("sha256", attestationSecret)
-    .update(
-      `${payload.agentId}|${payload.recipient}|${payload.amount}|${payload.asset}`,
-    )
-    .digest("hex");
+    .createHmac('sha256', attestationSecret)
+    .update(`${payload.agentId}|${payload.recipient}|${payload.amount}|${payload.asset}`)
+    .digest('hex');
 }
 
 function verifyAttestationHash(
@@ -83,6 +106,59 @@ const demoConfidentialSpendSchema = z.object({
 });
 
 export class SpendController {
+  private validateSourceProvenance(
+    metadata: Record<string, unknown> | undefined,
+    res: Response,
+  ): boolean {
+    if (!metadata?.sourceProvenance) return true;
+    const provenance = sourceProvenanceSchema.safeParse(metadata.sourceProvenance);
+    if (provenance.success) return true;
+    res.status(400).json({
+      success: false,
+      error: 'Invalid source provenance',
+      details: provenance.error.format(),
+    });
+    return false;
+  }
+
+  /**
+   * Operator-only authorization minting. There is intentionally no agent tool
+   * for this route: the token expresses the user's payment authority, not a
+   * model-generated approval.
+   */
+  async createSourceAuthorization(req: Request, res: Response) {
+    const operatorId = (req as Request & { userId?: string }).userId;
+    if (!operatorId) {
+      res.status(401).json({
+        success: false,
+        error: 'Operator authentication is required to authorize a source-aware spend.',
+      });
+      return;
+    }
+    const parse = sourceAuthorizationRequestSchema.safeParse(req.body);
+    if (!parse.success) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid source-aware spend authorization payload',
+        details: parse.error.format(),
+      });
+      return;
+    }
+    try {
+      const authorization = sourceAwareSpendAuthorizationService.issue(parse.data, operatorId);
+      res.status(201).json({
+        success: true,
+        data: authorization,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Invalid source-aware authorization',
+      });
+    }
+  }
+
   private buildIntent(payload: z.infer<typeof spendIntentSchema>): SpendIntent {
     return {
       id: `spend_${crypto.randomUUID()}`,
@@ -107,34 +183,27 @@ export class SpendController {
     res: Response,
   ): Record<string, unknown> | null {
     const attestationProvided = Boolean(payload.attestationHash);
-    if (
-      payload.attestationHash &&
-      !verifyAttestationHash(payload.attestationHash, payload)
-    ) {
+    if (payload.attestationHash && !verifyAttestationHash(payload.attestationHash, payload)) {
       logger.warn(
         `Attestation mismatch for agent ${payload.agentId}: execution does not match any preview of this intent`,
       );
       res.status(403).json({
         success: false,
         error:
-          "Attestation hash does not match this spend intent. Re-run /api/spend/preview and pass its attestationHash unchanged.",
+          'Attestation hash does not match this spend intent. Re-run /api/spend/preview and pass its attestationHash unchanged.',
         timestamp: new Date().toISOString(),
       });
       return null;
     }
 
     const configuredToken =
-      process.env.COGNIVERN_HUMAN_CONFIRM_TOKEN ||
-      process.env.SAPIENCE_HUMAN_CONFIRM_TOKEN;
+      process.env.COGNIVERN_HUMAN_CONFIRM_TOKEN || process.env.SAPIENCE_HUMAN_CONFIRM_TOKEN;
     const token = payload.humanConfirmationToken;
     const tokenVerified = Boolean(
       token &&
         configuredToken &&
         token.length === configuredToken.length &&
-        crypto.timingSafeEqual(
-          Buffer.from(token),
-          Buffer.from(configuredToken),
-        ),
+        crypto.timingSafeEqual(Buffer.from(token), Buffer.from(configuredToken)),
     );
 
     return {
@@ -154,7 +223,7 @@ export class SpendController {
    * Returns audit result or null if not applicable
    */
   private async auditContract(recipient: string): Promise<{
-    decision: "approve" | "hold" | "deny";
+    decision: 'approve' | 'hold' | 'deny';
     audit: AuditResult;
   } | null> {
     const auditService = getChainGPTAuditService();
@@ -172,14 +241,14 @@ export class SpendController {
    * Apply audit decision to override spend status if needed
    */
   private applyAuditDecision(
-    auditResult: { decision: "approve" | "hold" | "deny" },
-    currentStatus: "approved" | "held" | "denied",
-  ): { status: "approved" | "held" | "denied"; override: boolean } {
-    if (auditResult.decision === "deny" && currentStatus === "approved") {
-      return { status: "denied", override: true };
+    auditResult: { decision: 'approve' | 'hold' | 'deny' },
+    currentStatus: 'approved' | 'held' | 'denied',
+  ): { status: 'approved' | 'held' | 'denied'; override: boolean } {
+    if (auditResult.decision === 'deny' && currentStatus === 'approved') {
+      return { status: 'denied', override: true };
     }
-    if (auditResult.decision === "hold" && currentStatus === "approved") {
-      return { status: "held", override: true };
+    if (auditResult.decision === 'hold' && currentStatus === 'approved') {
+      return { status: 'held', override: true };
     }
     return { status: currentStatus, override: false };
   }
@@ -190,16 +259,12 @@ export class SpendController {
     intent: SpendIntent,
     context: SpendExecutionContext = {},
   ) {
-    const owsScopedAccess = req.headers["x-ows-scoped-access"] as
-      | string
-      | undefined;
-    logger.debug("OWS scoped access received", {
+    const owsScopedAccess = req.headers['x-ows-scoped-access'] as string | undefined;
+    logger.debug('OWS scoped access received', {
       prefix: owsScopedAccess?.substring(0, 10),
     });
     const walletId =
-      typeof intent.metadata?.walletId === "string"
-        ? intent.metadata.walletId
-        : undefined;
+      typeof intent.metadata?.walletId === 'string' ? intent.metadata.walletId : undefined;
 
     // Run ChainGPT audit before execution
     let contractAudit = null;
@@ -214,19 +279,19 @@ export class SpendController {
           safe: auditResult.audit.safe,
           severity: auditResult.audit.severity,
           findingsCount: auditResult.audit.findings.length,
-          summary: auditService?.getAuditSummary(auditResult.audit) || "",
+          summary: auditService?.getAuditSummary(auditResult.audit) || '',
           findings: auditResult.audit.findings.slice(0, 5),
         };
 
         // Block execution if audit denies
-        if (auditResult.decision === "deny") {
+        if (auditResult.decision === 'deny') {
           logger.warn(`Spend blocked by ChainGPT audit: ${intent.recipient}`);
           res.status(403).json({
             success: false,
-            error: "Spend blocked by security audit",
+            error: 'Spend blocked by security audit',
             data: {
               intentId: intent.id,
-              status: "denied",
+              status: 'denied',
               contractAudit,
             },
             timestamp: new Date().toISOString(),
@@ -236,12 +301,12 @@ export class SpendController {
       }
     } catch (auditError) {
       const auditErr = auditError instanceof Error ? auditError : new Error(String(auditError));
-      logger.warn("ChainGPT audit failed, continuing with spend:", auditErr);
+      logger.warn('ChainGPT audit failed, continuing with spend:', auditErr);
       // The spend proceeds, but the run must show the audit never happened —
       // otherwise the absence of findings reads as a clean audit.
       contractAudit = {
         address: intent.recipient,
-        decision: "unavailable",
+        decision: 'unavailable',
         error: `audit skipped: ${auditErr.message.slice(0, 120)}`,
       };
       intent.metadata = {
@@ -275,29 +340,26 @@ export class SpendController {
       if (!parse.success) {
         res.status(400).json({
           success: false,
-          error: "Invalid spend intent payload",
+          error: 'Invalid spend intent payload',
           details: parse.error.format(),
         });
         return;
       }
+      if (!this.validateSourceProvenance(parse.data.metadata, res)) return;
 
       const bindings = this.verifyBindings(parse.data, res);
       if (!bindings) return;
 
       const intent = this.buildIntent(parse.data);
       intent.metadata = { ...(intent.metadata || {}), ...bindings };
-      await this.executeIntent(req, res, intent);
+      await this.executeIntent(req, res, intent, {
+        sourceAuthorizationToken: parse.data.sourceAuthorization,
+      });
     } catch (error) {
-      logger.error(
-        "Spend execution failed",
-        error instanceof Error ? error : undefined,
-      );
+      logger.error('Spend execution failed', error instanceof Error ? error : undefined);
       res.status(500).json({
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown spend execution error",
+        error: error instanceof Error ? error.message : 'Unknown spend execution error',
         timestamp: new Date().toISOString(),
       });
     }
@@ -313,11 +375,7 @@ export class SpendController {
     try {
       // Try demo confidential format first
       const demoParse = demoConfidentialSpendSchema.safeParse(req.body);
-      if (
-        demoParse.success &&
-        demoParse.data.policyId &&
-        demoParse.data.amountUsd !== undefined
-      ) {
+      if (demoParse.success && demoParse.data.policyId && demoParse.data.amountUsd !== undefined) {
         return await this.handleDemoConfidentialSpend(req, res, demoParse.data);
       }
 
@@ -326,11 +384,12 @@ export class SpendController {
       if (!parse.success) {
         res.status(400).json({
           success: false,
-          error: "Invalid encrypted spend payload",
+          error: 'Invalid encrypted spend payload',
           details: parse.error.format(),
         });
         return;
       }
+      if (!this.validateSourceProvenance(parse.data.metadata, res)) return;
 
       const bindings = this.verifyBindings(parse.data, res);
       if (!bindings) return;
@@ -353,18 +412,13 @@ export class SpendController {
         confidential: true,
         encryptedAmount: parse.data.encryptedAmount,
         vendorHash: parse.data.vendorHash,
+        sourceAuthorizationToken: parse.data.sourceAuthorization,
       });
     } catch (error) {
-      logger.error(
-        "Encrypted spend execution failed",
-        error instanceof Error ? error : undefined,
-      );
+      logger.error('Encrypted spend execution failed', error instanceof Error ? error : undefined);
       res.status(500).json({
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown encrypted spend execution error",
+        error: error instanceof Error ? error.message : 'Unknown encrypted spend execution error',
         timestamp: new Date().toISOString(),
       });
     }
@@ -382,8 +436,7 @@ export class SpendController {
     const policyId = payload.policyId!;
     const amountUsd = payload.amountUsd!;
     const vendorHash =
-      payload.vendorHash ||
-      "0x" + crypto.createHash("sha256").update("acme-corp").digest("hex");
+      payload.vendorHash || '0x' + crypto.createHash('sha256').update('acme-corp').digest('hex');
 
     // Convert USD amount to Wei (1 USD = 10^18 wei for demo purposes)
     const amountWei = BigInt(Math.floor(amountUsd * 1e18));
@@ -397,9 +450,9 @@ export class SpendController {
       });
 
       const outcomeMap: Record<string, string> = {
-        approve: "approve",
-        hold: "hold",
-        deny: "deny",
+        approve: 'approve',
+        hold: 'hold',
+        deny: 'deny',
       };
 
       res.json({
@@ -409,10 +462,10 @@ export class SpendController {
           outcome: outcomeMap[decision.outcome] || decision.outcome,
           fabricated: decision.fabricated === true || undefined,
           note: decision.fabricated
-            ? "CoFHE unavailable — locally synthesized deny, no ciphertext evaluation"
+            ? 'CoFHE unavailable — locally synthesized deny, no ciphertext evaluation'
             : amountUsd <= 500
-              ? "FHE.lte(newSpent, dailyLimit) evaluated in ciphertext"
-              : "Amount > approvalThreshold — sealed for human review",
+              ? 'FHE.lte(newSpent, dailyLimit) evaluated in ciphertext'
+              : 'Amount > approvalThreshold — sealed for human review',
         },
         timestamp: new Date().toISOString(),
       });
@@ -443,7 +496,7 @@ export class SpendController {
     res.status(501).json({
       success: false,
       error:
-        "Not implemented here. Held spends are approved via the CRE run approval endpoint, which broadcasts the held transfer and records the operator identity.",
+        'Not implemented here. Held spends are approved via the CRE run approval endpoint, which broadcasts the held transfer and records the operator identity.',
       canonicalEndpoint: `/api/cre/runs/${decisionId}/approval`,
       timestamp: new Date().toISOString(),
     });
@@ -469,10 +522,10 @@ export class SpendController {
     try {
       const { address } = req.query;
 
-      if (!address || typeof address !== "string") {
+      if (!address || typeof address !== 'string') {
         res.status(400).json({
           success: false,
-          error: "Missing required parameter: address",
+          error: 'Missing required parameter: address',
         });
         return;
       }
@@ -481,7 +534,7 @@ export class SpendController {
       if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
         res.status(400).json({
           success: false,
-          error: "Invalid Ethereum address format",
+          error: 'Invalid Ethereum address format',
         });
         return;
       }
@@ -490,7 +543,7 @@ export class SpendController {
       if (!auditService) {
         res.status(503).json({
           success: false,
-          error: "Audit service unavailable",
+          error: 'Audit service unavailable',
         });
         return;
       }
@@ -513,13 +566,10 @@ export class SpendController {
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      logger.error(
-        "Contract scan failed",
-        error instanceof Error ? error : undefined,
-      );
+      logger.error('Contract scan failed', error instanceof Error ? error : undefined);
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : "Contract scan failed",
+        error: error instanceof Error ? error.message : 'Contract scan failed',
         timestamp: new Date().toISOString(),
       });
     }
@@ -535,7 +585,7 @@ export class SpendController {
       if (!parse.success) {
         res.status(400).json({
           success: false,
-          error: "Invalid spend intent payload",
+          error: 'Invalid spend intent payload',
           details: parse.error.format(),
         });
         return;
@@ -552,8 +602,12 @@ export class SpendController {
         metadata: { ...parse.data.metadata, previewMode: true },
       };
 
+      if (!this.validateSourceProvenance(parse.data.metadata, res)) return;
+
       // Run policy preview
-      const preview = await owsWalletService.previewSpend(intent);
+      const preview = await owsWalletService.previewSpend(intent, {
+        sourceAuthorizationToken: parse.data.sourceAuthorization,
+      });
 
       // ChainGPT contract audit
       let contractAudit = null;
@@ -568,7 +622,7 @@ export class SpendController {
             safe: auditResult.audit.safe,
             severity: auditResult.audit.severity,
             findingsCount: auditResult.audit.findings.length,
-            summary: auditService?.getAuditSummary(auditResult.audit) || "",
+            summary: auditService?.getAuditSummary(auditResult.audit) || '',
             findings: auditResult.audit.findings.slice(0, 5),
           };
 
@@ -579,19 +633,16 @@ export class SpendController {
             preview.reason = `ChainGPT Audit: ${contractAudit.summary}`;
             preview.simulation.wouldExecute = false;
             preview.simulation.warnings.push(
-              `Contract audit ${override.status === "denied" ? "failed" : "requires review"}: ${contractAudit.summary}`,
+              `Contract audit ${override.status === 'denied' ? 'failed' : 'requires review'}: ${contractAudit.summary}`,
             );
           }
         }
       } catch (auditError) {
         const auditErr = auditError instanceof Error ? auditError : new Error(String(auditError));
-        logger.warn(
-          "ChainGPT audit failed, continuing without audit:",
-          auditErr,
-        );
+        logger.warn('ChainGPT audit failed, continuing without audit:', auditErr);
         contractAudit = {
           address: parse.data.recipient,
-          error: "Audit service unavailable",
+          error: 'Audit service unavailable',
         };
       }
 
@@ -602,9 +653,7 @@ export class SpendController {
           // Server-minted binding: pass this back unchanged to /api/spend so
           // execution can be verified against this exact intent.
           attestationHash:
-            preview.status === "denied"
-              ? undefined
-              : computeAttestationHash(parse.data),
+            preview.status === 'denied' ? undefined : computeAttestationHash(parse.data),
           contractAudit,
         },
         timestamp: new Date().toISOString(),
@@ -612,10 +661,7 @@ export class SpendController {
     } catch (error) {
       res.status(500).json({
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown spend preview error",
+        error: error instanceof Error ? error.message : 'Unknown spend preview error',
         timestamp: new Date().toISOString(),
       });
     }

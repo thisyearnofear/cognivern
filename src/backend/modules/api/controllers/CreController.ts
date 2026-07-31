@@ -1,23 +1,20 @@
-import { Request, Response } from "express";
-import crypto from "node:crypto";
-import { ethers } from "ethers";
-import { enrichCreRunEvidence } from "@backend/shared/utils/evidence.js";
-import { z } from "zod";
-import { runForecastingWorkflow } from "@backend/cre/workflows/forecasting.js";
-import { creRunStore } from "@backend/cre/storage/CreRunStore.js";
-import {
-  creLedgerChain,
-  hashRun,
-} from "@backend/cre/persistence/CreLedgerChain.js";
-import { CreRun } from "@backend/cre/types.js";
-import { translateCreEventToAgUi } from "@backend/cre/agUiTranslation.js";
-import { owsWalletService } from "@backend/services/blockchain/OwsWalletService.js";
-import { zeroGStorageService } from "@backend/services/blockchain/ZeroGStorageService.js";
-import { filecoinStorageService } from "@backend/services/blockchain/FilecoinStorageService.js";
+import { Request, Response } from 'express';
+import crypto from 'node:crypto';
+import { ethers } from 'ethers';
+import { enrichCreRunEvidence } from '@backend/shared/utils/evidence.js';
+import { z } from 'zod';
+import { runForecastingWorkflow } from '@backend/cre/workflows/forecasting.js';
+import { creRunStore } from '@backend/cre/storage/CreRunStore.js';
+import { creLedgerChain, hashRun } from '@backend/cre/persistence/CreLedgerChain.js';
+import { CreRun } from '@backend/cre/types.js';
+import { translateCreEventToAgUi } from '@backend/cre/agUiTranslation.js';
+import { owsWalletService } from '@backend/services/blockchain/OwsWalletService.js';
+import { zeroGStorageService } from '@backend/services/blockchain/ZeroGStorageService.js';
+import { filecoinStorageService } from '@backend/services/blockchain/FilecoinStorageService.js';
 import {
   IdempotencyRecord,
   idempotencyStore,
-} from "@backend/modules/api/storage/IdempotencyStore.js";
+} from '@backend/modules/api/storage/IdempotencyStore.js';
 
 const triggerForecastSchema = z.object({
   writeAttestation: z.boolean().optional(),
@@ -44,7 +41,7 @@ const updatePlanSchema = z.object({
         title: z.string().min(1).max(120),
         description: z.string().max(500).optional(),
         enabled: z.boolean(),
-        status: z.enum(["pending", "approved", "rejected"]).optional(),
+        status: z.enum(['pending', 'approved', 'rejected']).optional(),
       }),
     ),
   }),
@@ -75,33 +72,27 @@ function estimateTokenAndCost(stepCount: number, artifactCount: number) {
 }
 
 function normalizeRun(run: CreRun): CreRun {
-  const status =
-    run.status ||
-    (run.finishedAt ? (run.ok ? "completed" : "failed") : "running");
+  const status = run.status || (run.finishedAt ? (run.ok ? 'completed' : 'failed') : 'running');
   const retryCount = run.retryCount ?? 0;
-  const approvalState = run.approvalState || "not_required";
+  const approvalState = run.approvalState || 'not_required';
   const stepCount = run.steps.length;
   const artifactCount = run.artifacts.length;
   const latencyMs =
     run.metrics?.latencyMs ??
     (run.finishedAt
-      ? Math.max(
-          0,
-          new Date(run.finishedAt).getTime() -
-            new Date(run.startedAt).getTime(),
-        )
+      ? Math.max(0, new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime())
       : undefined);
   const estimate = estimateTokenAndCost(stepCount, artifactCount);
   const defaultPlan = {
     version: 1,
     updatedAt: new Date().toISOString(),
-    summary: "Execution plan generated from workflow steps.",
+    summary: 'Execution plan generated from workflow steps.',
     steps: run.steps.map((step, idx) => ({
       id: `plan-${idx + 1}`,
       title: step.name,
       description: step.summary || `${step.kind} step`,
       enabled: true,
-      status: step.ok ? ("approved" as const) : ("pending" as const),
+      status: step.ok ? ('approved' as const) : ('pending' as const),
     })),
   };
 
@@ -112,24 +103,21 @@ function normalizeRun(run: CreRun): CreRun {
     approvalState,
     plan: run.plan || defaultPlan,
     controls: {
-      canCancel: status === "running" || status === "queued",
-      canRetry:
-        status === "failed" || status === "cancelled" || status === "completed",
-      canApprove:
-        status === "paused_for_approval" || run.requiresApproval === true,
+      canCancel: status === 'running' || status === 'queued',
+      canRetry: status === 'failed' || status === 'cancelled' || status === 'completed',
+      canApprove: status === 'paused_for_approval' || run.requiresApproval === true,
     },
     metrics: {
       latencyMs,
       stepCount,
       artifactCount,
       estimatedTokens: run.metrics?.estimatedTokens ?? estimate.estimatedTokens,
-      estimatedCostUsd:
-        run.metrics?.estimatedCostUsd ?? estimate.estimatedCostUsd,
+      estimatedCostUsd: run.metrics?.estimatedCostUsd ?? estimate.estimatedCostUsd,
     },
     provenance: {
-      source: run.provenance?.source || "cognivern",
-      workflowVersion: run.provenance?.workflowVersion || "v1",
-      model: run.provenance?.model || "unknown",
+      source: run.provenance?.source || 'cognivern',
+      workflowVersion: run.provenance?.workflowVersion || 'v1',
+      model: run.provenance?.model || 'unknown',
       citations: run.provenance?.citations || [],
     },
     events: run.events || [],
@@ -140,12 +128,12 @@ async function pushRunEvent(
   run: CreRun,
   event: {
     type:
-      | "run_cancel_requested"
-      | "run_cancelled"
-      | "run_retry_requested"
-      | "run_paused_for_approval"
-      | "run_finished"
-      | "run_failed";
+      | 'run_cancel_requested'
+      | 'run_cancelled'
+      | 'run_retry_requested'
+      | 'run_paused_for_approval'
+      | 'run_finished'
+      | 'run_failed';
     payload?: Record<string, unknown>;
     stepName?: string;
   },
@@ -183,8 +171,7 @@ export class CreController {
   private static readonly IDEMPOTENCY_TTL_MS = 5 * 60 * 1000;
 
   private makeIdempotencyKey(req: Request, scope: string): string | null {
-    const rawHeader =
-      req.header("Idempotency-Key") || req.header("X-Idempotency-Key");
+    const rawHeader = req.header('Idempotency-Key') || req.header('X-Idempotency-Key');
     if (!rawHeader) return null;
     const header = rawHeader.trim().slice(0, 120);
     if (!header) return null;
@@ -196,9 +183,7 @@ export class CreController {
     await idempotencyStore.cleanupExpired();
   }
 
-  private async getCachedIdempotentResponse(
-    key: string,
-  ): Promise<IdempotencyRecord | null> {
+  private async getCachedIdempotentResponse(key: string): Promise<IdempotencyRecord | null> {
     return await idempotencyStore.getRecord(key);
   }
 
@@ -216,7 +201,7 @@ export class CreController {
 
   async listRuns(req: Request, res: Response) {
     try {
-      const projectIdRaw = (req.query.projectId as string) || "default";
+      const projectIdRaw = (req.query.projectId as string) || 'default';
       const projectId = projectIdRaw.slice(0, 120);
       const runs = await creRunStore.list();
       res.json({
@@ -227,7 +212,7 @@ export class CreController {
           .map((r) => normalizeRun(r)),
       });
     } catch (err) {
-      res.status(500).json({ success: false, error: "Failed to list runs" });
+      res.status(500).json({ success: false, error: 'Failed to list runs' });
     }
   }
 
@@ -260,8 +245,7 @@ export class CreController {
       // Filecoin RPC, so it is off by default. A network miss is reported as
       // "unavailable"/"skipped" and never counts as tampering — only a real
       // content "mismatch" fails the ledger.
-      const deep =
-        req.query.deep === "true" || req.query.deep === "1";
+      const deep = req.query.deep === 'true' || req.query.deep === '1';
       let anchors:
         | Array<{
             runId: string;
@@ -291,12 +275,11 @@ export class CreController {
         };
 
         const tally = (status: string) => {
-          if (status === "verified") summary.verified += 1;
-          else if (status === "mismatch") {
+          if (status === 'verified') summary.verified += 1;
+          else if (status === 'mismatch') {
             summary.mismatch += 1;
             anchorMismatch = true;
-          } else if (status === "unavailable" || status === "disabled")
-            summary.unavailable += 1;
+          } else if (status === 'unavailable' || status === 'disabled') summary.unavailable += 1;
           else summary.skipped += 1;
         };
 
@@ -316,7 +299,7 @@ export class CreController {
               entry.zeroG = r.status;
             } else {
               // Anchored before we persisted the expected hash — can't verify.
-              entry.zeroG = "no_expected_hash";
+              entry.zeroG = 'no_expected_hash';
             }
             summary.checked += 1;
             tally(entry.zeroG);
@@ -324,15 +307,12 @@ export class CreController {
 
           if (ev.filecoinCid) {
             if (ev.filecoinActionId) {
-              const expected = ev.filecoinCid.replace(/^sha256:/, "");
-              const r = await filecoinStorageService.verifyDetailed(
-                ev.filecoinActionId,
-                expected,
-              );
+              const expected = ev.filecoinCid.replace(/^sha256:/, '');
+              const r = await filecoinStorageService.verifyDetailed(ev.filecoinActionId, expected);
               entry.filecoin = r.status;
             } else {
               // Anchored before we persisted the retrieval key — can't verify.
-              entry.filecoin = "no_retrieval_key";
+              entry.filecoin = 'no_retrieval_key';
             }
             summary.checked += 1;
             tally(entry.filecoin);
@@ -357,9 +337,7 @@ export class CreController {
         timestamp: new Date().toISOString(),
       });
     } catch (err) {
-      res
-        .status(500)
-        .json({ success: false, error: "Failed to verify ledger" });
+      res.status(500).json({ success: false, error: 'Failed to verify ledger' });
     }
   }
 
@@ -367,14 +345,31 @@ export class CreController {
     try {
       const run = await creRunStore.get(req.params.runId);
       if (!run) {
-        res.status(404).json({ success: false, error: "Run not found" });
+        res.status(404).json({ success: false, error: 'Run not found' });
         return;
       }
       const normalized = normalizeRun(run);
       normalized.events = (normalized.events || []).map(translateCreEventToAgUi);
-      res.json({ success: true, run: normalized });
+      const detailData = {
+        id: normalized.runId,
+        workflow: normalized.workflow,
+        status: normalized.status,
+        mode: normalized.mode,
+        steps: normalized.steps.length,
+        duration:
+          normalized.metrics?.latencyMs !== undefined ? `${normalized.metrics.latencyMs}ms` : '--',
+        artifacts: normalized.artifacts.length,
+        timestamp: normalized.startedAt,
+        events: normalized.events,
+        // The shared Run type exposes an artifact count for list rendering.
+        // Keep full artifacts on this detail-only field for approval context.
+        artifactData: normalized.artifacts,
+      };
+      // `run` is retained for existing callers; `data` makes this endpoint
+      // conform to the shared API response shape used by the frontend client.
+      res.json({ success: true, data: detailData, run: normalized });
     } catch (err) {
-      res.status(500).json({ success: false, error: "Failed to get run" });
+      res.status(500).json({ success: false, error: 'Failed to get run' });
     }
   }
 
@@ -382,14 +377,12 @@ export class CreController {
     try {
       const run = await creRunStore.get(req.params.runId);
       if (!run) {
-        res.status(404).json({ success: false, error: "Run not found" });
+        res.status(404).json({ success: false, error: 'Run not found' });
         return;
       }
       const sinceParsed = req.query.since ? Number(req.query.since) : undefined;
       const since =
-        typeof sinceParsed === "number" && !Number.isNaN(sinceParsed)
-          ? sinceParsed
-          : undefined;
+        typeof sinceParsed === 'number' && !Number.isNaN(sinceParsed) ? sinceParsed : undefined;
       const normalized = normalizeRun(run);
       const events = (normalized.events || [])
         .filter((event) => {
@@ -406,7 +399,7 @@ export class CreController {
           : since || Date.now(),
       });
     } catch (err) {
-      res.status(500).json({ success: false, error: "Failed to get run events" });
+      res.status(500).json({ success: false, error: 'Failed to get run events' });
     }
   }
 
@@ -414,36 +407,27 @@ export class CreController {
     const runId = req.params.runId;
     const run = await creRunStore.get(runId);
     if (!run) {
-      res.status(404).json({ success: false, error: "Run not found" });
+      res.status(404).json({ success: false, error: 'Run not found' });
       return;
     }
 
     const sinceParsed = req.query.since ? Number(req.query.since) : undefined;
-    const lastEventIdHeader = req.header("Last-Event-ID");
-    const lastEventIdParsed = lastEventIdHeader
-      ? Number(lastEventIdHeader)
-      : undefined;
+    const lastEventIdHeader = req.header('Last-Event-ID');
+    const lastEventIdParsed = lastEventIdHeader ? Number(lastEventIdHeader) : undefined;
     let cursor = 0;
-    if (
-      typeof lastEventIdParsed === "number" &&
-      !Number.isNaN(lastEventIdParsed)
-    ) {
+    if (typeof lastEventIdParsed === 'number' && !Number.isNaN(lastEventIdParsed)) {
       cursor = lastEventIdParsed;
-    } else if (typeof sinceParsed === "number" && !Number.isNaN(sinceParsed)) {
+    } else if (typeof sinceParsed === 'number' && !Number.isNaN(sinceParsed)) {
       cursor = sinceParsed;
     }
 
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache, no-transform");
-    res.setHeader("Connection", "keep-alive");
-    res.setHeader("X-Accel-Buffering", "no");
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders?.();
 
-    const sendEvent = (
-      eventName: string,
-      payload: Record<string, unknown>,
-      id?: string,
-    ) => {
+    const sendEvent = (eventName: string, payload: Record<string, unknown>, id?: string) => {
       if (id) {
         res.write(`id: ${id}\n`);
       }
@@ -451,12 +435,12 @@ export class CreController {
       res.write(`data: ${JSON.stringify(payload)}\n\n`);
     };
 
-    sendEvent("ready", { runId, cursor, timestamp: new Date().toISOString() });
+    sendEvent('ready', { runId, cursor, timestamp: new Date().toISOString() });
 
     const sendNewEvents = async () => {
       const currentRun = await creRunStore.get(runId);
       if (!currentRun) {
-        sendEvent("error", { message: "Run not found" });
+        sendEvent('error', { message: 'Run not found' });
         return;
       }
       const normalized = normalizeRun(currentRun);
@@ -468,7 +452,7 @@ export class CreController {
         const ts = new Date(event.timestamp).getTime();
         const eventIdForResume = Number.isNaN(ts) ? undefined : String(ts);
         sendEvent(
-          "run_event",
+          'run_event',
           translateCreEventToAgUi(event) as unknown as Record<string, unknown>,
           eventIdForResume,
         );
@@ -478,7 +462,7 @@ export class CreController {
       }
 
       if (!newEvents.length) {
-        res.write(": heartbeat\n\n");
+        res.write(': heartbeat\n\n');
       }
     };
 
@@ -489,7 +473,7 @@ export class CreController {
       void sendNewEvents();
     }, 2000);
 
-    req.on("close", () => {
+    req.on('close', () => {
       clearInterval(intervalId);
       res.end();
     });
@@ -498,14 +482,12 @@ export class CreController {
   async triggerForecast(req: Request, res: Response) {
     const parse = triggerForecastSchema.safeParse(req.body || {});
     if (!parse.success) {
-      res
-        .status(400)
-        .json({ success: false, error: "Invalid trigger payload" });
+      res.status(400).json({ success: false, error: 'Invalid trigger payload' });
       return;
     }
     const { writeAttestation = false, requireApproval = false } = parse.data;
 
-    const idemKey = this.makeIdempotencyKey(req, "cre:triggerForecast");
+    const idemKey = this.makeIdempotencyKey(req, 'cre:triggerForecast');
     if (idemKey) {
       const cached = await this.getCachedIdempotentResponse(idemKey);
       if (cached) {
@@ -516,7 +498,7 @@ export class CreController {
 
     try {
       const run = await runForecastingWorkflow({
-        mode: "local",
+        mode: 'local',
         // If approval is required, hold before any attestation side effects.
         writeAttestation: requireApproval ? false : writeAttestation,
         arbitrumRpcUrl: process.env.ARBITRUM_RPC_URL,
@@ -525,9 +507,9 @@ export class CreController {
 
       const normalized = normalizeRun(run);
       if (requireApproval) {
-        normalized.status = "paused_for_approval";
+        normalized.status = 'paused_for_approval';
         normalized.requiresApproval = true;
-        normalized.approvalState = "pending";
+        normalized.approvalState = 'pending';
         normalized.ok = false;
         normalized.finishedAt = undefined;
         normalized.controls = {
@@ -536,10 +518,10 @@ export class CreController {
           canApprove: true,
         };
         await pushRunEvent(normalized, {
-          type: "run_paused_for_approval",
+          type: 'run_paused_for_approval',
           payload: {
-            reason: "manual_approval_required",
-            pendingAction: writeAttestation ? "attestation" : "run_finalize",
+            reason: 'manual_approval_required',
+            pendingAction: writeAttestation ? 'attestation' : 'run_finalize',
           },
         });
       }
@@ -560,15 +542,12 @@ export class CreController {
       }
       res.json(responseBody);
     } catch (err) {
-      res.status(500).json({ success: false, error: "Failed to trigger forecast" });
+      res.status(500).json({ success: false, error: 'Failed to trigger forecast' });
     }
   }
 
   async cancelRun(req: Request, res: Response) {
-    const idemKey = this.makeIdempotencyKey(
-      req,
-      `cre:cancelRun:${req.params.runId}`,
-    );
+    const idemKey = this.makeIdempotencyKey(req, `cre:cancelRun:${req.params.runId}`);
     if (idemKey) {
       const cached = await this.getCachedIdempotentResponse(idemKey);
       if (cached) {
@@ -580,11 +559,11 @@ export class CreController {
     try {
       const run = await creRunStore.get(req.params.runId);
       if (!run) {
-        res.status(404).json({ success: false, error: "Run not found" });
+        res.status(404).json({ success: false, error: 'Run not found' });
         return;
       }
       const normalized = normalizeRun(run);
-      if (!(normalized.status === "running" || normalized.status === "queued")) {
+      if (!(normalized.status === 'running' || normalized.status === 'queued')) {
         res.status(409).json({
           success: false,
           error: `Run cannot be cancelled from status '${normalized.status}'`,
@@ -593,10 +572,10 @@ export class CreController {
       }
 
       await pushRunEvent(normalized, {
-        type: "run_cancel_requested",
-        payload: { requestedBy: "user" },
+        type: 'run_cancel_requested',
+        payload: { requestedBy: 'user' },
       });
-      normalized.status = "cancelled";
+      normalized.status = 'cancelled';
       normalized.finishedAt = new Date().toISOString();
       normalized.ok = false;
       normalized.controls = {
@@ -605,8 +584,8 @@ export class CreController {
         canApprove: false,
       };
       await pushRunEvent(normalized, {
-        type: "run_cancelled",
-        payload: { source: "api" },
+        type: 'run_cancelled',
+        payload: { source: 'api' },
       });
 
       const storedRun = normalizeRun(normalized);
@@ -621,22 +600,19 @@ export class CreController {
       }
       res.json(responseBody);
     } catch (err) {
-      res.status(500).json({ success: false, error: "Failed to cancel run" });
+      res.status(500).json({ success: false, error: 'Failed to cancel run' });
     }
   }
 
   async retryRun(req: Request, res: Response) {
     const parse = retryRunSchema.safeParse(req.body || {});
     if (!parse.success) {
-      res.status(400).json({ success: false, error: "Invalid retry payload" });
+      res.status(400).json({ success: false, error: 'Invalid retry payload' });
       return;
     }
     const { writeAttestation = false, fromStep = 0 } = parse.data;
 
-    const idemKey = this.makeIdempotencyKey(
-      req,
-      `cre:retryRun:${req.params.runId}`,
-    );
+    const idemKey = this.makeIdempotencyKey(req, `cre:retryRun:${req.params.runId}`);
     if (idemKey) {
       const cached = await this.getCachedIdempotentResponse(idemKey);
       if (cached) {
@@ -648,19 +624,19 @@ export class CreController {
     try {
       const run = await creRunStore.get(req.params.runId);
       if (!run) {
-        res.status(404).json({ success: false, error: "Run not found" });
+        res.status(404).json({ success: false, error: 'Run not found' });
         return;
       }
       const original = normalizeRun(run);
       await pushRunEvent(original, {
-        type: "run_retry_requested",
-        payload: { requestedBy: "user" },
+        type: 'run_retry_requested',
+        payload: { requestedBy: 'user' },
       });
       await creRunStore.replace(normalizeRun(original));
 
       const newRun = normalizeRun(
         await runForecastingWorkflow({
-          mode: "local",
+          mode: 'local',
           writeAttestation,
           arbitrumRpcUrl: process.env.ARBITRUM_RPC_URL,
           signer: getCreSigner(),
@@ -670,17 +646,17 @@ export class CreController {
       newRun.retryCount = (original.retryCount || 0) + 1;
       if (fromStep > 0) {
         newRun.provenance = {
-          ...(newRun.provenance || { source: "cognivern" }),
+          ...(newRun.provenance || { source: 'cognivern' }),
           citations: [
             ...((newRun.provenance?.citations || []) as Array<{
               label: string;
               value: string;
             }>),
-            { label: "retry_from_step", value: String(fromStep) },
+            { label: 'retry_from_step', value: String(fromStep) },
           ],
         };
         await pushRunEvent(newRun, {
-          type: "run_retry_requested",
+          type: 'run_retry_requested',
           payload: { retriedFromRunId: original.runId, fromStep },
         });
       }
@@ -701,24 +677,19 @@ export class CreController {
       }
       res.json(responseBody);
     } catch (err) {
-      res.status(500).json({ success: false, error: "Failed to retry run" });
+      res.status(500).json({ success: false, error: 'Failed to retry run' });
     }
   }
 
   async submitApproval(req: Request, res: Response) {
     const parse = submitApprovalSchema.safeParse(req.body || {});
     if (!parse.success) {
-      res
-        .status(400)
-        .json({ success: false, error: "Invalid approval payload" });
+      res.status(400).json({ success: false, error: 'Invalid approval payload' });
       return;
     }
-    const { approve, reason = "" } = parse.data;
+    const { approve, reason = '' } = parse.data;
 
-    const idemKey = this.makeIdempotencyKey(
-      req,
-      `cre:submitApproval:${req.params.runId}`,
-    );
+    const idemKey = this.makeIdempotencyKey(req, `cre:submitApproval:${req.params.runId}`);
     if (idemKey) {
       const cached = await this.getCachedIdempotentResponse(idemKey);
       if (cached) {
@@ -730,13 +701,13 @@ export class CreController {
     try {
       const run = await creRunStore.get(req.params.runId);
       if (!run) {
-        res.status(404).json({ success: false, error: "Run not found" });
+        res.status(404).json({ success: false, error: 'Run not found' });
         return;
       }
       const normalized = normalizeRun(run);
       const safeReason = reason.trim().slice(0, 500);
 
-      normalized.approvalState = approve ? "approved" : "rejected";
+      normalized.approvalState = approve ? 'approved' : 'rejected';
       normalized.approvalReason = safeReason || undefined;
       normalized.requiresApproval = false;
 
@@ -746,8 +717,8 @@ export class CreController {
       // reporting a completed approval that moved nothing.
       if (
         approve &&
-        normalized.status === "paused_for_approval" &&
-        normalized.workflow === "spend"
+        normalized.status === 'paused_for_approval' &&
+        normalized.workflow === 'spend'
       ) {
         // Per-resource auth check: spend approvals must come from an
         // authenticated operator (JWT → req.userId). The workspace middleware
@@ -759,17 +730,13 @@ export class CreController {
         if (!req.userId) {
           res.status(403).json({
             success: false,
-            error:
-              "Operator authentication required. Sign in and retry.",
+            error: 'Operator authentication required. Sign in and retry.',
           });
           return;
         }
         const operatorId = req.userId;
-        const transfer = await owsWalletService.resumeHeldSpend(
-          req.params.runId,
-          operatorId,
-        );
-        if (transfer.transferStatus !== "sent") {
+        const transfer = await owsWalletService.resumeHeldSpend(req.params.runId, operatorId);
+        if (transfer.transferStatus !== 'sent') {
           // The transfer didn't move money — the run is still "needs approval".
           // Do NOT flip to "failed" (that would route subsequent approve clicks
           // through the generic branch, which marks the run completed without
@@ -777,36 +744,33 @@ export class CreController {
           // (that would block a retry from re-broadcasting). We surface the
           // error to the operator and leave the held run in place for retry.
           await pushRunEvent(normalized, {
-            type: "run_failed",
+            type: 'run_failed',
             payload: {
-              reason: "transfer_failed",
+              reason: 'transfer_failed',
               note: transfer.transferError || transfer.error || null,
             },
           });
           res.json({
             success: false,
-            error:
-              transfer.transferError ||
-              transfer.error ||
-              "Native transfer failed",
+            error: transfer.transferError || transfer.error || 'Native transfer failed',
             run: normalized,
             transfer,
           });
           return;
         }
-        normalized.status = "completed";
+        normalized.status = 'completed';
         normalized.ok = true;
         normalized.finishedAt = new Date().toISOString();
         if (normalized.plan) {
           normalized.plan.steps = normalized.plan.steps.map((step) => ({
             ...step,
-            status: step.enabled ? "approved" : "rejected",
+            status: step.enabled ? 'approved' : 'rejected',
           }));
         }
         await pushRunEvent(normalized, {
-          type: "run_finished",
+          type: 'run_finished',
           payload: {
-            reason: "approval_granted",
+            reason: 'approval_granted',
             note: safeReason || null,
             transferTxHash: transfer.transferTxHash,
           },
@@ -831,44 +795,43 @@ export class CreController {
         return;
       }
 
-      if (approve && normalized.status === "paused_for_approval") {
-        normalized.status = "completed";
+      if (approve && normalized.status === 'paused_for_approval') {
+        normalized.status = 'completed';
         normalized.ok = true;
         normalized.finishedAt = new Date().toISOString();
         if (normalized.plan) {
           normalized.plan.steps = normalized.plan.steps.map((step) => ({
             ...step,
-            status: step.enabled ? "approved" : "rejected",
+            status: step.enabled ? 'approved' : 'rejected',
           }));
         }
         await pushRunEvent(normalized, {
-          type: "run_finished",
+          type: 'run_finished',
           payload: {
-            reason: "approval_granted",
+            reason: 'approval_granted',
             note: safeReason || null,
           },
         });
       }
       if (!approve) {
-        normalized.status = "failed";
+        normalized.status = 'failed';
         normalized.ok = false;
         normalized.finishedAt = normalized.finishedAt || new Date().toISOString();
         if (normalized.plan) {
           normalized.plan.steps = normalized.plan.steps.map((step) => ({
             ...step,
-            status: "rejected",
+            status: 'rejected',
           }));
         }
         await pushRunEvent(normalized, {
-          type: "run_failed",
-          payload: { reason: "approval_rejected", note: safeReason || null },
+          type: 'run_failed',
+          payload: { reason: 'approval_rejected', note: safeReason || null },
         });
       }
 
       normalized.controls = {
-        canCancel: normalized.status === "running",
-        canRetry:
-          normalized.status === "failed" || normalized.status === "cancelled",
+        canCancel: normalized.status === 'running',
+        canRetry: normalized.status === 'failed' || normalized.status === 'cancelled',
         canApprove: false,
       };
 
@@ -884,22 +847,19 @@ export class CreController {
       }
       res.json(responseBody);
     } catch (err) {
-      res.status(500).json({ success: false, error: "Failed to submit approval" });
+      res.status(500).json({ success: false, error: 'Failed to submit approval' });
     }
   }
 
   async updateRunPlan(req: Request, res: Response) {
     const parse = updatePlanSchema.safeParse(req.body || {});
     if (!parse.success) {
-      res.status(400).json({ success: false, error: "Invalid plan payload" });
+      res.status(400).json({ success: false, error: 'Invalid plan payload' });
       return;
     }
     const { plan } = parse.data;
 
-    const idemKey = this.makeIdempotencyKey(
-      req,
-      `cre:updateRunPlan:${req.params.runId}`,
-    );
+    const idemKey = this.makeIdempotencyKey(req, `cre:updateRunPlan:${req.params.runId}`);
     if (idemKey) {
       const cached = await this.getCachedIdempotentResponse(idemKey);
       if (cached) {
@@ -911,7 +871,7 @@ export class CreController {
     try {
       const run = await creRunStore.get(req.params.runId);
       if (!run) {
-        res.status(404).json({ success: false, error: "Run not found" });
+        res.status(404).json({ success: false, error: 'Run not found' });
         return;
       }
       const normalized = normalizeRun(run);
@@ -925,22 +885,22 @@ export class CreController {
           title: step.title,
           description: step.description,
           enabled: step.enabled,
-          status: step.status || "pending",
+          status: step.status || 'pending',
         })),
       };
 
-      if (normalized.status === "running") {
-        normalized.status = "paused_for_approval";
+      if (normalized.status === 'running') {
+        normalized.status = 'paused_for_approval';
         normalized.requiresApproval = true;
-        normalized.approvalState = "pending";
+        normalized.approvalState = 'pending';
         normalized.controls = {
           canCancel: true,
           canRetry: false,
           canApprove: true,
         };
         await pushRunEvent(normalized, {
-          type: "run_paused_for_approval",
-          payload: { reason: "plan_updated_requires_approval" },
+          type: 'run_paused_for_approval',
+          payload: { reason: 'plan_updated_requires_approval' },
         });
       }
 
@@ -956,7 +916,7 @@ export class CreController {
       }
       res.json(responseBody);
     } catch (err) {
-      res.status(500).json({ success: false, error: "Failed to update run plan" });
+      res.status(500).json({ success: false, error: 'Failed to update run plan' });
     }
   }
 }

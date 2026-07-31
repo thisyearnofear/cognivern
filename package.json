@@ -57,6 +57,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:integration": "vitest run tests/integration/",
+    "test:prompt-injection": "vitest run tests/unit/SourceAwareSpendAuthorization.test.ts tests/unit/AgentSourceProvenance.test.ts",
     "hackathon:eval": "tsx scripts/hackathon/evaluate-safety.ts",
     "canton:proof": "tsx scripts/verify/canton-devnet-proof.ts",
     "demo:reset": "tsx scripts/demo/demo-reset.ts",

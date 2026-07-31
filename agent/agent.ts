@@ -15,23 +15,22 @@
  *   MONGODB_URI=mongodb+srv://...  pnpm tsx agent/agent.ts "Pay vendor 0xabc..."
  */
 
-import { readFile } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
-import { createSign } from "node:crypto";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { createSign } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 import {
   ALL_TOOL_DECLARATIONS,
   executeTool,
   HUMAN_CONFIRMATION_REQUIRED,
   AgentToolContext,
-} from "./tools/index.js";
+} from './tools/index.js';
+import { AgentSourceProvenanceTracker } from './source-provenance.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-let cachedServiceAccountToken:
-  | { accessToken: string; expiresAtMs: number }
-  | undefined;
+let cachedServiceAccountToken: { accessToken: string; expiresAtMs: number } | undefined;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,7 +43,7 @@ interface GeminiPart {
 }
 
 interface GeminiContent {
-  role: "user" | "model" | "function";
+  role: 'user' | 'model' | 'function';
   parts: GeminiPart[];
 }
 
@@ -76,7 +75,7 @@ interface AgentRunResult {
   auditLogId?: string;
   /** Full transcript of tool calls. */
   transcript: Array<{
-    role: "model" | "tool";
+    role: 'model' | 'tool';
     name?: string;
     args?: Record<string, unknown>;
     result?: unknown;
@@ -85,19 +84,19 @@ interface AgentRunResult {
 }
 
 export type AgentRunEvent =
-  | { type: "model_tool_call"; name: string; args: Record<string, unknown> }
-  | { type: "tool_result"; name: string; result: unknown }
-  | { type: "tool_error"; name: string; error: string }
-  | { type: "hitl_denied"; name: string; reason: string }
-  | { type: "preview_intercepted"; name: string; reason: string }
-  | { type: "final"; summary: string };
+  | { type: 'model_tool_call'; name: string; args: Record<string, unknown> }
+  | { type: 'tool_result'; name: string; result: unknown }
+  | { type: 'tool_error'; name: string; error: string }
+  | { type: 'hitl_denied'; name: string; reason: string }
+  | { type: 'preview_intercepted'; name: string; reason: string }
+  | { type: 'final'; summary: string };
 
 // ---------------------------------------------------------------------------
 // System prompt loader
 // ---------------------------------------------------------------------------
 
 async function loadInstructions(): Promise<string> {
-  return (await readFile(join(__dirname, "instructions.md"), "utf8")).trim();
+  return (await readFile(join(__dirname, 'instructions.md'), 'utf8')).trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -117,10 +116,10 @@ async function askHuman(
     `\n[HUMAN-IN-THE-LOOP] ${prompt}\n${JSON.stringify(context, null, 2)}\nApprove? [y/N] `,
   );
   return new Promise((resolve) => {
-    let buf = "";
-    process.stdin.once("data", (chunk) => {
+    let buf = '';
+    process.stdin.once('data', (chunk) => {
       buf = chunk.toString().trim().toLowerCase();
-      resolve({ approved: buf === "y" || buf === "yes", token: `cli-${Date.now()}` });
+      resolve({ approved: buf === 'y' || buf === 'yes', token: `cli-${Date.now()}` });
     });
   });
 }
@@ -137,7 +136,7 @@ async function callGemini(
 ): Promise<GeminiContent> {
   const url =
     auth.accessToken && auth.projectId
-      ? `https://aiplatform.googleapis.com/v1/projects/${auth.projectId}/locations/${auth.location || "global"}/publishers/google/models/${model}:generateContent`
+      ? `https://aiplatform.googleapis.com/v1/projects/${auth.projectId}/locations/${auth.location || 'global'}/publishers/google/models/${model}:generateContent`
       : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${auth.apiKey}`;
   const body = {
     systemInstruction: { parts: [{ text: systemInstruction }] },
@@ -147,17 +146,15 @@ async function callGemini(
         functionDeclarations: [...ALL_TOOL_DECLARATIONS],
       } as GeminiTool,
     ],
-    toolConfig: { functionCallingConfig: { mode: "AUTO" } },
+    toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
     generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
   };
 
   const r = await fetch(url, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
-      ...(auth.accessToken
-        ? { Authorization: `Bearer ${auth.accessToken}` }
-        : {}),
+      'Content-Type': 'application/json',
+      ...(auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -170,21 +167,18 @@ async function callGemini(
 }
 
 function toFunctionResponsePayload(result: unknown): Record<string, unknown> {
-  if (result && typeof result === "object" && !Array.isArray(result)) {
+  if (result && typeof result === 'object' && !Array.isArray(result)) {
     return result as Record<string, unknown>;
   }
   return { result };
 }
 
 function base64UrlJson(value: unknown): string {
-  return Buffer.from(JSON.stringify(value)).toString("base64url");
+  return Buffer.from(JSON.stringify(value)).toString('base64url');
 }
 
 async function getServiceAccountAccessToken(): Promise<string | undefined> {
-  if (
-    cachedServiceAccountToken &&
-    cachedServiceAccountToken.expiresAtMs > Date.now() + 60_000
-  ) {
+  if (cachedServiceAccountToken && cachedServiceAccountToken.expiresAtMs > Date.now() + 60_000) {
     return cachedServiceAccountToken.accessToken;
   }
 
@@ -196,9 +190,7 @@ async function getServiceAccountAccessToken(): Promise<string | undefined> {
     if (rawJson) {
       serviceAccount = JSON.parse(rawJson) as GoogleServiceAccount;
     } else if (credentialsPath) {
-      serviceAccount = JSON.parse(
-        await readFile(credentialsPath, "utf8"),
-      ) as GoogleServiceAccount;
+      serviceAccount = JSON.parse(await readFile(credentialsPath, 'utf8')) as GoogleServiceAccount;
     }
   } catch {
     return undefined;
@@ -208,33 +200,30 @@ async function getServiceAccountAccessToken(): Promise<string | undefined> {
     return undefined;
   }
 
-  const tokenUri = serviceAccount.token_uri || "https://oauth2.googleapis.com/token";
+  const tokenUri = serviceAccount.token_uri || 'https://oauth2.googleapis.com/token';
   const now = Math.floor(Date.now() / 1000);
   const assertionInput = [
-    base64UrlJson({ alg: "RS256", typ: "JWT" }),
+    base64UrlJson({ alg: 'RS256', typ: 'JWT' }),
     base64UrlJson({
       iss: serviceAccount.client_email,
       sub: serviceAccount.client_email,
       aud: tokenUri,
-      scope: "https://www.googleapis.com/auth/cloud-platform",
+      scope: 'https://www.googleapis.com/auth/cloud-platform',
       iat: now,
       exp: now + 3600,
     }),
-  ].join(".");
+  ].join('.');
 
-  const signer = createSign("RSA-SHA256");
+  const signer = createSign('RSA-SHA256');
   signer.update(assertionInput);
   signer.end();
-  const assertion = `${assertionInput}.${signer.sign(
-    serviceAccount.private_key,
-    "base64url",
-  )}`;
+  const assertion = `${assertionInput}.${signer.sign(serviceAccount.private_key, 'base64url')}`;
 
   const response = await fetch(tokenUri, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
       assertion,
     }),
   });
@@ -259,9 +248,9 @@ async function getGoogleAccessToken(): Promise<string | undefined> {
 
 function getGcloudAccessToken(): string | undefined {
   try {
-    return execFileSync("gcloud", ["auth", "print-access-token"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
+    return execFileSync('gcloud', ['auth', 'print-access-token'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
   } catch {
     return undefined;
@@ -289,18 +278,16 @@ export interface AgentRunOptions {
 }
 
 export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
-  const model = opts.geminiModel || process.env.GEMINI_MODEL || "gemini-3.1-pro-preview";
+  const model = opts.geminiModel || process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
   const apiKey = opts.geminiApiKey || process.env.GEMINI_API_KEY;
   const projectId =
-    opts.googleCloudProject ||
-    process.env.GOOGLE_CLOUD_PROJECT ||
-    process.env.GCLOUD_PROJECT;
+    opts.googleCloudProject || process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
   const accessToken = projectId
     ? process.env.GOOGLE_OAUTH_ACCESS_TOKEN || (await getGoogleAccessToken())
     : undefined;
   if (!apiKey && !accessToken) {
     throw new Error(
-      "Gemini credentials required: set GOOGLE_CLOUD_PROJECT with gcloud auth, or set GEMINI_API_KEY for local-only fallback",
+      'Gemini credentials required: set GOOGLE_CLOUD_PROJECT with gcloud auth, or set GEMINI_API_KEY for local-only fallback',
     );
   }
 
@@ -319,12 +306,13 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
   const systemInstruction = await loadInstructions();
   const contents: GeminiContent[] = [
     {
-      role: "user",
+      role: 'user',
       parts: [{ text: opts.goal }],
     },
   ];
 
-  const transcript: AgentRunResult["transcript"] = [];
+  const transcript: AgentRunResult['transcript'] = [];
+  const sourceProvenance = new AgentSourceProvenanceTracker();
   let decisionId: string | undefined;
   let attestationHash: string | undefined;
   let auditLogId: string | undefined;
@@ -336,7 +324,7 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
         apiKey,
         accessToken,
         projectId,
-        location: opts.vertexLocation || process.env.VERTEX_LOCATION || "global",
+        location: opts.vertexLocation || process.env.VERTEX_LOCATION || 'global',
       },
       model,
       systemInstruction,
@@ -346,11 +334,9 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
     // No function call — model is done.
     const fnCalls = modelContent.parts.filter((p) => p.functionCall);
     if (fnCalls.length === 0) {
-      const text =
-        modelContent.parts.find((p) => p.text)?.text ||
-        "(no response from model)";
-      transcript.push({ role: "model", text });
-      opts.onEvent?.({ type: "final", summary: text });
+      const text = modelContent.parts.find((p) => p.text)?.text || '(no response from model)';
+      transcript.push({ role: 'model', text });
+      opts.onEvent?.({ type: 'final', summary: text });
       return {
         summary: text,
         decisionId,
@@ -361,27 +347,41 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
     }
 
     // Push the model turn into history.
-    contents.push({ role: "model", parts: modelContent.parts });
+    contents.push({ role: 'model', parts: modelContent.parts });
 
     const responseParts: GeminiPart[] = [];
     for (const fnCallPart of fnCalls) {
       const fnCall = fnCallPart.functionCall!;
       transcript.push({
-        role: "model",
+        role: 'model',
         name: fnCall.name,
         args: fnCall.args,
       });
       opts.onEvent?.({
-        type: "model_tool_call",
+        type: 'model_tool_call',
         name: fnCall.name,
         args: fnCall.args,
       });
 
+      // MongoDB MCP output can contain user-supplied or otherwise untrusted
+      // text. Preserve that fact when the model later proposes a spend.
+      if (fnCall.name === 'cognivern_preview_spend' || fnCall.name === 'cognivern_execute_spend') {
+        const provenance = sourceProvenance.toSpendProvenance();
+        if (provenance) {
+          fnCall.args.metadata = {
+            ...(typeof fnCall.args.metadata === 'object' && fnCall.args.metadata !== null
+              ? fnCall.args.metadata
+              : {}),
+            sourceProvenance: provenance,
+          };
+        }
+      }
+
       // If previewOnly is set, intercept execute_spend before HITL or execution.
-      if (opts.previewOnly && fnCall.name === "cognivern_execute_spend") {
+      if (opts.previewOnly && fnCall.name === 'cognivern_execute_spend') {
         const intercepted = {
           intercepted: true,
-          reason: "previewOnly mode - no real spend",
+          reason: 'previewOnly mode - no real spend',
         };
         responseParts.push({
           functionResponse: {
@@ -389,9 +389,9 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
             response: toFunctionResponsePayload(intercepted),
           },
         });
-        transcript.push({ role: "tool", result: intercepted });
+        transcript.push({ role: 'tool', result: intercepted });
         opts.onEvent?.({
-          type: "preview_intercepted",
+          type: 'preview_intercepted',
           name: fnCall.name,
           reason: intercepted.reason,
         });
@@ -405,7 +405,7 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
           fnCall.args,
         );
         if (!confirm.approved) {
-          const refusal = "Operator denied execution. Spend aborted.";
+          const refusal = 'Operator denied execution. Spend aborted.';
           const denied = { denied: true, reason: refusal };
           responseParts.push({
             functionResponse: {
@@ -413,9 +413,9 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
               response: toFunctionResponsePayload(denied),
             },
           });
-          transcript.push({ role: "tool", result: denied });
+          transcript.push({ role: 'tool', result: denied });
           opts.onEvent?.({
-            type: "hitl_denied",
+            type: 'hitl_denied',
             name: fnCall.name,
             reason: refusal,
           });
@@ -431,28 +431,32 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         result = { error: message };
-        opts.onEvent?.({ type: "tool_error", name: fnCall.name, error: message });
+        opts.onEvent?.({ type: 'tool_error', name: fnCall.name, error: message });
       }
-      transcript.push({ role: "tool", result });
-      opts.onEvent?.({ type: "tool_result", name: fnCall.name, result });
+      transcript.push({ role: 'tool', result });
+      opts.onEvent?.({ type: 'tool_result', name: fnCall.name, result });
+
+      if (fnCall.name.startsWith('mongodb_')) {
+        sourceProvenance.recordToolOutput(fnCall.name, result);
+      }
 
       // Capture the receipts when they appear.
       if (
-        fnCall.name === "cognivern_preview_spend" &&
-        typeof result === "object" &&
+        fnCall.name === 'cognivern_preview_spend' &&
+        typeof result === 'object' &&
         result !== null
       ) {
         const r = result as Record<string, unknown>;
-        if (typeof r.decisionId === "string") decisionId = r.decisionId;
-        if (typeof r.attestationHash === "string") attestationHash = r.attestationHash;
+        if (typeof r.decisionId === 'string') decisionId = r.decisionId;
+        if (typeof r.attestationHash === 'string') attestationHash = r.attestationHash;
       }
       if (
-        fnCall.name === "cognivern_execute_spend" &&
-        typeof result === "object" &&
+        fnCall.name === 'cognivern_execute_spend' &&
+        typeof result === 'object' &&
         result !== null
       ) {
         const r = result as Record<string, unknown>;
-        if (typeof r.auditLogId === "string") auditLogId = r.auditLogId;
+        if (typeof r.auditLogId === 'string') auditLogId = r.auditLogId;
       }
 
       responseParts.push({
@@ -464,13 +468,13 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
     }
 
     contents.push({
-      role: "function",
+      role: 'function',
       parts: responseParts,
     });
   }
 
   return {
-    summary: "Agent reached max turns without a final answer.",
+    summary: 'Agent reached max turns without a final answer.',
     decisionId,
     attestationHash,
     auditLogId,
@@ -482,31 +486,30 @@ export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
 // CLI entry
 // ---------------------------------------------------------------------------
 
-const isMain =
-  process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 
 if (isMain) {
-  const goal = process.argv[2] || "Pay 100 USDC to vendor 0xABC for API credits if their last audit was clean.";
+  const goal =
+    process.argv[2] ||
+    'Pay 100 USDC to vendor 0xABC for API credits if their last audit was clean.';
   runAgent({
     goal,
-    cognivernApiKey: process.env.COGNIVERN_API_KEY || "development-api-key",
-    cognivernBaseUrl: process.env.COGNIVERN_BASE_URL || "https://cognivern.thisyearnofear.com",
-    mongodbUri:
-      process.env.MONGODB_URI ||
-      "mongodb://localhost:27017",
-    mongodbDatabase: process.env.MONGODB_DB_NAME || "cognivern",
-    previewOnly: process.env.PREVIEW_ONLY === "1",
+    cognivernApiKey: process.env.COGNIVERN_API_KEY || 'development-api-key',
+    cognivernBaseUrl: process.env.COGNIVERN_BASE_URL || 'https://cognivern.thisyearnofear.com',
+    mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017',
+    mongodbDatabase: process.env.MONGODB_DB_NAME || 'cognivern',
+    previewOnly: process.env.PREVIEW_ONLY === '1',
   })
     .then((r) => {
-      console.log("\n=== AGENT SUMMARY ===");
+      console.log('\n=== AGENT SUMMARY ===');
       console.log(r.summary);
-      console.log("\n=== RECEIPTS ===");
-      console.log("decisionId:        ", r.decisionId);
-      console.log("attestationHash:   ", r.attestationHash);
-      console.log("auditLogId:        ", r.auditLogId);
+      console.log('\n=== RECEIPTS ===');
+      console.log('decisionId:        ', r.decisionId);
+      console.log('attestationHash:   ', r.attestationHash);
+      console.log('auditLogId:        ', r.auditLogId);
     })
     .catch((e) => {
-      console.error("Agent failed:", e);
+      console.error('Agent failed:', e);
       process.exit(1);
     });
 }
