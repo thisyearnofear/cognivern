@@ -309,14 +309,14 @@ export function AppSidebar() {
                         ) : (
                           <ShieldCheck className="h-4 w-4" />
                         )}
-                        Sign In to Cognivern
+                        Sign message to finish
                       </button>
                       <button
                         onClick={openAccountModal}
                         className="w-full text-center py-1 rounded-md hover:bg-muted transition-colors"
                       >
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                          Connected as {shortAddress}
+                          Wallet connected · {shortAddress}
                         </span>
                       </button>
                     </div>

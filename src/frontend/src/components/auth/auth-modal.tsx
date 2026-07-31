@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { X, Mail, Wallet } from "lucide-react";
+import { useAccount } from "wagmi";
+import { X, Mail, Wallet, ShieldCheck, Loader2 } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { EmailAuthForm } from "./email-auth-form";
+import { useAuth } from "@/hooks/use-auth";
+import { useAuthStore } from "@/stores/auth-store";
 
 interface AuthModalProps {
   open: boolean;
@@ -13,6 +16,18 @@ interface AuthModalProps {
 
 export function AuthModal({ open, onClose, defaultMode = "login" }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<"email" | "wallet">("email");
+  const { address, isConnected } = useAccount();
+  const { signIn, loading, error } = useAuth();
+  const isAppAuthenticated = useAuthStore((state) => state.isConnected);
+
+  const finishWalletSignIn = async () => {
+    try {
+      await signIn();
+      onClose();
+    } catch {
+      // useAuth surfaces the failure in the modal and via toast.
+    }
+  };
 
   if (!open) return null;
 
@@ -33,9 +48,13 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: AuthModalPro
 
         <div className="bg-card rounded-xl border border-border p-6 shadow-xl">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>Sign in to Cognivern</h2>
+            <h2 className="text-xl font-semibold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
+              {activeTab === "wallet" && isConnected && !isAppAuthenticated ? "Finish signing in" : "Sign in to Cognivern"}
+            </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Choose how you want to authenticate
+              {activeTab === "wallet" && isConnected && !isAppAuthenticated
+                ? "Your wallet is connected. One final step creates your Cognivern session."
+                : "Choose how you want to authenticate"}
             </p>
           </div>
 
@@ -71,13 +90,39 @@ export function AuthModal({ open, onClose, defaultMode = "login" }: AuthModalPro
             />
           ) : (
             <div className="space-y-4">
-              <div className="flex justify-center py-4">
-                <ConnectButton />
-              </div>
-              <p className="text-xs text-muted-foreground text-center">
-                Connect your wallet and sign a message to authenticate.
-                Your wallet serves as your identity.
-              </p>
+              {!isConnected || !address ? (
+                <>
+                  <div className="flex justify-center py-4">
+                    <ConnectButton />
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Connect your wallet first. You will then be asked to sign a message to authenticate.
+                  </p>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
+                    <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-500" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">Wallet connected</p>
+                      <p className="truncate font-mono text-xs text-muted-foreground">{address}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void finishWalletSignIn()}
+                    disabled={loading}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {loading ? "Waiting for signature…" : "Sign message to finish"}
+                  </button>
+                  <p className="text-center text-xs text-muted-foreground">
+                    This is a gasless authentication signature. It does not move funds or submit a transaction.
+                  </p>
+                  {error && <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p>}
+                </div>
+              )}
             </div>
           )}
         </div>

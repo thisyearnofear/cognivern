@@ -75,7 +75,9 @@ export function AuthWatcher() {
         </span>
       </span>,
       {
-        duration: 6000,
+        // Keep this actionable until the user signs in or dismisses it;
+        // the sidebar/modal also retain the same next step.
+        duration: Infinity,
         action: {
           label: "Sign In",
           onClick: () => {
