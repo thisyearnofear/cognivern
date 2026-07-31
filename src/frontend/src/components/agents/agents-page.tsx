@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ErrorState, EmptyState } from "@/components/ui/error-state";
+import { PageState } from "@/components/ui/error-state";
 import { useRouter } from "next/navigation";
 import { PlusCircle, Key, Eye, ChevronDown } from "lucide-react";
 import { useAgents } from "@/hooks/use-api";
@@ -143,23 +143,9 @@ export function AgentsPage() {
           ))}
         </div>
       ) : error ? (
-        <ErrorState
-          title="Failed to load API identities"
-          message={error?.message || "We couldn't load your API identities. Please try again."}
-          onRetry={() => router.refresh()}
-        />
+        <PageState variant="error" title="Could not load API identities" message={error?.message || "Your governed identities are unavailable right now."} action={{ label: "Retry", onClick: () => router.refresh() }} />
       ) : agentList.length === 0 ? (
-        <EmptyState
-          icon={<Key className="h-8 w-8 text-muted-foreground" />}
-          title="No API identities yet"
-          description="Give your first external system governed access to Cognivern. You bring the system — Cognivern enforces the rules."
-          action={{
-            label: "Create Your First API Identity",
-            onClick: () => router.push("/agents/workshop"),
-            icon: <PlusCircle className="h-4 w-4" />,
-          }}
-          className="border rounded-xl"
-        />
+        <PageState variant="empty" title="No API identities yet" message="Give your first external system governed access to Cognivern." action={{ label: "Create API Identity", onClick: () => router.push("/agents/workshop") }} />
       ) : (
         <div className="space-y-8">
           {showcase.length > 0 && (

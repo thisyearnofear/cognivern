@@ -28,6 +28,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { apiClient } from "@/lib/api-client";
 import { authFetch } from "@/lib/auth-fetch";
 import { useWallets } from "@/hooks/use-api";
+import { PageState } from "@/components/ui/error-state";
 import type { ApiKey, ApiKeyCreateResponse } from "@/lib/api-client";
 import type { OwsWallet } from "@cognivern/shared";
 import useSWR, { mutate } from "swr";
@@ -59,7 +60,7 @@ export function SettingsPage() {
         <TabsList>
           <TabsTrigger value="workspace">Workspace</TabsTrigger>
           <TabsTrigger value="wallets">Wallets</TabsTrigger>
-          <TabsTrigger value="api-keys">API Keys</TabsTrigger>
+          <TabsTrigger value="api-keys">Access & API keys</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
         </TabsList>
 
@@ -165,9 +166,7 @@ function WalletsCard() {
           <div className="h-8 w-full bg-muted rounded" />
         </div>
       ) : error ? (
-        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 text-xs text-red-600 dark:text-red-400">
-          Failed to load wallets
-        </div>
+        <PageState variant="error" title="Could not load wallets" message="Wallet execution settings are unavailable right now." action={{ label: "Retry", onClick: () => mutate() }} />
       ) : !hasAnyWallet ? (
         <KeeperHubEmptyState />
       ) : (

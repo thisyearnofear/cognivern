@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageState } from "@/components/ui/error-state";
 import { useSealedBidRounds } from "@/hooks/use-api";
 import { apiClient } from "@/lib/api-client";
 import { mutate } from "swr";
@@ -192,44 +193,20 @@ export function SealedBidPage() {
       )}
 
       {error && (
-        <div className="rounded-xl border border-destructive bg-destructive/5 p-4 text-sm text-destructive">
-          Failed to load rounds. Check that the backend is reachable and try
-          again.
-        </div>
+        <PageState variant="error" title="Could not load vendor rounds" message="Confidential vendor selection is unavailable right now." action={{ label: "Retry", onClick: () => mutate("/api/vendor/sealed-bid/rounds") }} />
       )}
 
       {!isLoading && !error && rounds && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <AnimatePresence mode="wait">
             {rounds.length === 0 ? (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                className="col-span-full flex flex-col items-center justify-center rounded-xl border border-dashed py-16 px-4 text-center"
-              >
-                <div className="rounded-full bg-primary/10 p-4 mb-4">
-                  <Gavel className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-lg font-semibold mb-1">
-                  No vendor selection rounds
-                </h3>
-                <p className="text-sm text-muted-foreground max-w-sm mb-4">
-                  Kick off a confidential RFP. Start with an agent-governed round
-                  to see private bidding and policy checks in action.
-                </p>
-                <Button
-                  onClick={() => {
-                    setShowCreate(false);
-                    setShowAgentCreate(true);
-                  }}
-                >
-                  <Bot className="h-4 w-4 mr-2" />
-                  Create agent round
-                </Button>
-              </motion.div>
+              <PageState
+                variant="empty"
+                title="No vendor selection rounds"
+                message="Start a confidential RFP with an agent-governed round."
+                action={{ label: "Create agent round", onClick: () => { setShowCreate(false); setShowAgentCreate(true); } }}
+                className="col-span-full"
+              />
             ) : (
               rounds.map((r) => (
                 <motion.button

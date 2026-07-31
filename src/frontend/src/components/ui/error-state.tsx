@@ -2,6 +2,62 @@
 
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw, HelpCircle, Mail } from "lucide-react";
+import { trackUxEvent } from "@/lib/ux-events";
+
+type PageStateVariant = "empty" | "no-results" | "error" | "unavailable";
+
+interface PageStateProps {
+  variant: PageStateVariant;
+  title: string;
+  message: string;
+  action?: { label: string; onClick: () => void };
+  secondaryAction?: { label: string; onClick: () => void };
+  className?: string;
+}
+
+/**
+ * Shared route-level state. Keep the next action in the same place across
+ * dashboard surfaces; pages should only vary the message and action label.
+ */
+export function PageState({
+  variant,
+  title,
+  message,
+  action,
+  secondaryAction,
+  className,
+}: PageStateProps) {
+  const isError = variant === "error";
+  const handleAction = () => {
+    trackUxEvent(
+      isError ? "error_retry_clicked" : "empty_state_action_clicked",
+      "page_state",
+      variant,
+    );
+    action?.onClick();
+  };
+  const handleSecondaryAction = () => {
+    trackUxEvent("empty_state_action_clicked", "page_state", `${variant}:secondary`);
+    secondaryAction?.onClick();
+  };
+  return (
+    <div className={`flex flex-col items-center justify-center gap-3 rounded-xl border p-8 text-center ${isError ? "border-destructive/20 bg-destructive/5" : "border-dashed bg-card"} ${className || ""}`}>
+      <div className={`rounded-full p-3 ${isError ? "bg-destructive/10" : "bg-muted"}`}>
+        {isError ? <AlertTriangle className="h-6 w-6 text-destructive" /> : <HelpCircle className="h-6 w-6 text-muted-foreground" />}
+      </div>
+      <div className="space-y-1">
+        <h3 className="font-semibold text-foreground" style={{ fontFamily: "var(--font-space-grotesk)" }}>{title}</h3>
+        <p className="max-w-sm text-sm text-muted-foreground">{message}</p>
+      </div>
+      {(action || secondaryAction) && (
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+          {action && <Button size="sm" onClick={handleAction}>{action.label}</Button>}
+          {secondaryAction && <Button size="sm" variant="outline" onClick={handleSecondaryAction}>{secondaryAction.label}</Button>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface ErrorStateProps {
   title?: string;

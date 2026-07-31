@@ -51,6 +51,7 @@ For local setup, API reference, and production deployment, see the [Developer Gu
 | [Product & GTM canvas](./docs/PRODUCT_GTM_CANVAS.md)                              | Product Canvas + GTM Canvas — wedge, why-now, why-onchain, distribution loops                                               |
 | [Product UX vision](./docs/UX_VISION.md)                                          | Experience principles, route blueprint, and UX delivery plan                                                                |
 | [UX validation checklist](./docs/UX_VALIDATION_CHECKLIST.md)                      | Task-based acceptance checks for the core product workflows                                                               |
+| [UX implementation plan](./docs/UX_IMPLEMENTATION_PLAN.md)                       | Phased work plan for Audit, shared states, Settings, Runs, analytics, and validation                                     |
 | [Developer guide](./docs/DEVELOPER.md)                                            | Local setup, API reference, testing, production readiness                                                                   |
 | [Deployment](./docs/DEPLOYMENT.md)                                                | Hetzner / PM2 / nginx, env vars, health checks                                                                              |
 | [Tester guide](./docs/TESTER_GUIDE.md)                                            | 5-minute hands-on walk-through of the live product                                                                          |

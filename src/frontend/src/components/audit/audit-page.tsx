@@ -22,6 +22,7 @@ import {
   Link,
   Activity,
   AlertTriangle,
+  Download,
 } from "lucide-react";
 import { PermitDialog } from "./permit-dialog";
 import { SuspicionOverview } from "./suspicion-overview";
@@ -783,6 +784,8 @@ export function AuditPage() {
   const [proofDetailsExpanded, setProofDetailsExpanded] = useState(false);
   const [decisionFilter, setDecisionFilter] = useState<"all" | NormalizedAuditLog["decision"]>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [groupBy, setGroupBy] = useState<"none" | "decision" | "agent" | "chain">("none");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const logs = normalizeAuditLogs(rawLogs);
   const total = logs.length;
@@ -799,6 +802,44 @@ export function AuditPage() {
       .some((value) => value.toLowerCase().includes(normalizedQuery));
     return matchesDecision && matchesSearch;
   });
+  const groupedLogs = (() => {
+    if (groupBy === "none") return [["All decisions", filteredLogs] as const];
+    const groups = new Map<string, NormalizedAuditLog[]>();
+    for (const log of filteredLogs) {
+      const key = groupBy === "decision" ? log.decision : groupBy === "agent" ? log.agent : log.chain;
+      groups.set(key, [...(groups.get(key) || []), log]);
+    }
+    return Array.from(groups.entries());
+  })();
+  const selectedLogs = filteredLogs.filter((log) => selectedIds.has(log.id));
+  const toggleSelected = (id: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleAllVisible = () => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      const allSelected = filteredLogs.length > 0 && filteredLogs.every((log) => next.has(log.id));
+      filteredLogs.forEach((log) => allSelected ? next.delete(log.id) : next.add(log.id));
+      return next;
+    });
+  };
+  const exportSelected = () => {
+    if (selectedLogs.length === 0) return;
+    const headers = ["id", "api_identity", "action", "decision", "chain", "timestamp", "latency"];
+    const csvValue = (value: string) => `"${value.replaceAll('"', '""')}"`;
+    const rows = selectedLogs.map((log) => [log.id, log.agent, log.action, log.decision, log.chain, log.timestamp, log.latency].map(csvValue).join(","));
+    const blob = new Blob([[headers.join(","), ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "cognivern-audit-selection.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
@@ -898,7 +939,22 @@ export function AuditPage() {
                 </Button>
               ))}
             </div>
-            <span className="text-xs text-muted-foreground sm:ml-auto">{filteredLogs.length} of {total} decisions</span>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground sm:ml-auto">
+              Group by
+              <select value={groupBy} onChange={(event) => setGroupBy(event.target.value as typeof groupBy)} className="h-8 rounded-md border bg-background px-2 text-xs text-foreground">
+                <option value="none">None</option>
+                <option value="decision">Decision</option>
+                <option value="agent">API identity</option>
+                <option value="chain">Chain</option>
+              </select>
+            </label>
+            <span className="text-xs text-muted-foreground">{filteredLogs.length} of {total} decisions</span>
+            <div className="flex items-center gap-1.5 border-l pl-3">
+              <Button type="button" size="sm" variant="ghost" className="h-8 text-xs" onClick={toggleAllVisible}>
+                {filteredLogs.length > 0 && filteredLogs.every((log) => selectedIds.has(log.id)) ? "Clear selection" : "Select visible"}
+              </Button>
+              {selectedLogs.length > 0 && <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={exportSelected}><Download className="h-3.5 w-3.5" /> Export {selectedLogs.length}</Button>}
+            </div>
           </div>
 
           {filteredLogs.length === 0 ? (
@@ -907,11 +963,21 @@ export function AuditPage() {
               <Button variant="link" size="sm" className="ml-1 h-auto p-0" onClick={() => { setDecisionFilter("all"); setSearchQuery(""); }}>Clear filters</Button>
             </div>
           ) : (
-            <div className="pt-2">
-              {filteredLogs.map((log, index) => {
-                const rawLogIndex = logs.findIndex((item) => item.id === log.id);
-                return <TimelineNode key={log.id} log={log} rawLog={Array.isArray(rawLogs) ? rawLogs[rawLogIndex] : log} index={index} />;
-              })}
+            <div className="space-y-5 pt-2">
+              {groupedLogs.map(([group, groupLogs]) => (
+                <div key={group} className="space-y-1">
+                  {groupBy !== "none" && <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group} <span className="font-normal">({groupLogs.length})</span></h3>}
+                  {groupLogs.map((log, index) => {
+                    const rawLogIndex = logs.findIndex((item) => item.id === log.id);
+                    return <div key={log.id} className="relative">
+                      <label className="absolute left-0 top-4 z-20 flex h-5 w-5 items-center justify-center rounded border bg-background" onClick={(event) => event.stopPropagation()}>
+                        <input type="checkbox" checked={selectedIds.has(log.id)} onChange={() => toggleSelected(log.id)} aria-label={`Select ${log.agent} ${log.action} decision`} className="h-3.5 w-3.5 accent-primary" />
+                      </label>
+                      <TimelineNode log={log} rawLog={Array.isArray(rawLogs) ? rawLogs[rawLogIndex] : log} index={index} />
+                    </div>;
+                  })}
+                </div>
+              ))}
             </div>
           )}
         </section>

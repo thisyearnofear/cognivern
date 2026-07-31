@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageState } from "@/components/ui/error-state";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -423,17 +424,7 @@ export function PoliciesPage() {
           ))}
         </div>
       ) : error ? (
-        <div className="p-12 text-center text-muted-foreground border rounded-xl">
-          <p>Failed to load policies</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2"
-            onClick={() => router.refresh()}
-          >
-            Retry
-          </Button>
-        </div>
+        <PageState variant="error" title="Could not load policies" message="Your governance guardrails are unavailable right now." action={{ label: "Retry", onClick: () => router.refresh() }} />
       ) : policies.length === 0 ? null : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border rounded-xl overflow-hidden">
           {policies.map((policy, i) => (
