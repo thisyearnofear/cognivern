@@ -48,16 +48,16 @@ function useApiWithDemo<T>(
   demoData: T,
   config?: Record<string, unknown>,
 ): SWRResult<T> {
-  const demoMode = useDemoStore((s) => s.demoMode);
   const isConnected = useAuthStore((s) => s.isConnected);
-  // When connected, always fetch from the API — the backend demoInterceptor
-  // serves demo data for demo-tier workspaces. Only use local demo data
-  // for the unauthenticated demo tour (not connected + demoMode).
-  const effectiveKey = !isConnected && demoMode ? null : key;
+  // Never make authenticated API requests without an app session. This also
+  // covers token expiry during rehydration, before the logout transition has
+  // rendered; local sample data keeps the shell stable instead of triggering
+  // a cascade of 401 responses.
+  const effectiveKey = !isConnected ? null : key;
 
   const swr = useSWR(effectiveKey, fetcher, { ...SWR_DEFAULTS, ...config });
 
-  if (!isConnected && demoMode) {
+  if (!isConnected) {
     return {
       data: demoData,
       isLoading: false,

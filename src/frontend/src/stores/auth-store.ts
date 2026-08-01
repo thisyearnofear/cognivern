@@ -61,7 +61,15 @@ const STORAGE_NAME = "civern-auth-store";
 function isTokenExpired(token: string | null): boolean {
   if (!token) return true;
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    const encodedPayload = token.split(".")[1];
+    if (!encodedPayload) return true;
+    // JWTs use base64url, while browser atob expects standard base64. A
+    // wallet/user UUID can legitimately produce '-' or '_' in the payload;
+    // decoding those tokens with plain atob incorrectly logs users out on
+    // rehydration.
+    const base64 = encodedPayload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+    const payload = JSON.parse(atob(padded));
     if (typeof payload.exp !== "number") return false;
     return payload.exp <= Math.floor(Date.now() / 1000);
   } catch {
