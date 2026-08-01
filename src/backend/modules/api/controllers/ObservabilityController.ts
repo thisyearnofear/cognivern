@@ -32,6 +32,7 @@ export interface ObservabilityStatus {
 export interface ObservabilityMetrics {
   /** Time range the data covers (ISO strings) */
   timeRange: { start: string; end: string };
+  range?: ObservabilityRange;
   /** Time-series buckets aligned for charting */
   buckets: Array<{
     timestamp: number;
@@ -112,15 +113,19 @@ interface SigNozQueryResponse {
   };
 }
 
+const METRICS_WINDOWS = {
+  "1h": 60 * 60 * 1000,
+  "24h": 24 * 60 * 60 * 1000,
+  "7d": 7 * 24 * 60 * 60 * 1000,
+} as const;
+export type ObservabilityRange = keyof typeof METRICS_WINDOWS;
+
 const OTEL_ENABLED = !!(process.env.OTEL_EXPORTER_OTLP_ENDPOINT || "").trim();
 
 // Cache the SigNoz reachability probe for 30s so we don't hammer it on
 // every page load.
 let reachabilityCache: { at: number; reachable: boolean } | null = null;
 const REACHABILITY_TTL_MS = 30_000;
-
-// Default time window for live metrics: last 24 hours.
-const METRICS_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // Cache live metrics for 30s so concurrent page loads and rapid refreshes
 // don't hammer the SigNoz query API.
@@ -129,6 +134,8 @@ const METRICS_CACHE_TTL_MS = 30_000;
 export class ObservabilityController {
   private metricsCache: {
     at: number;
+    range: ObservabilityRange;
+    workspaceId?: string;
     promise: Promise<ObservabilityMetrics>;
     result: ObservabilityMetrics | null;
   } | null = null;
@@ -196,12 +203,17 @@ export class ObservabilityController {
    * time-series buckets. This endpoint keeps the SigNoz API token on the
    * backend and avoids CORS/CSP issues in the browser.
    */
-  async getMetrics(_req: Request, res: Response): Promise<void> {
+  async getMetrics(req: Request, res: Response): Promise<void> {
+    const requestedRange = typeof req.query.range === "string" ? req.query.range : "24h";
+    const range: ObservabilityRange = requestedRange in METRICS_WINDOWS
+      ? (requestedRange as ObservabilityRange)
+      : "24h";
+    const workspaceId = typeof req.query.workspaceId === "string" ? req.query.workspaceId.trim() : undefined;
     const cloudUrl = process.env.SIGNOZ_CLOUD_URL?.trim();
     const apiKey = process.env.SIGNOZ_API_KEY?.trim();
 
     if (!cloudUrl || !apiKey) {
-      const empty = this.buildEmptyMetrics();
+      const empty = this.buildEmptyMetrics(range);
       empty.message =
         "SigNoz query API is not configured. Set SIGNOZ_CLOUD_URL and SIGNOZ_API_KEY to enable live charts.";
       res.json({ success: true, data: empty });
@@ -209,11 +221,11 @@ export class ObservabilityController {
     }
 
     try {
-      const data = await this.getMetricsWithCache(cloudUrl, apiKey);
+      const data = await this.getMetricsWithCache(cloudUrl, apiKey, range, workspaceId);
       res.json({ success: true, data });
     } catch (error) {
       const message = error instanceof Error ? error.message : "SigNoz query failed";
-      const empty = this.buildEmptyMetrics();
+      const empty = this.buildEmptyMetrics(range);
       empty.message = message;
       res.json({ success: true, data: empty });
     }
@@ -222,13 +234,15 @@ export class ObservabilityController {
   private async getMetricsWithCache(
     cloudUrl: string,
     apiKey: string,
+    range: ObservabilityRange,
+    workspaceId?: string,
   ): Promise<ObservabilityMetrics> {
     const now = Date.now();
-    if (this.metricsCache && now - this.metricsCache.at < METRICS_CACHE_TTL_MS) {
+    if (this.metricsCache && this.metricsCache.range === range && this.metricsCache.workspaceId === workspaceId && now - this.metricsCache.at < METRICS_CACHE_TTL_MS) {
       return this.metricsCache.result ?? (await this.metricsCache.promise);
     }
 
-    const promise = this.fetchMetricsFromSignoz(cloudUrl, apiKey)
+    const promise = this.fetchMetricsFromSignoz(cloudUrl, apiKey, range, workspaceId)
       .then((data) => {
         if (this.metricsCache) this.metricsCache.result = data;
         return data;
@@ -238,16 +252,18 @@ export class ObservabilityController {
         throw err;
       });
 
-    this.metricsCache = { at: now, promise, result: null };
+    this.metricsCache = { at: now, promise, result: null, range, workspaceId };
     return promise;
   }
 
   private async fetchMetricsFromSignoz(
     cloudUrl: string,
     apiKey: string,
+    range: ObservabilityRange,
+    workspaceId?: string,
   ): Promise<ObservabilityMetrics> {
     const end = Date.now();
-    const start = end - METRICS_WINDOW_MS;
+    const start = end - METRICS_WINDOWS[range];
 
     const [decisions, cost, failures, latency] = await Promise.all([
       this.queryMetric(cloudUrl, apiKey, {
@@ -256,6 +272,7 @@ export class ObservabilityController {
         timeAggregation: "sum",
         start,
         end,
+        workspaceId,
       }),
       this.queryMetric(cloudUrl, apiKey, {
         name: "cost",
@@ -263,6 +280,7 @@ export class ObservabilityController {
         timeAggregation: "sum",
         start,
         end,
+        workspaceId,
       }),
       this.queryMetric(cloudUrl, apiKey, {
         name: "failures",
@@ -270,6 +288,7 @@ export class ObservabilityController {
         timeAggregation: "sum",
         start,
         end,
+        workspaceId,
       }),
       this.queryTraces(cloudUrl, apiKey, {
         name: "latency",
@@ -277,6 +296,7 @@ export class ObservabilityController {
         aggregation: "p95",
         start,
         end,
+        workspaceId,
       }),
     ]);
 
@@ -291,6 +311,7 @@ export class ObservabilityController {
 
     return {
       timeRange: { start: new Date(start).toISOString(), end: new Date(end).toISOString() },
+      range,
       buckets,
       summary,
       live: true,
@@ -306,6 +327,7 @@ export class ObservabilityController {
       timeAggregation: string;
       start: number;
       end: number;
+      workspaceId?: string;
     },
   ): Promise<SigNozPoint[]> {
     const body: SigNozQueryRequest = {
@@ -328,7 +350,7 @@ export class ObservabilityController {
                 },
               ],
               filter: {
-                expression: "service.name = 'cognivern-backend'",
+                expression: this.metricFilter(params.workspaceId),
               },
             },
           },
@@ -348,6 +370,7 @@ export class ObservabilityController {
       aggregation: string;
       start: number;
       end: number;
+      workspaceId?: string;
     },
   ): Promise<SigNozPoint[]> {
     const body: SigNozQueryRequest = {
@@ -368,7 +391,7 @@ export class ObservabilityController {
                 },
               ],
               filter: {
-                expression: `service.name = 'cognivern-backend' AND name = '${params.spanName}'`,
+                expression: `${this.metricFilter(params.workspaceId)} AND name = '${params.spanName}'`,
               },
             },
           },
@@ -506,17 +529,25 @@ export class ObservabilityController {
     return points.reduce((acc, p) => acc + (Number.isFinite(p.value) ? p.value : 0), 0);
   }
 
+  private metricFilter(workspaceId?: string): string {
+    const escaped = workspaceId?.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+    return escaped
+      ? `service.name = 'cognivern-backend' AND workspace_id = '${escaped}'`
+      : "service.name = 'cognivern-backend'";
+  }
+
   private avg(points: SigNozPoint[]): number {
     if (points.length === 0) return 0;
     return this.sum(points) / points.length;
   }
 
-  private buildEmptyMetrics(): ObservabilityMetrics {
+  private buildEmptyMetrics(range: ObservabilityRange = "24h"): ObservabilityMetrics {
     return {
       timeRange: {
-        start: new Date(Date.now() - METRICS_WINDOW_MS).toISOString(),
+        start: new Date(Date.now() - METRICS_WINDOWS[range]).toISOString(),
         end: new Date().toISOString(),
       },
+      range,
       buckets: [],
       summary: {
         totalDecisions: 0,

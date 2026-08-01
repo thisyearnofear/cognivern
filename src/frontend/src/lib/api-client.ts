@@ -257,8 +257,13 @@ class ApiClient {
     return this.fetch("/api/observability/status");
   }
 
-  async getObservabilityMetrics(): Promise<ApiResponse<ObservabilityMetrics>> {
-    return this.fetch("/api/observability/metrics");
+  async getObservabilityMetrics(
+    range: "1h" | "24h" | "7d" = "24h",
+    workspaceId?: string,
+  ): Promise<ApiResponse<ObservabilityMetrics>> {
+    const params = new URLSearchParams({ range });
+    if (workspaceId) params.set("workspaceId", workspaceId);
+    return this.fetch(`/api/observability/metrics?${params.toString()}`);
   }
 
   async getAuditInsights(): Promise<ApiResponse<AuditInsights>> {
@@ -1140,6 +1145,7 @@ export interface ObservabilityMetrics {
     avgLatencyP95Ms: number;
   };
   live: boolean;
+  range?: "1h" | "24h" | "7d";
   message?: string;
 }
 

@@ -13,6 +13,7 @@ import {
   type AuditLog,
 } from "@/lib/api-client";
 import { buildSignozTraceLinkSync } from "@/lib/signoz";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   LineChart,
   Line,
@@ -63,6 +64,8 @@ export function ObservabilityPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [traceSearch, setTraceSearch] = useState("");
+  const [range, setRange] = useState<"1h" | "24h" | "7d">("24h");
+  const workspaceId = useAuthStore((state) => state.workspace?.id);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,7 +77,7 @@ export function ObservabilityPage() {
         const [statusRes, logsRes, metricsRes] = await Promise.all([
           apiClient.getObservabilityStatus(),
           apiClient.getAuditLogs(),
-          apiClient.getObservabilityMetrics(),
+          apiClient.getObservabilityMetrics(range, workspaceId),
         ]);
         if (cancelled) return;
         if (statusRes.success && statusRes.data) {
@@ -111,7 +114,7 @@ export function ObservabilityPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [range, workspaceId]);
 
   // Extract audit logs that have a traceId, most recent first
   const tracedLogs = auditLogs
@@ -203,7 +206,7 @@ export function ObservabilityPage() {
         ) : status ? (
           <div className="space-y-8">
             <StatusCard status={status} />
-            <LiveMetricsSection metrics={metrics} error={metricsError} />
+            <LiveMetricsSection metrics={metrics} error={metricsError} range={range} onRangeChange={setRange} />
             <TraceSearchSection
               traceSearch={traceSearch}
               setTraceSearch={setTraceSearch}
@@ -397,9 +400,13 @@ function StatusField({
 function LiveMetricsSection({
   metrics,
   error,
+  range,
+  onRangeChange,
 }: {
   metrics: ObservabilityMetrics | null;
   error: string | null;
+  range: "1h" | "24h" | "7d";
+  onRangeChange: (range: "1h" | "24h" | "7d") => void;
 }) {
   const unavailable = error || !metrics || !metrics.live || metrics.buckets.length === 0;
   if (unavailable) {
@@ -438,6 +445,19 @@ function LiveMetricsSection({
       icon={<Gauge className="h-5 w-5 text-primary" />}
       subtitle="Queryable data from SigNoz, rendered natively in Cognivern."
     >
+      <div className="flex justify-end">
+        <select
+          value={range}
+          onChange={(event) => onRangeChange(event.target.value as "1h" | "24h" | "7d")}
+          className="h-8 rounded-md border bg-background px-2 text-xs"
+          aria-label="Telemetry time range"
+        >
+          <option value="1h">Last hour</option>
+          <option value="24h">Last 24 hours</option>
+          <option value="7d">Last 7 days</option>
+        </select>
+      </div>
+      <OperationalSignals summary={summary} />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <SummaryCard
           label="Governance decisions"
@@ -462,7 +482,7 @@ function LiveMetricsSection({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <ChartCard title="Governance decisions" subtitle="Decisions over the last 24h">
+        <ChartCard title="Governance decisions" subtitle={`Decisions over the last ${range}`}>
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={metrics.buckets}>
               <defs>
@@ -493,7 +513,7 @@ function LiveMetricsSection({
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="LLM cost (USD)" subtitle="Cumulative LLM spend over the last 24h">
+        <ChartCard title="LLM cost (USD)" subtitle={`Cumulative LLM spend over the last ${range}`}>
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={metrics.buckets}>
               <defs>
@@ -524,7 +544,7 @@ function LiveMetricsSection({
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="LLM failures" subtitle="Failed LLM calls over the last 24h">
+        <ChartCard title="LLM failures" subtitle={`Failed LLM calls over the last ${range}`}>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={metrics.buckets}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -548,7 +568,7 @@ function LiveMetricsSection({
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="LLM p95 latency" subtitle="p95 span duration over the last 24h">
+        <ChartCard title="LLM p95 latency" subtitle={`p95 span duration over the last ${range}`}>
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={metrics.buckets}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -573,6 +593,34 @@ function LiveMetricsSection({
         </ChartCard>
       </div>
     </Section>
+  );
+}
+
+function OperationalSignals({
+  summary,
+}: {
+  summary: ObservabilityMetrics["summary"];
+}) {
+  const signals = [
+    summary.totalFailures > 0
+      ? { label: `${summary.totalFailures} LLM failure${summary.totalFailures === 1 ? "" : "s"} detected`, tone: "warning" }
+      : { label: "No LLM failures detected", tone: "positive" },
+    summary.avgLatencyP95Ms > 2000
+      ? { label: `LLM p95 latency is high (${Math.round(summary.avgLatencyP95Ms)} ms)`, tone: "warning" }
+      : { label: "LLM latency is within the 2s watch threshold", tone: "positive" },
+  ];
+  return (
+    <div className="flex flex-wrap gap-2" aria-label="Operational signals">
+      {signals.map((signal) => (
+        <span
+          key={signal.label}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${signal.tone === "warning" ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200" : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200"}`}
+        >
+          {signal.tone === "warning" ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+          {signal.label}
+        </span>
+      ))}
+    </div>
   );
 }
 

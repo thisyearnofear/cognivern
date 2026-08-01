@@ -301,6 +301,19 @@ analysis. Keep the trace ID in the Cognivern audit/run record so a reviewer can
 move from a business decision to its distributed trace without searching by
 timestamp.
 
+The Tracing page supports 1-hour, 24-hour, and 7-day windows. When a signed-in
+workspace ID is available, governance metrics emitted through the workspace
+data path are filtered by `workspace_id`; older or unscoped telemetry remains
+visible only in the unfiltered view. The page also surfaces lightweight watch
+signals for non-zero LLM failures and p95 latency above 2 seconds. These are
+operator cues, not a replacement for SigNoz alert rules.
+
+Run `pnpm signoz:check` to validate the checked-in dashboard manifest. With
+`SIGNOZ_CLOUD_URL` and `SIGNOZ_API_KEY` set, it performs a read-only comparison
+against the SigNoz dashboard API and exits non-zero when a declared dashboard
+is missing. This makes manual dashboard imports detectable in CI or a release
+check without mutating the shared workspace.
+
 See `docs/ARCHITECTURE.md` -> "Telemetry & Observability" for the full
 instrumentation map, and `HACKATHON_SUBMISSION_SIGNOZ.md` for the hackathon
 submission write-up.

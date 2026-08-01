@@ -69,6 +69,7 @@
     "pitch-deck": "/usr/local/bin/python3.13 scripts/create-pitch-deck.py",
     "demo:fhe": "tsx scripts/demo/demo-fhe-spend.ts",
     "signoz:seed": "tsx scripts/signoz/seed-telemetry.ts",
+    "signoz:check": "tsx scripts/signoz/check-dashboards.ts",
     "deploy:fhenix": "npx hardhat run scripts/deploy-fhenix.ts --config contracts/fhenix/hardhat.config.cjs --network baseSepolia",
     "prepare": "husky"
   },

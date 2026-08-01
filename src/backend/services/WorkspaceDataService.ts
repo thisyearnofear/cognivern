@@ -492,12 +492,14 @@ export const WorkspaceDataService = {
     governanceDecisionCounter.add(1, {
       action_type: actionType,
       outcome: decision,
+      workspace_id: workspaceId,
     });
     if (decision === "denied") {
-      policyViolationCounter.add(1, { action_type: actionType });
+      policyViolationCounter.add(1, { action_type: actionType, workspace_id: workspaceId });
     }
     governanceLatencyHistogram.record(Date.now() - startedAt, {
       action_type: actionType,
+      workspace_id: workspaceId,
     });
 
     return {
