@@ -288,9 +288,18 @@ In SigNoz Cloud, go to Dashboards -> Import -> paste the JSON from
 ### 5. Verify
 
 Open the Observability page in the Cognivern frontend (Developer ->
-Observability) to confirm the status card shows "Tracing: Live, exporting".
-The audit page should show "View trace in SigNoz" links on governance
-decisions.
+Tracing) to verify the telemetry boundary in three parts: the OTLP endpoint
+should be reachable, the SigNoz query API should be configured, and the Live
+telemetry cards should contain data. An endpoint responding only proves network
+reachability; a successful query confirms that data is actually visible in the
+workspace. The Audit and Runs pages should show "View trace in SigNoz" links
+when their decision/run evidence contains a trace ID.
+
+For production operations, treat the Observability page as the quick check and
+SigNoz as the source of truth for alerting, retention, and cross-workspace
+analysis. Keep the trace ID in the Cognivern audit/run record so a reviewer can
+move from a business decision to its distributed trace without searching by
+timestamp.
 
 See `docs/ARCHITECTURE.md` -> "Telemetry & Observability" for the full
 instrumentation map, and `HACKATHON_SUBMISSION_SIGNOZ.md` for the hackathon

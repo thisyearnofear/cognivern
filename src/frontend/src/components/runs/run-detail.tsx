@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useRun } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
+import { buildSignozTraceLink } from '@/lib/signoz';
 import { trackUxEvent } from '@/lib/ux-events';
 
 type ApprovalResult = Awaited<ReturnType<typeof apiClient.submitRunApproval>>;
@@ -191,6 +192,7 @@ export function RunDetail({ runId }: { runId: string }) {
   const StatusIcon = status.icon;
   const events = run.events || [];
   const sourceContext = getSpendSourceContext(run);
+  const traceId = run.evidence?.traceId;
 
   return (
     <div className="space-y-6">
@@ -250,6 +252,26 @@ export function RunDetail({ runId }: { runId: string }) {
         evidence={["Policy evaluation", ...(events.length > 0 ? ["Execution trace"] : []), ...(sourceContext.provenance ? ["Source authorization"] : [])]}
         reviewPath={`/runs/${run.id}`}
       />
+
+      {traceId && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-800 dark:bg-emerald-950/20">
+          <div className="flex min-w-0 items-center gap-3">
+            <Activity className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">Execution trace available</p>
+              <code className="block truncate text-[11px] text-muted-foreground">{traceId}</code>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => window.open(await buildSignozTraceLink(traceId), '_blank')}
+          >
+            View in SigNoz
+            <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
 
       {/* Execution Trace */}
       {events.length > 0 && (

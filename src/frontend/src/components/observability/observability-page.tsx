@@ -296,7 +296,7 @@ function StatusCard({ status }: { status: ObservabilityStatus }) {
     : status.reachable === null
       ? { label: "Checking...", tone: "neutral" as const }
       : status.reachable
-        ? { label: "Live, exporting", tone: "positive" as const }
+        ? { label: "Endpoint reachable", tone: "positive" as const }
         : { label: "Configured, endpoint unreachable", tone: "warning" as const };
 
   return (
@@ -326,6 +326,11 @@ function StatusCard({ status }: { status: ObservabilityStatus }) {
           label="Ingestion key"
           value={status.ingestionKeyConfigured ? "set" : "missing"}
           tone={status.ingestionKeyConfigured ? "positive" : "neutral"}
+        />
+        <StatusField
+          label="Query API"
+          value={status.queryConfigured ? "configured" : "not configured"}
+          tone={status.queryConfigured ? "positive" : "neutral"}
         />
         <StatusField
           label="Service name"
@@ -431,7 +436,7 @@ function LiveMetricsSection({
     <Section
       title="Live telemetry"
       icon={<Gauge className="h-5 w-5 text-primary" />}
-      subtitle="Real-time data from SigNoz, rendered natively in Cognivern."
+      subtitle="Queryable data from SigNoz, rendered natively in Cognivern."
     >
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <SummaryCard

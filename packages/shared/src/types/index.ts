@@ -45,6 +45,9 @@ export interface Run {
   artifacts: number;
   timestamp: string;
   events?: RunEvent[];
+  evidence?: {
+    traceId?: string;
+  };
 }
 
 export interface RunEvent {

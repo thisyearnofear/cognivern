@@ -18,6 +18,7 @@ const logger = new Logger("ObservabilityController");
 export interface ObservabilityStatus {
   enabled: boolean;
   reachable: boolean | null;
+  queryConfigured: boolean;
   endpoint: string | null;
   serviceName: string;
   ingestionKeyConfigured: boolean;
@@ -138,6 +139,7 @@ export class ObservabilityController {
     const status: ObservabilityStatus = {
       enabled: OTEL_ENABLED,
       reachable,
+      queryConfigured: !!(process.env.SIGNOZ_CLOUD_URL || '').trim() && !!(process.env.SIGNOZ_API_KEY || '').trim(),
       endpoint: this.maskEndpoint(endpoint),
       serviceName: process.env.OTEL_SERVICE_NAME || "cognivern-backend",
       ingestionKeyConfigured: !!(process.env.SIGNOZ_INGESTION_KEY || "").trim(),

@@ -157,7 +157,7 @@ function ObservabilityStrip({ onClick }: { onClick: () => void }) {
     };
   }, []);
 
-  const tracingLive = otelStatus?.enabled && otelStatus?.reachable !== false;
+  const tracingLive = otelStatus?.enabled && otelStatus?.reachable === true;
 
   return (
     <button
@@ -169,12 +169,12 @@ function ObservabilityStrip({ onClick }: { onClick: () => void }) {
       <span className="text-sm text-foreground/80">
         <span className="font-semibold text-foreground">Agent observability</span>{" "}
         {fetchFailed
-          ? "— tracing status unavailable, click to view details"
-          : tracingLive
-            ? "— tracing live, every LLM call and governance decision visible in SigNoz"
+            ? "— telemetry status unavailable, click to view details"
+            : tracingLive
+            ? "— OTLP endpoint reachable; open Tracing to confirm queryable data"
             : otelStatus?.enabled
-              ? "— tracing configured but endpoint unreachable"
-              : "— configure SigNoz to trace every governance decision end-to-end"}
+              ? "— telemetry configured but endpoint unreachable"
+              : "— configure SigNoz to trace governance decisions end-to-end"}
       </span>
       <ArrowRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
     </button>

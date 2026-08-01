@@ -1100,6 +1100,7 @@ export interface ClosePolicyRejected {
 export interface ObservabilityStatus {
   enabled: boolean;
   reachable: boolean | null;
+  queryConfigured: boolean;
   endpoint: string | null;
   serviceName: string;
   ingestionKeyConfigured: boolean;

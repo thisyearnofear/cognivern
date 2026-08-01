@@ -361,6 +361,9 @@ export class CreController {
         artifacts: normalized.artifacts.length,
         timestamp: normalized.startedAt,
         events: normalized.events,
+        evidence: normalized.evidence?.traceId
+          ? { traceId: normalized.evidence.traceId }
+          : undefined,
         // The shared Run type exposes an artifact count for list rendering.
         // Keep full artifacts on this detail-only field for approval context.
         artifactData: normalized.artifacts,
