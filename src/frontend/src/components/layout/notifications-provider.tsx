@@ -6,7 +6,8 @@ import { useEventStream, useSseEvent } from "@/hooks/use-event-stream";
 import { useDemoStore } from "@/stores/demo-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { ShieldCheck, AlertTriangle, Activity, Pause, Play, LogOut, Clock } from "lucide-react";
-import { refreshToken } from "@/lib/auth";
+import { refreshSession } from "@/lib/session";
+import { jwtSecondsRemaining } from "@/lib/jwt";
 
 interface AuditEvent {
   id?: string;
@@ -63,19 +64,17 @@ export function NotificationsProvider() {
         return;
       }
       try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        const secondsLeft = payload.exp - Math.floor(Date.now() / 1000);
+        const secondsLeft = jwtSecondsRemaining(token);
+        if (secondsLeft === null) return;
         if (secondsLeft <= 300 && secondsLeft > 0 && !refreshedRef.current) {
           refreshedRef.current = true;
-          try {
-            const result = await refreshToken(token);
-            useAuthStore.getState().login(result.token, result.user, result.workspace);
+          if (await refreshSession()) {
             toast.success("Session refreshed", {
               description: "Your session has been extended automatically.",
               icon: <ShieldCheck className="h-4 w-4" />,
               duration: 3000,
             });
-          } catch {
+          } else {
             toast.warning("Session expiring soon", {
               description: `Your session expires in ${Math.ceil(secondsLeft / 60)} minute${secondsLeft <= 60 ? "" : "s"}. Please sign in again.`,
               icon: <Clock className="h-4 w-4" />,

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { AuthUser, Workspace } from "@cognivern/shared";
 import { useDemoStore } from "./demo-store";
+import { decodeJwtPayload } from "@/lib/jwt";
 
 interface AuthState {
   isConnected: boolean;
@@ -61,15 +62,8 @@ const STORAGE_NAME = "civern-auth-store";
 function isTokenExpired(token: string | null): boolean {
   if (!token) return true;
   try {
-    const encodedPayload = token.split(".")[1];
-    if (!encodedPayload) return true;
-    // JWTs use base64url, while browser atob expects standard base64. A
-    // wallet/user UUID can legitimately produce '-' or '_' in the payload;
-    // decoding those tokens with plain atob incorrectly logs users out on
-    // rehydration.
-    const base64 = encodedPayload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-    const payload = JSON.parse(atob(padded));
+    const payload = decodeJwtPayload(token);
+    if (!payload) return true;
     if (typeof payload.exp !== "number") return false;
     return payload.exp <= Math.floor(Date.now() / 1000);
   } catch {

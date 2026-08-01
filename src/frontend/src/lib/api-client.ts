@@ -1,6 +1,7 @@
 // Typed API client for Cognivern backend
 
 import { useAuthStore } from "@/stores/auth-store";
+import { expireSession, refreshSession } from "@/lib/session";
 import type {
   ApiResponse,
   AuditLog,
@@ -165,10 +166,10 @@ class ApiClient {
 
       if (!response.ok) {
         if (response.status === 401) {
-          useAuthStore.getState().logout();
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("auth:expired"));
+          if (retries > 0 && await refreshSession()) {
+            return this.fetch<T>(endpoint, options, retries - 1);
           }
+          expireSession();
         }
         const errorBody = await response.text();
         // Parse structured error codes from the backend and surface
@@ -823,6 +824,7 @@ class ApiClient {
   async submitRunApproval(
     runId: string,
     params: { approve: boolean; reason?: string },
+    retries = 1,
   ): Promise<{
     success: boolean;
     run?: Record<string, unknown>;
@@ -854,10 +856,10 @@ class ApiClient {
     });
 
     if (response.status === 401) {
-      useAuthStore.getState().logout();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("auth:expired"));
+      if (retries > 0 && (await refreshSession())) {
+        return this.submitRunApproval(runId, params, retries - 1);
       }
+      expireSession();
     }
 
     // The controller returns 200 even for transfer failures (with success:false

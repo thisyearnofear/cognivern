@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/stores/auth-store";
+import { expireSession, refreshSession } from "@/lib/session";
 
 /**
  * Thin wrapper around window.fetch that adds auth headers from the
@@ -9,6 +10,7 @@ import { useAuthStore } from "@/stores/auth-store";
 export async function authFetch(
   url: string,
   init?: RequestInit,
+  allowRefresh = true,
 ): Promise<Response> {
   const { token, workspaceMode } = useAuthStore.getState();
 
@@ -22,10 +24,10 @@ export async function authFetch(
   const res = await fetch(url, { ...init, headers });
 
   if (res.status === 401) {
-    useAuthStore.getState().logout();
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("auth:expired"));
+    if (allowRefresh && await refreshSession()) {
+      return authFetch(url, init, false);
     }
+    expireSession();
   }
 
   return res;

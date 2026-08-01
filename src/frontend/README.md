@@ -14,6 +14,24 @@ Next.js dashboard for the Cognivern AI Agent Governance Platform.
 - **Styling:** Tailwind CSS 4
 - **Real-time:** SSE event stream via `use-event-stream.ts` (used by notifications provider)
 
+### Session continuity contract
+
+Wallet connection and application authentication are separate states. A connected
+wallet is not treated as a signed-in workspace session until the SIWE message has
+been signed and verified. Authenticated requests share one session boundary:
+
+- `lib/jwt.ts` decodes base64url JWT payloads and checks expiry safely.
+- `lib/session.ts` performs a single-flight refresh when a request receives `401`;
+  concurrent requests reuse the same refresh promise.
+- API wrappers retry once after a successful refresh. A failed refresh clears the
+  production session and emits one actionable `auth:expired` event.
+- SWR helpers do not issue private API requests while the session is disconnected,
+  so stale production data cannot be repopulated by a cascade of `401` responses.
+
+Keep demo presentation and production session state independent: demo data is a
+fallback for disconnected users, never evidence that the production session is
+still valid.
+
 ## Project Structure
 
 ```
