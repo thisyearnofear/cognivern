@@ -68,8 +68,12 @@ Support:
 - Grouping by decision, API identity, policy, and time.
 - Clear-all and result-count feedback.
 
-Keep the filter state in the URL so a copied investigation link preserves the
-view.
+**Done (2026-08-02):** Filter state (status, search, group) is synced to URL
+search params (`?status=`, `?q=`, `?group=`). A copied investigation link
+preserves the view. The collapsed audit timeline now shows only agent, action,
+decision, and time; evidence badges (FHE, On-Chain, Suspicion, etc.) appear in
+the expanded detail section to keep the list scannable. A `/` keyboard shortcut
+focuses the search input.
 
 ### 1.3 Add safe selection behavior
 
@@ -112,6 +116,14 @@ Acceptance:
 Remove duplicate CTAs when the shared state already supplies the next action.
 Use the same title/description/action structure in loading and populated
 states, with skeletons replacing only the content area.
+
+**Progress (2026-08-02):** Dashboard sub-cards that previously swallowed fetch
+errors now have loading skeletons and graceful unavailable states — `AiSpendCard`
+(skeleton + unavailable message), `ControlScoreCard` (skeleton), and
+`ObservabilityStrip` (neutral loading copy). The Settings suspicion-threshold
+save now surfaces failure via toast + inline message instead of silently
+failing. Remaining: apply the same pattern to any route still rendering an
+unexplained blank panel.
 
 Acceptance: every primary route has one consistent state for each applicable
 condition and no route uses an unexplained blank panel.

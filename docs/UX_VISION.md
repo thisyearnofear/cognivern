@@ -130,7 +130,7 @@ empty-state CTA together with a competing template gallery or duplicate CTA.
 | Policies | Policy list, active/held state, **Create policy** | Templates are the only zero state; retain **Start from scratch** as secondary. |
 | API Identities | User inventory, status, **Create API identity** | Example identities are disclosed behind **View examples** in production workspaces. |
 | Governance Check | Natural-language input, summary, **Evaluate spend** | Keep Command Center contextual; continue to order results outcome → reason → policy checks → evidence. |
-| Audit | Filters/search, timeline, approved/held/blocked grouping | Keep Security Architecture under **Proof & security details**; next, add grouping when users need bulk investigation. |
+| Audit | Filters/search, timeline, approved/held/blocked grouping | Filters sync to URL (`?status=`, `?q=`, `?group=`) so investigation links are shareable; collapsed rows show agent/action/decision/time with evidence badges in the expanded detail; `/` focuses search. Keep Security Architecture under **Proof & security details**. |
 | Integrate | Prerequisite checklist, first request, allow/deny handling | Keep the platform overview collapsed; keep protocol coverage and security inventory in Reference. |
 | Tracing | Connection health, live metrics, trace search, recent traces | Collapse the specialized KeeperHub walkthrough unless a KeeperHub wallet is configured. |
 | Sealed Bids | Round list/status and one creation route | **Create agent round** is primary; retain **Create manually** as the explicit alternative. |

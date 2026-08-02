@@ -2,12 +2,21 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
 import {
   Sun,
@@ -506,6 +515,7 @@ function SuspicionThresholdCard({ workspaceId }: { workspaceId?: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -530,12 +540,16 @@ function SuspicionThresholdCard({ workspaceId }: { workspaceId?: string }) {
   const handleSave = useCallback(async () => {
     setSaving(true);
     setSaved(false);
+    setSaveError(false);
     try {
       await apiClient.updateWorkspace({ suspicionHoldThreshold: threshold });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
-      // ignore
+      setSaveError(true);
+      toast.error("Failed to save threshold", {
+        description: "Could not update the suspicion hold threshold. Try again.",
+      });
     } finally {
       setSaving(false);
     }
@@ -598,6 +612,12 @@ function SuspicionThresholdCard({ workspaceId }: { workspaceId?: string }) {
           ) : "Save"}
         </Button>
       </div>
+      {saveError && (
+        <p className="flex items-center gap-1.5 text-xs text-destructive">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          Failed to save threshold. Check your connection and try again.
+        </p>
+      )}
     </div>
   );
 }
@@ -605,6 +625,8 @@ function SuspicionThresholdCard({ workspaceId }: { workspaceId?: string }) {
 function ApiKeysCard() {
   const { data, isLoading } = useSWR("api-keys", () => apiClient.getApiKeys());
   const [newKeyName, setNewKeyName] = useState("");
+  const [confirmRevoke, setConfirmRevoke] = useState<ApiKey | null>(null);
+  const [revoking, setRevoking] = useState(false);
   const [selectedScopes, setSelectedScopes] = useState<string[]>([
     "agents:read",
     "governance:read",
@@ -637,14 +659,19 @@ function ApiKeysCard() {
     }
   }, [newKeyName, selectedScopes]);
 
-  const handleRevoke = useCallback(async (keyId: string) => {
-    const confirmed = window.confirm(
-      "Revoke this API key? Any system using this key will immediately lose access.",
-    );
-    if (!confirmed) return;
-    await apiClient.revokeApiKey(keyId);
-    mutate("api-keys");
-  }, []);
+  const handleRevoke = useCallback(
+    async (key: ApiKey) => {
+      setRevoking(true);
+      try {
+        await apiClient.revokeApiKey(key.id);
+        mutate("api-keys");
+        setConfirmRevoke(null);
+      } finally {
+        setRevoking(false);
+      }
+    },
+    [],
+  );
 
   const handleCopy = useCallback(() => {
     if (createdKey?.key) {
@@ -787,7 +814,7 @@ function ApiKeysCard() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => handleRevoke(key.id)}
+                    onClick={() => setConfirmRevoke(key)}
                     className="text-destructive hover:text-destructive self-start sm:self-auto"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -797,6 +824,55 @@ function ApiKeysCard() {
             </div>
           )}
         </div>
+
+        {/* Revoke confirmation dialog */}
+        <Dialog
+          open={confirmRevoke !== null}
+          onOpenChange={(open) => {
+            if (!open) setConfirmRevoke(null);
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <Trash2 className="h-4 w-4" />
+                Revoke API key
+              </DialogTitle>
+              <DialogDescription>
+                {confirmRevoke && (
+                  <>
+                    You are about to revoke{" "}
+                    <span className="font-medium text-foreground">
+                      {confirmRevoke.name}
+                    </span>{" "}
+                    (<code className="font-mono">{confirmRevoke.keyPrefix}…</code>).
+                    Any system using this key will immediately lose access.
+                    This action cannot be undone.
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setConfirmRevoke(null)}
+                disabled={revoking}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (confirmRevoke) void handleRevoke(confirmRevoke);
+                }}
+                disabled={revoking}
+                className="gap-1.5"
+              >
+                {revoking ? "Revoking…" : "Revoke key"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }

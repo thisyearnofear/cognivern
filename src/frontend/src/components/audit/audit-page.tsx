@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +33,6 @@ import { PermitDialog } from "./permit-dialog";
 import { SuspicionOverview } from "./suspicion-overview";
 import { LedgerIntegrityCard } from "./ledger-integrity-card";
 import { EventTimeline, type TimelineEvent } from "@/components/shared/event-timeline";
-import { useRouter } from "next/navigation";
 import { useAuditLogs } from "@/hooks/use-api";
 import {
   normalizeAuditLogs,
@@ -314,7 +314,9 @@ function TimelineNode({
         <div className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              {/* Agent + badges row */}
+              {/* Agent + action row — keep collapsed state scannable.
+                  Detail badges (FHE, On-Chain, Suspicion, etc.) appear
+                  in the expanded section below. */}
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <span className="font-medium text-sm text-foreground">
                   {log.agent}
@@ -322,40 +324,15 @@ function TimelineNode({
                 <Badge variant="outline" className="text-xs">
                   {log.action}
                 </Badge>
-                {isFhe && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700">
+                {/* Compact evidence indicator so expanded detail is discoverable
+                    without crowding the collapsed row. */}
+                {(isFhe || isChainGpt || isLedger || txHash || (suspicion && suspicion.label !== "normal")) && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground" title="Has additional evidence — expand for details">
                     <ShieldCheck className="h-2.5 w-2.5" />
-                    FHE
-                  </span>
-                )}
-                {isChainGpt && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700">
-                    <ShieldCheck className="h-2.5 w-2.5" />
-                    Audit
-                  </span>
-                )}
-                {isLedger && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
-                    <Fingerprint className="h-2.5 w-2.5" />
-                    Hardware
-                  </span>
-                )}
-                {txHash && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-700">
-                    <ExternalLink className="h-2.5 w-2.5" />
-                    On-Chain
-                  </span>
-                )}
-                {suspicion && suspicion.label !== "normal" && (
-                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${
-                    suspicion.label === "critical"
-                      ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700"
-                      : suspicion.label === "high"
-                        ? "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-700"
-                        : "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700"
-                  }`}>
-                    <AlertTriangle className="h-2.5 w-2.5" />
-                    {suspicion.label === "critical" ? "Critical" : suspicion.label === "high" ? "Suspicious" : "Score"}: {suspicion.composite.toFixed(2)}
+                    +{[
+                      isFhe, isChainGpt, isLedger, !!txHash,
+                      suspicion && suspicion.label !== "normal",
+                    ].filter(Boolean).length}
                   </span>
                 )}
               </div>
@@ -410,6 +387,49 @@ function TimelineNode({
                   Timestamp: <span className="text-foreground/70">{log.timestamp}</span>
                 </span>
               </div>
+
+              {/* Evidence badges — full detail now lives here instead of the
+                  collapsed row, keeping the timeline scannable. */}
+              {(isFhe || isChainGpt || isLedger || txHash || (suspicion && suspicion.label !== "normal")) && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {isFhe && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700">
+                      <ShieldCheck className="h-2.5 w-2.5" />
+                      FHE
+                    </span>
+                  )}
+                  {isChainGpt && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700">
+                      <ShieldCheck className="h-2.5 w-2.5" />
+                      Audit
+                    </span>
+                  )}
+                  {isLedger && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
+                      <Fingerprint className="h-2.5 w-2.5" />
+                      Hardware
+                    </span>
+                  )}
+                  {txHash && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-700">
+                      <ExternalLink className="h-2.5 w-2.5" />
+                      On-Chain
+                    </span>
+                  )}
+                  {suspicion && suspicion.label !== "normal" && (
+                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${
+                      suspicion.label === "critical"
+                        ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700"
+                        : suspicion.label === "high"
+                          ? "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-700"
+                          : "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700"
+                    }`}>
+                      <AlertTriangle className="h-2.5 w-2.5" />
+                      {suspicion.label === "critical" ? "Critical" : suspicion.label === "high" ? "Suspicious" : "Score"}: {suspicion.composite.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              )}
 
               <DecisionReceipt
                 decision={log.decision}
@@ -799,11 +819,88 @@ function EmptyAuditState({ onRunCheck }: { onRunCheck: () => void }) {
 
 export function AuditPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { data: rawLogs, isLoading, error } = useAuditLogs();
   const [proofDetailsExpanded, setProofDetailsExpanded] = useState(false);
-  const [decisionFilter, setDecisionFilter] = useState<"all" | "needs_attention" | NormalizedAuditLog["decision"]>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [groupBy, setGroupBy] = useState<"none" | "decision" | "agent" | "chain">("none");
+
+  // Keyboard shortcut: press "/" to focus the audit search input.
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement;
+      const isTyping =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable;
+      if (event.key === "/" && !isTyping) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Filter state synced to URL search params so investigation views are
+  // shareable. Reads initial values from the URL, writes back on change.
+  type AuditFilter = "all" | "needs_attention" | NormalizedAuditLog["decision"];
+  type GroupBy = "none" | "decision" | "agent" | "chain";
+  const rawFilter = searchParams.get("status") ?? "all";
+  const rawGroup = searchParams.get("group") ?? "none";
+  const [decisionFilter, setDecisionFilter] = useState<AuditFilter>(
+    (["all", "needs_attention", "approved", "held", "denied"] as string[]).includes(rawFilter) ? rawFilter as AuditFilter : "all"
+  );
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const [groupBy, setGroupBy] = useState<GroupBy>(
+    (["none", "decision", "agent", "chain"] as string[]).includes(rawGroup) ? rawGroup as GroupBy : "none"
+  );
+
+  const updateUrl = useCallback(
+    (updates: { status?: string; q?: string; group?: string }) => {
+      const params = new URLSearchParams(window.location.search);
+      if (updates.status !== undefined) {
+        if (updates.status === "all") params.delete("status");
+        else params.set("status", updates.status);
+      }
+      if (updates.q !== undefined) {
+        if (updates.q === "") params.delete("q");
+        else params.set("q", updates.q);
+      }
+      if (updates.group !== undefined) {
+        if (updates.group === "none") params.delete("group");
+        else params.set("group", updates.group);
+      }
+      const qs = params.toString();
+      router.replace(qs ? `/audit?${qs}` : "/audit", { scroll: false });
+    },
+    [router],
+  );
+
+  const handleFilterChange = useCallback(
+    (filter: AuditFilter) => {
+      setDecisionFilter(filter);
+      updateUrl({ status: filter });
+    },
+    [updateUrl],
+  );
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchQuery(value);
+      updateUrl({ q: value });
+    },
+    [updateUrl],
+  );
+
+  const handleGroupChange = useCallback(
+    (value: GroupBy) => {
+      setGroupBy(value);
+      updateUrl({ group: value });
+    },
+    [updateUrl],
+  );
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [reviewBriefCopied, setReviewBriefCopied] = useState(false);
 
@@ -944,9 +1041,10 @@ export function AuditPage() {
         <section className="space-y-4">
           <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center">
             <Input
+              ref={searchInputRef}
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search identity, action, or chain"
+              onChange={(event) => handleSearchChange(event.target.value)}
+              placeholder="Search identity, action, or chain ( / )"
               aria-label="Search audit decisions"
               className="sm:max-w-xs"
             />
@@ -957,7 +1055,7 @@ export function AuditPage() {
                   type="button"
                   size="sm"
                   variant={decisionFilter === filter ? "secondary" : "ghost"}
-                  onClick={() => setDecisionFilter(filter)}
+                  onClick={() => handleFilterChange(filter)}
                   className="h-8 capitalize"
                 >
                   {filter === "needs_attention" ? "Needs attention" : filter}
@@ -966,7 +1064,7 @@ export function AuditPage() {
             </div>
             <label className="flex items-center gap-2 text-xs text-muted-foreground sm:ml-auto">
               Group by
-              <select value={groupBy} onChange={(event) => setGroupBy(event.target.value as typeof groupBy)} className="h-8 rounded-md border bg-background px-2 text-xs text-foreground">
+              <select value={groupBy} onChange={(event) => handleGroupChange(event.target.value as typeof groupBy)} className="h-8 rounded-md border bg-background px-2 text-xs text-foreground">
                 <option value="none">None</option>
                 <option value="decision">Decision</option>
                 <option value="agent">API identity</option>
@@ -984,7 +1082,7 @@ export function AuditPage() {
           </div>
 
           {filteredLogs.length === 0 ? (
-            <PageState variant="no-results" title="No matching decisions" message="Clear the saved view or search to see more of the audit trail." action={{ label: "Clear filters", onClick: () => { setDecisionFilter("all"); setSearchQuery(""); } }} />
+            <PageState variant="no-results" title="No matching decisions" message="Clear the saved view or search to see more of the audit trail." action={{ label: "Clear filters", onClick: () => { handleFilterChange("all"); handleSearchChange(""); } }} />
           ) : (
             <div className="space-y-5 pt-2">
               {groupedLogs.map(([group, groupLogs]) => (

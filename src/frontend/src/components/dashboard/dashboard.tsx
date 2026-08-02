@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   ShieldCheck,
   Users,
@@ -18,6 +18,7 @@ import {
   Gavel,
   Radar,
   BarChart3,
+  RefreshCw,
 } from "lucide-react";
 import type { AuditLog } from "@cognivern/shared";
 import { Button } from "@/components/ui/button";
@@ -93,17 +94,50 @@ function AiSpendCard() {
     totalCalls: number;
     byProvider: Record<string, { costUsd: number; tokens: number; calls: number }>;
   } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     authFetch("/api/audit/insights?dimension=ai_spend")
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
-        if (!cancelled && json?.success) setAiSpend(json.data);
+        if (cancelled) return;
+        if (json?.success) setAiSpend(json.data);
+        else setFailed(true);
       })
-      .catch(() => {});
+      .catch(() => { if (!cancelled) setFailed(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
+
+  if (loading) {
+    return (
+      <div className="bg-card p-4 flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950 flex-shrink-0">
+          <Sparkles className="h-5 w-5 text-violet-500" />
+        </div>
+        <div className="space-y-1.5">
+          <Skeleton className="h-7 w-24" />
+          <Skeleton className="h-3.5 w-28" />
+        </div>
+      </div>
+    );
+  }
+
+  if (failed) {
+    return (
+      <div className="bg-card p-4 flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950 flex-shrink-0">
+          <Sparkles className="h-5 w-5 text-violet-500" />
+        </div>
+        <div>
+          <div className="text-sm font-medium text-muted-foreground">AI Spend unavailable</div>
+          <div className="text-xs text-muted-foreground/70">Could not load spend data</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card p-4 flex items-center gap-3">
@@ -132,7 +166,7 @@ function ObservabilityStrip({ onClick }: { onClick: () => void }) {
     enabled: boolean;
     reachable: boolean | null;
   } | null>(null);
-  const [fetchFailed, setFetchFailed] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,13 +179,10 @@ function ObservabilityStrip({ onClick }: { onClick: () => void }) {
             enabled: json.data.enabled,
             reachable: json.data.reachable,
           });
-        } else {
-          setFetchFailed(true);
         }
       })
-      .catch(() => {
-        if (!cancelled) setFetchFailed(true);
-      });
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => {
       cancelled = true;
     };
@@ -167,14 +198,13 @@ function ObservabilityStrip({ onClick }: { onClick: () => void }) {
     >
       <Radar className={`h-4 w-4 shrink-0 ${tracingLive ? "text-emerald-500" : "text-muted-foreground"}`} />
       <span className="text-sm text-foreground/80">
-        <span className="font-semibold text-foreground">Agent observability</span>{" "}
-        {fetchFailed
-            ? "— telemetry status unavailable, click to view details"
-            : tracingLive
+        {loading
+          ? <span className="font-semibold text-foreground">Agent observability</span>
+          : <><span className="font-semibold text-foreground">Agent observability</span>{" "}{tracingLive
             ? "— OTLP endpoint reachable; open Tracing to confirm queryable data"
             : otelStatus?.enabled
               ? "— telemetry configured but endpoint unreachable"
-              : "— configure SigNoz to trace governance decisions end-to-end"}
+              : "— configure SigNoz to trace governance decisions end-to-end"}</>}
       </span>
       <ArrowRight className="h-4 w-4 text-muted-foreground ml-auto shrink-0" />
     </button>
@@ -188,6 +218,7 @@ function ControlScoreCard() {
     escalationRate: number;
     distribution: Record<string, number>;
   } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -196,9 +227,24 @@ function ControlScoreCard() {
       .then((json) => {
         if (!cancelled && json?.success) setData(json.data);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
+
+  if (loading) {
+    return (
+      <div className="bg-card p-4 flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950 flex-shrink-0">
+          <AlertTriangle className="h-5 w-5 text-orange-500" />
+        </div>
+        <div className="space-y-1.5">
+          <Skeleton className="h-7 w-20" />
+          <Skeleton className="h-3.5 w-28" />
+        </div>
+      </div>
+    );
+  }
 
   // Render only when the backend actually supplied the suspicion shape.
   // Demo-tier responses can come back as {compliance, trends} with neither
@@ -241,7 +287,14 @@ export function Dashboard() {
   const walletAddress = useAuthStore((s) => s.walletAddress);
   const isAuthenticated = useAuthStore((s) => s.isConnected);
   const workspaceMode = useAuthStore((s) => s.workspaceMode);
+  const [refreshing, setRefreshing] = useState(false);
   useNetworkStatus();
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    router.refresh();
+    setTimeout(() => setRefreshing(false), 800);
+  }, [router]);
   const {
     data: agents,
     isLoading: agentsLoading,
@@ -407,14 +460,14 @@ export function Dashboard() {
                 variant="ghost"
                 size="sm"
                 className="h-6 px-2 text-xs"
-                onClick={() => router.refresh()}
+                onClick={handleRefresh}
               >
                 Retry
               </Button>
             </div>
           )}
-          <Button size="sm" variant="ghost" onClick={() => router.refresh()}>
-            Refresh
+          <Button size="sm" variant="ghost" onClick={handleRefresh} disabled={refreshing}>
+            {refreshing ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : "Refresh"}
           </Button>
         </div>
       </div>
@@ -554,7 +607,7 @@ export function Dashboard() {
             ))}
           </div>
         ) : logsError ? (
-          <PageState variant="error" title="Could not load activity" message="Recent governance decisions are unavailable right now." action={{ label: "Retry", onClick: () => router.refresh() }} />
+          <PageState variant="error" title="Could not load activity" message="Recent governance decisions are unavailable right now." action={{ label: "Retry", onClick: handleRefresh }} />
         ) : filteredActivity.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground border rounded-xl">
             <p>
@@ -693,7 +746,7 @@ export function Dashboard() {
 
             <div>
               <div className="flex items-center justify-between mb-3"><h2 className="font-semibold">Governed identities</h2><Button variant="ghost" size="sm" onClick={() => router.push("/agents")}>View all <ArrowRight className="h-3.5 w-3.5" /></Button></div>
-              {agentsLoading ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">{[1, 2, 3, 4].map((i) => <div key={i} className="bg-card p-4 rounded-xl border"><Skeleton className="h-24 w-full" /></div>)}</div> : agentsError ? <PageState variant="error" title="Could not load identities" message="Governed identity data is unavailable right now." action={{ label: "Retry", onClick: () => router.refresh() }} /> : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">{agentList.map((agent) => <button key={agent.id} onClick={() => router.push(`/agents/${agent.id}`)} className="bg-card p-4 hover:bg-accent/50 transition-colors text-left"><div className="flex items-center justify-between mb-3"><div className="flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${agent.status === "active" ? "bg-emerald-500" : "bg-amber-500"}`} /><span className="font-medium text-sm">{agent.name}</span></div><Badge variant={agent.status === "active" ? "secondary" : "outline"} className="text-xs">{agent.status}</Badge></div><div className="flex justify-between text-sm text-muted-foreground"><span>{agent.trades} actions</span><span className="font-medium">{formatBudget(agent.budget)}</span></div></button>)}</div>}
+              {agentsLoading ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">{[1, 2, 3, 4].map((i) => <div key={i} className="bg-card p-4 rounded-xl border"><Skeleton className="h-24 w-full" /></div>)}</div> : agentsError ? <PageState variant="error" title="Could not load identities" message="Governed identity data is unavailable right now." action={{ label: "Retry", onClick: handleRefresh }} /> : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">{agentList.map((agent) => <button key={agent.id} onClick={() => router.push(`/agents/${agent.id}`)} className="bg-card p-4 hover:bg-accent/50 transition-colors text-left"><div className="flex items-center justify-between mb-3"><div className="flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${agent.status === "active" ? "bg-emerald-500" : "bg-amber-500"}`} /><span className="font-medium text-sm">{agent.name}</span></div><Badge variant={agent.status === "active" ? "secondary" : "outline"} className="text-xs">{agent.status}</Badge></div><div className="flex justify-between text-sm text-muted-foreground"><span>{agent.trades} actions</span><span className="font-medium">{formatBudget(agent.budget)}</span></div></button>)}</div>}
             </div>
           </div>
         )}

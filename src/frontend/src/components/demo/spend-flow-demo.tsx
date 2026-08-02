@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   ShieldCheck,
   FileSearch,
@@ -17,6 +19,8 @@ import {
   Lock,
   ShieldOff,
   AlertTriangle,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 
 interface StepState {
@@ -140,6 +144,8 @@ function buildUngovernedSteps(scenario: Scenario): StepState[] {
 }
 
 export function SpendFlowDemo() {
+  const router = useRouter();
+  const isConnected = useAuthStore((s) => s.isConnected);
   const [scenarioId, setScenarioId] = useState(SCENARIOS[0].id);
   const scenario = SCENARIOS.find((s) => s.id === scenarioId) ?? SCENARIOS[0];
   const [governed, setGoverned] = useState(true);
@@ -560,6 +566,42 @@ export function SpendFlowDemo() {
             </div>
           </div>
         </div>
+
+      {/* Demo-to-product bridge: appear after the demo completes so visitors
+          see a natural next step once they understand the value. */}
+      {completed && (
+        <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="p-2.5 rounded-xl bg-primary/10 shrink-0">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <div className="font-semibold text-sm">
+                  {isConnected
+                    ? "Apply this to your own agents"
+                    : "Set up your own governed workspace"}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {isConnected
+                    ? "Create a policy and connect your first API identity to govern real agent spend."
+                    : "Sign in to run this same flow on your own policies, agents, and real transactions."}
+                </div>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() =>
+                router.push(isConnected ? "/governance/check" : "/onboarding")
+              }
+              className="gap-1.5 shrink-0"
+            >
+              {isConnected ? "Run a real check" : "Get started free"}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

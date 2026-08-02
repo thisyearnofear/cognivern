@@ -12,8 +12,9 @@ your workspace comes pre-seeded with a default agent and spend policy.
 ## 1. Sign in (30 seconds)
 
 - Go to https://cognivern.persidian.com
-- Click **Connect Wallet** (MetaMask, WalletConnect, or email)
-- Sign the SIWE message — no gas, no transaction
+- Click **Sign In**. Email is the default tab — enter any email and password,
+  or switch to the **Wallet** tab to use MetaMask/WalletConnect instead.
+- If you use the wallet path, sign the SIWE message — no gas, no transaction.
 
 You'll land on the dashboard. It shows a "Your workspace is ready" panel
 with a quick governance check card.
@@ -59,6 +60,12 @@ curl https://cognivern.persidian.com/api/governance/evaluate \
 
 Go to **Audit** in the sidebar. Every governance check you ran in
 step 2 is logged here with the decision, reasoning, and timestamp.
+
+- Filter by status (All / Needs attention / Approved / Held / Denied) — the
+  choice is reflected in the URL, so you can share an investigation link.
+- Press `/` to jump straight to search, then type an identity or action.
+- Click any row to expand it and see the full evidence (policy checks,
+  on-chain record, FHE/SigNoz links, suspicion analysis).
 
 ## 6. Verify on-chain proofs on 0G Chain (30 seconds)
 
