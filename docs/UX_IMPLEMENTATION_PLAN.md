@@ -53,7 +53,10 @@ copy, or retry behavior.
 
 Add an attention summary above the timeline:
 
-- Needs attention = held + denied + suspicious decisions.
+- Needs attention on Audit = held + denied decisions. Suspicion is surfaced in
+  expanded evidence and the Proof & security details section rather than added
+  to the top-level count. Runs use a separate execution attention model:
+  awaiting approval + failed.
 - Healthy state = no unresolved items.
 - Primary action links to the first unresolved decision.
 
@@ -77,13 +80,20 @@ focuses the search input.
 
 ### 1.3 Add safe selection behavior
 
-Add row selection only for reversible actions:
+Use selection only where the available action is explicit and scoped:
 
 - Export selected records.
 - Mark selected records reviewed.
 - Open selected evidence.
+- On API Identities, pause, resume, or revoke selected real identities; demo
+  identities remain visibly non-mutating.
 
-Do not add bulk approval, policy mutation, or spend execution in this phase.
+Audit selection must not silently execute spend or mutate policy. The current
+held-decision batch approve/reject flow is explicit: it opens a confirmation
+dialog, accepts an optional reason, submits each selected run through the
+canonical CRE approval endpoint, refreshes the audit trail, and records the
+privacy-safe `batch_action_completed` UX event. Future bulk actions should keep
+those confirmation and audit-trail guarantees.
 
 Acceptance:
 
@@ -96,12 +106,12 @@ Acceptance:
 
 ### 2.1 Define the state taxonomy
 
-| State | Meaning | Primary action |
-| --- | --- | --- |
-| Empty | The workspace has no records yet | Create/run the first relevant item |
-| No results | Records exist, current filters match none | Clear filters |
-| Error | The request failed | Retry |
-| Unavailable | The capability is not configured/enabled | Configure or learn more |
+| State       | Meaning                                   | Primary action                     |
+| ----------- | ----------------------------------------- | ---------------------------------- |
+| Empty       | The workspace has no records yet          | Create/run the first relevant item |
+| No results  | Records exist, current filters match none | Clear filters                      |
+| Error       | The request failed                        | Retry                              |
+| Unavailable | The capability is not configured/enabled  | Configure or learn more            |
 
 ### 2.2 Migrate routes in this order
 
@@ -117,7 +127,15 @@ Remove duplicate CTAs when the shared state already supplies the next action.
 Use the same title/description/action structure in loading and populated
 states, with skeletons replacing only the content area.
 
-**Progress (2026-08-02):** Dashboard sub-cards that previously swallowed fetch
+**Progress (2026-08-02):** The attention-first operational slice is now in
+place: Dashboard, Audit, and Runs share `AttentionSummary`; Dashboard and Audit
+distinguish held action from denied investigation; Runs prioritizes awaiting and
+failed executions; the sidebar groups routes by **Operate**, **Configure**,
+**Test**, and **Build**; and API Identities provides progressive batch status
+controls for real identities. Run rows and non-selection API identity cards
+retain keyboard-accessible interaction semantics.
+
+Dashboard sub-cards that previously swallowed fetch
 errors now have loading skeletons and graceful unavailable states — `AiSpendCard`
 (skeleton + unavailable message), `ControlScoreCard` (skeleton), and
 `ObservabilityStrip` (neutral loading copy). The Settings suspicion-threshold
@@ -144,7 +162,9 @@ Keep **Run governance check** as the single primary action. Make failed and awai
 runs visually prominent; do not make completed runs compete with them.
 
 Acceptance: a user can find an awaiting or failed run without scanning every
-completed run.
+completed run. The shared attention summary offers the first actionable run,
+and unresolved runs appear before completed history while preserving status
+filters.
 
 ### 3.2 Settings as configuration, not a tab drawer
 
@@ -172,16 +192,16 @@ Create a small client helper such as `trackUxEvent` with this payload:
 ```ts
 type UxEvent = {
   event:
-    | "route_viewed"
-    | "primary_action_clicked"
-    | "primary_action_completed"
-    | "disclosure_opened"
-    | "filter_applied"
-    | "search_used"
-    | "empty_state_action_clicked"
-    | "error_retry_clicked"
-    | "route_backtracked"
-    | "proof_shared";
+    | 'route_viewed'
+    | 'primary_action_clicked'
+    | 'primary_action_completed'
+    | 'disclosure_opened'
+    | 'filter_applied'
+    | 'search_used'
+    | 'empty_state_action_clicked'
+    | 'error_retry_clicked'
+    | 'route_backtracked'
+    | 'proof_shared';
   route: string;
   component: string;
   variant?: string;
@@ -246,6 +266,10 @@ Run the checklist with:
 3. Runs and Settings alignment.
 4. Analytics instrumentation.
 5. User validation and copy/label cleanup.
+
+The attention-first implementation is ready for moderated validation against
+`UX_VALIDATION_CHECKLIST.md`; browser-level responsive verification remains a
+follow-up when a local preview environment is available.
 
 Keep each slice independently deployable and run typecheck, lint, unit tests,
 and the relevant checklist section before merging.

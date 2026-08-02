@@ -1,26 +1,23 @@
 export type UxEventName =
-  | "route_viewed"
-  | "primary_action_clicked"
-  | "primary_action_completed"
-  | "disclosure_opened"
-  | "filter_applied"
-  | "search_used"
-  | "empty_state_action_clicked"
-  | "error_retry_clicked"
-  | "route_backtracked"
-  | "proof_shared";
+  | 'route_viewed'
+  | 'primary_action_clicked'
+  | 'primary_action_completed'
+  | 'disclosure_opened'
+  | 'filter_applied'
+  | 'search_used'
+  | 'empty_state_action_clicked'
+  | 'error_retry_clicked'
+  | 'route_backtracked'
+  | 'proof_shared'
+  | 'batch_action_completed';
 
 /**
  * Privacy-safe UX instrumentation. Production transport is opt-in through
  * NEXT_PUBLIC_UX_EVENTS_URL; without it, events are only visible in local
  * development so analytics never becomes a hard dependency for the UI.
  */
-export function trackUxEvent(
-  event: UxEventName,
-  component: string,
-  variant?: string,
-) {
-  if (typeof window === "undefined") return;
+export function trackUxEvent(event: UxEventName, component: string, variant?: string) {
+  if (typeof window === 'undefined') return;
   const { workspaceMode } = useAuthStore.getState();
   const payload = {
     event,
@@ -33,10 +30,10 @@ export function trackUxEvent(
   if (endpoint && navigator.sendBeacon) {
     navigator.sendBeacon(
       endpoint,
-      new Blob([JSON.stringify(payload)], { type: "application/json" }),
+      new Blob([JSON.stringify(payload)], { type: 'application/json' }),
     );
-  } else if (process.env.NODE_ENV !== "production") {
-    console.debug("[ux]", payload);
+  } else if (process.env.NODE_ENV !== 'production') {
+    console.debug('[ux]', payload);
   }
 }
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore } from '@/stores/auth-store';

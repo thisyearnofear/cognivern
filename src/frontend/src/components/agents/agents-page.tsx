@@ -1,14 +1,35 @@
-"use client";
+'use client';
 
-import { motion } from "motion/react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { PageState } from "@/components/ui/error-state";
-import { useRouter } from "next/navigation";
-import { PlusCircle, Key, Eye, ChevronDown } from "lucide-react";
-import { useAgents } from "@/hooks/use-api";
-import { useMemo, useState } from "react";
+import { motion } from 'motion/react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PageState } from '@/components/ui/error-state';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useRouter } from 'next/navigation';
+import {
+  PlusCircle,
+  Key,
+  Eye,
+  ChevronDown,
+  Pause,
+  Play,
+  Trash2,
+  Loader2,
+  SquareCheckBig,
+  X,
+} from 'lucide-react';
+import { useAgents } from '@/hooks/use-api';
+import { apiClient } from '@/lib/api-client';
+import { mutate } from 'swr';
+import { useMemo, useState } from 'react';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -23,50 +44,109 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
-function AgentCard({ agent }: { agent: { id: string; name: string; role: string; status: string; trades: number; budget: string; chain: string; source?: string } }) {
+function AgentCard({
+  agent,
+  selectionMode,
+  selected,
+  onToggle,
+}: {
+  agent: {
+    id: string;
+    name: string;
+    role: string;
+    status: string;
+    trades: number;
+    budget: string;
+    chain: string;
+    source?: string;
+  };
+  selectionMode: boolean;
+  selected: boolean;
+  onToggle: (id: string) => void;
+}) {
   const router = useRouter();
-  const isDemo = agent.source === "demo";
+  const isDemo = agent.source === 'demo';
+  const selectable = !isDemo;
 
   return (
     <motion.div
       variants={itemVariants}
-      className="bg-card p-5 hover:bg-accent/50 transition-colors cursor-pointer"
-      onClick={() => router.push(`/agents/${agent.id}`)}
+      className={`bg-card p-5 transition-colors relative ${
+        selectionMode
+          ? selected
+            ? 'ring-2 ring-primary bg-primary/5'
+            : selectable
+              ? 'hover:bg-accent/40 cursor-pointer'
+              : ''
+          : 'hover:bg-accent/50 cursor-pointer'
+      }`}
+      onClick={() => {
+        if (selectionMode && selectable) onToggle(agent.id);
+        else if (!selectionMode) router.push(`/agents/${agent.id}`);
+      }}
+      onKeyDown={(event) => {
+        if (!selectionMode && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          router.push(`/agents/${agent.id}`);
+        }
+      }}
+      role={!selectionMode ? 'button' : undefined}
+      tabIndex={!selectionMode ? 0 : undefined}
+      aria-label={
+        !selectionMode
+          ? `${agent.name}, ${isDemo ? 'demo identity' : `${agent.status} API identity`}`
+          : undefined
+      }
     >
-      <div className="flex items-start justify-between mb-4">
+      {selectionMode && selectable && (
+        <label
+          className="absolute left-3 top-3 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border bg-background"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggle(agent.id)}
+            aria-label={`Select ${agent.name}`}
+            className="h-3.5 w-3.5 accent-primary"
+          />
+        </label>
+      )}
+      <div className={`flex items-start justify-between mb-4 ${selectionMode ? 'pl-6' : ''}`}>
         <div className="flex items-center gap-3">
           <div
             className={`w-10 h-10 rounded-lg flex items-center justify-center ${
               isDemo
-                ? "bg-violet-100 dark:bg-violet-950 text-violet-600"
-                : agent.status === "active"
-                  ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600"
-                  : agent.status === "paused"
-                    ? "bg-amber-100 dark:bg-amber-950 text-amber-600"
-                    : "bg-stone-100 dark:bg-stone-800 text-stone-400"
+                ? 'bg-violet-100 dark:bg-violet-950 text-violet-600'
+                : agent.status === 'active'
+                  ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600'
+                  : agent.status === 'paused'
+                    ? 'bg-amber-100 dark:bg-amber-950 text-amber-600'
+                    : 'bg-stone-100 dark:bg-stone-800 text-stone-400'
             }`}
           >
             {isDemo ? <Eye className="h-5 w-5" /> : <Key className="h-5 w-5" />}
           </div>
           <div>
             <div className="font-semibold">{agent.name}</div>
-            <div className="text-xs text-muted-foreground">
-              {agent.role}
-            </div>
+            <div className="text-xs text-muted-foreground">{agent.role}</div>
           </div>
         </div>
         {isDemo ? (
-          <Badge variant="outline" className="text-violet-600 border-violet-300 dark:border-violet-700 dark:text-violet-400">
+          <Badge
+            variant="outline"
+            className="text-violet-600 border-violet-300 dark:border-violet-700 dark:text-violet-400"
+          >
             demo
           </Badge>
         ) : (
           <Badge
             variant={
-              agent.status === "active"
-                ? "secondary"
-                : agent.status === "paused"
-                  ? "outline"
-                  : "outline"
+              agent.status === 'active'
+                ? 'secondary'
+                : agent.status === 'paused'
+                  ? 'outline'
+                  : 'outline'
             }
           >
             {agent.status}
@@ -95,6 +175,13 @@ export function AgentsPage() {
   const router = useRouter();
   const { data: agents, isLoading, error } = useAgents();
   const [examplesExpanded, setExamplesExpanded] = useState(false);
+  // Selection mode reveals per-card checkboxes + a batch action bar so
+  // operators can pause/resume/revoke several governed identities at once.
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchBusy, setBatchBusy] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
 
   const agentList = useMemo(() => agents || [], [agents]);
 
@@ -102,11 +189,84 @@ export function AgentsPage() {
     const showcase: typeof agentList = [];
     const user: typeof agentList = [];
     for (const agent of agentList) {
-      if (agent.source === "demo") showcase.push(agent);
+      if (agent.source === 'demo') showcase.push(agent);
       else user.push(agent);
     }
     return { showcase, user };
   }, [agentList]);
+
+  const selectedAgents = agentList.filter((agent) => selectedIds.has(agent.id));
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+    setBatchError(null);
+    setRevokeConfirmOpen(false);
+  };
+
+  // Batch status change: apply the target status to every selected identity.
+  // Status is changed per agent (there is no multi-resource endpoint), so we
+  // fan out and revalidate once at the end.
+  const runBatchStatus = async (target: 'active' | 'paused' | 'inactive') => {
+    const actionable = selectedAgents.filter((a) => a.source !== 'demo' && a.status !== target);
+    if (actionable.length === 0) return;
+    setBatchBusy(true);
+    setBatchError(null);
+
+    try {
+      const settled = await Promise.allSettled(
+        actionable.map((agent) => apiClient.updateAgentStatus(agent.id, target)),
+      );
+      const failures = settled.filter(
+        (result) =>
+          result.status === 'rejected' || !result.value.success || Boolean(result.value.error),
+      );
+      const succeededIds = settled.flatMap((result, index) =>
+        result.status === 'fulfilled' && result.value.success ? [actionable[index].id] : [],
+      );
+
+      if (failures.length > 0) {
+        setSelectedIds((current) => {
+          const next = new Set(current);
+          succeededIds.forEach((id) => next.delete(id));
+          return next;
+        });
+        setBatchError(`${failures.length} of ${actionable.length} updates failed. Please retry.`);
+      } else {
+        setSelectionMode(false);
+        setSelectedIds(new Set());
+      }
+
+      try {
+        await mutate('/api/agents');
+      } catch {
+        setBatchError((current) => current ?? 'Updates completed, but the list could not refresh.');
+      }
+    } catch (error) {
+      setBatchError(
+        error instanceof Error ? error.message : 'The batch update failed. Please retry.',
+      );
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
+  const hasActionableAgents = agentList.some((a) => a.source !== 'demo');
+  const revokeCount = selectedAgents.filter((a) => a.source !== 'demo').length;
+  const canRevoke = selectedAgents.some((a) => a.source !== 'demo' && a.status !== 'inactive');
+  const canPause = selectedAgents.some((a) => a.source !== 'demo' && a.status === 'active');
+  const canResume = selectedAgents.some(
+    (a) => a.source !== 'demo' && a.status !== 'active' && a.status !== 'inactive',
+  );
 
   return (
     <div className="space-y-6">
@@ -114,7 +274,7 @@ export function AgentsPage() {
         <div>
           <h1
             className="text-2xl font-bold tracking-tight"
-            style={{ fontFamily: "var(--font-space-grotesk)" }}
+            style={{ fontFamily: 'var(--font-space-grotesk)' }}
           >
             API Identities
           </h1>
@@ -128,11 +288,122 @@ export function AgentsPage() {
               Error
             </Badge>
           )}
-          <Button onClick={() => router.push("/agents/workshop")}>
-            <PlusCircle className="h-4 w-4" /> Create API identity
-          </Button>
+          {hasActionableAgents && !selectionMode && (
+            <Button variant="outline" size="sm" onClick={() => setSelectionMode(true)}>
+              <SquareCheckBig className="h-4 w-4" /> Select
+            </Button>
+          )}
+          {!selectionMode ? (
+            <Button onClick={() => router.push('/agents/workshop')}>
+              <PlusCircle className="h-4 w-4" /> Create API identity
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={exitSelection}>
+              <X className="h-4 w-4" /> Exit select
+            </Button>
+          )}
         </div>
       </div>
+
+      {batchError && !selectionMode && (
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50/60 px-3 py-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
+        >
+          {batchError}
+        </div>
+      )}
+
+      {/* Batch action bar — visible while in selection mode. */}
+      {selectionMode && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium">
+            <SquareCheckBig className="h-4 w-4 text-primary" />
+            {selectedAgents.length} selected
+          </span>
+          {batchError && (
+            <span className="text-xs text-red-600 dark:text-red-400">{batchError}</span>
+          )}
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs"
+              disabled={batchBusy || !canPause}
+              onClick={() => void runBatchStatus('paused')}
+            >
+              <Pause className="h-3.5 w-3.5" /> Pause
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs"
+              disabled={batchBusy || !canResume}
+              onClick={() => void runBatchStatus('active')}
+            >
+              <Play className="h-3.5 w-3.5" /> Resume
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              className="h-8 gap-1.5 text-xs"
+              disabled={batchBusy || !canRevoke}
+              onClick={() => setRevokeConfirmOpen(true)}
+            >
+              {batchBusy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+              Revoke
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <Dialog open={revokeConfirmOpen} onOpenChange={setRevokeConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revoke selected API identities?</DialogTitle>
+            <DialogDescription>
+              This will deactivate {revokeCount} selected{' '}
+              {revokeCount === 1 ? 'identity' : 'identities'}. Their credentials will no longer be
+              accepted for governed actions.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={batchBusy}
+              onClick={() => setRevokeConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={batchBusy || !canRevoke}
+              onClick={() => {
+                setRevokeConfirmOpen(false);
+                void runBatchStatus('inactive');
+              }}
+            >
+              {batchBusy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+              Revoke identities
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden">
@@ -143,9 +414,19 @@ export function AgentsPage() {
           ))}
         </div>
       ) : error ? (
-        <PageState variant="error" title="Could not load API identities" message={error?.message || "Your governed identities are unavailable right now."} action={{ label: "Retry", onClick: () => router.refresh() }} />
+        <PageState
+          variant="error"
+          title="Could not load API identities"
+          message={error?.message || 'Your governed identities are unavailable right now.'}
+          action={{ label: 'Retry', onClick: () => router.refresh() }}
+        />
       ) : agentList.length === 0 ? (
-        <PageState variant="empty" title="No API identities yet" message="Give your first external system governed access to Cognivern." action={{ label: "Create API identity", onClick: () => router.push("/agents/workshop") }} />
+        <PageState
+          variant="empty"
+          title="No API identities yet"
+          message="Give your first external system governed access to Cognivern."
+          action={{ label: 'Create API identity', onClick: () => router.push('/agents/workshop') }}
+        />
       ) : (
         <div className="space-y-8">
           {showcase.length > 0 && (
@@ -159,9 +440,13 @@ export function AgentsPage() {
               >
                 <div>
                   <h2 className="text-sm font-semibold">View example identities</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">Demo-only systems showing what Cognivern can govern.</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Demo-only systems showing what Cognivern can govern.
+                  </p>
                 </div>
-                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${examplesExpanded ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`h-4 w-4 text-muted-foreground transition-transform ${examplesExpanded ? 'rotate-180' : ''}`}
+                />
               </button>
               {examplesExpanded && (
                 <motion.div
@@ -172,7 +457,13 @@ export function AgentsPage() {
                   animate="visible"
                 >
                   {showcase.map((agent) => (
-                    <AgentCard key={agent.id} agent={agent} />
+                    <AgentCard
+                      key={agent.id}
+                      agent={agent}
+                      selectionMode={selectionMode}
+                      selected={selectedIds.has(agent.id)}
+                      onToggle={toggleSelected}
+                    />
                   ))}
                 </motion.div>
               )}
@@ -203,7 +494,13 @@ export function AgentsPage() {
                 animate="visible"
               >
                 {user.map((agent) => (
-                  <AgentCard key={agent.id} agent={agent} />
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    selectionMode={selectionMode}
+                    selected={selectedIds.has(agent.id)}
+                    onToggle={toggleSelected}
+                  />
                 ))}
               </motion.div>
             )}

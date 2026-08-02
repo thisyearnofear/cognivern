@@ -1,23 +1,16 @@
-"use client";
+'use client';
 
-
-import { useEffect, useRef, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/ui/page-header";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { PageState } from "@/components/ui/error-state";
-import { useRouter } from "next/navigation";
-import {
-  Activity,
-  RefreshCw,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  PlayCircle,
-} from "lucide-react";
-import { useRuns } from "@/hooks/use-api";
+import { useEffect, useRef, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PageState } from '@/components/ui/error-state';
+import { AttentionSummary } from '@/components/ui/attention-summary';
+import { useRouter } from 'next/navigation';
+import { Activity, RefreshCw, CheckCircle2, Clock, AlertTriangle, PlayCircle } from 'lucide-react';
+import { useRuns } from '@/hooks/use-api';
 
 function useCountUp(target: number, duration = 2000, start = false) {
   const [count, setCount] = useState(0);
@@ -34,7 +27,9 @@ function useCountUp(target: number, duration = 2000, start = false) {
       if (progress < 1) ref.current = requestAnimationFrame(animate);
     };
     ref.current = requestAnimationFrame(animate);
-    return () => { if (ref.current) cancelAnimationFrame(ref.current); };
+    return () => {
+      if (ref.current) cancelAnimationFrame(ref.current);
+    };
   }, [target, duration, start]);
 
   return count;
@@ -45,12 +40,14 @@ export function RunsPage() {
   const { data: rawRuns, isLoading, error } = useRuns();
   const statsRef = useRef<HTMLDivElement>(null);
   const [statsVisible, setStatsVisible] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     if (!statsRef.current) return;
     const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setStatsVisible(true); },
+      ([entry]) => {
+        if (entry.isIntersecting) setStatsVisible(true);
+      },
       { threshold: 0.3 },
     );
     obs.observe(statsRef.current);
@@ -74,31 +71,86 @@ export function RunsPage() {
     (acc, r) => ({ ...acc, [r.status]: (acc[r.status] || 0) + 1 }),
     {} as Record<string, number>,
   );
-  const filteredRuns = statusFilter === "all" ? runs : runs.filter((run) => run.status === statusFilter);
-  const awaitingCount = statuses["paused_for_approval"] || 0;
-  const failedCount = statuses["failed"] || 0;
+  const runPriority: Record<string, number> = {
+    paused_for_approval: 0,
+    failed: 1,
+    running: 2,
+    completed: 3,
+  };
+  const prioritizedRuns = [...runs].sort(
+    (a, b) => (runPriority[a.status] ?? 4) - (runPriority[b.status] ?? 4),
+  );
+  const filteredRuns =
+    statusFilter === 'all'
+      ? prioritizedRuns
+      : prioritizedRuns.filter((run) => run.status === statusFilter);
+  const awaitingCount = statuses['paused_for_approval'] || 0;
+  const failedCount = statuses['failed'] || 0;
+  const attentionCount = awaitingCount + failedCount;
+  const firstAttentionRun = prioritizedRuns.find(
+    (run) => run.status === 'paused_for_approval' || run.status === 'failed',
+  );
 
   // Animated counters
-  const animatedActive = useCountUp(statuses["running"] || 0, 2000, statsVisible);
-  const animatedCompleted = useCountUp(statuses["completed"] || 0, 2000, statsVisible);
-  const animatedAwaiting = useCountUp(statuses["paused_for_approval"] || 0, 2000, statsVisible);
-  const animatedFailed = useCountUp(statuses["failed"] || 0, 2000, statsVisible);
+  const animatedActive = useCountUp(statuses['running'] || 0, 2000, statsVisible);
+  const animatedCompleted = useCountUp(statuses['completed'] || 0, 2000, statsVisible);
+  const animatedAwaiting = useCountUp(statuses['paused_for_approval'] || 0, 2000, statsVisible);
+  const animatedFailed = useCountUp(statuses['failed'] || 0, 2000, statsVisible);
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Runs" description={awaitingCount + failedCount > 0
-        ? `${awaitingCount + failedCount} execution${awaitingCount + failedCount === 1 ? "" : "s"} need attention.`
-        : "Monitor governance evaluations and execution traces."} action={<>
-          {error && (
-            <Badge variant="destructive" className="text-xs">
-              Error
-            </Badge>
-          )}
-          <Badge variant="secondary">{runs.length} tracked</Badge>
-          <Button size="sm" variant="default" onClick={() => router.push("/governance/check")}>
-            <PlayCircle className="h-3.5 w-3.5" /> Run governance check
-          </Button>
-          </>} />
+      <PageHeader
+        title="Runs"
+        description={
+          awaitingCount + failedCount > 0
+            ? `${awaitingCount + failedCount} execution${awaitingCount + failedCount === 1 ? '' : 's'} need attention.`
+            : 'Monitor governance evaluations and execution traces.'
+        }
+        action={
+          <>
+            {error && (
+              <Badge variant="destructive" className="text-xs">
+                Error
+              </Badge>
+            )}
+            <Badge variant="secondary">{runs.length} tracked</Badge>
+            <Button size="sm" variant="default" onClick={() => router.push('/governance/check')}>
+              <PlayCircle className="h-3.5 w-3.5" /> Run governance check
+            </Button>
+          </>
+        }
+      />
+
+      {!isLoading && !error && (
+        <AttentionSummary
+          tone={attentionCount > 0 ? 'attention' : 'healthy'}
+          title={
+            attentionCount > 0 ? 'Execution queue needs attention' : 'Execution queue is clear'
+          }
+          description={
+            attentionCount > 0
+              ? 'Resolve awaiting approvals and failed executions before reviewing completed history.'
+              : 'No approvals or failed executions are waiting for operator action.'
+          }
+          items={
+            attentionCount > 0
+              ? [
+                  ...(awaitingCount > 0 ? [{ label: 'awaiting', count: awaitingCount }] : []),
+                  ...(failedCount > 0 ? [{ label: 'failed', count: failedCount }] : []),
+                ]
+              : []
+          }
+          action={
+            firstAttentionRun
+              ? {
+                  label:
+                    firstAttentionRun.status === 'failed' ? 'Inspect failure' : 'Review approval',
+                  onClick: () => router.push(`/runs/${firstAttentionRun.id}`),
+                }
+              : undefined
+          }
+        />
+      )}
 
       {/* Stats */}
       {isLoading ? (
@@ -110,14 +162,25 @@ export function RunsPage() {
           ))}
         </div>
       ) : error ? (
-        <PageState variant="error" title="Could not load runs" message="The run history is unavailable right now. Try again in a moment." action={{ label: "Retry", onClick: () => router.refresh() }} />
+        <PageState
+          variant="error"
+          title="Could not load runs"
+          message="The run history is unavailable right now. Try again in a moment."
+          action={{ label: 'Retry', onClick: () => router.refresh() }}
+        />
       ) : (
-        <div ref={statsRef} className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
+        <div
+          ref={statsRef}
+          className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden"
+        >
           <div className="bg-card p-4 flex items-center gap-3">
             <Activity className="h-5 w-5 text-primary" />
             <div>
-              <div className="text-xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-                {statsVisible ? animatedActive : "—"}
+              <div
+                className="text-xl font-bold"
+                style={{ fontFamily: 'var(--font-space-grotesk)' }}
+              >
+                {statsVisible ? animatedActive : '—'}
               </div>
               <div className="text-xs text-muted-foreground">Active</div>
             </div>
@@ -125,8 +188,11 @@ export function RunsPage() {
           <div className="bg-card p-4 flex items-center gap-3">
             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             <div>
-              <div className="text-xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-                {statsVisible ? animatedCompleted : "—"}
+              <div
+                className="text-xl font-bold"
+                style={{ fontFamily: 'var(--font-space-grotesk)' }}
+              >
+                {statsVisible ? animatedCompleted : '—'}
               </div>
               <div className="text-xs text-muted-foreground">Completed</div>
             </div>
@@ -134,8 +200,11 @@ export function RunsPage() {
           <div className="bg-card p-4 flex items-center gap-3">
             <Clock className="h-5 w-5 text-sky-500" />
             <div>
-              <div className="text-xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-                {statsVisible ? animatedAwaiting : "—"}
+              <div
+                className="text-xl font-bold"
+                style={{ fontFamily: 'var(--font-space-grotesk)' }}
+              >
+                {statsVisible ? animatedAwaiting : '—'}
               </div>
               <div className="text-xs text-muted-foreground">Awaiting</div>
             </div>
@@ -143,8 +212,11 @@ export function RunsPage() {
           <div className="bg-card p-4 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-red-500" />
             <div>
-              <div className="text-xl font-bold" style={{ fontFamily: "var(--font-space-grotesk)" }}>
-                {statsVisible ? animatedFailed : "—"}
+              <div
+                className="text-xl font-bold"
+                style={{ fontFamily: 'var(--font-space-grotesk)' }}
+              >
+                {statsVisible ? animatedFailed : '—'}
               </div>
               <div className="text-xs text-muted-foreground">Failed</div>
             </div>
@@ -154,52 +226,83 @@ export function RunsPage() {
 
       {/* Run List */}
       {!error && runs.length === 0 && !isLoading ? (
-        <PageState variant="empty" title="No runs yet" message="Runs appear after your first governance evaluation or execution." action={{ label: "Run governance check", onClick: () => router.push("/governance/check") }} secondaryAction={{ label: "Create API identity", onClick: () => router.push("/agents/workshop") }} />
+        <PageState
+          variant="empty"
+          title="No runs yet"
+          message="Runs appear after your first governance evaluation or execution."
+          action={{
+            label: 'Run governance check',
+            onClick: () => router.push('/governance/check'),
+          }}
+          secondaryAction={{
+            label: 'Create API identity',
+            onClick: () => router.push('/agents/workshop'),
+          }}
+        />
       ) : error ? (
-        <PageState variant="error" title="Could not load runs" message="The run history is unavailable right now. Try again in a moment." action={{ label: "Retry", onClick: () => router.refresh() }} />
+        <PageState
+          variant="error"
+          title="Could not load runs"
+          message="The run history is unavailable right now. Try again in a moment."
+          action={{ label: 'Retry', onClick: () => router.refresh() }}
+        />
       ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-1.5" aria-label="Filter runs by status">
-              {["all", "running", "paused_for_approval", "failed", "completed"].map((filter) => (
-                <Button key={filter} size="sm" variant={statusFilter === filter ? "secondary" : "ghost"} className="h-8 capitalize" onClick={() => setStatusFilter(filter)}>
-                  {filter === "paused_for_approval" ? "Awaiting approval" : filter}
+              {['all', 'running', 'paused_for_approval', 'failed', 'completed'].map((filter) => (
+                <Button
+                  key={filter}
+                  size="sm"
+                  variant={statusFilter === filter ? 'secondary' : 'ghost'}
+                  className="h-8 capitalize"
+                  onClick={() => setStatusFilter(filter)}
+                >
+                  {filter === 'paused_for_approval' ? 'Awaiting approval' : filter}
                 </Button>
               ))}
             </div>
-            <Button size="sm" variant="ghost" onClick={() => router.refresh()}><RefreshCw className="h-3.5 w-3.5" /> Refresh</Button>
+            <Button size="sm" variant="ghost" onClick={() => router.refresh()}>
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </Button>
           </div>
           {filteredRuns.length === 0 ? (
-            <PageState variant="no-results" title="No matching runs" message="Try another status filter to see more execution history." action={{ label: "Show all runs", onClick: () => setStatusFilter("all") }} />
+            <PageState
+              variant="no-results"
+              title="No matching runs"
+              message="Try another status filter to see more execution history."
+              action={{ label: 'Show all runs', onClick: () => setStatusFilter('all') }}
+            />
           ) : (
             <div className="space-y-px bg-border rounded-xl overflow-hidden">
               {filteredRuns.map((run) => (
-            <div
-              key={run.id}
-              className="bg-card p-4 hover:bg-accent/50 transition-colors cursor-pointer"
-              onClick={() => router.push(`/runs/${run.id}`)}
-            >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <StatusBadge status={run.status} />
-                    <span className="font-medium text-sm">{run.workflow}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {run.mode}
-                    </span>
+                <button
+                  key={run.id}
+                  type="button"
+                  className="block w-full bg-card p-4 text-left hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 transition-colors"
+                  onClick={() => router.push(`/runs/${run.id}`)}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <StatusBadge status={run.status} />
+                      <span className="font-medium text-sm">{run.workflow}</span>
+                      <span className="text-xs text-muted-foreground">{run.mode}</span>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                      <span>{run.steps} steps</span>
+                      <span>{run.artifacts} artifacts</span>
+                      <span>{run.duration}</span>
+                      <span>{run.time}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                    <span>{run.steps} steps</span>
-                    <span>{run.artifacts} artifacts</span>
-                    <span>{run.duration}</span>
-                    <span>{run.time}</span>
-                  </div>
-                </div>
-                {(run.status === "failed" || run.status === "paused_for_approval") && (
-                  <p className="mt-2 text-xs font-medium text-muted-foreground">
-                    {run.status === "failed" ? "Open the run to inspect the failure and retry safely." : "Open the run to review and approve or deny the pending action."}
-                  </p>
-                )}
-            </div>
+                  {(run.status === 'failed' || run.status === 'paused_for_approval') && (
+                    <p className="mt-2 text-xs font-medium text-muted-foreground">
+                      {run.status === 'failed'
+                        ? 'Open the run to inspect the failure and retry safely.'
+                        : 'Open the run to review and approve or deny the pending action.'}
+                    </p>
+                  )}
+                </button>
               ))}
             </div>
           )}

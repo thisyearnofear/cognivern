@@ -7,6 +7,8 @@ needed explanation.
 ## Dashboard — operate
 
 - [ ] In the first viewport, identify whether anything needs attention.
+- [ ] Distinguish held decisions that need action from denied outcomes that need investigation.
+- [ ] Use the attention summary action to open the clean Audit **Needs attention** view.
 - [ ] Identify the three outcome metrics without reading technical copy.
 - [ ] Run one Quick Check and explain the result in their own words.
 - [ ] Find a recent decision and open the full audit trail.
@@ -25,6 +27,8 @@ needed explanation.
 - [ ] Find the user’s identities without first reading the example section.
 - [ ] Understand the difference between an API identity and an example identity.
 - [ ] Create an API identity from the page’s primary action.
+- [ ] Enter selection mode and batch pause, resume, or revoke real identities.
+- [ ] Confirm demo identities are visibly non-mutating in selection mode.
 
 ## Governance Check — test
 
@@ -35,12 +39,27 @@ needed explanation.
 
 ## Audit — operate
 
+- [ ] Identify held decisions requiring action versus denied decisions requiring investigation.
+- [ ] Use **Needs attention** to reach the clean triage view even when a conflicting search is active.
 - [ ] Find the decision timeline without scrolling past architecture copy.
 - [ ] Filter to denied decisions.
 - [ ] Search for an identity or action.
 - [ ] Clear filters after a no-results state.
 - [ ] Open one decision and locate its policy explanation/evidence.
 - [ ] Open **Proof & security details** only when verification is needed.
+
+## Runs — operate
+
+- [ ] Identify awaiting approvals and failed executions in the first viewport.
+- [ ] Confirm awaiting and failed runs appear before completed history.
+- [ ] Open the first attention item and find its next safe action.
+- [ ] Use status filters without losing the unresolved-work priority.
+
+## Navigation — cross-route
+
+- [ ] Understand the sidebar groups as **Operate**, **Configure**, **Test**, and **Build**.
+- [ ] Find Dashboard, Audit, and Runs under **Operate**.
+- [ ] Find Policies and API Identities under **Configure**.
 
 ## Integrate — build
 
@@ -60,14 +79,14 @@ needed explanation.
 
 For each task, record:
 
-| Field | Notes |
-| --- | --- |
-| Participant type | New / returning / developer / procurement |
-| Time to completion | Start and finish timestamps |
-| Wrong turns | Routes, controls, or terms misunderstood |
-| Help opened | Tooltip, docs, or external help |
-| Stopping point | Where they stopped reading or asked for guidance |
-| Confidence | 1–5: how confident were they in the result? |
+| Field              | Notes                                            |
+| ------------------ | ------------------------------------------------ |
+| Participant type   | New / returning / developer / procurement        |
+| Time to completion | Start and finish timestamps                      |
+| Wrong turns        | Routes, controls, or terms misunderstood         |
+| Help opened        | Tooltip, docs, or external help                  |
+| Stopping point     | Where they stopped reading or asked for guidance |
+| Confidence         | 1–5: how confident were they in the result?      |
 
 ### Acceptance signals
 

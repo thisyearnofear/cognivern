@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard,
   Users,
@@ -11,7 +11,7 @@ import {
   Sparkles,
   Gavel,
   Radar,
-} from "lucide-react";
+} from 'lucide-react';
 
 export interface NavItem {
   id: string;
@@ -28,94 +28,99 @@ export interface NavGroup {
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: "Overview",
+    label: 'Operate',
     items: [
       {
-        id: "dashboard",
-        label: "Dashboard",
+        id: 'dashboard',
+        label: 'Dashboard',
         icon: LayoutDashboard,
-        href: "/dashboard",
-      },
-    ],
-  },
-  {
-    label: "Governance",
-    items: [
-      {
-        id: "policies",
-        label: "Policies",
-        icon: ShieldCheck,
-        href: "/policies",
+        href: '/dashboard',
+        description: 'See what needs attention',
       },
       {
-        id: "agents",
-        label: "API Identities",
-        icon: Users,
-        href: "/agents",
-        description: "Policy-bound identities for bots, scripts, and workflows",
-      },
-      {
-        id: "governance",
-        label: "Governance Check",
-        icon: PlayCircle,
-        href: "/governance/check",
-        description: "Test a spend against your policy",
-      },
-      {
-        id: "copilot",
-        label: "Copilot",
-        icon: Bot,
-        href: "/copilot",
-        description: "Agent mission console",
-      },
-      {
-        id: "sealed-bid",
-        label: "Sealed Bids",
-        icon: Gavel,
-        href: "/sealed-bid",
-        description: "Run private vendor selections without exposing bids",
-      },
-    ],
-  },
-  {
-    label: "History",
-    items: [
-      {
-        id: "audit",
-        label: "Audit",
+        id: 'audit',
+        label: 'Audit',
         icon: FileSearch,
-        href: "/audit",
+        href: '/audit',
+        description: 'Investigate decisions and proof',
       },
       {
-        id: "runs",
-        label: "Runs",
+        id: 'runs',
+        label: 'Runs',
         icon: Activity,
-        href: "/runs",
+        href: '/runs',
+        description: 'Resolve active and failed executions',
       },
     ],
   },
   {
-    label: "Developer",
+    label: 'Configure',
     items: [
       {
-        id: "integrate",
-        label: "Integrate",
+        id: 'policies',
+        label: 'Policies',
+        icon: ShieldCheck,
+        href: '/policies',
+        description: 'Set spending rules',
+      },
+      {
+        id: 'agents',
+        label: 'API Identities',
+        icon: Users,
+        href: '/agents',
+        description: 'Control which systems can spend',
+      },
+    ],
+  },
+  {
+    label: 'Test',
+    items: [
+      {
+        id: 'governance',
+        label: 'Governance Check',
+        icon: PlayCircle,
+        href: '/governance/check',
+        description: 'Test a spend against your policy',
+      },
+      {
+        id: 'copilot',
+        label: 'Copilot',
+        icon: Bot,
+        href: '/copilot',
+        description: 'Agent mission console',
+      },
+      {
+        id: 'sealed-bid',
+        label: 'Sealed Bids',
+        icon: Gavel,
+        href: '/sealed-bid',
+        description: 'Run private vendor selections without exposing bids',
+      },
+    ],
+  },
+  {
+    label: 'Build',
+    items: [
+      {
+        id: 'integrate',
+        label: 'Integrate',
         icon: Code2,
-        href: "/integrate",
+        href: '/integrate',
+        description: 'Connect your first governed system',
       },
       {
-        id: "observability",
-        label: "Tracing",
+        id: 'observability',
+        label: 'Tracing',
         icon: Radar,
-        href: "/observability",
-        description: "SigNoz distributed tracing & metrics",
+        href: '/observability',
+        description: 'SigNoz distributed tracing & metrics',
       },
       {
-        id: "os",
-        label: "Terminal",
+        id: 'os',
+        label: 'Terminal',
         icon: Sparkles,
-        href: "/os",
-        description: "Terminal UI",
+        href: '/os',
+        description: 'Terminal UI',
       },
     ],
   },
@@ -125,10 +130,10 @@ export const ALL_NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 
 export const DEMO_NAV_ITEMS: NavItem[] = [
   {
-    id: "demo-spend",
-    label: "Spend Flow Demo",
+    id: 'demo-spend',
+    label: 'Spend Flow Demo',
     icon: PlayCircle,
-    href: "/demo/spend",
-    description: "Watch the spend flow in action",
+    href: '/demo/spend',
+    description: 'Watch the spend flow in action',
   },
 ];

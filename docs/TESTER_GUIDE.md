@@ -16,17 +16,19 @@ your workspace comes pre-seeded with a default agent and spend policy.
   or switch to the **Wallet** tab to use MetaMask/WalletConnect instead.
 - If you use the wallet path, sign the SIWE message — no gas, no transaction.
 
-You'll land on the dashboard. It shows a "Your workspace is ready" panel
-with a quick governance check card.
+You'll land on the dashboard. The first operational section is an attention
+summary: it distinguishes held decisions that need action from denied outcomes
+that need investigation. When present, **Review decisions** opens the clean
+Audit **Needs attention** view.
 
 ## 2. Run a governance check (30 seconds)
 
 From the dashboard, use the **Quick Check** card:
 
-| Try this | Expected result |
-|----------|----------------|
-| $50 swap | **Approved** — under all thresholds |
-| $500 swap | **Held** — flagged for review |
+| Try this    | Expected result                        |
+| ----------- | -------------------------------------- |
+| $50 swap    | **Approved** — under all thresholds    |
+| $500 swap   | **Held** — flagged for review          |
 | $5,000 swap | **Denied** — exceeds $3,000 hard limit |
 
 Or go to **Governance Check** in the sidebar for the full interactive
@@ -40,6 +42,7 @@ page with FHE-encrypted evaluation, policy reasoning, and shareable links.
 4. Copy the key for use in your own agent
 
 Example API call:
+
 ```bash
 curl https://cognivern.persidian.com/api/governance/evaluate \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -66,8 +69,27 @@ step 2 is logged here with the decision, reasoning, and timestamp.
 - Press `/` to jump straight to search, then type an identity or action.
 - Click any row to expand it and see the full evidence (policy checks,
   on-chain record, FHE/SigNoz links, suspicion analysis).
+- If the attention summary is visible, use its action to enter a clean triage
+  view; it clears a conflicting search query rather than producing a misleading
+  no-results state.
 
-## 6. Verify on-chain proofs on 0G Chain (30 seconds)
+## 6. Resolve execution work (30 seconds)
+
+Go to **Runs** in the sidebar. Awaiting approvals and failed executions are
+summarized at the top and prioritized before completed history.
+
+- Click **Review approval** for an awaiting run to inspect its decision.
+- Click **Inspect failure** for a failed run to review the trace before retrying.
+- Use status filters to focus the queue without changing the priority within the
+  selected result set.
+
+## 7. Manage API identities (30 seconds)
+
+Go to **API Identities** under **Configure**. Click **Select** to enter
+progressive batch mode, choose real identities, and use **Pause**, **Resume**,
+or **Revoke**. Demo identities are labeled and cannot be mutated.
+
+## 8. Verify on-chain proofs on 0G Chain (30 seconds)
 
 Every governance decision is permanently recorded as an on-chain event
 on 0G Galileo Testnet. You can verify any decision independently:
@@ -87,7 +109,7 @@ anyone — without trusting Cognivern's server.
 
 ---
 
-## 7. Try a KeeperHub-routed spend (1 minute)
+## 9. Try a KeeperHub-routed spend (1 minute)
 
 The Settings → Wallets card lets you pick the **execution provider**
 for each wallet — `local` (default, Cognivern signs and broadcasts)
@@ -101,8 +123,8 @@ and MEV protection).
    save.
 3. Trigger any approved spend on that wallet — for example, run
    `pnpm tsx scripts/demo/run-keeperhub-rebalance.ts
-   --wallet-id $WALLET_ID --recipient 0xRecipient --amount-wei
-   1000000000000000 --reason "test rebalance"` from your terminal.
+--wallet-id $WALLET_ID --recipient 0xRecipient --amount-wei
+1000000000000000 --reason "test rebalance"` from your terminal.
 4. Open the **Observability** page. The card header now shows
    "Finding a KeeperHub-routed spend" — click through to the trace
    tree, then drill into the `wallet_sign_and_broadcast` span and

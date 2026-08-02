@@ -16,14 +16,14 @@ This document is the decision framework for product UI work.
 Every default page state answers one immediate question before product
 explanation, charts, or technical detail.
 
-| Route | Primary question |
-| --- | --- |
-| Dashboard | Does anything need my attention? |
-| Policies | Are the right guardrails in place? |
-| API Identities | Which systems have governed access? |
-| Governance Check | Would this spend be allowed? |
-| Audit | What happened, and can I prove it? |
-| Integrate | What is the shortest safe path to a working integration? |
+| Route            | Primary question                                         |
+| ---------------- | -------------------------------------------------------- |
+| Dashboard        | Does anything need my attention?                         |
+| Policies         | Are the right guardrails in place?                       |
+| API Identities   | Which systems have governed access?                      |
+| Governance Check | Would this spend be allowed?                             |
+| Audit            | What happened, and can I prove it?                       |
+| Integrate        | What is the shortest safe path to a working integration? |
 
 ### Defaults are focused; depth is intentional
 
@@ -56,12 +56,12 @@ without hierarchy.
 
 ### Vocabulary describes the user’s mental model
 
-| Concept | Product term | Avoid using as a synonym |
-| --- | --- | --- |
-| External governed system | API identity | agent, API slot, identity interchangeably |
-| Rules that evaluate actions | policy | guardrail/rule for the same object |
-| Proposed evaluation | governance check | test, simulation, check interchangeably |
-| Evaluated event | decision | action when the distinction matters |
+| Concept                      | Product term     | Avoid using as a synonym                   |
+| ---------------------------- | ---------------- | ------------------------------------------ |
+| External governed system     | API identity     | agent, API slot, identity interchangeably  |
+| Rules that evaluate actions  | policy           | guardrail/rule for the same object         |
+| Proposed evaluation          | governance check | test, simulation, check interchangeably    |
+| Evaluated event              | decision         | action when the distinction matters        |
 | Result needing investigation | blocked decision | critical issue unless severity is critical |
 
 “Agent” remains appropriate for an autonomous actor; the configuration object
@@ -77,9 +77,11 @@ for status, attention, and the current action. New visual treatments should
 support scanability rather than add decorative density.
 
 The implementation codifies this direction through shared `PageHeader`,
-`StatusBadge`, and `PageState` components plus `app-surface-card` and
-`motion-enter` tokens. New routes should reuse these primitives before adding
-one-off spacing, status colors, or entrance animations.
+`StatusBadge`, `PageState`, and `AttentionSummary` components plus
+`app-surface-card` and `motion-enter` tokens. New routes should reuse these
+primitives before adding one-off spacing, status colors, or entrance animations.
+`AttentionSummary` keeps the current operational state and its next safe action
+adjacent, with explicit healthy and needs-attention treatments.
 
 ### Proof that travels safely
 
@@ -97,12 +99,12 @@ back to the protected audit trail.
 
 ## Product modes and information architecture
 
-| Mode | User goal | Routes |
-| --- | --- | --- |
-| Operate | Monitor and resolve governed activity | Dashboard, Audit, Runs |
+| Mode      | User goal                                     | Routes                             |
+| --------- | --------------------------------------------- | ---------------------------------- |
+| Operate   | Monitor and resolve governed activity         | Dashboard, Audit, Runs             |
 | Configure | Establish who can spend and under which rules | Policies, API Identities, Settings |
-| Test | Evaluate a proposed action before it happens | Governance Check, Spend Flow Demo |
-| Build | Integrate and debug Cognivern | Integrate, Tracing, Terminal |
+| Test      | Evaluate a proposed action before it happens  | Governance Check, Spend Flow Demo  |
+| Build     | Integrate and debug Cognivern                 | Integrate, Tracing, Terminal       |
 
 Sealed Bids is a distinct governance workflow for confidential vendor
 selection. It should not be used as routine-wallet-spend explanation on the
@@ -124,16 +126,17 @@ empty-state CTA together with a competing template gallery or duplicate CTA.
 
 ## Route blueprint and current audit
 
-| Route | Default experience | Next change |
-| --- | --- | --- |
-| Dashboard | Status, three outcome metrics, Quick Check, recent activity; detail under **Operating insights** | Keep the compact default; do not re-add promotional or infrastructure strips. |
-| Policies | Policy list, active/held state, **Create policy** | Templates are the only zero state; retain **Start from scratch** as secondary. |
-| API Identities | User inventory, status, **Create API identity** | Example identities are disclosed behind **View examples** in production workspaces. |
-| Governance Check | Natural-language input, summary, **Evaluate spend** | Keep Command Center contextual; continue to order results outcome → reason → policy checks → evidence. |
-| Audit | Filters/search, timeline, approved/held/blocked grouping | Filters sync to URL (`?status=`, `?q=`, `?group=`) so investigation links are shareable; collapsed rows show agent/action/decision/time with evidence badges in the expanded detail; `/` focuses search. Keep Security Architecture under **Proof & security details**. |
-| Integrate | Prerequisite checklist, first request, allow/deny handling | Keep the platform overview collapsed; keep protocol coverage and security inventory in Reference. |
-| Tracing | Connection health, live metrics, trace search, recent traces | Collapse the specialized KeeperHub walkthrough unless a KeeperHub wallet is configured. |
-| Sealed Bids | Round list/status and one creation route | **Create agent round** is primary; retain **Create manually** as the explicit alternative. |
+| Route            | Default experience                                                                                          | Next change                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard        | Attention summary, three outcome metrics, Quick Check, recent activity; detail under **Operating insights** | Keep the compact default; lead with held decisions needing action and denied outcomes needing investigation; do not re-add promotional or infrastructure strips.                                                                                                                                                                                                                       |
+| Policies         | Policy list, active/held state, **Create policy**                                                           | Templates are the only zero state; retain **Start from scratch** as secondary.                                                                                                                                                                                                                                                                                                         |
+| API Identities   | User inventory, status, **Create API identity**                                                             | Example identities are disclosed behind **View examples** in production workspaces; selection mode exposes batch pause/resume/revoke actions for real identities.                                                                                                                                                                                                                      |
+| Governance Check | Natural-language input, summary, **Evaluate spend**                                                         | Keep Command Center contextual; continue to order results outcome → reason → policy checks → evidence.                                                                                                                                                                                                                                                                                 |
+| Audit            | Attention summary, filters/search, timeline, approved/held/denied grouping                                  | The attention view distinguishes held decisions requiring action from denied outcomes requiring investigation. Filters sync to URL (`?status=`, `?q=`, `?group=`) so investigation links are shareable; collapsed rows show agent/action/decision/time with evidence badges in the expanded detail; `/` focuses search. Keep Security Architecture under **Proof & security details**. |
+| Runs             | Attention summary, prioritized execution queue, status filters, run detail                                  | Awaiting approval and failed runs appear before active and completed history; **Run governance check** remains the primary action.                                                                                                                                                                                                                                                     |
+| Integrate        | Prerequisite checklist, first request, allow/deny handling                                                  | Keep the platform overview collapsed; keep protocol coverage and security inventory in Reference.                                                                                                                                                                                                                                                                                      |
+| Tracing          | Connection health, live metrics, trace search, recent traces                                                | Collapse the specialized KeeperHub walkthrough unless a KeeperHub wallet is configured.                                                                                                                                                                                                                                                                                                |
+| Sealed Bids      | Round list/status and one creation route                                                                    | **Create agent round** is primary; retain **Create manually** as the explicit alternative.                                                                                                                                                                                                                                                                                             |
 
 ## Delivery plan
 
@@ -164,6 +167,22 @@ visual preference.
 Instrument primary-action completion, insight expansion, template selection,
 evidence opening, and backtracking between routes. Establish a baseline before
 major changes and compare completion and backtracking rates afterward.
+
+## Current implementation snapshot (2026-08-02)
+
+The first attention-first slice is implemented across the operational shell:
+
+- Dashboard, Audit, and Runs use the shared `AttentionSummary` primitive.
+- Runs prioritizes awaiting-approval and failed executions before completed
+  history and gives each unresolved run an explicit next action.
+- Audit can open a clean, URL-addressable **Needs attention** view and keeps
+  held-action versus denied-investigation language distinct.
+- API Identities has progressive selection mode with batch pause, resume, and
+  revoke actions; demo identities remain non-mutating.
+- Sidebar navigation is grouped by user job: **Operate**, **Configure**,
+  **Test**, and **Build**. Existing routes are unchanged.
+- Run rows and API identity cards preserve visible focus and keyboard activation
+  where their interaction model permits it.
 
 ## Definition of done for future UI work
 
