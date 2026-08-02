@@ -357,8 +357,8 @@ export function RunDetail({ runId }: { runId: string }) {
 
       <div className="flex items-center gap-2 flex-wrap">
         {run.status === 'failed' && (
-          <Button>
-            <PlayCircle className="h-4 w-4" /> Retry Run
+          <Button onClick={() => router.push('/governance/check')}>
+            <PlayCircle className="h-4 w-4" /> Retry in Governance Check
           </Button>
         )}
         {run.status === 'paused_for_approval' && (

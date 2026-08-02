@@ -38,6 +38,7 @@ import { useAgents } from "@/hooks/use-api";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { useFheProgress } from "@/hooks/use-fhe-progress";
 import { HelpIcon } from "@/components/ui/help-icon";
+import { GovernanceMoment } from "@/components/ui/governance-moment";
 
 function getSuggestion(reason: string): string {
   const lower = reason.toLowerCase();
@@ -855,6 +856,57 @@ export function GovernanceCheck() {
                       {verdict.blurb}
                     </div>
                   </div>
+                </div>
+
+                <GovernanceMoment outcome={decision} compact />
+
+                {/* Outcome handoff: every result points to the next safe operator action. */}
+                <div
+                  className={`flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center ${
+                    decision === "held"
+                      ? "border-amber-500/25 bg-amber-500/5"
+                      : decision === "denied"
+                        ? "border-sky-500/25 bg-sky-500/5"
+                        : "border-emerald-500/25 bg-emerald-500/5"
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold">
+                      {decision === "held"
+                        ? "Next step: review the held decision"
+                        : decision === "denied"
+                          ? "Next step: adjust the guardrail or try a safer amount"
+                          : "Next step: connect this governance path to your system"}
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {decision === "held"
+                        ? "Open Audit to inspect the evidence and approve or deny the execution."
+                        : decision === "denied"
+                          ? "Use the failed policy check below to decide what should change."
+                          : "Your policy check works. Generate an access key and follow the integration guide."}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 shrink-0 gap-1 text-xs"
+                    onClick={() =>
+                      router.push(
+                        decision === "held"
+                          ? "/audit?status=needs_attention"
+                          : decision === "denied"
+                            ? "/policies"
+                            : "/integrate",
+                      )
+                    }
+                  >
+                    {decision === "held"
+                      ? "Review in Audit"
+                      : decision === "denied"
+                        ? "Review policies"
+                        : "Open Integrate"}
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
                 </div>
 
                 {/* Reasoning */}

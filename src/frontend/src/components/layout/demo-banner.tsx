@@ -148,7 +148,7 @@ export function DemoBanner() {
           <div className="min-w-0">
             <div className="font-bold text-sm">You&apos;re in Sandbox Mode</div>
             <div className="text-xs opacity-90 truncate">
-              Everything below is demo data. Nothing persists or moves real funds.
+              Safe sample workspace — nothing persists and no real funds can move.
             </div>
           </div>
         </div>
@@ -185,10 +185,10 @@ export function DemoBanner() {
         <FlaskConical className="h-3 w-3 text-amber-500" />
         <span className="font-medium text-amber-700 dark:text-amber-300">
           Sandbox demo
+        </span>          <span className="text-muted-foreground hidden sm:inline">
+          — sample data, no real funds
         </span>
-        <span className="text-muted-foreground hidden sm:inline">
-          — demo data, nothing persists
-        </span>
+
         <button
           type="button"
           onClick={switchToProduction}
@@ -211,7 +211,7 @@ export function DemoBanner() {
         <span className="font-medium text-emerald-700 dark:text-emerald-300">
           Production
         </span>
-        <span className="text-muted-foreground">— your real workspace</span>
+        <span className="text-muted-foreground">— real workspace; actions may move funds</span>
         <button
           type="button"
           onClick={switchToSandbox}

@@ -18,8 +18,10 @@ test.describe('Demo flow', () => {
     const resetButton = page.getByRole('button', { name: /Reset/i });
     await expect(resetButton).toBeVisible({ timeout: 15000 });
 
-    // A summary card should be visible for the default approved scenario.
+    // The summary and branded governance moment should be visible for the
+    // default approved scenario.
     await expect(page.getByText('Spend Approved')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('status').getByText('Guardrails held')).toBeVisible();
   });
 
   test('demo switches to ungoverned steps', async ({ page }) => {

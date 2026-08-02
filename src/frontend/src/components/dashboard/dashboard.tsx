@@ -34,8 +34,10 @@ import { useDemoStore } from '@/stores/demo-store';
 import dynamic from 'next/dynamic';
 import { DecisionChart, type DecisionFilter } from './decision-chart';
 import { ApprovalSparkline } from './approval-sparkline';
-import { GetStartedPanel } from './get-started-panel';
+import { SetupChecklist } from './setup-checklist';
 import { GovernancePosture } from './governance-posture';
+import useSWR from 'swr';
+import { apiClient } from '@/lib/api-client';
 import { trackUxEvent } from '@/lib/ux-events';
 
 const ActivityChart = dynamic(
@@ -303,7 +305,11 @@ export function Dashboard() {
   }, [router]);
   const { data: agents, isLoading: agentsLoading, error: agentsError } = useAgents();
   const { data: logs, isLoading: logsLoading, error: logsError } = useAuditLogs();
-  const { isLoading: policiesLoading } = usePolicies();
+  const { data: policies, isLoading: policiesLoading } = usePolicies();
+  const { data: apiKeysResponse, isLoading: apiKeysLoading } = useSWR(
+    isAuthenticated ? 'dashboard-api-keys' : null,
+    () => apiClient.getApiKeys(),
+  );
 
   // Cross-filtering state
   const [decisionFilter, setDecisionFilter] = useState<DecisionFilter>(null);
@@ -373,13 +379,14 @@ export function Dashboard() {
   const heldCount = normalizedLogs.filter((l) => l.decision === 'held').length;
   const attentionCount = blockedCount + heldCount;
   const avgLatency = computeAverageLatency(normalizedLogs);
-  const showSetup =
-    isAuthenticated &&
-    workspaceMode === 'production' &&
-    !agentsLoading &&
-    !policiesLoading &&
-    !logsLoading &&
-    normalizedLogs.length === 0;
+  const hasActivePolicy = (policies || []).some((policy) => policy.status === 'active');
+  const hasActiveAgent = agentList.some((agent) => agent.status !== 'inactive');
+  const hasApiKey = (apiKeysResponse?.data || []).some((key) => !key.revokedAt);
+  const setupLoading = agentsLoading || policiesLoading || logsLoading || apiKeysLoading;
+  // Keep the checklist mounted for completed workspaces too: its compact
+  // success state is the small emotional payoff and a durable handoff into
+  // integration, rather than a one-time onboarding screen.
+  const showSetup = isAuthenticated && workspaceMode === 'production' && !setupLoading;
 
   // Count decisions carrying a real on-chain governance-record tx (mirrors the
   // audit page's getOnChainTxHash: top-level or nested data.txHash). Real data
@@ -468,16 +475,16 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* New or returning user with no activity yet. With backend seeding,
-          every workspace starts with 1 agent + 1 policy, so we show this
-          panel when there are no audit logs (i.e. the tester hasn't run
-          any governance checks yet). The QuickCheck card inside gives them
-          an immediate "aha moment". */}
-      {showSetup && <GetStartedPanel />}
+      {showSetup && (
+        <SetupChecklist
+          hasPolicy={hasActivePolicy}
+          hasAgent={hasActiveAgent}
+          hasApiKey={hasApiKey}
+          hasGovernedRequest={normalizedLogs.length > 0}
+        />
+      )}
 
-      {!showSetup && (
-        <>
-          <AttentionSummary
+      <AttentionSummary
             tone={attentionCount > 0 ? 'attention' : 'healthy'}
             title={attentionCount > 0 ? 'Governance needs attention' : 'Governance is steady'}
             description={
@@ -864,8 +871,6 @@ export function Dashboard() {
               </div>
             )}
           </section>
-        </>
-      )}
     </div>
   );
 }

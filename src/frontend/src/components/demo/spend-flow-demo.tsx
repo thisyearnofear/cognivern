@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAuthStore } from "@/stores/auth-store";
+import { GovernanceMoment } from "@/components/ui/governance-moment";
+import { trackUxEvent } from "@/lib/ux-events";
 import {
   ShieldCheck,
   FileSearch,
@@ -189,6 +191,7 @@ export function SpendFlowDemo() {
     } else {
       setCompleted(true);
       setRunning(false);
+      trackUxEvent("primary_action_completed", "spend_flow_demo", governed ? scenario.outcome : "ungoverned");
     }
   }, [currentStep, steps.length, governed, scenario]);
 
@@ -199,6 +202,7 @@ export function SpendFlowDemo() {
   }, [running, currentStep, completed, advanceStep]);
 
   function handleStart() {
+    trackUxEvent("primary_action_clicked", "spend_flow_demo", governed ? scenario.outcome : "ungoverned");
     setSteps(
       activeSteps.map((s, i) =>
         i === 0 ? { ...s, status: "active" as const } : s,
@@ -244,7 +248,7 @@ export function SpendFlowDemo() {
         </div>
         <div className="flex items-center gap-2">
           {!running ? (
-            <Button onClick={handleStart} disabled={completed}>
+            <Button onClick={handleStart}>
               {completed ? (
                 <>
                   <RotateCcw className="h-4 w-4" /> Replay
@@ -457,6 +461,12 @@ export function SpendFlowDemo() {
 
       {/* Summary */}
       {completed && governed && (
+        <div className="space-y-3">
+          <GovernanceMoment
+            outcome={scenario.outcome}
+            amount={scenario.amount}
+            asset={scenario.asset}
+          />
         <div
           className={`rounded-xl border-2 bg-card ${
             scenario.outcome === "approved"
@@ -500,6 +510,7 @@ export function SpendFlowDemo() {
               </span>
             </div>
           </div>
+        </div>
         </div>
       )}
 
