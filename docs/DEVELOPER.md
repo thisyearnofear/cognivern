@@ -6,9 +6,14 @@ Local setup, API reference, and production readiness for Cognivern.
 
 Try Cognivern without connecting a wallet:
 
-1. Go to **[cognivern.vercel.app](https://cognivern.vercel.app)**
-2. Click **"Try Live Demo"** — no signup needed
-3. You'll land in a sandbox with a demo agent, sample policies, and pre-filled spend examples
+1. Go to **[cognivern.persidian.com](https://cognivern.persidian.com)**
+2. Use the guided demo CTA — no signup needed for the public/demo path
+3. You'll land in a sandbox with sample policies and pre-filled spend examples
+
+For moderated user sessions, use the [User-Testing Protocol](./USER_TESTING_PROTOCOL.md)
+and provide participants only the canonical URL from the [Tester Guide](./TESTER_GUIDE.md).
+Authenticated research requires a disposable workspace or staging environment;
+do not use production credentials, real funds, or another user's workspace.
 
 From the demo you can preview spends, adjust policy sliders, and view the audit trail.
 
@@ -20,7 +25,7 @@ From the demo you can preview spends, adjust policy sliders, and view the audit 
 4. **Connect agent** — Give your agent the Agent ID and API key:
 
 ```bash
-curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \
+curl -X POST https://cognivern.persidian.com/api/governance/evaluate \
   -H "x-api-key: cvn_YOUR_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{"agentId": "agent-YOUR-AGENT-ID", "action": {"type": "swap", "description": "Swap 1500 USDC for ETH", "amount": 1500, "currency": "USDC"}}'
@@ -30,11 +35,11 @@ Standard policies return sync decisions. Confidential (FHE) policies return `202
 
 ### Decisions
 
-| Decision | Meaning | What Happens |
-| -------- | -------- | ----------- |
-| **Approved** ✅ | Spend fits policy | Native-token transfer broadcast on X Layer testnet |
-| **Held** ⏸ | Needs review | Approve/Deny in dashboard. Failed broadcasts leave run retryable. |
-| **Denied** ❌ | Violates policy | Money does not move |
+| Decision        | Meaning           | What Happens                                                      |
+| --------------- | ----------------- | ----------------------------------------------------------------- |
+| **Approved** ✅ | Spend fits policy | Native-token transfer broadcast on X Layer testnet                |
+| **Held** ⏸     | Needs review      | Approve/Deny in dashboard. Failed broadcasts leave run retryable. |
+| **Denied** ❌   | Violates policy   | Money does not move                                               |
 
 Each decision includes a Decision ID, attestation hash, matched policy rules, and on-chain tx hash (if approved).
 
@@ -101,17 +106,17 @@ pnpm monorepo with three packages:
 
 ## Core Services
 
-| Service                    | Responsibility |
-| -------------------------- | -------------- |
-| `PolicyService`            | Loads and stores policies |
-| `PolicyEnforcementService` | Evaluates actions against rules, returns allow/deny |
-| `FhenixPolicyService`      | Confidential policy paths, encrypted decisions, permit-ready evidence |
-| `AuditLogService`          | Maps CRE runs to audit logs; persists policyChecks, suspicion, aiUsage, txHash, anchoring evidence |
-| `OwsLocalVaultService`     | Encrypted local wallet storage, API-key issuance |
-| `OwsWalletService`         | Spend execution, policy enforcement, signed authorizations |
-| `IntentController`         | Natural language intent via AI with multi-provider routing; enriches responses with real workspace data |
-| `MultiModelRouter`         | Routes AI across 6 providers with fallback + circuit breakers |
-| `ControlEvaluationService` | Parallel suspicion scoring (0-1), gated by `CONTROL_EVAL_MODE` |
+| Service                    | Responsibility                                                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `PolicyService`            | Loads and stores policies                                                                                          |
+| `PolicyEnforcementService` | Evaluates actions against rules, returns allow/deny                                                                |
+| `FhenixPolicyService`      | Confidential policy paths, encrypted decisions, permit-ready evidence                                              |
+| `AuditLogService`          | Maps CRE runs to audit logs; persists policyChecks, suspicion, aiUsage, txHash, anchoring evidence                 |
+| `OwsLocalVaultService`     | Encrypted local wallet storage, API-key issuance                                                                   |
+| `OwsWalletService`         | Spend execution, policy enforcement, signed authorizations                                                         |
+| `IntentController`         | Natural language intent via AI with multi-provider routing; enriches responses with real workspace data            |
+| `MultiModelRouter`         | Routes AI across 6 providers with fallback + circuit breakers                                                      |
+| `ControlEvaluationService` | Parallel suspicion scoring (0-1), gated by `CONTROL_EVAL_MODE`                                                     |
 | `WorkspaceDataService`     | Agent/policy/spend management; `evaluateAction()` is the canonical rule evaluator called by `GovernanceController` |
 
 ## API Reference
@@ -152,30 +157,30 @@ Related: `GET /api/projects`, `GET /api/projects/:projectId/usage`
 
 ### OWS Wallet
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/api/ows/bootstrap` | POST | Bootstrap OWS wallet |
-| `/api/ows/wallets` | GET | List wallets |
-| `/api/ows/api-keys` | GET, POST | API key management |
+| Endpoint             | Method    | Description          |
+| -------------------- | --------- | -------------------- |
+| `/api/ows/bootstrap` | POST      | Bootstrap OWS wallet |
+| `/api/ows/wallets`   | GET       | List wallets         |
+| `/api/ows/api-keys`  | GET, POST | API key management   |
 
 ### Spend Execution
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/api/spend` | POST | Execute governed spend |
-| `/api/spend/encrypted` | POST | Confidential-policy spend with encrypted amount |
-| `/api/spend/preview` | POST | Simulate spend (dry-run) |
-| `/api/spend/status` | GET | Execution status |
+| Endpoint               | Method | Description                                     |
+| ---------------------- | ------ | ----------------------------------------------- |
+| `/api/spend`           | POST   | Execute governed spend                          |
+| `/api/spend/encrypted` | POST   | Confidential-policy spend with encrypted amount |
+| `/api/spend/preview`   | POST   | Simulate spend (dry-run)                        |
+| `/api/spend/status`    | GET    | Execution status                                |
 
 ### Audit & Run Ledger
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/api/audit/logs` | GET | Audit trail |
-| `/api/audit/insights` | GET | Insights — `?dimension=ai_spend` or `?dimension=suspicion` |
-| `/api/audit/permits` | POST | Issue confidential audit decryption permits |
-| `/api/cre/runs` | GET | Run ledger |
-| `/api/cre/runs/:runId/events/stream` | GET | SSE event stream |
+| Endpoint                             | Method | Description                                                |
+| ------------------------------------ | ------ | ---------------------------------------------------------- |
+| `/api/audit/logs`                    | GET    | Audit trail                                                |
+| `/api/audit/insights`                | GET    | Insights — `?dimension=ai_spend` or `?dimension=suspicion` |
+| `/api/audit/permits`                 | POST   | Issue confidential audit decryption permits                |
+| `/api/cre/runs`                      | GET    | Run ledger                                                 |
+| `/api/cre/runs/:runId/events/stream` | GET    | SSE event stream                                           |
 
 ### AI Intent Processing
 
@@ -187,10 +192,10 @@ Returns intent classification, component routing, and agent actions. Falls back 
 
 MCP-compliant governance tool for integration with external agent frameworks.
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/api/mcp/governance-check` | GET | Tool manifest (discovery) |
-| `/api/mcp/governance-check` | POST | Evaluate governed action |
+| Endpoint                    | Method | Description               |
+| --------------------------- | ------ | ------------------------- |
+| `/api/mcp/governance-check` | GET    | Tool manifest (discovery) |
+| `/api/mcp/governance-check` | POST   | Evaluate governed action  |
 
 POST body includes optional `fhirContext` for HIPAA-aware governance evaluation with clinical sensitivity rules.
 
@@ -204,10 +209,28 @@ pnpm lint
 
 ### TestSprite Integration Tests
 
-The project includes 24 TestSprite CLI backend tests + 30 MCP-generated Playwright frontend tests (~600 assertions) that run against the live production API at `https://cognivern.thisyearnofear.com`. These are not mock tests — every assertion hits real HTTP endpoints.
+The project includes 24 TestSprite CLI backend tests, 30 MCP-generated Playwright frontend tests, and checked-in Playwright smoke coverage for the current public/demo UI. The checked-in suite includes:
+
+- `tests/e2e/landing.spec.ts` — public landing page content and primary CTAs;
+- `tests/e2e/demo-flow.spec.ts` — governed and ungoverned spend-demo paths;
+- `tests/e2e/authenticated-smoke.spec.ts` — opt-in navigation through the
+  authenticated core surfaces using an existing disposable account.
+
+The authenticated smoke test does not create accounts or mutate records. Run it
+only with `E2E_TEST_EMAIL` and `E2E_TEST_PASSWORD` set to a disposable test
+account. A skipped run without credentials is expected and does not validate
+production authentication.
 
 ```bash
-# List all tests
+# Public/demo browser smoke tests (no credentials required)
+pnpm test:e2e tests/e2e/landing.spec.ts tests/e2e/demo-flow.spec.ts
+
+# Authenticated browser smoke test (disposable account only)
+E2E_TEST_EMAIL='tester@example.com' \\
+E2E_TEST_PASSWORD='disposable-password' \\
+pnpm exec playwright test tests/e2e/authenticated-smoke.spec.ts
+
+# List all TestSprite tests
 testsprite test list --project 8be1ec9e-a2c5-484a-8a2e-422b87832028
 
 # Run a specific test
@@ -240,7 +263,7 @@ The write-verify-fix loop caught production issues during the build window; see 
 
 - [ ] Sentry integration for frontend error tracking
 - [ ] 80%+ test coverage for core business logic
-- [ ] Staging environment
+- [ ] Isolated staging/test environment with seeded states and a verified reset procedure for moderated user testing
 - [ ] Self-service workspace tier upgrade (demo → live)
 
 ## Running with SigNoz (Observability)

@@ -2,7 +2,9 @@
 
 Use this checklist for the next product review. It is intentionally task-based:
 the reviewer should attempt the task first, then record where they hesitated or
-needed explanation.
+needed explanation. For a moderated pilot, pair it with
+[USER_TESTING_PROTOCOL.md](./USER_TESTING_PROTOCOL.md), which defines the
+moderator script, safety boundaries, observation sheet, and go/no-go criteria.
 
 ## Dashboard — operate
 

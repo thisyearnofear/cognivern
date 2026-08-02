@@ -4,16 +4,30 @@
 **API:** https://cognivern.persidian.com
 **API docs:** https://cognivern.persidian.com/api/docs/openapi.json
 
-You can test the entire product in under 5 minutes. No setup required —
-your workspace comes pre-seeded with a default agent and spend policy.
+This is an operator orientation, not a research script. For moderated user
+sessions, use [USER_TESTING_PROTOCOL.md](./USER_TESTING_PROTOCOL.md).
+
+The public/demo path requires no setup. Authenticated pilot testing requires a
+separate disposable workspace or staging environment with seeded data and a
+reset procedure. Do not use real funds, production API keys, or another user's
+workspace for research sessions.
+
+The examples below describe the expected product flow; seeded data and available
+actions may vary by environment.
 
 ---
 
 ## 1. Sign in (30 seconds)
 
+For a user-testing session, the moderator should provide the canonical pilot URL
+and a disposable account in advance. Do not ask participants to use a wallet or
+production credentials.
+
 - Go to https://cognivern.persidian.com
-- Click **Sign In**. Email is the default tab — enter any email and password,
-  or switch to the **Wallet** tab to use MetaMask/WalletConnect instead.
+- Click **Sign In**. Email is the default tab — use the disposable account
+  supplied by the moderator, or choose **Sign up** to create an account in an
+  explicitly isolated test workspace. Do not use another person's account,
+  production credentials, or a real wallet for research.
 - If you use the wallet path, sign the SIWE message — no gas, no transaction.
 
 You'll land on the dashboard. The first operational section is an attention
@@ -34,7 +48,10 @@ From the dashboard, use the **Quick Check** card:
 Or go to **Governance Check** in the sidebar for the full interactive
 page with FHE-encrypted evaluation, policy reasoning, and shareable links.
 
-## 3. Generate and test an API key (1 minute)
+## 3. Optional: Generate and test an API key (1 minute)
+
+Only do this in an isolated workspace. API keys are persistent credentials and
+must be treated as disposable after the session.
 
 1. Go to **Integrate** in the sidebar
 2. Click **Generate API Key**
@@ -109,7 +126,10 @@ anyone — without trusting Cognivern's server.
 
 ---
 
-## 9. Try a KeeperHub-routed spend (1 minute)
+## 9. Optional: Try a KeeperHub-routed spend (1 minute)
+
+This is an operator/demo workflow, not part of the default user-testing pilot.
+Only run it with an explicitly disposable wallet and test funds.
 
 The Settings → Wallets card lets you pick the **execution provider**
 for each wallet — `local` (default, Cognivern signs and broadcasts)
