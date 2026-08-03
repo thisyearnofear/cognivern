@@ -69,7 +69,7 @@ pnpm exec vitest run tests/integration/AgentGovernedSealedBid.integration.test.t
 Then verify the deployed backend only with the read-only rounds endpoint:
 
 ```bash
-curl -s https://cognivern.thisyearnofear.com/api/vendor/sealed-bid/rounds
+curl -s https://api.cognivern.persidian.com/api/vendor/sealed-bid/rounds
 ```
 
 The round selected for the recording must report `backend: "canton"` and a

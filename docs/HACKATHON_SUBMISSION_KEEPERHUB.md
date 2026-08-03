@@ -5,14 +5,14 @@
 **Window:** 2026-07-27 → 2026-08-13 submission deadline
 **Team:** thisyearnofear
 **Repository:** [github.com/thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)
-**Live product:** [cognivern.vercel.app](https://cognivern.vercel.app) · [cognivern.persidian.com](https://cognivern.persidian.com) · API: `cognivern.thisyearnofear.com`
+**Live product:** [cognivern.vercel.app](https://cognivern.vercel.app) · [cognivern.persidian.com](https://cognivern.persidian.com) · API: `api.cognivern.persidian.com`
 
 ---
 
 ## Live deployment status
 
 This submission ships two commits that are both live on
-`https://cognivern.thisyearnofear.com`:
+`https://api.cognivern.persidian.com`:
 
 - `f21bf50 feat(keeperhub): wire Sapience rebalance through the existing
   KeeperHub execution provider` — server-side wiring + MCP config +
@@ -23,7 +23,7 @@ This submission ships two commits that are both live on
 
 Backend: PM2 process `cognivern-backend` on `snel-bot` (Hetzner), port
 3087, default branch `main`. Frontend is served by the same backend
-through `cognivern.thisyearnofear.com` (nginx → 3087). The new
+through `api.cognivern.persidian.com` (nginx → 3087). The new
 `KEEPERHUB_API_KEY` is set in `/opt/cognivern/shared/.env` and loaded via
 `dotenv/config` at process start. The runtime check `keeperHubConfig.enabled`
 returns `true` in `/api/observability/status` once the env is in place.
@@ -394,7 +394,7 @@ KeeperHub surface through .mcp.json → https://app.keeperhub.com/mcp
 ## What is real vs. what is pending
 
 - **Real (live now):**
-  - Code on `main`, deployed to `cognivern.thisyearnofear.com` (PM2 #75).
+  - Code on `main`, deployed to `api.cognivern.persidian.com` (PM2 #75).
   - `KEEPERHUB_API_KEY` set in `/opt/cognivern/shared/.env` and loaded
     at runtime by dotenv (`keeperHubConfig.enabled === true`).
   - Test OWS wallet `ab1af94a-65a2-4bdd-a830-9439f2dea763` bootstrapped

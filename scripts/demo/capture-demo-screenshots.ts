@@ -3,7 +3,7 @@ import { promises as fs } from "fs";
 import path from "path";
 
 const baseUrl = "https://cognivern.vercel.app/sealed-bid";
-const apiBaseUrl = "https://cognivern.thisyearnofear.com";
+const apiBaseUrl = "https://api.cognivern.persidian.com";
 const apiKey = process.env.COGNIVERN_API_KEY || "";
 const outDir = path.join(process.cwd(), ".artifacts", "demo-shots");
 

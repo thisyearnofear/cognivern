@@ -12,7 +12,7 @@ Internet → Vercel (Frontend) → Express API (VPS / PM2) → optional Filecoin
                           Canton JSON API v2 (DevNet)
 ```
 
-The frontend deploys to Vercel automatically on push to `main`. The Express backend runs as a PM2 fork-mode process on a VPS (`api.thisyearnofree.com` / `157.180.36.156:3000`). The optional local/Hetzner Daml sandbox is used only for staging and regression; final submission targets the shared HackCanton S2 Canton DevNet node directly.
+The frontend deploys to Vercel automatically on push to `main`. The Express backend runs as a PM2 fork-mode process on a VPS (`api.cognivern.persidian.com`, nginx → port `3087`). The optional local/Hetzner Daml sandbox is used only for staging and regression; final submission targets the shared HackCanton S2 Canton DevNet node directly.
 
 ## Deploy
 
@@ -71,7 +71,7 @@ See [`.env.example`](../.env.example) for the exact DevNet values and [`docs/CAN
 
 ## Production DevNet cutover
 
-The backend runs on the VPS; the Canton env vars must be set there and the process restarted. If you also need to update frontend-only Vercel env vars (e.g. `VITE_BACKEND_URL`), use the Vercel dashboard/CLI.
+The backend runs on the VPS; the Canton env vars must be set there and the process restarted. If you also need to update frontend-only Vercel env vars (e.g. `NEXT_PUBLIC_API_URL`), use the Vercel dashboard/CLI.
 
 1. SSH into the backend server.
 2. Update the backend `.env` file with the Canton DevNet values from `.env.example`.

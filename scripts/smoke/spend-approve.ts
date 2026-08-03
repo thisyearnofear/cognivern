@@ -18,7 +18,7 @@
  *     JWT_SECRET, or copy from the dashboard after login).
  *
  * Usage:
- *   BASE_URL=https://cognivern.thisyearnofear.com \
+ *   BASE_URL=https://api.cognivern.persidian.com \
  *   JWT="eyJ..." \
  *   RUN_ID=run_abc123... \
  *   tsx scripts/smoke/spend-approve.ts

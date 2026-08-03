@@ -171,13 +171,13 @@ submission:
 #   --source=./agent \
 #   --model=gemini-3.1-pro-preview \
 #   --mcp-server=mongodb@stdio \
-#   --openapi-spec=https://cognivern.thisyearnofear.com/api/docs/openapi.json
+#   --openapi-spec=https://api.cognivern.persidian.com/api/docs/openapi.json
 #
 # resource "google_discovery_engine_agent" "cognivern_copilot" {
 #   location       = "us"
 #   display_name   = "Cognivern Copilot"
 #   model_id       = "gemini-3.1-pro-preview"
 #   system_instruction = file("./agent/instructions.md")
-#   tool { open_api { name = "cognivern" url = "https://cognivern.thisyearnofear.com/api/docs/openapi.json" } }
+#   tool { open_api { name = "cognivern" url = "https://api.cognivern.persidian.com/api/docs/openapi.json" } }
 #   tool { mcp { name = "mongodb" command = "npx -y @mongodb-js/mongodb-mcp-server@latest" } }
 # }

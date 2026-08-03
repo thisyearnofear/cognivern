@@ -4,7 +4,7 @@
 **Hackathon:** HackCanton S2
 **Team:** thisyearnofear
 **Repository:** [github.com/thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)
-**Live product:** [cognivern.vercel.app/sealed-bid](https://cognivern.vercel.app/sealed-bid) · API: `cognivern.thisyearnofear.com`
+**Live product:** [cognivern.vercel.app/sealed-bid](https://cognivern.vercel.app/sealed-bid) · API: `api.cognivern.persidian.com`
 **Pitch deck:** [Google Slides](https://docs.google.com/presentation/d/1l_aGavufcyoGVertsf-a6LsL5fq_YJi-/edit?usp=share_link&ouid=109240813203948140410&rtpof=true&sd=true) · source `docs/pitch-deck.pptx` (PDF export before final submit if required)
 **3-min demo video:** YouTube (⏳ link TBD — re-record against the current DevNet-backed, curated live product before final submit)
 **Backend on-ledger:** Canton Daml backend. **Final eligibility gate:** the submitted build must point at a Canton Network DevNet participant, not the localhost/Hetzner sandbox. See `docs/CANTON.md` for the DevNet proof pack and setup steps.
@@ -369,7 +369,7 @@ Three lessons from the HackCanton S2 track guidance shape the next build window:
 | Item | Link |
 | --- | --- |
 | Live product | [cognivern.vercel.app/sealed-bid](https://cognivern.vercel.app/sealed-bid) |
-| Public API | `https://cognivern.thisyearnofear.com` |
+| Public API | `https://api.cognivern.persidian.com` |
 | Repository | Public — see top of `README.md` |
 | Pitch deck | `docs/pitch-deck.pptx` (local file — export to PDF before final submit if required) |
 | 3-minute demo video | YouTube (⏳ link TBD — re-record against the curated DevNet live product before submit) |

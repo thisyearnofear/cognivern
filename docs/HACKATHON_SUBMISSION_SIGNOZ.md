@@ -4,7 +4,7 @@
 **Hackathon:** Agents of SigNoz ($20,000)
 **Team:** thisyearnofear
 **Repository:** [github.com/thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)
-**Live product:** [cognivern.vercel.app](https://cognivern.vercel.app) - API: `cognivern.thisyearnofear.com`
+**Live product:** [cognivern.vercel.app](https://cognivern.vercel.app) - API: `api.cognivern.persidian.com`
 **Backend:** OpenTelemetry-instrumented Express + TypeScript on Hetzner (PM2, port 3087)
 
 ---
@@ -297,7 +297,7 @@ node --loader config/esm-dir-loader.mjs dist/src/index.js
 1. Open SigNoz Cloud -> Services. You should see `cognivern-backend`.
 2. Open the service -> Traces. Trigger a governance evaluate call:
    ```bash
-   curl -X POST https://cognivern.thisyearnofear.com/api/governance/evaluate \
+   curl -X POST https://api.cognivern.persidian.com/api/governance/evaluate \
      -H "Authorization: Bearer $API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"action":{"type":"test","description":"smoke","metadata":{"agentId":"test"}}}'

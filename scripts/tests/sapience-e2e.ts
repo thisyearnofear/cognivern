@@ -7,7 +7,7 @@
  * without requiring live Sapience/Ethereal connections.
  *
  * Usage:
- *   COGNIVERN_URL=https://cognivern.thisyearnofear.com \
+ *   COGNIVERN_URL=https://api.cognivern.persidian.com \
  *   COGNIVERN_API_KEY=sapience-hackathon-key \
  *   pnpm tsx scripts/tests/sapience-e2e.ts
  */

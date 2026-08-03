@@ -242,7 +242,7 @@
       "notes": "Landing page and onboarding are public. Dashboard pages use demo data without requiring login."
     },
     "api_endpoints": {
-      "base_url": "https://cognivern.thisyearnofear.com",
+      "base_url": "https://api.cognivern.persidian.com",
       "notes": "Frontend calls backend API at this base URL. Demo mode uses mock data when API is unavailable."
     },
     "routes": [

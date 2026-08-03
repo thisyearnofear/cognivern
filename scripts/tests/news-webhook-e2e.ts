@@ -11,7 +11,7 @@
  * 5. Verify the policy is active again
  *
  * Usage:
- *   COGNIVERN_URL=https://cognivern.thisyearnofear.com \
+ *   COGNIVERN_URL=https://api.cognivern.persidian.com \
  *   COGNIVERN_API_KEY=sapience-hackathon-key \
  *   pnpm tsx scripts/tests/news-webhook-e2e.ts
  */

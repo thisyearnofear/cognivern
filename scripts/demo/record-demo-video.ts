@@ -28,7 +28,7 @@ const baseUrl =
 const apiBaseUrl =
   process.env.COGNIVERN_API_URL ||
   (baseUrl.includes("vercel")
-    ? "https://cognivern.thisyearnofear.com"
+    ? "https://api.cognivern.persidian.com"
     : baseUrl.replace(/\/sealed-bid\/?$/, ""));
 
 const narrationScript = `Cognivern. Private sealed-bid RFPs and OTC selection on Canton Network.

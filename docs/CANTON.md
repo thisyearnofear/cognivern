@@ -79,7 +79,7 @@ Because the ledger is in-memory, restart guarantees a clean known state rather t
 **Demo freshness check:** the seeded deadlines are relative to process boot. Before recording or submitting, restart the ledger/backend or create a fresh round, then confirm the public API shows future deadlines and a Canton backend:
 
 ```bash
-curl -sf https://cognivern.thisyearnofear.com/api/vendor/sealed-bid/rounds \
+curl -sf https://api.cognivern.persidian.com/api/vendor/sealed-bid/rounds \
   | jq '.data[] | {roundId, backend, status, deadline, bidCount}'
 ```
 
@@ -248,7 +248,7 @@ The response contains an `access_token`. Use it as a `Bearer` token on all JSON 
 | `actAs` rights granted | Done | Rights assigned to user `e6c5f9fc-98ed-491f-b228-00cf931a05cc` for all four parties |
 | v2 client migration | Done | `src/backend/canton/CantonLedgerClient.ts` supports v1 sandbox and v2 DevNet |
 | Backend DevNet proof | Done | Local backend wired to DevNet passed `canton-devnet-proof.ts`: roundId `0x58012d8c…` |
-| Production cutover | Done | Hetzner backend env updated with DevNet JSON API v2 config; `pnpm deploy:hetzner` deployed `cognivern-backend`. `pnpm canton:proof` passed against `https://cognivern.thisyearnofear.com`. Demo video re-recorded against the DevNet-backed live UI |
+| Production cutover | Done | Hetzner backend env updated with DevNet JSON API v2 config; `pnpm deploy:hetzner` deployed `cognivern-backend`. `pnpm canton:proof` passed against `https://api.cognivern.persidian.com`. Demo video re-recorded against the DevNet-backed live UI |
 
 ### Allocated parties
 
@@ -292,7 +292,7 @@ This uploads the DAR, records the new package ID, allocates the demo parties, an
    ```
 6. Update env vars: `ssh snel-bot 'sed -i "s/<oldPkg>/<newPkg>/g" /opt/cognivern/shared/.env'` (backs up automatically via `sed -i.bak`)
 7. Restart both processes: `ssh snel-bot 'pm2 restart cognivern-canton && pm2 restart cognivern-backend --update-env'`
-8. Health check: `curl -sf http://cognivern.thisyearnofear.com/api/vendor/sealed-bid/rounds -H "x-api-key: ..."`
+8. Health check: `curl -sf http://api.cognivern.persidian.com/api/vendor/sealed-bid/rounds -H "x-api-key: ..."`
 
 ## Runbook — sandbox restart
 
@@ -330,7 +330,7 @@ The team used the shared HackCanton S2 DevNet node. The DAR was uploaded and par
 5. **Set the production env** from `.env.example` (DevNet section) and redeploy. The JSON Ledger API v2 client is selected automatically when `CANTON_BEARER_TOKEN` or OIDC config is present.
 6. **Run the proof** against the live product:
    ```bash
-   COGNIVERN_URL=https://cognivern.thisyearnofear.com \
+   COGNIVERN_URL=https://api.cognivern.persidian.com \
    COGNIVERN_API_KEY=<your-api-key> \
    CANTON_PROOF_MANAGER=auctioner-cognivern \
    CANTON_PROOF_BIDDERS=alice-cognivern,bob-cognivern,charlie-cognivern \

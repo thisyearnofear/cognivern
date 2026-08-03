@@ -129,7 +129,7 @@ looking for a governance layer to differentiate their enterprise offering.
 
 **The ask this weekend:** Intros to two DeFi protocol teams on Arbitrum running
 autonomous agents, plus feedback from a product mentor on the wedge framing.
-CTA: try the live API (`cognivern.thisyearnofear.com`) with one agent spend this
+CTA: try the live API (`api.cognivern.persidian.com`) with one agent spend this
 week.
 
 ---

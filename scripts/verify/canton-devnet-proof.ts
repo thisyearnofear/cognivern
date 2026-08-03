@@ -58,7 +58,7 @@ type RevealResponse = {
   note?: string;
 };
 
-const baseUrl = (process.env.COGNIVERN_URL || "https://cognivern.thisyearnofear.com").replace(
+const baseUrl = (process.env.COGNIVERN_URL || "https://api.cognivern.persidian.com").replace(
   /\/$/,
   "",
 );

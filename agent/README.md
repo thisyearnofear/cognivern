@@ -46,7 +46,7 @@ pnpm add -D tsx
 export GOOGLE_CLOUD_PROJECT=cognivern
 export VERTEX_LOCATION=global
 export COGNIVERN_API_KEY=development-api-key        # or a real key
-export COGNIVERN_BASE_URL=https://cognivern.thisyearnofear.com
+export COGNIVERN_BASE_URL=https://api.cognivern.persidian.com
 export MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net
 export MONGODB_DB_NAME=cognivern
 export GEMINI_MODEL=gemini-3.1-pro-preview
@@ -94,7 +94,7 @@ agent = Agent(
     model="gemini-3.1-pro-preview",
     instruction=open("./agent/instructions.md").read(),
     tools=[
-        OpenAPIToolset(spec_url="https://cognivern.thisyearnofear.com/api/docs/openapi.json"),
+        OpenAPIToolset(spec_url="https://api.cognivern.persidian.com/api/docs/openapi.json"),
         MCPToolset(command="npx", args=["-y", "@mongodb-js/mongodb-mcp-server@latest"]),
     ],
 )

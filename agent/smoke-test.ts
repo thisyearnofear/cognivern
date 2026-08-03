@@ -19,7 +19,7 @@
  *   GOOGLE_CLOUD_PROJECT        preferred for Vertex AI auth via gcloud
  *   GEMINI_API_KEY              optional local-only fallback
  *   COGNIVERN_API_KEY           required (any value if running against dev server)
- *   COGNIVERN_BASE_URL          default https://cognivern.thisyearnofear.com
+ *   COGNIVERN_BASE_URL          default https://api.cognivern.persidian.com
  *   MONGODB_URI                 required
  *   MONGODB_DB_NAME             default cognivern
  *   GEMINI_MODEL                default gemini-3.1-pro-preview
@@ -47,7 +47,7 @@ const result = await runAgent({
   goal,
   cognivernApiKey: process.env.COGNIVERN_API_KEY || "development-api-key",
   cognivernBaseUrl:
-    process.env.COGNIVERN_BASE_URL || "https://cognivern.thisyearnofear.com",
+    process.env.COGNIVERN_BASE_URL || "https://api.cognivern.persidian.com",
   mongodbUri: process.env.MONGODB_URI || "mongodb://localhost:27017",
   mongodbDatabase: process.env.MONGODB_DB_NAME || "cognivern",
   geminiApiKey: process.env.GEMINI_API_KEY,

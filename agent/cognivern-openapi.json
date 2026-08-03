@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://cognivern.thisyearnofear.com/api"
+      "url": "https://api.cognivern.persidian.com/api"
     }
   ],
   "components": {

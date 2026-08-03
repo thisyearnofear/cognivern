@@ -94,7 +94,7 @@
 
 ### Root Cause Analysis
 
-**Failed tests (8):** All failures are caused by the frontend running locally without the backend API. The frontend tries to reach `https://cognivern.thisyearnofear.com` but when running on `localhost:3000`, CORS and network issues prevent API calls from succeeding. This is an environment issue, not a code bug — the same pages work correctly on the deployed Vercel frontend.
+**Failed tests (8):** All failures are caused by the frontend running locally without the backend API. The frontend tries to reach `https://api.cognivern.persidian.com` but when running on `localhost:3000`, CORS and network issues prevent API calls from succeeding. This is an environment issue, not a code bug — the same pages work correctly on the deployed Vercel frontend.
 
 **Blocked tests (11):** These tests were blocked because prerequisite data (agents, policies, audit records, runs) doesn't exist when the backend API is unreachable. The tests correctly detected that the data wasn't available and blocked rather than producing false failures.
 

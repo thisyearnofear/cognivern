@@ -495,7 +495,7 @@ if (isMain) {
   runAgent({
     goal,
     cognivernApiKey: process.env.COGNIVERN_API_KEY || 'development-api-key',
-    cognivernBaseUrl: process.env.COGNIVERN_BASE_URL || 'https://cognivern.thisyearnofear.com',
+    cognivernBaseUrl: process.env.COGNIVERN_BASE_URL || 'https://api.cognivern.persidian.com',
     mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017',
     mongodbDatabase: process.env.MONGODB_DB_NAME || 'cognivern',
     previewOnly: process.env.PREVIEW_ONLY === '1',

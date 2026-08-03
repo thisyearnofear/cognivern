@@ -7,13 +7,13 @@
  * so Google Cloud Agent Builder can register them via MCP.
  *
  * The live API docs are at:
- *   https://cognivern.thisyearnofear.com/api/docs (Swagger)
+ *   https://api.cognivern.persidian.com/api/docs (Swagger)
  *   /Users/udingethe/Dev/cognivern/docs/DEVELOPER.md
  */
 
 export interface CognivernToolContext {
   apiKey: string;
-  baseUrl: string; // e.g. https://cognivern.thisyearnofear.com
+  baseUrl: string; // e.g. https://api.cognivern.persidian.com
 }
 
 async function readJsonResponse(r: Response): Promise<unknown> {
