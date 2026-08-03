@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useScroll, useTransform, useReducedMotion } from "motion/react";
 import {
   ArrowRight,
   Shield,
@@ -13,6 +13,8 @@ import {
   Eye,
   ExternalLink,
   Copy,
+  Check,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
@@ -159,6 +161,21 @@ export function LandingPage() {
     }
     return { status: "denied" as const, reason: "Amount exceeds hard limit of $100" };
   })();
+
+  // Delight: a "decision stamp" pops over the live demo when the outcome
+  // changes (e.g. dragging the slider past the $100 limit). Keyed by a
+  // counter so every flip re-runs the stamp animation. Skipped entirely on
+  // first render so the panel loads quietly.
+  const reduceMotion = useReducedMotion();
+  const [stampKey, setStampKey] = useState(0);
+  const prevOutcomeRef = useRef(demoResult.status);
+
+  useEffect(() => {
+    if (prevOutcomeRef.current !== demoResult.status) {
+      prevOutcomeRef.current = demoResult.status;
+      setStampKey((k) => k + 1);
+    }
+  }, [demoResult.status]);
 
   useEffect(() => {
     return () => {
@@ -314,7 +331,31 @@ export function LandingPage() {
                   <div className="mt-2 flex justify-between text-xs text-muted-foreground"><span>$10</span><span>$500</span></div>
                   <p className="mt-5 text-sm text-muted-foreground">Move the amount past $100 to see Cognivern stop the request.</p>
                 </div>
-                <div className={`p-5 transition-colors duration-300 ${demoResult.status === "approved" ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
+                <div className={`relative p-5 transition-colors duration-300 ${demoResult.status === "approved" ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
+                  {stampKey > 0 && (
+                    <motion.div
+                      key={stampKey}
+                      initial={reduceMotion ? false : { opacity: 0, scale: 2.4, rotate: -18 }}
+                      animate={{ opacity: 1, scale: 1, rotate: -8 }}
+                      transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 22, mass: 0.8 }}
+                      aria-hidden
+                      className={`pointer-events-none absolute top-3 right-3 inline-flex items-center gap-1 rounded-md border-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest shadow-sm ${
+                        demoResult.status === "approved"
+                          ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-600"
+                          : "border-red-500/60 bg-red-500/10 text-red-600"
+                      }`}
+                    >
+                      {demoResult.status === "approved" ? (
+                        <>
+                          <Check className="h-3 w-3" aria-hidden /> Approved
+                        </>
+                      ) : (
+                        <>
+                          <X className="h-3 w-3" aria-hidden /> Stopped
+                        </>
+                      )}
+                    </motion.div>
+                  )}
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Decision</p>
                   <p className={`mt-2 text-2xl font-bold ${demoResult.status === "approved" ? "text-emerald-600" : "text-red-600"}`} style={{ fontFamily: "var(--font-space-grotesk)" }}>
                     {demoResult.status === "approved" ? "Approved" : "Stopped"}
