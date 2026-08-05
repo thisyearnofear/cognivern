@@ -18,10 +18,25 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
-import { useDemoStore, startDemoTour } from "@/stores/demo-store";
+import { useDemoStore } from "@/stores/demo-store";
 import { useAuthStore, useAuthHydrated } from "@/stores/auth-store";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import { useAccount } from "wagmi";
+import {
+  DEMO_APPROVE_THRESHOLD,
+  DEMO_HARD_LIMIT,
+  resolveDemoDecision,
+  type DemoDecision,
+} from "@cognivern/shared";
+
+/**
+ * Canonical public API origin for user-facing snippets (curl examples,
+ * copy buttons, docs links). The frontend itself proxies /api/* through
+ * Next.js rewrites, but external developers calling from their terminal
+ * hit the backend directly — so display strings must point here, not at
+ * the Vercel origin or the dead api.cognivern.xyz hostname.
+ */
+const PUBLIC_API_ORIGIN = "https://api.cognivern.persidian.com";
 
 /* ─── Flow node component ───────────────────────────────────── */
 
@@ -151,16 +166,31 @@ export function LandingPage() {
   const policiesCount = useCountUp(3, 1500, statsVisible);
 
   const handleTryDemo = () => {
-    startDemoTour((path) => router.push(path));
+    // The CTA promises "a blocked spend" — so jump the slider straight
+    // into the denied band and let the visitor see the stamp, rather than
+    // silently starting the full demo tour (which navigates away before
+    // the visitor sees anything get blocked).
+    setDemoAmount(DEMO_HARD_LIMIT + 500);
+    // Smooth-scroll the interactive panel into view so the stamp lands
+    // in the visitor's viewport.
+    document
+      .getElementById("live-demo")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  // Demo evaluation mirrors the policy limit shown in the first-use preview.
-  const demoResult = (() => {
-    if (demoAmount < 100) {
-      return { status: "approved" as const };
-    }
-    return { status: "denied" as const, reason: "Amount exceeds hard limit of $100" };
-  })();
+  // Demo evaluation uses the SAME bands as the backend demo tier
+  // (@cognivern/shared/demo-policy) so the landing-page story and the
+  // in-app demo never disagree: < $100 approved, ≥ $100 held,
+  // > $3000 denied.
+  const demoResult: { status: DemoDecision; reason: string } = {
+    status: resolveDemoDecision(demoAmount),
+    reason:
+      demoAmount >= DEMO_HARD_LIMIT
+        ? `Over the $${DEMO_HARD_LIMIT} hard limit. Your agent cannot send this payment.`
+        : demoAmount >= DEMO_APPROVE_THRESHOLD
+          ? `At or above the $${DEMO_APPROVE_THRESHOLD} review threshold. Held for an operator.`
+          : "Within the automatic approval limit.",
+  };
 
   // Delight: a "decision stamp" pops over the live demo when the outcome
   // changes (e.g. dragging the slider past the $100 limit). Keyed by a
@@ -185,7 +215,7 @@ export function LandingPage() {
 
   const handleCopyCurl = useCallback(() => {
     navigator.clipboard.writeText(
-      `curl -X POST https://cognivern.persidian.com/api/governance/evaluate \\\n  -H "Content-Type: application/json" \\\n  -d '{"agentId":"demo","action":{"type":"spend","metadata":{"amount":50}}}'`,
+      `curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\\n  -H "Content-Type: application/json" \\\n  -d '{"agentId":"demo","action":{"type":"spend","metadata":{"amount":50}}}'`,
     );
     setCopyFeedback(true);
     if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
@@ -295,10 +325,11 @@ export function LandingPage() {
 
           {/* Interactive first-use moment */}
           <motion.div
+            id="live-demo"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="max-w-3xl mx-auto"
+            className="max-w-3xl mx-auto scroll-mt-24"
           >
             <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
               <div className="flex items-center justify-between border-b border-border bg-muted/40 px-5 py-3">
@@ -320,18 +351,18 @@ export function LandingPage() {
                   <input
                     type="range"
                     min={10}
-                    max={500}
-                    step={5}
+                    max={5000}
+                    step={10}
                     value={demoAmount}
                     onChange={(e) => setDemoAmount(Number(e.target.value))}
                     aria-label="Requested amount"
                     aria-valuetext={`$${demoAmount}`}
                     className="mt-6 h-2 w-full cursor-pointer appearance-none rounded-full bg-muted [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-lg"
                   />
-                  <div className="mt-2 flex justify-between text-xs text-muted-foreground"><span>$10</span><span>$500</span></div>
-                  <p className="mt-5 text-sm text-muted-foreground">Move the amount past $100 to see Cognivern stop the request.</p>
+                  <div className="mt-2 flex justify-between text-xs text-muted-foreground"><span>$10</span><span>$5,000</span></div>
+                  <p className="mt-5 text-sm text-muted-foreground">Drag past ${DEMO_APPROVE_THRESHOLD} to hold a request for review, or past ${DEMO_HARD_LIMIT.toLocaleString()} to stop it outright.</p>
                 </div>
-                <div className={`relative p-5 transition-colors duration-300 ${demoResult.status === "approved" ? "bg-emerald-500/5" : "bg-red-500/5"}`}>
+                <div className={`relative p-5 transition-colors duration-300 ${demoResult.status === "approved" ? "bg-emerald-500/5" : demoResult.status === "held" ? "bg-amber-500/5" : "bg-red-500/5"}`}>
                   {stampKey > 0 && (
                     <motion.div
                       key={stampKey}
@@ -342,12 +373,18 @@ export function LandingPage() {
                       className={`pointer-events-none absolute top-3 right-3 inline-flex items-center gap-1 rounded-md border-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest shadow-sm ${
                         demoResult.status === "approved"
                           ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-600"
-                          : "border-red-500/60 bg-red-500/10 text-red-600"
+                          : demoResult.status === "held"
+                            ? "border-amber-500/60 bg-amber-500/10 text-amber-600"
+                            : "border-red-500/60 bg-red-500/10 text-red-600"
                       }`}
                     >
                       {demoResult.status === "approved" ? (
                         <>
                           <Check className="h-3 w-3" aria-hidden /> Approved
+                        </>
+                      ) : demoResult.status === "held" ? (
+                        <>
+                          <span className="h-3 w-3" aria-hidden>⏸</span> Held
                         </>
                       ) : (
                         <>
@@ -357,11 +394,11 @@ export function LandingPage() {
                     </motion.div>
                   )}
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Decision</p>
-                  <p className={`mt-2 text-2xl font-bold ${demoResult.status === "approved" ? "text-emerald-600" : "text-red-600"}`} style={{ fontFamily: "var(--font-space-grotesk)" }}>
-                    {demoResult.status === "approved" ? "Approved" : "Stopped"}
+                  <p className={`mt-2 text-2xl font-bold ${demoResult.status === "approved" ? "text-emerald-600" : demoResult.status === "held" ? "text-amber-600" : "text-red-600"}`} style={{ fontFamily: "var(--font-space-grotesk)" }}>
+                    {demoResult.status === "approved" ? "Approved" : demoResult.status === "held" ? "Held for review" : "Stopped"}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {demoResult.status === "approved" ? "Within the automatic approval limit." : "Over the $100 limit. Your agent cannot send this payment."}
+                    {demoResult.reason}
                   </p>
                   <div className="mt-5 border-t border-border/60 pt-4 text-xs text-muted-foreground">
                     {demoResult.status === "approved" ? "Recorded for review" : "Reason recorded for review"}
@@ -573,7 +610,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── Multi-Chain Pipeline ── */}
+      {/* ── One control plane ── */}
       <section className="border-t border-border">
         <div className="max-w-5xl mx-auto px-6 py-20">
           <motion.div
@@ -594,10 +631,13 @@ export function LandingPage() {
             >
               Govern once. Run anywhere. Stay in control.
             </h2>
+            <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
+              The same guardrails follow your agents across the chains and systems where they work — portable, confidential, and auditable.
+            </p>
           </motion.div>
 
           {/* Benefits — what the enabling tech delivers */}
-          <div className="grid sm:grid-cols-3 gap-4 mb-16">
+          <div className="grid sm:grid-cols-3 gap-4">
             {[
               {
                 icon: Globe,
@@ -639,126 +679,17 @@ export function LandingPage() {
             ))}
           </div>
 
-          <details className="rounded-xl border border-border bg-card/40 p-5">
-            <summary className="cursor-pointer text-center">
-              <span
-                className="text-xs font-semibold text-primary uppercase tracking-widest"
-                style={{ fontFamily: "var(--font-space-grotesk)" }}
-              >
-                The receipts
-              </span>
-              <h3
-                className="text-xl font-bold text-foreground mt-2"
-                style={{ fontFamily: "var(--font-space-grotesk)" }}
-              >
-                Technical details and verification
-              </h3>
-              <p className="text-sm text-muted-foreground mt-2">
-                Open this section for networks, contracts, and verification references.
-              </p>
-            </summary>
-
-          <div className="space-y-4 mt-6">
-            {[
-              {
-                network: "Arbitrum Sepolia",
-                role: "Governance",
-                color: "text-blue-400",
-                bg: "bg-blue-500/10",
-                border: "border-blue-500/20",
-                desc: "GovernanceContract + GovernedVault deployed and live on Arbitrum (chain 421614). Policy-checked spends and governed execution settle on-chain.",
-                status: "Live — Gov + Vault",
-              },
-              {
-                network: "Robinhood Chain",
-                role: "Governance",
-                color: "text-green-400",
-                bg: "bg-green-500/10",
-                border: "border-green-500/20",
-                desc: "Same GovernanceContract + GovernedVault deployed to Robinhood Chain Testnet, an Arbitrum Orbit chain (chain 46630). One control plane, portable across Orbit rollups.",
-                status: "Live — Gov + Vault",
-              },
-              {
-                network: "X Layer",
-                role: "Execution",
-                color: "text-sky-400",
-                bg: "bg-sky-500/10",
-                border: "border-sky-500/20",
-                desc: "Governed transaction dispatch. Every approved spend writes to GovernanceContract.evaluateAction(). Real gas, real txHash, real block confirmation.",
-                status: "Live — 18 txns",
-              },
-              {
-                network: "Filecoin",
-                role: "Audit Archive",
-                color: "text-purple-400",
-                bg: "bg-purple-500/10",
-                border: "border-purple-500/20",
-                desc: "GovernanceContract deployed on FVM Calibration testnet. Audit evidence anchoring via AIGovernanceStorage in progress.",
-                status: "Calibration testnet",
-              },
-              {
-                network: "0G",
-                role: "Live Audit Streaming",
-                color: "text-emerald-400",
-                bg: "bg-emerald-500/10",
-                border: "border-emerald-500/20",
-                desc: "Every governance decision recorded as an on-chain event on 0G Chain — permanently verifiable on ChainScan.",
-                status: "Galileo testnet",
-              },
-              {
-                network: "Fhenix / FHE",
-                role: "Confidential Compute",
-                color: "text-amber-400",
-                bg: "bg-amber-500/10",
-                border: "border-amber-500/20",
-                desc: "ConfidentialSpendPolicy live on Arbitrum Sepolia via CoFHE — spend amounts and wallet balances stay encrypted end-to-end. Verified on-chain (final outcomes resolve asynchronously).",
-                status: "Live · Arbitrum Sepolia",
-              },
-              {
-                network: "Canton",
-                role: "Private Procurement",
-                color: "text-rose-400",
-                bg: "bg-rose-500/10",
-                border: "border-rose-500/20",
-                desc: "Sealed-bid vendor selection via Daml on Canton DevNet. Bid amounts stay private through the ledger's signatory/observer disclosure model — structural privacy, not just encryption.",
-                status: "Canton DevNet",
-              },
-              {
-                network: "MongoDB",
-                role: "Persistent Memory",
-                color: "text-emerald-400",
-                bg: "bg-emerald-500/10",
-                border: "border-emerald-500/20",
-                desc: "Optional durable storage for agent memory, policy configurations, and run ledger alongside the JSONL hot cache.",
-                status: "Atlas — Live",
-              },
-            ].map((net, i) => (
-              <motion.div
-                key={net.network}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08, duration: 0.4 }}
-                className={`flex items-start gap-4 p-4 rounded-lg ${net.bg} ${net.border} border`}
-              >
-                <div className="flex-shrink-0 w-24 text-right">
-                  <div className={`font-semibold text-sm ${net.color}`} style={{ fontFamily: "var(--font-space-grotesk)" }}>
-                    {net.network}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground/70">{net.role}</div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground/80 leading-relaxed">{net.desc}</p>
-                </div>
-                <div className="flex-shrink-0 hidden sm:block">
-                  <span className="text-[11px] text-muted-foreground/60 whitespace-nowrap">
-                    {net.status}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-          </details>
+          <p className="text-center text-sm text-muted-foreground mt-10">
+            Deployed across Arbitrum, X Layer, Filecoin, 0G, Fhenix, Canton, and more.{" "}
+            <a
+              href="https://github.com/thisyearnofear/cognivern/blob/main/docs/ARCHITECTURE.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              See the architecture &amp; deployed networks →
+            </a>
+          </p>
         </div>
       </section>
 
@@ -784,7 +715,7 @@ export function LandingPage() {
               Test it from your terminal
             </h2>
             <p className="text-muted-foreground mt-3 max-w-md mx-auto">
-              No signup needed. The demo API key works right now on our live endpoint.
+              Evaluate a spend against the active policy. Sign in to get an API key for your workspace, or explore the live demo to see decisions in context.
             </p>
           </motion.div>
 
@@ -814,29 +745,40 @@ export function LandingPage() {
                 style={{ fontFamily: "var(--font-jetbrains-mono, var(--font-geist-mono))" }}
               >
 {`# Evaluate a spend against the active policy
-curl -X POST https://cognivern.persidian.com/api/governance/evaluate \\
+# Replace $KEY with your workspace API key (x-api-key header)
+curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
   -H "Content-Type: application/json" \\
+  -H "x-api-key: $KEY" \\
   -d '{
     "agentId": "demo",
     "action": {
       "type": "spend",
-      "metadata": { "amount": 50 }
+      "amount": 50,
+      "currency": "USDC"
     }
   }'`}
               </pre>
             </div>
 
             <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-              <div className="text-xs text-emerald-500 font-semibold mb-2">Example response:</div>
+              <div className="text-xs text-emerald-500 font-semibold mb-2">Example response (amount under $100 → approved):</div>
               <pre
                 className="text-xs text-foreground/70 leading-relaxed"
                 style={{ fontFamily: "var(--font-jetbrains-mono, var(--font-geist-mono))" }}
               >
 {`{
-  "approved": true,
-  "policyId": "policy-1781185670152",
-  "checks": [{ "rule": "auto-approve", "passed": true }],
-  "txHash": "0x6942d4bf..." 
+  "success": true,
+  "data": {
+    "allowed": true,
+    "decision": "approved",
+    "reasoning": "Approved — passed 2 policy check(s)",
+    "policyChecks": [
+      { "policyId": "policy-budget", "result": true, "reason": "Within $3000 hard limit" },
+      { "policyId": "policy-approval", "result": true, "reason": "Under $100 auto-approval threshold" }
+    ],
+    "auditLogId": "log-demo-2026-07-25T12-00-00",
+    "timestamp": "2026-07-25T12:00:00.000Z"
+  }
 }`}
               </pre>
             </div>
@@ -1044,25 +986,6 @@ curl -X POST https://cognivern.persidian.com/api/governance/evaluate \\
                 Deploy
               </a>
             </div>
-          </div>
-
-          {/* Network dots visualization */}
-          <div className="flex items-center justify-center gap-6 py-4 border-t border-border">
-            {[
-              { name: "Arbitrum", color: "bg-blue-400" },
-              { name: "Robinhood", color: "bg-green-400" },
-              { name: "X Layer", color: "bg-sky-400" },
-              { name: "Filecoin", color: "bg-purple-400" },
-              { name: "0G", color: "bg-emerald-400" },
-              { name: "Fhenix", color: "bg-amber-400" },
-              { name: "Canton", color: "bg-rose-400" },
-              { name: "MongoDB", color: "bg-emerald-500" },
-            ].map((net) => (
-              <div key={net.name} className="flex items-center gap-1.5">
-                <div className={`w-2 h-2 rounded-full ${net.color} animate-pulse`} aria-hidden="true" />
-                <span className="text-[10px] text-muted-foreground/70">{net.name}</span>
-              </div>
-            ))}
           </div>
 
           <div className="text-center text-xs text-muted-foreground/60 pt-4">

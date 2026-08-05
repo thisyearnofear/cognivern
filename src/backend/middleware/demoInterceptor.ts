@@ -4,6 +4,11 @@ import { getWorkspaceTier } from "./workspaceMiddleware.js";
 import { DemoDataService } from "@backend/services/DemoDataService.js";
 import { WorkspaceDataService } from "@backend/services/WorkspaceDataService.js";
 import { sharedZeroGProofService } from "@backend/services/blockchain/ZeroGProofService.js";
+import {
+  DEMO_APPROVE_THRESHOLD,
+  DEMO_HARD_LIMIT,
+  resolveDemoDecision,
+} from "@cognivern/shared";
 
 function resolveJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -97,18 +102,15 @@ function serveDemoData(
 
       // Three-outcome demo evaluation so the Governance Check page can
       // demonstrate Approved / Held / Denied without requiring a real
-      // backing policy. Bands match the marketing story:
+      // backing policy. Bands are shared with the landing-page slider via
+      // @cognivern/shared/demo-policy so the marketing story and the
+      // product demo never contradict each other:
       //   < $100   → approved (under any threshold)
       //   ≥ $100   → held (needs operator review)
       //   > $3000  → denied (hard limit)
-      const HOLD_THRESHOLD = 100;
-      const HARD_LIMIT = 3000;
-      const decision: "approved" | "denied" | "held" =
-        amount > HARD_LIMIT
-          ? "denied"
-          : amount >= HOLD_THRESHOLD
-            ? "held"
-            : "approved";
+      const HOLD_THRESHOLD = DEMO_APPROVE_THRESHOLD;
+      const HARD_LIMIT = DEMO_HARD_LIMIT;
+      const decision = resolveDemoDecision(amount);
 
       const budgetPolicy = policies.find((p) => p.type === "budget");
       const approvalPolicy = policies.find(

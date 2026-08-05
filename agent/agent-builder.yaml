@@ -68,13 +68,17 @@ tools:
     description: Cognivern governance API — policies, spend preview, spend execution, audit
     spec:
       openApi:
-        # Public raw spec URL — Agent Builder will fetch and cache this.
-        url: https://raw.githubusercontent.com/thisyearnofear/cognivern/main/agent/cognivern-openapi.json
-        # Authentication
+        # Single source of truth: the backend serves the OpenAPI spec live at
+        # /api/docs/openapi.json. Pointing at a GitHub raw file meant every
+        # push to main silently changed the agent's live tool contract.
+        url: https://api.cognivern.persidian.com/api/docs/openapi.json
+        # Authentication — the backend accepts `x-api-key` for registered
+        # workspaces (see ApiModule + TESTER_GUIDE.md). The previous spec
+        # used `Authorization` with a raw key, which 401s on every call.
         authentication:
           type: apiKey
           in: header
-          name: Authorization
+          name: x-api-key
           # The Agent Builder secret "cognivern-api-key" is created from
           # the COGNIVERN_API_KEY env var on deploy.
           secret: cognivern-api-key
@@ -119,7 +123,7 @@ humanInTheLoop:
   webhook:
     # Local dev: post to the Cognivern frontend; Agent Builder substitutes
     # the project-level value at deploy time.
-    url: https://cognivern.vercel.app/api/hitl/confirm
+    url: https://cognivern.persidian.com/api/hitl/confirm
     secret: hitl-webhook-secret
 
 # --- Multi-step mission flow ---------------------------------------------

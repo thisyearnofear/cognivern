@@ -319,10 +319,11 @@ function ApiKeyGenerator() {
 }
 
 export function IntegratePage() {
-  const baseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://api.cognivern.xyz";
+  // Display origin for curl/snippet examples. External callers hit the
+  // backend directly (not the Vercel proxy), so snippets must point at the
+  // canonical API origin. The dead api.cognivern.xyz hostname previously
+  // lived here and broke every copied snippet.
+  const baseUrl = "https://api.cognivern.persidian.com";
 
   return (
     <div className="max-w-4xl space-y-6">

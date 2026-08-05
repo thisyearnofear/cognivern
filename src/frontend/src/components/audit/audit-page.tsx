@@ -812,9 +812,10 @@ function TimelineNode({
 
 function EmptyAuditState({ onRunCheck }: { onRunCheck: () => void }) {
   const terminalLines = [
-    '$ curl -X POST https://cognivern.persidian.com/api/governance/evaluate \\',
+    '$ curl -X POST https://api.cognivern.persidian.com/api/governance/evaluate \\',
     '  -H "Content-Type: application/json" \\',
-    '  -d \'{"agentId":"demo","action":{"type":"spend","metadata":{"amount":50}}}\'',
+    '  -H "x-api-key: $KEY" \\',
+    '  -d \'{"agentId":"demo","action":{"type":"spend","amount":50,"currency":"USDC"}}\'',
     '',
     '→ Waiting for first agent action...',
     '→ No audit logs yet.',

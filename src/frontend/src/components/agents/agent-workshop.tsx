@@ -506,7 +506,7 @@ function IdentityCreatedSuccess({
 }) {
   const [copied, setCopied] = useState<"curl" | "js" | null>(null);
 
-  const curlSnippet = `curl -X POST https://api.cognivern.xyz/governance/check \\
+  const curlSnippet = `curl -X POST https://api.cognivern.persidian.com/api/governance/evaluate \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: YOUR_API_KEY_HERE" \\
   -d '{
@@ -519,7 +519,7 @@ function IdentityCreatedSuccess({
     }
   }'`;
 
-  const jsSnippet = `const res = await fetch('https://api.cognivern.xyz/governance/check', {
+  const jsSnippet = `const res = await fetch('https://api.cognivern.persidian.com/api/governance/evaluate', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -536,7 +536,7 @@ function IdentityCreatedSuccess({
   }),
 });
 const result = await res.json();
-console.log(result.allowed ? 'Approved' : 'Blocked', result.reasoning);`;
+console.log(result.data.allowed ? 'Approved' : 'Blocked', result.data.reasoning);`;
 
   const handleCopy = useCallback((type: "curl" | "js", text: string) => {
     navigator.clipboard.writeText(text);

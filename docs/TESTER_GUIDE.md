@@ -1,8 +1,8 @@
 # Tester Guide — Cognivern
 
 **Live app:** https://cognivern.persidian.com
-**API:** https://cognivern.persidian.com
-**API docs:** https://cognivern.persidian.com/api/docs/openapi.json
+**API:** https://api.cognivern.persidian.com
+**API docs:** https://api.cognivern.persidian.com/api/docs/openapi.json
 
 This is an operator orientation, not a research script. For moderated user
 sessions, use [USER_TESTING_PROTOCOL.md](./USER_TESTING_PROTOCOL.md).
@@ -61,8 +61,8 @@ must be treated as disposable after the session.
 Example API call:
 
 ```bash
-curl https://cognivern.persidian.com/api/governance/evaluate \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+curl https://api.cognivern.persidian.com/api/governance/evaluate \
+  -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"agentId":"agent-alpha-001","action":{"type":"swap","description":"test","amount":50,"currency":"USDC"}}'
 ```
@@ -113,7 +113,7 @@ on 0G Galileo Testnet. You can verify any decision independently:
 
 1. Check the integration status:
    ```
-   curl https://cognivern.persidian.com/api/governance/proof-info
+   curl https://api.cognivern.persidian.com/api/governance/proof-info
    ```
 2. Open the **contract on ChainScan**:
    https://chainscan-galileo.0g.ai/address/0x723e444ee6D7da19fADe372f85DA06dD849bF1E0
@@ -171,7 +171,7 @@ policies with optional FHE encryption so amounts stay confidential.
 
 ## Need help?
 
-- API spec: https://cognivern.persidian.com/api/docs/openapi.json
-- Health check: https://cognivern.persidian.com/api/health
-- 0G proof info: https://cognivern.persidian.com/api/governance/proof-info
+- API spec: https://api.cognivern.persidian.com/api/docs/openapi.json
+- Health check: https://api.cognivern.persidian.com/api/health
+- 0G proof info: https://api.cognivern.persidian.com/api/governance/proof-info
 - Source code: https://github.com/thisyearnofear/cognivern

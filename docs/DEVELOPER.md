@@ -25,7 +25,7 @@ From the demo you can preview spends, adjust policy sliders, and view the audit 
 4. **Connect agent** — Give your agent the Agent ID and API key:
 
 ```bash
-curl -X POST https://cognivern.persidian.com/api/governance/evaluate \
+curl -X POST https://api.cognivern.persidian.com/api/governance/evaluate \
   -H "x-api-key: cvn_YOUR_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{"agentId": "agent-YOUR-AGENT-ID", "action": {"type": "swap", "description": "Swap 1500 USDC for ETH", "amount": 1500, "currency": "USDC"}}'
