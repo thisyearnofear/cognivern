@@ -47,6 +47,7 @@ For local setup, API reference, and production deployment, see the [Developer Gu
 | [UX implementation plan](./docs/UX_IMPLEMENTATION_PLAN.md) | Phased work plan for Audit, shared states, Settings, Runs, analytics, and validation |
 | [User-testing protocol](./docs/USER_TESTING_PROTOCOL.md) | Moderated pilot tasks, safety boundaries, observation sheet, and go/no-go criteria |
 | [Agent guidance for AI / humans](./AGENTS.md) | How to verify Canton runtime state without re-diagnosing it |
+| [HydraDB integration](./docs/HYDRADB.md) | Optional agentic-memory / cross-source retrieval layer (toggleable, free tier) |
 | [Iteration log](./LOOP.md) | Write-verify-fix history of the build |
 
 ### Canton / DevNet

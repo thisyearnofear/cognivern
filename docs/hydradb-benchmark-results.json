@@ -1,0 +1,352 @@
+{
+  "totalQuestions": 10,
+  "passed": 10,
+  "accuracy": 1,
+  "totalLatencyMs": 43886,
+  "avgLatencyMs": 4389,
+  "totalCalls": 11,
+  "totalCostUsd": 0.0086,
+  "fastUsed": 3,
+  "thinkingUsed": 7,
+  "modeMatched": 10,
+  "byCategory": {
+    "temporal_reasoning": {
+      "total": 1,
+      "passed": 1,
+      "avgLatencyMs": 4337
+    },
+    "metadata_filtering": {
+      "total": 2,
+      "passed": 2,
+      "avgLatencyMs": 758
+    },
+    "entity_deduplication": {
+      "total": 1,
+      "passed": 1,
+      "avgLatencyMs": 4616
+    },
+    "actor_based": {
+      "total": 2,
+      "passed": 2,
+      "avgLatencyMs": 6268
+    },
+    "multi_hop": {
+      "total": 1,
+      "passed": 1,
+      "avgLatencyMs": 9651
+    },
+    "third_party_attribution": {
+      "total": 1,
+      "passed": 1,
+      "avgLatencyMs": 7411
+    },
+    "multilingual": {
+      "total": 1,
+      "passed": 1,
+      "avgLatencyMs": 3166
+    },
+    "knowledge_updates": {
+      "total": 1,
+      "passed": 1,
+      "avgLatencyMs": 654
+    }
+  },
+  "results": [
+    {
+      "id": "q1_temporal",
+      "category": "temporal_reasoning",
+      "question": "What did http-verify-agent spend on stable-email on 2026-06-16, and was the transaction recorded on-chain?",
+      "expectedMode": "thinking",
+      "actualMode": "thinking",
+      "routingReason": "open-ended multi-clause question",
+      "hydraDbCalls": 1,
+      "latencyMs": 4337,
+      "estimatedCostUsd": 0.001,
+      "resultCount": 12,
+      "topScore": 0.8251620596269388,
+      "passed": true,
+      "matchedExpected": [
+        "12",
+        "USDC",
+        "stable-email",
+        "http-verify-agent"
+      ],
+      "expectedSources": [
+        "cognivern_audit"
+      ],
+      "sourcesFound": [
+        "cognivern_audit",
+        "linear",
+        "github_commit"
+      ],
+      "multiHop": false,
+      "topChunkTitle": "Spend run 726c948f-82bc-4584-929e-29411368ea8a — http-verify-agent → stable-email",
+      "topChunkSnippet": "{\"id\":\"cognivern_run_726c948f-82bc-4584-929e-29411368ea8a\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Sp"
+    },
+    {
+      "id": "q2_metadata_filter",
+      "category": "metadata_filtering",
+      "question": "stable-email spend",
+      "expectedMode": "fast",
+      "actualMode": "fast",
+      "routingReason": "metadata-filtered single-entity lookup",
+      "hydraDbCalls": 1,
+      "latencyMs": 785,
+      "estimatedCostUsd": 0.0002,
+      "resultCount": 10,
+      "topScore": 0.9067175041604931,
+      "passed": true,
+      "matchedExpected": [
+        "stable-email"
+      ],
+      "expectedSources": [
+        "cognivern_audit"
+      ],
+      "sourcesFound": [
+        "linear",
+        "cognivern_audit"
+      ],
+      "multiHop": false,
+      "topChunkTitle": "Linear THI-5: Investigate stable-email spend anomaly",
+      "topChunkSnippet": "{\"id\":\"linear_a1dfc568-ce0a-4ea0-bd8e-7070210296c8\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Linear TH"
+    },
+    {
+      "id": "q3_entity_dedup",
+      "category": "entity_deduplication",
+      "question": "The same vendor stable-email appears in the audit ledger and in Linear issues. Are they the same entity? Show both.",
+      "expectedMode": "thinking",
+      "actualMode": "thinking",
+      "routingReason": "multi-hop / cross-source signal detected",
+      "hydraDbCalls": 1,
+      "latencyMs": 4616,
+      "estimatedCostUsd": 0.001,
+      "resultCount": 17,
+      "topScore": 0.6785531173927984,
+      "passed": true,
+      "matchedExpected": [
+        "stable-email",
+        "cognivern_audit",
+        "linear"
+      ],
+      "expectedSources": [
+        "cognivern_audit",
+        "linear"
+      ],
+      "sourcesFound": [
+        "linear",
+        "cognivern_audit",
+        "github_commit"
+      ],
+      "multiHop": false,
+      "topChunkTitle": "Linear THI-5: Investigate stable-email spend anomaly",
+      "topChunkSnippet": "{\"id\":\"linear_a1dfc568-ce0a-4ea0-bd8e-7070210296c8\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Linear TH"
+    },
+    {
+      "id": "q4_actor_attribution",
+      "category": "actor_based",
+      "question": "Who filed the Linear issue about investigating the stable-email spend anomaly, and what did http-verify-agent spend on it?",
+      "expectedMode": "thinking",
+      "actualMode": "thinking",
+      "routingReason": "multi-hop / cross-source signal detected",
+      "hydraDbCalls": 1,
+      "latencyMs": 6677,
+      "estimatedCostUsd": 0.001,
+      "resultCount": 13,
+      "topScore": 0.8902439984557372,
+      "passed": true,
+      "matchedExpected": [
+        "thisyearnofear",
+        "THI-5",
+        "stable-email",
+        "http-verify-agent",
+        "12"
+      ],
+      "expectedSources": [
+        "linear",
+        "cognivern_audit"
+      ],
+      "sourcesFound": [
+        "linear",
+        "cognivern_audit"
+      ],
+      "multiHop": false,
+      "topChunkTitle": "Linear THI-5: Investigate stable-email spend anomaly",
+      "topChunkSnippet": "{\"id\":\"linear_a1dfc568-ce0a-4ea0-bd8e-7070210296c8\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Linear TH"
+    },
+    {
+      "id": "q5_multi_hop",
+      "category": "multi_hop",
+      "question": "What did thisyearnofear file about stable-email in Linear, which agent spent on stable-email in the audit ledger, and what was the on-chain status?",
+      "expectedMode": "thinking",
+      "actualMode": "thinking (multi-hop)",
+      "routingReason": "forced by caller",
+      "hydraDbCalls": 2,
+      "latencyMs": 9651,
+      "estimatedCostUsd": 0.002,
+      "resultCount": 19,
+      "topScore": 0.804006111387973,
+      "passed": true,
+      "matchedExpected": [
+        "thisyearnofear",
+        "stable-email",
+        "http-verify-agent"
+      ],
+      "expectedSources": [
+        "linear",
+        "cognivern_audit"
+      ],
+      "sourcesFound": [
+        "linear",
+        "cognivern_audit"
+      ],
+      "multiHop": true,
+      "topChunkTitle": "Linear THI-8: Add vendor allowlist for stable-email",
+      "topChunkSnippet": "{\"id\":\"linear_e913e66c-09ac-4b81-a3c4-71325981a2d0\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Linear TH"
+    },
+    {
+      "id": "q6_github_audit_link",
+      "category": "third_party_attribution",
+      "question": "What commits did thisyearnofear make to the cognivern repo, and what did http-verify-agent spend on stable-email?",
+      "expectedMode": "thinking",
+      "actualMode": "thinking",
+      "routingReason": "open-ended multi-clause question",
+      "hydraDbCalls": 1,
+      "latencyMs": 7411,
+      "estimatedCostUsd": 0.001,
+      "resultCount": 16,
+      "topScore": 0.7706315424140002,
+      "passed": true,
+      "matchedExpected": [
+        "thisyearnofear",
+        "http-verify-agent",
+        "stable-email"
+      ],
+      "expectedSources": [
+        "github_commit",
+        "cognivern_audit"
+      ],
+      "sourcesFound": [
+        "linear",
+        "cognivern_audit",
+        "github_commit"
+      ],
+      "multiHop": false,
+      "topChunkTitle": "Linear THI-5: Investigate stable-email spend anomaly",
+      "topChunkSnippet": "{\"id\":\"linear_a1dfc568-ce0a-4ea0-bd8e-7070210296c8\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Linear TH"
+    },
+    {
+      "id": "q7_fast_lookup",
+      "category": "metadata_filtering",
+      "question": "Linear issues",
+      "expectedMode": "fast",
+      "actualMode": "fast",
+      "routingReason": "metadata-filtered single-entity lookup",
+      "hydraDbCalls": 1,
+      "latencyMs": 731,
+      "estimatedCostUsd": 0.0002,
+      "resultCount": 10,
+      "topScore": 0.8936317334008003,
+      "passed": true,
+      "matchedExpected": [
+        "THI-"
+      ],
+      "expectedSources": [
+        "linear"
+      ],
+      "sourcesFound": [
+        "linear"
+      ],
+      "multiHop": false,
+      "topChunkTitle": "Linear THI-2: Connect your tools",
+      "topChunkSnippet": "{\"id\":\"linear_c0fd137e-6792-481d-ab3e-15fecd1c483a\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Linear TH"
+    },
+    {
+      "id": "q8_multilingual",
+      "category": "multilingual",
+      "question": "¿Cuál fue el gasto del agente http-verify-agent en stable-email y cuánto fue?",
+      "expectedMode": "thinking",
+      "actualMode": "thinking",
+      "routingReason": "open-ended multi-clause question",
+      "hydraDbCalls": 1,
+      "latencyMs": 3166,
+      "estimatedCostUsd": 0.001,
+      "resultCount": 13,
+      "topScore": 0.6549459604267398,
+      "passed": true,
+      "matchedExpected": [
+        "http-verify-agent",
+        "stable-email",
+        "12",
+        "USDC"
+      ],
+      "expectedSources": [
+        "cognivern_audit"
+      ],
+      "sourcesFound": [
+        "cognivern_audit",
+        "linear",
+        "github_commit"
+      ],
+      "multiHop": false,
+      "topChunkTitle": "Spend run 726c948f-82bc-4584-929e-29411368ea8a — http-verify-agent → stable-email",
+      "topChunkSnippet": "{\"id\":\"cognivern_run_726c948f-82bc-4584-929e-29411368ea8a\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Sp"
+    },
+    {
+      "id": "q9_project_scoped",
+      "category": "actor_based",
+      "question": "What issues are in the Cognivern Governance project, and which reference the http-verify-agent?",
+      "expectedMode": "thinking",
+      "actualMode": "thinking",
+      "routingReason": "open-ended multi-clause question",
+      "hydraDbCalls": 1,
+      "latencyMs": 5858,
+      "estimatedCostUsd": 0.001,
+      "resultCount": 20,
+      "topScore": 0.5912479799601825,
+      "passed": true,
+      "matchedExpected": [
+        "Cognivern Governance",
+        "http-verify-agent"
+      ],
+      "expectedSources": [
+        "linear"
+      ],
+      "sourcesFound": [
+        "linear",
+        "cognivern_audit",
+        "github_commit"
+      ],
+      "multiHop": false,
+      "topChunkTitle": "Linear THI-6: http-verify-agent hitting rate limits on xlayer",
+      "topChunkSnippet": "{\"id\":\"linear_7db5d280-ae1a-408e-b2b3-687b70f08a37\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Linear TH"
+    },
+    {
+      "id": "q10_knowledge_update",
+      "category": "knowledge_updates",
+      "question": "most recent spend run",
+      "expectedMode": "fast",
+      "actualMode": "fast",
+      "routingReason": "metadata-filtered single-entity lookup",
+      "hydraDbCalls": 1,
+      "latencyMs": 654,
+      "estimatedCostUsd": 0.0002,
+      "resultCount": 10,
+      "topScore": 0.8638451007638175,
+      "passed": true,
+      "matchedExpected": [
+        "stable-email",
+        "http-verify-agent"
+      ],
+      "expectedSources": [
+        "cognivern_audit"
+      ],
+      "sourcesFound": [
+        "cognivern_audit"
+      ],
+      "multiHop": false,
+      "topChunkTitle": "Spend run smoke-1786054614644 — smoke-test-agent → smoke-vendor",
+      "topChunkSnippet": "{\"id\":\"cognivern_run_smoke-1786054614644\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Spend run smoke-178"
+    }
+  ],
+  "generatedAt": "2026-08-07T11:58:01.271Z"
+}

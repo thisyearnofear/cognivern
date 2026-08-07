@@ -81,6 +81,14 @@ OPENAI_API_KEY=                # Optional — AI intent processing
 FIREWORKS_API_KEY=             # Optional — primary AI provider
 GROQ_API_KEY=                  # Optional — fallback AI provider
 CONTROL_EVAL_MODE=false        # Optional — parallel suspicion scoring
+
+# HydraDB — optional agentic-memory / cross-source retrieval (free tier).
+# When HYDRADB_ENABLED=false (default), all HydraDB services no-op.
+# See docs/HYDRADB.md.
+HYDRADB_ENABLED=false
+HYDRADB_API_KEY=                # Optional — get one at https://app.hydradb.com
+HYDRADB_DATABASE=cognivern
+HYDRADB_DEFAULT_MODE=auto       # auto | fast | thinking
 ```
 
 Fhenix variables can be left empty for local dev — the service falls back to a deny decision when CoFHE is unavailable. AI provider keys enable natural language intent; without them, keyword-based fallback is used.
@@ -116,6 +124,8 @@ pnpm monorepo with three packages:
 | `OwsWalletService`         | Spend execution, policy enforcement, signed authorizations                                                         |
 | `IntentController`         | Natural language intent via AI with multi-provider routing; enriches responses with real workspace data            |
 | `MultiModelRouter`         | Routes AI across 6 providers with fallback + circuit breakers                                                      |
+| `HydraDbIngestionService`  | Optional: mirrors CRE runs / audit entries into HydraDB as app-knowledge (toggleable, free tier)                   |
+| `HydraDbRetrievalService`  | Optional: fast/thinking-routed cross-source retrieval over audit + Slack + GitHub (toggleable)                    |
 | `ControlEvaluationService` | Parallel suspicion scoring (0-1), gated by `CONTROL_EVAL_MODE`                                                     |
 | `WorkspaceDataService`     | Agent/policy/spend management; `evaluateAction()` is the canonical rule evaluator called by `GovernanceController` |
 

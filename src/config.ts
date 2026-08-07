@@ -93,6 +93,21 @@ const envSchema = z.object({
   FHENIX_EVALUATE_TIMEOUT_MS: z.coerce.number().default(30000),
   FHE_WATCHER_ENABLED: z.coerce.boolean().default(false),
   FHE_WATCHER_POLL_INTERVAL_MS: z.coerce.number().default(5000),
+
+  // HydraDB — agentic memory / cross-source retrieval substrate (optional).
+  // When HYDRADB_ENABLED is false, all HydraDB services no-op and cognivern
+  // behaves exactly as without the integration. Free tier: unlimited calls.
+  HYDRADB_ENABLED: z.coerce.boolean().default(false),
+  HYDRADB_API_KEY: z.string().optional(),
+  HYDRADB_DATABASE: z.string().default("cognivern"),
+  HYDRADB_COLLECTION: z
+    .string()
+    .default("default"), // logical partition; use agent_id for per-agent memory
+  HYDRADB_BASE_URL: z.string().default("https://api.hydradb.com"),
+  HYDRADB_API_VERSION: z.string().default("2"),
+  // Default retrieval mode router behavior: "auto" classifies per-query.
+  HYDRADB_DEFAULT_MODE: z.enum(["fast", "thinking", "auto"]).default("auto"),
+  HYDRADB_REQUEST_TIMEOUT_MS: z.coerce.number().default(30000),
 });
 
 // Parse and validate environment variables

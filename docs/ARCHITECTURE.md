@@ -119,6 +119,7 @@ Implementation files:
 | **ChainGPT** | Web3-specialized LLM for smart contract auditing and governance queries. | Live |
 | **Ledger DMK** | Hardware signing for high-value transactions. | Live |
 | **MongoDB** | Persistent agent memory & run ledger. Inserts copies of CRE runs so its auto `_id` never mutates the ledger-hashed object (see persistence invariant above). | Optional, gated by `MONGODB_URI` |
+| **HydraDB** | Optional agentic-memory / cross-source retrieval substrate. Mirrors the audit + run ledger as app-knowledge and answers multi-hop questions across audit + Slack + GitHub. Free tier, unlimited calls. | Optional, gated by `HYDRADB_ENABLED` |
 
 ## Fhenix Integration — Confidential Policy Evaluation
 
