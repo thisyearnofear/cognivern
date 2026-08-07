@@ -3,7 +3,7 @@
 HydraDB is an agentic-memory / retrieval substrate that cognivern uses as an
 **optional, toggleable** layer for cross-source retrieval over its audit and
 run-ledger data. When enabled, cognivern's spend-governance decisions, agent
-runs, and surrounding SaaS context (GitHub, Linear) are mirrored into HydraDB
+runs, and surrounding SaaS context (GitHub, Linear, Attio) are mirrored into HydraDB
 as `app_knowledge` records, and a fast/thinking-routed query layer answers
 multi-hop questions across all of them.
 
@@ -37,6 +37,7 @@ cognivern audit/run ledger (data/cre-runs.jsonl, MongoDB)
   ▼  HydraDbIngestionService.ingestCreRun()
 HydraDB app_knowledge  ◄────  GitHub connector (issues + PRs + commits)
   │                       ◄────  Linear connector (issues)
+  │                       ◄────  Attio connector (people + companies)
   │  (type="audit", additional_metadata: agent_id, vendor, origin, decision, chain, ts)
   │  (forceful relations link run ↔ agent ↔ vendor ↔ policy)
   ▼
@@ -64,11 +65,11 @@ Each CRE run becomes one `app_knowledge` record with:
   `cognivern_policy_<policyId>` — forceful relations that `mode: "thinking"`
   traverses for multi-hop queries.
 
-External connectors (GitHub, Linear) push records with the **same
+External connectors (GitHub, Linear, **Attio**) push records with the **same
 `agent_id` / `vendor`** in `additional_metadata` so HydraDB's graph deduplicates
 the same entity across sources — the core of the challenge's "does it connect
-references instead of treating them as separate entities" test. The Linear
-connector maps the operator's Linear email to their GitHub login via
+references instead of treating them as separate entities" test. The Linear and
+Attio connectors map the operator's email to their GitHub login via
 `LINEAR_TO_GITHUB_LOGIN` so the same human dedups across all three sources.
 
 ### The fast/thinking router
@@ -202,14 +203,17 @@ ingestion/retrieval services don't expose what you need.
 ## Connectors (challenge: ≥3)
 
 The challenge requires ≥3 connectors with shared entities. Cognivern's
-audit ledger is the anchor source; the others are extractors that push
-`app_knowledge` records with matching `tenant_metadata`:
+audit ledger is the anchor source (this is the "document ingestion"
+deliverable); the others are extractors that push `app_knowledge` records
+with matching `tenant_metadata`. **GitHub, Linear, and Attio are 3
+from the challenge's connector list.**
 
 | # | Connector | Entity shared | Extractor | Status |
 | --- | --- | --- | --- | --- |
-| 1 | **Cognivern audit ledger** | `agent_id`, `vendor`, `policy_id` | `pnpm hydradb:ingest-ledger` → `scripts/hydradb/ingest-cre-ledger.ts` | ✅ live (51 runs) |
+| 1 | **Cognivern audit ledger** (document ingestion) | `agent_id`, `vendor`, `policy_id` | `pnpm hydradb:ingest-ledger` → `scripts/hydradb/ingest-cre-ledger.ts` | ✅ live (51 runs) |
 | 2 | **GitHub** (issues + PRs + commits) | `agent_id` (author login) | `pnpm hydradb:github` → `scripts/hydradb/connectors/github.ts` | ✅ live (328 records) |
 | 3 | **Linear** (issues) | `agent_id` (assignee email → GitHub login via identity map) | `pnpm hydradb:linear` → `scripts/hydradb/connectors/linear.ts` | ✅ live (10 issues) |
+| 4 | **Attio** (people + companies) | people → `agent_id` (email → GitHub login); companies → `vendor` | `pnpm hydradb:attio` → `scripts/hydradb/connectors/attio.ts` | 🔗 ready to run (`ATTIO_API_KEY` + `ATTIO_WORKSPACE`) |
 
 ### Cross-source identity mapping
 
@@ -234,12 +238,14 @@ title/description get a forceful relation to `cognivern_agent_<agentId>`).
 HydraDB does **not** pull from connectors itself — you extract and push via
 `app_knowledge`. This is by design (the challenge judges ingestion handling).
 
-> **Connector extractors for GitHub and Linear are built.** GitHub pulls issues +
-> PRs + commits (commits have human authors that dedup with audit-ledger
-> operators; issues in this repo are mostly dependabot bots). Linear pulls
-> issues via GraphQL (needs `LINEAR_API_KEY`). Both map the author/assignee
-> to `agent_id` for cross-source dedup. Run `pnpm hydradb:github` and
-> `pnpm hydradb:linear`.
+> **Connector extractors for GitHub, Linear, and Attio are built.** GitHub pulls
+> issues + PRs + commits (commits have human authors that dedup with
+> audit-ledger operators; issues in this repo are mostly dependabot bots).
+> Linear pulls issues via GraphQL (needs `LINEAR_API_KEY`). Attio pulls people +
+> companies via the REST API (needs `ATTIO_API_KEY` and `ATTIO_WORKSPACE` for a
+> personal access token). All map the author/assignee to `agent_id` for
+> cross-source dedup. Run `pnpm hydradb:github`, `pnpm hydradb:linear`, and
+> `pnpm hydradb:attio`.
 
 ## Difficult retrieval questions (challenge: category coverage)
 
@@ -313,6 +319,9 @@ Full JSON results: `docs/hydradb-benchmark-results.json`.
 | `src/backend/services/hydradb/index.ts` | barrel export + singletons |
 | `scripts/hydradb/smoke-test.ts` | end-to-end lifecycle smoke test |
 | `scripts/hydradb/ingest-cre-ledger.ts` | ingest `data/cre-runs.jsonl` → HydraDB |
+| `scripts/hydradb/connectors/github.ts` | GitHub issues/PRs/commits → HydraDB |
+| `scripts/hydradb/connectors/linear.ts` | Linear issues → HydraDB |
+| `scripts/hydradb/connectors/attio.ts` | Attio people/companies → HydraDB |
 | `src/config.ts` | `HYDRADB_*` env schema (all optional, gated by `HYDRADB_ENABLED`) |
 
 ## Toggle / disable

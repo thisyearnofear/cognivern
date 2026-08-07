@@ -53,6 +53,7 @@
     "hydradb:ingest-ledger": "tsx scripts/hydradb/ingest-cre-ledger.ts",
     "hydradb:github": "tsx scripts/hydradb/connectors/github.ts",
     "hydradb:linear": "tsx scripts/hydradb/connectors/linear.ts",
+    "hydradb:attio": "tsx scripts/hydradb/connectors/attio.ts",
     "hydradb:benchmark": "tsx scripts/hydradb/benchmark.ts",
     "agent:run": "tsx agent/agent.ts",
     "agent:typecheck": "tsc --noEmit -p tsconfig.agent.json",
