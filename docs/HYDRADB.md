@@ -312,6 +312,23 @@ challenge judges.
 
 Full JSON results: `docs/hydradb-benchmark-results.json`.
 
+## Proof of live (judge-verifiable)
+
+The integration is **live and reproducible**, not demo-only. Three independent
+ways to verify:
+
+1. **HydraDB's hosted dashboard** — the `cognivern` database holds the ingested
+   cross-source records. Screenshot: [`docs/hydradb-proof/hydradb-dashboard.png`](hydradb-proof/hydradb-dashboard.png).
+   This lives in HydraDB's cloud, independent of any server you run, so it's
+   verifiable on the free tier.
+2. **Benchmark output** — `pnpm hydradb:benchmark` runs live against HydraDB and
+   prints the accuracy/latency/cost table (11/11, avg 3735ms, $0.0088).
+   Screenshot: [`docs/hydradb-proof/benchmark.png`](hydradb-proof/benchmark.png).
+3. **Connector counts** — audit (51 runs) + GitHub (328 commits/issues) + Linear
+   (10 issues) + Attio (10 companies) are all ingested as `app_knowledge`, and
+   the retrieval question set in `scripts/hydradb/questions.ts` is grounded in
+   that real data (expected vs actual answers are graded in `benchmark.ts`).
+
 ## Files
 
 | File | Purpose |
