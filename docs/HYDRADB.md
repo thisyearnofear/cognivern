@@ -314,6 +314,8 @@ Full JSON results: `docs/hydradb-benchmark-results.json`.
 
 ## Proof of live (judge-verifiable)
 
+**Demo video (60s):** https://youtu.be/snC7e7BBT8s
+
 The integration is **live and reproducible**, not demo-only. Three independent
 ways to verify:
 
