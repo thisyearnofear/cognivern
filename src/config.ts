@@ -20,10 +20,26 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const mcpConfigPath = path.join(__dirname, "..", "config", "mcp-config.json");
 export const mcpConfig = JSON.parse(fs.readFileSync(mcpConfigPath, "utf8"));
 
+/**
+ * Strict boolean parser for environment flags.
+ *
+ * z.coerce.boolean() is a footgun here: Boolean("false") === true, so an env
+ * file shipping HYDRADB_ENABLED=false (or MCP_ENABLED=false, FILECOIN_ENABLED=false,
+ * FHE_WATCHER_ENABLED=false) would silently parse as *enabled*.
+ *
+ * Only the literal "true" (case-insensitive, trimmed) is truthy. Every other
+ * value ("false", "0", "no", "") is false. An absent var falls through to the
+ * caller's .default().
+ */
+const strictBoolean = z.preprocess(
+  (val) => (typeof val === "string" ? val.trim().toLowerCase() === "true" : val),
+  z.boolean(),
+);
+
 // Environment schema
 const envSchema = z.object({
   // MCP Configuration - Check this first to conditionally require other variables
-  MCP_ENABLED: z.coerce.boolean().default(true),
+  MCP_ENABLED: strictBoolean.default(true),
   MCP_DEFAULT_SERVER: z.string().default("ows-governance"),
   MCP_API_KEY: z.string().optional(),
 
@@ -36,7 +52,7 @@ const envSchema = z.object({
   COGNIVERN_API_KEY: z.string().min(1),
 
   // Filecoin Configuration
-  FILECOIN_ENABLED: z.coerce.boolean().default(false),
+  FILECOIN_ENABLED: strictBoolean.default(false),
   FILECOIN_PRIVATE_KEY: z.string().optional(),
   FILECOIN_RPC_URL: z
     .string()
@@ -91,13 +107,13 @@ const envSchema = z.object({
   FHENIX_POLICY_CONTRACT: z.string().default(""),
   FHENIX_PRIVATE_KEY: z.string().optional(),
   FHENIX_EVALUATE_TIMEOUT_MS: z.coerce.number().default(30000),
-  FHE_WATCHER_ENABLED: z.coerce.boolean().default(false),
+  FHE_WATCHER_ENABLED: strictBoolean.default(false),
   FHE_WATCHER_POLL_INTERVAL_MS: z.coerce.number().default(5000),
 
   // HydraDB — agentic memory / cross-source retrieval substrate (optional).
   // When HYDRADB_ENABLED is false, all HydraDB services no-op and cognivern
   // behaves exactly as without the integration. Free tier: unlimited calls.
-  HYDRADB_ENABLED: z.coerce.boolean().default(false),
+  HYDRADB_ENABLED: strictBoolean.default(false),
   HYDRADB_API_KEY: z.string().optional(),
   HYDRADB_DATABASE: z.string().default("cognivern"),
   HYDRADB_COLLECTION: z
