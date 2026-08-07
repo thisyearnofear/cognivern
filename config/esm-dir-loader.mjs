@@ -6,6 +6,11 @@ const APP_DIR = pathResolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 const ALIASES = {
   "@backend": "dist/src/backend",
   "@": "dist/src",
+  // Workspace shared package (demo-policy + shared types). tsc emits it into
+  // dist/packages/shared/src, so a bare "@cognivern/shared" import resolves on
+  // the deployed box without a node_modules entry. (No backend code imports a
+  // shared subpath, so mapping the package name to its built index.js is safe.)
+  "@cognivern/shared": "dist/packages/shared/src/index.js",
 };
 
 export async function resolve(specifier, context, nextResolve) {
