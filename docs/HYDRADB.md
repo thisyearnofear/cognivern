@@ -266,6 +266,7 @@ connectors:
 | 8 | ¿Cuál fue el gasto del agente http-verify-agent en stable-email? | multilingual | thinking |
 | 9 | What issues are in the Cognivern Governance project referencing http-verify-agent? | actor-based | thinking |
 | 10 | Most recent spend run (metadata filter origin=cognivern_audit) | knowledge updates | fast |
+| 11 | Companies in the Attio CRM (metadata filter origin=attio_company) | metadata filtering (Attio) | fast |
 
 ## Benchmark / submission
 
@@ -280,32 +281,34 @@ HYDRADB_ENABLED=true HYDRADB_API_KEY=... pnpm hydradb:benchmark
 
 | Metric | Value |
 | --- | --- |
-| Accuracy | **10/10 (100%)** |
-| Mode match (router picked expected mode) | **10/10 (100%)** |
-| Avg latency | 4389ms |
-| Total HydraDB calls | 11 |
-| Total notional cost | $0.0086 |
-| Fast used | 3 |
+| Accuracy | **11/11 (100%)** |
+| Mode match (router picked expected mode) | **11/11 (100%)** |
+| Avg latency | 3735ms |
+| Total HydraDB calls | 12 |
+| Total notional cost | $0.0088 |
+| Fast used | 4 |
 | Thinking used | 7 |
 
 | ID | Category | Mode | Pass | Latency | Calls | Cost | Sources |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| q1 | temporal_reasoning | thinking | ✓ | 4337ms | 1 | $0.0010 | audit+linear+github |
-| q2 | metadata_filtering | fast | ✓ | 785ms | 1 | $0.0002 | linear+audit |
-| q3 | entity_deduplication | thinking | ✓ | 4616ms | 1 | $0.0010 | all 3 |
-| q4 | actor_based | thinking | ✓ | 6677ms | 1 | $0.0010 | linear+audit |
-| q5 | multi_hop | thinking (2 hops) | ✓ | 9651ms | 2 | $0.0020 | linear+audit |
-| q6 | third_party_attribution | thinking | ✓ | 7411ms | 1 | $0.0010 | all 3 |
-| q7 | metadata_filtering | fast | ✓ | 731ms | 1 | $0.0002 | linear |
-| q8 | multilingual | thinking | ✓ | 3166ms | 1 | $0.0010 | all 3 |
-| q9 | actor_based | thinking | ✓ | 5858ms | 1 | $0.0010 | all 3 |
-| q10 | knowledge_updates | fast | ✓ | 654ms | 1 | $0.0002 | audit |
+| q1 | temporal_reasoning | thinking | ✓ | 5897ms | 1 | $0.0010 | audit+linear+github |
+| q2 | metadata_filtering | fast | ✓ | 717ms | 1 | $0.0002 | linear+audit |
+| q3 | entity_deduplication | thinking | ✓ | 5876ms | 1 | $0.0010 | audit+linear+github |
+| q4 | actor_based | thinking | ✓ | 6070ms | 1 | $0.0010 | linear+audit |
+| q5 | multi_hop | thinking (2 hops) | ✓ | 8882ms | 2 | $0.0020 | linear+audit |
+| q6 | third_party_attribution | thinking | ✓ | 2345ms | 1 | $0.0010 | all 4 |
+| q7 | metadata_filtering | fast | ✓ | 561ms | 1 | $0.0002 | linear |
+| q8 | multilingual | thinking | ✓ | 3632ms | 1 | $0.0010 | audit+linear+github |
+| q9 | actor_based | thinking | ✓ | 5847ms | 1 | $0.0010 | audit+linear+github |
+| q10 | knowledge_updates | fast | ✓ | 706ms | 1 | $0.0002 | audit |
+| q11 | metadata_filtering (Attio) | fast | ✓ | 552ms | 1 | $0.0002 | attio |
 
-**Fast vs thinking split**: fast mode (metadata-filtered lookups) averages
-**723ms / $0.0002**; thinking mode (multi-hop, cross-source, graph
-traversal) averages **5445ms / $0.0010**. The router correctly routes
-single-hop filtered queries to fast mode and multi-hop/cross-source queries
-to thinking — the core latency/accuracy tradeoff the challenge judges.
+**Fast vs thinking split**: fast mode (metadata-filtered lookups — incl. the
+Attio test) averages **634ms / $0.0002**; thinking mode (multi-hop,
+cross-source, graph traversal) averages **5507ms / $0.0010**. The router
+correctly routes single-hop filtered queries to fast mode and multi-hop /
+cross-source queries to thinking — the core latency/accuracy tradeoff the
+challenge judges.
 
 Full JSON results: `docs/hydradb-benchmark-results.json`.
 

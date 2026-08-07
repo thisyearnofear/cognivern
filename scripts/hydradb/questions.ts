@@ -162,6 +162,17 @@ export const QUESTIONS: BenchmarkQuestion[] = [
     notes:
       "Recency-based retrieval scoped to the audit ledger via metadata filter. Fast mode + recency_bias would surface the latest run.",
   },
+  {
+    id: "q11_attio_company",
+    category: "metadata_filtering",
+    question: "companies in the Attio CRM (metadata filter origin=attio_company)",
+    expectedAnswer: ["Intercom"],
+    expectedMode: "fast",
+    expectedSources: ["attio_company"],
+    metadataFilters: { additional_metadata: { origin: "attio_company" } },
+    notes:
+      "Proves the 3rd listed connector (Attio) is retrievable: metadata-scoped lookup on origin=attio_company returns the ingested Attio company records.",
+  },
 ];
 
 /**

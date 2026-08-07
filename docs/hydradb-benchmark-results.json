@@ -1,54 +1,54 @@
 {
-  "totalQuestions": 10,
-  "passed": 10,
+  "totalQuestions": 11,
+  "passed": 11,
   "accuracy": 1,
-  "totalLatencyMs": 43886,
-  "avgLatencyMs": 4389,
-  "totalCalls": 11,
-  "totalCostUsd": 0.0086,
-  "fastUsed": 3,
+  "totalLatencyMs": 41085,
+  "avgLatencyMs": 3735,
+  "totalCalls": 12,
+  "totalCostUsd": 0.0088,
+  "fastUsed": 4,
   "thinkingUsed": 7,
-  "modeMatched": 10,
+  "modeMatched": 11,
   "byCategory": {
     "temporal_reasoning": {
       "total": 1,
       "passed": 1,
-      "avgLatencyMs": 4337
+      "avgLatencyMs": 5897
     },
     "metadata_filtering": {
-      "total": 2,
-      "passed": 2,
-      "avgLatencyMs": 758
+      "total": 3,
+      "passed": 3,
+      "avgLatencyMs": 610
     },
     "entity_deduplication": {
       "total": 1,
       "passed": 1,
-      "avgLatencyMs": 4616
+      "avgLatencyMs": 5876
     },
     "actor_based": {
       "total": 2,
       "passed": 2,
-      "avgLatencyMs": 6268
+      "avgLatencyMs": 5959
     },
     "multi_hop": {
       "total": 1,
       "passed": 1,
-      "avgLatencyMs": 9651
+      "avgLatencyMs": 8882
     },
     "third_party_attribution": {
       "total": 1,
       "passed": 1,
-      "avgLatencyMs": 7411
+      "avgLatencyMs": 2345
     },
     "multilingual": {
       "total": 1,
       "passed": 1,
-      "avgLatencyMs": 3166
+      "avgLatencyMs": 3632
     },
     "knowledge_updates": {
       "total": 1,
       "passed": 1,
-      "avgLatencyMs": 654
+      "avgLatencyMs": 706
     }
   },
   "results": [
@@ -60,10 +60,10 @@
       "actualMode": "thinking",
       "routingReason": "open-ended multi-clause question",
       "hydraDbCalls": 1,
-      "latencyMs": 4337,
+      "latencyMs": 5897,
       "estimatedCostUsd": 0.001,
       "resultCount": 12,
-      "topScore": 0.8251620596269388,
+      "topScore": 0.7763781931776662,
       "passed": true,
       "matchedExpected": [
         "12",
@@ -80,8 +80,8 @@
         "github_commit"
       ],
       "multiHop": false,
-      "topChunkTitle": "Spend run 726c948f-82bc-4584-929e-29411368ea8a — http-verify-agent → stable-email",
-      "topChunkSnippet": "{\"id\":\"cognivern_run_726c948f-82bc-4584-929e-29411368ea8a\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Sp"
+      "topChunkTitle": "Spend run de504914-8138-4c81-a388-367e9c2bb3e3 — http-verify-agent → stable-email",
+      "topChunkSnippet": "{\"id\":\"cognivern_run_de504914-8138-4c81-a388-367e9c2bb3e3\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Sp"
     },
     {
       "id": "q2_metadata_filter",
@@ -91,10 +91,10 @@
       "actualMode": "fast",
       "routingReason": "metadata-filtered single-entity lookup",
       "hydraDbCalls": 1,
-      "latencyMs": 785,
+      "latencyMs": 717,
       "estimatedCostUsd": 0.0002,
       "resultCount": 10,
-      "topScore": 0.9067175041604931,
+      "topScore": 0.9069823599855495,
       "passed": true,
       "matchedExpected": [
         "stable-email"
@@ -118,10 +118,10 @@
       "actualMode": "thinking",
       "routingReason": "multi-hop / cross-source signal detected",
       "hydraDbCalls": 1,
-      "latencyMs": 4616,
+      "latencyMs": 5876,
       "estimatedCostUsd": 0.001,
-      "resultCount": 17,
-      "topScore": 0.6785531173927984,
+      "resultCount": 16,
+      "topScore": 0.6761036518782506,
       "passed": true,
       "matchedExpected": [
         "stable-email",
@@ -149,10 +149,10 @@
       "actualMode": "thinking",
       "routingReason": "multi-hop / cross-source signal detected",
       "hydraDbCalls": 1,
-      "latencyMs": 6677,
+      "latencyMs": 6070,
       "estimatedCostUsd": 0.001,
       "resultCount": 13,
-      "topScore": 0.8902439984557372,
+      "topScore": 0.8900874084557372,
       "passed": true,
       "matchedExpected": [
         "thisyearnofear",
@@ -181,10 +181,10 @@
       "actualMode": "thinking (multi-hop)",
       "routingReason": "forced by caller",
       "hydraDbCalls": 2,
-      "latencyMs": 9651,
+      "latencyMs": 8882,
       "estimatedCostUsd": 0.002,
-      "resultCount": 19,
-      "topScore": 0.804006111387973,
+      "resultCount": 20,
+      "topScore": 0.8314619711480747,
       "passed": true,
       "matchedExpected": [
         "thisyearnofear",
@@ -211,10 +211,10 @@
       "actualMode": "thinking",
       "routingReason": "open-ended multi-clause question",
       "hydraDbCalls": 1,
-      "latencyMs": 7411,
+      "latencyMs": 2345,
       "estimatedCostUsd": 0.001,
-      "resultCount": 16,
-      "topScore": 0.7706315424140002,
+      "resultCount": 55,
+      "topScore": 0.03278688524590164,
       "passed": true,
       "matchedExpected": [
         "thisyearnofear",
@@ -226,13 +226,14 @@
         "cognivern_audit"
       ],
       "sourcesFound": [
-        "linear",
         "cognivern_audit",
-        "github_commit"
+        "github_commit",
+        "linear",
+        "github"
       ],
       "multiHop": false,
-      "topChunkTitle": "Linear THI-5: Investigate stable-email spend anomaly",
-      "topChunkSnippet": "{\"id\":\"linear_a1dfc568-ce0a-4ea0-bd8e-7070210296c8\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Linear TH"
+      "topChunkTitle": "Spend run 726c948f-82bc-4584-929e-29411368ea8a — http-verify-agent → stable-email",
+      "topChunkSnippet": "{\"id\":\"cognivern_run_726c948f-82bc-4584-929e-29411368ea8a\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Sp"
     },
     {
       "id": "q7_fast_lookup",
@@ -242,10 +243,10 @@
       "actualMode": "fast",
       "routingReason": "metadata-filtered single-entity lookup",
       "hydraDbCalls": 1,
-      "latencyMs": 731,
+      "latencyMs": 561,
       "estimatedCostUsd": 0.0002,
       "resultCount": 10,
-      "topScore": 0.8936317334008003,
+      "topScore": 0.8938462831109464,
       "passed": true,
       "matchedExpected": [
         "THI-"
@@ -268,10 +269,10 @@
       "actualMode": "thinking",
       "routingReason": "open-ended multi-clause question",
       "hydraDbCalls": 1,
-      "latencyMs": 3166,
+      "latencyMs": 3632,
       "estimatedCostUsd": 0.001,
       "resultCount": 13,
-      "topScore": 0.6549459604267398,
+      "topScore": 0.6534675683550152,
       "passed": true,
       "matchedExpected": [
         "http-verify-agent",
@@ -299,10 +300,10 @@
       "actualMode": "thinking",
       "routingReason": "open-ended multi-clause question",
       "hydraDbCalls": 1,
-      "latencyMs": 5858,
+      "latencyMs": 5847,
       "estimatedCostUsd": 0.001,
       "resultCount": 20,
-      "topScore": 0.5912479799601825,
+      "topScore": 0.5947121643014489,
       "passed": true,
       "matchedExpected": [
         "Cognivern Governance",
@@ -328,10 +329,10 @@
       "actualMode": "fast",
       "routingReason": "metadata-filtered single-entity lookup",
       "hydraDbCalls": 1,
-      "latencyMs": 654,
+      "latencyMs": 706,
       "estimatedCostUsd": 0.0002,
       "resultCount": 10,
-      "topScore": 0.8638451007638175,
+      "topScore": 0.8642132866621453,
       "passed": true,
       "matchedExpected": [
         "stable-email",
@@ -346,7 +347,33 @@
       "multiHop": false,
       "topChunkTitle": "Spend run smoke-1786054614644 — smoke-test-agent → smoke-vendor",
       "topChunkSnippet": "{\"id\":\"cognivern_run_smoke-1786054614644\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"Spend run smoke-178"
+    },
+    {
+      "id": "q11_attio_company",
+      "category": "metadata_filtering",
+      "question": "companies in the Attio CRM (metadata filter origin=attio_company)",
+      "expectedMode": "fast",
+      "actualMode": "fast",
+      "routingReason": "metadata-filtered single-entity lookup",
+      "hydraDbCalls": 1,
+      "latencyMs": 552,
+      "estimatedCostUsd": 0.0002,
+      "resultCount": 10,
+      "topScore": 0.9633263358817035,
+      "passed": true,
+      "matchedExpected": [
+        "Intercom"
+      ],
+      "expectedSources": [
+        "attio_company"
+      ],
+      "sourcesFound": [
+        "attio_company"
+      ],
+      "multiHop": false,
+      "topChunkTitle": "Attio company: Attio",
+      "topChunkSnippet": "{\"id\":\"attio_company_7d29b629-5b5e-47a0-860e-3e3d7ee96604\",\"tenant_id\":\"cognivern\",\"sub_tenant_id\":\"default\",\"title\":\"At"
     }
   ],
-  "generatedAt": "2026-08-07T11:58:01.271Z"
+  "generatedAt": "2026-08-07T13:51:37.573Z"
 }
