@@ -43,4 +43,4 @@ pm2 set pm2-logrotate:compress true
 ## Related Docs
 
 - [Operations Guide](../docs/OPS.md)
-- [Developer Guide](../docs/DEVELOPER.md)
+- [Developer Guide](../docs/DEV.md)

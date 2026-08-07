@@ -27,7 +27,7 @@ interface SigningProvider {
 1. Create a file in `src/backend/signing/` that implements `SigningProvider`
 2. Add a `case` to the `switch` in `OwsWalletService.handleApprove()`
 3. Update the `signingProvider` union type in the backend's `AuditLog` interface
-4. Add an entry to the provider table in `docs/ARCHITECTURE.md#5-signing-provider-abstraction`
+4. Add an entry to the provider table in `docs/DEV.md#ledger-integration--hardware-signing`
 
 ## LedgerSigningProvider Internals
 

@@ -3,7 +3,7 @@
 Confidential policy contracts for Cognivern, deployed on Fhenix-enabled testnets
 (Sepolia, Arbitrum Sepolia, Base Sepolia).
 
-See [Architecture — Fhenix Integration](../../docs/ARCHITECTURE.md#fhenix-integration--confidential-policy-evaluation) for the full integration details.
+See [Architecture — Fhenix Integration](../../docs/DEV.md#fhenix-integration--confidential-policy-evaluation) for the full integration details.
 
 ## Contracts
 

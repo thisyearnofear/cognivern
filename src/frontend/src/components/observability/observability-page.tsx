@@ -973,7 +973,7 @@ function SetupSection({
       icon={<Shield className="h-5 w-5 text-primary" />}
       subtitle={
         enabled
-          ? "Tracing is active. See docs/DEVELOPER.md for the full setup guide."
+          ? "Tracing is active. See docs/DEV.md for the full setup guide."
           : "Enable tracing by setting env vars on the backend. Zero-overhead when unset."
       }
     >
@@ -1035,7 +1035,7 @@ function SetupSection({
           <ExternalLink className="h-3 w-3" />
         </a>
         <a
-          href="https://github.com/thisyearnofear/cognivern/blob/main/docs/DEVELOPER.md"
+          href="https://github.com/thisyearnofear/cognivern/blob/main/docs/DEV.md"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
@@ -1044,7 +1044,7 @@ function SetupSection({
           <ExternalLink className="h-3 w-3" />
         </a>
         <a
-          href="https://github.com/thisyearnofear/cognivern/blob/main/HACKATHON_SUBMISSION_SIGNOZ.md"
+          href="https://github.com/thisyearnofear/cognivern/blob/main/docs/HYDRADB.md"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"

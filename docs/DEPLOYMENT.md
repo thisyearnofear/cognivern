@@ -199,5 +199,5 @@ Minimum demo beats:
 
 ## Related Docs
 
-- [Architecture](./ARCHITECTURE.md) — System design, integrations, data flows
-- [Developer Guide](./DEVELOPER.md) — Local setup, APIs, testing
+- [Architecture](./DEV.md) — System design, integrations, data flows
+- [Developer Guide](./DEV.md) — Local setup, APIs, testing

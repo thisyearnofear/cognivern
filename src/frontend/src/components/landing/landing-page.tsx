@@ -682,7 +682,7 @@ export function LandingPage() {
           <p className="text-center text-sm text-muted-foreground mt-10">
             Deployed across Arbitrum, X Layer, Filecoin, 0G, Fhenix, Canton, and more.{" "}
             <a
-              href="https://github.com/thisyearnofear/cognivern/blob/main/docs/ARCHITECTURE.md"
+              href="https://github.com/thisyearnofear/cognivern/blob/main/docs/DEV.md"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:underline"
@@ -969,7 +969,7 @@ curl -X POST ${PUBLIC_API_ORIGIN}/api/governance/evaluate \\
               </a>
               <span className="hidden sm:inline">·</span>
               <a
-                href="https://github.com/thisyearnofear/cognivern/blob/main/docs/ARCHITECTURE.md"
+                href="https://github.com/thisyearnofear/cognivern/blob/main/docs/DEV.md"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-foreground transition-colors"

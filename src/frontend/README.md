@@ -137,4 +137,4 @@ pnpm build      # Production build
 pnpm lint       # ESLint
 ```
 
-The frontend proxies API requests to the backend in development. See the root [Developer Guide](../../docs/DEVELOPER.md) for full setup.
+The frontend proxies API requests to the backend in development. See the root [Developer Guide](../../docs/DEV.md) for full setup.

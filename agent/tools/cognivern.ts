@@ -8,7 +8,7 @@
  *
  * The live API docs are at:
  *   https://api.cognivern.persidian.com/api/docs (Swagger)
- *   /Users/udingethe/Dev/cognivern/docs/DEVELOPER.md
+ *   /Users/udingethe/Dev/cognivern/docs/DEV.md
  */
 
 export interface CognivernToolContext {

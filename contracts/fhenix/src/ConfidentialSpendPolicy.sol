@@ -588,10 +588,10 @@ contract ConfidentialSpendPolicy {
      *      truth. Spend-path dispatches (publishSpendResult +
      *      resolveDecision) remain unconditional — `GovernanceContract
      *      .handle()` on X Layer still receives every spend-path outcome.
-     *      See docs/ARCHITECTURE.md § "FHE Option B trust model" §
+     *      See docs/DEV.md § "FHE Option B trust model" §
      *      "Migration note (iter 27)" for the full audit (zero TS event
      *      listeners, zero dispatches-per-agent telemetry counters as
-     *      of iter 27 (cross-check ARCHITECTURE.md before assuming — a later iter may ship a different semantic); audit guidance for any future telemetry
+     *      of iter 27 (cross-check DEV.md before assuming — a later iter may ship a different semantic); audit guidance for any future telemetry
      *      consumer).
      */
     function publishDeFiAction(

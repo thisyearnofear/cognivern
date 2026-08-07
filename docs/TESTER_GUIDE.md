@@ -5,11 +5,9 @@
 **API docs:** https://api.cognivern.persidian.com/api/docs/openapi.json
 
 This is an operator orientation, not a research script. For moderated user
-sessions, use [USER_TESTING_PROTOCOL.md](./USER_TESTING_PROTOCOL.md).
-
-The public/demo path requires no setup. Authenticated pilot testing requires a
-separate disposable workspace or staging environment with seeded data and a
-reset procedure. Do not use real funds, production API keys, or another user's
+sessions, provide participants only the canonical URL below.
+Authenticated research requires a disposable workspace or staging environment.
+Do not use real funds, production API keys, or another user's
 workspace for research sessions.
 
 The examples below describe the expected product flow; seeded data and available
