@@ -6,10 +6,35 @@ import "./globals.css";
 export const dynamic = "force-dynamic";
 export const dynamicParams = true;
 
+// Canonical production origin — used for metadataBase so generated og:image /
+// twitter:image URLs are absolute (required for correct link previews everywhere).
+const siteUrl = (
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "") ||
+  "https://cognivern.persidian.com"
+);
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Cognivern — AI Agent Governance",
   description:
     "Every approved agent spend writes a real transaction to a governed smart contract — on-chain, auditable, verifiable.",
+  openGraph: {
+    type: "website",
+    siteName: "Cognivern",
+    title: "Cognivern — AI Agent Governance",
+    description:
+      "Govern every agent transaction without slowing builders down. Policy checks in under 100ms, cryptographic audit evidence, multi-chain architecture.",
+    url: siteUrl,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Cognivern — AI Agent Governance",
+    description:
+      "Every approved agent spend writes a real transaction to a governed smart contract — on-chain, auditable, verifiable.",
+  },
 };
 
 export const viewport: Viewport = {
