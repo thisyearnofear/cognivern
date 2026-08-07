@@ -347,6 +347,13 @@ async function main() {
     console.log(`  vendors: ${vendors.join(", ") || "(none)"}`);
   }
 
+  // --dry-run: validate fetch + mapping without writing anything to HydraDB.
+  if (process.argv.includes("--dry-run")) {
+    console.log(`\n[dry-run] fetched + mapped ${records.length} records (no ingest).`);
+    console.log(`Remove --dry-run to actually ingest these into HydraDB.`);
+    process.exit(0);
+  }
+
   console.log(`\n[3/3] ingesting into HydraDB (batches of 25)...`);
   const BATCH = 25;
   let ingested = 0;
