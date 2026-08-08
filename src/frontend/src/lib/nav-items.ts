@@ -12,6 +12,7 @@ import {
   Gavel,
   Radar,
   CircleDollarSign,
+  Fingerprint,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -58,6 +59,13 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: CircleDollarSign,
         href: '/capital',
         description: 'See what governed agent capital produced',
+      },
+      {
+        id: 'verified-capital',
+        label: 'Verified Capital',
+        icon: Fingerprint,
+        href: '/verified-capital',
+        description: 'Cleanverse CVI/CVA spend rail on Monad',
       },
     ],
   },
@@ -143,12 +151,5 @@ export const DEMO_NAV_ITEMS: NavItem[] = [
     icon: PlayCircle,
     href: '/demo/spend',
     description: 'Watch the spend flow in action',
-  },
-  {
-    id: 'demo-cleanverse',
-    label: 'Cleanverse Rail',
-    icon: PlayCircle,
-    href: '/demo/cleanverse',
-    description: 'CVI A-Pass screen + CVA aUSD-D settlement',
   },
 ];

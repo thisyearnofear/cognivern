@@ -152,6 +152,22 @@ and MEV protection).
 If the card is empty (no wallets), the empty state links straight
 to `app.keeperhub.com` and walks you through the one-time setup.
 
+## 9b. Optional: Use the Cleanverse verified capital rail (2 minutes)
+
+Cleanverse is a first-class spend rail: **CVI (A-Pass)** before policy approval,
+**CVA (aUSD-D)** settlement on Monad testnet.
+
+1. Open **Operate → Verified Capital** (`/verified-capital`).
+2. Confirm rail status (API connected, Monad `10143`, aUSD-D).
+3. **Screen identities** with real wallet addresses (requires API credentials).
+4. In **Settings → Wallets**, set execution provider to
+   **Cleanverse (Monad aUSD-D)** and chain ID `10143`. Fund MON + aUSD-D; both
+   parties need active A-Passes.
+5. Execute a governed spend on that wallet — CRE runs include `cleanverse_apass`
+   and MonadScan tx links. Observability has a Cleanverse correlation card.
+
+Details: [HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md).
+
 ## 10. Optional: Try the funded-mandate Capital flow (2 minutes)
 
 The **Capital** page (sidebar → Capital) is the mandate-level evidence trail:
@@ -214,6 +230,7 @@ recommendation, and immutable published snapshots with redacted export.
 - **0G Chain** records governance decisions as on-chain events for
   tamper-evident verifiability (0G Galileo Testnet)
 - **Sealed Bids** run confidential vendor RFPs on Canton (live on Devnet)
+- **Verified Capital** (`/verified-capital`) is the Cleanverse CVI/CVA spend rail on Monad
 - **OS Terminal** is a natural-language interface to the platform
 
 Cognivern does not yet provide complete ROI accounting, causal attribution, an

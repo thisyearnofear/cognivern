@@ -6,7 +6,7 @@
 **Team:** thisyearnofear  
 **Repository:** [github.com/thisyearnofear/cognivern](https://github.com/thisyearnofear/cognivern)  
 **Live product:** [cognivern.persidian.com](https://cognivern.persidian.com) · API `api.cognivern.persidian.com`  
-**Demo surface:** [/demo/cleanverse](https://cognivern.persidian.com/demo/cleanverse)
+**Product surface:** [/verified-capital](https://cognivern.persidian.com/verified-capital) (Cleanverse CVI/CVA spend rail)
 
 ---
 
@@ -31,7 +31,7 @@ Cognivern is the economic control plane for agentic work. For this hackathon we 
 | Pre-policy gate | CVI `POST /query_apass` | `OwsWalletService.executeSpend` → `CleanverseIdentityService.screenAddresses` |
 | Settlement eligibility | CVA `POST /verify_apass` | `CleanverseExecutionProvider.executeTransfer` |
 | Value movement | aUSD-D ERC-20 `transfer` | Local vault signer → Monad RPC |
-| Operator UX | Status + screen API | `GET /api/cleanverse/status`, `POST /api/cleanverse/screen`, `/demo/cleanverse` |
+| Operator UX | Status + screen API | `GET /api/cleanverse/status`, `POST /api/cleanverse/screen`, `/verified-capital` |
 | Wallet opt-in | Metadata | `executionProvider: "cleanverse"`, `chainId: 10143` |
 
 ### Deployed chains
@@ -42,7 +42,7 @@ Cognivern is the economic control plane for agentic work. For this hackathon we 
 
 ### Live demo URL
 
-- Product: https://cognivern.persidian.com/demo/cleanverse  
+- Product: https://cognivern.persidian.com/verified-capital  
 - API status: `GET https://api.cognivern.persidian.com/api/cleanverse/status`  
 - Spend status (includes `cleanverse.enabled`): `GET …/api/spend/status`
 
@@ -83,7 +83,7 @@ MONAD_CHAIN_ID=10143
 
 pnpm install
 pnpm dev          # API
-pnpm frontend     # UI → /demo/cleanverse
+pnpm frontend     # UI → /verified-capital
 
 # Smoke (mock Cleanverse HTTP, no credentials required)
 pnpm tsx tooling/scripts/demo/test-cleanverse-spend.ts
@@ -98,11 +98,11 @@ Configure a wallet in **Settings → Wallets**: execution provider `Cleanverse (
 
 ## Demo video script (outline)
 
-1. Open `/demo/cleanverse` — show Cleanverse status card (API connected, Monad 10143, aUSD-D).
-2. Screen a wallet **without** A-Pass → fail; screen a verified pair → pass.
-3. Settings → set wallet to Cleanverse rail.
-4. Trigger a governed spend (or narrate CRE run) — show deny on bad identity, then approve + MonadScan tx for aUSD-D.
-5. Open run detail / observability — `cleanverse_apass` artifact + transfer hash.
+1. Open `/verified-capital` — show rail status (API connected, Monad 10143, aUSD-D).
+2. **Screen identities** — fail a wallet without A-Pass; pass a verified pair.
+3. Settings → set wallet to Cleanverse rail (chain 10143).
+4. Trigger a real governed spend — deny on bad identity, then approve + MonadScan tx.
+5. Runs / Observability — `cleanverse_apass` artifact + transfer hash.
 
 *(Record after live credentials + funded Monad wallet are in place.)*
 
@@ -116,7 +116,7 @@ Configure a wallet in **Settings → Wallets**: execution provider `Cleanverse (
 | `src/backend/services/blockchain/OwsWalletService.ts` | CVI gate + CVA branch |
 | `src/backend/services/blockchain/OwsLocalVaultService.ts` | `sendErc20Transfer` |
 | `src/backend/modules/api/controllers/CleanverseController.ts` | Status + screen |
-| `src/frontend/.../demo/cleanverse` | Demo UI |
+| `src/frontend/.../verified-capital` | Operator UI for the live rail |
 | `docs/HACKATHON_SUBMISSION_CLEANVERSE.md` | This document |
 
 ---

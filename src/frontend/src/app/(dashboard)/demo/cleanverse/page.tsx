@@ -1,5 +1,6 @@
-import { CleanverseDemo } from "@/components/demo/cleanverse-demo";
+import { redirect } from "next/navigation";
 
-export default function CleanverseDemoPage() {
-  return <CleanverseDemo />;
+/** Legacy demo path — Cleanverse is a first-class spend rail at /verified-capital. */
+export default function CleanverseDemoRedirect() {
+  redirect("/verified-capital");
 }

@@ -687,6 +687,25 @@ class ApiClient {
     return this.fetch('/api/cleanverse/status');
   }
 
+  async getSpendStatus(): Promise<
+    ApiResponse<{
+      layer?: string;
+      status?: string;
+      features?: string[];
+      cleanverse?: {
+        enabled: boolean;
+        chain: string;
+        monadChainId: number;
+        aTokenAddress: string;
+        aTokenSymbol: string;
+        gateAllSpends: boolean;
+      };
+      keeperHub?: { enabled: boolean };
+    }>
+  > {
+    return this.fetch('/api/spend/status');
+  }
+
   async screenCleanverse(params: {
     sender: string;
     recipient: string;

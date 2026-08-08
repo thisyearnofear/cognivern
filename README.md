@@ -66,11 +66,13 @@ For the public/demo path, most optional integrations can remain disabled. See th
 - [Agentic capital thesis](./docs/AGENTIC_CAPITAL_THESIS.md) — funded mandates, attribution, outcomes, and capital allocation roadmap
 - [Agentic capital implementation spec](./docs/AGENTIC_CAPITAL_IMPLEMENTATION_SPEC.md) — mandate, outcome, statement, and evidence invariants
 - [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) — sealed-bid and governance integration details
+- [Cleanverse hackathon submission](./docs/HACKATHON_SUBMISSION_CLEANVERSE.md) — CVI/CVA verified agent capital rail
 
 ## Product surfaces
 
 - **Funded mandates (strategic direction):** define the objective, budget, permissions, evidence requirements, and release conditions for autonomous work.
 - **Governed spend (available today):** policy evaluation, approval workflows, wallet execution, and audit evidence.
+- **Verified agent capital rail (optional):** Cleanverse CVI (A-Pass) identity gate + CVA (aUSD-D) settlement on Monad — see [/verified-capital](https://cognivern.persidian.com/verified-capital) and [hackathon submission](./docs/HACKATHON_SUBMISSION_CLEANVERSE.md).
 - **Attributable execution (available today in substrate form):** agent, run, action, wallet, vendor, and transaction evidence can be linked through the CRE/run ledger when those fields are supplied by the workflow. A universal mandate/purpose/outcome graph is a roadmap layer.
 - **Confidential policy evaluation:** Fhenix-backed encrypted budgets and spend counters.
 - **Confidential vendor selection:** Canton/Daml sealed-bid rounds with role-based visibility and atomic reveal.

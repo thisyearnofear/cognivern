@@ -54,6 +54,7 @@ src/frontend/
 │   │   ├── settings/             # Workspace settings & API keys
 │   │   ├── os/                   # Command Center terminal UI
 │   │   ├── demo/spend/           # Spend flow demo
+│   │   ├── verified-capital/     # Cleanverse CVI/CVA spend rail
 │   │   └── runs/                 # Run ledger
 │   ├── onboarding/               # Onboarding wizard
 │   └── page.tsx                  # Public landing route

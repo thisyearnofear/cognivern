@@ -583,7 +583,22 @@ Related: `GET /api/projects`, `GET /api/projects/:projectId/usage`
 | `/api/spend`           | POST   | Execute governed spend                          |
 | `/api/spend/encrypted` | POST   | Confidential-policy spend with encrypted amount |
 | `/api/spend/preview`   | POST   | Simulate spend (dry-run)                        |
-| `/api/spend/status`    | GET    | Execution status                                |
+| `/api/spend/status`    | GET    | Execution status (includes `cleanverse` / `keeperHub`) |
+
+### Cleanverse (CVI / CVA)
+
+Optional Track 2 verified-agent capital rail. When a wallet has
+`metadata.executionProvider: "cleanverse"`, spends are A-Pass gated (CVI)
+before policy evaluation and settle as aUSD-D on Monad testnet (CVA).
+
+| Endpoint                  | Method | Description                                      |
+| ------------------------- | ------ | ------------------------------------------------ |
+| `/api/cleanverse/status`  | GET    | Config + Monad / aUSD-D status                   |
+| `/api/cleanverse/screen`  | POST   | Screen sender + recipient A-Pass (`{ sender, recipient, chain? }`) |
+
+Env: `CLEANVERSE_API_ID`, `CLEANVERSE_API_KEY`, `CLEANVERSE_API_URL`,
+`MONAD_RPC_URL`, `MONAD_CHAIN_ID`, `CLEANVERSE_ATOKEN_ADDRESS`. Product UI:
+`/verified-capital`. See [HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md).
 
 ### Audit & Run Ledger
 
