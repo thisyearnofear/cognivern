@@ -94,6 +94,12 @@ function getSpendSourceContext(run: unknown): {
   };
 }
 
+function getTransferExplorerUrl(chainId: number | undefined, txHash: string): string | undefined {
+  if (chainId === 421614) return `https://sepolia.arbiscan.io/tx/${txHash}`;
+  if (chainId === 196) return `https://www.oklink.com/xlayer-test/tx/${txHash}`;
+  return undefined;
+}
+
 function useCountUp(target: number, duration = 2000, start = false) {
   const [count, setCount] = useState(0);
   const ref = useRef<number | null>(null);
@@ -183,7 +189,13 @@ export function RunDetail({ runId }: { runId: string }) {
         <Button variant="ghost" size="icon" onClick={() => router.push('/runs')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <PageState variant="error" title="Could not load run details" message="This execution is unavailable right now. Try again or return to Runs." action={{ label: "Retry", onClick: () => router.refresh() }} secondaryAction={{ label: "Back to Runs", onClick: () => router.push('/runs') }} />
+        <PageState
+          variant="error"
+          title="Could not load run details"
+          message="This execution is unavailable right now. Try again or return to Runs."
+          action={{ label: 'Retry', onClick: () => router.refresh() }}
+          secondaryAction={{ label: 'Back to Runs', onClick: () => router.push('/runs') }}
+        />
       </div>
     );
   }
@@ -193,6 +205,9 @@ export function RunDetail({ runId }: { runId: string }) {
   const events = run.events || [];
   const sourceContext = getSpendSourceContext(run);
   const traceId = run.evidence?.traceId;
+  const transferExplorerUrl = approval?.transfer?.transferTxHash
+    ? getTransferExplorerUrl(approval.transfer.transferChainId, approval.transfer.transferTxHash)
+    : undefined;
 
   return (
     <div className="space-y-6">
@@ -247,9 +262,19 @@ export function RunDetail({ runId }: { runId: string }) {
       <DecisionReceipt
         decision={run.status}
         subject={run.workflow}
-        summary={run.status === 'paused_for_approval' ? 'An operator review is required before this action can continue.' : run.status === 'failed' ? 'The execution stopped before completion. Review the trace before retrying.' : 'This governance execution has a recorded operational outcome.'}
+        summary={
+          run.status === 'paused_for_approval'
+            ? 'An operator review is required before this action can continue.'
+            : run.status === 'failed'
+              ? 'The execution stopped before completion. Review the trace before retrying.'
+              : 'This governance execution has a recorded operational outcome.'
+        }
         reference={`Run ${run.id}`}
-        evidence={["Policy evaluation", ...(events.length > 0 ? ["Execution trace"] : []), ...(sourceContext.provenance ? ["Source authorization"] : [])]}
+        evidence={[
+          'Policy evaluation',
+          ...(events.length > 0 ? ['Execution trace'] : []),
+          ...(sourceContext.provenance ? ['Source authorization'] : []),
+        ]}
         reviewPath={`/runs/${run.id}`}
       />
 
@@ -258,7 +283,9 @@ export function RunDetail({ runId }: { runId: string }) {
           <div className="flex min-w-0 items-center gap-3">
             <Activity className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">Execution trace available</p>
+              <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                Execution trace available
+              </p>
               <code className="block truncate text-[11px] text-muted-foreground">{traceId}</code>
             </div>
           </div>
@@ -408,21 +435,56 @@ export function RunDetail({ runId }: { runId: string }) {
                 <div className="font-medium">
                   {approval.transfer?.transferStatus === 'sent'
                     ? 'Approved & broadcast'
-                    : 'Approval recorded'}
+                    : approval.transfer?.transferStatus === 'uncertain'
+                      ? 'Execution needs reconciliation'
+                      : 'Approval recorded'}
                 </div>
-                {approval.transfer?.transferTxHash ? (
-                  <div className="text-sm text-muted-foreground mt-1">
-                    Network transfer reference:{' '}
-                    <a
-                      href={`https://www.oklink.com/xlayer-test/tx/${approval.transfer.transferTxHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-mono underline inline-flex items-center gap-1"
-                    >
-                      {approval.transfer.transferTxHash.slice(0, 10)}…
-                      {approval.transfer.transferTxHash.slice(-8)}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
+                {approval.transfer?.transferStatus === 'uncertain' ? (
+                  <div className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                    The provider accepted the execution, but completion could not be verified safely.
+                    Do not retry until the KeeperHub execution is reconciled.
+                    {approval.transfer.transferExecutionId && (
+                      <div className="mt-1 text-xs">
+                        KeeperHub execution: <code>{approval.transfer.transferExecutionId}</code>
+                      </div>
+                    )}
+                  </div>
+                ) : approval.transfer?.transferTxHash ? (
+                  <div className="text-sm text-muted-foreground mt-1 space-y-1">
+                    <div>
+                      Network transfer reference:{' '}
+                      {transferExplorerUrl ? (
+                        <a
+                          href={approval.transfer.transferTransactionLink || transferExplorerUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono underline inline-flex items-center gap-1"
+                        >
+                          {approval.transfer.transferTxHash.slice(0, 10)}…
+                          {approval.transfer.transferTxHash.slice(-8)}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : (
+                        <code className="font-mono">
+                          {approval.transfer.transferTxHash.slice(0, 10)}…
+                          {approval.transfer.transferTxHash.slice(-8)}
+                        </code>
+                      )}
+                    </div>
+                    {approval.transfer.transferExecutionId && (
+                      <div className="text-xs text-muted-foreground">
+                        KeeperHub execution: <code>{approval.transfer.transferExecutionId}</code>
+                      </div>
+                    )}
+                    {approval.transfer.transferReceiptStatus && (
+                      <div className="text-xs text-muted-foreground">
+                        KeeperHub receipt: <code>{approval.transfer.transferReceiptStatus}</code>
+                        {approval.transfer.transferVerified === true
+                          ? ' · verified'
+                          : ' · not independently verified'}
+                        {approval.transfer.transferSponsored === true ? ' · sponsored' : ''}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-sm text-muted-foreground mt-1">
@@ -436,9 +498,11 @@ export function RunDetail({ runId }: { runId: string }) {
               <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-medium">
-                  {approval.transfer?.transferStatus === 'failed'
-                    ? 'Transfer failed — money did not move'
-                    : 'Approval failed'}
+                  {approval.transfer?.transferStatus === 'uncertain'
+                    ? 'Transfer needs reconciliation — do not retry'
+                    : approval.transfer?.transferStatus === 'failed'
+                      ? 'Transfer failed — money did not move'
+                      : 'Approval failed'}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1 break-words">
                   {approval.transfer?.transferError || approval.error || 'Unknown error.'}
@@ -446,21 +510,23 @@ export function RunDetail({ runId }: { runId: string }) {
                 {/* Retry re-fires the approve POST with a fresh
                     Idempotency-Key (generated inside submitRunApproval), so
                     the cached failure does not block re-broadcast. */}
-                <div className="mt-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleApproval(true)}
-                    disabled={submitting !== null}
-                  >
+                {approval.transfer?.transferStatus !== 'uncertain' && (
+                  <div className="mt-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleApproval(true)}
+                      disabled={submitting !== null}
+                    >
                     {submitting === 'approve' ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
                     ) : (
                       <RotateCw className="h-3 w-3" />
                     )}
-                    Retry approval
-                  </Button>
-                </div>
+                      Retry approval
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}

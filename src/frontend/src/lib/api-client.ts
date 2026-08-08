@@ -1,7 +1,7 @@
 // Typed API client for Cognivern backend
 
-import { useAuthStore } from "@/stores/auth-store";
-import { expireSession, refreshSession } from "@/lib/session";
+import { useAuthStore } from '@/stores/auth-store';
+import { expireSession, refreshSession } from '@/lib/session';
 import type {
   ApiResponse,
   AuditLog,
@@ -15,13 +15,13 @@ import type {
   ApiKeyCreateResponse,
   Workspace,
   PolicyVersion,
-} from "@cognivern/shared";
+} from '@cognivern/shared';
 
 // Read auth token from the persisted auth store. The store is the single
 // source of truth - falling back to localStorage here would risk reading a
 // stale token after logout, or vice versa.
 function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   try {
     return useAuthStore.getState().token;
   } catch {
@@ -48,16 +48,16 @@ export type {
 export interface CopilotEvent {
   id: number;
   type:
-    | "run_started"
-    | "model_tool_call"
-    | "tool_result"
-    | "tool_error"
-    | "preview_ready"
-    | "confirmation_required"
-    | "confirmation_recorded"
-    | "execution_blocked"
-    | "final"
-    | "run_failed";
+    | 'run_started'
+    | 'model_tool_call'
+    | 'tool_result'
+    | 'tool_error'
+    | 'preview_ready'
+    | 'confirmation_required'
+    | 'confirmation_recorded'
+    | 'execution_blocked'
+    | 'final'
+    | 'run_failed';
   timestamp: string;
   name?: string;
   payload?: Record<string, unknown>;
@@ -68,13 +68,7 @@ export interface CopilotRun {
   goal: string;
   createdAt: string;
   updatedAt: string;
-  status:
-    | "queued"
-    | "running"
-    | "awaiting_confirmation"
-    | "confirmed"
-    | "completed"
-    | "failed";
+  status: 'queued' | 'running' | 'awaiting_confirmation' | 'confirmed' | 'completed' | 'failed';
   summary?: string;
   error?: string;
   preview?: Record<string, unknown>;
@@ -83,12 +77,12 @@ export interface CopilotRun {
 }
 
 export type CreAnchorStatus =
-  | "verified"
-  | "mismatch"
-  | "unavailable"
-  | "disabled"
-  | "no_expected_hash"
-  | "no_retrieval_key";
+  | 'verified'
+  | 'mismatch'
+  | 'unavailable'
+  | 'disabled'
+  | 'no_expected_hash'
+  | 'no_retrieval_key';
 
 export interface CreLedgerVerifyResponse {
   success: true;
@@ -125,7 +119,7 @@ class ApiClient {
   private apiKey: string | null;
 
   constructor() {
-    this.baseUrl = "";
+    this.baseUrl = '';
     this.apiKey = null;
   }
 
@@ -133,28 +127,24 @@ class ApiClient {
     this.apiKey = key;
   }
 
-  private async fetch<T>(
-    endpoint: string,
-    options: RequestInit = {},
-    retries = 2,
-  ): Promise<T> {
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      throw new Error("You are offline. Check your connection and try again.");
+  private async fetch<T>(endpoint: string, options: RequestInit = {}, retries = 2): Promise<T> {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      throw new Error('You are offline. Check your connection and try again.');
     }
 
     const { workspaceMode } = useAuthStore.getState();
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "X-Workspace-Mode": workspaceMode,
+      'Content-Type': 'application/json',
+      'X-Workspace-Mode': workspaceMode,
     };
 
     if (this.apiKey) {
-      headers["x-api-key"] = this.apiKey;
+      headers['x-api-key'] = this.apiKey;
     }
 
     const token = getAuthToken();
     if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     try {
@@ -166,7 +156,7 @@ class ApiClient {
 
       if (!response.ok) {
         if (response.status === 401) {
-          if (retries > 0 && await refreshSession()) {
+          if (retries > 0 && (await refreshSession())) {
             return this.fetch<T>(endpoint, options, retries - 1);
           }
           expireSession();
@@ -186,10 +176,10 @@ class ApiClient {
             (parsed?.message as string | undefined) ??
             errorBody;
           switch (code) {
-            case "NO_ACTIVE_POLICY":
+            case 'NO_ACTIVE_POLICY':
               actionableMsg = `No active policy found. Create one in the Policies page to start governing spends.`;
               break;
-            case "BAD_REQUEST":
+            case 'BAD_REQUEST':
               actionableMsg = `Invalid request: ${msg}. Check your input and try again.`;
               break;
             default:
@@ -204,7 +194,7 @@ class ApiClient {
         if (
           response.status === 403 &&
           parsed &&
-          (parsed.error === "Policy gate failed" || parsed.policyChecks)
+          (parsed.error === 'Policy gate failed' || parsed.policyChecks)
         ) {
           return parsed as unknown as T;
         }
@@ -227,17 +217,14 @@ class ApiClient {
 
       return await response.json();
     } catch (error) {
-      if (
-        error instanceof DOMException &&
-        error.name === "AbortError"
-      ) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
         throw error;
       }
 
       // 4xx errors are not retried (they'll fail the same way). Only
       // 5xx and network errors get retried with exponential backoff.
       const status = (error as Error & { status?: number }).status;
-      const isClientError = typeof status === "number" && status >= 400 && status < 500;
+      const isClientError = typeof status === 'number' && status >= 400 && status < 500;
       if (retries > 0 && !isClientError) {
         const delay = Math.min(1000 * Math.pow(2, 3 - retries), 8000);
         await new Promise((resolve) => setTimeout(resolve, delay));
@@ -249,50 +236,48 @@ class ApiClient {
 
   // Audit Logs
   async getAuditLogs(): Promise<ApiResponse<AuditLog[]>> {
-    return this.fetch("/api/audit/logs");
+    return this.fetch('/api/audit/logs');
   }
 
   // Observability (SigNoz / OpenTelemetry)
   async getObservabilityStatus(): Promise<ApiResponse<ObservabilityStatus>> {
-    return this.fetch("/api/observability/status");
+    return this.fetch('/api/observability/status');
   }
 
   async getObservabilityMetrics(
-    range: "1h" | "24h" | "7d" = "24h",
+    range: '1h' | '24h' | '7d' = '24h',
     workspaceId?: string,
   ): Promise<ApiResponse<ObservabilityMetrics>> {
     const params = new URLSearchParams({ range });
-    if (workspaceId) params.set("workspaceId", workspaceId);
+    if (workspaceId) params.set('workspaceId', workspaceId);
     return this.fetch(`/api/observability/metrics?${params.toString()}`);
   }
 
   async getAuditInsights(): Promise<ApiResponse<AuditInsights>> {
-    return this.fetch("/api/audit/insights");
+    return this.fetch('/api/audit/insights');
   }
 
   // Runs
   async getRuns(): Promise<ApiResponse<Run[]>> {
-    return this.fetch("/api/cre/runs");
+    return this.fetch('/api/cre/runs');
   }
 
   async getRun(runId: string): Promise<ApiResponse<Run>> {
     return this.fetch(`/api/cre/runs/${runId}`);
   }
 
-  async verifyLedger(
-    deep = false,
-  ): Promise<ApiResponse<CreLedgerVerifyResponse>> {
-    return this.fetch(`/api/cre/ledger/verify${deep ? "?deep=true" : ""}`);
+  async verifyLedger(deep = false): Promise<ApiResponse<CreLedgerVerifyResponse>> {
+    return this.fetch(`/api/cre/ledger/verify${deep ? '?deep=true' : ''}`);
   }
 
   // Policies
   async getPolicies(): Promise<ApiResponse<Policy[]>> {
-    return this.fetch("/api/governance/policies");
+    return this.fetch('/api/governance/policies');
   }
 
   async createPolicy(policy: Partial<Policy>): Promise<ApiResponse<Policy>> {
-    return this.fetch("/api/governance/policies", {
-      method: "POST",
+    return this.fetch('/api/governance/policies', {
+      method: 'POST',
       body: JSON.stringify(policy),
     });
   }
@@ -307,15 +292,15 @@ class ApiClient {
     };
     policyId?: string;
   }): Promise<ApiResponse<GovernanceEvaluation>> {
-    return this.fetch("/api/governance/evaluate", {
-      method: "POST",
+    return this.fetch('/api/governance/evaluate', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
 
   // Agents
   async getAgents(): Promise<ApiResponse<Agent[]>> {
-    return this.fetch("/api/agents");
+    return this.fetch('/api/agents');
   }
 
   async getAgent(agentId: string): Promise<ApiResponse<Agent>> {
@@ -329,8 +314,8 @@ class ApiClient {
     currency: string;
     description: string;
   }): Promise<ApiResponse<GovernanceEvaluation>> {
-    return this.fetch("/api/spend/preview", {
-      method: "POST",
+    return this.fetch('/api/spend/preview', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
@@ -341,22 +326,20 @@ class ApiClient {
     currency: string;
     description: string;
   }): Promise<ApiResponse<Record<string, unknown>>> {
-    return this.fetch("/api/spend", {
-      method: "POST",
+    return this.fetch('/api/spend', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
 
   // Intent
   async getIntentMetrics(): Promise<ApiResponse<IntentMetrics>> {
-    return this.fetch("/api/intent/metrics");
+    return this.fetch('/api/intent/metrics');
   }
 
-  async processIntent(
-    text: string,
-  ): Promise<ApiResponse<Record<string, unknown>>> {
-    return this.fetch("/api/intent", {
-      method: "POST",
+  async processIntent(text: string): Promise<ApiResponse<Record<string, unknown>>> {
+    return this.fetch('/api/intent', {
+      method: 'POST',
       body: JSON.stringify({ text }),
     });
   }
@@ -366,26 +349,26 @@ class ApiClient {
     name: string;
     chain: string;
   }): Promise<ApiResponse<Record<string, unknown>>> {
-    return this.fetch("/api/ows/bootstrap", {
-      method: "POST",
+    return this.fetch('/api/ows/bootstrap', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
 
   async getWallets(): Promise<ApiResponse<Array<Record<string, unknown>>>> {
-    return this.fetch("/api/ows/wallets");
+    return this.fetch('/api/ows/wallets');
   }
 
   async updateWallet(
     walletId: string,
     params: {
-      executionProvider?: "local" | "keeperhub";
+      executionProvider?: 'local' | 'keeperhub';
       chainId?: number | string;
       keeperHubWalletAddress?: string;
     },
   ): Promise<ApiResponse<Record<string, unknown>>> {
     return this.fetch(`/api/ows/wallets/${encodeURIComponent(walletId)}`, {
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify(params),
     });
   }
@@ -394,55 +377,51 @@ class ApiClient {
     walletId: string;
     scopes: string[];
   }): Promise<ApiResponse<Record<string, unknown>>> {
-    return this.fetch("/api/ows/api-keys", {
-      method: "POST",
+    return this.fetch('/api/ows/api-keys', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
 
   // Workspace API Keys
   async getApiKeys(): Promise<ApiResponse<ApiKey[]>> {
-    return this.fetch("/api-keys");
+    return this.fetch('/api-keys');
   }
 
   async createWorkspaceApiKey(params: {
     name: string;
     scopes: string[];
   }): Promise<ApiResponse<ApiKeyCreateResponse>> {
-    return this.fetch("/api-keys", {
-      method: "POST",
+    return this.fetch('/api-keys', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
 
-  async revokeApiKey(
-    keyId: string,
-  ): Promise<ApiResponse<{ id: string; revokedAt: string }>> {
-    return this.fetch(`/api-keys/${keyId}`, { method: "DELETE" });
+  async revokeApiKey(keyId: string): Promise<ApiResponse<{ id: string; revokedAt: string }>> {
+    return this.fetch(`/api-keys/${keyId}`, { method: 'DELETE' });
   }
 
   // Workspace
   async updateWorkspace(params: {
     name?: string;
-    tier?: "demo" | "live";
+    tier?: 'demo' | 'live';
     suspicionHoldThreshold?: number;
   }): Promise<ApiResponse<Workspace>> {
-    return this.fetch("/workspace", {
-      method: "PUT",
+    return this.fetch('/workspace', {
+      method: 'PUT',
       body: JSON.stringify(params),
     });
   }
 
   // Multi-workspace
   async listWorkspaces(): Promise<ApiResponse<Workspace[]>> {
-    return this.fetch("/workspaces");
+    return this.fetch('/workspaces');
   }
 
-  async createWorkspace(params: {
-    name: string;
-  }): Promise<ApiResponse<Workspace>> {
-    return this.fetch("/workspaces", {
-      method: "POST",
+  async createWorkspace(params: { name: string }): Promise<ApiResponse<Workspace>> {
+    return this.fetch('/workspaces', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
@@ -451,14 +430,12 @@ class ApiClient {
     workspaceId: string,
   ): Promise<ApiResponse<{ token: string; workspace: Workspace }>> {
     return this.fetch(`/workspaces/${workspaceId}/switch`, {
-      method: "POST",
+      method: 'POST',
     });
   }
 
   // Policy versioning
-  async getPolicyVersions(
-    policyId: string,
-  ): Promise<ApiResponse<PolicyVersion[]>> {
+  async getPolicyVersions(policyId: string): Promise<ApiResponse<PolicyVersion[]>> {
     return this.fetch(`/governance/policies/${policyId}/versions`);
   }
 
@@ -467,7 +444,7 @@ class ApiClient {
     versionId: string,
   ): Promise<ApiResponse<{ id: string; rolledBackToVersion: number }>> {
     return this.fetch(`/governance/policies/${policyId}/rollback`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify({ versionId }),
     });
   }
@@ -478,21 +455,17 @@ class ApiClient {
     goal: string;
     previewOnly?: boolean;
   }): Promise<{ success: boolean; run: CopilotRun }> {
-    return this.fetch("/api/copilot/runs", {
-      method: "POST",
+    return this.fetch('/api/copilot/runs', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
 
-  async getCopilotRun(
-    runId: string,
-  ): Promise<{ success: boolean; run: CopilotRun }> {
+  async getCopilotRun(runId: string): Promise<{ success: boolean; run: CopilotRun }> {
     return this.fetch(`/api/copilot/runs/${runId}`);
   }
 
-  async listCopilotRuns(
-    limit = 10,
-  ): Promise<{ success: boolean; runs: CopilotRun[] }> {
+  async listCopilotRuns(limit = 10): Promise<{ success: boolean; runs: CopilotRun[] }> {
     return this.fetch(`/api/copilot/runs?limit=${limit}`);
   }
 
@@ -501,7 +474,7 @@ class ApiClient {
     params: { approve: boolean; reason?: string },
   ): Promise<{ success: boolean; run: CopilotRun }> {
     return this.fetch(`/api/copilot/runs/${runId}/confirm`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
@@ -516,19 +489,12 @@ class ApiClient {
     const controller = new AbortController();
     const token = getAuthToken();
 
-    this.connectGenericSseStream(
-      `/api/copilot/runs/${runId}/events/stream`,
-      token,
-      controller,
-      {
-        onEvent(event) {
-          callbacks.onEvent(event as unknown as CopilotEvent);
-        },
-        onError: callbacks.onError,
+    this.connectGenericSseStream(`/api/copilot/runs/${runId}/events/stream`, token, controller, {
+      onEvent(event) {
+        callbacks.onEvent(event as unknown as CopilotEvent);
       },
-    ).catch((err) =>
-      callbacks.onError(err instanceof Error ? err.message : String(err)),
-    );
+      onError: callbacks.onError,
+    }).catch((err) => callbacks.onError(err instanceof Error ? err.message : String(err)));
 
     return controller;
   }
@@ -552,14 +518,14 @@ class ApiClient {
   }): Promise<{ status: number; data: unknown }> {
     const { workspaceMode } = useAuthStore.getState();
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "X-Workspace-Mode": workspaceMode,
+      'Content-Type': 'application/json',
+      'X-Workspace-Mode': workspaceMode,
     };
     const token = getAuthToken();
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const response = await fetch(`/api/governance/evaluate`, {
-      method: "POST",
+      method: 'POST',
       headers,
       body: JSON.stringify(params),
     });
@@ -585,7 +551,11 @@ class ApiClient {
   connectFheSse(
     runId: string,
     callbacks: {
-      onEvent: (event: { type: string; stepName?: string; payload?: Record<string, unknown> }) => void;
+      onEvent: (event: {
+        type: string;
+        stepName?: string;
+        payload?: Record<string, unknown>;
+      }) => void;
       onComplete: (result: Record<string, unknown>) => void;
       onError: (error: string) => void;
     },
@@ -593,9 +563,8 @@ class ApiClient {
     const controller = new AbortController();
     const token = getAuthToken();
 
-    this.connectSseStream(runId, token, controller, callbacks).catch(
-      (err) =>
-        callbacks.onError(err instanceof Error ? err.message : String(err)),
+    this.connectSseStream(runId, token, controller, callbacks).catch((err) =>
+      callbacks.onError(err instanceof Error ? err.message : String(err)),
     );
 
     return controller;
@@ -609,82 +578,74 @@ class ApiClient {
     token: string | null,
     controller: AbortController,
     callbacks: {
-      onEvent: (event: { type: string; stepName?: string; payload?: Record<string, unknown> }) => void;
+      onEvent: (event: {
+        type: string;
+        stepName?: string;
+        payload?: Record<string, unknown>;
+      }) => void;
       onComplete: (result: Record<string, unknown>) => void;
       onError: (error: string) => void;
     },
   ): Promise<void> {
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     };
     if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(
-      `/api/cre/runs/${runId}/events/stream`,
-      {
-        headers,
-        signal: controller.signal,
-      },
-    );
+    const response = await fetch(`/api/cre/runs/${runId}/events/stream`, {
+      headers,
+      signal: controller.signal,
+    });
 
     if (!response.ok || !response.body) {
-      throw new Error(
-        `SSE connection failed: ${response.status} ${response.statusText}`,
-      );
+      throw new Error(`SSE connection failed: ${response.status} ${response.statusText}`);
     }
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = "";
-    let currentEvent = "";
-    let currentData = "";
+    let buffer = '';
+    let currentEvent = '';
+    let currentData = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
-        if (line.startsWith("event: ")) {
+        if (line.startsWith('event: ')) {
           currentEvent = line.slice(7).trim();
-        } else if (line.startsWith("data: ")) {
+        } else if (line.startsWith('data: ')) {
           currentData = line.slice(6).trim();
-        } else if (line === "" && currentData) {
+        } else if (line === '' && currentData) {
           // Empty line = event delimiter
           try {
             const parsed = JSON.parse(currentData);
-            if (currentEvent === "run_event") {
+            if (currentEvent === 'run_event') {
               callbacks.onEvent({
-                type: (parsed.type || parsed.eventName || "") as string,
+                type: (parsed.type || parsed.eventName || '') as string,
                 stepName: parsed.stepName as string | undefined,
                 payload: parsed.payload as Record<string, unknown> | undefined,
               });
 
               // Detect completion from run_event payload
-              if (
-                parsed.type === "run_finished" &&
-                parsed.payload?.result
-              ) {
-                callbacks.onComplete(
-                  parsed.payload.result as Record<string, unknown>,
-                );
-              } else if (parsed.type === "run_failed") {
-                callbacks.onError(
-                  "FHE evaluation failed on the network" as string,
-                );
+              if (parsed.type === 'run_finished' && parsed.payload?.result) {
+                callbacks.onComplete(parsed.payload.result as Record<string, unknown>);
+              } else if (parsed.type === 'run_failed') {
+                callbacks.onError('FHE evaluation failed on the network' as string);
               }
             }
           } catch {
             // Ignore parse errors on malformed SSE data
           }
-          currentEvent = "";
-          currentData = "";
-        } else if (line.startsWith(": ")) {
+          currentEvent = '';
+          currentData = '';
+        } else if (line.startsWith(': ')) {
           // Comment / heartbeat — ignore
         }
       }
@@ -701,10 +662,10 @@ class ApiClient {
     },
   ): Promise<void> {
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     };
     if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     const response = await fetch(endpoint, {
@@ -713,43 +674,41 @@ class ApiClient {
     });
 
     if (!response.ok || !response.body) {
-      throw new Error(
-        `SSE connection failed: ${response.status} ${response.statusText}`,
-      );
+      throw new Error(`SSE connection failed: ${response.status} ${response.statusText}`);
     }
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = "";
-    let currentEvent = "";
-    let currentData = "";
+    let buffer = '';
+    let currentEvent = '';
+    let currentData = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
-        if (line.startsWith("event: ")) {
+        if (line.startsWith('event: ')) {
           currentEvent = line.slice(7).trim();
-        } else if (line.startsWith("data: ")) {
+        } else if (line.startsWith('data: ')) {
           currentData = line.slice(6).trim();
-        } else if (line === "" && currentData) {
+        } else if (line === '' && currentData) {
           try {
             const parsed = JSON.parse(currentData) as Record<string, unknown>;
-            if (currentEvent === "run_event") {
+            if (currentEvent === 'run_event') {
               callbacks.onEvent(parsed);
-            } else if (currentEvent === "error") {
-              callbacks.onError(String(parsed.message || "SSE error"));
+            } else if (currentEvent === 'error') {
+              callbacks.onError(String(parsed.message || 'SSE error'));
             }
           } catch {
             // Ignore malformed SSE frames.
           }
-          currentEvent = "";
-          currentData = "";
+          currentEvent = '';
+          currentData = '';
         }
       }
     }
@@ -763,8 +722,8 @@ class ApiClient {
     walletAddress?: string;
     budget?: string;
   }): Promise<ApiResponse<Agent>> {
-    return this.fetch("/api/agents/register", {
-      method: "POST",
+    return this.fetch('/api/agents/register', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
@@ -777,8 +736,8 @@ class ApiClient {
     budget?: string;
     webhookUrl?: string;
   }): Promise<ApiResponse<Agent>> {
-    return this.fetch("/api/agents/connect", {
-      method: "POST",
+    return this.fetch('/api/agents/connect', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
@@ -791,8 +750,8 @@ class ApiClient {
     rules?: Array<Record<string, unknown>>;
     metadata?: Record<string, unknown>;
   }): Promise<ApiResponse<Policy>> {
-    return this.fetch("/api/governance/policies", {
-      method: "POST",
+    return this.fetch('/api/governance/policies', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
@@ -802,8 +761,8 @@ class ApiClient {
     audio: string; // base64
     mimeType?: string;
   }): Promise<ApiResponse<{ text: string; language?: string }>> {
-    return this.fetch("/api/speech/transcribe", {
-      method: "POST",
+    return this.fetch('/api/speech/transcribe', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
@@ -811,10 +770,10 @@ class ApiClient {
   // Agent status update
   async updateAgentStatus(
     agentId: string,
-    status: "active" | "paused" | "inactive",
+    status: 'active' | 'paused' | 'inactive',
   ): Promise<ApiResponse<{ id: string; status: string }>> {
     return this.fetch(`/api/agents/${agentId}/status`, {
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify({ status }),
     });
   }
@@ -835,27 +794,44 @@ class ApiClient {
     run?: Record<string, unknown>;
     transfer?: {
       transferTxHash?: string;
-      transferStatus?: "sent" | "failed" | "skipped";
+      transferExecutionId?: string;
+      transferChainId?: number;
+      transferFrom?: string;
+      transferTransactionLink?: string;
+      transferSponsored?: boolean;
+      transferVerified?: boolean;
+      transferReceiptStatus?: string;
+      transferReceipts?: Array<{
+        hash: string;
+        chainId?: number;
+        verified?: boolean;
+        receiptStatus?: string;
+        blockNumber?: number;
+        gasUsed?: string;
+        verifiedAt?: string;
+      }>;
+      transferStatus?: 'sent' | 'failed' | 'skipped' | 'uncertain';
+      transferUncertain?: boolean;
       transferError?: string;
     };
     error?: string;
   }> {
     const { workspaceMode } = useAuthStore.getState();
     const idemKey =
-      typeof crypto !== "undefined" && crypto.randomUUID
+      typeof crypto !== 'undefined' && crypto.randomUUID
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "X-Workspace-Mode": workspaceMode,
-      "Idempotency-Key": idemKey,
+      'Content-Type': 'application/json',
+      'X-Workspace-Mode': workspaceMode,
+      'Idempotency-Key': idemKey,
     };
-    if (this.apiKey) headers["x-api-key"] = this.apiKey;
+    if (this.apiKey) headers['x-api-key'] = this.apiKey;
     const token = getAuthToken();
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const response = await fetch(`/api/cre/runs/${runId}/approval`, {
-      method: "POST",
+      method: 'POST',
       headers,
       body: JSON.stringify(params),
     });
@@ -882,12 +858,10 @@ class ApiClient {
 
   // ── Sealed-bid vendor selection ─────────────────────────────────────────
   async getSealedBidRounds(): Promise<ApiResponse<SealedBidRoundSummary[]>> {
-    return this.fetch("/api/vendor/sealed-bid/rounds");
+    return this.fetch('/api/vendor/sealed-bid/rounds');
   }
 
-  async getSealedBidRound(
-    roundId: string,
-  ): Promise<ApiResponse<SealedBidRound>> {
+  async getSealedBidRound(roundId: string): Promise<ApiResponse<SealedBidRound>> {
     return this.fetch(`/api/vendor/sealed-bid/rounds/${encodeURIComponent(roundId)}`);
   }
 
@@ -907,7 +881,7 @@ class ApiClient {
     serviceCategory: string;
     deadline: string;
     maxBids: number;
-    backend?: "fhe" | "canton";
+    backend?: 'fhe' | 'canton';
     manager?: string;
     // Agent governance — optional. If present, the backend creates a CRE
     // run, records a round_created event, and gates closeRound on policy.
@@ -915,8 +889,8 @@ class ApiClient {
     settlementAmount?: number;
     settlementAssetTag?: string;
   }): Promise<ApiResponse<SealedBidRound>> {
-    return this.fetch("/api/vendor/sealed-bid/rounds", {
-      method: "POST",
+    return this.fetch('/api/vendor/sealed-bid/rounds', {
+      method: 'POST',
       body: JSON.stringify(params),
     });
   }
@@ -927,23 +901,17 @@ class ApiClient {
     amountUsd: number;
     proposalDetails?: string;
   }): Promise<ApiResponse<SealedBid>> {
-    return this.fetch(
-      `/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/bid`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          bidder: params.bidder,
-          amountUsd: params.amountUsd,
-          proposalDetails: params.proposalDetails,
-        }),
-      },
-    );
+    return this.fetch(`/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/bid`, {
+      method: 'POST',
+      body: JSON.stringify({
+        bidder: params.bidder,
+        amountUsd: params.amountUsd,
+        proposalDetails: params.proposalDetails,
+      }),
+    });
   }
 
-  async closeSealedBidRound(params: {
-    roundId: string;
-    manager?: string;
-  }): Promise<
+  async closeSealedBidRound(params: { roundId: string; manager?: string }): Promise<
     | ApiResponse<{
         roundId: string;
         status: string;
@@ -952,20 +920,15 @@ class ApiClient {
       }>
     | ClosePolicyRejected
   > {
-    return this.fetch(
-      `/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/close`,
-      {
-        method: "POST",
-        body: JSON.stringify({ manager: params.manager }),
-      },
-    );
+    return this.fetch(`/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/close`, {
+      method: 'POST',
+      body: JSON.stringify({ manager: params.manager }),
+    });
   }
 
   // Fetch the tamper-evident governance event timeline for an agent-governed
   // round. Returns 404 for non-agent-governed rounds — callers should guard.
-  async getGovernanceTimeline(
-    roundId: string,
-  ): Promise<ApiResponse<GovernanceTimeline>> {
+  async getGovernanceTimeline(roundId: string): Promise<ApiResponse<GovernanceTimeline>> {
     return this.fetch(
       `/api/vendor/sealed-bid/rounds/${encodeURIComponent(roundId)}/governance-timeline`,
     );
@@ -973,7 +936,7 @@ class ApiClient {
 
   async revealSealedBidWinner(params: {
     roundId: string;
-    selectionMethod: "lowest-bid" | "highest-bid" | "specific";
+    selectionMethod: 'lowest-bid' | 'highest-bid' | 'specific';
     specificBidder?: string;
   }): Promise<
     ApiResponse<{
@@ -988,7 +951,7 @@ class ApiClient {
     return this.fetch(
       `/api/vendor/sealed-bid/rounds/${encodeURIComponent(params.roundId)}/reveal`,
       {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({
           selectionMethod: params.selectionMethod,
           specificBidder: params.specificBidder,
@@ -1001,13 +964,13 @@ class ApiClient {
 // Types for the sealed-bid endpoints. Kept in this file so both apiClient
 // and the frontend components share a single canonical shape without a
 // separate `types.ts` module for one feature.
-export type SealedBidBackendName = "fhe" | "canton";
-export type SealedBidRoundStatus = "open" | "closed" | "revealed";
+export type SealedBidBackendName = 'fhe' | 'canton';
+export type SealedBidRoundStatus = 'open' | 'closed' | 'revealed';
 export interface SealedBid {
   bidder: string;
   encryptedAmount: string;
   proposalHash: string;
-  status: "pending" | "selected" | "rejected";
+  status: 'pending' | 'selected' | 'rejected';
   submittedAt: string;
   index: number;
 }
@@ -1095,7 +1058,7 @@ export interface GovernanceTimeline {
 // Response shape when the policy gate rejects a close attempt (HTTP 403).
 export interface ClosePolicyRejected {
   success: false;
-  error: "Policy gate failed";
+  error: 'Policy gate failed';
   policyChecks: PolicyCheck[];
   reason: string;
   timestamp: string;
@@ -1114,17 +1077,17 @@ export interface ObservabilityStatus {
   dashboards: Array<{
     title: string;
     description: string;
-    status: "live" | "upcoming";
+    status: 'live' | 'upcoming';
   }>;
   instrumentedSpans: Array<{
     name: string;
     source: string;
-    status: "live" | "upcoming";
+    status: 'live' | 'upcoming';
   }>;
   instrumentedMetrics: Array<{
     name: string;
     source: string;
-    status: "live" | "upcoming";
+    status: 'live' | 'upcoming';
   }>;
 }
 
@@ -1145,7 +1108,7 @@ export interface ObservabilityMetrics {
     avgLatencyP95Ms: number;
   };
   live: boolean;
-  range?: "1h" | "24h" | "7d";
+  range?: '1h' | '24h' | '7d';
   message?: string;
 }
 

@@ -740,23 +740,34 @@ export class CreController {
         const operatorId = req.userId;
         const transfer = await owsWalletService.resumeHeldSpend(req.params.runId, operatorId);
         if (transfer.transferStatus !== 'sent') {
-          // The transfer didn't move money — the run is still "needs approval".
-          // Do NOT flip to "failed" (that would route subsequent approve clicks
-          // through the generic branch, which marks the run completed without
-          // broadcasting) and do NOT cache the failure body under the idem key
-          // (that would block a retry from re-broadcasting). We surface the
-          // error to the operator and leave the held run in place for retry.
-          await pushRunEvent(normalized, {
+          // A returned failure was rolled back to the held state. An uncertain
+          // result is different: the provider execution may already have
+          // moved funds, so never reopen it or offer a blind retry.
+          const current = await creRunStore.get(req.params.runId);
+          const currentRun = current ? normalizeRun(current) : normalized;
+          if (transfer.transferStatus === 'uncertain') {
+            res.status(409).json({
+              success: false,
+              error: transfer.transferError || transfer.error || 'Execution requires reconciliation',
+              run: currentRun,
+              transfer,
+            });
+            return;
+          }
+
+          await pushRunEvent(currentRun, {
             type: 'run_failed',
             payload: {
               reason: 'transfer_failed',
               note: transfer.transferError || transfer.error || null,
             },
           });
+          const retryableRun = normalizeRun(currentRun);
+          await creRunStore.replace(retryableRun);
           res.json({
             success: false,
             error: transfer.transferError || transfer.error || 'Native transfer failed',
-            run: normalized,
+            run: retryableRun,
             transfer,
           });
           return;
@@ -776,6 +787,14 @@ export class CreController {
             reason: 'approval_granted',
             note: safeReason || null,
             transferTxHash: transfer.transferTxHash,
+            transferExecutionId: transfer.transferExecutionId,
+            transferChainId: transfer.transferChainId,
+            transferFrom: transfer.transferFrom,
+            transferTransactionLink: transfer.transferTransactionLink,
+            transferSponsored: transfer.transferSponsored,
+            transferVerified: transfer.transferVerified,
+            transferReceiptStatus: transfer.transferReceiptStatus,
+            transferReceipts: transfer.transferReceipts,
           },
         });
 

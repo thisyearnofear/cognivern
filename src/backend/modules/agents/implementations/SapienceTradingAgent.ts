@@ -31,24 +31,24 @@ import {
   ComplianceResult,
   AgentActivity,
   AgentInfo,
-} from "@backend/modules/agents/types/TradingAgent.js";
-import { Logger } from "@backend/shared/logging/Logger.js";
+} from '@backend/modules/agents/types/TradingAgent.js';
+import { Logger } from '@backend/shared/logging/Logger.js';
 import {
   GovernanceClient,
   sharedGovernanceClient,
-} from "@backend/services/governance/GovernanceClient.js";
-import { tracer, meter } from "@backend/observability/otel.js";
-import { owsWalletService } from "@backend/services/blockchain/OwsWalletService.js";
+} from '@backend/services/governance/GovernanceClient.js';
+import { tracer, meter } from '@backend/observability/otel.js';
+import { owsWalletService } from '@backend/services/blockchain/OwsWalletService.js';
 import type {
   ExecutionResult as OwsExecutionResult,
   SpendIntent as OwsSpendIntent,
-} from "@backend/services/blockchain/OwsWalletService.js";
+} from '@backend/services/blockchain/OwsWalletService.js';
 
-const logger = new Logger("SapienceTradingAgent");
+const logger = new Logger('SapienceTradingAgent');
 
-const SAPIENCE_POLICY_ID = "sapience-trading-policy";
-const AGENT_ID = "sapience-agent-1";
-const HUMAN_CONFIRM_TOKEN_ENV = "SAPIENCE_HUMAN_CONFIRM_TOKEN";
+const SAPIENCE_POLICY_ID = 'sapience-trading-policy';
+const AGENT_ID = 'sapience-agent-1';
+const HUMAN_CONFIRM_TOKEN_ENV = 'SAPIENCE_HUMAN_CONFIRM_TOKEN';
 // Trades above this USDe amount auto-fail in CI/dev if no human token is set.
 const AUTO_CONFIRM_MAX_USDE = 5;
 
@@ -57,12 +57,29 @@ export type KeeperHubRebalanceResult =
       ok: true;
       runId?: string;
       transferTxHash?: string;
+      transferExecutionId?: string;
+      transferChainId?: number;
+      transferFrom?: string;
+      transferTransactionLink?: string;
+      transferSponsored?: boolean;
+      transferVerified?: boolean;
+      transferReceiptStatus?: string;
+      transferUncertain?: boolean;
+      transferReceipts?: Array<{
+        hash: string;
+        chainId?: number;
+        verified?: boolean;
+        receiptStatus?: string;
+        blockNumber?: number;
+        gasUsed?: string;
+        verifiedAt?: string;
+      }>;
       txHash?: string;
       traceId?: string;
       intentId: string;
       policyId?: string;
-      status: "approved" | "held" | "denied";
-      executionProvider: "keeperhub";
+      status: 'approved' | 'held' | 'denied';
+      executionProvider: 'keeperhub';
     }
   | {
       ok: false;
@@ -71,17 +88,17 @@ export type KeeperHubRebalanceResult =
     };
 
 type SapienceServiceType = InstanceType<
-  typeof import("@backend/services/SapienceService.js").SapienceService
+  typeof import('@backend/services/SapienceService.js').SapienceService
 >;
 type AutomatedForecastingServiceType = InstanceType<
-  typeof import("@backend/services/ai/AutomatedForecastingService.js").AutomatedForecastingService
+  typeof import('@backend/services/ai/AutomatedForecastingService.js').AutomatedForecastingService
 >;
 
 export class SapienceTradingAgent implements TradingAgent {
   public readonly id = AGENT_ID;
   public readonly name: string;
-  public readonly type = "sapience" as const;
-  public status: "active" | "inactive" | "paused" | "error" = "inactive";
+  public readonly type = 'sapience' as const;
+  public status: 'active' | 'inactive' | 'paused' | 'error' = 'inactive';
   public config: TradingAgentConfig;
 
   private sapienceService?: SapienceServiceType;
@@ -90,11 +107,7 @@ export class SapienceTradingAgent implements TradingAgent {
   private portfolio: Portfolio | null = null;
   private history: any[] = [];
 
-  constructor(
-    name: string,
-    config: TradingAgentConfig,
-    governance?: GovernanceClient,
-  ) {
+  constructor(name: string, config: TradingAgentConfig, governance?: GovernanceClient) {
     this.name = name;
     this.config = config;
     this.governance = governance || sharedGovernanceClient;
@@ -103,11 +116,10 @@ export class SapienceTradingAgent implements TradingAgent {
   private async ensureServices(): Promise<void> {
     if (this.sapienceService && this.forecastingService) return;
 
-    const [{ SapienceService }, { AutomatedForecastingService }] =
-      await Promise.all([
-        import("@backend/services/SapienceService.js"),
-        import("@backend/services/ai/AutomatedForecastingService.js"),
-      ]);
+    const [{ SapienceService }, { AutomatedForecastingService }] = await Promise.all([
+      import('@backend/services/SapienceService.js'),
+      import('@backend/services/ai/AutomatedForecastingService.js'),
+    ]);
 
     this.sapienceService = new SapienceService();
     this.forecastingService = new AutomatedForecastingService({
@@ -116,39 +128,39 @@ export class SapienceTradingAgent implements TradingAgent {
   }
 
   async initialize(): Promise<void> {
-    this.status = "inactive";
+    this.status = 'inactive';
   }
 
   async start(): Promise<void> {
-    if (this.status === "error") {
-      throw new Error("Cannot start agent in error state");
+    if (this.status === 'error') {
+      throw new Error('Cannot start agent in error state');
     }
     await this.ensureServices();
-    this.status = "active";
+    this.status = 'active';
     await this.reportActivity({
       agentId: this.id,
-      type: "status_change",
-      data: { status: "active" },
+      type: 'status_change',
+      data: { status: 'active' },
       timestamp: new Date(),
     });
   }
 
   async stop(): Promise<void> {
-    this.status = "inactive";
+    this.status = 'inactive';
     await this.reportActivity({
       agentId: this.id,
-      type: "status_change",
-      data: { status: "inactive" },
+      type: 'status_change',
+      data: { status: 'inactive' },
       timestamp: new Date(),
     });
   }
 
   async pause(): Promise<void> {
-    this.status = "paused";
+    this.status = 'paused';
   }
 
   async resume(): Promise<void> {
-    this.status = "active";
+    this.status = 'active';
   }
 
   /**
@@ -165,17 +177,17 @@ export class SapienceTradingAgent implements TradingAgent {
     governanceStatus?: string;
     error?: string;
   }> {
-    if (this.status !== "active") {
-      return { success: false, error: "agent not active" };
+    if (this.status !== 'active') {
+      return { success: false, error: 'agent not active' };
     }
 
     return tracer.startActiveSpan(
-      "agent.sapience.forecast_cycle",
+      'agent.sapience.forecast_cycle',
       {
         attributes: {
-          "agent.id": this.id,
-          "agent.type": this.type,
-          "agent.name": this.name,
+          'agent.id': this.id,
+          'agent.type': this.type,
+          'agent.name': this.name,
         },
       },
       async (span) => {
@@ -187,46 +199,42 @@ export class SapienceTradingAgent implements TradingAgent {
           const result = await this.runCycleWithGovernance();
           if (!result.success) {
             span.setAttributes({
-              "agent.cycle.success": false,
-              "agent.cycle.error": result.reason || "forecast failed",
+              'agent.cycle.success': false,
+              'agent.cycle.error': result.reason || 'forecast failed',
             });
-            span.setStatus({ code: 2, message: result.reason || "forecast failed" });
-            return { success: false, error: result.reason || "forecast failed" };
+            span.setStatus({ code: 2, message: result.reason || 'forecast failed' });
+            return { success: false, error: result.reason || 'forecast failed' };
           }
 
-      meter
-        .createCounter("cognivern.agent.cycles.total")
-        .add(1, { agent_type: this.type, outcome: "success" });
-      meter
-        .createHistogram("cognivern.agent.cycle.duration.ms")
-        .record(Date.now() - startedAt, { agent_type: this.type });
+          meter
+            .createCounter('cognivern.agent.cycles.total')
+            .add(1, { agent_type: this.type, outcome: 'success' });
+          meter
+            .createHistogram('cognivern.agent.cycle.duration.ms')
+            .record(Date.now() - startedAt, { agent_type: this.type });
 
-      span.setAttribute("agent.cycle.success", true);
-      span.setStatus({ code: 1 });
+          span.setAttribute('agent.cycle.success', true);
+          span.setStatus({ code: 1 });
 
-      return {
-        success: true,
-        decisionId: result.decisionId,
-        attestationHash: result.attestationHash,
-        governanceStatus: result.tradeSubmitted
-          ? "trade_executed"
-          : "forecast_only",
-      };
-    } catch (error) {
-      meter
-        .createCounter("cognivern.agent.cycles.total")
-        .add(1, { agent_type: this.type, outcome: "error" });
-      span.recordException(error as Error);
-      span.setStatus({ code: 2, message: "internal" });
-      logger.error(
-        "Forecast cycle failed",
-        error instanceof Error ? error : undefined,
-      );
-      return { success: false, error: "internal" };
-    } finally {
-      span.end();
-    }
-    });
+          return {
+            success: true,
+            decisionId: result.decisionId,
+            attestationHash: result.attestationHash,
+            governanceStatus: result.tradeSubmitted ? 'trade_executed' : 'forecast_only',
+          };
+        } catch (error) {
+          meter
+            .createCounter('cognivern.agent.cycles.total')
+            .add(1, { agent_type: this.type, outcome: 'error' });
+          span.recordException(error as Error);
+          span.setStatus({ code: 2, message: 'internal' });
+          logger.error('Forecast cycle failed', error instanceof Error ? error : undefined);
+          return { success: false, error: 'internal' };
+        } finally {
+          span.end();
+        }
+      },
+    );
   }
 
   /**
@@ -251,15 +259,25 @@ export class SapienceTradingAgent implements TradingAgent {
     auditLogId?: string;
     reason?: string;
   }> {
-    if (this.status !== "active") {
-      return { success: false, forecastSubmitted: false, tradeSubmitted: false, reason: "agent not active" };
+    if (this.status !== 'active') {
+      return {
+        success: false,
+        forecastSubmitted: false,
+        tradeSubmitted: false,
+        reason: 'agent not active',
+      };
     }
     await this.ensureServices();
 
     // 1. Pick a condition
     const condition = await this.forecastingService!.fetchOptimalCondition();
     if (!condition) {
-      return { success: false, forecastSubmitted: false, tradeSubmitted: false, reason: "no open conditions" };
+      return {
+        success: false,
+        forecastSubmitted: false,
+        tradeSubmitted: false,
+        reason: 'no open conditions',
+      };
     }
 
     // 2. Generate the forecast
@@ -272,7 +290,7 @@ export class SapienceTradingAgent implements TradingAgent {
       agentId: this.id,
       policyId: SAPIENCE_POLICY_ID,
       action: {
-        type: "sapience_forecast_attestation",
+        type: 'sapience_forecast_attestation',
         description: `Submit EAS attestation for market ${condition.id}`,
         input: JSON.stringify({
           conditionId: condition.id,
@@ -280,9 +298,9 @@ export class SapienceTradingAgent implements TradingAgent {
           reasoning: forecast.reasoning,
         }),
         metadata: {
-          protocol: "sapience",
-          asset: "USDe",
-          tradeType: "forecast_attestation",
+          protocol: 'sapience',
+          asset: 'USDe',
+          tradeType: 'forecast_attestation',
           conditionId: condition.id,
           gasCostUsd: 0.05,
         },
@@ -313,7 +331,7 @@ export class SapienceTradingAgent implements TradingAgent {
         success: true,
         forecastSubmitted: true,
         tradeSubmitted: false,
-        reason: "low confidence, forecast only",
+        reason: 'low confidence, forecast only',
       };
     }
 
@@ -323,7 +341,7 @@ export class SapienceTradingAgent implements TradingAgent {
         success: true,
         forecastSubmitted: true,
         tradeSubmitted: false,
-        reason: "no market price",
+        reason: 'no market price',
       };
     }
     const edge = this.sapienceService!.calculateEdge(forecast.probability, marketPrice);
@@ -332,11 +350,11 @@ export class SapienceTradingAgent implements TradingAgent {
         success: true,
         forecastSubmitted: true,
         tradeSubmitted: false,
-        reason: "no significant edge",
+        reason: 'no significant edge',
       };
     }
 
-    const side: "YES" | "NO" = edge > 0 ? "YES" : "NO";
+    const side: 'YES' | 'NO' = edge > 0 ? 'YES' : 'NO';
     const amountUsde = 10; // 10 USDe per trade — well within the 50 USDe per-trade cap
 
     // 6. Preview the trade through Cognivern
@@ -345,12 +363,12 @@ export class SapienceTradingAgent implements TradingAgent {
       policyId: SAPIENCE_POLICY_ID,
       recipient: condition.id, // Sapience market id serves as the vendor ref
       amount: (amountUsde * 1e18).toString(), // USDe has 18 decimals
-      asset: "USDe",
+      asset: 'USDe',
       reason: `Sapience ${side} trade on: ${condition.shortName || condition.question}`,
       metadata: {
-        protocol: "sapience",
-        asset: "USDe",
-        tradeType: "mint",
+        protocol: 'sapience',
+        asset: 'USDe',
+        tradeType: 'mint',
         side,
         amountUsde,
         cumulativeDailyUsde: amountUsde, // simplified; real impl would track
@@ -363,7 +381,7 @@ export class SapienceTradingAgent implements TradingAgent {
       },
     });
 
-    if (preview.status === "denied" || !preview.attestationHash) {
+    if (preview.status === 'denied' || !preview.attestationHash) {
       logger.warn(`Trade preview denied: ${preview.reason}`);
       return {
         success: false,
@@ -391,7 +409,7 @@ export class SapienceTradingAgent implements TradingAgent {
         tradeSubmitted: false,
         decisionId: preview.decisionId,
         attestationHash: preview.attestationHash,
-        reason: "held for human confirmation",
+        reason: 'held for human confirmation',
       };
     }
 
@@ -400,12 +418,12 @@ export class SapienceTradingAgent implements TradingAgent {
       policyId: SAPIENCE_POLICY_ID,
       recipient: condition.id,
       amount: (amountUsde * 1e18).toString(),
-      asset: "USDe",
+      asset: 'USDe',
       reason: `Sapience ${side} trade on: ${condition.shortName || condition.question}`,
       metadata: {
-        protocol: "sapience",
-        asset: "USDe",
-        tradeType: "mint",
+        protocol: 'sapience',
+        asset: 'USDe',
+        tradeType: 'mint',
         side,
         amountUsde,
         conditionId: condition.id,
@@ -416,18 +434,16 @@ export class SapienceTradingAgent implements TradingAgent {
 
     // Anything other than an explicit approval (denied OR held) must block
     // the real market trade — a held spend awaits operator review.
-    if (executed.status !== "approved") {
+    if (executed.status !== 'approved') {
       return {
-        success: executed.status === "held",
+        success: executed.status === 'held',
         forecastSubmitted: true,
         tradeSubmitted: false,
         decisionId: executed.decisionId || preview.decisionId,
         attestationHash: preview.attestationHash,
         reason:
           executed.reason ||
-          (executed.status === "held"
-            ? "spend held for operator review"
-            : "spend denied"),
+          (executed.status === 'held' ? 'spend held for operator review' : 'spend denied'),
       };
     }
 
@@ -453,8 +469,8 @@ export class SapienceTradingAgent implements TradingAgent {
   }
 
   async executeTrade(decision: TradingDecision): Promise<TradeResult> {
-    if (this.status !== "active") {
-      throw new Error("Agent is not active");
+    if (this.status !== 'active') {
+      throw new Error('Agent is not active');
     }
     await this.ensureServices();
 
@@ -465,24 +481,24 @@ export class SapienceTradingAgent implements TradingAgent {
       policyId: SAPIENCE_POLICY_ID,
       recipient: decision.symbol,
       amount: (amountUsde * 1e18).toString(),
-      asset: "USDe",
+      asset: 'USDe',
       reason: decision.reasoning || `Sapience ${decision.action}`,
       metadata: {
-        protocol: "sapience",
-        asset: "USDe",
-        tradeType: "mint",
-        side: decision.action === "buy" ? "YES" : "NO",
+        protocol: 'sapience',
+        asset: 'USDe',
+        tradeType: 'mint',
+        side: decision.action === 'buy' ? 'YES' : 'NO',
         amountUsde,
         confidence: decision.confidence,
         conditionId: decision.symbol,
       },
     });
 
-    if (preview.status === "denied" || !preview.attestationHash) {
+    if (preview.status === 'denied' || !preview.attestationHash) {
       return {
         id: `forecast_${Date.now()}`,
         decision,
-        status: "failed",
+        status: 'failed',
         error: `governance denied: ${preview.reason}`,
         timestamp: new Date(),
       };
@@ -496,7 +512,7 @@ export class SapienceTradingAgent implements TradingAgent {
       return {
         id: `forecast_${Date.now()}`,
         decision,
-        status: "pending",
+        status: 'pending',
         error: `held for human confirmation (attestation ${preview.attestationHash})`,
         timestamp: new Date(),
       };
@@ -507,13 +523,13 @@ export class SapienceTradingAgent implements TradingAgent {
       policyId: SAPIENCE_POLICY_ID,
       recipient: decision.symbol,
       amount: (amountUsde * 1e18).toString(),
-      asset: "USDe",
+      asset: 'USDe',
       reason: decision.reasoning || `Sapience ${decision.action}`,
       metadata: {
-        protocol: "sapience",
-        asset: "USDe",
-        tradeType: "mint",
-        side: decision.action === "buy" ? "YES" : "NO",
+        protocol: 'sapience',
+        asset: 'USDe',
+        tradeType: 'mint',
+        side: decision.action === 'buy' ? 'YES' : 'NO',
         amountUsde,
         conditionId: decision.symbol,
       },
@@ -521,16 +537,16 @@ export class SapienceTradingAgent implements TradingAgent {
       humanConfirmationToken: humanToken,
     });
 
-    if (executed.status !== "approved") {
+    if (executed.status !== 'approved') {
       return {
         id: `forecast_${Date.now()}`,
         decision,
-        status: executed.status === "held" ? "pending" : "failed",
+        status: executed.status === 'held' ? 'pending' : 'failed',
         error:
           executed.reason ||
-          (executed.status === "held"
-            ? "spend held for operator review"
-            : "governance denied spend"),
+          (executed.status === 'held'
+            ? 'spend held for operator review'
+            : 'governance denied spend'),
         timestamp: new Date(),
       };
     }
@@ -545,7 +561,7 @@ export class SapienceTradingAgent implements TradingAgent {
       const tradeResult: TradeResult = {
         id: `forecast_${Date.now()}`,
         decision,
-        status: "executed",
+        status: 'executed',
         executedPrice: decision.price,
         executedQuantity: decision.quantity,
         fees: 0,
@@ -556,7 +572,7 @@ export class SapienceTradingAgent implements TradingAgent {
       if (this.history.length > 50) this.history.pop();
       await this.reportActivity({
         agentId: this.id,
-        type: "trade",
+        type: 'trade',
         data: tradeResult,
         timestamp: new Date(),
       });
@@ -565,8 +581,8 @@ export class SapienceTradingAgent implements TradingAgent {
       return {
         id: `forecast_${Date.now()}`,
         decision,
-        status: "failed",
-        error: error instanceof Error ? error.message : "Unknown error",
+        status: 'failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date(),
       };
     }
@@ -605,9 +621,8 @@ export class SapienceTradingAgent implements TradingAgent {
       profitableTrades: 0,
       averageTradeReturn: avgConfidence,
       period: {
-        start: this.history.length > 0
-          ? this.history[this.history.length - 1].timestamp
-          : new Date(),
+        start:
+          this.history.length > 0 ? this.history[this.history.length - 1].timestamp : new Date(),
         end: new Date(),
       },
     };
@@ -623,14 +638,14 @@ export class SapienceTradingAgent implements TradingAgent {
         agentId: this.id,
         policyId: SAPIENCE_POLICY_ID,
         action: {
-          type: "sapience_trade_intent",
+          type: 'sapience_trade_intent',
           description: `Sapience ${decision.action} ${decision.symbol}`,
           input: JSON.stringify(decision),
           metadata: {
-            protocol: "sapience",
-            asset: "USDe",
-            tradeType: "mint",
-            side: decision.action === "buy" ? "YES" : "NO",
+            protocol: 'sapience',
+            asset: 'USDe',
+            tradeType: 'mint',
+            side: decision.action === 'buy' ? 'YES' : 'NO',
             amountUsde: decision.price * decision.quantity,
             confidence: decision.confidence,
             conditionId: decision.symbol,
@@ -644,9 +659,9 @@ export class SapienceTradingAgent implements TradingAgent {
           : [
               {
                 rule: result.policyId,
-                severity: "high" as const,
+                severity: 'high' as const,
                 message: result.reason,
-                suggestedAction: "review policy or override",
+                suggestedAction: 'review policy or override',
               },
             ],
         warnings: [],
@@ -657,10 +672,10 @@ export class SapienceTradingAgent implements TradingAgent {
         isCompliant: false,
         violations: [
           {
-            rule: "governance-unreachable",
-            severity: "critical" as const,
-            message: `governance unreachable: ${error instanceof Error ? error.message : "unknown"}`,
-            suggestedAction: "verify Cognivern API is reachable and COGNIVERN_API_KEY is set",
+            rule: 'governance-unreachable',
+            severity: 'critical' as const,
+            message: `governance unreachable: ${error instanceof Error ? error.message : 'unknown'}`,
+            suggestedAction: 'verify Cognivern API is reachable and COGNIVERN_API_KEY is set',
           },
         ],
         warnings: [],
@@ -677,7 +692,7 @@ export class SapienceTradingAgent implements TradingAgent {
   }
 
   async isHealthy(): Promise<boolean> {
-    return this.status !== "error";
+    return this.status !== 'error';
   }
 
   async shutdown(): Promise<void> {
@@ -693,10 +708,10 @@ export class SapienceTradingAgent implements TradingAgent {
       config: this.config,
       createdAt: new Date(),
       lastActivity: new Date().toISOString(),
-      owner: "system",
-      capabilities: ["forecasting", "sapience-integration", "governed-spend"],
+      owner: 'system',
+      capabilities: ['forecasting', 'sapience-integration', 'governed-spend'],
       registeredAt: new Date().toISOString(),
-      source: "demo",
+      source: 'demo',
     };
   }
 
@@ -745,19 +760,19 @@ export class SapienceTradingAgent implements TradingAgent {
     reason: string;
     policyId?: string;
   }): Promise<KeeperHubRebalanceResult> {
-    if (this.status !== "active") {
-      return { ok: false, error: "agent not active" };
+    if (this.status !== 'active') {
+      return { ok: false, error: 'agent not active' };
     }
 
     return tracer.startActiveSpan(
-      "agent.sapience.keeperhub_rebalance",
+      'agent.sapience.keeperhub_rebalance',
       {
         attributes: {
-          "agent.id": this.id,
-          "agent.type": this.type,
-          "agent.name": this.name,
-          "wallet.id": params.walletId,
-          "agent.cycle.execution_provider": "keeperhub",
+          'agent.id': this.id,
+          'agent.type': this.type,
+          'agent.name': this.name,
+          'wallet.id': params.walletId,
+          'agent.cycle.execution_provider': 'keeperhub',
         },
       },
       async (span): Promise<KeeperHubRebalanceResult> => {
@@ -766,87 +781,102 @@ export class SapienceTradingAgent implements TradingAgent {
           agentId: this.id,
           recipient: params.recipient,
           amount: params.amountWei.toString(),
-          asset: "wei",
+          asset: 'wei',
           reason: params.reason,
           timestamp: new Date().toISOString(),
           metadata: {
             policyId: params.policyId || SAPIENCE_POLICY_ID,
-            executionProvider: "keeperhub",
+            executionProvider: 'keeperhub',
             walletId: params.walletId,
-            workflow: "keeperhub-rebalance",
+            workflow: 'keeperhub-rebalance',
           },
         };
 
         try {
-          const result: OwsExecutionResult = await owsWalletService.executeSpend(
-            intent,
-            { walletId: params.walletId },
-          );
+          const result: OwsExecutionResult = await owsWalletService.executeSpend(intent, {
+            walletId: params.walletId,
+          });
 
           span.setAttributes({
-            "spend.intent_id": intent.id,
-            "spend.status": result.status,
-            "spend.policy_id": result.policyId || "",
-            "spend.transfer_status": result.transferStatus || "skipped",
-            "spend.transfer_tx_hash": result.transferTxHash || "",
-            "spend.on_chain_status": result.onChainStatus || "skipped",
-            "spend.execution_provider": "keeperhub",
+            'spend.intent_id': intent.id,
+            'spend.status': result.status,
+            'spend.policy_id': result.policyId || '',
+            'spend.transfer_status': result.transferStatus || 'skipped',
+            'spend.transfer_tx_hash': result.transferTxHash || '',
+            'keeperhub.execution_id': result.transferExecutionId || '',
+            'keeperhub.chain_id': result.transferChainId || 0,
+            'keeperhub.from': result.transferFrom || '',
+            'keeperhub.transaction_link': result.transferTransactionLink || '',
+            'keeperhub.sponsored': result.transferSponsored ?? false,
+            'keeperhub.receipt_verified': result.transferVerified ?? false,
+            'keeperhub.receipt_status': result.transferReceiptStatus || '',
+            'spend.on_chain_status': result.onChainStatus || 'skipped',
+            'spend.execution_provider': 'keeperhub',
           });
           if (result.error) {
-            span.setAttributes({ "spend.error": result.error });
+            span.setAttributes({ 'spend.error': result.error });
           }
           span.setStatus({
-            code:
-              result.status === "approved" &&
-              result.transferStatus === "sent"
-                ? 0
-                : 2,
+            code: result.status === 'approved' && result.transferStatus === 'sent' ? 0 : 2,
             message:
-              result.status === "approved" && result.transferStatus === "sent"
-                ? "ok"
+              result.status === 'approved' && result.transferStatus === 'sent'
+                ? 'ok'
                 : result.error || result.reason || result.status,
           });
 
           const traceId = span.spanContext().traceId;
           meter
-            .createCounter("cognivern.agent.keeperhub.rebalance.total", {
-              description:
-                "Sapience agent KeeperHub-routed rebalance outcomes",
+            .createCounter('cognivern.agent.keeperhub.rebalance.total', {
+              description: 'Sapience agent KeeperHub-routed rebalance outcomes',
             })
             .add(1, {
-              "spend.status": result.status,
-              "spend.transfer_status": result.transferStatus || "skipped",
+              'spend.status': result.status,
+              'spend.transfer_status': result.transferStatus || 'skipped',
             });
 
-          if (result.status === "approved" && result.transferStatus === "sent") {
+          if (result.status === 'approved' && result.transferStatus === 'sent') {
             return {
               ok: true,
               runId: result.runId,
               transferTxHash: result.transferTxHash,
+              transferExecutionId: result.transferExecutionId,
+              transferChainId: result.transferChainId,
+              transferFrom: result.transferFrom,
+              transferTransactionLink: result.transferTransactionLink,
+              transferSponsored: result.transferSponsored,
+              transferVerified: result.transferVerified,
+              transferReceiptStatus: result.transferReceiptStatus,
+              transferReceipts: result.transferReceipts,
               txHash: result.txHash,
               traceId,
               intentId: intent.id,
               policyId: result.policyId,
-              status: "approved",
-              executionProvider: "keeperhub",
+              status: 'approved',
+              executionProvider: 'keeperhub',
             };
           }
           return {
             ok: true,
-            runId: result.runId,
-            transferTxHash: result.transferTxHash,
-            txHash: result.txHash,
-            traceId,
+            runId: result.runId,              transferTxHash: result.transferTxHash,
+              transferExecutionId: result.transferExecutionId,
+              transferChainId: result.transferChainId,
+              transferFrom: result.transferFrom,
+              transferTransactionLink: result.transferTransactionLink,
+              transferSponsored: result.transferSponsored,
+              transferVerified: result.transferVerified,
+              transferReceiptStatus: result.transferReceiptStatus,
+              transferUncertain: result.transferUncertain,
+              txHash: result.txHash,
+              traceId,
             intentId: intent.id,
             policyId: result.policyId,
             status: result.status,
-            executionProvider: "keeperhub",
+            executionProvider: 'keeperhub',
           };
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
+          const message = error instanceof Error ? error.message : String(error);
           span.setStatus({ code: 2, message });
-          logger.error("KeeperHub rebalance cycle failed", {
+          logger.error('KeeperHub rebalance cycle failed', {
             error: message,
             intentId: intent.id,
           });

@@ -1,8 +1,10 @@
 import logger from '@backend/utils/logger.js';
+import crypto from 'node:crypto';
 import { Policy } from '@backend/types/Policy.js';
 import { PolicyService, sharedPolicyService } from '@backend/services/governance/PolicyService.js';
 import { PolicyEnforcementService } from '@backend/services/governance/PolicyEnforcementService.js';
 import { CreRunRecorder } from '@backend/cre/runRecorder.js';
+import { CreRun } from '@backend/cre/types.js';
 import { creRunStore } from '@backend/cre/storage/CreRunStore.js';
 import { enrichCreRunEvidence } from '@backend/shared/utils/evidence.js';
 import { AgentAction } from '@backend/types/Agent.js';
@@ -68,8 +70,32 @@ export interface ExecutionResult {
    * NOT moved money. Never fabricate transferTxHash on failure.
    */
   transferTxHash?: string;
-  transferStatus?: 'sent' | 'failed' | 'skipped';
+  /** KeeperHub execution identifier for cross-system evidence correlation. */
+  transferExecutionId?: string;
+  /** Chain used by the execution provider, for explorer links and evidence. */
+  transferChainId?: number;
+  /** Sender identity reported by the managed execution provider. */
+  transferFrom?: string;
+  /** KeeperHub-provided explorer link for the transfer, when available. */
+  transferTransactionLink?: string;
+  /** Whether KeeperHub used a sponsored/relayed execution path. */
+  transferSponsored?: boolean;
+  /** KeeperHub's authoritative receipt verification result. */
+  transferVerified?: boolean;
+  transferReceiptStatus?: string;
+  transferReceipts?: Array<{
+    hash: string;
+    chainId?: number;
+    verified?: boolean;
+    receiptStatus?: string;
+    blockNumber?: number;
+    gasUsed?: string;
+    verifiedAt?: string;
+  }>;
+  transferStatus?: 'sent' | 'failed' | 'skipped' | 'uncertain';
   transferError?: string;
+  /** A provider execution exists, but completion/evidence is not yet safe to retry. */
+  transferUncertain?: boolean;
   /**
    * Independent reconciliation of the recorded transferTxHash against the
    * actual chain receipt (status, recipient, value). The audit record is
@@ -498,8 +524,36 @@ export class OwsWalletService {
     // onChainStatus). A failed transfer with status=approved is a PARTIAL
     // success, not moved money — callers must surface it.
     const transferTxHash = 'txHash' in transfer ? transfer.txHash : undefined;
-    const transferStatus: 'sent' | 'failed' = 'txHash' in transfer ? 'sent' : 'failed';
+    const transferExecutionId =
+      'executionId' in transfer && typeof transfer.executionId === 'string'
+        ? transfer.executionId
+        : undefined;
+    const transferChainId =
+      'chainId' in transfer && typeof transfer.chainId === 'number' ? transfer.chainId : undefined;
+    const transferFrom =
+      'from' in transfer && typeof transfer.from === 'string' ? transfer.from : undefined;
+    const transferTransactionLink =
+      'transactionLink' in transfer && typeof transfer.transactionLink === 'string'
+        ? transfer.transactionLink
+        : undefined;
+    const transferSponsored =
+      'sponsored' in transfer && typeof transfer.sponsored === 'boolean'
+        ? transfer.sponsored
+        : undefined;
+    const transferVerified =
+      'verified' in transfer && typeof transfer.verified === 'boolean'
+        ? transfer.verified
+        : undefined;
+    const transferReceiptStatus =
+      'receiptStatus' in transfer && typeof transfer.receiptStatus === 'string'
+        ? transfer.receiptStatus
+        : undefined;
+    const transferReceipts =
+      'receipts' in transfer && Array.isArray(transfer.receipts) ? transfer.receipts : undefined;
     const transferError = 'error' in transfer ? transfer.error : undefined;
+    const transferUncertain = 'uncertain' in transfer && transfer.uncertain === true;
+    const transferStatus: 'sent' | 'failed' | 'uncertain' =
+      'txHash' in transfer ? 'sent' : transferUncertain ? 'uncertain' : 'failed';
 
     // Reconcile the claimed txHash against the actual chain receipt. The
     // executor's return value is treated as a claim; the audit record
@@ -511,9 +565,21 @@ export class OwsWalletService {
         reason: 'no broadcast to verify',
       };
     } else if (executionProvider === 'keeperhub') {
+      const receiptStatusOk = transferReceiptStatus === 'success';
+      const verified = transferVerified === true;
+      const recipientMatches = 'recipientMatches' in transfer && transfer.recipientMatches === true;
+      const valueMatches = 'valueMatches' in transfer && transfer.valueMatches === true;
       receiptVerification = {
-        outcome: 'unverified',
-        reason: 'keeperhub-managed broadcast; no local RPC receipt check',
+        outcome: verified && receiptStatusOk && recipientMatches && valueMatches ? 'verified' : 'unverified',
+        checks: {
+          receiptStatusOk,
+          recipientMatches,
+          valueMatches,
+        },
+        reason:
+          verified && receiptStatusOk && recipientMatches && valueMatches
+            ? undefined
+            : 'KeeperHub did not provide a verified receipt matching the requested transfer',
       };
     } else {
       receiptVerification = await this.verifyTransferReceipt(
@@ -558,8 +624,17 @@ export class OwsWalletService {
         txHash,
         signature,
         transferTxHash,
+        transferExecutionId,
+        transferChainId,
+        transferFrom,
+        transferTransactionLink,
+        transferSponsored,
+        transferVerified,
+        transferReceiptStatus,
+        transferReceipts,
         transferStatus,
         transferError,
+        transferUncertain,
         receiptVerification,
         operatorApproved,
         intentId: intent.id,
@@ -595,8 +670,17 @@ export class OwsWalletService {
       signature,
       onChainStatus,
       transferTxHash,
+      transferExecutionId,
+      transferChainId,
+      transferFrom,
+      transferTransactionLink,
+      transferSponsored,
+      transferVerified,
+      transferReceiptStatus,
+      transferReceipts,
       transferStatus,
       transferError,
+      transferUncertain,
       receiptVerification,
     };
   }
@@ -734,33 +818,73 @@ export class OwsWalletService {
 
     logger.info(`Operator ${operatorId} resuming held spend ${intent.id} (run ${runId})`);
 
-    const result = await this.finalizeApprovedSpend({
-      intent,
-      recorder,
-      step: s,
-      policyId,
-      access,
-      signer: wallet.accounts[0]?.address || walletId,
-      signature: undefined,
-      signingProvider: 'operator',
-      valueWei,
-      apiKeyToken: null,
-      operatorApproved: true,
-    });
+    try {
+      const result = await this.finalizeApprovedSpend({
+        intent,
+        recorder,
+        step: s,
+        policyId,
+        access,
+        signer: wallet.accounts[0]?.address || walletId,
+        signature: undefined,
+        signingProvider: 'operator',
+        valueWei,
+        apiKeyToken: null,
+        operatorApproved: true,
+      });
 
-    // Roll back the claim on failure so the held run is retryable. The
-    // transfer didn't move money, so the run is still "needs approval" —
-    // leaving it at "running" would cause the next attempt to deny.
-    if (result.transferStatus !== 'sent') {
-      const rolledBack = {
-        ...heldRun,
-        status: 'paused_for_approval' as const,
-        finishedAt: undefined,
+      // A returned non-sent result proves that this invocation did not move
+      // money, so the original held run is safe to retry.
+      if (result.transferStatus !== 'sent') {
+        const rolledBack = {
+          ...heldRun,
+          status: 'paused_for_approval' as const,
+          finishedAt: undefined,
+        };
+        await creRunStore.replace(rolledBack);
+      }
+
+      return result;
+    } catch (error) {
+      // Once the provider has been called, an exception does not prove that
+      // no funds moved. Keep the claim as `running` rather than reopening it
+      // and risking a duplicate broadcast. Persist an explicit recovery
+      // artifact so an operator can reconcile the provider execution before
+      // any retry/release is introduced.
+      const message = error instanceof Error ? error.message : String(error);
+      const uncertainRun: CreRun = {
+        ...claimed,
+        ok: false,
+        status: 'running',
+        requiresApproval: false,
+        approvalState: 'pending',
+        artifacts: [
+          ...claimed.artifacts,
+          {
+            id: crypto.randomUUID(),
+            type: 'error',
+            createdAt: new Date().toISOString(),
+            data: {
+              intentId: intent.id,
+              status: 'execution_uncertain',
+              reason: message,
+              operatorId,
+              recoveryRequired: true,
+            },
+          },
+        ],
       };
-      await creRunStore.replace(rolledBack);
+      await creRunStore.replace(enrichCreRunEvidence(uncertainRun));
+      return {
+        intentId: intent.id,
+        runId,
+        status: 'held',
+        reason: 'execution_uncertain',
+        transferStatus: 'uncertain',
+        transferUncertain: true,
+        error: `Spend execution is uncertain and requires reconciliation: ${message}`,
+      };
     }
-
-    return result;
   }
 
   /**
