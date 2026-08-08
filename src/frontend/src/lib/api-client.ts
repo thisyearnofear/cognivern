@@ -188,6 +188,61 @@ export interface FundedMandateStatement {
   contentHash: string;
 }
 
+export interface PublishedMandateStatementSummary {
+  id: string;
+  version: number;
+  contentHash: string;
+  publishedAt: string;
+  publishedBy: string;
+}
+
+export interface PublishedMandateStatement {
+  id: string;
+  version: number;
+  workspaceId: string;
+  mandateId: string;
+  payload: FundedMandateStatement;
+  publishedAt: string;
+  publishedBy: string;
+}
+
+export interface MandateStatementExport {
+  redacted: true;
+  statementId: string;
+  version: number;
+  publishedAt: string;
+  originalContentHash: string;
+  contentHash: string;
+  payload: FundedMandateStatement;
+}
+
+export interface AllocationRecommendation {
+  version: 1;
+  mandateId: string;
+  workspaceId: string;
+  generatedAt: string;
+  statementId: string;
+  status: 'insufficient_evidence' | 'ready';
+  evidenceCompleteness: {
+    score: number;
+    outcomeCount: number;
+    outcomesWithEvidence: number;
+    verifiedOutcomeCount: number;
+    spendRecordCount: number;
+    verifiedSpendRecordCount: number;
+    blockers: string[];
+  };
+  operationalMetrics: {
+    costPerObservedOutcomeByAsset: Record<string, string>;
+    verifiedOutcomeCount: number;
+  };
+  recommendation: {
+    stance: 'hold' | 'consider_next_allocation';
+    reasoning: string[];
+  };
+  governanceNote: string;
+}
+
 export interface SpendAttributionReport {
   generatedAt: string;
   totalRecords: number;
@@ -442,6 +497,26 @@ class ApiClient {
 
   async getMandateStatement(mandateId: string): Promise<ApiResponse<FundedMandateStatement>> {
     return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}/statement`);
+  }
+
+  async getMandateRecommendation(mandateId: string): Promise<ApiResponse<AllocationRecommendation>> {
+    return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}/recommendation`);
+  }
+
+  async publishMandateStatement(mandateId: string): Promise<ApiResponse<PublishedMandateStatement>> {
+    return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}/statements`, { method: 'POST' });
+  }
+
+  async listPublishedStatements(mandateId: string): Promise<ApiResponse<PublishedMandateStatementSummary[]>> {
+    return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}/statements`);
+  }
+
+  async getPublishedStatement(mandateId: string, statementId: string): Promise<ApiResponse<PublishedMandateStatement>> {
+    return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}/statements/${encodeURIComponent(statementId)}`);
+  }
+
+  async exportPublishedStatement(mandateId: string, statementId: string): Promise<ApiResponse<MandateStatementExport>> {
+    return this.fetch(`/api/mandates/${encodeURIComponent(mandateId)}/statements/${encodeURIComponent(statementId)}/export`);
   }
 
   async updateMandate(mandateId: string, params: Partial<FundedMandate>): Promise<ApiResponse<FundedMandate>> {

@@ -6,6 +6,8 @@ import {
   type CreateFundedMandateInput,
   type UpdateFundedMandateInput,
 } from "@backend/services/governance/FundedMandateService.js";
+import { AllocationRecommendationService } from "@backend/services/governance/AllocationRecommendationService.js";
+import { PublishedStatementService } from "@backend/services/governance/PublishedStatementService.js";
 import { StatementService } from "@backend/services/governance/StatementService.js";
 
 const metricSchema = z.object({
@@ -87,6 +89,64 @@ export class MandateController {
       const status = /not found/i.test(message) ? 404 : /cannot be generated|exceeds authorization/i.test(message) ? 409 : 500;
       res.status(status).json({ success: false, error: message });
     }
+  }
+
+  async getRecommendation(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id) return;
+    try {
+      const recommendation = await AllocationRecommendationService.generate(id, req.params.mandateId);
+      res.json({ success: true, data: recommendation });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to generate allocation recommendation";
+      const status = /not found/i.test(message) ? 404 : /cannot be generated|exceeds authorization/i.test(message) ? 409 : 500;
+      res.status(status).json({ success: false, error: message });
+    }
+  }
+
+  async publishStatement(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id || !req.userId) return;
+    try {
+      const published = PublishedStatementService.publish(id, req.params.mandateId, req.userId);
+      res.status(201).json({ success: true, data: published });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to publish mandate statement";
+      const status = /not found/i.test(message) ? 404 : /exceeds authorization|cannot be generated/i.test(message) ? 409 : 500;
+      res.status(status).json({ success: false, error: message });
+    }
+  }
+
+  async listStatements(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id) return;
+    if (!FundedMandateService.get(id, req.params.mandateId)) {
+      res.status(404).json({ success: false, error: "Mandate not found" });
+      return;
+    }
+    res.json({ success: true, data: PublishedStatementService.list(id, req.params.mandateId) });
+  }
+
+  async getPublishedStatement(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id) return;
+    const published = PublishedStatementService.get(id, req.params.mandateId, req.params.statementId);
+    if (!published) {
+      res.status(404).json({ success: false, error: "Published statement not found" });
+      return;
+    }
+    res.json({ success: true, data: published });
+  }
+
+  async exportStatement(req: Request, res: Response): Promise<void> {
+    const id = workspaceId(req, res);
+    if (!id) return;
+    const exported = PublishedStatementService.export(id, req.params.mandateId, req.params.statementId);
+    if (!exported) {
+      res.status(404).json({ success: false, error: "Published statement not found" });
+      return;
+    }
+    res.json({ success: true, data: exported });
   }
 
   async create(req: Request, res: Response): Promise<void> {

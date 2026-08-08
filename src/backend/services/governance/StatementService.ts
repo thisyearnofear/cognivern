@@ -44,7 +44,6 @@ export interface FundedMandateStatement {
 }
 
 type StatementPayload = Omit<FundedMandateStatement, "contentHash">;
-type StatementHashPayload = Omit<StatementPayload, "generatedAt">;
 
 /** Canonical JSON for statement hashing: sorted object keys, preserved arrays. */
 export function canonicalStringify(value: unknown): string {
@@ -70,10 +69,13 @@ export function canonicalStringify(value: unknown): string {
   return "null";
 }
 
-function hashPayload(payload: StatementPayload): string {
-  const { generatedAt: _generatedAt, ...stablePayload } = payload;
+export function hashStatementPayload(payload: StatementPayload | FundedMandateStatement): string {
+  // Strip the display timestamp AND any embedded contentHash so the reported
+  // hash is reproducible from the returned payload alone (spec: the hash
+  // covers the canonical payload excluding contentHash itself and generatedAt).
+  const { generatedAt: _generatedAt, contentHash: _contentHash, ...stablePayload } = payload as Record<string, unknown>;
   return createHash("sha256")
-    .update(canonicalStringify(stablePayload satisfies StatementHashPayload), "utf8")
+    .update(canonicalStringify(stablePayload), "utf8")
     .digest("hex");
 }
 
@@ -230,7 +232,7 @@ export const StatementService = {
 
     return {
       ...payload,
-      contentHash: hashPayload(payload),
+      contentHash: hashStatementPayload(payload),
     };
   },
 };

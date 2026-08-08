@@ -58,6 +58,10 @@ Cognivern already provides much of the control and evidence substrate:
 - model/token/cost telemetry;
 - on-chain and managed-execution evidence;
 - tamper-evident CRE run history;
+- funded mandate lifecycle with operator-ingested outcome observations;
+- hashed statement candidates and immutable published snapshots with a
+  permissioned redacted export;
+- bounded next-allocation recommendations that never execute automatically;
 - configured/testnet confidential-policy paths through Fhenix;
 - confidential vendor selection and settlement through Canton.
 
@@ -106,8 +110,9 @@ not an outside investor looking for an agent to fund.
 
 ## Distribution built into the product
 
-Every completed mandate should eventually produce a permissioned, portable
-performance artifact:
+Every completed mandate can now produce a permissioned, portable performance
+artifact — an immutable published snapshot plus a redacted export — with the
+following shape:
 
 ```text
 mandate objective

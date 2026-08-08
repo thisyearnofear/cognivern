@@ -171,6 +171,25 @@ export const outcomeObservations = sqliteTable(
   ],
 );
 
+// ── Published Mandate Statements ───────────────────────────────────────────
+export const publishedMandateStatements = sqliteTable(
+  "published_mandate_statements",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id").notNull(),
+    mandateId: text("mandate_id").notNull(),
+    version: integer("version").notNull(),
+    payload: text("payload").notNull(),
+    contentHash: text("content_hash").notNull(),
+    publishedBy: text("published_by").notNull(),
+    publishedAt: text("published_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("published_statements_version_unique").on(table.workspaceId, table.mandateId, table.version),
+    index("idx_published_statements_mandate").on(table.workspaceId, table.mandateId),
+  ],
+);
+
 // ── Policy Versions ────────────────────────────────────────────────────────
 export const policyVersions = sqliteTable(
   "policy_versions",
@@ -238,6 +257,8 @@ export type FundedMandate = typeof fundedMandates.$inferSelect;
 export type NewFundedMandate = typeof fundedMandates.$inferInsert;
 export type OutcomeObservation = typeof outcomeObservations.$inferSelect;
 export type NewOutcomeObservation = typeof outcomeObservations.$inferInsert;
+export type PublishedMandateStatementRow = typeof publishedMandateStatements.$inferSelect;
+export type NewPublishedMandateStatementRow = typeof publishedMandateStatements.$inferInsert;
 export type PolicyVersion = typeof policyVersions.$inferSelect;
 export type NewPolicyVersion = typeof policyVersions.$inferInsert;
 export type WorkspaceMember = typeof workspaceMembers.$inferSelect;

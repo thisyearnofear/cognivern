@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase 4 read-only foundation in progress.** Funded mandate identity and links, operator-authenticated outcome observation ingestion, and an ephemeral read-only statement candidate are implemented. Statement publication/persistence, financing, and ROI claims remain out of scope. This document turns the agentic capital thesis
+**Phase 4/5 foundation implemented, publication shipping.** Funded mandate identity and links, operator-authenticated outcome observation ingestion, a hashed statement candidate, bounded allocation recommendations, and immutable published statement snapshots with permissioned redacted export are implemented. Financing, automatic execution, and ROI claims remain out of scope. This document turns the agentic capital thesis
 into an implementation boundary without claiming complete ROI accounting, causal
 attribution, external financing, or automatic capital deployment.
 
@@ -130,12 +130,12 @@ The `kind` and `confidence` fields are intentionally separate:
 
 There is no `causal`, `roi`, `profit`, or `returnOnToken` status in this schema.
 
-### Mandate statement (future Phase 4 schema)
+### Mandate statement (Phase 4 schema)
 
-A statement is a future generated snapshot composed from a mandate, spend
-attribution, run evidence, and outcome observations. Publication immutability,
-persistence, and hashing are requirements for Phase 4; they are not available
-properties of the current Capital surface:
+A statement is a generated snapshot composed from a mandate, spend attribution,
+run evidence, and outcome observations. Candidates are ephemeral; a published
+snapshot is persisted immutably in `published_mandate_statements`, versioned per
+mandate, and only leaves the workspace as an explicit redacted export:
 
 ```ts
 interface FundedMandateStatement {
@@ -267,18 +267,20 @@ Next code milestone:
 1. **Implemented:** Generate an ephemeral statement candidate from the workspace-owned mandate, measurement-windowed attribution report, and outcome observations.
 2. **Implemented:** Include known unknowns and evidence completeness.
 3. **Implemented:** Hash the canonical candidate payload with SHA-256. The candidate is not persisted or published.
-4. **Deferred:** Persist immutable published snapshots and add a permissioned export/share path with redaction.
+4. **Implemented:** Persist immutable published snapshots and add a permissioned export/share path with redaction.
 5. **Implemented:** Add a read-only Capital preview before considering any next-allocation recommendation.
 
 ### Phase 5 — bounded allocation recommendations
 
-Only after repeated real workflows produce trustworthy statements:
+**Implemented as a read-only advisory layer** over the statement candidate:
 
-- calculate operational metrics such as cost per observed outcome;
-- show confidence and evidence completeness next to every metric;
-- recommend, but do not automatically execute, a next allocation;
-- require explicit operator approval and the existing governance boundary for any
-  new spend.
+- **Implemented:** operational metrics such as cost per observed outcome per asset (base units per verified outcome — explicitly not a financial return figure).
+- **Implemented:** evidence-completeness score and blockers shown next to every metric.
+- **Implemented:** a recommendation (`hold` | `consider_next_allocation`) that never executes automatically.
+- **Implemented:** a governance note requiring explicit operator approval through the existing policy boundary for any new spend.
+
+Gating is fail-closed: the recommendation stays `hold` when there are no outcome observations, no independently verified outcomes, no receipt-backed spend records, or any uncertain spend requiring reconciliation. The endpoint is `GET /api/mandates/:mandateId/recommendation` and is read-only.
+
 
 ## API shape for the next code milestone
 
@@ -306,21 +308,37 @@ changed payload returns a conflict. `verified_external_state` additionally
 requires `independently_verified` confidence and at least one evidence
 reference. Neither endpoint computes ROI or causal attribution.
 
-The read-only statement candidate endpoint is now available:
+The read-only statement candidate and recommendation endpoints are now available:
 
 ```text
 GET  /api/mandates/:mandateId/statement
+GET  /api/mandates/:mandateId/recommendation
 ```
 
-It generates a point-in-time candidate and does not persist or publish it. The
-publish/export endpoint remains deferred:
+The statement endpoint generates a point-in-time candidate and does not persist
+or publish it. The recommendation endpoint is an advisory review surface that
+fails closed on weak evidence and never executes a spend.
+
+Published statement snapshots are persisted immutably and versioned per mandate:
 
 ```text
-POST /api/mandates/:mandateId/statement/publish
+POST /api/mandates/:mandateId/statements
+GET  /api/mandates/:mandateId/statements
+GET  /api/mandates/:mandateId/statements/:statementId
+GET  /api/mandates/:mandateId/statements/:statementId/export
 ```
 
-All mutating endpoints need operator authentication, workspace ownership checks,
-and idempotency for retries. No endpoint in this layer should broadcast funds.
+`POST` freezes the current candidate as `statement-<mandateId>-v<N>` and persists
+it with its content hash, publisher, and timestamp. It fails closed (409) when
+derived allocation exceeds authorization. `GET .../statements` lists version
+summaries newest-first; `GET .../statements/:statementId` returns a snapshot; and
+`GET .../statements/:statementId/export` returns a redacted copy — internal
+sources, notes, and evidence references stripped, capital and both original and
+redacted hashes preserved — without mutating the stored snapshot. Every read is
+scoped by workspace and mandate.
+
+All mutating endpoints need operator authentication and workspace ownership
+checks. No endpoint in this layer broadcasts funds.
 
 ## Acceptance criteria
 

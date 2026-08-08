@@ -184,6 +184,20 @@ function migrate(db: Database.Database): void {
       UNIQUE (workspace_id, mandate_id, idempotency_key)
     );
 
+    CREATE TABLE IF NOT EXISTS published_mandate_statements (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      mandate_id TEXT NOT NULL,
+      version INTEGER NOT NULL,
+      payload TEXT NOT NULL,
+      content_hash TEXT NOT NULL,
+      published_by TEXT NOT NULL,
+      published_at TEXT NOT NULL,
+      FOREIGN KEY (mandate_id) REFERENCES funded_mandates(id),
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id),
+      UNIQUE (workspace_id, mandate_id, version)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_workspaces_owner ON workspaces(owner_id);
     CREATE INDEX IF NOT EXISTS idx_users_wallet ON users(wallet_address);
     CREATE INDEX IF NOT EXISTS idx_nonces_expires ON nonces(expires_at);
@@ -193,6 +207,7 @@ function migrate(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_workspace_policies_workspace ON workspace_policies(workspace_id);
     CREATE INDEX IF NOT EXISTS idx_funded_mandates_workspace ON funded_mandates(workspace_id);
     CREATE INDEX IF NOT EXISTS idx_outcome_observations_mandate ON outcome_observations(workspace_id, mandate_id, observed_at);
+    CREATE INDEX IF NOT EXISTS idx_published_statements_mandate ON published_mandate_statements(workspace_id, mandate_id);
     -- Composite indexes for common query patterns
     CREATE INDEX IF NOT EXISTS idx_workspace_agents_workspace_status ON workspace_agents(workspace_id, status);
     CREATE INDEX IF NOT EXISTS idx_api_keys_workspace_revoked ON api_keys(workspace_id, revoked_at);

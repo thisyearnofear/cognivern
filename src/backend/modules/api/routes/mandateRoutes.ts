@@ -7,6 +7,11 @@ export function createMandateRoutes(controller: MandateController): Router {
   router.get("/mandates", (req, res) => controller.list(req, res));
   router.get("/mandates/:mandateId", (req, res) => controller.get(req, res));
   router.get("/mandates/:mandateId/statement", (req, res) => controller.getStatement(req, res));
+  router.get("/mandates/:mandateId/recommendation", (req, res) => controller.getRecommendation(req, res));
+  router.post("/mandates/:mandateId/statements", (req, res) => controller.publishStatement(req, res));
+  router.get("/mandates/:mandateId/statements", (req, res) => controller.listStatements(req, res));
+  router.get("/mandates/:mandateId/statements/:statementId", (req, res) => controller.getPublishedStatement(req, res));
+  router.get("/mandates/:mandateId/statements/:statementId/export", (req, res) => controller.exportStatement(req, res));
   router.patch("/mandates/:mandateId", (req, res) => controller.update(req, res));
   return router;
 }

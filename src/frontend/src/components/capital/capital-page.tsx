@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ExternalLink, FileText, Loader2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Download, ExternalLink, FileCheck, FileText, Loader2, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageState } from '@/components/ui/error-state';
-import { apiClient, type FundedMandate, type FundedMandateStatement, type OutcomeObservation, type SpendAttributionReport } from '@/lib/api-client';
+import { apiClient, type AllocationRecommendation, type FundedMandate, type FundedMandateStatement, type MandateStatementExport, type OutcomeObservation, type PublishedMandateStatementSummary, type SpendAttributionReport } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 
 function formatAmount(value: string) {
@@ -28,6 +28,14 @@ export function CapitalPage() {
   const [statement, setStatement] = useState<FundedMandateStatement | null>(null);
   const [statementLoading, setStatementLoading] = useState(false);
   const [statementError, setStatementError] = useState<string | null>(null);
+  const [recommendation, setRecommendation] = useState<AllocationRecommendation | null>(null);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  const [recommendationError, setRecommendationError] = useState<string | null>(null);
+  const [published, setPublished] = useState<PublishedMandateStatementSummary[] | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishedError, setPublishedError] = useState<string | null>(null);
+  const [exported, setExported] = useState<MandateStatementExport | null>(null);
+  const [exportingStatementId, setExportingStatementId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,16 +45,20 @@ export function CapitalPage() {
       apiClient.getMandates(),
       apiClient.getSpendAttribution(selectedMandateId || undefined),
       selectedMandateId ? apiClient.getOutcomeObservations(selectedMandateId) : Promise.resolve(null),
+      selectedMandateId ? apiClient.listPublishedStatements(selectedMandateId) : Promise.resolve(null),
     ])
-      .then(([mandateResponse, reportResponse, observationResponse]) => {
+      .then(([mandateResponse, reportResponse, observationResponse, publishedResponse]) => {
         setError(null);
         if (mandateResponse.success && mandateResponse.data) setMandates(mandateResponse.data);
         if (!reportResponse.success || !reportResponse.data) throw new Error(reportResponse.error || 'Could not load attribution');
         setReport(reportResponse.data);
         if (observationResponse?.success && observationResponse.data) setObservations(observationResponse.data);
+        if (publishedResponse?.success && publishedResponse.data) setPublished(publishedResponse.data);
         if (!selectedMandateId) {
           setObservations([]);
           setStatement(null);
+          setPublished(null);
+          setExported(null);
         }
       })
       .catch((reason) => setError(reason instanceof Error ? reason.message : 'Could not load attribution'))
@@ -74,6 +86,61 @@ export function CapitalPage() {
     }
   }
 
+  async function publishStatement() {
+    if (!selectedMandateId) return;
+    setPublishing(true);
+    setPublishedError(null);
+    setExported(null);
+    try {
+      const response = await apiClient.publishMandateStatement(selectedMandateId);
+      if (!response.success || !response.data) throw new Error(response.error || 'Could not publish statement');
+      const list = await apiClient.listPublishedStatements(selectedMandateId);
+      if (!list.success || !list.data) throw new Error(list.error || 'Could not reload published statements');
+      setPublished(list.data);
+    } catch (reason) {
+      setPublishedError(reason instanceof Error ? reason.message : 'Could not publish statement');
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function exportStatement(statementId: string) {
+    if (!selectedMandateId) return;
+    setExportingStatementId(statementId);
+    setPublishedError(null);
+    try {
+      const response = await apiClient.exportPublishedStatement(selectedMandateId, statementId);
+      if (!response.success || !response.data) throw new Error(response.error || 'Could not export statement');
+      setExported(response.data);
+      const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${statementId}-redacted.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (reason) {
+      setPublishedError(reason instanceof Error ? reason.message : 'Could not export statement');
+    } finally {
+      setExportingStatementId(null);
+    }
+  }
+
+  async function loadRecommendation() {
+    if (!selectedMandateId) return;
+    setRecommendationLoading(true);
+    setRecommendationError(null);
+    try {
+      const response = await apiClient.getMandateRecommendation(selectedMandateId);
+      if (!response.success || !response.data) throw new Error(response.error || 'Could not generate recommendation');
+      setRecommendation(response.data);
+    } catch (reason) {
+      setRecommendationError(reason instanceof Error ? reason.message : 'Could not generate recommendation');
+    } finally {
+      setRecommendationLoading(false);
+    }
+  }
+
   if (error || !report) {
     return <PageState variant="error" title="Could not load attribution" message={error || 'The attribution report is unavailable.'} action={{ label: 'Retry', onClick: () => window.location.reload() }} />;
   }
@@ -96,6 +163,7 @@ export function CapitalPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {selectedMandateId && <Button variant="outline" size="sm" onClick={loadStatement} disabled={statementLoading}><FileText className="h-3.5 w-3.5" />{statementLoading ? 'Generating…' : 'Preview statement'}</Button>}
+            {selectedMandateId && <Button variant="outline" size="sm" onClick={loadRecommendation} disabled={recommendationLoading}><ShieldCheck className="h-3.5 w-3.5" />{recommendationLoading ? 'Reviewing…' : 'Review next allocation'}</Button>}
             <select
             aria-label="Filter by funded mandate"
             className="rounded-md border bg-background px-3 py-2 text-sm"
@@ -104,6 +172,11 @@ export function CapitalPage() {
               setSelectedMandateId(event.target.value);
               setStatement(null);
               setStatementError(null);
+              setRecommendation(null);
+              setRecommendationError(null);
+              setPublished(null);
+              setPublishedError(null);
+              setExported(null);
               setError(null);
             }}
             >
@@ -126,6 +199,45 @@ export function CapitalPage() {
         </section>
       )}
 
+      {recommendationError && (
+        <section className="rounded-xl border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
+          {recommendationError}
+        </section>
+      )}
+
+      {publishedError && (
+        <section className="rounded-xl border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
+          {publishedError}
+        </section>
+      )}
+
+      {recommendation && (
+        <section className="rounded-xl border bg-card p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">Next allocation review</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Advisory only. Nothing is executed automatically; any new spend goes through the governance boundary.</p>
+            </div>
+            <Badge variant={recommendation.recommendation.stance === 'consider_next_allocation' ? 'secondary' : 'outline'}>{recommendation.recommendation.stance === 'consider_next_allocation' ? 'Consider next allocation' : 'Hold'}</Badge>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{Math.round(recommendation.evidenceCompleteness.score * 100)}%</div><div className="text-xs text-muted-foreground">Evidence completeness</div></div>
+            <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{recommendation.evidenceCompleteness.verifiedOutcomeCount}</div><div className="text-xs text-muted-foreground">Verified outcomes</div></div>
+            <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{recommendation.evidenceCompleteness.verifiedSpendRecordCount}</div><div className="text-xs text-muted-foreground">Receipt-backed spends</div></div>
+            <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{Object.entries(recommendation.operationalMetrics.costPerObservedOutcomeByAsset).map(([asset, cost]) => `${asset}: ${formatAmount(cost)}`).join(' · ') || '—'}</div><div className="text-xs text-muted-foreground">Cost per verified outcome (base units, mandate-wide)</div></div>
+          </div>
+          {recommendation.evidenceCompleteness.blockers.length > 0 && (
+            <div className="mt-4 rounded-lg border border-dashed p-3 text-sm">
+              <div className="font-medium">Evidence blockers</div>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">{recommendation.evidenceCompleteness.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul>
+            </div>
+          )}
+          <div className="mt-4 space-y-1 text-sm text-muted-foreground">
+            {recommendation.recommendation.reasoning.map((reason) => <p key={reason}>• {reason}</p>)}
+          </div>
+        </section>
+      )}
+
       {statement && (
         <section className="rounded-xl border bg-card p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -141,6 +253,46 @@ export function CapitalPage() {
             <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{statement.performance.knownUnknowns.length}</div><div className="text-xs text-muted-foreground">Known unknowns</div></div>
           </div>
           {statement.performance.knownUnknowns.length > 0 && <div className="mt-4 rounded-lg border border-dashed p-3 text-sm"><div className="font-medium">Review before allocation decisions</div><ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">{statement.performance.knownUnknowns.map((unknown) => <li key={unknown}>{unknown}</li>)}</ul></div>}
+        </section>
+      )}
+
+      {selectedMandateId && (
+        <section className="rounded-xl border bg-card p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">Published statements</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Immutable versioned snapshots. Exports are redacted: internal sources, notes, and evidence references are stripped while capital, mandate framing, and hashes are preserved.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={publishStatement} disabled={publishing}><FileCheck className="h-3.5 w-3.5" />{publishing ? 'Publishing…' : 'Publish snapshot'}</Button>
+          </div>
+          {published === null ? (
+            <p className="mt-4 text-sm text-muted-foreground">Loading published snapshots…</p>
+          ) : published.length === 0 ? (
+            <p className="mt-4 py-4 text-sm text-muted-foreground">No snapshots published yet. Publish a snapshot to freeze a versioned, hashed statement for review.</p>
+          ) : (
+            <div className="mt-4 divide-y">
+              {published.map((item) => (
+                <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+                  <div className="min-w-0">
+                    <div className="font-medium">v{item.version} · {new Date(item.publishedAt).toLocaleString()}</div>
+                    <code className="block max-w-full truncate text-[11px] text-muted-foreground" title={item.contentHash}>sha256:{item.contentHash}</code>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => exportStatement(item.id)} disabled={exportingStatementId === item.id}><Download className="h-3.5 w-3.5" />{exportingStatementId === item.id ? 'Exporting…' : 'Export redacted'}</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {exported && (
+            <div className="mt-4 rounded-lg border border-dashed p-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="font-medium">Redacted export ready</div>
+                <div className="text-xs text-muted-foreground">original sha256:{exported.originalContentHash.slice(0, 12)}… → redacted sha256:{exported.contentHash.slice(0, 12)}…</div>
+              </div>
+              <p className="mt-2 text-muted-foreground">Internal sources, notes, and evidence references are stripped; capital, mandate framing, and hashes are preserved. The JSON download was triggered in your browser.</p>
+            </div>
+          )}
         </section>
       )}
 

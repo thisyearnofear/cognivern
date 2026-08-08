@@ -152,6 +152,47 @@ and MEV protection).
 If the card is empty (no wallets), the empty state links straight
 to `app.keeperhub.com` and walks you through the one-time setup.
 
+## 10. Optional: Try the funded-mandate Capital flow (2 minutes)
+
+The **Capital** page (sidebar → Capital) is the mandate-level evidence trail:
+attribution ledger, outcome observations, a hashed statement candidate, a
+bounded next-allocation review, and published snapshots. Nothing on this page
+spends funds.
+
+1. Open **Capital** and pick a funded mandate from the **Filter by funded
+   mandate** selector.
+2. Observe the **Observed outcomes** list. Outcomes are operator-ingested
+   through the API today (no form yet) — for example:
+   ```bash
+   curl -X POST https://api.cognivern.persidian.com/api/mandates/$MANDATE_ID/outcomes \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Idempotency-Key: demo-outcome-1" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "kind": "verified_external_state",
+       "value": "10",
+       "unit": "leads",
+       "observedAt": "2026-08-08T12:00:00Z",
+       "source": "CRM verified",
+       "confidence": "independently_verified",
+       "evidence": [{ "type": "external_record", "reference": "crm://demo/1" }]
+     }'
+   ```
+   Reusing the same `Idempotency-Key` never duplicates the record.
+3. **Preview statement** — a read-only, hashed candidate (sha256 shown) listing
+   spend records, observed outcomes, evidence completeness, and known unknowns.
+   It fails closed instead of showing optimistic numbers.
+4. **Review next allocation** — an advisory stance (`hold` or *consider next
+   allocation*) gated on verified outcomes and receipt-backed spend. It never
+   executes anything.
+5. **Publish snapshot** — freezes an immutable versioned statement, then
+   **Export redacted** downloads a JSON copy with internal sources, notes, and
+   evidence references stripped while capital, mandate framing, and hashes are
+   preserved.
+
+The recommendation is advisory; any real spend still goes through the policy
+boundary and the execution queue.
+
 ## What you're looking at
 
 Cognivern is the **economic control plane for agentic work**. The current
@@ -159,10 +200,13 @@ workflow is policy-controlled agent activity: govern an action before capital
 leaves a wallet or execution boundary, then inspect the run and audit evidence.
 The strategic direction is to make a funded mandate first-class, connecting it
 to attributable spend, evidenced outcomes, and better future allocation. The
-current tester flow does not include a mandate UI or complete outcome statement.
+Capital page now implements that loop read-only: mandate filter, outcome
+observations, a hashed statement candidate, a bounded next-allocation
+recommendation, and immutable published snapshots with redacted export.
 
-- **Mandates (strategic direction)** define the objective, budget, permissions,
-  evidence requirements, and release conditions for autonomous work
+- **Funded mandates** define the objective, budget, permissions, measurement
+  window, and success metrics; the Capital page composes them into spend
+  attribution, outcome observations, and a hashed statement
 - **Policies** define spending limits, vendor allowlists, and chain rules
 - **Agents** are governed identities with budgets and trade history
 - **Governance Check** evaluates a proposed action against active policies

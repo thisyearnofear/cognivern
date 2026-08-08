@@ -33,16 +33,18 @@ answer whether more capital should be allocated.
 
 **The wedge today:** Governed agent spend with enforceable controls. Cognivern
 intercepts agent actions before execution, evaluates them against policy, routes
-approval, and records a run and audit trail. The next product layer is a
-first-class funded mandate that carries objective, budget, purpose, and outcome
-links through the existing execution boundary. Existing implementations support
-governed wallet spend, model/token telemetry, and confidential policy/vendor
-workflows.
+approval, and records a run and audit trail. Funded mandates are now a live
+product surface: objective, budget, measurement window, and success metrics
+carry through the execution boundary into a hashed statement, a bounded
+allocation recommendation, and immutable published snapshots with a
+permissioned redacted export. Existing implementations also support governed
+wallet spend, model/token telemetry, and confidential policy/vendor workflows.
 
-**The long-term product:** Add outcome ingestion, attribution confidence,
-mandate-level unit economics, and bounded next-tranche recommendations. Only
-after reliable performance histories exist should Cognivern support delegated
-capital or external funding.
+**The long-term product:** Outcome ingestion and bounded next-tranche
+recommendations ship today as read-only review surfaces; the remaining layers
+are attribution confidence at scale, mandate-level unit economics, and — only
+after reliable performance histories exist — delegated capital or external
+funding.
 
 **Why now:** Agent capability is becoming abundant while accountable deployment
 remains scarce. Model and tool spend is becoming material; agents can now act on
@@ -91,6 +93,8 @@ product. The customer value is accountable autonomous work.
 
 **Current product surfaces:**
 
+- funded mandate lifecycle with operator-ingested outcome observations, hashed
+  statement candidates, published snapshots, and permissioned redacted exports;
 - governed wallet spend and approval workflows;
 - policy and confidential-policy evaluation;
 - run ledger, audit evidence, and observability;
