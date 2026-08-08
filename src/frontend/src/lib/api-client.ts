@@ -84,6 +84,47 @@ export type CreAnchorStatus =
   | 'no_expected_hash'
   | 'no_retrieval_key';
 
+export interface RunReconciliationReceipt {
+  hash: string;
+  chainId?: number;
+  from?: string;
+  to?: string;
+  value?: string;
+  verified?: boolean;
+  receiptStatus?: string;
+  blockNumber?: number;
+  gasUsed?: string;
+  verifiedAt?: string;
+}
+
+export interface RunReconciliationExecution {
+  executionId: string;
+  status?: string;
+  transactionHash?: string;
+  transactionLink?: string;
+  sponsored?: boolean;
+  from?: string;
+  to?: string;
+  value?: string;
+  chainId?: number;
+  receipts?: RunReconciliationReceipt[];
+  verified?: boolean;
+  receiptStatus?: string;
+}
+
+export interface RunReconciliationResponse {
+  success: boolean;
+  statusFetched?: boolean;
+  matched?: boolean;
+  readOnly?: boolean;
+  recoveryRequired?: boolean;
+  resolved?: boolean;
+  message?: string;
+  idempotencyKey?: string;
+  execution?: RunReconciliationExecution | null;
+  run?: Record<string, unknown>;
+}
+
 export interface CreLedgerVerifyResponse {
   success: true;
   chain: {
@@ -137,6 +178,13 @@ class ApiClient {
       'Content-Type': 'application/json',
       'X-Workspace-Mode': workspaceMode,
     };
+
+    // Preserve endpoint-specific headers (for example an idempotency key)
+    // across the generic retry path.
+    const providedHeaders = new Headers(options.headers);
+    providedHeaders.forEach((value, key) => {
+      headers[key] = value;
+    });
 
     if (this.apiKey) {
       headers['x-api-key'] = this.apiKey;
@@ -264,6 +312,25 @@ class ApiClient {
 
   async getRun(runId: string): Promise<ApiResponse<Run>> {
     return this.fetch(`/api/cre/runs/${runId}`);
+  }
+
+  async getRunReconciliation(runId: string): Promise<RunReconciliationResponse> {
+    return this.fetch(`/api/cre/runs/${encodeURIComponent(runId)}/reconcile`);
+  }
+
+  async resolveRunReconciliation(
+    runId: string,
+    retries = 1,
+  ): Promise<RunReconciliationResponse> {
+    const idemKey =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    return this.fetch(`/api/cre/runs/${encodeURIComponent(runId)}/reconcile/resolve`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': idemKey },
+      body: JSON.stringify({}),
+    }, retries);
   }
 
   async verifyLedger(deep = false): Promise<ApiResponse<CreLedgerVerifyResponse>> {

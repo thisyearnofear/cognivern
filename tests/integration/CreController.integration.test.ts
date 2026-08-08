@@ -885,6 +885,71 @@ describe("CreController", () => {
     statusSpy.mockRestore();
   });
 
+  it("POST reconciliation is idempotent when the resolve response is replayed", async () => {
+    const run = makeRun("running") as any;
+    run.workflow = "spend";
+    run.projectId = "workspace-1";
+    run.artifacts = [
+      {
+        id: crypto.randomUUID(),
+        type: "error",
+        createdAt: new Date().toISOString(),
+        data: {
+          status: "execution_uncertain",
+          transferExecutionId: "exec-idempotent-resolve",
+          expectedSender: "0x1111111111111111111111111111111111111111",
+          expectedRecipient: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+          expectedValueWei: "1000",
+          chainId: 84532,
+        },
+      },
+    ];
+    await creRunStore.add(run);
+
+    const transactionHash = "0x" + "b".repeat(64);
+    const statusSpy = vi
+      .spyOn(keeperHubExecutionProvider, "getExecutionStatus")
+      .mockResolvedValue({
+        executionId: "exec-idempotent-resolve",
+        status: "completed",
+        transactionHash,
+        chainId: 84532,
+        receipts: [
+          {
+            hash: transactionHash,
+            chainId: 84532,
+            from: "0x1111111111111111111111111111111111111111",
+            to: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+            value: "0.000000000000001",
+            verified: true,
+            receiptStatus: "success",
+          },
+        ],
+      });
+
+    const controller = new CreController();
+    const headers = { "Idempotency-Key": "resolve-once" };
+    const firstReq = makeReq({ params: { runId: run.runId }, headers }) as any;
+    firstReq.method = "POST";
+    firstReq.userId = "operator-1";
+    firstReq.workspaceId = "workspace-1";
+    const firstRes = new MockRes();
+    await controller.reconcileRun(firstReq, firstRes as any);
+
+    const secondReq = makeReq({ params: { runId: run.runId }, headers }) as any;
+    secondReq.method = "POST";
+    secondReq.userId = "operator-1";
+    secondReq.workspaceId = "workspace-1";
+    const secondRes = new MockRes();
+    await controller.reconcileRun(secondReq, secondRes as any);
+
+    expect(firstRes.statusCode).toBe(200);
+    expect(secondRes.statusCode).toBe(200);
+    expect(secondRes.payload).toEqual(firstRes.payload);
+    expect(statusSpy).toHaveBeenCalledTimes(1);
+    statusSpy.mockRestore();
+  });
+
   it("reconcileRun accepts a verified sponsored receipt with a relayer sender", async () => {
     const run = makeRun("running") as any;
     run.workflow = "spend";

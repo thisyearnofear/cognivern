@@ -398,6 +398,18 @@ export class CreController {
         return;
       }
 
+      const reconciliationIdemKey =
+        req.method === 'POST'
+          ? this.makeIdempotencyKey(req, `cre:reconcileRun:${req.params.runId}`)
+          : null;
+      if (reconciliationIdemKey) {
+        const cached = await this.getCachedIdempotentResponse(reconciliationIdemKey);
+        if (cached) {
+          res.status(cached.statusCode).json(cached.body);
+          return;
+        }
+      }
+
       const run = await creRunStore.get(req.params.runId);
       if (!run) {
         res.status(404).json({ success: false, error: 'Run not found' });
@@ -537,7 +549,7 @@ export class CreController {
         });
         const resolvedRun = normalizeRun(run);
         await creRunStore.replace(resolvedRun);
-        res.json({
+        const responseBody = {
           success: true,
           statusFetched: true,
           run: resolvedRun,
@@ -546,7 +558,15 @@ export class CreController {
           readOnly: false,
           recoveryRequired: false,
           resolved: true,
-        });
+        };
+        if (reconciliationIdemKey) {
+          await this.setCachedIdempotentResponse(
+            reconciliationIdemKey,
+            200,
+            responseBody as unknown as Record<string, unknown>,
+          );
+        }
+        res.json(responseBody);
         return;
       }
 

@@ -21,6 +21,8 @@ import {
   ExternalLink,
   RotateCw,
   ShieldAlert,
+  LockKeyhole,
+  SearchCheck,
 } from 'lucide-react';
 import { useRun } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
@@ -28,6 +30,31 @@ import { buildSignozTraceLink } from '@/lib/signoz';
 import { trackUxEvent } from '@/lib/ux-events';
 
 type ApprovalResult = Awaited<ReturnType<typeof apiClient.submitRunApproval>>;
+type ReconciliationResult = Awaited<ReturnType<typeof apiClient.getRunReconciliation>>;
+
+interface UncertainExecution {
+  transferExecutionId?: string;
+  transferIdempotencyKey?: string;
+  expectedSender?: string;
+  expectedRecipient?: string;
+  expectedValueWei?: string;
+  chainId?: number;
+  status?: string;
+  recoveryRequired?: boolean;
+}
+
+function getUncertainExecution(run: unknown): UncertainExecution | undefined {
+  const artifacts = (run as { artifactData?: unknown })?.artifactData;
+  if (!Array.isArray(artifacts)) return undefined;
+  const artifact = artifacts.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      (candidate as { type?: string }).type === 'error' &&
+      ((candidate as { data?: { status?: string } }).data?.status === 'execution_uncertain'),
+  ) as { data?: UncertainExecution } | undefined;
+  return artifact?.data;
+}
 
 const statusConfig = {
   completed: {
@@ -130,6 +157,30 @@ export function RunDetail({ runId }: { runId: string }) {
   const [statsVisible, setStatsVisible] = useState(false);
   const [submitting, setSubmitting] = useState<'approve' | 'deny' | null>(null);
   const [approval, setApproval] = useState<ApprovalResult | null>(null);
+  const [reconciliation, setReconciliation] = useState<ReconciliationResult | null>(null);
+  const [reconciling, setReconciling] = useState<'check' | 'resolve' | null>(null);
+
+  const uncertainExecution = getUncertainExecution(run);
+
+  async function handleReconciliation(resolve: boolean) {
+    setReconciling(resolve ? 'resolve' : 'check');
+    setReconciliation(null);
+    try {
+      const result = resolve
+        ? await apiClient.resolveRunReconciliation(runId)
+        : await apiClient.getRunReconciliation(runId);
+      setReconciliation(result);
+      await mutate();
+    } catch (err) {
+      setReconciliation({
+        success: false,
+        recoveryRequired: true,
+        message: err instanceof Error ? err.message : 'Reconciliation request failed',
+      });
+    } finally {
+      setReconciling(null);
+    }
+  }
 
   async function handleApproval(approve: boolean) {
     setSubmitting(approve ? 'approve' : 'deny');
@@ -208,6 +259,12 @@ export function RunDetail({ runId }: { runId: string }) {
   const transferExplorerUrl = approval?.transfer?.transferTxHash
     ? getTransferExplorerUrl(approval.transfer.transferChainId, approval.transfer.transferTxHash)
     : undefined;
+  const reconciliationExecution = reconciliation?.execution as
+    | { transactionHash?: string; transactionLink?: string; status?: string; sponsored?: boolean }
+    | null
+    | undefined;
+  const canResolveReconciliation =
+    reconciliation?.matched === true && reconciliation.recoveryRequired === false;
 
   return (
     <div className="space-y-6">
@@ -351,6 +408,90 @@ export function RunDetail({ runId }: { runId: string }) {
             ))}
           </div>
         </details>
+      )}
+
+      {/* KeeperHub uncertainty / reconciliation */}
+      {uncertainExecution && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-5 dark:border-amber-800 dark:bg-amber-950/20">
+          <div className="flex items-start gap-3">
+            <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="min-w-0 flex-1 space-y-3">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="font-semibold text-amber-900 dark:text-amber-100">
+                    KeeperHub execution needs reconciliation
+                  </h2>
+                  <Badge variant="outline" className="border-amber-400 text-amber-700 dark:border-amber-700 dark:text-amber-300">
+                    Retry locked
+                  </Badge>
+                </div>
+                <p className="mt-1 text-sm text-amber-800/80 dark:text-amber-200/80">
+                  Cognivern will not broadcast again until the original execution is verified. Check the provider status first, then resolve only when the receipt matches the original intent.
+                </p>
+              </div>
+
+              <div className="grid gap-2 text-xs text-amber-950/80 dark:text-amber-100/80 sm:grid-cols-2">
+                {uncertainExecution.transferExecutionId && (
+                  <div><span className="font-medium">Execution ID:</span> <code className="break-all">{uncertainExecution.transferExecutionId}</code></div>
+                )}
+                {uncertainExecution.transferIdempotencyKey && (
+                  <div><span className="font-medium">Idempotency key:</span> <code className="break-all">{uncertainExecution.transferIdempotencyKey}</code></div>
+                )}
+                {uncertainExecution.chainId && (
+                  <div><span className="font-medium">Chain:</span> {uncertainExecution.chainId}</div>
+                )}
+                {uncertainExecution.expectedRecipient && (
+                  <div><span className="font-medium">Recipient:</span> <code className="break-all">{uncertainExecution.expectedRecipient}</code></div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleReconciliation(false)}
+                  disabled={reconciling !== null || !uncertainExecution.transferExecutionId}
+                >
+                  {reconciling === 'check' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SearchCheck className="h-3.5 w-3.5" />}
+                  {reconciling === 'check' ? 'Checking…' : 'Check KeeperHub status'}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleReconciliation(true)}
+                  disabled={reconciling !== null || !canResolveReconciliation}
+                >
+                  {reconciling === 'resolve' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                  {reconciling === 'resolve' ? 'Resolving…' : 'Resolve verified execution'}
+                </Button>
+              </div>
+
+              {!uncertainExecution.transferExecutionId && (
+                <p className="text-xs text-amber-800/80 dark:text-amber-200/80">
+                  KeeperHub returned no execution ID. Preserve the idempotency key and contact KeeperHub support or use an approved provider lookup; Cognivern intentionally cannot retry this transfer.
+                </p>
+              )}
+
+              {reconciliation && (
+                <div className={`rounded-lg border p-3 text-sm ${reconciliation.success ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200' : 'border-amber-300 bg-amber-100/60 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100'}`}>
+                  <div className="flex items-start gap-2">
+                    {reconciliation.success ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="font-medium">
+                        {reconciliation.resolved ? 'Execution resolved and run unlocked' : reconciliation.matched ? 'Receipt matches the requested transfer' : 'Still recovery-required'}
+                      </p>
+                      <p className="mt-1 text-xs opacity-80">
+                        {reconciliation.message || (reconciliation.matched ? `KeeperHub status: ${reconciliationExecution?.status || 'verified'}${reconciliationExecution?.sponsored ? ' · sponsored' : ''}` : 'The provider response is pending, mismatched, or unavailable. Do not retry.')}
+                      </p>
+                      {reconciliationExecution?.transactionHash && (
+                        <code className="mt-2 block break-all text-[11px]">{reconciliationExecution.transactionHash}</code>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Actions */}
