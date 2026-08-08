@@ -50,7 +50,7 @@ src/frontend/
 │   │   ├── demo/spend/           # Spend flow demo
 │   │   └── runs/                 # Run ledger
 │   ├── onboarding/               # Onboarding wizard
-│   └── landing/                  # Public landing page
+│   └── page.tsx                  # Public landing route
 ├── src/
 │   ├── components/
 │   │   ├── audit/                # AuditPage, decision detail panel
@@ -85,6 +85,7 @@ src/frontend/
 ## Key User Journeys
 
 ### The Evaluator ("Is this real?")
+
 1. Lands on homepage → hits demo
 2. Watches SpendFlowDemo governed/ungoverned toggle (`/demo/spend`)
 3. Runs a GovernanceCheck with preset values (`/governance/check`)
@@ -92,6 +93,7 @@ src/frontend/
 5. Understands the product in under 5 minutes
 
 ### The Integration Engineer ("Ship governance this week")
+
 1. Signs in with wallet or email
 2. Creates a policy in 3 clicks (`/policies`)
 3. Registers an API identity (`/agents/workshop`)
@@ -100,6 +102,7 @@ src/frontend/
 6. Sees the decision appear in the audit trail (`/audit`)
 
 ### The Operator ("Prove my agents stay within bounds")
+
 1. Logs into dashboard — sees attention status, approval rate, blocked actions, and recent activity
 2. Drills into a denied decision in audit — reads exactly why it was blocked
 3. Adjusts the policy that blocked it (`/policies`)
@@ -107,6 +110,7 @@ src/frontend/
 5. Views evidence chain for cryptographic proof
 
 ### The Procurement Lead ("Run a confidential vendor RFP")
+
 1. Opens Sealed Bids from the dashboard or `/sealed-bid`
 2. Creates a Canton-backed round and submits bids as demo parties
 3. Uses Party View to see role-based disclosure (auctioneer vs bidders)

@@ -2,7 +2,7 @@
  * Deploy GovernanceProof contract to 0G Galileo Testnet.
  *
  * Usage:
- *   npx hardhat run scripts/deploy/deploy-0g-governance-proof.ts --network zeroGTestnet
+ *   npx hardhat run contracts/scripts/deploy-0g-governance-proof.ts --network zeroGTestnet
  *
  * After deployment, set ZEROG_PROOF_CONTRACT in the backend .env
  * to the deployed contract address.

@@ -4,7 +4,7 @@ import { z } from "zod";
 import {
   AgentRunEvent,
   runAgent,
-} from "../../../../../agent/agent.js";
+} from "../../../../../examples/copilot/agent.js";
 import {
   copilotRunStore,
   type PersistedCopilotEvent,

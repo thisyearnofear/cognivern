@@ -106,9 +106,9 @@ modules, no new providers, no new controllers.
 | `.mcp.json` | Declares the KeeperHub MCP server for editor agents | 9 | `f21bf50` |
 | `docs/HACKATHON_SUBMISSION_KEEPERHUB.md` | This submission document | — | `f21bf50` |
 | `src/backend/modules/agents/implementations/SapienceTradingAgent.ts` (extension) | One new method `runKeeperHubRebalanceCycle` that calls the existing `executeSpend` path with `executionProvider: "keeperhub"` metadata; wrapped in OTel span `agent.sapience.keeperhub_rebalance`; counter `cognivern.agent.keeperhub.rebalance.total`; exports `KeeperHubRebalanceResult` union type | +158 | `f21bf50` |
-| `scripts/demo/run-keeperhub-rebalance.ts` | One-shot script that drives the loop against a configured testnet, prints the tx hash, and writes the receipt JSON for the submission form | 189 | `f21bf50` |
-| `scripts/demo/mock-keeperhub-server.mjs` | Local mock of the Direct Execution API (`/api/execute/transfer` + `/api/execute/{id}/status`) returning `0xMOCK…` synthetic tx hashes — used by the round-trip test below | 85 | `2122614` |
-| `scripts/demo/test-keeperhub-rebalance.ts` | Three-check round-trip test: (1) provider round-trip against the mock, (2) agent method approved-path shape with stubbed `OwsWalletService.executeSpend`, (3) agent method held-path shape (no `transferTxHash` fabricated on held/denied) | 279 | `2122614` |
+| `tooling/scripts/demo/run-keeperhub-rebalance.ts` | One-shot script that drives the loop against a configured testnet, prints the tx hash, and writes the receipt JSON for the submission form | 189 | `f21bf50` |
+| `tooling/scripts/demo/mock-keeperhub-server.mjs` | Local mock of the Direct Execution API (`/api/execute/transfer` + `/api/execute/{id}/status`) returning `0xMOCK…` synthetic tx hashes — used by the round-trip test below | 85 | `2122614` |
+| `tooling/scripts/demo/test-keeperhub-rebalance.ts` | Three-check round-trip test: (1) provider round-trip against the mock, (2) agent method approved-path shape with stubbed `OwsWalletService.executeSpend`, (3) agent method held-path shape (no `transferTxHash` fabricated on held/denied) | 279 | `2122614` |
 | `src/frontend/src/components/settings/settings-page.tsx` (extension) | `WalletsCard` derives "N on KeeperHub" badge from existing wallet metadata; description cross-links to `/observability`; `KeeperHubEmptyState` (numbered setup CTA + link to `app.keeperhub.com`) when the user has no wallets; `KeeperHubConsequences` 5-bullet panel rendered when provider is `keeperhub` (managed execution, gas sponsorship, MEV protection, audit trail linked to SigNoz, cost) | +98 / -21 | `2122614` |
 | `src/frontend/src/components/observability/observability-page.tsx` (extension) | Always-visible "Finding a KeeperHub-routed spend" callout: points at the `wallet_sign_and_broadcast` span, the `keeperhub.execution_id` attribute, and the nested `audit.log_action` event so users can find a KeeperHub-routed spend without digging through the technical-details toggle | +29 | `2122614` |
 
@@ -160,10 +160,10 @@ agent.sapience.keeperhub_rebalance
 
 The submission artifacts that satisfy the "link to a transaction your
 agent executed via KeeperHub" requirement are written by
-`scripts/demo/run-keeperhub-rebalance.ts` to:
+`tooling/scripts/demo/run-keeperhub-rebalance.ts` to:
 
 - `.artifacts/keeperhub-rebalance.json` — `{ intentId, runId, transferTxHash, txHash, traceId, sig: "...", executedAt }`
-- A demo video captured by `scripts/demo/capture-demo-screenshots.ts`
+- A demo video captured by `tooling/scripts/demo/capture-demo-screenshots.ts`
   showing the policy approval + KeeperHub execution + SigNoz trace.
 
 The rebalance script prints the policy verdict, the OTel `traceId`,
@@ -174,13 +174,13 @@ recoverable from either side.
 
 ### 5. Local round-trip test (mock + 3-check test)
 
-`scripts/demo/mock-keeperhub-server.mjs` is a tiny local mock of the
+`tooling/scripts/demo/mock-keeperhub-server.mjs` is a tiny local mock of the
 KeeperHub Direct Execution API. It listens on `PORT` (default 9997),
 queues a synthetic execution, returns `0xMOCK00000001aaaa…aa` on the
 second poll, and is the only piece of test infrastructure outside the
 production code path.
 
-`scripts/demo/test-keeperhub-rebalance.ts` exercises three
+`tooling/scripts/demo/test-keeperhub-rebalance.ts` exercises three
 independent checks:
 
 1. **Provider round-trip.** Spawns the mock, calls
@@ -201,7 +201,7 @@ independent checks:
    does not approve (the held path must never claim a broadcast).
    This is the fail-closed contract from `OwsWalletService.executeSpend`.
 
-All three checks run with `pnpm tsx scripts/demo/test-keeperhub-rebalance.ts`
+All three checks run with `pnpm tsx tooling/scripts/demo/test-keeperhub-rebalance.ts`
 and pass cleanly with the captured output `[test] all checks passed`.
 
 > The test bypasses `SapienceTradingAgent.start()` (which loads the
@@ -303,7 +303,7 @@ through the per-wallet execution form added in commit `56e8e07`.
 ### Run the rebalance cycle
 
 ```bash
-pnpm tsx scripts/demo/run-keeperhub-rebalance.ts \
+pnpm tsx tooling/scripts/demo/run-keeperhub-rebalance.ts \
   --wallet-id $WALLET_ID \
   --recipient 0xRecipient \
   --amount-wei 1000000000000000 \
@@ -380,9 +380,9 @@ KeeperHub surface through .mcp.json → https://app.keeperhub.com/mcp
 | `.mcp.json` | NEW — declare the KeeperHub MCP server for editor agents | Live (`f21bf50`) |
 | `docs/HACKATHON_SUBMISSION_KEEPERHUB.md` | NEW — this document | Live (`f21bf50`) |
 | `src/backend/modules/agents/implementations/SapienceTradingAgent.ts` | NEW method `runKeeperHubRebalanceCycle` (+158 LOC); exports `KeeperHubRebalanceResult` type; OTel span `agent.sapience.keeperhub_rebalance` and counter `cognivern.agent.keeperhub.rebalance.total` | Live (`f21bf50`) |
-| `scripts/demo/run-keeperhub-rebalance.ts` | NEW — one-shot orchestration that drives the loop and writes the receipt JSON (189 LOC) | Live (`f21bf50`) |
-| `scripts/demo/mock-keeperhub-server.mjs` | NEW — local mock of the Direct Execution API for the round-trip test (85 LOC) | Live (`2122614`) |
-| `scripts/demo/test-keeperhub-rebalance.ts` | NEW — 3-check round-trip test (provider round-trip, agent method approved, agent method held) (279 LOC) | Live (`2122614`) |
+| `tooling/scripts/demo/run-keeperhub-rebalance.ts` | NEW — one-shot orchestration that drives the loop and writes the receipt JSON (189 LOC) | Live (`f21bf50`) |
+| `tooling/scripts/demo/mock-keeperhub-server.mjs` | NEW — local mock of the Direct Execution API for the round-trip test (85 LOC) | Live (`2122614`) |
+| `tooling/scripts/demo/test-keeperhub-rebalance.ts` | NEW — 3-check round-trip test (provider round-trip, agent method approved, agent method held) (279 LOC) | Live (`2122614`) |
 | `src/frontend/src/components/settings/settings-page.tsx` | EXTENDED — `WalletsCard` derives "N on KeeperHub" badge; cross-link to `/observability`; `KeeperHubEmptyState` (numbered setup CTA) when no wallets; `KeeperHubConsequences` 5-bullet panel when provider is `keeperhub` | Live (`2122614`) |
 | `src/frontend/src/components/observability/observability-page.tsx` | EXTENDED — always-visible "Finding a KeeperHub-routed spend" callout next to the provenance legend | Live (`2122614`) |
 | `OwsWalletService` (existing) | Already routes to KeeperHub via `executionProvider === "keeperhub"` in `finalizeApprovedSpend` | Live (shipped in `56e8e07`) |
@@ -400,7 +400,7 @@ KeeperHub surface through .mcp.json → https://app.keeperhub.com/mcp
   - Test OWS wallet `ab1af94a-65a2-4bdd-a830-9439f2dea763` bootstrapped
     on Arbitrum Sepolia (`chainId: 421614`), with provider metadata
     preset to `keeperhub`.
-  - Local round-trip test (`scripts/demo/test-keeperhub-rebalance.ts`)
+  - Local round-trip test (`tooling/scripts/demo/test-keeperhub-rebalance.ts`)
     passes all three checks against the mock; the OTel span and metric
     are confirmed wired through.
   - UI surfaces (Settings → Wallets + Observability) are live and
@@ -409,7 +409,7 @@ KeeperHub surface through .mcp.json → https://app.keeperhub.com/mcp
   - Set the `keeperHubWalletAddress` on the test wallet via Settings →
     Wallets in the UI (paste the `0x…` address from `app.keeperhub.com`
     of the wallet funded there). Until that is set, running
-    `scripts/demo/run-keeperhub-rebalance.ts` against Arbitrum Sepolia
+    `tooling/scripts/demo/run-keeperhub-rebalance.ts` against Arbitrum Sepolia
     will fail with "keeperHubWalletAddress is required" — by design.
   - After that one step, `transferTxHash` becomes real onchain receipt
     and gets captured in `.artifacts/keeperhub-rebalance.json`.

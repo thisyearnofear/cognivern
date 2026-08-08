@@ -114,7 +114,7 @@ docs/*.pdf
 src/frontend/testsprite_tests/tmp/
 
 # ── Generated plots / images ───────────────────────────────────────
-scripts/hackathon/*.png
+tooling/scripts/hackathon/*.png
 
 # ── Tool version managers ──────────────────────────────────────────
 .volta/
@@ -138,8 +138,8 @@ docs/OPS.md
 /ecosystem.config.cjs
 
 # ── Deploy scripts with server-specific values ─────────────────────
-scripts/deploy.sh
-scripts/monitoring/monitor-api.sh
+tooling/scripts/deploy.sh
+tooling/scripts/monitoring/monitor-api.sh
 
 # ── External repos ─────────────────────────────────────────────────
 remix-smart-bin-monitoring-das/

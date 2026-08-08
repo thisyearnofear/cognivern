@@ -76,7 +76,7 @@ The governance timeline (1:08–1:22) reinforces both tracks: hash-signed events
 ## Re-running
 
 ```bash
-pnpm tsx scripts/demo/record-demo-video.ts
+pnpm tsx tooling/scripts/demo/record-demo-video.ts
 ```
 
 Update the recording script to follow this 90-second shot list before

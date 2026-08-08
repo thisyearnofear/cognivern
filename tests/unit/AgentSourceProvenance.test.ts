@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AgentSourceProvenanceTracker } from '../../agent/source-provenance.js';
+import { AgentSourceProvenanceTracker } from '../../examples/copilot/source-provenance.js';
 
 describe('AgentSourceProvenanceTracker', () => {
   it('marks MongoDB tool output as untrusted spend provenance', () => {

@@ -140,7 +140,7 @@ and MEV protection).
    you funded on [app.keeperhub.com](https://app.keeperhub.com), and
    save.
 3. Trigger any approved spend on that wallet — for example, run
-   `pnpm tsx scripts/demo/run-keeperhub-rebalance.ts
+   `pnpm tsx tooling/scripts/demo/run-keeperhub-rebalance.ts
 --wallet-id $WALLET_ID --recipient 0xRecipient --amount-wei
 1000000000000000 --reason "test rebalance"` from your terminal.
 4. Open the **Observability** page. The card header now shows

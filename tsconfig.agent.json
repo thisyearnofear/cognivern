@@ -13,6 +13,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["agent/**/*"],
+  "include": ["examples/copilot/**/*"],
   "exclude": ["node_modules", "dist"]
 }

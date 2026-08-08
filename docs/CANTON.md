@@ -32,23 +32,22 @@ CantonLedgerClient (canton/CantonLedgerClient.ts)  ---HTTP--->  Daml JSON API v2
 
 The client speaks both JSON Ledger API v1 (local/Hetzner sandbox) and v2 (Canton DevNet / shared participants). v2 is selected automatically when a `CANTON_BEARER_TOKEN` or OIDC config is provided.
 
-
 Every lifecycle step (create, submit, close, reveal) also fires `AuditLogService.logEvent` so the CRE run ledger has a hash-signed evidence record.
 
 ## Files
 
-| Path | Purpose |
-|---|---|
-| `daml/daml/Main.daml` | Daml model — `SealedBidAuction`, `Bid`, `AuctionResult` templates |
-| `daml/daml.yaml` | SDK version (**3.4.11**, LF 2.1) + project name |
-| `daml/start-sandbox.sh` | pm2 launcher on Hetzner |
-| `src/backend/canton/CantonLedgerClient.ts` | JWT + `/v1/{query,create,exercise,parties}` client |
-| `src/backend/canton/CantonPartyRegistry.ts` | cognivern name → Daml party mapping |
-| `src/backend/services/blockchain/sealed-bid/CantonSealedBidBackend.ts` | Backend impl |
-| `src/backend/services/blockchain/sealed-bid/SealedBidBackend.ts` | Interface all backends satisfy |
-| `src/frontend/src/components/sealed-bid/` | UI: create form, round list, party viewer, backend picker |
-| `src/frontend/src/components/dashboard/dashboard.tsx` | Dashboard card linking agent spend governance ↔ sealed-bid |
-| `tests/integration/canton-sealed-bid.test.ts` | Live-sandbox privacy invariants |
+| Path                                                                   | Purpose                                                           |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `daml/daml/Main.daml`                                                  | Daml model — `SealedBidAuction`, `Bid`, `AuctionResult` templates |
+| `daml/daml.yaml`                                                       | SDK version (**3.4.11**, LF 2.1) + project name                   |
+| `daml/start-sandbox.sh`                                                | pm2 launcher on Hetzner                                           |
+| `src/backend/canton/CantonLedgerClient.ts`                             | JWT + `/v1/{query,create,exercise,parties}` client                |
+| `src/backend/canton/CantonPartyRegistry.ts`                            | cognivern name → Daml party mapping                               |
+| `src/backend/services/blockchain/sealed-bid/CantonSealedBidBackend.ts` | Backend impl                                                      |
+| `src/backend/services/blockchain/sealed-bid/SealedBidBackend.ts`       | Interface all backends satisfy                                    |
+| `src/frontend/src/components/sealed-bid/`                              | UI: create form, round list, party viewer, backend picker         |
+| `src/frontend/src/components/dashboard/dashboard.tsx`                  | Dashboard card linking agent spend governance ↔ sealed-bid       |
+| `tests/integration/canton-sealed-bid.test.ts`                          | Live-sandbox privacy invariants                                   |
 
 ## UI surfaces
 
@@ -68,11 +67,11 @@ Every lifecycle step (create, submit, close, reveal) also fires `AuditLogService
 
 `Main:setup` seeds three auctions in distinct lifecycle stages on every sandbox start, so visitors and the demo video land on a state that shows the full flow at a glance:
 
-| roundId | Description | Status | Notes |
-|---|---|---|---|
-| `demo-round-open` | Q1 penetration testing engagement | open, 2 of 3 bids in | invites the visitor to submit the third bid + toggle the party view |
-| `demo-round-closed` | Q3 cloud-hosting RFP — 3-year commit | open on ledger, 3 bids in | visitor drives Close → Reveal to watch the atomic reveal |
-| `demo-round-revealed` | Legal counsel retainer 2026 | revealed (Bob won @ $185k) | shows the completed lifecycle; losing bids archived and never disclosed |
+| roundId               | Description                          | Status                     | Notes                                                                   |
+| --------------------- | ------------------------------------ | -------------------------- | ----------------------------------------------------------------------- |
+| `demo-round-open`     | Q1 penetration testing engagement    | open, 2 of 3 bids in       | invites the visitor to submit the third bid + toggle the party view     |
+| `demo-round-closed`   | Q3 cloud-hosting RFP — 3-year commit | open on ledger, 3 bids in  | visitor drives Close → Reveal to watch the atomic reveal                |
+| `demo-round-revealed` | Legal counsel retainer 2026          | revealed (Bob won @ $185k) | shows the completed lifecycle; losing bids archived and never disclosed |
 
 Because the ledger is in-memory, restart guarantees a clean known state rather than accumulating cruft — a feature, not a bug, for hackathon-window demos.
 
@@ -140,6 +139,7 @@ CANTON_DEMO_PARTY_IDS=auctioner-cognivern=auctioner-cognivern::122003aa7c491e00a
 ## HackCanton S2 — value settlement, bounty lanes & demo rails
 
 ### Value settlement — live on DevNet
+
 `CloseAndReveal` now settles **value**, not just an informational record. A
 `PaymentDeposit` template (bearer instrument pattern — issuer is sole signatory,
 `owner` tracks the current holder) is escrowed before the auction opens and
@@ -170,6 +170,7 @@ to Bob, old deposit archived, losing bids archived, `AuctionResult.settledAsset`
 is `Some`. All assertions pass on the Daml IDE ledger.
 
 ### Bounty-lane scoping (CBTC private OTC — documented next step, not built)
+
 - **CBTC (BitSafe) — best narrative fit.** The sealed-bid vendor-selection / OTC
   flow is literally the "private OTC" lane the CBTC bounty names. CBTC is a
   CIP-0056 token on Canton, available on DevNet via the
@@ -197,6 +198,7 @@ is `Some`. All assertions pass on the Daml IDE ledger.
   one-step — otherwise the headline atomicity claim is weakened.
 
 ### Demo rails (PixelPlex)
+
 - **Console Wallet** — sign `SubmitBid` / `CloseAndReveal` as a real party.
 - **CC View** — show the atomic reveal (bid archival + result) in a live explorer.
 - **CC Tag** — human-readable party names (Auctioneer / Alice / Bob / Charlie)
@@ -210,16 +212,16 @@ Source: https://hackathon.appsfactory.cc/season-2#materials (section "Hackathon 
 
 ### DevNet endpoints
 
-| Resource | URL / Endpoint |
-|---|---|
-| Wallet UI | `https://wallet.validator.hackcanton-01.devnet.naas.noders.services` |
-| CNS (Canton Name Service) | `https://cns.validator.hackcanton-01.devnet.naas.noders.services` |
-| gRPC Ledger API (port 5001) | `ledger-api-grpc.participant.hackcanton-01.devnet.naas.noders.services:443` |
-| **JSON Ledger API (port 7575)** | `https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443` |
-| Validator / Scan API (port 5003) | `https://validator-api-http.validator.hackcanton-01.devnet.naas.noders.services:443` |
-| Logs / Grafana | `https://grafana.participant.hackcanton-01.devnet.naas.noders.services` |
-| Audience (for JWT) | `https://hackcanton-01.devnet.naas.noders.services` |
-| OIDC token URL | `https://keycloak.naas.noders.services/realms/noders-appsfactory/protocol/openid-connect/token` |
+| Resource                         | URL / Endpoint                                                                                  |
+| -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Wallet UI                        | `https://wallet.validator.hackcanton-01.devnet.naas.noders.services`                            |
+| CNS (Canton Name Service)        | `https://cns.validator.hackcanton-01.devnet.naas.noders.services`                               |
+| gRPC Ledger API (port 5001)      | `ledger-api-grpc.participant.hackcanton-01.devnet.naas.noders.services:443`                     |
+| **JSON Ledger API (port 7575)**  | `https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443`             |
+| Validator / Scan API (port 5003) | `https://validator-api-http.validator.hackcanton-01.devnet.naas.noders.services:443`            |
+| Logs / Grafana                   | `https://grafana.participant.hackcanton-01.devnet.naas.noders.services`                         |
+| Audience (for JWT)               | `https://hackcanton-01.devnet.naas.noders.services`                                             |
+| OIDC token URL                   | `https://keycloak.naas.noders.services/realms/noders-appsfactory/protocol/openid-connect/token` |
 
 ### Authentication
 
@@ -239,16 +241,16 @@ The response contains an `access_token`. Use it as a `Bearer` token on all JSON 
 
 ### Completed DevNet setup
 
-| Step | Status | Value |
-|---|---|---|
-| DAR uploaded | Done | package `d62e13ab174d…` (LF 2.1, upgrades `51789b5390cb…`; built with a Daml 3.x SDK). Note: the repo's `daml.yaml` now pins the installed **3.4.11** (LF 2.1); a rebuild produces a new package id. |
-| Package ID | `d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad` |
-| Parties allocated | Done | `auctioner-cognivern::122003aa…`, `alice-cognivern::122003aa…`, `bob-cognivern::122003aa…`, `charlie-cognivern::122003aa…` |
-| Wallet onboarding | Done | Daml user ID: `e6c5f9fc-98ed-491f-b228-00cf931a05cc` |
-| `actAs` rights granted | Done | Rights assigned to user `e6c5f9fc-98ed-491f-b228-00cf931a05cc` for all four parties |
-| v2 client migration | Done | `src/backend/canton/CantonLedgerClient.ts` supports v1 sandbox and v2 DevNet |
-| Backend DevNet proof | Done | Local backend wired to DevNet passed `canton-devnet-proof.ts`: roundId `0x58012d8c…` |
-| Production cutover | Done | Hetzner backend env updated with DevNet JSON API v2 config; `pnpm deploy:hetzner` deployed `cognivern-backend`. `pnpm canton:proof` passed against `https://api.cognivern.persidian.com`. Demo video re-recorded against the DevNet-backed live UI |
+| Step                   | Status                                                             | Value                                                                                                                                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DAR uploaded           | Done                                                               | package `d62e13ab174d…` (LF 2.1, upgrades `51789b5390cb…`; built with a Daml 3.x SDK). Note: the repo's `daml.yaml` now pins the installed **3.4.11** (LF 2.1); a rebuild produces a new package id.                                               |
+| Package ID             | `d62e13ab174d8da690a44c6dd354a223f8c70e43a0ac7e17b8385bfd8b291fad` |
+| Parties allocated      | Done                                                               | `auctioner-cognivern::122003aa…`, `alice-cognivern::122003aa…`, `bob-cognivern::122003aa…`, `charlie-cognivern::122003aa…`                                                                                                                         |
+| Wallet onboarding      | Done                                                               | Daml user ID: `e6c5f9fc-98ed-491f-b228-00cf931a05cc`                                                                                                                                                                                               |
+| `actAs` rights granted | Done                                                               | Rights assigned to user `e6c5f9fc-98ed-491f-b228-00cf931a05cc` for all four parties                                                                                                                                                                |
+| v2 client migration    | Done                                                               | `src/backend/canton/CantonLedgerClient.ts` supports v1 sandbox and v2 DevNet                                                                                                                                                                       |
+| Backend DevNet proof   | Done                                                               | Local backend wired to DevNet passed `canton-devnet-proof.ts`: roundId `0x58012d8c…`                                                                                                                                                               |
+| Production cutover     | Done                                                               | Hetzner backend env updated with DevNet JSON API v2 config; `pnpm deploy:hetzner` deployed `cognivern-backend`. `pnpm canton:proof` passed against `https://api.cognivern.persidian.com`. Demo video re-recorded against the DevNet-backed live UI |
 
 ### Allocated parties
 
@@ -272,7 +274,7 @@ e6c5f9fc-98ed-491f-b228-00cf931a05cc
 If you ever need to re-upload to a fresh participant with admin credentials:
 
 ```bash
-pnpm tsx scripts/hack/bootstrap-devnet.ts
+pnpm tsx tooling/tooling/scripts/hack/bootstrap-devnet.ts
 ```
 
 This uploads the DAR, records the new package ID, allocates the demo parties, and writes `.artifacts/devnet-bootstrap.json`.
@@ -309,7 +311,7 @@ Two suites cover the sealed-bid backends:
   - **(2) FHE Option B invariants** — the FHE backend now uses the manager-decrypt-and-publish flow; tests assert the decryption proof requirement and the identity-gated `publishWinner` path on the contract.
   - **(3) Per-round visibility** — each individual bidder sees exactly their own bid for a round (matched by `payload.bidder === partyId`, not just count); manager sees all three.
   - **(4) Cross-leakage guard** — querying the `Bid` template as any individual bidder, at ledger-wide scope, returns only contracts where that bidder is the signatory.
-  Round-table queries flow through a single describe-scoped `findRoundOn<T extends { roundId: string }>` helper so a Daml model change that drops `roundId` from a payload fails the file at typecheck. `expect.soft()` propagates per-bidder failures to teardown instead of truncating at the first failing assertion. Auto-skips when the sandbox isn't reachable so it's safe in the default suite.
+    Round-table queries flow through a single describe-scoped `findRoundOn<T extends { roundId: string }>` helper so a Daml model change that drops `roundId` from a payload fails the file at typecheck. `expect.soft()` propagates per-bidder failures to teardown instead of truncating at the first failing assertion. Auto-skips when the sandbox isn't reachable so it's safe in the default suite.
 - **TestSprite CLI** — `.testsprite/tests/sealed_bid_canton_backend.py` runs against the prod URL: full lifecycle with atomic reveal, `backend` field discoverability, reveal-before-close rejection, unknown-bidder rejection. Sits alongside `sealed_bid_endpoints.py` which covers the FHE path.
 
 ## Runbook — DevNet cutover (HackCanton S2 shared node)
@@ -322,7 +324,7 @@ The team used the shared HackCanton S2 DevNet node. The DAR was uploaded and par
    ```
 2. **Upload** `daml/.daml/dist/daml-0.0.1.dar` to the participant. If you have admin rights:
    ```bash
-   pnpm tsx scripts/hack/bootstrap-devnet.ts
+   pnpm tsx tooling/tooling/scripts/hack/bootstrap-devnet.ts
    ```
    Otherwise send the `.dar` to a node admin and ask them to upload it + allocate the demo parties.
 3. **Onboard the wallet user** at `https://wallet.validator.hackcanton-01.devnet.naas.noders.services` (Log In with OAuth2). The Daml user ID is the Keycloak `sub` UUID shown after login (e.g. `e6c5f9fc-98ed-491f-b228-00cf931a05cc`).

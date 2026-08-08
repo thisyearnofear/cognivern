@@ -25,8 +25,9 @@ pnpm deploy:hetzner
 ```
 
 This runs two scripts:
-1. `scripts/deploy/build-backend-artifact.sh` — compiles backend, bundles `dist/` + `config/` + `package.json` into a `.tgz`
-2. `scripts/deploy/deploy-backend-artifact-hetzner.sh` — SCPs tarball, extracts, installs prod deps, restarts PM2, runs health check
+
+1. `tooling/scripts/deploy/build-backend-artifact.sh` — compiles backend, bundles `dist/` + `config/` + `package.json` into a `.tgz`
+2. `tooling/scripts/deploy/deploy-backend-artifact-hetzner.sh` — SCPs tarball, extracts, installs prod deps, restarts PM2, runs health check
 
 No build happens on the server — it just extracts and restarts.
 
@@ -40,32 +41,32 @@ ssh <server> "pm2 restart cognivern-backend --update-env"
 
 See `.env.example` for the full list. Minimum for production:
 
-| Variable | Purpose |
-| -------- | ------- |
-| `NODE_ENV` | `production` |
-| `PORT` | API port (must match nginx `proxy_pass`) |
-| `API_KEY` | API authentication key |
-| `JWT_SECRET` | JWT signing secret — authMiddleware throws if missing |
-| `OWS_VAULT_SECRET` | Secret used to encrypt the local OWS vault |
+| Variable           | Purpose                                               |
+| ------------------ | ----------------------------------------------------- |
+| `NODE_ENV`         | `production`                                          |
+| `PORT`             | API port (must match nginx `proxy_pass`)              |
+| `API_KEY`          | API authentication key                                |
+| `JWT_SECRET`       | JWT signing secret — authMiddleware throws if missing |
+| `OWS_VAULT_SECRET` | Secret used to encrypt the local OWS vault            |
 
 Optional integrations: `FILECOIN_PRIVATE_KEY`, `FHENIX_PRIVATE_KEY`, `ZEROG_PRIVATE_KEY` / `ZEROG_RPC_URL` / `ZEROG_CHAIN_ID` / `ZEROG_PROOF_CONTRACT`, `MONGODB_URI`, `CHAINGPT_API_KEY`, `OPENAI_API_KEY`. See `.env.example` for the complete list.
 
 Canton (Daml) backend for confidential sealed-bid rounds — all optional, backend simply isn't registered if `CANTON_JSON_API_URL` is absent. For HackCanton final submission this must point at a Canton DevNet participant; `http://127.0.0.1:7575` / Hetzner sandbox is useful for staging but does not satisfy the DevNet deployment requirement.
 
-| Variable | Purpose |
-| -------- | ------- |
-| `CANTON_JSON_API_URL` | Daml JSON API URL (`http://127.0.0.1:7575` for local staging; `https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443` for final submission) |
-| `CANTON_APPLICATION_ID` | Any string; embedded in JWT `applicationId` claim |
-| `CANTON_LEDGER_ID` | `sandbox` for the bundled sandbox; `hackcanton-01` for the shared DevNet node |
-| `CANTON_LEDGER_USER_ID` | Daml user ID (Keycloak `sub` UUID on the shared DevNet node) |
-| `CANTON_BEARER_TOKEN` | Static Bearer token from the NODERS Keycloak password grant |
-| `CANTON_OIDC_*` | OIDC password-grant config; preferred for production because the client refreshes tokens automatically |
-| `CANTON_TEMPLATE_AUCTION` | `#daml:Main:SealedBidAuction` on DevNet; `<pkgId>:Main:SealedBidAuction` on sandbox |
-| `CANTON_TEMPLATE_BID` | `#daml:Main:Bid` on DevNet; `<pkgId>:Main:Bid` on sandbox |
-| `CANTON_TEMPLATE_RESULT` | `#daml:Main:AuctionResult` on DevNet; `<pkgId>:Main:AuctionResult` on sandbox |
-| `CANTON_DEMO_MANAGER_NAME` | Demo manager party name (`auctioner-cognivern` on the shared node) |
-| `CANTON_DEMO_BIDDER_NAMES` | Comma-separated demo bidder names (`alice-cognivern,bob-cognivern,charlie-cognivern`) |
-| `CANTON_DEMO_PARTY_IDS` | Static `name=partyId` map; required on shared DevNet nodes where the user cannot list/allocate parties |
+| Variable                   | Purpose                                                                                                                                                                 |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CANTON_JSON_API_URL`      | Daml JSON API URL (`http://127.0.0.1:7575` for local staging; `https://ledger-api-json.participant.hackcanton-01.devnet.naas.noders.services:443` for final submission) |
+| `CANTON_APPLICATION_ID`    | Any string; embedded in JWT `applicationId` claim                                                                                                                       |
+| `CANTON_LEDGER_ID`         | `sandbox` for the bundled sandbox; `hackcanton-01` for the shared DevNet node                                                                                           |
+| `CANTON_LEDGER_USER_ID`    | Daml user ID (Keycloak `sub` UUID on the shared DevNet node)                                                                                                            |
+| `CANTON_BEARER_TOKEN`      | Static Bearer token from the NODERS Keycloak password grant                                                                                                             |
+| `CANTON_OIDC_*`            | OIDC password-grant config; preferred for production because the client refreshes tokens automatically                                                                  |
+| `CANTON_TEMPLATE_AUCTION`  | `#daml:Main:SealedBidAuction` on DevNet; `<pkgId>:Main:SealedBidAuction` on sandbox                                                                                     |
+| `CANTON_TEMPLATE_BID`      | `#daml:Main:Bid` on DevNet; `<pkgId>:Main:Bid` on sandbox                                                                                                               |
+| `CANTON_TEMPLATE_RESULT`   | `#daml:Main:AuctionResult` on DevNet; `<pkgId>:Main:AuctionResult` on sandbox                                                                                           |
+| `CANTON_DEMO_MANAGER_NAME` | Demo manager party name (`auctioner-cognivern` on the shared node)                                                                                                      |
+| `CANTON_DEMO_BIDDER_NAMES` | Comma-separated demo bidder names (`alice-cognivern,bob-cognivern,charlie-cognivern`)                                                                                   |
+| `CANTON_DEMO_PARTY_IDS`    | Static `name=partyId` map; required on shared DevNet nodes where the user cannot list/allocate parties                                                                  |
 
 See [`.env.example`](../.env.example) for the exact DevNet values and [`docs/CANTON.md`](./CANTON.md) for the model-change and DevNet-migration runbooks.
 
@@ -123,10 +124,10 @@ pm2 set pm2-logrotate:compress true
 ## Reverse Proxy (nginx)
 
 The backend listens on `$PORT`. nginx must `proxy_pass` to the same port.
-A reference config is at `deploy/nginx/cognivern.conf`:
+A reference config is at `ops/deploy/nginx/cognivern.conf`:
 
 ```bash
-sudo cp deploy/nginx/cognivern.conf /etc/nginx/sites-enabled/cognivern
+sudo cp ops/deploy/nginx/cognivern.conf /etc/nginx/sites-enabled/cognivern
 sudo nginx -t && sudo systemctl reload nginx
 ```
 

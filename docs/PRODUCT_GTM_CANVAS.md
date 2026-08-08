@@ -122,7 +122,7 @@ looking for a governance layer to differentiate their enterprise offering.
 2. CrewAI ecosystem — teams building production agents who need enterprise
    governance
 3. Google Cloud Agent Builder ecosystem (we're already integrated with
-   Gemini 3.1 + MongoDB MCP — `agent/agent-builder.yaml`)
+   Gemini 3.1 + MongoDB MCP — `examples/copilot/agent-builder.yaml`)
 4. OWS wallet users (existing user base with agent wallets, no governance layer)
 5. Encode / ETHGlobal hackathon teams deploying spending agents who need a
    governance story for their own submissions

@@ -34,7 +34,7 @@ BASE_SEPOLIA_RPC=https://sepolia.base.org
 
 ```bash
 npx hardhat --config contracts/fhenix/hardhat.config.cjs compile
-npx hardhat --config contracts/fhenix/hardhat.config.cjs run scripts/deploy.cjs --network fhenixSepolia
+npx hardhat --config contracts/fhenix/hardhat.config.cjs run contracts/scripts/deploy.cjs --network fhenixSepolia
 ```
 
 ## Wave Status

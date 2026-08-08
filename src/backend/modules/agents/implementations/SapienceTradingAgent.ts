@@ -733,7 +733,7 @@ export class SapienceTradingAgent implements TradingAgent {
    * through `KeeperHubExecutionProvider` instead of the local RPC.
    *
    * Returns the spend outcome plus the receipt fields that the demo
-   * script (`scripts/demo/run-keeperhub-rebalance.ts`) persists to
+   * script (`tooling/scripts/demo/run-keeperhub-rebalance.ts`) persists to
    * `.artifacts/keeperhub-rebalance.json` for the hackathon
    * submission. If the spend is held or denied, the call still returns
    * the policy verdict and no broadcast is attempted.

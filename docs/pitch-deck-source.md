@@ -1,8 +1,8 @@
 # Pitch Deck Source — Cognivern on Canton
 
 **Generated file:** `docs/pitch-deck.pptx` (local, not in git — export to PDF for submission)
-**Generator script:** `scripts/create-pitch-deck.py`  
-**Regenerate:** `pnpm pitch-deck` (or `/usr/local/bin/python3.13 scripts/create-pitch-deck.py`)
+**Generator script:** `tooling/scripts/create-pitch-deck.py`  
+**Regenerate:** `pnpm pitch-deck` (or `/usr/local/bin/python3.13 tooling/scripts/create-pitch-deck.py`)
 
 ## Slide 1 — Title
 

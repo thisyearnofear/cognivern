@@ -96,7 +96,7 @@ Fhenix variables can be left empty for local dev — the service falls back to a
 
 ```bash
 npx hardhat compile
-npx hardhat run scripts/deploy-hardhat.cjs --network calibration
+npx hardhat run tooling/scripts/deploy/deploy-hardhat.cjs --network calibration
 ```
 
 Deployment outputs contract addresses to add to `.env`. See [Deployment](./DEPLOYMENT.md) for deployment details.
@@ -121,12 +121,12 @@ Cognivern is a control plane for OWS wallets that handles policy checks, approva
 
 ### Responsibility Boundary
 
-| OWS Owns                   | Cognivern Owns                     | Swappable Via              |
-| -------------------------- | ---------------------------------- | -------------------------- |
-| Wallet storage             | Policy evaluation                  | —                          |
-| API-key issuance           | Approval workflows                 | —                          |
-| Transaction signing        | Audit-log indexing / signing layer | SigningProvider adapter    |
-| Signing policy enforcement | Run ledger & analytics             | —                          |
+| OWS Owns                   | Cognivern Owns                     | Swappable Via           |
+| -------------------------- | ---------------------------------- | ----------------------- |
+| Wallet storage             | Policy evaluation                  | —                       |
+| API-key issuance           | Approval workflows                 | —                       |
+| Transaction signing        | Audit-log indexing / signing layer | SigningProvider adapter |
+| Signing policy enforcement | Run ledger & analytics             | —                       |
 
 ### System Overview
 
@@ -177,7 +177,7 @@ additionally compares each run's current `hashRun(run)` against the latest
 recorded `runHash` — a byte edited on disk flips that run to "Tampered".
 
 **Persistence invariant:** `hashRun(run) = sha256(JSON.stringify(run))` is
-computed by `CreRunStore` *after* `persistence.append(run)` and *before*
+computed by `CreRunStore` _after_ `persistence.append(run)` and _before_
 `ledger.record(...)`. Persistence layers must not mutate the run object in
 place — MongoDB's `insertOne` adds an `_id` to the passed document, which would
 make the ledger hash a `_id`-bearing object while the canonical JSONL store
@@ -214,6 +214,7 @@ Agent action
 ```
 
 Implementation files:
+
 - `src/backend/modules/api/controllers/GovernanceController.ts` — HTTP entry point
 - `src/backend/services/PolicyEnforcementService.ts` — Rule evaluation, delegates to Fhenix/ChainGPT
 - `src/backend/services/AuditLogService.ts` — CRE-backed evidence records
@@ -223,16 +224,16 @@ Implementation files:
 
 ### Network Roles
 
-| Partner | Role | Status |
-|---|---|---|
-| **Fhenix** | Confidential policy evaluation via FHE. Budgets, limits, and spend counters remain encrypted. | Live (Arbitrum Sepolia) |
-| **X Layer** | Governed execution dispatch path. Approved spends dispatched here for execution and public anchoring. | Testnet (chainId 1952) |
-| **Filecoin** | Durable evidence anchoring for audit logs via `FilecoinStorageService` → FVM. | Live (Calibration testnet) |
-| **0G** | Dual surface: (a) on-chain governance decision proofs via `GovernanceProof` contract — every evaluate call posts a `GovernanceDecision` event to 0G Chain, verifiable on ChainScan; (b) 0G Storage evidence anchoring via `ZeroGStorageService` (indexer upload, gated by `ZEROG_PRIVATE_KEY`, re-fetched by deep-verify). | Galileo Testnet (chain ID 16602) |
-| **ChainGPT** | Web3-specialized LLM for smart contract auditing and governance queries. | Live |
-| **Ledger DMK** | Hardware signing for high-value transactions. | Live |
-| **MongoDB** | Persistent agent memory & run ledger. Inserts copies of CRE runs so its auto `_id` never mutates the ledger-hashed object (see persistence invariant above). | Optional, gated by `MONGODB_URI` |
-| **HydraDB** | Optional agentic-memory / cross-source retrieval substrate. Mirrors the audit + run ledger as app-knowledge and answers multi-hop questions across audit + Slack + GitHub. Free tier, unlimited calls. | Optional, gated by `HYDRADB_ENABLED` |
+| Partner        | Role                                                                                                                                                                                                                                                                                                                       | Status                               |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| **Fhenix**     | Confidential policy evaluation via FHE. Budgets, limits, and spend counters remain encrypted.                                                                                                                                                                                                                              | Live (Arbitrum Sepolia)              |
+| **X Layer**    | Governed execution dispatch path. Approved spends dispatched here for execution and public anchoring.                                                                                                                                                                                                                      | Testnet (chainId 1952)               |
+| **Filecoin**   | Durable evidence anchoring for audit logs via `FilecoinStorageService` → FVM.                                                                                                                                                                                                                                              | Live (Calibration testnet)           |
+| **0G**         | Dual surface: (a) on-chain governance decision proofs via `GovernanceProof` contract — every evaluate call posts a `GovernanceDecision` event to 0G Chain, verifiable on ChainScan; (b) 0G Storage evidence anchoring via `ZeroGStorageService` (indexer upload, gated by `ZEROG_PRIVATE_KEY`, re-fetched by deep-verify). | Galileo Testnet (chain ID 16602)     |
+| **ChainGPT**   | Web3-specialized LLM for smart contract auditing and governance queries.                                                                                                                                                                                                                                                   | Live                                 |
+| **Ledger DMK** | Hardware signing for high-value transactions.                                                                                                                                                                                                                                                                              | Live                                 |
+| **MongoDB**    | Persistent agent memory & run ledger. Inserts copies of CRE runs so its auto `_id` never mutates the ledger-hashed object (see persistence invariant above).                                                                                                                                                               | Optional, gated by `MONGODB_URI`     |
+| **HydraDB**    | Optional agentic-memory / cross-source retrieval substrate. Mirrors the audit + run ledger as app-knowledge and answers multi-hop questions across audit + Slack + GitHub. Free tier, unlimited calls.                                                                                                                     | Optional, gated by `HYDRADB_ENABLED` |
 
 ### Fhenix Integration — Confidential Policy Evaluation
 
@@ -240,23 +241,23 @@ Fhenix (CoFHE) lets Cognivern evaluate policy on **encrypted state** — budgets
 
 #### Layered Architecture
 
-| Layer | Chain | Role |
-|-------|-------|------|
-| Execution & Public Policy Anchoring | X Layer Testnet (1952) | `GovernanceContract`, `AIGovernanceStorage` |
-| Live Audit Anchoring | 0G Galileo Testnet (16602) | `GovernanceProof` contract — `GovernanceDecision` events, verifiable on ChainScan |
-| Audit Archive | Filecoin Calibration | Long-term immutable audit storage |
-| **Confidential Policy State** | **Fhenix (Arbitrum Sepolia)** | Encrypted budgets, encrypted spend counters, FHE-evaluated policy checks |
+| Layer                               | Chain                         | Role                                                                              |
+| ----------------------------------- | ----------------------------- | --------------------------------------------------------------------------------- |
+| Execution & Public Policy Anchoring | X Layer Testnet (1952)        | `GovernanceContract`, `AIGovernanceStorage`                                       |
+| Live Audit Anchoring                | 0G Galileo Testnet (16602)    | `GovernanceProof` contract — `GovernanceDecision` events, verifiable on ChainScan |
+| Audit Archive                       | Filecoin Calibration          | Long-term immutable audit storage                                                 |
+| **Confidential Policy State**       | **Fhenix (Arbitrum Sepolia)** | Encrypted budgets, encrypted spend counters, FHE-evaluated policy checks          |
 
 Cross-chain: Fhenix computes the encrypted decision → Hyperlane Mailbox dispatches to X Layer → `GovernanceContract.handle()` consumes for execution and public anchoring.
 
 #### What Gets Encrypted
 
-| Concept | Without Fhenix | With Fhenix |
-|---------|---------------|-------------|
-| Per-agent daily budget | `uint256` in policy JSON | `euint128` on Fhenix |
-| Spend counter | In-memory counter | `euint128` on Fhenix |
-| Vendor allowlist | `string[]` | `ebool` via encrypted set |
-| Amount in `/api/spend` | Plaintext | Client-side encrypted via `@cofhe/sdk` |
+| Concept                | Without Fhenix           | With Fhenix                            |
+| ---------------------- | ------------------------ | -------------------------------------- |
+| Per-agent daily budget | `uint256` in policy JSON | `euint128` on Fhenix                   |
+| Spend counter          | In-memory counter        | `euint128` on Fhenix                   |
+| Vendor allowlist       | `string[]`               | `ebool` via encrypted set              |
+| Amount in `/api/spend` | Plaintext                | Client-side encrypted via `@cofhe/sdk` |
 
 #### Configuration
 
@@ -271,11 +272,11 @@ FHENIX_EVALUATE_TIMEOUT_MS=30000
 
 #### Key Contracts
 
-| Contract | Address | Network |
-|----------|---------|---------|
+| Contract                  | Address                                      | Network          |
+| ------------------------- | -------------------------------------------- | ---------------- |
 | `ConfidentialSpendPolicy` | `0x710005F7454B8756F7E1118B26d1361b001fc818` | Arbitrum Sepolia |
-| `GovernanceContract` | `0xB5326cEEDBb52C8ec9905929F5f612F7ac9819cE` | Arbitrum Sepolia |
-| `GovernedVault` | `0x468F1CfBB5bec9352b279192a952916610f58BB4` | Arbitrum Sepolia |
+| `GovernanceContract`      | `0xB5326cEEDBb52C8ec9905929F5f612F7ac9819cE` | Arbitrum Sepolia |
+| `GovernedVault`           | `0x468F1CfBB5bec9352b279192a952916610f58BB4` | Arbitrum Sepolia |
 
 #### Async FHE Flow
 
@@ -299,12 +300,12 @@ The Canton path is locked against future Daml refactors by a literal-value canar
 
 `SealedBidService` (`src/backend/services/blockchain/SealedBidService.ts`) is a thin async dispatcher over the `SealedBidBackend` interface. Rounds pick their backend at create time via a `backend: "fhe" | "canton"` field; the dispatcher records `roundId → backendName` and routes subsequent calls (`submitBid`, `closeRound`, `revealWinner`) to the owning backend.
 
-| Backend | File | Notes |
-|---|---|---|
-| `FheSealedBidBackend` | `sealed-bid/FheSealedBidBackend.ts` | CoFHE ciphertext handles via `FhenixPolicyService.encryptValue`. Reveal uses the **Option B manager-decrypt-and-publish flow**: callers supply `decryptionProof: Array<{bidder, plaintext}>` (every bid covered); backend rejects without it, selects per `selectionMethod`, marks losers rejected + winner selected. |
-| `CantonSealedBidBackend` | `sealed-bid/CantonSealedBidBackend.ts` | Maps `createRound → SealedBidAuction` create, `submitBid → SubmitBid` choice, `revealWinner → CloseAndReveal` choice. |
+| Backend                  | File                                   | Notes                                                                                                                                                                                                                                                                                                                 |
+| ------------------------ | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FheSealedBidBackend`    | `sealed-bid/FheSealedBidBackend.ts`    | CoFHE ciphertext handles via `FhenixPolicyService.encryptValue`. Reveal uses the **Option B manager-decrypt-and-publish flow**: callers supply `decryptionProof: Array<{bidder, plaintext}>` (every bid covered); backend rejects without it, selects per `selectionMethod`, marks losers rejected + winner selected. |
+| `CantonSealedBidBackend` | `sealed-bid/CantonSealedBidBackend.ts` | Maps `createRound → SealedBidAuction` create, `submitBid → SubmitBid` choice, `revealWinner → CloseAndReveal` choice.                                                                                                                                                                                                 |
 
-See `CANTON.md` for the Daml model (four templates), runtime layout (local/Hetzner/DevNet), env vars, evidence anchoring, and the full DevNet cutover runbook.
+See [`CANTON.md`](./CANTON.md) for the Daml model (four templates), runtime layout (local/Hetzner/DevNet), env vars, evidence anchoring, and the full DevNet cutover runbook.
 
 #### FHE Option B trust model
 
@@ -325,11 +326,11 @@ The Fhenix confidential-compute pipeline (`ConfidentialSpendPolicy` + `SealedBid
 
 ChainGPT provides Web3-specialized LLM capabilities for governance analysis and runtime smart contract auditing.
 
-| Capability | Where | Config |
-|-----------|-------|--------|
-| **Web3 LLM Provider** — Routes Web3 queries (sanction checks, calldata decoding, contract analysis) via `MultiModelRouter` | `src/backend/modules/cloudflare-agents/MultiModelRouter.ts` | `CHAINGPT_API_KEY` |
-| **Smart Contract Auditor** — Pre-spend vulnerability scan. Triggered by `contract_audit` rule type. Returns approve/hold/deny by severity (critical/high=deny, medium=hold, low=approve) | `src/backend/services/ChainGPTAuditService.ts` | `CHAINGPT_API_KEY`, `CHAINGPT_AUDIT_TIMEOUT_MS`, `CHAINGPT_AUDIT_CACHE_TTL_MS` |
-| **News-driven Policy Auto-Adjustment** — Breaking news from ChainGPT webhooks auto-flips matching policies to hold | `src/backend/services/NewsPolicyAdjuster.ts` | Webhook: `POST /api/webhooks/chain-gpt-news` |
+| Capability                                                                                                                                                                               | Where                                                       | Config                                                                         |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| **Web3 LLM Provider** — Routes Web3 queries (sanction checks, calldata decoding, contract analysis) via `MultiModelRouter`                                                               | `src/backend/modules/cloudflare-agents/MultiModelRouter.ts` | `CHAINGPT_API_KEY`                                                             |
+| **Smart Contract Auditor** — Pre-spend vulnerability scan. Triggered by `contract_audit` rule type. Returns approve/hold/deny by severity (critical/high=deny, medium=hold, low=approve) | `src/backend/services/ChainGPTAuditService.ts`              | `CHAINGPT_API_KEY`, `CHAINGPT_AUDIT_TIMEOUT_MS`, `CHAINGPT_AUDIT_CACHE_TTL_MS` |
+| **News-driven Policy Auto-Adjustment** — Breaking news from ChainGPT webhooks auto-flips matching policies to hold                                                                       | `src/backend/services/NewsPolicyAdjuster.ts`                | Webhook: `POST /api/webhooks/chain-gpt-news`                                   |
 
 ```env
 CHAINGPT_API_KEY=your_api_key_here
@@ -344,21 +345,22 @@ Flow: agent submits spend targeting a contract → `PolicyEnforcementService` ev
 
 The `SigningProvider` interface in `src/backend/signing/SigningProvider.ts` defines a 3-method contract. Dispatch happens in `OwsWalletService.handleApprove()` based on `wallet.metadata.signingProvider`:
 
-| Provider | Value | Backend | Use Case |
-|----------|-------|---------|----------|
-| **Local** | `"local"` (default) | `OwsLocalVaultService.signMessage()` | Development, low-value |
-| **OWS Remote** | `"ows_remote"` | `OwsLocalVaultService.signWithExternalWallet()` | Multi-instance |
-| **Ledger DMK** | `"ledger"` | `LedgerSigningProvider` (`@ledgerhq/device-management-kit`) | Production high-value, hardware-gated |
-| **Speculos** | `"speculos"` | `OwsLocalVaultService.signWithExternalWallet()` via HTTP | Sandbox/CI |
+| Provider       | Value               | Backend                                                     | Use Case                              |
+| -------------- | ------------------- | ----------------------------------------------------------- | ------------------------------------- |
+| **Local**      | `"local"` (default) | `OwsLocalVaultService.signMessage()`                        | Development, low-value                |
+| **OWS Remote** | `"ows_remote"`      | `OwsLocalVaultService.signWithExternalWallet()`             | Multi-instance                        |
+| **Ledger DMK** | `"ledger"`          | `LedgerSigningProvider` (`@ledgerhq/device-management-kit`) | Production high-value, hardware-gated |
+| **Speculos**   | `"speculos"`        | `OwsLocalVaultService.signWithExternalWallet()` via HTTP    | Sandbox/CI                            |
 
 Wallet metadata:
+
 ```typescript
 { metadata: {} }                                           // Local (default)
 { metadata: { signingProvider: "ledger" } }                // Ledger hardware
 { metadata: { signingProvider: "speculos", externalSource: "http://speculos:5000" } }  // Sandbox
 ```
 
-Speculos runs as a Docker container (`deploy/docker-compose.yml`, `profiles: ["sandbox"]`). This lets CI run full governance→signing→audit cycles with hardware-accurate signing but zero asset risk.
+Speculos runs as a Docker container (`ops/deploy/docker-compose.yml`, `profiles: ["sandbox"]`). This lets CI run full governance→signing→audit cycles with hardware-accurate signing but zero asset risk.
 
 Dependencies: `@ledgerhq/device-management-kit`, `@ledgerhq/device-signer-kit-ethereum`, `@ledgerhq/device-transport-kit-node-hid`, `@ledgerhq/device-transport-kit-speculos`, `rxjs`
 
@@ -390,34 +392,34 @@ Cognivern's two native trading agents (`SapienceTradingAgent` and `UserTradingAg
 
 #### Configuration
 
-| Env var | Default | Purpose |
-|---|---|---|
-| `COGNIVERN_SELF_BASE_URL` | `http://localhost:3000` | URL agents use to call their own governance API |
-| `COGNIVERN_API_KEY` | (required) | API key for governance calls |
-| `SAPIENCE_HUMAN_CONFIRM_TOKEN` | unset | Static token for trades ≥ 10 USDe |
-| `SAPIENCE_ENABLED` | `false` | Toggle Sapience agent registration on startup |
+| Env var                        | Default                 | Purpose                                         |
+| ------------------------------ | ----------------------- | ----------------------------------------------- |
+| `COGNIVERN_SELF_BASE_URL`      | `http://localhost:3000` | URL agents use to call their own governance API |
+| `COGNIVERN_API_KEY`            | (required)              | API key for governance calls                    |
+| `SAPIENCE_HUMAN_CONFIRM_TOKEN` | unset                   | Static token for trades ≥ 10 USDe               |
+| `SAPIENCE_ENABLED`             | `false`                 | Toggle Sapience agent registration on startup   |
 
 ### Mode System
 
-| Mode | Auth Required | Data Source | UI Indicator |
-|---|---|---|---|
-| **Demo** | No | Client-side demo data + backend `DemoDataService` | Amber "Demo Mode" badge |
-| **Sandbox** | Yes | Backend `WorkspaceDataService` with `X-Workspace-Mode: sandbox` header | Sandbox/Production toggle |
-| **Production** | Yes | Backend `WorkspaceDataService` (live SQLite) | "Live Workspace" green banner |
+| Mode           | Auth Required | Data Source                                                            | UI Indicator                  |
+| -------------- | ------------- | ---------------------------------------------------------------------- | ----------------------------- |
+| **Demo**       | No            | Client-side demo data + backend `DemoDataService`                      | Amber "Demo Mode" badge       |
+| **Sandbox**    | Yes           | Backend `WorkspaceDataService` with `X-Workspace-Mode: sandbox` header | Sandbox/Production toggle     |
+| **Production** | Yes           | Backend `WorkspaceDataService` (live SQLite)                           | "Live Workspace" green banner |
 
 Mode resolution (`demoInterceptor.ts`): workspace `tier` stored in SQLite (`'demo'` or `'live'`). If `tier === 'demo'`, backend always serves demo data. If `tier === 'live'`, the `X-Workspace-Mode` header selects data source.
 
 ## Storage Architecture
 
-| Store | File | Purpose |
-|---|---|---|
-| `RateLimitStore` | `rate-limit-store.jsonl` | Per-workspace and per-key rate limiting |
-| `TokenBlacklistStore` | `token-blacklist.jsonl` | JWT token revocation |
-| `UxEventStore` | `ux-events.jsonl` | UX telemetry events |
-| `CreRunStore` | `cre-runs.jsonl` (+ MongoDB optional) | Core Run Engine evidence ledger |
-| `CopilotRunStore` | SQLite (`copilot_runs` + `copilot_events`) | Live demo mission runs + event streams |
-| `MongoDbCreRunPersistence` | MongoDB `cre_runs` | Durable run ledger (optional, `MONGODB_URI`) |
-| `MongoDbMemoryService` | MongoDB `agent_memory` | Cross-session agent memory (optional) |
+| Store                      | File                                       | Purpose                                      |
+| -------------------------- | ------------------------------------------ | -------------------------------------------- |
+| `RateLimitStore`           | `rate-limit-store.jsonl`                   | Per-workspace and per-key rate limiting      |
+| `TokenBlacklistStore`      | `token-blacklist.jsonl`                    | JWT token revocation                         |
+| `UxEventStore`             | `ux-events.jsonl`                          | UX telemetry events                          |
+| `CreRunStore`              | `cre-runs.jsonl` (+ MongoDB optional)      | Core Run Engine evidence ledger              |
+| `CopilotRunStore`          | SQLite (`copilot_runs` + `copilot_events`) | Live demo mission runs + event streams       |
+| `MongoDbCreRunPersistence` | MongoDB `cre_runs`                         | Durable run ledger (optional, `MONGODB_URI`) |
+| `MongoDbMemoryService`     | MongoDB `agent_memory`                     | Cross-session agent memory (optional)        |
 
 All file-backed stores use a common `BaseStore` abstract class. To swap to Redis/Postgres/MongoDB: implement the same interface on a new adapter and replace the singleton import.
 
@@ -425,14 +427,14 @@ All file-backed stores use a common `BaseStore` abstract class. To swap to Redis
 
 ## Security Architecture
 
-| Layer | Protection |
-|---|---|
-| Auth | SIWE + JWT with nonce replay protection |
-| API Keys | scrypt hashed, workspace-scoped permissions |
-| Rate Limiting | 3 layers (global, workspace, per-endpoint) |
-| Encryption | Fhenix FHE on-chain evaluation (confidential policies) |
-| Audit | Immutable records on 0G Chain (Galileo Testnet) + Filecoin (dual-anchor) |
-| Contract Audit | ChainGPT runtime scan on recipient contracts |
+| Layer          | Protection                                                               |
+| -------------- | ------------------------------------------------------------------------ |
+| Auth           | SIWE + JWT with nonce replay protection                                  |
+| API Keys       | scrypt hashed, workspace-scoped permissions                              |
+| Rate Limiting  | 3 layers (global, workspace, per-endpoint)                               |
+| Encryption     | Fhenix FHE on-chain evaluation (confidential policies)                   |
+| Audit          | Immutable records on 0G Chain (Galileo Testnet) + Filecoin (dual-anchor) |
+| Contract Audit | ChainGPT runtime scan on recipient contracts                             |
 
 ## Telemetry & Observability
 
@@ -452,13 +454,13 @@ OTLP-compatible backend).
 
 ### Instrumented surfaces
 
-| Surface | Span name | Source file |
-|---------|-----------|-------------|
-| LLM call (with fallback) | `llm.execute_with_fallback` | `MultiModelRouter.ts` |
-| LLM provider call | `llm.provider.<name>` | `MultiModelRouter.ts` |
-| Governance decision | `governance.evaluate_decision` | `PolicyEnforcementService.ts` |
-| Audit log entry | `audit.log_action` | `AuditLogService.ts` |
-| Agent cycle | `agent.sapience.forecast_cycle` | `SapienceTradingAgent.ts` |
+| Surface                  | Span name                       | Source file                   |
+| ------------------------ | ------------------------------- | ----------------------------- |
+| LLM call (with fallback) | `llm.execute_with_fallback`     | `MultiModelRouter.ts`         |
+| LLM provider call        | `llm.provider.<name>`           | `MultiModelRouter.ts`         |
+| Governance decision      | `governance.evaluate_decision`  | `PolicyEnforcementService.ts` |
+| Audit log entry          | `audit.log_action`              | `AuditLogService.ts`          |
+| Agent cycle              | `agent.sapience.forecast_cycle` | `SapienceTradingAgent.ts`     |
 
 Each span carries attributes (provider, model, tokens, cost, outcome,
 suspicion score, etc.) and the trace is nested so a governance decision
@@ -631,7 +633,7 @@ python3 .testsprite/tests/spendos_deep.py
 
 Test files live in `.testsprite/tests/` and cover: auth (register, login, nonce, verify, refresh, logout), health (6 variants), metrics, Fhenix FHE, intent classification, projects, sealed-bid auctions, MCP governance, agents (stats, leaderboard, market data), OWS (wallets, API keys, permissions), copilot, CRE runs, speech, spend (deep SpendOS: preview, execute, encrypted, confirm, scan), governance CRUD, and audit trail integrity.
 
-The write-verify-fix loop caught production issues during the build window; see [LOOP.md](./LOOP.md) for the full iteration log.
+The write-verify-fix loop caught production issues during the build window; see [`LOOP.md`](./history/LOOP.md) for the full iteration log.
 
 ## Production Readiness
 
@@ -725,5 +727,3 @@ Run `pnpm signoz:check` to validate the checked-in dashboard manifest. With
 against the SigNoz dashboard API and exits non-zero when a declared dashboard
 is missing. This makes manual dashboard imports detectable in CI or a release
 check without mutating the shared workspace.
-
-

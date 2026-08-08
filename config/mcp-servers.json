@@ -8,5 +8,5 @@
       }
     }
   },
-  "_comment": "Cognivern governance API is registered inside Google Cloud Agent Builder as an OpenAPI tool, not as a local MCP server. See agent/agent-builder.yaml for the import spec. The four tool surface areas are: cognivern_list_policies, cognivern_get_policy, cognivern_preview_spend, cognivern_evaluate_action, cognivern_execute_spend, cognivern_audit_recent, mongodb_recall_memory, mongodb_audit_history, mongodb_vendor_reputation, mongodb_run_ledger."
+  "_comment": "Cognivern governance API is registered inside Google Cloud Agent Builder as an OpenAPI tool, not as a local MCP server. See examples/copilot/agent-builder.yaml for the import spec. The four tool surface areas are: cognivern_list_policies, cognivern_get_policy, cognivern_preview_spend, cognivern_evaluate_action, cognivern_execute_spend, cognivern_audit_recent, mongodb_recall_memory, mongodb_audit_history, mongodb_vendor_reputation, mongodb_run_ledger."
 }

@@ -22,7 +22,7 @@ reviews:
     - "src/services/TogetherAIPolicyEvaluator.ts"
     - "src/modules/api/controllers/GovernanceController.ts"
     - "src/services/PolicyService.ts"
-    - "deploy/kestra/**"
+    - "ops/deploy/kestra/**"
     - ".coderabbit.yaml"
 
   path_instructions:
@@ -68,7 +68,7 @@ reviews:
         - Audit log must be written for every evaluation, including failures
         - HTTP error codes must be semantically correct (400 vs 422 vs 503)
 
-    - path: "deploy/kestra/**"
+    - path: "ops/deploy/kestra/**"
       instructions: |
         Review Kestra workflow definitions for:
         - Secrets must use envs.* references, never inline values

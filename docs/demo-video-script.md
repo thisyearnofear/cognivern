@@ -48,15 +48,15 @@
 
 Once the production backend is pointed at Canton DevNet:
 
-1. Update the browser URL in `scripts/demo/record-demo-video.ts` if you want to show a different deployment.
-2. Re-run `pnpm tsx scripts/demo/record-demo-video.ts`.
+1. Update the browser URL in `tooling/scripts/demo/record-demo-video.ts` if you want to show a different deployment.
+2. Re-run `pnpm tsx tooling/scripts/demo/record-demo-video.ts`.
 3. The script will create a fresh round, submit three bids, and capture the lifecycle on DevNet.
 4. Update this script with the actual DevNet package ID / participant name before recording the final submission cut, or add an overlay card in post-production.
 
 ## Re-running
 
 ```bash
-pnpm tsx scripts/demo/record-demo-video.ts
+pnpm tsx tooling/scripts/demo/record-demo-video.ts
 ```
 
 Requires macOS `say` and `ffmpeg`. The script is self-contained and overwrites the local `docs/demo-video.mp4` (not tracked in git — upload to YouTube after recording).

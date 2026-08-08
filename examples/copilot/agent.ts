@@ -1,0 +1,515 @@
+/**
+ * Cognivern Copilot — main agent runtime.
+ *
+ * Implements the Gemini 3.1 function-calling loop with the multi-step
+ * mission protocol described in examples/copilot/instructions.md:
+ *
+ *   PLAN → EVIDENCE → PREVIEW → CONFIRM → EXECUTE → AUDIT
+ *
+ * This runtime is the canonical "agent" submitted to the Google Cloud
+ * "Building Agents for Real-World Challenges" hackathon. The same
+ * runtime is wrapped for Agent Builder via examples/copilot/agent-builder.yaml.
+ *
+ * Run locally:
+ *   GOOGLE_CLOUD_PROJECT=cognivern  COGNIVERN_API_KEY=...  \
+ *   MONGODB_URI=mongodb+srv://...  pnpm tsx examples/copilot/agent.ts "Pay vendor 0xabc..."
+ */
+
+import { readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { createSign } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+import {
+  ALL_TOOL_DECLARATIONS,
+  executeTool,
+  HUMAN_CONFIRMATION_REQUIRED,
+  AgentToolContext,
+} from './tools/index.js';
+import { AgentSourceProvenanceTracker } from './source-provenance.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+let cachedServiceAccountToken: { accessToken: string; expiresAtMs: number } | undefined;
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface GeminiPart {
+  text?: string;
+  functionCall?: { name: string; args: Record<string, unknown> };
+  functionResponse?: { name: string; response: unknown };
+}
+
+interface GeminiContent {
+  role: 'user' | 'model' | 'function';
+  parts: GeminiPart[];
+}
+
+interface GeminiTool {
+  functionDeclarations: typeof ALL_TOOL_DECLARATIONS;
+}
+
+interface GeminiAuth {
+  apiKey?: string;
+  accessToken?: string;
+  projectId?: string;
+  location?: string;
+}
+
+interface GoogleServiceAccount {
+  client_email: string;
+  private_key: string;
+  token_uri?: string;
+}
+
+interface AgentRunResult {
+  /** Final user-facing summary. */
+  summary: string;
+  /** Decision id from preview, if a spend was attempted. */
+  decisionId?: string;
+  /** Attestation hash from preview. */
+  attestationHash?: string;
+  /** Audit log id from the executed spend, if any. */
+  auditLogId?: string;
+  /** Full transcript of tool calls. */
+  transcript: Array<{
+    role: 'model' | 'tool';
+    name?: string;
+    args?: Record<string, unknown>;
+    result?: unknown;
+    text?: string;
+  }>;
+}
+
+export type AgentRunEvent =
+  | { type: 'model_tool_call'; name: string; args: Record<string, unknown> }
+  | { type: 'tool_result'; name: string; result: unknown }
+  | { type: 'tool_error'; name: string; error: string }
+  | { type: 'hitl_denied'; name: string; reason: string }
+  | { type: 'preview_intercepted'; name: string; reason: string }
+  | { type: 'final'; summary: string };
+
+// ---------------------------------------------------------------------------
+// System prompt loader
+// ---------------------------------------------------------------------------
+
+async function loadInstructions(): Promise<string> {
+  return (await readFile(join(__dirname, 'instructions.md'), 'utf8')).trim();
+}
+
+// ---------------------------------------------------------------------------
+// Human-in-the-loop gate
+// ---------------------------------------------------------------------------
+
+async function askHuman(
+  prompt: string,
+  context: Record<string, unknown>,
+): Promise<{ approved: boolean; token?: string }> {
+  // In Agent Builder this is a webhook back to the operator UI.
+  // Locally we read from stdin so a CLI demo still works.
+  if (!process.stdin.isTTY) {
+    return { approved: false };
+  }
+  process.stdout.write(
+    `\n[HUMAN-IN-THE-LOOP] ${prompt}\n${JSON.stringify(context, null, 2)}\nApprove? [y/N] `,
+  );
+  return new Promise((resolve) => {
+    let buf = '';
+    process.stdin.once('data', (chunk) => {
+      buf = chunk.toString().trim().toLowerCase();
+      resolve({ approved: buf === 'y' || buf === 'yes', token: `cli-${Date.now()}` });
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Gemini 3.1 REST call
+// ---------------------------------------------------------------------------
+
+async function callGemini(
+  auth: GeminiAuth,
+  model: string,
+  systemInstruction: string,
+  contents: GeminiContent[],
+): Promise<GeminiContent> {
+  const url =
+    auth.accessToken && auth.projectId
+      ? `https://aiplatform.googleapis.com/v1/projects/${auth.projectId}/locations/${auth.location || 'global'}/publishers/google/models/${model}:generateContent`
+      : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${auth.apiKey}`;
+  const body = {
+    systemInstruction: { parts: [{ text: systemInstruction }] },
+    contents,
+    tools: [
+      {
+        functionDeclarations: [...ALL_TOOL_DECLARATIONS],
+      } as GeminiTool,
+    ],
+    toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
+    generationConfig: { temperature: 0.2, maxOutputTokens: 4096 },
+  };
+
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const err = await r.text();
+    throw new Error(`Gemini ${model} error: ${r.status} ${err}`);
+  }
+  const data = (await r.json()) as { candidates: Array<{ content: GeminiContent }> };
+  return data.candidates[0].content;
+}
+
+function toFunctionResponsePayload(result: unknown): Record<string, unknown> {
+  if (result && typeof result === 'object' && !Array.isArray(result)) {
+    return result as Record<string, unknown>;
+  }
+  return { result };
+}
+
+function base64UrlJson(value: unknown): string {
+  return Buffer.from(JSON.stringify(value)).toString('base64url');
+}
+
+async function getServiceAccountAccessToken(): Promise<string | undefined> {
+  if (cachedServiceAccountToken && cachedServiceAccountToken.expiresAtMs > Date.now() + 60_000) {
+    return cachedServiceAccountToken.accessToken;
+  }
+
+  const rawJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  let serviceAccount: GoogleServiceAccount | undefined;
+
+  try {
+    if (rawJson) {
+      serviceAccount = JSON.parse(rawJson) as GoogleServiceAccount;
+    } else if (credentialsPath) {
+      serviceAccount = JSON.parse(await readFile(credentialsPath, 'utf8')) as GoogleServiceAccount;
+    }
+  } catch {
+    return undefined;
+  }
+
+  if (!serviceAccount?.client_email || !serviceAccount.private_key) {
+    return undefined;
+  }
+
+  const tokenUri = serviceAccount.token_uri || 'https://oauth2.googleapis.com/token';
+  const now = Math.floor(Date.now() / 1000);
+  const assertionInput = [
+    base64UrlJson({ alg: 'RS256', typ: 'JWT' }),
+    base64UrlJson({
+      iss: serviceAccount.client_email,
+      sub: serviceAccount.client_email,
+      aud: tokenUri,
+      scope: 'https://www.googleapis.com/auth/cloud-platform',
+      iat: now,
+      exp: now + 3600,
+    }),
+  ].join('.');
+
+  const signer = createSign('RSA-SHA256');
+  signer.update(assertionInput);
+  signer.end();
+  const assertion = `${assertionInput}.${signer.sign(serviceAccount.private_key, 'base64url')}`;
+
+  const response = await fetch(tokenUri, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion,
+    }),
+  });
+  if (!response.ok) return undefined;
+
+  const token = (await response.json()) as {
+    access_token?: string;
+    expires_in?: number;
+  };
+  if (!token.access_token) return undefined;
+
+  cachedServiceAccountToken = {
+    accessToken: token.access_token,
+    expiresAtMs: Date.now() + (token.expires_in || 3600) * 1000,
+  };
+  return cachedServiceAccountToken.accessToken;
+}
+
+async function getGoogleAccessToken(): Promise<string | undefined> {
+  return (await getServiceAccountAccessToken()) || getGcloudAccessToken();
+}
+
+function getGcloudAccessToken(): string | undefined {
+  try {
+    return execFileSync('gcloud', ['auth', 'print-access-token'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return undefined;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main agent loop
+// ---------------------------------------------------------------------------
+
+export interface AgentRunOptions {
+  goal: string;
+  cognivernApiKey: string;
+  cognivernBaseUrl: string;
+  mongodbUri: string;
+  mongodbDatabase: string;
+  geminiApiKey?: string;
+  geminiModel?: string;
+  googleCloudProject?: string;
+  vertexLocation?: string;
+  onEvent?: (event: AgentRunEvent) => void;
+  /** When true, the agent will not call cognivern_execute_spend even if
+   *  the human approves. Useful for the recorded demo. */
+  previewOnly?: boolean;
+}
+
+export async function runAgent(opts: AgentRunOptions): Promise<AgentRunResult> {
+  const model = opts.geminiModel || process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
+  const apiKey = opts.geminiApiKey || process.env.GEMINI_API_KEY;
+  const projectId =
+    opts.googleCloudProject || process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
+  const accessToken = projectId
+    ? process.env.GOOGLE_OAUTH_ACCESS_TOKEN || (await getGoogleAccessToken())
+    : undefined;
+  if (!apiKey && !accessToken) {
+    throw new Error(
+      'Gemini credentials required: set GOOGLE_CLOUD_PROJECT with gcloud auth, or set GEMINI_API_KEY for local-only fallback',
+    );
+  }
+
+  const ctx: AgentToolContext = {
+    cognivern: {
+      apiKey: opts.cognivernApiKey,
+      baseUrl: opts.cognivernBaseUrl,
+    },
+    mongodb: {
+      mongodbUri: opts.mongodbUri,
+      databaseName: opts.mongodbDatabase,
+      useStdioServer: false,
+    },
+  };
+
+  const systemInstruction = await loadInstructions();
+  const contents: GeminiContent[] = [
+    {
+      role: 'user',
+      parts: [{ text: opts.goal }],
+    },
+  ];
+
+  const transcript: AgentRunResult['transcript'] = [];
+  const sourceProvenance = new AgentSourceProvenanceTracker();
+  let decisionId: string | undefined;
+  let attestationHash: string | undefined;
+  let auditLogId: string | undefined;
+  const MAX_TURNS = 12;
+
+  for (let turn = 0; turn < MAX_TURNS; turn++) {
+    const modelContent = await callGemini(
+      {
+        apiKey,
+        accessToken,
+        projectId,
+        location: opts.vertexLocation || process.env.VERTEX_LOCATION || 'global',
+      },
+      model,
+      systemInstruction,
+      contents,
+    );
+
+    // No function call — model is done.
+    const fnCalls = modelContent.parts.filter((p) => p.functionCall);
+    if (fnCalls.length === 0) {
+      const text = modelContent.parts.find((p) => p.text)?.text || '(no response from model)';
+      transcript.push({ role: 'model', text });
+      opts.onEvent?.({ type: 'final', summary: text });
+      return {
+        summary: text,
+        decisionId,
+        attestationHash,
+        auditLogId,
+        transcript,
+      };
+    }
+
+    // Push the model turn into history.
+    contents.push({ role: 'model', parts: modelContent.parts });
+
+    const responseParts: GeminiPart[] = [];
+    for (const fnCallPart of fnCalls) {
+      const fnCall = fnCallPart.functionCall!;
+      transcript.push({
+        role: 'model',
+        name: fnCall.name,
+        args: fnCall.args,
+      });
+      opts.onEvent?.({
+        type: 'model_tool_call',
+        name: fnCall.name,
+        args: fnCall.args,
+      });
+
+      // MongoDB MCP output can contain user-supplied or otherwise untrusted
+      // text. Preserve that fact when the model later proposes a spend.
+      if (fnCall.name === 'cognivern_preview_spend' || fnCall.name === 'cognivern_execute_spend') {
+        const provenance = sourceProvenance.toSpendProvenance();
+        if (provenance) {
+          fnCall.args.metadata = {
+            ...(typeof fnCall.args.metadata === 'object' && fnCall.args.metadata !== null
+              ? fnCall.args.metadata
+              : {}),
+            sourceProvenance: provenance,
+          };
+        }
+      }
+
+      // If previewOnly is set, intercept execute_spend before HITL or execution.
+      if (opts.previewOnly && fnCall.name === 'cognivern_execute_spend') {
+        const intercepted = {
+          intercepted: true,
+          reason: 'previewOnly mode - no real spend',
+        };
+        responseParts.push({
+          functionResponse: {
+            name: fnCall.name,
+            response: toFunctionResponsePayload(intercepted),
+          },
+        });
+        transcript.push({ role: 'tool', result: intercepted });
+        opts.onEvent?.({
+          type: 'preview_intercepted',
+          name: fnCall.name,
+          reason: intercepted.reason,
+        });
+        continue;
+      }
+
+      // HITL gate.
+      if (HUMAN_CONFIRMATION_REQUIRED.has(fnCall.name)) {
+        const confirm = await askHuman(
+          `The agent wants to call ${fnCall.name}. Approve?`,
+          fnCall.args,
+        );
+        if (!confirm.approved) {
+          const refusal = 'Operator denied execution. Spend aborted.';
+          const denied = { denied: true, reason: refusal };
+          responseParts.push({
+            functionResponse: {
+              name: fnCall.name,
+              response: toFunctionResponsePayload(denied),
+            },
+          });
+          transcript.push({ role: 'tool', result: denied });
+          opts.onEvent?.({
+            type: 'hitl_denied',
+            name: fnCall.name,
+            reason: refusal,
+          });
+          continue;
+        }
+        fnCall.args.humanConfirmationToken = confirm.token;
+      }
+
+      // Execute the tool.
+      let result: unknown;
+      try {
+        result = await executeTool(ctx, fnCall.name, fnCall.args);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        result = { error: message };
+        opts.onEvent?.({ type: 'tool_error', name: fnCall.name, error: message });
+      }
+      transcript.push({ role: 'tool', result });
+      opts.onEvent?.({ type: 'tool_result', name: fnCall.name, result });
+
+      if (fnCall.name.startsWith('mongodb_')) {
+        sourceProvenance.recordToolOutput(fnCall.name, result);
+      }
+
+      // Capture the receipts when they appear.
+      if (
+        fnCall.name === 'cognivern_preview_spend' &&
+        typeof result === 'object' &&
+        result !== null
+      ) {
+        const r = result as Record<string, unknown>;
+        if (typeof r.decisionId === 'string') decisionId = r.decisionId;
+        if (typeof r.attestationHash === 'string') attestationHash = r.attestationHash;
+      }
+      if (
+        fnCall.name === 'cognivern_execute_spend' &&
+        typeof result === 'object' &&
+        result !== null
+      ) {
+        const r = result as Record<string, unknown>;
+        if (typeof r.auditLogId === 'string') auditLogId = r.auditLogId;
+      }
+
+      responseParts.push({
+        functionResponse: {
+          name: fnCall.name,
+          response: toFunctionResponsePayload(result),
+        },
+      });
+    }
+
+    contents.push({
+      role: 'function',
+      parts: responseParts,
+    });
+  }
+
+  return {
+    summary: 'Agent reached max turns without a final answer.',
+    decisionId,
+    attestationHash,
+    auditLogId,
+    transcript,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// CLI entry
+// ---------------------------------------------------------------------------
+
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+
+if (isMain) {
+  const goal =
+    process.argv[2] ||
+    'Pay 100 USDC to vendor 0xABC for API credits if their last audit was clean.';
+  runAgent({
+    goal,
+    cognivernApiKey: process.env.COGNIVERN_API_KEY || 'development-api-key',
+    cognivernBaseUrl: process.env.COGNIVERN_BASE_URL || 'https://api.cognivern.persidian.com',
+    mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017',
+    mongodbDatabase: process.env.MONGODB_DB_NAME || 'cognivern',
+    previewOnly: process.env.PREVIEW_ONLY === '1',
+  })
+    .then((r) => {
+      console.log('\n=== AGENT SUMMARY ===');
+      console.log(r.summary);
+      console.log('\n=== RECEIPTS ===');
+      console.log('decisionId:        ', r.decisionId);
+      console.log('attestationHash:   ', r.attestationHash);
+      console.log('auditLogId:        ', r.auditLogId);
+    })
+    .catch((e) => {
+      console.error('Agent failed:', e);
+      process.exit(1);
+    });
+}

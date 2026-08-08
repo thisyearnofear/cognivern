@@ -1,68 +1,76 @@
 # Cognivern
 
-**SpendOS for agent teams.**
+**Governance and spend control for autonomous agents.**
 
-Control plane for agent operations: governed wallet spend + AI spend governance across IDE, CLI, and agent workflows. Every spend is policy-checked, privacy-preserving, efficiency-aware, and audit-ready.
+Cognivern sits between agents and execution: it evaluates intended actions against policy, routes approvals, records an audit trail, and supports privacy-preserving governance for wallets, AI spend, and confidential vendor selection.
 
-**Live:** [Frontend](https://cognivern.persidian.com) · [API](https://api.cognivern.persidian.com) · [PromptOS Terminal](https://cognivern.persidian.com/os)
+**Try it:** [Live app](https://cognivern.persidian.com) · [API](https://api.cognivern.persidian.com) · [PromptOS](https://cognivern.persidian.com/os)
 
-## Focus
+## Choose your path
 
-- **Canton DevNet** — sealed-bid RFP auctions with structural sub-transaction privacy and atomic multi-party reveal.
-- **SigNoz** — OpenTelemetry-native observability for the full agent governance decision tree.
-- **Agentic commerce** — governed wallets, policy-checked spend, FHE-encrypted evaluation, durable audit trail.
+| I want to…                       | Start here                                                      |
+| -------------------------------- | --------------------------------------------------------------- |
+| Understand the product           | [Developer Guide — overview](./docs/DEV.md#system-architecture) |
+| Contribute code                  | [Contributing Guide](./CONTRIBUTING.md)                         |
+| Find the right part of the repo  | [Repository Map](./docs/REPOSITORY_MAP.md)                      |
+| Run the dashboard                | [Frontend README](./src/frontend/README.md)                     |
+| Work on backend behavior or APIs | [Backend README](./src/backend/README.md)                       |
+| Work on Solidity / FHE           | [Contracts README](./contracts/README.md)                       |
+| Work on Canton / Daml            | [Daml README](./daml/README.md)                                 |
+| Run or add tests                 | [Testing Guide](./tests/README.md)                              |
+| Deploy or operate the service    | [Deployment](./docs/DEPLOYMENT.md)                              |
 
-## Quick Start
+## Repository at a glance
+
+```text
+src/backend/       Backend API, governance services, persistence, integrations
+src/frontend/      Next.js dashboard and public product UI
+packages/shared/   Types shared by the backend and frontend
+contracts/         Solidity and Fhenix confidential-policy contracts
+daml/              Canton/Daml sealed-bid model and sandbox scripts
+tests/             Canonical backend, integration, and browser tests
+tooling/scripts/     Development, demo, verification, deployment, and research tooling
+examples/copilot/   Standalone Cognivern Copilot agent example
+docs/              Architecture, operations, integrations, and project reference
+```
+
+Most contributors only need one or two of these areas. The repository contains production code, protocol experiments, deployment tooling, demos, and historical research in one place; you do **not** need to understand all of it before making a focused change.
+
+## Quick start
+
+Requirements: Node.js version from [`.nvmrc`](./.nvmrc) and pnpm 9.15.0.
 
 ```bash
 pnpm install
-pnpm build
-pnpm start
+cp .env.example .env
+pnpm dev
 ```
 
-Minimum `.env`:
+In a second terminal, run the frontend:
 
-```env
-API_KEY=your-api-key-here
-OWS_VAULT_SECRET=your-vault-secret
-CHAINGPT_API_KEY=your-chain-gpt-key   # Optional: Web3 LLM + audit
+```bash
+pnpm frontend
 ```
 
-For local setup, API reference, and production deployment, see the [Developer Guide](./docs/DEV.md).
+For the public/demo path, most optional integrations can remain disabled. See the [Contributing Guide](./CONTRIBUTING.md) for focused commands and the [Developer Guide](./docs/DEV.md) for configuration details.
 
-## Documentation
+## Core documentation
 
-### For developers
+- [Contributing Guide](./CONTRIBUTING.md) — setup, workflow, tests, and contribution boundaries
+- [Repository Map](./docs/REPOSITORY_MAP.md) — where to make changes by feature
+- [Developer Guide](./docs/DEV.md) — full architecture, API reference, integrations, and limitations
+- [Deployment](./docs/DEPLOYMENT.md) — generic deployment and production configuration
+- [Tester Guide](./docs/TESTER_GUIDE.md) — canonical live/demo product walkthrough
+- [Canton](./docs/CANTON.md) — Canton/Daml model and DevNet runbook
+- [HydraDB](./docs/HYDRADB.md) — optional cross-source retrieval integration
+- [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) — sealed-bid and governance integration details
 
-| Doc | What's in it |
- | --- | --- |
-| [Developer guide](./docs/DEV.md) | Architecture, local setup, APIs, testing, production readiness, verification summary |
-| [Deployment](./docs/DEPLOYMENT.md) | Hetzner / PM2 / nginx, env vars, health checks |
-| [Tester guide](./docs/TESTER_GUIDE.md) | Operator orientation for the canonical live/demo environment |
-| [Agent governance integration spec](./docs/AGENT_GOVERNANCE_INTEGRATION_SPEC.md) | Wire the sealed-bid auction to the agent-governance layer |
-| [Prompt-injection controls plan](./docs/PROMPT_INJECTION_CONTROLS_PLAN.md) | Source-aware authorization, spend enforcement, and adversarial test plan |
-| [Agent guidance for AI / humans](./AGENTS.md) | How to verify Canton runtime state without re-diagnosing it |
-| [HydraDB integration](./docs/HYDRADB.md) | Optional agentic-memory / cross-source retrieval layer (toggleable, free tier) |
+## Product surfaces
 
-### Canton / DevNet
-
-| Doc | What's in it |
-| --- | --- |
-| [Canton](./docs/CANTON.md) | Daml sealed-bid model, hydration, sandbox + DevNet runbooks |
-| [Canton DevNet materials](./docs/HACKCANTON_DEVNET_MATERIALS.md) | Endpoints, auth, allocated parties, Daml user id |
-| [Canton final submission runbook](./docs/FINAL_SUBMISSION_RUNBOOK.md) | Cutover / config that is already done for DevNet |
-
-### Submissions & demo archive
-
-| Doc | What's in it |
-| --- | --- |
-| [KeeperHub — Agents Onchain submission](./docs/HACKATHON_SUBMISSION_KEEPERHUB.md) | Sapience-driven rebalance loop through KeeperHub Direct Execution + MCP for editor agents |
-| [SigNoz dashboard definitions](./docs/signoz-dashboards.json) | 3 dashboards: governance overview, LLM provider health, HTTP SLO + audit |
-| [Agentic commerce demo runbook](./docs/AGENTIC_COMMERCE_DEMO_RUNBOOK.md) | End-to-end demo path for the agentic-commerce track |
-| [Agentic commerce demo script](./docs/demo-video-script-agent-governance.md) | Narration + timing for the agent-governance demo |
-| [Canton demo script](./docs/demo-video-script.md) | Narration + timing for the Canton sealed-bid demo |
-| [Pitch deck source](./docs/pitch-deck-source.md) | Source for the open-house / pitch deck |
-| [Product & GTM canvas](./docs/PRODUCT_GTM_CANVAS.md) | Product Canvas + GTM Canvas — wedge, why-now, why-onchain, distribution loops |
+- **Governed spend:** policy evaluation, approval workflows, wallet execution, and audit evidence.
+- **Confidential policy evaluation:** Fhenix-backed encrypted budgets and spend counters.
+- **Confidential vendor selection:** Canton/Daml sealed-bid rounds with role-based visibility and atomic reveal.
+- **Agent operations:** API identities, run history, PromptOS, observability, and integrations.
 
 ## License
 

@@ -18,12 +18,12 @@ cognivern's agent-memory queries.
 
 ## When to enable
 
-| Scenario | Enable? |
-| --- | --- |
-| You want the cognivern Copilot agent to recall cross-source context (audit + GitHub + Linear) | ✅ |
-| You are running the HydraDB challenge benchmark / demo | ✅ |
-| You want multi-hop "who spent what, and what did the team say" queries | ✅ |
-| Production spend-governance only (policy eval, signing, audit) | ❌ — not needed; cognivern works fully without it |
+| Scenario                                                                                      | Enable?                                           |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| You want the cognivern Copilot agent to recall cross-source context (audit + GitHub + Linear) | ✅                                                |
+| You are running the HydraDB challenge benchmark / demo                                        | ✅                                                |
+| You want multi-hop "who spent what, and what did the team say" queries                        | ✅                                                |
+| Production spend-governance only (policy eval, signing, audit)                                | ❌ — not needed; cognivern works fully without it |
 
 When `HYDRADB_ENABLED=false` (default), every HydraDB service no-ops and
 cognivern behaves exactly as without the integration. There is **zero runtime
@@ -76,15 +76,15 @@ Attio connectors map the operator's email to their GitHub login via
 
 `classifyQuery()` in `HydraDbRetrievalService.ts` decides the mode per query:
 
-| Signal | Mode | Reason |
-| --- | --- | --- |
-| Metadata filter + short question (<12 words) | `fast` | filter does the work |
-| Short factual lookup (≤8 words) | `fast` | single-hop |
-| Multi-hop phrasing ("who … and what did they say") | `thinking` | graph traversal |
-| Temporal ("since", "after", "changed") | `thinking` | temporal reasoning |
-| Actor attribution ("who filed/approved") | `thinking` | entity resolution |
-| Thread / conversation | `thinking` | thread understanding |
-| Long open-ended question | `thinking` | multi-clause |
+| Signal                                             | Mode       | Reason               |
+| -------------------------------------------------- | ---------- | -------------------- |
+| Metadata filter + short question (<12 words)       | `fast`     | filter does the work |
+| Short factual lookup (≤8 words)                    | `fast`     | single-hop           |
+| Multi-hop phrasing ("who … and what did they say") | `thinking` | graph traversal      |
+| Temporal ("since", "after", "changed")             | `thinking` | temporal reasoning   |
+| Actor attribution ("who filed/approved")           | `thinking` | entity resolution    |
+| Thread / conversation                              | `thinking` | thread understanding |
+| Long open-ended question                           | `thinking` | multi-clause         |
 
 `forceMode` overrides the router. `retrieveMultiHop()` runs an explicit
 sequence of queries (each counted) for questions that need >1 retrieval step.
@@ -132,7 +132,7 @@ metrics for each. Exit 0 on success.
 ### Ingestion (`src/backend/services/hydradb/HydraDbIngestionService.ts`)
 
 ```ts
-import { hydraDbIngestion } from "@backend/services/hydradb/index.js";
+import { hydraDbIngestion } from '@backend/services/hydradb/index.js';
 
 // Ingest a CRE run (auto-extracts spend intent + attestation).
 await hydraDbIngestion.ingestCreRun(run);
@@ -143,24 +143,24 @@ await hydraDbIngestion.ingestCreRuns(runs);
 // Ingest an external connector record (Slack, GitHub, Linear, ...).
 await hydraDbIngestion.ingestAppRecord({
   id: `slack_${channel}_${ts}`,
-  database: "cognivern",
-  collection: "default",
+  database: 'cognivern',
+  collection: 'default',
   title: `#${channel} — ${author}`,
-  type: "slack",
+  type: 'slack',
   url: `https://...slack.com/archives/...`,
   timestamp: iso,
-  content: { text: "..." },
-  tenant_metadata: {},  // empty (no schema on free tier)
-  additional_metadata: { agent_id, vendor, origin: "slack", workflow, chain, ts },
+  content: { text: '...' },
+  tenant_metadata: {}, // empty (no schema on free tier)
+  additional_metadata: { agent_id, vendor, origin: 'slack', workflow, chain, ts },
   additional_metadata: { author, channel, workspace },
   relations: { ids: [`cognivern_agent_${agentId}`] },
 });
 
 // Ingest an agent-scoped memory.
 await hydraDbIngestion.ingestMemory({
-  collection: agentId,           // per-agent partition
+  collection: agentId, // per-agent partition
   id: `pref_${id}`,
-  text: "Agent prefers conservative spend limits.",
+  text: 'Agent prefers conservative spend limits.',
   infer: true,
 });
 
@@ -171,23 +171,27 @@ await hydraDbIngestion.waitForIndexing([id1, id2]);
 ### Retrieval (`src/backend/services/hydradb/HydraDbRetrievalService.ts`)
 
 ```ts
-import { hydraDbRetrieval } from "@backend/services/hydradb/index.js";
+import { hydraDbRetrieval } from '@backend/services/hydradb/index.js';
 
 // Auto-routed single query.
 const outcome = await hydraDbRetrieval.retrieve({
-  query: "What did http-verify-agent spend on stable-email?",
-  forceMode: "thinking",          // optional override
-  metadataFilters: { tenant_metadata: { agent_id: "http-verify-agent" } },
+  query: 'What did http-verify-agent spend on stable-email?',
+  forceMode: 'thinking', // optional override
+  metadataFilters: { tenant_metadata: { agent_id: 'http-verify-agent' } },
   maxResults: 10,
 });
 console.log(outcome.chunks);
-console.log(outcome.metrics);    // { mode, latencyMs, hydraDbCalls, cost, ... }
+console.log(outcome.metrics); // { mode, latencyMs, hydraDbCalls, cost, ... }
 
 // Explicit multi-hop (each hop = 1 HydraDB call).
 const multi = await hydraDbRetrieval.retrieveMultiHop([
-  { query: "http-verify-agent spend", forceMode: "thinking" },
-  { query: "stable-email", metadataFilters: { tenant_metadata: { vendor: "stable-email" } }, forceMode: "fast" },
-  { query: "what was said about http-verify-agent in slack", forceMode: "thinking" },
+  { query: 'http-verify-agent spend', forceMode: 'thinking' },
+  {
+    query: 'stable-email',
+    metadataFilters: { tenant_metadata: { vendor: 'stable-email' } },
+    forceMode: 'fast',
+  },
+  { query: 'what was said about http-verify-agent in slack', forceMode: 'thinking' },
 ]);
 
 // Build an LLM context string from chunks.
@@ -208,12 +212,12 @@ deliverable); the others are extractors that push `app_knowledge` records
 with matching `tenant_metadata`. **GitHub, Linear, and Attio are 3
 from the challenge's connector list.**
 
-| # | Connector | Entity shared | Extractor | Status |
-| --- | --- | --- | --- | --- |
-| 1 | **Cognivern audit ledger** (document ingestion) | `agent_id`, `vendor`, `policy_id` | `pnpm hydradb:ingest-ledger` → `scripts/hydradb/ingest-cre-ledger.ts` | ✅ live (51 runs) |
-| 2 | **GitHub** (issues + PRs + commits) | `agent_id` (author login) | `pnpm hydradb:github` → `scripts/hydradb/connectors/github.ts` | ✅ live (328 records) |
-| 3 | **Linear** (issues) | `agent_id` (assignee email → GitHub login via identity map) | `pnpm hydradb:linear` → `scripts/hydradb/connectors/linear.ts` | ✅ live (10 issues) |
-| 4 | **Attio** (people + companies) | people → `agent_id` (email → GitHub login); companies → `vendor` | `pnpm hydradb:attio` → `scripts/hydradb/connectors/attio.ts` | 🔗 ready to run (`ATTIO_API_KEY` + `ATTIO_WORKSPACE`) |
+| #   | Connector                                       | Entity shared                                                    | Extractor                                                                     | Status                                                |
+| --- | ----------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------- |
+| 1   | **Cognivern audit ledger** (document ingestion) | `agent_id`, `vendor`, `policy_id`                                | `pnpm hydradb:ingest-ledger` → `tooling/scripts/hydradb/ingest-cre-ledger.ts` | ✅ live (51 runs)                                     |
+| 2   | **GitHub** (issues + PRs + commits)             | `agent_id` (author login)                                        | `pnpm hydradb:github` → `tooling/scripts/hydradb/connectors/github.ts`        | ✅ live (328 records)                                 |
+| 3   | **Linear** (issues)                             | `agent_id` (assignee email → GitHub login via identity map)      | `pnpm hydradb:linear` → `tooling/scripts/hydradb/connectors/linear.ts`        | ✅ live (10 issues)                                   |
+| 4   | **Attio** (people + companies)                  | people → `agent_id` (email → GitHub login); companies → `vendor` | `pnpm hydradb:attio` → `tooling/scripts/hydradb/connectors/attio.ts`          | 🔗 ready to run (`ATTIO_API_KEY` + `ATTIO_WORKSPACE`) |
 
 ### Cross-source identity mapping
 
@@ -249,24 +253,24 @@ HydraDB does **not** pull from connectors itself — you extract and push via
 
 ## Difficult retrieval questions (challenge: category coverage)
 
-The question set lives in `scripts/hydradb/questions.ts` (to be added) and
+The question set lives in `tooling/scripts/hydradb/questions.ts` (to be added) and
 exercises every category the challenge names. Each is tagged with its
 retrieval category and expected answer, run against the ingested ledger +
 connectors:
 
-| # | Question | Category | Expected mode |
-| --- | --- | --- | --- |
-| 1 | What did http-verify-agent spend on stable-email on 2026-06-16, and was the tx recorded? | temporal reasoning | thinking |
-| 2 | stable-email spend (metadata filter) | metadata filtering | fast |
-| 3 | The same vendor stable-email appears in audit + Linear — are they the same entity? | entity dedup | thinking |
-| 4 | Who filed the Linear issue about stable-email, and what did http-verify-agent spend? | actor-based + multi-hop | thinking |
-| 5 | What did thisyearnofear file about stable-email, and what was the on-chain status? | multi-hop (2 hops) | thinking |
-| 6 | What commits did thisyearnofear make, and what did http-verify-agent spend? | third-party attribution | thinking |
-| 7 | Linear issues (metadata filter origin=linear) | metadata filtering | fast |
-| 8 | ¿Cuál fue el gasto del agente http-verify-agent en stable-email? | multilingual | thinking |
-| 9 | What issues are in the Cognivern Governance project referencing http-verify-agent? | actor-based | thinking |
-| 10 | Most recent spend run (metadata filter origin=cognivern_audit) | knowledge updates | fast |
-| 11 | Companies in the Attio CRM (metadata filter origin=attio_company) | metadata filtering (Attio) | fast |
+| #   | Question                                                                                 | Category                   | Expected mode |
+| --- | ---------------------------------------------------------------------------------------- | -------------------------- | ------------- |
+| 1   | What did http-verify-agent spend on stable-email on 2026-06-16, and was the tx recorded? | temporal reasoning         | thinking      |
+| 2   | stable-email spend (metadata filter)                                                     | metadata filtering         | fast          |
+| 3   | The same vendor stable-email appears in audit + Linear — are they the same entity?       | entity dedup               | thinking      |
+| 4   | Who filed the Linear issue about stable-email, and what did http-verify-agent spend?     | actor-based + multi-hop    | thinking      |
+| 5   | What did thisyearnofear file about stable-email, and what was the on-chain status?       | multi-hop (2 hops)         | thinking      |
+| 6   | What commits did thisyearnofear make, and what did http-verify-agent spend?              | third-party attribution    | thinking      |
+| 7   | Linear issues (metadata filter origin=linear)                                            | metadata filtering         | fast          |
+| 8   | ¿Cuál fue el gasto del agente http-verify-agent en stable-email?                         | multilingual               | thinking      |
+| 9   | What issues are in the Cognivern Governance project referencing http-verify-agent?       | actor-based                | thinking      |
+| 10  | Most recent spend run (metadata filter origin=cognivern_audit)                           | knowledge updates          | fast          |
+| 11  | Companies in the Attio CRM (metadata filter origin=attio_company)                        | metadata filtering (Attio) | fast          |
 
 ## Benchmark / submission
 
@@ -279,29 +283,29 @@ HYDRADB_ENABLED=true HYDRADB_API_KEY=... pnpm hydradb:benchmark
 
 ### Latest results (live, free tier)
 
-| Metric | Value |
-| --- | --- |
-| Accuracy | **11/11 (100%)** |
+| Metric                                   | Value            |
+| ---------------------------------------- | ---------------- |
+| Accuracy                                 | **11/11 (100%)** |
 | Mode match (router picked expected mode) | **11/11 (100%)** |
-| Avg latency | 3735ms |
-| Total HydraDB calls | 12 |
-| Total notional cost | $0.0088 |
-| Fast used | 4 |
-| Thinking used | 7 |
+| Avg latency                              | 3735ms           |
+| Total HydraDB calls                      | 12               |
+| Total notional cost                      | $0.0088          |
+| Fast used                                | 4                |
+| Thinking used                            | 7                |
 
-| ID | Category | Mode | Pass | Latency | Calls | Cost | Sources |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| q1 | temporal_reasoning | thinking | ✓ | 5897ms | 1 | $0.0010 | audit+linear+github |
-| q2 | metadata_filtering | fast | ✓ | 717ms | 1 | $0.0002 | linear+audit |
-| q3 | entity_deduplication | thinking | ✓ | 5876ms | 1 | $0.0010 | audit+linear+github |
-| q4 | actor_based | thinking | ✓ | 6070ms | 1 | $0.0010 | linear+audit |
-| q5 | multi_hop | thinking (2 hops) | ✓ | 8882ms | 2 | $0.0020 | linear+audit |
-| q6 | third_party_attribution | thinking | ✓ | 2345ms | 1 | $0.0010 | all 4 |
-| q7 | metadata_filtering | fast | ✓ | 561ms | 1 | $0.0002 | linear |
-| q8 | multilingual | thinking | ✓ | 3632ms | 1 | $0.0010 | audit+linear+github |
-| q9 | actor_based | thinking | ✓ | 5847ms | 1 | $0.0010 | audit+linear+github |
-| q10 | knowledge_updates | fast | ✓ | 706ms | 1 | $0.0002 | audit |
-| q11 | metadata_filtering (Attio) | fast | ✓ | 552ms | 1 | $0.0002 | attio |
+| ID  | Category                   | Mode              | Pass | Latency | Calls | Cost    | Sources             |
+| --- | -------------------------- | ----------------- | ---- | ------- | ----- | ------- | ------------------- |
+| q1  | temporal_reasoning         | thinking          | ✓    | 5897ms  | 1     | $0.0010 | audit+linear+github |
+| q2  | metadata_filtering         | fast              | ✓    | 717ms   | 1     | $0.0002 | linear+audit        |
+| q3  | entity_deduplication       | thinking          | ✓    | 5876ms  | 1     | $0.0010 | audit+linear+github |
+| q4  | actor_based                | thinking          | ✓    | 6070ms  | 1     | $0.0010 | linear+audit        |
+| q5  | multi_hop                  | thinking (2 hops) | ✓    | 8882ms  | 2     | $0.0020 | linear+audit        |
+| q6  | third_party_attribution    | thinking          | ✓    | 2345ms  | 1     | $0.0010 | all 4               |
+| q7  | metadata_filtering         | fast              | ✓    | 561ms   | 1     | $0.0002 | linear              |
+| q8  | multilingual               | thinking          | ✓    | 3632ms  | 1     | $0.0010 | audit+linear+github |
+| q9  | actor_based                | thinking          | ✓    | 5847ms  | 1     | $0.0010 | audit+linear+github |
+| q10 | knowledge_updates          | fast              | ✓    | 706ms   | 1     | $0.0002 | audit               |
+| q11 | metadata_filtering (Attio) | fast              | ✓    | 552ms   | 1     | $0.0002 | attio               |
 
 **Fast vs thinking split**: fast mode (metadata-filtered lookups — incl. the
 Attio test) averages **634ms / $0.0002**; thinking mode (multi-hop,
@@ -328,23 +332,23 @@ ways to verify:
    Screenshot: [`docs/hydradb-proof/benchmark.png`](hydradb-proof/benchmark.png).
 3. **Connector counts** — audit (51 runs) + GitHub (328 commits/issues) + Linear
    (10 issues) + Attio (10 companies) are all ingested as `app_knowledge`, and
-   the retrieval question set in `scripts/hydradb/questions.ts` is grounded in
+   the retrieval question set in `tooling/scripts/hydradb/questions.ts` is grounded in
    that real data (expected vs actual answers are graded in `benchmark.ts`).
 
 ## Files
 
-| File | Purpose |
-| --- | --- |
-| `src/backend/services/hydradb/HydraDbClient.ts` | HTTP client (v2 API, retry, envelope unwrap) |
-| `src/backend/services/hydradb/HydraDbIngestionService.ts` | CRE run → app_knowledge mapper + ingest |
-| `src/backend/services/hydradb/HydraDbRetrievalService.ts` | fast/thinking router + multi-hop + metrics |
-| `src/backend/services/hydradb/index.ts` | barrel export + singletons |
-| `scripts/hydradb/smoke-test.ts` | end-to-end lifecycle smoke test |
-| `scripts/hydradb/ingest-cre-ledger.ts` | ingest `data/cre-runs.jsonl` → HydraDB |
-| `scripts/hydradb/connectors/github.ts` | GitHub issues/PRs/commits → HydraDB |
-| `scripts/hydradb/connectors/linear.ts` | Linear issues → HydraDB |
-| `scripts/hydradb/connectors/attio.ts` | Attio people/companies → HydraDB |
-| `src/config.ts` | `HYDRADB_*` env schema (all optional, gated by `HYDRADB_ENABLED`) |
+| File                                                      | Purpose                                                           |
+| --------------------------------------------------------- | ----------------------------------------------------------------- |
+| `src/backend/services/hydradb/HydraDbClient.ts`           | HTTP client (v2 API, retry, envelope unwrap)                      |
+| `src/backend/services/hydradb/HydraDbIngestionService.ts` | CRE run → app_knowledge mapper + ingest                           |
+| `src/backend/services/hydradb/HydraDbRetrievalService.ts` | fast/thinking router + multi-hop + metrics                        |
+| `src/backend/services/hydradb/index.ts`                   | barrel export + singletons                                        |
+| `tooling/scripts/hydradb/smoke-test.ts`                   | end-to-end lifecycle smoke test                                   |
+| `tooling/scripts/hydradb/ingest-cre-ledger.ts`            | ingest `data/cre-runs.jsonl` → HydraDB                            |
+| `tooling/scripts/hydradb/connectors/github.ts`            | GitHub issues/PRs/commits → HydraDB                               |
+| `tooling/scripts/hydradb/connectors/linear.ts`            | Linear issues → HydraDB                                           |
+| `tooling/scripts/hydradb/connectors/attio.ts`             | Attio people/companies → HydraDB                                  |
+| `src/config.ts`                                           | `HYDRADB_*` env schema (all optional, gated by `HYDRADB_ENABLED`) |
 
 ## Toggle / disable
 
