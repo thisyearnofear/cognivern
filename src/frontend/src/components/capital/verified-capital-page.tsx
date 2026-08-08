@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
@@ -15,13 +15,19 @@ import {
   Activity,
   AlertTriangle,
   Scale,
+  Play,
+  Eye,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { apiClient } from "@/lib/api-client";
+import {
+  apiClient,
+  type Agent,
+  type FundedMandate,
+} from "@/lib/api-client";
 import { trackUxEvent } from "@/lib/ux-events";
 
 interface CleanverseStatus {
@@ -69,28 +75,109 @@ interface ScreeningResult {
   reason?: string;
 }
 
+interface WalletRow {
+  id: string;
+  name?: string;
+  metadata?: {
+    executionProvider?: string;
+    chainId?: number | string;
+    cleanverseSenderAddress?: string;
+  };
+  accounts?: Array<{ address?: string }>;
+}
+
+type BusyAction = "screen" | "preview" | "execute" | null;
+
+function toBaseUnits(humanAmount: string, decimals: number): string | null {
+  const trimmed = humanAmount.trim();
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) return null;
+  const [whole, frac = ""] = trimmed.split(".");
+  if (frac.length > decimals) return null;
+  const padded = `${whole}${frac.padEnd(decimals, "0")}`.replace(/^0+(?=\d)/, "");
+  return padded || "0";
+}
+
 export function VerifiedCapitalPage() {
   const [status, setStatus] = useState<CleanverseStatus | null>(null);
   const [spendStatus, setSpendStatus] = useState<SpendStatusSlice | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
+  const [wallets, setWallets] = useState<WalletRow[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [mandates, setMandates] = useState<FundedMandate[]>([]);
+
   const [sender, setSender] = useState("");
   const [recipient, setRecipient] = useState("");
+  const [agentId, setAgentId] = useState("");
+  const [walletId, setWalletId] = useState("");
+  const [mandateId, setMandateId] = useState("");
+  const [amountHuman, setAmountHuman] = useState("1");
+  const [reason, setReason] = useState("Verified capital settlement under Cleanverse rail");
+  const [owsKey, setOwsKey] = useState("");
+
   const [screening, setScreening] = useState<ScreeningResult | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<Record<string, unknown> | null>(null);
+  const [execution, setExecution] = useState<Record<string, unknown> | null>(null);
+  const [busy, setBusy] = useState<BusyAction>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const decimals = status?.aTokenDecimals ?? 6;
+  const assetSymbol = status?.aTokenSymbol ?? "aUSD-D";
+  const amountBase = useMemo(
+    () => toBaseUnits(amountHuman, decimals),
+    [amountHuman, decimals],
+  );
+
+  const cleanverseWallets = useMemo(
+    () =>
+      wallets.filter(
+        (w) => (w.metadata?.executionProvider as string | undefined) === "cleanverse",
+      ),
+    [wallets],
+  );
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [cv, spend] = await Promise.all([
+        const [cv, spend, walletRes, agentRes, mandateRes] = await Promise.all([
           apiClient.getCleanverseStatus(),
           apiClient.getSpendStatus(),
+          apiClient.getWallets(),
+          apiClient.getAgents(),
+          apiClient.getMandates(),
         ]);
         if (cancelled) return;
         if (cv.success && cv.data) setStatus(cv.data);
         else setStatusError(cv.error || "Failed to load Cleanverse status");
         if (spend.success && spend.data) setSpendStatus(spend.data);
+        if (walletRes.success && Array.isArray(walletRes.data)) {
+          const rows = walletRes.data as unknown as WalletRow[];
+          setWallets(rows);
+          const preferred =
+            rows.find((w) => w.metadata?.executionProvider === "cleanverse") || rows[0];
+          if (preferred) {
+            setWalletId(preferred.id);
+            const addr =
+              preferred.metadata?.cleanverseSenderAddress ||
+              preferred.accounts?.[0]?.address ||
+              "";
+            if (addr) setSender(addr);
+          }
+        }
+        if (agentRes.success && Array.isArray(agentRes.data) && agentRes.data.length > 0) {
+          setAgents(agentRes.data);
+          setAgentId(agentRes.data[0].id);
+        }
+        if (mandateRes.success && Array.isArray(mandateRes.data)) {
+          setMandates(mandateRes.data);
+          const verified = mandateRes.data.find(
+            (m) =>
+              m.settlement?.requireVerifiedSettlement ||
+              m.settlement?.requireCleanverseIdentity ||
+              m.settlement?.allowedAssets?.some((a) => a.toUpperCase() === "AUSD-D"),
+          );
+          if (verified) setMandateId(verified.id);
+        }
       } catch (err) {
         if (!cancelled) {
           setStatusError(err instanceof Error ? err.message : "Status failed");
@@ -103,7 +190,7 @@ export function VerifiedCapitalPage() {
   }, []);
 
   const runScreen = useCallback(async () => {
-    setBusy(true);
+    setBusy("screen");
     setError(null);
     setScreening(null);
     trackUxEvent("primary_action_clicked", "verified_capital_screen");
@@ -123,11 +210,106 @@ export function VerifiedCapitalPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Screening failed");
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }, [sender, recipient]);
 
+  const spendPayload = useCallback(() => {
+    if (!amountBase || amountBase === "0") {
+      throw new Error(`Enter a positive ${assetSymbol} amount (up to ${decimals} decimals)`);
+    }
+    if (!agentId) throw new Error("Select an agent");
+    if (!recipient) throw new Error("Recipient required");
+    if (!reason.trim()) throw new Error("Purpose / reason required (travel-rule note)");
+    return {
+      agentId,
+      recipient,
+      amount: amountBase,
+      asset: assetSymbol,
+      reason: reason.trim(),
+      metadata: {
+        ...(walletId ? { walletId } : {}),
+        ...(mandateId ? { mandateId } : {}),
+      },
+      owsScopedAccess: owsKey.trim() || undefined,
+    };
+  }, [
+    amountBase,
+    assetSymbol,
+    decimals,
+    agentId,
+    recipient,
+    reason,
+    walletId,
+    mandateId,
+    owsKey,
+  ]);
+
+  const runPreview = useCallback(async () => {
+    setBusy("preview");
+    setError(null);
+    setPreview(null);
+    setExecution(null);
+    trackUxEvent("primary_action_clicked", "verified_capital_preview");
+    try {
+      const payload = spendPayload();
+      const res = await apiClient.previewSpend(payload);
+      if (res.success && res.data) {
+        setPreview(res.data);
+        trackUxEvent("primary_action_completed", "verified_capital_preview", "ok");
+      } else {
+        setError(res.error || "Preview failed");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Preview failed");
+    } finally {
+      setBusy(null);
+    }
+  }, [spendPayload]);
+
+  const runExecute = useCallback(async () => {
+    setBusy("execute");
+    setError(null);
+    setExecution(null);
+    trackUxEvent("primary_action_clicked", "verified_capital_execute");
+    try {
+      if (!owsKey.trim()) {
+        throw new Error("OWS scoped API key is required to execute (x-ows-scoped-access)");
+      }
+      const payload = spendPayload();
+      const attestationHash =
+        typeof preview?.attestationHash === "string" ? preview.attestationHash : undefined;
+      const res = await apiClient.executeSpend({
+        ...payload,
+        attestationHash,
+      });
+      if (res.success && res.data) {
+        setExecution(res.data);
+        trackUxEvent("primary_action_completed", "verified_capital_execute", "ok");
+      } else {
+        setError(res.error || "Spend failed");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Spend failed");
+    } finally {
+      setBusy(null);
+    }
+  }, [owsKey, spendPayload, preview]);
+
   const railLive = Boolean(status?.enabled);
+  const runId =
+    typeof execution?.runId === "string"
+      ? execution.runId
+      : typeof (execution as { run?: { runId?: string } } | null)?.run?.runId === "string"
+        ? (execution as { run: { runId: string } }).run.runId
+        : undefined;
+  const txHash =
+    typeof execution?.transferTxHash === "string"
+      ? execution.transferTxHash
+      : typeof execution?.transactionHash === "string"
+        ? execution.transactionHash
+        : undefined;
+  const previewStatus = typeof preview?.status === "string" ? preview.status : null;
 
   return (
     <div className="relative mx-auto max-w-3xl space-y-8 px-4 py-10">
@@ -151,6 +333,9 @@ export function VerifiedCapitalPage() {
           {spendStatus?.features?.includes("cleanverse-cvi-cva") && (
             <Badge variant="outline">Spend path armed</Badge>
           )}
+          {cleanverseWallets.length > 0 && (
+            <Badge variant="outline">{cleanverseWallets.length} Cleanverse wallet(s)</Badge>
+          )}
         </div>
         <h1
           className="text-3xl font-semibold tracking-tight"
@@ -159,38 +344,33 @@ export function VerifiedCapitalPage() {
           Verified Capital
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Cleanverse is wired into Cognivern&apos;s governed spend path—not a
-          side demo. Wallets on this rail screen{" "}
-          <strong className="font-medium text-foreground">CVI (A-Pass)</strong>{" "}
-          before policy approval, then settle{" "}
-          <strong className="font-medium text-foreground">CVA (aUSD-D)</strong>{" "}
-          on Monad. Evidence lands in the same CRE / audit trail as every other
-          spend.
+          Screen identities (CVI), preview policy with A-Pass risk signals, then settle{" "}
+          <strong className="font-medium text-foreground">{assetSymbol}</strong> on Monad
+          (CVA). Evidence lands in CRE runs and Capital statements.
         </p>
       </header>
 
-      {/* Integration path */}
       <section className="relative grid gap-3 sm:grid-cols-4">
         {[
           {
             icon: Fingerprint,
-            title: "CVI gate",
-            body: "query_apass on sender + recipient before policy",
+            title: "1 · CVI gate",
+            body: "query_apass on sender + recipient",
           },
           {
             icon: Scale,
-            title: "Policy",
-            body: "Existing SpendOS / mandate rules still apply",
+            title: "2 · Policy",
+            body: "Tier caps + mandate settlement rules",
           },
           {
             icon: Coins,
-            title: "CVA settle",
-            body: "verify_apass + aUSD-D ERC-20 on Monad",
+            title: "3 · CVA settle",
+            body: "verify_apass + aUSD-D on Monad",
           },
           {
             icon: Activity,
-            title: "Evidence",
-            body: "cleanverse_apass + receipt in CRE runs",
+            title: "4 · Evidence",
+            body: "CRE run → Capital / allocate",
           },
         ].map((item) => {
           const Icon = item.icon;
@@ -268,15 +448,15 @@ export function VerifiedCapitalPage() {
             </li>
             <li>
               Chain ID <code className="text-foreground">10143</code>; fund MON
-              (gas) + aUSD-D
+              (gas) + {assetSymbol}
             </li>
             <li>
-              Both sender and recipient need active A-Passes — screen them below
-              first
+              Create an OWS scoped API key for that wallet (required to execute)
             </li>
             <li>
-              Any <code className="text-foreground">POST /api/spend</code> on
-              that wallet runs the full CVI → policy → CVA loop
+              Optional: mandate with{" "}
+              <code className="text-foreground">settlement.requireVerifiedSettlement</code>{" "}
+              and budget in {assetSymbol}
             </li>
           </ol>
           <div className="flex flex-wrap gap-2 pt-1">
@@ -288,10 +468,10 @@ export function VerifiedCapitalPage() {
               Open Settings
             </Link>
             <Link
-              href="/runs"
+              href="/capital"
               className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[0.8rem] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
             >
-              Runs ledger
+              Capital / allocate
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -308,11 +488,11 @@ export function VerifiedCapitalPage() {
               className="text-sm font-semibold"
               style={{ fontFamily: "var(--font-space-grotesk)" }}
             >
-              Screen identities (CVI)
+              Screen → preview → settle
             </h2>
           </div>
           <p className="text-[10px] text-muted-foreground font-mono">
-            POST /api/cleanverse/screen → query_apass
+            CVI → /api/spend/preview → /api/spend
           </p>
         </div>
 
@@ -322,15 +502,55 @@ export function VerifiedCapitalPage() {
             <span>
               Set <code className="text-foreground">CLEANVERSE_API_ID</code> and{" "}
               <code className="text-foreground">CLEANVERSE_API_KEY</code> on the
-              API host. Until then the spend path still fails closed if a wallet
-              is set to Cleanverse without credentials.
+              API host. Until then the spend path fails closed if a wallet is
+              set to Cleanverse without credentials.
             </span>
           </div>
         )}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Sender (agent wallet)</label>
+            <label className="text-xs font-medium">Cleanverse wallet</label>
+            <select
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
+              value={walletId}
+              onChange={(e) => {
+                const nextId = e.target.value;
+                setWalletId(nextId);
+                const next = wallets.find((w) => w.id === nextId);
+                const addr =
+                  next?.metadata?.cleanverseSenderAddress ||
+                  next?.accounts?.[0]?.address ||
+                  "";
+                if (addr) setSender(addr);
+              }}
+            >
+              <option value="">Select wallet…</option>
+              {wallets.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {(w.name || w.id).slice(0, 40)}
+                  {w.metadata?.executionProvider === "cleanverse" ? " · cleanverse" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Agent</label>
+            <select
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
+              value={agentId}
+              onChange={(e) => setAgentId(e.target.value)}
+            >
+              <option value="">Select agent…</option>
+              {agents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name || a.id}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Sender</label>
             <Input
               placeholder="0x…"
               value={sender}
@@ -347,23 +567,116 @@ export function VerifiedCapitalPage() {
               className="font-mono text-xs"
             />
           </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Amount ({assetSymbol})</label>
+            <Input
+              placeholder="1.00"
+              value={amountHuman}
+              onChange={(e) => setAmountHuman(e.target.value)}
+              className="font-mono text-xs"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Base units: {amountBase ?? "invalid"} ({decimals} decimals)
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Mandate (optional)</label>
+            <select
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
+              value={mandateId}
+              onChange={(e) => setMandateId(e.target.value)}
+            >
+              <option value="">None</option>
+              {mandates.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                  {m.settlement?.requireVerifiedSettlement ? " · verified settlement" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <label className="text-xs font-medium">Purpose / reason</label>
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="text-xs"
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <label className="text-xs font-medium">OWS scoped API key (execute)</label>
+            <Input
+              type="password"
+              placeholder="ows_…"
+              value={owsKey}
+              onChange={(e) => setOwsKey(e.target.value)}
+              className="font-mono text-xs"
+              autoComplete="off"
+            />
+          </div>
         </div>
 
-        <Button
-          onClick={runScreen}
-          disabled={busy || !sender || !recipient || !railLive}
-          className="gap-2"
-        >
-          {busy ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Screening…
-            </>
-          ) : (
-            <>
-              <ShieldCheck className="h-4 w-4" /> Run A-Pass screen
-            </>
-          )}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={runScreen}
+            disabled={busy !== null || !sender || !recipient || !railLive}
+            variant="outline"
+            className="gap-2"
+          >
+            {busy === "screen" ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Screening…
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="h-4 w-4" /> Screen A-Pass
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={runPreview}
+            disabled={
+              busy !== null ||
+              !recipient ||
+              !agentId ||
+              !amountBase ||
+              amountBase === "0"
+            }
+            variant="outline"
+            className="gap-2"
+          >
+            {busy === "preview" ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Previewing…
+              </>
+            ) : (
+              <>
+                <Eye className="h-4 w-4" /> Preview policy
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={runExecute}
+            disabled={
+              busy !== null ||
+              !screening?.ok ||
+              previewStatus === "denied" ||
+              !owsKey.trim() ||
+              !amountBase
+            }
+            className="gap-2"
+          >
+            {busy === "execute" ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Settling…
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" /> Execute CVA spend
+              </>
+            )}
+          </Button>
+        </div>
 
         {error && (
           <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
@@ -379,7 +692,7 @@ export function VerifiedCapitalPage() {
               )}
               <span className="text-sm font-medium">
                 {screening.ok
-                  ? "CVI passed — a Cleanverse-rail spend may proceed to policy and CVA settlement"
+                  ? "CVI passed — proceed to preview / settle"
                   : screening.reason || "CVI screening failed"}
               </span>
             </div>
@@ -389,10 +702,98 @@ export function VerifiedCapitalPage() {
             </div>
           </div>
         )}
+
+        {preview && (
+          <div className="rounded-lg border p-4 space-y-2 text-xs">
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={
+                  previewStatus === "approved"
+                    ? "default"
+                    : previewStatus === "denied"
+                      ? "destructive"
+                      : "secondary"
+                }
+              >
+                preview · {previewStatus || "unknown"}
+              </Badge>
+              {typeof preview.reason === "string" && (
+                <span className="text-muted-foreground">{preview.reason}</span>
+              )}
+            </div>
+            {typeof preview.attestationHash === "string" && (
+              <code className="block truncate text-[10px] text-muted-foreground">
+                attestation {preview.attestationHash}
+              </code>
+            )}
+            {(() => {
+              const cv = preview.cleanverse as
+                | {
+                    screened?: boolean;
+                    ok?: boolean;
+                    policySignals?: { amlCapUsd?: number; riskTier?: string };
+                  }
+                | undefined;
+              if (!cv || typeof preview.cleanverse !== "object") return null;
+              return (
+                <p className="text-muted-foreground">
+                  CVI in preview:{" "}
+                  {cv.ok === false ? "fail" : cv.screened ? "pass" : "skipped"}
+                  {cv.policySignals ? (
+                    <>
+                      {" "}
+                      · AML cap ${cv.policySignals.amlCapUsd ?? "—"} · risk{" "}
+                      {cv.policySignals.riskTier ?? "—"}
+                    </>
+                  ) : null}
+                </p>
+              );
+            })()}
+          </div>
+        )}
+
+        {execution && (
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-3 text-xs">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <span className="text-sm font-medium">
+                Spend {typeof execution.status === "string" ? execution.status : "submitted"}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {runId && (
+                <Link
+                  href={`/runs/${encodeURIComponent(runId)}`}
+                  className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-[0.8rem] font-medium hover:bg-muted"
+                >
+                  Open run
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              )}
+              {txHash && (
+                <a
+                  className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[0.8rem] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                  href={`https://testnet.monadscan.com/tx/${txHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  MonadScan
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
+              <Link
+                href="/capital"
+                className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[0.8rem] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                Review on Capital
+              </Link>
+            </div>
+          </div>
+        )}
       </section>
 
       <p className="relative text-xs text-muted-foreground">
-        Integration details and submission notes:{" "}
+        Integration details:{" "}
         <a
           className="underline"
           href="https://github.com/thisyearnofear/cognivern/blob/main/docs/HACKATHON_SUBMISSION_CLEANVERSE.md"

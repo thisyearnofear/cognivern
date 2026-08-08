@@ -18,8 +18,17 @@ const { creRunStore } = await import("@backend/cre/storage/CreRunStore.js");
 let mandateId = "";
 let verifiedMandateId = "";
 let closedMandateId = "";
+let cleanverseMandateId = "";
 
-function attributionRun(runId: string, mandate: string, asset: string, amount: string, status: string, transactionHash?: string) {
+function attributionRun(
+  runId: string,
+  mandate: string,
+  asset: string,
+  amount: string,
+  status: string,
+  transactionHash?: string,
+  extras?: { provider?: string; compliance?: Record<string, unknown> },
+) {
   return {
     runId,
     projectId: "recommendation-workspace",
@@ -48,6 +57,8 @@ function attributionRun(runId: string, mandate: string, asset: string, amount: s
           consumedAmount: status === "consumed" ? amount : "0",
           status,
           ...(transactionHash ? { transactionHash } : {}),
+          ...(extras?.provider ? { provider: extras.provider } : {}),
+          ...(extras?.compliance ? { compliance: extras.compliance } : {}),
         },
       },
     ],
@@ -105,6 +116,40 @@ beforeAll(async () => {
 
   await creRunStore.add(attributionRun("verified-run-1", verifiedMandateId, "USDC", "500", "consumed", "0x" + "a".repeat(64)) as any);
   await creRunStore.add(attributionRun("held-run-1", mandateId, "USDC", "100", "held") as any);
+
+  cleanverseMandateId = FundedMandateService.create("recommendation-workspace", {
+    name: "Cleanverse settlement mandate",
+    objective: "Requires verified settlement but has only unverified spend",
+    status: "active",
+    budget: {
+      byAsset: { "aUSD-D": { authorizedAmount: "1000000", allocatedAmount: "500000", consumedAmount: "500000" } },
+    },
+    settlement: {
+      requireVerifiedSettlement: true,
+      requireCleanverseIdentity: true,
+      allowedAssets: ["aUSD-D"],
+      chainIds: [10143],
+    },
+  }).id;
+  OutcomeObservationService.create("recommendation-workspace", cleanverseMandateId, {
+    kind: "verified_external_state",
+    value: "2",
+    unit: "leads",
+    observedAt: "2026-08-08T12:00:00.000Z",
+    source: "CRM verified",
+    confidence: "independently_verified",
+    evidence: [{ type: "external_record", reference: "crm://verified-cleanverse/2026-08-08" }],
+  }, "recommendation-observation-cleanverse");
+  await creRunStore.add(
+    attributionRun(
+      "cleanverse-unverified-run",
+      cleanverseMandateId,
+      "aUSD-D",
+      "500000",
+      "consumed",
+      "0x" + "b".repeat(64),
+    ) as any,
+  );
 });
 
 afterAll(() => {
@@ -138,6 +183,15 @@ describe("AllocationRecommendationService", () => {
     const recommendation = await AllocationRecommendationService.generate("recommendation-workspace", closedMandateId);
     expect(recommendation.recommendation.stance).toBe("hold");
     expect(recommendation.recommendation.reasoning.join(" ")).toMatch(/closed|active/i);
+  });
+
+  it("holds when a verified-settlement mandate lacks Cleanverse-attributed spend", async () => {
+    const recommendation = await AllocationRecommendationService.generate(
+      "recommendation-workspace",
+      cleanverseMandateId,
+    );
+    expect(recommendation.recommendation.stance).toBe("hold");
+    expect(recommendation.evidenceCompleteness.blockers.join(" ")).toMatch(/Cleanverse|verified settlement/i);
   });
 
   it("rejects cross-workspace recommendation access", async () => {

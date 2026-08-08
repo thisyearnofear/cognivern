@@ -158,6 +158,7 @@ function migrate(db: Database.Database): void {
       policy_ids TEXT NOT NULL DEFAULT '[]',
       measurement_window TEXT,
       success_metrics TEXT NOT NULL DEFAULT '[]',
+      settlement TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY (workspace_id) REFERENCES workspaces(id)
@@ -259,6 +260,13 @@ function migrate(db: Database.Database): void {
   }
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS outcome_observations_idempotency_unique ON outcome_observations (workspace_id, mandate_id, idempotency_key)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_outcome_observations_mandate ON outcome_observations (workspace_id, mandate_id, observed_at)");
+
+  // Migration: funded_mandates.settlement (Cleanverse / verified-capital constraints)
+  try {
+    db.exec(`ALTER TABLE funded_mandates ADD COLUMN settlement TEXT`);
+  } catch {
+    /* already exists */
+  }
 
   // Migration: add source / webhook_url to workspace_agents (idempotent)
   try {

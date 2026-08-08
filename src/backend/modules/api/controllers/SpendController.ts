@@ -624,9 +624,15 @@ export class SpendController {
       if (!this.validateSourceProvenance(parse.data.metadata, res)) return;
       if (!this.validateMandateReference(req, parse.data.metadata, res)) return;
 
-      // Run policy preview
+      // Run policy preview (includes mandate settlement + CVI when applicable)
+      const owsScopedAccess = req.headers['x-ows-scoped-access'] as string | undefined;
+      const walletId =
+        typeof parse.data.metadata?.walletId === 'string' ? parse.data.metadata.walletId : undefined;
       const preview = await owsWalletService.previewSpend(intent, {
         sourceAuthorizationToken: parse.data.sourceAuthorization,
+        apiKeyToken: owsScopedAccess,
+        walletId,
+        workspaceId: req.workspaceId,
       });
 
       // ChainGPT contract audit

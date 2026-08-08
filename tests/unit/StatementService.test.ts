@@ -62,6 +62,9 @@ describe("StatementService", () => {
     expect(statement.performance.knownUnknowns).toContain("No governed spend attribution records were found in the mandate measurement window.");
     expect(statement.performance.attributionNote).not.toMatch(/ROI|return on token/i);
     expect(statement.contentHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(statement.capital.cleanverseVerifiedSpendByAsset).toEqual({});
+    expect(statement.capital.cleanverseVerifiedShareOfConsumed).toBeNull();
+    expect(statement.performance.evidenceCompleteness.cleanverseVerifiedSpendRecordCount).toBe(0);
   });
 
   it("rejects cross-workspace statement access", async () => {

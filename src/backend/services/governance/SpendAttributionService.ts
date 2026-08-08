@@ -101,6 +101,10 @@ export function getRunSpendAttribution(run: CreRun): SpendAttribution | undefine
     transactionLink: stringField("transactionLink"),
     outcome: stringField("outcome"),
     recordedAt: stringField("recordedAt"),
+    compliance:
+      typeof data.compliance === "object" && data.compliance !== null
+        ? (data.compliance as SpendAttribution["compliance"])
+        : undefined,
   };
 }
 

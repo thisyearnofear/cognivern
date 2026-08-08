@@ -52,12 +52,14 @@ Cognivern is the economic control plane for agentic work. For this hackathon we 
 
 ```
 Agent / operator
-    │  POST /api/spend
+    │  POST /api/spend  (+ optional mandateId)
     ▼
 OwsWalletService.executeSpend
     │  source-auth
+    │  mandate settlement (allowedAssets / chain / requireVerifiedSettlement)
     │  CVI screen (A-Pass) ── deny if fail
-    │  policy evaluation
+    │  derive tier → amlCapUsd / reviewAboveUsd / travelRule → policy metadata
+    │  policy evaluation (Cleanverse AML + tier review rules)
     ▼
 finalizeApprovedSpend
     │  executionProvider === "cleanverse"
@@ -66,7 +68,8 @@ CleanverseExecutionProvider
     │  verify_apass (sender + recipient)
     │  ERC-20 aUSD-D transfer on Monad
     ▼
-CRE artifacts: cleanverse_apass + attestation_result + receipt_verification
+CRE: cleanverse_apass + capital_attribution.compliance + receipt
+Capital statement: cleanverseVerifiedShareOfConsumed → allocation hold if gaps
 ```
 
 ---
@@ -89,7 +92,7 @@ pnpm frontend     # UI → /verified-capital
 pnpm tsx tooling/scripts/demo/test-cleanverse-spend.ts
 
 # Unit tests
-pnpm vitest run tests/unit/CleanverseIdentityService.test.ts tests/unit/OwsWalletCleanverse.test.ts
+pnpm vitest run tests/unit/CleanverseIdentityService.test.ts tests/unit/CleanversePolicySignals.test.ts tests/unit/OwsWalletCleanverse.test.ts tests/unit/FundedMandateService.test.ts tests/unit/AllocationRecommendationService.test.ts
 ```
 
 Configure a wallet in **Settings → Wallets**: execution provider `Cleanverse (Monad aUSD-D)`, chain `10143`. Fund it with MON (gas) and aUSD-D; both parties need active A-Passes.
@@ -99,10 +102,10 @@ Configure a wallet in **Settings → Wallets**: execution provider `Cleanverse (
 ## Demo video script (outline)
 
 1. Open `/verified-capital` — show rail status (API connected, Monad 10143, aUSD-D).
-2. **Screen identities** — fail a wallet without A-Pass; pass a verified pair.
-3. Settings → set wallet to Cleanverse rail (chain 10143).
-4. Trigger a real governed spend — deny on bad identity, then approve + MonadScan tx.
-5. Runs / Observability — `cleanverse_apass` artifact + transfer hash.
+2. **Screen identities** — fail a wallet without A-Pass; pass a verified pair (show tier).
+3. **Preview policy** — amount in aUSD-D; show approve/hold driven by A-Pass tier caps.
+4. **Execute CVA spend** with OWS scoped key — CRE run + MonadScan tx.
+5. Capital → statement shows Cleanverse-verified share; allocation holds if settlement gaps.
 
 *(Record after live credentials + funded Monad wallet are in place.)*
 

@@ -112,6 +112,13 @@ export interface RunReconciliationExecution {
   receiptStatus?: string;
 }
 
+export interface MandateSettlementConstraints {
+  requireVerifiedSettlement?: boolean;
+  allowedAssets?: string[];
+  requireCleanverseIdentity?: boolean;
+  chainIds?: number[];
+}
+
 export interface FundedMandate {
   id: string;
   workspaceId: string;
@@ -123,6 +130,7 @@ export interface FundedMandate {
   policyIds: string[];
   measurementWindow?: { startsAt: string; endsAt?: string };
   successMetrics: Array<{ id: string; name: string; unit: string; target?: string }>;
+  settlement?: MandateSettlementConstraints;
   createdAt: string;
   updatedAt: string;
 }
@@ -166,6 +174,8 @@ export interface FundedMandateStatement {
   capital: {
     byAsset: Record<string, { authorizedAmount: string; allocatedAmount: string; consumedAmount: string; pendingAmount: string }>;
     walletSpendByAsset: Record<string, string>;
+    cleanverseVerifiedSpendByAsset: Record<string, string>;
+    cleanverseVerifiedShareOfConsumed: string | null;
   };
   performance: {
     outcomes: OutcomeObservation[];
@@ -175,6 +185,7 @@ export interface FundedMandateStatement {
       outcomesWithEvidence: number;
       spendRecordCount: number;
       spendRecordsWithTransactionEvidence: number;
+      cleanverseVerifiedSpendRecordCount: number;
     };
     attributionNote: string;
   };
@@ -604,28 +615,62 @@ class ApiClient {
     return this.fetch(`/api/agents/${agentId}`);
   }
 
-  // Spend
+  // Spend — matches SpendController spendIntentSchema
   async previewSpend(params: {
     agentId: string;
-    amount: number;
-    currency: string;
-    description: string;
-  }): Promise<ApiResponse<GovernanceEvaluation>> {
+    recipient: string;
+    amount: string;
+    asset: string;
+    reason: string;
+    metadata?: Record<string, unknown>;
+    sourceAuthorization?: string;
+    owsScopedAccess?: string;
+  }): Promise<ApiResponse<Record<string, unknown>>> {
     return this.fetch('/api/spend/preview', {
       method: 'POST',
-      body: JSON.stringify(params),
+      body: JSON.stringify({
+        agentId: params.agentId,
+        recipient: params.recipient,
+        amount: params.amount,
+        asset: params.asset,
+        reason: params.reason,
+        metadata: params.metadata,
+        sourceAuthorization: params.sourceAuthorization,
+      }),
+      headers: params.owsScopedAccess
+        ? { 'x-ows-scoped-access': params.owsScopedAccess }
+        : undefined,
     });
   }
 
   async executeSpend(params: {
     agentId: string;
-    amount: number;
-    currency: string;
-    description: string;
+    recipient: string;
+    amount: string;
+    asset: string;
+    reason: string;
+    metadata?: Record<string, unknown>;
+    attestationHash?: string;
+    humanConfirmationToken?: string;
+    sourceAuthorization?: string;
+    owsScopedAccess?: string;
   }): Promise<ApiResponse<Record<string, unknown>>> {
     return this.fetch('/api/spend', {
       method: 'POST',
-      body: JSON.stringify(params),
+      body: JSON.stringify({
+        agentId: params.agentId,
+        recipient: params.recipient,
+        amount: params.amount,
+        asset: params.asset,
+        reason: params.reason,
+        metadata: params.metadata,
+        attestationHash: params.attestationHash,
+        humanConfirmationToken: params.humanConfirmationToken,
+        sourceAuthorization: params.sourceAuthorization,
+      }),
+      headers: params.owsScopedAccess
+        ? { 'x-ows-scoped-access': params.owsScopedAccess }
+        : undefined,
     });
   }
 

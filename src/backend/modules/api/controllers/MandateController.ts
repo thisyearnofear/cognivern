@@ -41,6 +41,14 @@ const bodySchema = z.object({
     .object({ startsAt: z.string().datetime(), endsAt: z.string().datetime().optional() })
     .optional(),
   successMetrics: z.array(metricSchema).max(100).optional(),
+  settlement: z
+    .object({
+      requireCleanverseIdentity: z.boolean().optional(),
+      requireVerifiedSettlement: z.boolean().optional(),
+      allowedAssets: z.array(z.string().min(1).max(40)).max(20).optional(),
+      chainIds: z.array(z.number().int()).max(20).optional(),
+    })
+    .optional(),
 });
 
 function workspaceId(req: Request, res: Response): string | undefined {

@@ -10,6 +10,17 @@ export interface MandateBudgetAsset {
   pendingAmount: string;
 }
 
+export interface MandateSettlementConstraints {
+  /** When true, A-Pass screening is required for spends under this mandate. */
+  requireCleanverseIdentity?: boolean;
+  /** When set, intent.asset must be one of these (e.g. ["aUSD-D"]). */
+  allowedAssets?: string[];
+  /** When set, wallet/spend chain must match (e.g. [10143]). */
+  chainIds?: number[];
+  /** When true, consumed spend must settle via Cleanverse CVA (aUSD-D). */
+  requireVerifiedSettlement?: boolean;
+}
+
 export interface FundedMandate {
   id: string;
   workspaceId: string;
@@ -26,6 +37,7 @@ export interface FundedMandate {
     unit: string;
     target?: string;
   }>;
+  settlement?: MandateSettlementConstraints;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +51,7 @@ export interface CreateFundedMandateInput {
   policyIds?: string[];
   measurementWindow?: { startsAt: string; endsAt?: string };
   successMetrics?: FundedMandate["successMetrics"];
+  settlement?: MandateSettlementConstraints;
 }
 
 export type UpdateFundedMandateInput = Partial<CreateFundedMandateInput>;
@@ -92,6 +105,31 @@ function normalizeBudget(
   return { byAsset };
 }
 
+function normalizeSettlement(
+  settlement: MandateSettlementConstraints | undefined,
+): MandateSettlementConstraints | undefined {
+  if (!settlement) return undefined;
+  const allowedAssets = settlement.allowedAssets
+    ?.map((asset) => asset.trim())
+    .filter(Boolean);
+  const chainIds = settlement.chainIds?.filter((id) => Number.isFinite(id));
+  const next: MandateSettlementConstraints = {
+    requireCleanverseIdentity: settlement.requireCleanverseIdentity === true,
+    requireVerifiedSettlement: settlement.requireVerifiedSettlement === true,
+    ...(allowedAssets && allowedAssets.length > 0 ? { allowedAssets } : {}),
+    ...(chainIds && chainIds.length > 0 ? { chainIds } : {}),
+  };
+  if (
+    !next.requireCleanverseIdentity &&
+    !next.requireVerifiedSettlement &&
+    !next.allowedAssets &&
+    !next.chainIds
+  ) {
+    return undefined;
+  }
+  return next;
+}
+
 function rowToMandate(row: Row): FundedMandate {
   return {
     id: row.id as string,
@@ -104,6 +142,7 @@ function rowToMandate(row: Row): FundedMandate {
     policyIds: parseJson(row.policy_ids, []),
     measurementWindow: parseJson(row.measurement_window, undefined),
     successMetrics: parseJson(row.success_metrics, []),
+    settlement: normalizeSettlement(parseJson(row.settlement, undefined)),
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };
@@ -164,13 +203,14 @@ export const FundedMandateService = {
     const policyIds = [...new Set(input.policyIds || [])];
     validateWorkspaceReferences(workspaceId, agentIds, policyIds);
     const budget = normalizeBudget(input.budget);
+    const settlement = normalizeSettlement(input.settlement);
     const id = `mandate-${randomUUID().slice(0, 12)}`;
     const now = new Date().toISOString();
     getDb()
       .prepare(
         `INSERT INTO funded_mandates
-          (id, workspace_id, name, objective, agent_ids, status, budget_by_asset, policy_ids, measurement_window, success_metrics, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (id, workspace_id, name, objective, agent_ids, status, budget_by_asset, policy_ids, measurement_window, success_metrics, settlement, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -183,6 +223,7 @@ export const FundedMandateService = {
         JSON.stringify(policyIds),
         input.measurementWindow ? JSON.stringify(input.measurementWindow) : null,
         JSON.stringify(input.successMetrics || []),
+        settlement ? JSON.stringify(settlement) : null,
         now,
         now,
       );
@@ -200,6 +241,10 @@ export const FundedMandateService = {
     const policyIds = updates.policyIds ? [...new Set(updates.policyIds)] : existing.policyIds;
     validateWorkspaceReferences(workspaceId, agentIds, policyIds);
     const budget = updates.budget ? normalizeBudget(updates.budget, existing.budget) : existing.budget;
+    const settlement =
+      updates.settlement !== undefined
+        ? normalizeSettlement(updates.settlement)
+        : existing.settlement;
     const next: FundedMandate = {
       ...existing,
       name: updates.name?.trim() || existing.name,
@@ -210,12 +255,13 @@ export const FundedMandateService = {
       policyIds,
       measurementWindow: updates.measurementWindow ?? existing.measurementWindow,
       successMetrics: updates.successMetrics ?? existing.successMetrics,
+      settlement,
       updatedAt: new Date().toISOString(),
     };
     if (!next.name || !next.objective) throw new Error("Mandate name and objective are required");
     getDb()
       .prepare(
-        `UPDATE funded_mandates SET name = ?, objective = ?, agent_ids = ?, status = ?, budget_by_asset = ?, policy_ids = ?, measurement_window = ?, success_metrics = ?, updated_at = ? WHERE id = ? AND workspace_id = ?`,
+        `UPDATE funded_mandates SET name = ?, objective = ?, agent_ids = ?, status = ?, budget_by_asset = ?, policy_ids = ?, measurement_window = ?, success_metrics = ?, settlement = ?, updated_at = ? WHERE id = ? AND workspace_id = ?`,
       )
       .run(
         next.name,
@@ -226,6 +272,7 @@ export const FundedMandateService = {
         JSON.stringify(next.policyIds),
         next.measurementWindow ? JSON.stringify(next.measurementWindow) : null,
         JSON.stringify(next.successMetrics),
+        next.settlement ? JSON.stringify(next.settlement) : null,
         next.updatedAt,
         mandateId,
         workspaceId,

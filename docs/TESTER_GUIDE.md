@@ -159,12 +159,13 @@ Cleanverse is a first-class spend rail: **CVI (A-Pass)** before policy approval,
 
 1. Open **Operate → Verified Capital** (`/verified-capital`).
 2. Confirm rail status (API connected, Monad `10143`, aUSD-D).
-3. **Screen identities** with real wallet addresses (requires API credentials).
-4. In **Settings → Wallets**, set execution provider to
-   **Cleanverse (Monad aUSD-D)** and chain ID `10143`. Fund MON + aUSD-D; both
-   parties need active A-Passes.
-5. Execute a governed spend on that wallet — CRE runs include `cleanverse_apass`
-   and MonadScan tx links. Observability has a Cleanverse correlation card.
+3. Arm a wallet (Settings → Cleanverse provider, chain `10143`) and create an
+   OWS scoped API key for it. Optionally attach a mandate with
+   `settlement.requireVerifiedSettlement` and an `aUSD-D` budget.
+4. On Verified Capital: **Screen A-Pass** → **Preview policy** (tier caps apply)
+   → **Execute CVA spend** with the scoped key.
+5. Follow the run / MonadScan link; Capital shows Cleanverse-verified share and
+   holds next-allocation when settlement evidence is missing.
 
 Details: [HACKATHON_SUBMISSION_CLEANVERSE.md](./HACKATHON_SUBMISSION_CLEANVERSE.md).
 

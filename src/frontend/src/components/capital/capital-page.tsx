@@ -247,10 +247,11 @@ export function CapitalPage() {
             </div>
             <code className="max-w-full truncate rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground" title={statement.contentHash}>sha256:{statement.contentHash}</code>
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{statement.performance.evidenceCompleteness.spendRecordCount}</div><div className="text-xs text-muted-foreground">Spend records</div></div>
             <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{statement.performance.evidenceCompleteness.outcomeCount}</div><div className="text-xs text-muted-foreground">Observed outcomes</div></div>
-            <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{statement.performance.knownUnknowns.length}</div><div className="text-xs text-muted-foreground">Known unknowns</div></div>
+            <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{statement.performance.evidenceCompleteness.cleanverseVerifiedSpendRecordCount ?? 0}</div><div className="text-xs text-muted-foreground">Cleanverse-verified spends</div></div>
+            <div className="rounded-lg bg-muted/40 p-3"><div className="text-lg font-semibold">{statement.capital.cleanverseVerifiedShareOfConsumed != null ? `${(Number(statement.capital.cleanverseVerifiedShareOfConsumed) / 100).toFixed(0)}%` : '—'}</div><div className="text-xs text-muted-foreground">Verified share of consumed</div></div>
           </div>
           {statement.performance.knownUnknowns.length > 0 && <div className="mt-4 rounded-lg border border-dashed p-3 text-sm"><div className="font-medium">Review before allocation decisions</div><ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">{statement.performance.knownUnknowns.map((unknown) => <li key={unknown}>{unknown}</li>)}</ul></div>}
         </section>

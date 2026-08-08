@@ -34,6 +34,7 @@ function stanceReasoning(
   verifiedOutcomeCount: number,
   uncertainCount: number,
   remainingByAsset: Record<string, string>,
+  complianceBlockers: string[],
 ): { stance: RecommendationStance; reasoning: string[] } {
   const reasoning: string[] = [];
 
@@ -49,6 +50,9 @@ function stanceReasoning(
   if (uncertainCount > 0) {
     reasoning.push(`${uncertainCount} spend attribution record(s) remain uncertain and must be reconciled first.`);
   }
+  for (const blocker of complianceBlockers) {
+    reasoning.push(blocker);
+  }
 
   const hasHeadroom = Object.values(remainingByAsset).some((amount) => BigInt(amount) > 0n);
   if (!hasHeadroom) {
@@ -60,7 +64,8 @@ function stanceReasoning(
     verifiedOutcomeCount > 0 &&
     uncertainCount === 0 &&
     hasHeadroom &&
-    statement.performance.knownUnknowns.length === 0;
+    statement.performance.knownUnknowns.length === 0 &&
+    complianceBlockers.length === 0;
 
   if (readyForRecommendation) {
     return {
@@ -96,6 +101,27 @@ export const AllocationRecommendationService = {
     if (spendRecordCount === 0) blockers.push("No governed spend attribution records were found.");
     if (verifiedSpendRecordCount === 0) blockers.push("No spend records carry receipt-backed transaction evidence.");
     if (uncertainCount > 0) blockers.push("Uncertain spend attribution records require reconciliation.");
+
+    const complianceBlockers: string[] = [];
+    const settlement = statement.mandate.settlement;
+    if (settlement?.requireCleanverseIdentity || settlement?.requireVerifiedSettlement) {
+      const unverified = statement.performance.knownUnknowns.filter((unknown) =>
+        /Cleanverse verified settlement|CVI screening/i.test(unknown),
+      );
+      for (const unknown of unverified) {
+        complianceBlockers.push(unknown);
+        blockers.push(unknown);
+      }
+      if (
+        statement.performance.evidenceCompleteness.cleanverseVerifiedSpendRecordCount === 0 &&
+        statement.performance.evidenceCompleteness.spendRecordCount > 0
+      ) {
+        const msg =
+          "Mandate requires Cleanverse verified settlement but no Cleanverse-settled spend records were found.";
+        complianceBlockers.push(msg);
+        blockers.push(msg);
+      }
+    }
 
     const score = blockers.length === 0
       ? 1
@@ -140,6 +166,7 @@ export const AllocationRecommendationService = {
       verifiedOutcomeCount,
       uncertainCount,
       remainingByAsset,
+      complianceBlockers,
     );
 
     return {

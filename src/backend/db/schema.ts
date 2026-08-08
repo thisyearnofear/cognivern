@@ -139,6 +139,7 @@ export const fundedMandates = sqliteTable(
     policyIds: text("policy_ids").notNull().default("[]"),
     measurementWindow: text("measurement_window"),
     successMetrics: text("success_metrics").notNull().default("[]"),
+    settlement: text("settlement"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },

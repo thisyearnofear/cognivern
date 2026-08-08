@@ -104,6 +104,46 @@ describe("FundedMandateService", () => {
     ).toThrow(/authorized amount/i);
   });
 
+  it("persists and returns settlement constraints for verified capital mandates", () => {
+    const created = FundedMandateService.create("workspace-mandate-a", {
+      name: "Verified aUSD-D mandate",
+      objective: "Settle only Cleanverse-verified capital",
+      agentIds: ["agent-mandate-a"],
+      policyIds: ["policy-mandate-a"],
+      status: "active",
+      budget: {
+        byAsset: {
+          "aUSD-D": { authorizedAmount: "1000000", pendingAmount: "0" },
+        },
+      },
+      settlement: {
+        requireCleanverseIdentity: true,
+        requireVerifiedSettlement: true,
+        allowedAssets: ["aUSD-D"],
+        chainIds: [10143],
+      },
+    });
+
+    expect(created.settlement).toEqual({
+      requireCleanverseIdentity: true,
+      requireVerifiedSettlement: true,
+      allowedAssets: ["aUSD-D"],
+      chainIds: [10143],
+    });
+
+    const updated = FundedMandateService.update("workspace-mandate-a", created.id, {
+      settlement: {
+        requireVerifiedSettlement: true,
+        allowedAssets: ["aUSD-D"],
+      },
+    });
+    expect(updated?.settlement).toEqual({
+      requireCleanverseIdentity: false,
+      requireVerifiedSettlement: true,
+      allowedAssets: ["aUSD-D"],
+    });
+  });
+
   it("filters attribution by mandate without affecting legacy records", () => {
     const makeRun = (runId: string, mandateId?: string) => ({
       runId,

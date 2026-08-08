@@ -21,6 +21,15 @@ export interface SpendAttribution {
   transactionLink?: string;
   outcome?: string;
   recordedAt?: string;
+  compliance?: {
+    cviOk?: boolean;
+    provider?: string;
+    tier?: string;
+    amlCapUsd?: number;
+    travelRuleRequired?: boolean;
+    riskTier?: string;
+    verifiedSettlement?: boolean;
+  };
 }
 export type CreRunStatus =
   | 'queued'

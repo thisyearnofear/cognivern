@@ -9,6 +9,7 @@ import { createHash } from "node:crypto";
 export class OwsWalletPolicyEvaluator {
   toAgentAction(intent: SpendIntent): AgentAction {
     const amountValue = Number(intent.amount);
+    const cleanverse = intent.metadata?.cleanverse as Record<string, unknown> | undefined;
     const metadata = {
       ...(intent.metadata || {}),
       agentId: intent.agentId,
@@ -17,6 +18,14 @@ export class OwsWalletPolicyEvaluator {
       amountUsd: this.resolveAmountUsd(intent, amountValue),
       asset: intent.asset,
       recipient: intent.recipient,
+      cleanverseTier: typeof cleanverse?.senderTier === "string" ? cleanverse.senderTier : undefined,
+      cleanverseAmlCapUsd:
+        typeof cleanverse?.amlCapUsd === "number" ? cleanverse.amlCapUsd : undefined,
+      cleanverseReviewAboveUsd:
+        typeof cleanverse?.reviewAboveUsd === "number" ? cleanverse.reviewAboveUsd : undefined,
+      cleanverseTravelRuleRequired: cleanverse?.travelRuleRequired === true,
+      cleanverseRiskTier:
+        typeof cleanverse?.riskTier === "string" ? cleanverse.riskTier : undefined,
     };
 
     return {
@@ -35,7 +44,17 @@ export class OwsWalletPolicyEvaluator {
       return metadataAmountUsd;
     }
 
-    if (["USD", "USDC", "USDT"].includes(intent.asset.toUpperCase())) {
+    const asset = intent.asset.toUpperCase();
+    // aUSD-D / aUSDC are 6-decimal stable units; intent.amount is base units.
+    if (["AUSD-D", "AUSDC", "AUSD"].includes(asset) && Number.isFinite(amountValue)) {
+      return amountValue / 1_000_000;
+    }
+
+    if (["USD", "USDC", "USDT"].includes(asset)) {
+      // Prefer base-unit interpretation when amount looks like micro-units
+      if (Number.isFinite(amountValue) && amountValue >= 1000 && Number.isInteger(amountValue)) {
+        return amountValue / 1_000_000;
+      }
       return Number.isFinite(amountValue) ? amountValue : 0;
     }
 

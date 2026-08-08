@@ -21,4 +21,9 @@ export type {
   CleanverseTransferResult,
   CleanverseTransferError,
 } from "./CleanverseExecutionProvider.js";
+export {
+  deriveCleanversePolicySignals,
+  summarizeAPass,
+} from "./CleanversePolicySignals.js";
+export type { CleanversePolicySignals } from "./CleanversePolicySignals.js";
 export { encodePayload, decodePayload, encryptAes, decryptAes } from "./crypto.js";

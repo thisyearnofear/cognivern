@@ -19,13 +19,15 @@ import { keeperHubExecutionProvider } from './KeeperHubExecutionProvider.js';
 import {
   cleanverseExecutionProvider,
   cleanverseIdentityService,
+  deriveCleanversePolicySignals,
+  summarizeAPass,
   type CleanverseIdentityScreening,
 } from './cleanverse/index.js';
 import {
   sourceAwareSpendAuthorizationService,
   SpendSourceProvenance,
 } from '@backend/services/governance/SourceAwareSpendAuthorization.js';
-import { FundedMandateService } from '@backend/services/governance/FundedMandateService.js';
+import { FundedMandateService, type FundedMandate } from '@backend/services/governance/FundedMandateService.js';
 
 export interface SpendIntent {
   id: string;
@@ -227,17 +229,56 @@ export class OwsWalletService {
         );
       }
 
+      // Mandate settlement constraints (optional Cleanverse / asset / chain rules).
+      const mandateEnforcement = this.enforceMandateSettlement(intent, access, context);
+      if (mandateEnforcement) {
+        if (mandateEnforcement.denyReason) {
+          return await this.handleDeny(
+            intent,
+            recorder,
+            mandateEnforcement.denyReason,
+            [],
+            'mandate-settlement',
+            access,
+          );
+        }
+        if (mandateEnforcement.forceCleanverseIdentity) {
+          intent.metadata = {
+            ...(intent.metadata || {}),
+            requireCleanverseIdentity: true,
+          };
+        }
+        if (mandateEnforcement.normalizedAsset) {
+          intent.asset = mandateEnforcement.normalizedAsset;
+        }
+      }
+
       // CVI gate — A-Pass screening before policy evaluation when the wallet
       // is on the Cleanverse rail (or identity is explicitly required).
       const cleanverseScreening = await this.screenCleanverseIdentity(intent, access);
       if (cleanverseScreening) {
+        const policySignals = cleanverseScreening.ok
+          ? deriveCleanversePolicySignals(cleanverseScreening)
+          : undefined;
         intent.metadata = {
           ...(intent.metadata || {}),
           cleanverseIdentity: cleanverseScreening,
+          ...(policySignals
+            ? {
+                cleanverse: {
+                  ...policySignals,
+                  sender: summarizeAPass(cleanverseScreening.sender.aPass),
+                  recipient: summarizeAPass(cleanverseScreening.recipient.aPass),
+                },
+              }
+            : {}),
         };
         await recorder.addArtifact({
           type: 'cleanverse_apass',
-          data: cleanverseScreening,
+          data: {
+            ...cleanverseScreening,
+            policySignals,
+          },
         });
         if (!cleanverseScreening.ok) {
           return await this.handleDeny(
@@ -249,6 +290,22 @@ export class OwsWalletService {
             access,
           );
         }
+      }
+
+      // Mandates that require verified settlement must run on the Cleanverse rail.
+      const mandate = this.resolveMandate(intent, context);
+      if (
+        mandate?.settlement?.requireVerifiedSettlement &&
+        (access?.wallet.metadata?.executionProvider as string) !== 'cleanverse'
+      ) {
+        return await this.handleDeny(
+          intent,
+          recorder,
+          'Mandate requires Cleanverse verified settlement (executionProvider=cleanverse)',
+          [],
+          'mandate-settlement',
+          access,
+        );
       }
 
       const step = recorder.startStep('compute', 'policy_evaluation', {
@@ -1175,6 +1232,25 @@ export class OwsWalletService {
         : recorder.getRun().projectId;
     const requestedAmount = intent.amount;
     const recordedAt = new Date().toISOString();
+    const cleanverse = metadata.cleanverse as Record<string, unknown> | undefined;
+    const cleanverseIdentity = metadata.cleanverseIdentity as CleanverseIdentityScreening | undefined;
+    const compliance =
+      cleanverse || cleanverseIdentity
+        ? {
+            cviOk: cleanverseIdentity?.ok === true,
+            provider: params.provider,
+            tier:
+              typeof cleanverse?.senderTier === 'string'
+                ? cleanverse.senderTier
+                : undefined,
+            amlCapUsd:
+              typeof cleanverse?.amlCapUsd === 'number' ? cleanverse.amlCapUsd : undefined,
+            travelRuleRequired: cleanverse?.travelRuleRequired === true,
+            riskTier:
+              typeof cleanverse?.riskTier === 'string' ? cleanverse.riskTier : undefined,
+            verifiedSettlement: params.provider === 'cleanverse' && params.status === 'consumed',
+          }
+        : undefined;
 
     await recorder.addArtifact({
       type: 'capital_attribution',
@@ -1198,8 +1274,134 @@ export class OwsWalletService {
         transactionLink: params.transactionLink,
         outcome: params.outcome,
         recordedAt,
+        ...(compliance ? { compliance } : {}),
       },
     });
+  }
+
+  private resolveMandate(
+    intent: SpendIntent,
+    context: SpendExecutionContext,
+  ): FundedMandate | undefined {
+    const mandateId =
+      typeof intent.metadata?.mandateId === 'string' ? intent.metadata.mandateId.trim() : undefined;
+    if (!mandateId || !context.workspaceId) return undefined;
+    return FundedMandateService.get(context.workspaceId, mandateId);
+  }
+
+  private enforceMandateSettlement(
+    intent: SpendIntent,
+    access: OwsResolvedAccess | null | undefined,
+    context: SpendExecutionContext,
+  ): {
+    denyReason?: string;
+    forceCleanverseIdentity?: boolean;
+    normalizedAsset?: string;
+  } | null {
+    const mandate = this.resolveMandate(intent, context);
+    const settlement = mandate?.settlement;
+    if (!settlement) return null;
+
+    const result: {
+      denyReason?: string;
+      forceCleanverseIdentity?: boolean;
+      normalizedAsset?: string;
+    } = {};
+
+    if (settlement.requireCleanverseIdentity || settlement.requireVerifiedSettlement) {
+      result.forceCleanverseIdentity = true;
+    }
+
+    if (settlement.allowedAssets && settlement.allowedAssets.length > 0) {
+      const allowed = new Map(
+        settlement.allowedAssets.map((asset) => [asset.toUpperCase(), asset]),
+      );
+      const match = allowed.get(intent.asset.toUpperCase());
+      if (!match) {
+        result.denyReason = `Mandate settlement allows only: ${settlement.allowedAssets.join(', ')} (got ${intent.asset})`;
+        return result;
+      }
+      result.normalizedAsset = match;
+    }
+
+    if (settlement.chainIds && settlement.chainIds.length > 0 && access) {
+      const rawChainId = access.wallet.metadata?.chainId;
+      const walletChainId =
+        typeof rawChainId === 'number'
+          ? rawChainId
+          : typeof rawChainId === 'string'
+            ? Number(rawChainId)
+            : undefined;
+      if (walletChainId === undefined || !settlement.chainIds.includes(walletChainId)) {
+        result.denyReason = `Mandate settlement requires chain ${settlement.chainIds.join(', ')} (wallet chain ${walletChainId ?? 'unset'})`;
+        return result;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * When the wallet is on the Cleanverse rail (or identity is required),
+   * screen sender + recipient A-Pass before policy evaluation.
+   */
+  private async screenCleanverseIdentity(
+    intent: SpendIntent,
+    access?: OwsResolvedAccess | null,
+  ): Promise<CleanverseIdentityScreening | null> {
+    const meta = access?.wallet.metadata || {};
+    const executionProvider = (meta.executionProvider as string) || 'local';
+    const requireIdentity =
+      meta.requireCleanverseIdentity === true ||
+      intent.metadata?.requireCleanverseIdentity === true;
+    const needsScreening =
+      executionProvider === 'cleanverse' ||
+      requireIdentity ||
+      cleanverseConfig.gateAllSpends;
+
+    if (!needsScreening) {
+      return null;
+    }
+
+    if (!cleanverseConfig.enabled) {
+      return {
+        required: true,
+        chain: cleanverseConfig.chain,
+        sender: {
+          address: '',
+          ok: false,
+          reason: 'Cleanverse is not configured (missing API credentials)',
+        },
+        recipient: {
+          address: intent.recipient,
+          ok: false,
+          reason: 'Cleanverse is not configured (missing API credentials)',
+        },
+        ok: false,
+        reason:
+          'Cleanverse CVI screening required but CLEANVERSE_API_ID / CLEANVERSE_API_KEY are not set',
+      };
+    }
+
+    const sender =
+      (typeof meta.cleanverseSenderAddress === 'string' && meta.cleanverseSenderAddress) ||
+      access?.wallet.accounts[0]?.address;
+    if (!sender) {
+      return {
+        required: true,
+        chain: cleanverseConfig.chain,
+        sender: { address: '', ok: false, reason: 'Sender wallet address unavailable' },
+        recipient: { address: intent.recipient, ok: false, reason: 'Sender unavailable' },
+        ok: false,
+        reason: 'Cannot screen Cleanverse identity without a sender wallet address',
+      };
+    }
+
+    return cleanverseIdentityService.screenAddresses(
+      sender,
+      intent.recipient,
+      cleanverseConfig.chain,
+    );
   }
 
   private async handleHold(
@@ -1329,67 +1531,6 @@ export class OwsWalletService {
     };
   }
 
-  /**
-   * When the wallet is on the Cleanverse rail (or identity is required),
-   * screen sender + recipient A-Pass before policy evaluation.
-   */
-  private async screenCleanverseIdentity(
-    intent: SpendIntent,
-    access?: OwsResolvedAccess | null,
-  ): Promise<CleanverseIdentityScreening | null> {
-    const meta = access?.wallet.metadata || {};
-    const executionProvider = (meta.executionProvider as string) || 'local';
-    const requireIdentity = meta.requireCleanverseIdentity === true;
-    const needsScreening =
-      executionProvider === 'cleanverse' ||
-      requireIdentity ||
-      cleanverseConfig.gateAllSpends;
-
-    if (!needsScreening) {
-      return null;
-    }
-
-    if (!cleanverseConfig.enabled) {
-      return {
-        required: true,
-        chain: cleanverseConfig.chain,
-        sender: {
-          address: '',
-          ok: false,
-          reason: 'Cleanverse is not configured (missing API credentials)',
-        },
-        recipient: {
-          address: intent.recipient,
-          ok: false,
-          reason: 'Cleanverse is not configured (missing API credentials)',
-        },
-        ok: false,
-        reason:
-          'Cleanverse CVI screening required but CLEANVERSE_API_ID / CLEANVERSE_API_KEY are not set',
-      };
-    }
-
-    const sender =
-      (typeof meta.cleanverseSenderAddress === 'string' && meta.cleanverseSenderAddress) ||
-      access?.wallet.accounts[0]?.address;
-    if (!sender) {
-      return {
-        required: true,
-        chain: cleanverseConfig.chain,
-        sender: { address: '', ok: false, reason: 'Sender wallet address unavailable' },
-        recipient: { address: intent.recipient, ok: false, reason: 'Sender unavailable' },
-        ok: false,
-        reason: 'Cannot screen Cleanverse identity without a sender wallet address',
-      };
-    }
-
-    return cleanverseIdentityService.screenAddresses(
-      sender,
-      intent.recipient,
-      cleanverseConfig.chain,
-    );
-  }
-
   public async previewSpend(
     intent: SpendIntent,
     context: SpendExecutionContext = {},
@@ -1403,9 +1544,15 @@ export class OwsWalletService {
       gasEstimate?: string;
       warnings: string[];
     };
+    cleanverse?: {
+      screened: boolean;
+      ok?: boolean;
+      policySignals?: ReturnType<typeof deriveCleanversePolicySignals>;
+    };
   }> {
     const access = await this.resolveAccess(intent, {
       apiKeyToken: context.apiKeyToken || (intent.metadata?.apiKeyToken as string | undefined),
+      walletId: context.walletId,
     });
 
     const sourceAuthorization = sourceAwareSpendAuthorizationService.evaluate({
@@ -1429,6 +1576,84 @@ export class OwsWalletService {
       };
     }
 
+    const mandateEnforcement = this.enforceMandateSettlement(intent, access, context);
+    if (mandateEnforcement?.denyReason) {
+      return {
+        intentId: intent.id,
+        status: 'denied',
+        reason: mandateEnforcement.denyReason,
+        simulation: { wouldExecute: false, warnings: [mandateEnforcement.denyReason] },
+      };
+    }
+    if (mandateEnforcement?.forceCleanverseIdentity) {
+      intent.metadata = {
+        ...(intent.metadata || {}),
+        requireCleanverseIdentity: true,
+      };
+    }
+    if (mandateEnforcement?.normalizedAsset) {
+      intent.asset = mandateEnforcement.normalizedAsset;
+    }
+
+    const mandate = this.resolveMandate(intent, context);
+    if (
+      mandate?.settlement?.requireVerifiedSettlement &&
+      (access?.wallet.metadata?.executionProvider as string) !== 'cleanverse'
+    ) {
+      const reason =
+        'Mandate requires Cleanverse verified settlement (executionProvider=cleanverse)';
+      return {
+        intentId: intent.id,
+        status: 'denied',
+        reason,
+        simulation: { wouldExecute: false, warnings: [reason] },
+      };
+    }
+
+    let cleanverseMeta:
+      | {
+          screened: boolean;
+          ok?: boolean;
+          policySignals?: ReturnType<typeof deriveCleanversePolicySignals>;
+        }
+      | undefined;
+    const cleanverseScreening = await this.screenCleanverseIdentity(intent, access);
+    if (cleanverseScreening) {
+      const policySignals = cleanverseScreening.ok
+        ? deriveCleanversePolicySignals(cleanverseScreening)
+        : undefined;
+      intent.metadata = {
+        ...(intent.metadata || {}),
+        cleanverseIdentity: cleanverseScreening,
+        ...(policySignals
+          ? {
+              cleanverse: {
+                ...policySignals,
+                sender: summarizeAPass(cleanverseScreening.sender.aPass),
+                recipient: summarizeAPass(cleanverseScreening.recipient.aPass),
+              },
+            }
+          : {}),
+      };
+      cleanverseMeta = {
+        screened: true,
+        ok: cleanverseScreening.ok,
+        policySignals,
+      };
+      if (!cleanverseScreening.ok) {
+        return {
+          intentId: intent.id,
+          status: 'denied',
+          reason: cleanverseScreening.reason || 'Cleanverse CVI (A-Pass) screening failed',
+          simulation: {
+            wouldExecute: false,
+            warnings: [cleanverseScreening.reason || 'CVI screening failed'],
+          },
+          cleanverse: cleanverseMeta,
+        };
+      }
+    }
+
     const activePolicy = await this.policyEvaluator.resolveActiveSpendPolicy(
       this.policyService,
       access?.apiKey?.policyIds?.[0] ||
@@ -1444,6 +1669,7 @@ export class OwsWalletService {
           wouldExecute: false,
           warnings: ['No policy configured - spend would be held for review'],
         },
+        cleanverse: cleanverseMeta,
       };
     }
 
@@ -1481,6 +1707,7 @@ export class OwsWalletService {
           .filter((c) => !c.result)
           .map((c) => c.reason || `Policy check failed`),
       },
+      cleanverse: cleanverseMeta,
     };
   }
 

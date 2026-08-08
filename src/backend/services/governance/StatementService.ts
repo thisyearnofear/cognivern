@@ -21,6 +21,9 @@ export interface FundedMandateStatement {
       pendingAmount: string;
     }>;
     walletSpendByAsset: Record<string, string>;
+    /** Consumed amounts attributed to Cleanverse CVA settlement. */
+    cleanverseVerifiedSpendByAsset: Record<string, string>;
+    cleanverseVerifiedShareOfConsumed: string | null;
   };
   performance: {
     outcomes: OutcomeObservation[];
@@ -30,6 +33,7 @@ export interface FundedMandateStatement {
       outcomesWithEvidence: number;
       spendRecordCount: number;
       spendRecordsWithTransactionEvidence: number;
+      cleanverseVerifiedSpendRecordCount: number;
     };
     attributionNote: string;
   };
@@ -119,6 +123,35 @@ function buildCapital(
         totals[record.asset] = (BigInt(totals[record.asset] || "0") + BigInt(record.consumedAmount)).toString();
         return totals;
       }, {} as Record<string, string>),
+    cleanverseVerifiedSpendByAsset: report.records
+      .filter(
+        (record) =>
+          record.status === "consumed" &&
+          (record.compliance?.verifiedSettlement === true ||
+            record.provider === "cleanverse"),
+      )
+      .reduce((totals, record) => {
+        totals[record.asset] = (
+          BigInt(totals[record.asset] || "0") + BigInt(record.consumedAmount)
+        ).toString();
+        return totals;
+      }, {} as Record<string, string>),
+    cleanverseVerifiedShareOfConsumed: (() => {
+      const consumed = report.records
+        .filter((record) => record.status === "consumed")
+        .reduce((sum, record) => sum + BigInt(record.consumedAmount), 0n);
+      if (consumed === 0n) return null;
+      const verified = report.records
+        .filter(
+          (record) =>
+            record.status === "consumed" &&
+            (record.compliance?.verifiedSettlement === true ||
+              record.provider === "cleanverse"),
+        )
+        .reduce((sum, record) => sum + BigInt(record.consumedAmount), 0n);
+      // Basis points as integer string for stable hashing.
+      return ((verified * 10000n) / consumed).toString();
+    })(),
   };
 }
 
@@ -142,6 +175,33 @@ function buildKnownUnknowns(
   }
   if (report.records.some((record) => record.status === "consumed" && !record.transactionHash)) {
     unknowns.push("One or more consumed attribution records have no transaction hash in their evidence.");
+  }
+
+  if (mandate.settlement?.requireCleanverseIdentity || mandate.settlement?.requireVerifiedSettlement) {
+    const unverifiedConsumed = report.records.filter(
+      (record) =>
+        record.status === "consumed" &&
+        !(
+          record.compliance?.verifiedSettlement === true ||
+          record.provider === "cleanverse"
+        ),
+    );
+    if (unverifiedConsumed.length > 0) {
+      unknowns.push(
+        `${unverifiedConsumed.length} consumed spend record(s) lack Cleanverse verified settlement required by this mandate.`,
+      );
+    }
+    const cviDenied = report.records.filter(
+      (record) =>
+        record.status === "denied" &&
+        typeof record.outcome === "string" &&
+        /CVI|A-Pass|Cleanverse/i.test(record.outcome),
+    );
+    if (cviDenied.length > 0) {
+      unknowns.push(
+        `${cviDenied.length} spend attempt(s) were denied by Cleanverse CVI screening in the measurement window.`,
+      );
+    }
   }
 
   const budgetAssets = new Set(Object.keys(mandate.budget.byAsset));
@@ -195,6 +255,11 @@ export const StatementService = {
     const runIds = [...new Set(report.records.map((record) => record.runId))].sort();
     const allocationIds = [...new Set(report.records.map((record) => record.allocationId))].sort();
     const outcomesWithEvidence = observations.filter((observation) => observation.evidence.length > 0).length;
+    const cleanverseVerifiedSpendRecordCount = report.records.filter(
+      (record) =>
+        record.status === "consumed" &&
+        (record.compliance?.verifiedSettlement === true || record.provider === "cleanverse"),
+    ).length;
 
     const payload: StatementPayload = {
       version: 1,
@@ -209,6 +274,7 @@ export const StatementService = {
           outcomesWithEvidence,
           spendRecordCount: report.records.length,
           spendRecordsWithTransactionEvidence: report.records.filter((record) => Boolean(record.transactionHash)).length,
+          cleanverseVerifiedSpendRecordCount,
         },
         attributionNote: "This statement links governed spend to observed evidence; it does not establish causal attribution or financial performance.",
       },

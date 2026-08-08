@@ -29,6 +29,21 @@
       }
     },
     {
+      "id": "deny-over-cleanverse-aml-cap",
+      "type": "DENY",
+      "condition": "action.metadata.cleanverseAmlCapUsd != null && Number(action.metadata.amountUsd || 0) > Number(action.metadata.cleanverseAmlCapUsd)",
+      "action": {
+        "type": "block",
+        "parameters": {
+          "reason": "Spend exceeds the Cleanverse A-Pass tier AML cap"
+        }
+      },
+      "metadata": {
+        "severity": "high",
+        "category": "cleanverse-cvi"
+      }
+    },
+    {
       "id": "deny-unapproved-vendor",
       "type": "DENY",
       "condition": "action.metadata.vendor && !['stable-email', 'stable-merch', 'approved-supplier'].includes(String(action.metadata.vendor))",
@@ -57,6 +72,36 @@
         "severity": "medium",
         "category": "oversight",
         "reviewRequiredAboveUsd": 100
+      }
+    },
+    {
+      "id": "require-human-review-for-cleanverse-tier",
+      "type": "REQUIRE",
+      "condition": "action.metadata.cleanverseReviewAboveUsd == null || Number(action.metadata.amountUsd || 0) <= Number(action.metadata.cleanverseReviewAboveUsd)",
+      "action": {
+        "type": "escalate",
+        "parameters": {
+          "reason": "Spend exceeds the Cleanverse A-Pass tier review threshold"
+        }
+      },
+      "metadata": {
+        "severity": "medium",
+        "category": "cleanverse-cvi"
+      }
+    },
+    {
+      "id": "require-travel-rule-note-for-cleanverse",
+      "type": "REQUIRE",
+      "condition": "!action.metadata.cleanverseTravelRuleRequired || Boolean(String(action.description || '').trim())",
+      "action": {
+        "type": "escalate",
+        "parameters": {
+          "reason": "Cross-group Cleanverse transfers require a stated purpose for Travel Rule evidence"
+        }
+      },
+      "metadata": {
+        "severity": "medium",
+        "category": "cleanverse-travel-rule"
       }
     },
     {
